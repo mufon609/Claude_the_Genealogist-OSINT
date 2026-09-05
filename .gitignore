@@ -1,0 +1,11 @@
+archive/
+catalog/*.db
+catalog/*.db-wal
+catalog/*.db-shm
+catalog/.active-tree
+derivatives/
+inbox/*
+!inbox/.gitkeep
+trees/*/imports/
+trees/*/exports/
+__pycache__/

@@ -1,0 +1,95 @@
+{
+  "_comment": "Human-reviewable overrides for the place resolver. 'reject' = not a place. 'extra_queries' = additional candidate lookups to surface in the review proposal. 'note' is attached to the place_string.",
+  "reject": {
+    "Birth of child, Jane Marie Morgan": "event description glued into PLAC, not a place"
+  },
+  "force_review": {
+    "Berthelsdorf, Freiberg, Sachsen, Germany": "Schwenkfelder exiles lived 1726-1734 at Berthelsdorf near HERRNHUT (Zinzendorf estate, Oberlausitz), not Berthelsdorf near Freiberg. Ancestry autocomplete likely picked the wrong one. Verify before accepting.",
+    "Berthelsdorf, Freiberg, Dresden, Sachsen, Germany": "See Berthelsdorf/Herrnhut note.",
+    "Berthelsdorf, Sachsen, Allemagne": "See Berthelsdorf/Herrnhut note.",
+    "Norristown, Chester, Pennsylvania, United States": "Norristown is in Montgomery County (formed 1784 from Philadelphia County). Chester is wrong or refers to a different Norristown.",
+    "Amwell, Hunterdon Co, Pennsylvania, United States": "Hunterdon County is in New Jersey; the string's state is wrong."
+  },
+  "extra_queries": {
+    "Berthelsdorf, Freiberg, Sachsen, Germany": [
+      "Berthelsdorf, Herrnhut, Sachsen, Germany"
+    ],
+    "Berthelsdorf, Freiberg, Dresden, Sachsen, Germany": [
+      "Berthelsdorf, Herrnhut, Sachsen, Germany"
+    ],
+    "Berthelsdorf, Sachsen, Allemagne": [
+      "Berthelsdorf, Herrnhut, Sachsen, Germany",
+      "Berthelsdorf, Freiberg, Sachsen, Germany"
+    ],
+    "Nieder, Harperdorf, Silesia, Poland": [
+      "Twardocice, Pielgrzymka, Lower Silesia, Poland"
+    ],
+    "Broich, Germany": [
+      "Broich, Mülheim an der Ruhr, Germany"
+    ],
+    "Hemp., Nassau, New York": [
+      "Hempstead, Nassau County, New York, United States"
+    ],
+    "Humphrey County, Tennessee, USA": [
+      "Humphreys County, Tennessee, United States"
+    ],
+    "Wooster, Montgomery": [
+      "Worcester, Montgomery County, Pennsylvania, United States"
+    ],
+    "Franklin": [
+      "Franklin, Simpson County, Kentucky, United States",
+      "Franklin County, Massachusetts, United States"
+    ],
+    "Logan": [
+      "Logan County, Kentucky, United States"
+    ],
+    "Simpson": [
+      "Simpson County, Kentucky, United States"
+    ],
+    "Tiro": [
+      "Tiro, Crawford County, Ohio, United States"
+    ],
+    "New Egypt": [
+      "New Egypt, Ocean County, New Jersey, United States"
+    ],
+    "Lancaster": [
+      "Lancaster County, Pennsylvania, United States",
+      "Lancaster, Pennsylvania, United States"
+    ],
+    "Georgia": [
+      "Georgia, United States"
+    ],
+    "Kalagh Cork Great Britain and Ireland": [
+      "Killeagh, County Cork, Ireland"
+    ],
+    "New Goshenhoppen Reform Church, Montgomery, Pennsylvania, USA": [
+      "New Goshenhoppen United Church of Christ, East Greenville, Pennsylvania"
+    ],
+    "New Goshenhoppen Reform Church, Montgomery, Pennsylvania, United States": [
+      "New Goshenhoppen United Church of Christ, East Greenville, Pennsylvania"
+    ],
+    "Worchester, Montgomery, Pennsylvania, USA": [
+      "Worcester Township, Montgomery County, Pennsylvania, United States"
+    ],
+    "Norriton, Montgomery, Pennsylvania": [
+      "East Norriton Township, Montgomery County, Pennsylvania",
+      "West Norriton Township, Montgomery County, Pennsylvania"
+    ],
+    "Norriton Township, Montgomery, Pennsylvania, USA": [
+      "East Norriton Township, Montgomery County, Pennsylvania",
+      "West Norriton Township, Montgomery County, Pennsylvania"
+    ],
+    "Rittenhouse Twp, Germantown, Philadelphia, Pennsylvania, British Colonies, North America": [
+      "RittenhouseTown, Philadelphia, Pennsylvania",
+      "Germantown, Philadelphia, Pennsylvania"
+    ]
+  },
+  "note": {
+    "Nieder, Harperdorf, Silesia, Poland": "German Nieder-Harpersdorf = today Twardocice (gmina Pielgrzymka, Lower Silesia). Schwenkfelder home village. Confirm via GOV (gov.genealogy.net).",
+    "Langneundorf, Silesa, , Germany": "Silesian village; German name. Resolve via GOV / Kartenmeister, then Polish name.",
+    "Schlesien, Germany": "Historic region (Silesia), mostly in Poland since 1945.",
+    "Norriton, Montgomery, Pennsylvania": "Norriton Township split into East and West Norriton in 1909; pre-1909 records mean the undivided township.",
+    "Rittenhouse Twp, Germantown, Philadelphia, Pennsylvania, British Colonies, North America": "RittenhouseTown (1690 paper mill site) in Germantown; not a township.",
+    "Amwell, Hunterdon Co, Pennsylvania, United States": "Hunterdon County is in New Jersey, not Pennsylvania. String is wrong."
+  }
+}

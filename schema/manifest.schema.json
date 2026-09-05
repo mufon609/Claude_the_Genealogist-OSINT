@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tree.local/schema/manifest/0.1.0",
+  "title": "Archive artifact provenance manifest",
+  "type": "object",
+  "required": ["schema_version", "sha256", "bytes", "mime", "retrieved_at", "retrieved_by", "rights"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "bytes": { "type": "integer", "minimum": 1 },
+    "mime": { "type": "string" },
+    "source_id": { "type": "string", "description": "ID column of data/data-sources.csv" },
+    "collection": { "type": "string" },
+    "collection_key": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "properties": { "kind": { "type": "string" }, "value": { "type": "string" } }
+    },
+    "locator": {
+      "type": "object",
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "enum": ["apid", "ark", "naid", "memorial_id", "url", "file", "other"] },
+        "value": { "type": "string" }
+      }
+    },
+    "locator_alt": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "value"],
+        "properties": { "kind": { "type": "string" }, "value": { "type": "string" } }
+      }
+    },
+    "retrieved_at": { "type": "string", "format": "date-time" },
+    "retrieved_by": { "type": "string", "pattern": "^(user|agent):.+" },
+    "http": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "integer" },
+        "etag": { "type": ["string", "null"] },
+        "last_modified": { "type": ["string", "null"] },
+        "final_url": { "type": "string" }
+      }
+    },
+    "rights": {
+      "type": "object",
+      "required": ["terms", "redistributable", "cost"],
+      "properties": {
+        "terms": { "type": "string" },
+        "redistributable": { "type": "boolean" },
+        "cost": { "enum": ["free", "paid", "member", "unknown"] }
+      }
+    },
+    "trust_tier": { "enum": ["T1", "T2", "T3", "T4", "T5", "ref"] },
+    "original_filename": { "type": ["string", "null"] },
+    "pages": { "type": "integer", "minimum": 1, "default": 1 },
+    "page_of_parent": { "type": ["integer", "null"] },
+    "derived_from": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "notes": { "type": "string" }
+  }
+}
