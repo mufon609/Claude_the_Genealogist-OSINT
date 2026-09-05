@@ -55,20 +55,12 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
-### A2. Family-footprint step
-
-For a person with a missing link, rank the records already attached to
-their relatives by how many family members share the record, and run the
-duplicate check first (`docs/RESEARCH-WORKFLOW.md` §3, Layer 0). Feeds the
-top of the gap list.
-
 ### A3. Person screen
 
 Foundation (Accepted facts, check / uncheck / revise), checklist with
 tasks, results under the task clicked, three-state review. One person per
 screen, linear flow, no tabs (`docs/RESEARCH-CHECKLIST.md` §6). Local
 server, no framework.
-**Blocked by:** A2.
 
 ### A4. Research log and typed search steps
 

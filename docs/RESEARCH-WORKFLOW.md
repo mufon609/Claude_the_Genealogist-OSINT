@@ -70,18 +70,28 @@ away. The catalog already knows this footprint, so it is computed, not guessed.
 
 Measured on the imported tree before any new record has been fetched:
 
-| Missing-link person | Own records | Relatives' records | Records holding 2+ family members | First thing to fetch |
+| Missing-link person | Own records | Records on relatives, not yet on the person | Of which one page holds 2+ family members | First thing to fetch (`tools/footprint.py`) |
 |---|---|---|---|---|
-| Thomas Ahearn (1846–1902), no parents | 0 | 4 | 0 | 1880 census cited twice on wife Alice McGee and son Patrick |
-| Minerva E, no surname | 2 | 11 | 2 | two Kentucky death records on her children (mother's maiden name), 1850 census ×2 |
-| Dorothy, no surname | 1 | 2 | 2 | the family history and Find a Grave memorial on Evan and Elizabeth Williams |
-| Elizabeth Bean / John Brant, no parents | 1 | 9 | 1 | 1880 census and the church-and-town record on the Brant family |
-| Mary Bridget Walsh, no parents | 2 | 6 | 2 | PA death certificates ×2 on the Boltons |
+| Thomas Ahearn (1846–1902), no parents | 0 | 3 | 1 | 1880 census on Alice McGee and Patrick Ahearn |
+| Minerva E, no surname | 2 | 8 | 0 | Kentucky Death Records, 1852-1965 on Ellen E McCrary |
+| Dorothy, no surname | 1 | 1 | 0 | U.S., Find a Grave® Index, 1600s-Current on Elizabeth Williams |
+| Elizabeth Bean, no parents | 1 | 9 | 0 | Philadelphia, Pennsylvania Death Certificates Index, 1803-1915 on Abraham B Brant |
+| Mary Bridget Walsh, no parents | 2 | 4 | 0 | Pennsylvania Death Certificates, 1906-1973 on Anna Marie Bolton |
 
 And the records that already hold the most family members: a compiled family
 history holding 14 Cassels, a Pennsylvania will holding 7 Cassels, a family
 history book holding 6 Lukens/Berkheimer/Rubican relatives, a 1930 census page
 holding all 4 Peters. Those are where a missing Cassel, Lukens or Peters is found.
+
+`tools/footprint.py "<person>"` computes Layer 0 from the catalog, read-only:
+the duplicate check first (same name and birth year, or same name and the same
+spouse or parents), unlinked same-surname persons as leads with a generation
+label, then every record cited or held on a spouse, child, parent or sibling
+that is not already on the person, ranked by how many family members share it
+and by what it would settle, with the collections to search next. Ancestry
+cites each person on a census page under a different record id, so census
+citations are grouped by year as one page. `tools/checklist.py` shows the top
+of this list under FOOTPRINT, ahead of the Group A rows.
 
 A plan is an ordered list of steps: layer, source (registry ID), a **typed
 query** (`footprint_record`, `footprint_collection`, `subject_record`,

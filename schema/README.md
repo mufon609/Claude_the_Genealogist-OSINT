@@ -67,6 +67,8 @@ then add tsvector indexes. The DDL uses no engine-specific types or clauses.
 | `tools/resolve_places.py` | Resolve `place_string` rows via Nominatim: parse + normalize, verify every given component against the candidate's hierarchy, auto-accept only unique full matches (or safe nested/coterminous choices), everything else stays Undecided with a tree-scoped `place_resolution` proposal. Then fills `event.place_id` only where every supporting fact resolved to the same place (audit-logged per event). `--reset` undoes AI-made resolutions and keeps human ones. Overrides in `data/place-overrides.json`. Responses cached under `derivatives/geocode/`. |
 | `tools/backfill_aliases.py` | Create `undecided` aliases from as-written persona names; set `place_string.variant_kind`; propose fixes for canonical names containing codes. Re-runnable. |
 | `tools/checklist.py "<person>"` | Read-only per-person checklist and gap generator (`docs/RESEARCH-CHECKLIST.md` §6a): foundation, questions, Group A/B rows with held / cited / missing / n/a, pre-built search step per gap. `--json`, `--all`. |
+| `tools/footprint.py "<person>"` | Read-only Layer 0: duplicate check, unlinked same-surname leads, records on relatives ranked by shared family members and by what they settle, collections to search next. Used by `checklist.py`. |
+| `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families; shared by the two tools above. |
 | `tools/treelib.py` | Shared helpers: ULID, GEDCOM line parser, GEDCOM date grammar, archive paths. |
 
 ### How the GEDCOM ingest maps records
