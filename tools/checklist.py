@@ -200,7 +200,7 @@ def build(cat: Catalog, pid: str):
     if d and d >= 1800: row("A", "obituary", MATCH["obituary"], ["H01", "H03", "H04"], "survivors, maiden names, places", ("obituary", fields(death_year=F(d, db), place=dplace)))
     if d and b and d - b >= 21: row("A", "will / probate", MATCH["probate"], ["J03"], "heirs, spouse, children", ("probate", fields(death_year=F(d, db))))
     row("A", "cemetery / family plot", MATCH["cemetery"], ["E01", "E03"], "burial, dates, who is buried together", ("subject_record", fields(death_year=F(d, db))), household=True)
-    church_src = CHURCH.get(home_state or "", ["I03"]) if in_us else CHURCH.get(next(iter(countries), ""), [])
+    church_src = CHURCH.get(home_state or "", ["I03"]) if in_us or not countries else CHURCH.get(next(iter(countries), ""), [])   # no place at all: the tree's US default
     row("A", "church register (baptisms, marriages, burials)", MATCH["church"], church_src, "parents, sponsors, dates, religion", ("household", fields()), household=True)
     if foreign_born and in_us:
         row("A", "passenger / emigration list", MATCH["passenger"], ["G01", "G04"] if (b or 0) < 1800 else ["G01", "G03"], "origin, who travelled together", ("household", fields(arrival_after=F(b, bb))), household=True)

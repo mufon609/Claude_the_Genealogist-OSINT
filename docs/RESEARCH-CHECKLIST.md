@@ -168,9 +168,9 @@ show hints before the baseline is trusted. Neither happens here.
 The flow is linear and stays on one person:
 
 ```
- open person ─► FOUNDATION (Accepted facts; check/uncheck/revise)
+ open person ─► FOUNDATION (Accepted facts)
              ─► CHECKLIST  (Group A rows, then Group B; held / cited / missing)
-             ─► TASKS      (one per gap; Go, or Search one)
+             ─► TASKS      (one per gap; include/revise its fields on the step; Go, or Search one)
              ─► RESULTS    (proposals under the gap they answer)
              ─► REVIEW     (Accept / Reject / Undecided) ─► foundation grows ─► repeat
 ```
@@ -182,8 +182,8 @@ Layout rules that keep it clean:
 - Group A rows are visually first and marked as household records; Group B is
   collapsed until Group A is done or the user opens it.
 - Every row shows one of four words: held, cited, missing, n/a. No percentages.
-- The search form is never blank: it is always the foundation, and every field
-  is one click to exclude.
+- The search form is never blank: a step's fields are always the foundation,
+  and every field is one click to exclude on that step.
 - Anything the AI produced is Undecided and lives under the gap it answers.
 
 ## 6a. The generator
@@ -208,8 +208,8 @@ footprint, no duplicate or unlinked leads.
 localhost only). The entry page is a person list with years, key facts
 Accepted, household records missing, cited-not-held, and questions. The
 person page has the three regions in order: foundation (key facts with
-Accept / Reject / Undecided, the evidence behind each, an include checkbox
-and a revise field for searches), checklist (footprint records first, then
+Accept / Reject / Undecided and the evidence behind each), checklist
+(footprint records first, then
 Group A, Group B collapsed), and a selected panel showing the search step or
 the citations behind the row clicked, with an Ancestry link for cited
 records. Deciding a fact sets every assertion that supports it and writes an

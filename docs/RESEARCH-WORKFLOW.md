@@ -9,7 +9,7 @@ does not need a name until a name has been found.
  ┌──────────┐   ┌───────────┐   ┌──────┐   ┌────────┐   ┌─────────┐   ┌───────┐   ┌────────┐
  │ BASELINE │ → │ QUESTIONS │ → │ PLAN │ → │ SEARCH │ → │ EXTRACT │ → │ MATCH │ → │ REVIEW │ ─┐
  └──────────┘   └───────────┘   └──────┘   └────────┘   └─────────┘   └───────┘   └────────┘  │
-      ▲            (auto)        (AI, approved)  (auto/assisted,  (layer 3)   (proposals    (person-      │
+      ▲            (auto)        (generated)     (auto/assisted,  (layer 3)   (proposals    (person-      │
       │                                           logged)                     answer a Q)    centred)     │
       └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -55,7 +55,7 @@ baseline-complete (no key fact Undecided) a question gets no search steps and
 no footprint, duplicate or unlinked leads; only fetch steps for records the
 tree already cites exist, because the review needs those records.
 
-## 3. Plan: the search ladder (AI proposes, human approves)
+## 3. Plan: the search ladder
 
 The first rung is not a record type and not a name. It is **the family's own
 record footprint**: the records already attached to the missing person's
