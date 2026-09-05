@@ -134,9 +134,17 @@ outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
 
 ## 5–7. Extract, match, review
 
-Fetched records go through the existing evidence layer (extraction → personas).
+Fetched records go through the evidence layer (extraction → personas). An
+Ancestry record page saved as HTML is parsed on arrival by
+`tools/extract.py` (extractor `rule:ancestry-index@0.1.0`): one persona per
+person the page names, in the page's own role word, one fact per field as
+written, one relation per stated relationship, the raw parsed page in
+`extraction.structured_json`. A record image gets no automatic extraction: the
+person screen offers a transcription form on a held record with no persona,
+one persona at a time, written as an extraction by extractor `human:<user>`.
+That is the fallback for every image until an OCR or HTR extractor exists.
 Matching compares personas to the tree and produces proposals, but every
-proposal now **answers a question**: "Is the James Ahearn in this 1870 household
+proposal **answers a question**: "Is the James Ahearn in this 1870 household
 Thomas's father?" Review happens on the person's screen, in the language of the
 question. Accepting grows the baseline, which generates new questions.
 

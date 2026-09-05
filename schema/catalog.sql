@@ -252,7 +252,8 @@ CREATE TABLE persona_fact (
 CREATE INDEX ix_persona_fact_persona ON persona_fact(persona_id);
 CREATE INDEX ix_persona_fact_type    ON persona_fact(fact_type);
 
--- Relationship stated by the record itself ("wife", "son", "father of deceased").
+-- Relationship stated by the record itself, from the persona whose role it is to the
+-- persona it is toward: (son, head, child, "Son"); (father, deceased, parent, "Father").
 CREATE TABLE persona_relation (
   id                  TEXT PRIMARY KEY,
   persona_id          TEXT NOT NULL REFERENCES persona(id),

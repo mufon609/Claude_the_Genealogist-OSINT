@@ -44,6 +44,9 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 - Layer-4 rows belong to exactly one `tree`. Layers 1-3 are shared across trees,
   but every import creates its own `extraction` + personas: evidence is never
   auto-reused between trees (see DATA-ARCHITECTURE.md, trust boundaries).
+- A `persona_relation` row runs from the persona whose role it is to the persona it is
+  toward, as the record states it: a household member to the head (`child`, "Son"), a
+  named relative to the record's subject (`parent`, "Father's name").
 - Errors in records are never corrected in evidence and never deleted: they become
   `alias` rows (persons) or `place_string.variant_kind` (places) and stay searchable.
 - Vendor IDs go in `external_id`, never in a primary key.
@@ -80,6 +83,7 @@ tools do not yet: `tools/catalog.py` uses SQLite's `json_valid` / `json_extract`
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicate check, unlinked same-surname leads, records on relatives ranked by shared family members and by what they settle, collections to search next. Used by `checklist.py`; shown only once the baseline is reviewed. |
 | `tools/plan.py "<person>" / --all` | Materialize fact-level questions and executable steps into `research_question` / `search_plan` from the checklist and footprint: one fetch step per citation with its locator, one search step per missing row with `{value, basis}` fields and a registry-driven mode; idempotent; drops steps no longer generated unless run; closes questions whose gap has gone; leaves dismissed ones closed. |
 | `tools/log_search.py --step <id> --outcome …` | Record a run (found / none / blocked / error) with the step's fields as rendered after include/revise; `--dismiss <question id>` closes a question for good; `--list "<person>"` shows the plan with outcomes. |
+| `tools/extract.py <sha256 or path>` | Parse an archived Ancestry record page (HTML) into one extraction by `rule:ancestry-index@0.1.0`: a persona per person named, a fact per field as written, a relation per stated relationship, the raw parsed page in `structured_json`. Run on arrival by the person screen's attach; a second run supersedes the first. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families; shared by the two tools above. |
 | `tools/treelib.py` | Shared helpers: ULID, GEDCOM line parser, GEDCOM date grammar, archive paths. |
 

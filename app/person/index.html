@@ -93,12 +93,32 @@ function stepHtml(s){
  <span style="margin-left:10px">Found: <select id="lf-${s.id}" class="lfile"><option value="">— file in inbox —</option></select> <button onclick="inbox()">refresh</button> <button onclick="logStep('${s.id}','found')">Archive + log</button></span></div>`}
 function show(grp,i){SEL={grp,i};document.querySelectorAll('tr.row').forEach(e=>e.classList.toggle('on',e.dataset.grp===grp&&e.dataset.i==String(i)));
  const rc=$('#rc');const steps=stepsFor(grp,i);
- if(grp==='fp'){const r=P.footprint.records[i];rc.innerHTML=`<b>${h(r.collection)}</b><div class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</div><p>Expected: ${h(r.expect)}</p>${r.held?'<p class="mut">held in the archive</p>':''}`+stepsHtml(steps);inbox();return}
+ if(grp==='fp'){const r=P.footprint.records[i];rc.innerHTML=`<b>${h(r.collection)}</b><div class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</div><p>Expected: ${h(r.expect)}</p>${r.held?'<p class="mut">held in the archive</p>':''}`+stepsHtml(steps);inbox();records(steps);return}
  const r=P.checklist[grp][i];let html=`<b>${h(r.record)}${r.instance?' '+h(r.instance):''}</b> <span class="st ${r.status}">${r.status}</span>${r.note?`<div class="mut">${h(r.note)}</div>`:''}<p>Settles: ${h(r.settles)}</p>`;
  if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
  if(r.status==='missing'&&!r.search)html+=`<div class="mut">Search steps for missing records come after the baseline is reviewed.</div>`;
  if(steps.some(s=>s.kind==='search'))html+=`<div class="mut">Automatic sources are not wired yet; for assisted sources open the source, search with the fields below, and log the result here.</div>`;
- rc.innerHTML=html+stepsHtml(steps);inbox()}
+ rc.innerHTML=html+stepsHtml(steps);inbox();records(steps)}
+function shasOf(steps){const out=[];for(const s of steps)for(const l of s.logs){for(const sha of JSON.parse(l.artifacts_json||'[]'))if(!out.includes(sha))out.push(sha)}return out}
+async function records(steps){const shas=shasOf(steps);if(!shas.length)return;const box=document.createElement('div');box.id='records';$('#rc').appendChild(box);
+ for(const sha of shas){const a=await api('/api/artifact/'+sha+'?person='+P.person.id);if(!a.error)box.insertAdjacentHTML('beforeend',recordHtml(a))}}
+function factLine(f){return `${h(f.type)}: ${h([f.value,f.date,f.place].filter(Boolean).join(' · '))}`}
+function recordHtml(a){const id=a.sha256.slice(0,12);
+ let html=`<hr style="border:0;border-top:1px solid var(--line)"><p><b>Record held</b> ${h(a.filename||'')} ${a.tier?`<span class="pill">${h(a.tier)}</span>`:''}${a.collection?` <span class="mut">${h(a.collection)}</span>`:''}${a.url?` <a href="${a.url}" target="_blank">↗</a>`:''}</p>`;
+ for(const e of a.extractions){html+=`<div class="mut">Extraction by ${h(e.extractor)}</div>`;
+  for(const p of e.personas){html+=`<div style="margin:4px 0 8px 10px"><b>${h(p.name)}</b> <span class="mut">${h([p.role,p.sex].filter(Boolean).join(', '))}</span>${p.link?` <span class="pill">${h(p.link)} for this person</span>`:''}
+   ${p.facts.map(f=>`<div class="mut" style="font-size:12px">${factLine(f)}</div>`).join('')}${p.relations.map(r=>`<div class="mut" style="font-size:12px">${h(r.kind)} of ${h(r.other)}${r.text?` (${h(r.text)})`:''}</div>`).join('')}</div>`}}
+ if(!a.personas_on_record.length)html+=`<div class="mut">No persona on this record yet${a.mime.startsWith('image/')?' (an image is transcribed by hand)':''}. Transcribe one person at a time:</div>`;
+ const opts=a.personas_on_record.map(p=>`<option value="${p.id}">${h(p.name)}</option>`).join('');
+ html+=`<details ${a.personas_on_record.length?'':'open'}><summary>Transcribe a person from this record</summary><table class="fields">
+  ${[['name','name'],['role','role in the record (head, wife, son, deceased, informant)'],['age','age'],['birth_date','birth date'],['birth_place','birth place'],['death_date','death date'],['death_place','death place'],['residence','residence']].map(([k,l])=>`<tr><td><b>${l}</b></td><td><input type="text" id="tr-${id}-${k}"></td></tr>`).join('')}
+  <tr><td><b>sex</b></td><td><select id="tr-${id}-sex"><option value="">—</option><option>M</option><option>F</option></select></td></tr>
+  ${opts?`<tr><td><b>relation</b></td><td><select id="tr-${id}-rk"><option value="">—</option>${['spouse','parent','child','sibling','head','boarder','informant','other'].map(k=>`<option>${k}</option>`).join('')}</select> of <select id="tr-${id}-rp">${opts}</select> <input type="text" id="tr-${id}-rt" placeholder="as written" style="width:40%"></td></tr>`:''}
+  </table><button onclick="transcribe('${a.sha256}')">Add persona</button></details>`;
+ return html}
+async function transcribe(sha){const id=sha.slice(0,12);const v=k=>$('#tr-'+id+'-'+k)?.value||'';
+ const body={name:v('name'),role:v('role'),sex:v('sex'),age:v('age'),birth_date:v('birth_date'),birth_place:v('birth_place'),death_date:v('death_date'),death_place:v('death_place'),residence:v('residence'),relations:v('rk')?[{kind:v('rk'),persona_id:v('rp'),text:v('rt')}]:[]};
+ const r=await post('/api/artifact/'+sha+'/persona',body);if(r.error){fail(r.error);return}await reload()}
 async function inbox(){const els=document.querySelectorAll('select.lfile');if(!els.length)return;const f=await api('/api/inbox');els.forEach(el=>{el.innerHTML='<option value="">— file in inbox —</option>'+f.map(x=>`<option>${h(x)}</option>`).join('')})}
 function fail(msg){$('#rc').insertAdjacentHTML('beforeend','<div style="color:var(--bad)">'+h(msg)+'</div>')}
 async function makePlan(){const r=await post('/api/person/'+P.person.id+'/plan');if(r.error){fail(r.error);return}P.plan=r.plan;render();if(SEL)show(SEL.grp,SEL.i)}

@@ -99,10 +99,13 @@ Build the exact search URL and "what to look for" for Ancestry, Find a
 Grave and Newspapers.com from a gap's foundation fields; archive whatever
 the user drops in `inbox/` and attach it to the gap.
 
-### C5. Extractor for Ancestry index JSON and record images
+### C5. OCR / HTR extractor for record images
 
-Turn a fetched record into personas and persona facts: index-page parse
-first, OCR/HTR later. Every extraction versioned by extractor.
+Turn an archived record image into personas and persona facts by machine,
+versioned by extractor, beside the human transcription the person screen
+offers today. Verify `tools/extract.py` against a real saved Ancestry page
+first: it was built to the page structure described in its docstring, not
+against a saved page.
 
 ### C6. Place-string review from the catalog
 

@@ -230,7 +230,11 @@ side as parents. Include and revise live on the step: a search step lists its
 fields with a checkbox and a revise box, saved on the step, and every logged
 run records the fields as rendered, each with its basis. Until the baseline
 is reviewed the page says in one line what review unlocks (searches, the
-family footprint, leads) and that fetching cited records is open. Automatic
+family footprint, leads) and that fetching cited records is open. A held row's
+panel also shows each record its steps archived: the file, its extractions
+with personas, facts and relations, and, when the record has no persona yet,
+a form to transcribe one person at a time (name, role, sex, age, birth, death,
+residence, a relation to a persona already on the record). Automatic
 sources are not wired yet, so there is no Go button: assisted sources are
 worked by opening the link, searching with the step's fields, and logging the
 result.

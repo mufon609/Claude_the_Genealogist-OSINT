@@ -22,6 +22,7 @@ from catalog import Catalog
 from checklist import build
 from plan import plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
+from extract import Writer, extract as extract_html
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -143,6 +144,7 @@ def archive_inbox_file(cx, slug, name, st, note):
     cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,manifest_json,created_at)
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, size, mime, manifest.get("source_id"), col_id, lkind, manifest["locator"]["value"], ts, CFG["by"], terms, False, cost, tier, os.path.basename(src), 1, dumps(manifest), ts))
     cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)", (sha, "local", ts, ts, True))
+    if mime.startswith("text/html"): extract_html(cx, sha, CFG["by"])          # an index page is parsed on arrival; an image waits for a transcription
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
     return sha
 
@@ -165,6 +167,58 @@ def revise_step(cx, tree_id, step_id, body):
     rev = {k: v for k, v in (body.get("revisions") or {}).items() if isinstance(v, dict) and (v.get("include") is False or v.get("value") not in (None, ""))}
     cx.execute("UPDATE search_plan SET revisions_json=? WHERE id=?", (dumps(rev) if rev else None, step_id))
     return {"ok": True, "revisions": rev}
+
+def artifact_view(cx, tree_id, sha, pid):
+    """A held record as the person screen shows it: the file, every current extraction with its personas, facts and
+    relations, and how each persona stands to this person."""
+    a = cx.execute("SELECT sha256, mime, trust_tier, locator_kind, locator_value, original_filename, collection_id FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    if not a: return None
+    col = cx.execute("SELECT name FROM collection WHERE id=?", (a["collection_id"],)).fetchone() if a["collection_id"] else None
+    exts = []
+    for e in cx.execute("""SELECT e.id, e.ran_at, x.kind, x.name, x.version FROM extraction e JOIN extractor x ON x.id=e.extractor_id
+                           WHERE e.artifact_sha256=? AND e.superseded_by IS NULL ORDER BY e.ran_at""", (sha,)):
+        personas = []
+        for p in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (e["id"],)):
+            facts = [{"type": f["fact_type"], "value": f["value_text"], "date": f["date_text"], "place": f["raw"]} for f in cx.execute(
+                "SELECT pf.fact_type, pf.value_text, pf.date_text, ps.raw FROM persona_fact pf LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=?", (p["id"],))]
+            rels = [{"kind": r["kind"], "text": r["value_text"], "other": r["name_text"]} for r in cx.execute(
+                "SELECT r.kind, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (p["id"],))]
+            link = cx.execute("SELECT status FROM person_persona WHERE persona_id=? AND person_id=?", (p["id"], pid)).fetchone()
+            personas.append({"id": p["id"], "name": p["name_text"], "sex": p["sex"], "role": p["role_in_record"], "facts": facts, "relations": rels, "link": link["status"] if link else None})
+        exts.append({"id": e["id"], "extractor": f"{e['kind']}:{e['name']}" + (f"@{e['version']}" if e["version"] else ""), "ran_at": e["ran_at"], "personas": personas})
+    return {"sha256": sha, "mime": a["mime"], "tier": a["trust_tier"], "filename": a["original_filename"], "collection": col["name"] if col else None,
+            "url": ancestry_url(a["locator_value"]) if a["locator_kind"] == "apid" else None, "extractions": exts,
+            "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
+
+def transcribe(cx, sha, body):
+    """One persona typed from a held record by the person acting: an extraction by extractor human:<user> on the
+    artifact (created on the first persona), the persona, its facts, and its relations to personas already on the record."""
+    if not cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return {"error": "not in the archive"}
+    name = (body.get("name") or "").strip()
+    if not name: return {"error": "a name is required"}
+    ts = now(); who = CFG["by"].split(":", 1)[-1]
+    x = cx.execute("SELECT id FROM extractor WHERE kind='human' AND name=? AND version IS NULL", (who,)).fetchone()
+    xid = x["id"] if x else ulid()
+    if not x: cx.execute("INSERT INTO extractor (id,kind,name,created_at) VALUES (?,?,?,?)", (xid, "human", who, ts))
+    e = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND superseded_by IS NULL", (sha, xid)).fetchone()
+    eid = e["id"] if e else ulid()
+    if not e: cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')", (eid, sha, xid, ts))
+    seq = cx.execute("SELECT COUNT(*) FROM persona WHERE extraction_id=?", (eid,)).fetchone()[0] + 1
+    w = Writer(cx, sha, eid)
+    sex = body.get("sex") if body.get("sex") in ("M", "F") else None
+    pid = w.persona(name, sex, (body.get("role") or "").strip().lower() or None, seq, {"label": "transcription"})
+    w.fact(pid, "Name", name, labels=["name"])
+    if sex: w.fact(pid, "Sex", body["sex"], labels=["sex"])
+    if body.get("age"): w.fact(pid, "Age", body["age"].strip(), labels=["age"])
+    for ftype, dk, pk in (("Birth", "birth_date", "birth_place"), ("Death", "death_date", "death_place")):
+        if body.get(dk) or body.get(pk): w.fact(pid, ftype, None, (body.get(dk) or "").strip() or None, (body.get(pk) or "").strip() or None, [k for k in (dk, pk) if body.get(k)])
+    if body.get("residence"): w.fact(pid, "Residence", None, None, body["residence"].strip(), ["residence"])
+    for r in body.get("relations") or []:
+        if r.get("persona_id") and cx.execute("SELECT 1 FROM persona WHERE id=? AND artifact_sha256=?", (r["persona_id"], sha)).fetchone():
+            w.relation(pid, r["persona_id"], r.get("kind") or "other", (r.get("text") or "").strip() or None, "transcription")
+    cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
+               (ulid(), ts, CFG["by"], "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
+    return {"ok": True, "extraction": eid, "persona": pid}
 
 def person_view(cx, tree_id, pid):
     cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid)
@@ -202,6 +256,10 @@ class H(BaseHTTPRequestHandler):
             if u.path == "/api/tree": self.send({"slug": slug, "name": tname, "by": CFG["by"], "trees": [r["slug"] for r in cx.execute("SELECT slug FROM tree ORDER BY slug")]}); return
             if u.path == "/api/people": self.send(people(cx, tree_id, q.get("q", [""])[0])); return
             if u.path == "/api/inbox": self.send(sorted(os.path.basename(f) for f in glob.glob(os.path.join(ROOT, "inbox", "*")) if os.path.isfile(f) and not f.endswith(".gitkeep"))); return
+            ma = re.match(r"^/api/artifact/([0-9a-f]{64})$", u.path)
+            if ma:
+                v = artifact_view(cx, tree_id, ma.group(1), q.get("person", [""])[0])
+                self.send(v if v else {"error": "not found"}, code=200 if v else 404); return
             m = re.match(r"^/api/person/([A-Z0-9]+)$", u.path)
             if m:
                 if not cx.execute("SELECT 1 FROM person WHERE id=? AND tree_id=?", (m.group(1), tree_id)).fetchone(): self.send({"error": "not found"}, code=404); return
@@ -213,7 +271,8 @@ class H(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or 0) or b"{}")
         mf = re.match(r"^/api/person/([A-Z0-9]+)/fact/([a-z]+)$", u.path); mp = re.match(r"^/api/person/([A-Z0-9]+)/plan$", u.path)
         ms = re.match(r"^/api/step/([A-Z0-9]+)/(log|revise)$", u.path); mq = re.match(r"^/api/question/([A-Z0-9]+)/dismiss$", u.path)
-        if not (mf or mp or ms or mq): self.send({"error": "not found"}, code=404); return
+        mt = re.match(r"^/api/artifact/([0-9a-f]{64})/persona$", u.path)
+        if not (mf or mp or ms or mq or mt): self.send({"error": "not found"}, code=404); return
         with LOCK:
             cx = db()
             try:
@@ -226,6 +285,7 @@ class H(BaseHTTPRequestHandler):
                 elif mq:
                     try: dismiss_question(cx, tree_id, CFG["by"], mq.group(1), body.get("note")); res = {"ok": True}
                     except SystemExit as e: res = {"error": str(e)}
+                elif mt: res = transcribe(cx, mt.group(1), body)
                 elif ms.group(2) == "log": res = log_step(cx, tree_id, slug, ms.group(1), body)
                 else: res = revise_step(cx, tree_id, ms.group(1), body)
                 if res.get("error"): cx.rollback(); self.send(res, code=400)
