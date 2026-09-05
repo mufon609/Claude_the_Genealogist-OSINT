@@ -1,4 +1,4 @@
-# Per-person research checklist and the auto-search that comes from it (design, 2026-09-05)
+# Per-person research checklist and the auto-search that comes from it
 
 Opening a person's profile answers three questions in order, on one screen:
 

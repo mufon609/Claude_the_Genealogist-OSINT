@@ -31,10 +31,9 @@ Peters, Redden, Lukens, Dewees, Sevier, Wiegner.
 
 ### Data-quality defects found (the "untrusted data" problem in miniature)
 
-1. ~~84 place entries are Lehi/Provo, UT~~ **Corrected 2026-09-05 after ingest:** those
-   strings are the *publication place* of Ancestry's own source records (PUBL/PLAC),
-   not event places. Zero events carry them. The ingest still flags them if they
-   ever appear on an event.
+1. **`Lehi, UT, USA` / `Provo, UT, USA` appear 84 times, but only as the
+   publication place of Ancestry's own source records (PUBL/PLAC), never as an
+   event place.** The ingest rejects them if they ever appear on an event.
 2. **Four spellings of one country:** `USA`, `United States of America`,
    `United States`, and bare state names. Same for `Germany` / `Allemagne` / `Schlesien`.
 3. **Malformed place:** `Langneundorf, Silesa, , Germany` (typo + empty jurisdiction).
@@ -112,6 +111,7 @@ The AI core should weight evidence by tier, not treat every citation as equal.
 
 ## 6. Status vocabulary
 
-`todo` · `investigating` · `verified` (facts checked this session) · `blocked` (no
-lawful programmatic path) · `blocked-apply` (needs an application) · `flag` (policy
-decision required) · `n/a` (not a data source, tracked for completeness)
+`todo` · `investigating` · `verified` (facts checked against the source) · `in-use`
+(wired into a tool) · `blocked` (no lawful programmatic path) · `blocked-apply` (needs
+an application) · `flag` (policy decision required) · `n/a` (not a data source, or a
+decision recorded in `docs/`; tracked for completeness)

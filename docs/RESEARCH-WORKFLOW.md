@@ -1,4 +1,4 @@
-# Research workflow (proposed 2026-09-05)
+# Research workflow
 
 The app does not start from records and it does not start from hints. It starts
 from what the family already knows and has approved, turns the gaps into
@@ -66,7 +66,7 @@ away. The catalog already knows this footprint, so it is computed, not guessed.
 | 4 Named candidate | once a candidate name exists, search for that person directly | yes | the candidate's own birth, marriage, death, parents |
 | 5 Locality-surname | all persons of the surname in the county in the era | no | the FAN cluster; Schwenkfelder Genealogical Record for Brant/Heebner/Cassel |
 
-Measured on the imported tree (2026-09-05), before any new record has been fetched:
+Measured on the imported tree before any new record has been fetched:
 
 | Missing-link person | Own records | Relatives' records | Records holding 2+ family members | First thing to fetch |
 |---|---|---|---|---|

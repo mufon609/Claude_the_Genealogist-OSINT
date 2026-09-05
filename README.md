@@ -12,6 +12,9 @@ able to distrust every earlier conclusion.
 | `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/`. |
 | `inbox/` | Drop zone for files to ingest. |
+| `CLAUDE.md` | Operating rules for an AI contributor. |
+| `MEMORY.md` | Cross-cutting working patterns for any contributor; travels with the clone. |
+| `BACKLOG.md` | Deferred work, self-governing. |
 
 Not in git: `archive/` (content-addressed masters), `catalog/*.db`, `derivatives/`,
 and everything under `trees/*/imports`. Those are backed up by BagIt bags, not by git.

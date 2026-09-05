@@ -33,7 +33,7 @@ made mechanical. It is also what lets the AI layer be re-run: a better HTR model
 next year produces a new extraction version; nothing above or below it changes
 until someone accepts the new reading.
 
-## 1a. Decision model (accepted 2026-09-05)
+## 1a. Decision model
 
 Wherever a human decides, there are exactly three states and no score:
 
@@ -194,7 +194,7 @@ A **tree** is a workspace of conclusions. The catalog holds any number of them.
 - Access control per tree is a later addition: a `tree_member` table keyed on
   `tree_id` is all the schema needs.
 
-### Trust boundaries between trees (decided 2026-09-05)
+### Trust boundaries between trees
 
 A fresh tree must be able to distrust everything an earlier tree concluded.
 So:
@@ -238,7 +238,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
 - Catalog dumped to plain SQL on the same schedule and kept in git or a bag.
 - Archive bags are the master; GEDZIP is a convenience view.
 
-## 7. Decisions (accepted 2026-09-05)
+## 7. Decisions
 
 1. **Layer-4 store: own schema.** Gramps is a neighbor, not a foundation. Borrow
    its taxonomy (event types, place hierarchy with dated names; not its 0-4
@@ -258,7 +258,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    death evidence, manual override allowed, redacted in every export and
    derivative, retained in the archive under ACL. Both thresholds configurable.
 
-## 8. Wrong source data, variants and aliases (accepted and implemented 2026-09-05)
+## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**
 

@@ -1,4 +1,4 @@
-# What is in the tree, and what to borrow (analysis, 2026-09-05)
+# What is in the tree, and what to borrow
 
 Measured on the Ahearn import: 117 persons, 43 families, 418 events, 1,354
 citations (all Undecided), 69 Ancestry collections. Nothing has been reviewed yet.
