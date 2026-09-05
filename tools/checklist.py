@@ -143,7 +143,7 @@ def build(cat: Catalog, pid: str):
     A, B = [], []
     def row(group, record, pattern, sources, settles, query, household=False, na=None, instance=None):
         st, via = status_of(pattern, household) if pattern != "no-match" else ("missing", None)
-        if f"{record}:{instance or ''}" in fetched: st, via = "held", None   # a done fetch step archived the record
+        if f"{record}:{instance or ''}" in fetched: st, via = "held", None   # a done step (fetch or search) archived the record
         if na and st == "missing": st = "n/a"                     # a real citation beats the era rule
         r = {"record": record, "instance": instance, "status": st, "via": via, "settles": settles, "sources": sources,
              "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None),
