@@ -22,6 +22,7 @@ from treelib import (ROOT, Node, dumps, manifest_path, now, object_path, parse_g
                      parse_gedcom_date, resolve_tree, sha256_file, tree_dir, ulid)
 
 EXTRACTOR = ("rule", "gedcom-ingest", "0.1.0")
+EXTRACTOR_TAG = ":".join(EXTRACTOR[:2]) + "@" + EXTRACTOR[2]   # who asserts imported claims and links personas: the extractor, not the user
 EVENT_TAGS = {"BIRT": "Birth", "DEAT": "Death", "BURI": "Burial", "CREM": "Cremation",
               "BAPM": "Baptism", "CHR": "Christening", "RESI": "Residence", "MARR": "Marriage",
               "PROB": "Probate", "WILL": "Will", "IMMI": "Immigration", "EMIG": "Emigration",
@@ -173,12 +174,12 @@ class Ingest:
         return out
 
     def assert_(self, subject_kind, subject_id, cits, persona_fact_id=None, persona_id=None):
-        """Imported claims are 'undecided' until a human reviews them."""
+        """Imported claims are 'undecided' until a human reviews them; the extractor is the asserter."""
         if not cits:
             self.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,persona_id,artifact_sha256,
                                citation_text,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (ulid(), self.tree_id, subject_kind, subject_id, persona_fact_id, persona_id, self.sha,
-                             "Ancestry member tree (no citation)", "undecided", self.by, self.ts, dumps({"uncited": True})))
+                             "Ancestry member tree (no citation)", "undecided", EXTRACTOR_TAG, self.ts, dumps({"uncited": True})))
             self.stats["assertions_uncited"] += 1
             return
         for text, apid, cid, page, name in cits:
@@ -186,7 +187,7 @@ class Ingest:
             self.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,persona_id,artifact_sha256,
                                citation_text,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (ulid(), self.tree_id, subject_kind, subject_id, persona_fact_id, persona_id, self.sha,
-                             text, "undecided", self.by, self.ts, note))
+                             text, "undecided", EXTRACTOR_TAG, self.ts, note))
             self.stats["assertions_cited"] += 1
             if apid:
                 a = self.apids[apid]
@@ -274,7 +275,7 @@ class Ingest:
                                 (ulid(), pid, ntype, g2, s2, x2, False, f"{(s2 or '').lower()}, {(g2 or '').lower()}".strip(", ")))
                 self.stats["extra_names"] += 1
             self.cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,?,?,?)",
-                            (pid, pa, "accepted", self.by, self.ts))   # by construction: this GEDCOM entry *is* this person
+                            (pid, pa, "accepted", EXTRACTOR_TAG, self.ts))   # definitional: this GEDCOM entry *is* this person (DATA-ARCHITECTURE §1a)
             self.cx.execute("INSERT INTO external_id (id,tree_id,entity_kind,entity_id,system,value,created_at) VALUES (?,?,?,?,?,?,?)",
                             (ulid(), self.tree_id, "person", pid, "ancestry_gedcom_xref", xref, self.ts))
             # person-level citations (INDI SOUR + NAME SOUR)

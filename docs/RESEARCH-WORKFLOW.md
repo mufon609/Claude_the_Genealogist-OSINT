@@ -37,7 +37,7 @@ Questions are always about a person. They are generated, not typed:
 |---|---|---|
 | `missing_parents` | no parents in tree | Thomas Ahearn (1846–1902): 0 citations, no parents |
 | `identity_incomplete` | no surname, or given name only | "Dorothy", "Minerva E", "Carol Evers" |
-| `missing_spouse` / `missing_children` | family with one partner / none | John Brant, Elizabeth Bean |
+| `missing_spouse` | a person of marriageable age with no partner | John Brant, Elizabeth Bean |
 | `missing_fact` | no birth/death/marriage date or place | John Cassel: death 1802, no birth |
 | `unverified_claim` | fact with no record behind it | every uncited fact |
 | `conflict` | competing values | 5 marriage dates for David Heebner & Maria Kriebel |
@@ -149,27 +149,35 @@ question. Accepting grows the baseline, which generates new questions.
      in Northampton papers 1902 (loc.gov); naturalization.
    - L4: only if the footprint fails to name the parents.
 
-## Schema additions this needs (not yet in `schema/catalog.sql`; tracked in `BACKLOG.md`)
+## Schema (0.5.0)
 
 ```
-review            (id, tree_id, entity_kind, entity_id, fact_ref, status, reviewed_by, reviewed_at, note)   -- status: undecided|accepted|rejected
-research_question (id, tree_id, subject_person_id, kind, detail_json, status, priority, tractability, created_at, answered_by_proposal_id)
-search_plan       (id, question_id, seq, layer, source_id, query_type, query_json, mode, expected, status, rationale)
-                   query_type: footprint_record | footprint_collection | subject_record | household | name | surname_locality
-search_log        (id, plan_step_id, executed_at, executed_by, query_json, source_id, outcome, artifacts_json, notes)
+research_question (id, tree_id, subject_person_id, kind, q_key, detail_json, status open|closed, closed_reason, answered_by_proposal_id, created_at, closed_at)
+search_plan       (id, question_id, seq, layer 0-5, step_key, query_type, query_json, sources_json, mode_json, expected, status planned|done|skipped, rationale)
+                   query_type: footprint_record | footprint_collection | subject_record | household | couple | name | surname_locality | obituary | probate
+search_log        (id, tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome found|none|blocked|error, artifacts_json, notes)
 proposal.question_id
 ```
 
-## What changes from today
+There is no separate review table: the baseline review is the status on the
+assertions behind each key fact. Questions and steps are keyed so
+`tools/plan.py` regenerates them idempotently and closes a question whose gap
+has gone. `tools/log_search.py` (and the person screen) record every run
+with exactly the fields used; a `found` run marks the step done, a `none`
+run leaves it planned and visible as tried.
 
-- There is no hint queue. The 272 record citations and 49 media references that
-  came with the Ancestry export are kept as data (in the import's extraction
-  JSON and on the assertions) and surface only as Layer 0 footprint steps under
-  the questions of the people they support.
-- The footprint is computed from resolved data (accepted family links and
-  citations), so it improves every time a review accepts something.
+## Rules that hold throughout
+
+- There is no hint queue. The record citations and media references that came
+  with the Ancestry export are data (in the import's extraction JSON and on the
+  assertions) and surface only as Layer 0 footprint steps under the questions
+  of the people they support.
+- The footprint is computed from accepted family links and citations, so it
+  improves every time a review accepts something.
 - Nothing is searched for a person until that person's baseline is reviewed.
+  Fetching a record the tree already cites is allowed before review, because
+  the review needs the record.
 - The first screen is the person: claims, evidence, verdicts, then their
   questions and the plan for each.
-- Applying to the FamilySearch Innovator Program is the single step that turns
-  most Layer 1–2 searches from assisted into automatic.
+- FamilySearch Innovator Program approval is what turns most Layer 1–2
+  searches from assisted into automatic.

@@ -89,8 +89,9 @@ S3 master bucket. Bag manifest = fixity record.
 
 ### C3. Catalog SQL dump
 
-Scheduled plain-SQL dump of `catalog/tree.db` into a versioned location
-so the conclusions layer has a text history independent of the binary db.
+Scheduled plain-SQL dump of `catalog/tree.db` into a bag beside the archive
+bags, never git (it holds living-person data), so the conclusions layer has a
+text history independent of the binary db.
 
 ### C4. Fetcher for assisted sources
 

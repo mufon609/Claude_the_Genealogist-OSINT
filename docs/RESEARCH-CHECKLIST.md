@@ -96,31 +96,34 @@ The foundation is the set of Accepted facts, shown as fields with checkboxes:
 
 ```
 Search foundation (Accepted)                       Task list
- [x] Given   Abram C.        variants: Abram, Abraham    ▶ Go (run all checked)
- [x] Surname Brant           variants: Brandt              A  [ ] 1900 census household        Search
- [x] Birth   1880 ±2         Worcester Twp, Montgomery PA   A  [ ] 1880 census household        Search
- [ ] Death   1961            Pottstown PA  (unchecked)      A  [ ] marriage record, Lukens      Search
- [x] Spouse  Charlotte Lukens                               A  [ ] obituary 1961                 Search
- [x] Parents Abraham B. Brant / Sarah Cassel                A  [ ] will / probate 1961           Search
+ Given   Abram C.        variants: Abram, Abraham        ▶ Go (run all checked)
+ Surname Brant           variants: Brandt                  A  [ ] 1900 census household        Search
+ Birth   1880 ±2         Worcester Twp, Montgomery PA       A  [ ] 1880 census household        Search
+ Death   1961            Pottstown PA                       A  [ ] marriage record, Lukens      Search
+ Spouse  Charlotte Lukens                                   A  [ ] obituary 1961                 Search
+ Parents Abraham B. Brant / Sarah Cassel                    A  [ ] will / probate 1961           Search
                                                             B  [ ] WWI draft card               Search
                                                             B  [ ] WWII draft card              Search
+ Selected step: 1900 census household
+ [x] given Abram C   [x] surname Brant   [x] birth 1880 ±2   [ ] death 1961   revise: surname → Brandt
 ```
 
-- **Go** runs every checked task with the checked foundation fields.
-- **Uncheck a field** to keep a doubtful fact out of every query (the fact stays
-  Undecided/Accepted in the tree; this only affects the search).
-- **Revise** a field for the search only: alternate spelling, wider year range,
-  neighbouring county. Revisions are saved as search variants, not as facts;
-  useful ones become aliases.
+- **Go** runs every checked task with its fields as rendered.
+- **Uncheck a field** on a step to keep a doubtful fact out of that query (the
+  fact stays Undecided/Accepted in the tree; this only affects the search).
+- **Revise** a field on a step for the search only: alternate spelling, wider
+  year range, neighbouring county. Include and revise are saved on the step
+  (`search_plan.revisions_json`), never as facts; useful revisions become aliases.
 - **Click one gap → Search** runs that single task, seeded with the same
   foundation. One fact, not ten.
 - Results come back as proposals tied to that gap ("this 1900 census page
-  answers *1900 census household*"), and the checklist row flips to held when
-  the record is archived and the fact is Accepted.
+  answers *1900 census household*"). The checklist row reads held once a done
+  fetch step for that row has an archived record in its log; the fact behind it
+  is still decided by a person.
 
 Every run, including "nothing found", is written to the research log with the
-exact fields used, so the same search is not repeated blindly and negative
-results count.
+fields exactly as rendered after include and revise, so the same search is not
+repeated blindly and negative results count.
 
 ## 5. Real examples (computed from the catalog, before any review)
 
@@ -159,9 +162,8 @@ that is the foundation panel. **FamilySearch's Research Help** panel puts
 record hints, data problems and research suggestions in one place per person.
 **RootsMagic's research log** records every search and its result.
 
-What those UIs got wrong, and what the first review screen here repeated: they
-show the queue instead of the person, and they show hints before the baseline
-is trusted.
+What those UIs got wrong: they show the queue instead of the person, and they
+show hints before the baseline is trusted. Neither happens here.
 
 The flow is linear and stays on one person:
 
@@ -207,12 +209,24 @@ and a revise field for searches), checklist (footprint records first, then
 Group A, Group B collapsed), and a selected panel showing the search step or
 the citations behind the row clicked, with an Ancestry link for cited
 records. Deciding a fact sets every assertion that supports it and writes an
-audit row; name and sex share the person-level citations from the import, so
-deciding one decides the other, and accepting a person's children accepts the
-same link seen from the child's side as parents. Include and revise are kept
-per person in the browser and only
-change the displayed step; nothing runs until the fetcher and the research
-log exist, so there is no Go button yet.
+audit row. Accept sets Accepted only on the assertions whose evidence is
+visible: the tree owner's uncited claim and citations whose record is held;
+a citation to a record not yet fetched stays Undecided until the fetch. A
+"Generate plan" button materializes the questions and steps into the catalog;
+every checklist row and footprint record then shows its step, its log, and
+three ways to log a run: nothing found, blocked, or found with a file picked
+from `inbox/`, which archives the file (bytes already in the archive are
+linked, not copied), files a copy under the tree, and records it on the step's
+log. No assertion is written by the attach; that comes from extraction and
+review. A fact-level question has one Dismiss control, and a dismissed
+question stays closed when the plan is refreshed. Name and sex share the
+person-level citations from the import, so deciding one decides the other,
+and accepting a person's children accepts the same link seen from the child's
+side as parents. Include and revise live on the step: a search step lists its
+fields with a checkbox and a revise box, saved on the step, and every logged
+run records the fields as rendered. Automatic sources are not wired yet, so
+there is no Go button: assisted sources are worked by opening the link,
+searching with the step's fields, and logging the result.
 
 ## 7. What this maps to in the schema
 
@@ -221,6 +235,6 @@ log exist, so there is no Go button yet.
   applicability reason);
 - the pre-built search = `search_plan` steps with `query_json` holding the
   foundation fields actually used (checked/revised) so the log is exact;
-- the checkbox and revision state = per-person search preferences stored on
-  the plan, not on the facts;
+- the checkbox and revision state = `search_plan.revisions_json` on the step,
+  not on the facts;
 - results = `proposal.question_id` pointing at the gap.

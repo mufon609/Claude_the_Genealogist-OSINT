@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.4.0
+-- tree catalog schema  v0.5.0
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -413,6 +413,7 @@ CREATE TABLE proposal (
   id            TEXT PRIMARY KEY,
   tree_id       TEXT NOT NULL REFERENCES tree(id),
   kind          TEXT NOT NULL CHECK (kind IN ('persona_match','new_person','fact','relation','place_resolution','duplicate_person')),
+  question_id   TEXT,                                   -- the research_question this proposal answers, when it answers one
   payload_json  TEXT NOT NULL,
   rationale     TEXT,
   generated_by  TEXT NOT NULL REFERENCES extractor(id),
@@ -423,6 +424,62 @@ CREATE TABLE proposal (
   decision_note TEXT
 );
 CREATE INDEX ix_proposal_status ON proposal(tree_id, status, kind);
+
+-- A question about a person, generated from gaps in the baseline (RESEARCH-WORKFLOW §2).
+-- open until answered or dismissed; the decision that answers it is a proposal.
+CREATE TABLE research_question (
+  id                      TEXT PRIMARY KEY,
+  tree_id                 TEXT NOT NULL REFERENCES tree(id),
+  subject_person_id       TEXT NOT NULL REFERENCES person(id),
+  kind                    TEXT NOT NULL CHECK (kind IN ('missing_parents','identity_incomplete','missing_spouse','missing_fact',
+                                                        'unverified_claim','conflict','duplicate_person','unlinked_relative','missing_record')),
+  q_key                   TEXT NOT NULL,                -- stable key for idempotent regeneration: kind + detail
+  detail_json             TEXT,
+  status                  TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed')),
+  closed_reason           TEXT CHECK (closed_reason IN ('answered','dismissed','gap_gone') OR closed_reason IS NULL),
+  answered_by_proposal_id TEXT,
+  created_at              TEXT NOT NULL,
+  closed_at               TEXT,
+  UNIQUE (subject_person_id, q_key)
+);
+CREATE INDEX ix_question_person ON research_question(subject_person_id, status);
+
+-- One step of the search ladder for a question: what to search, where, how (RESEARCH-WORKFLOW §3).
+CREATE TABLE search_plan (
+  id            TEXT PRIMARY KEY,
+  question_id   TEXT NOT NULL REFERENCES research_question(id),
+  seq           INTEGER NOT NULL,
+  layer         INTEGER NOT NULL CHECK (layer BETWEEN 0 AND 5),
+  step_key      TEXT NOT NULL,                          -- stable key for idempotent regeneration
+  query_type    TEXT NOT NULL CHECK (query_type IN ('footprint_record','footprint_collection','subject_record','household','couple','name','surname_locality','obituary','probate')),
+  query_json    TEXT NOT NULL,                          -- the foundation fields the step is built from
+  sources_json  TEXT NOT NULL,                          -- registry ids
+  mode_json     TEXT NOT NULL,                          -- {mode: [source ids]}: auto | assisted | awaiting approval | fetch
+  expected      TEXT,
+  status        TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned','done','skipped')),
+  rationale     TEXT,
+  revisions_json TEXT,                                 -- {field: {"include": false} | {"value": "..."}}: the person's include/revise for this step
+  created_at    TEXT NOT NULL,
+  UNIQUE (question_id, step_key)
+);
+CREATE INDEX ix_search_plan_question ON search_plan(question_id, seq);
+
+-- Every execution of a step, including the ones that found nothing.
+CREATE TABLE search_log (
+  id              TEXT PRIMARY KEY,
+  tree_id         TEXT NOT NULL REFERENCES tree(id),
+  plan_step_id    TEXT REFERENCES search_plan(id),
+  question_id     TEXT REFERENCES research_question(id),
+  executed_at     TEXT NOT NULL,
+  executed_by     TEXT NOT NULL,                        -- user:<name> | agent:<name>
+  source_id       TEXT REFERENCES source(id),
+  query_json      TEXT NOT NULL,                        -- exactly the fields used, after include/revise
+  outcome         TEXT NOT NULL CHECK (outcome IN ('found','none','blocked','error')),
+  artifacts_json  TEXT,                                 -- sha256s archived by this run
+  notes           TEXT
+);
+CREATE INDEX ix_search_log_step ON search_log(plan_step_id);
+CREATE INDEX ix_search_log_question ON search_log(question_id);
 
 -- Any vendor identifier for any entity. Never a primary key.
 CREATE TABLE external_id (

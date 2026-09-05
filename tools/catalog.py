@@ -20,9 +20,11 @@ class Catalog:
         self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or ""}
                         for r in self.q("SELECT id, name, access, status, cost FROM source")}
     def find_person(self, key):
-        r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name LIKE ?) ORDER BY display_name LIMIT 5", self.tree_id, key, f"%{key}%")
+        """A person by id, exact display name, or substring of the name (exact wins; several matches are listed on stderr)."""
+        r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name LIMIT 5", self.tree_id, key, key)
+        if not r: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name LIMIT 5", self.tree_id, f"%{key}%")
         if not r: sys.exit(f"no person matching {key!r}")
-        if len(r) > 1 and not any(x[0] == key for x in r): print("matches:", ", ".join(f"{n} [{i[-6:]}]" for i, n in r), file=sys.stderr)
+        if len(r) > 1: print("matches:", ", ".join(f"{n} [{i[-6:]}]" for i, n in r), file=sys.stderr)
         return r[0][0]
     def person(self, pid):
         r = self.q("SELECT id, display_name, sex FROM person WHERE id=?", pid)[0]
@@ -73,9 +75,10 @@ class Catalog:
     def citations(self, kind, sid):
         """[(collection name, apid, held artifact sha or None)] for a subject."""
         out = []
-        for cname, notes, sha, tier in self.q("""SELECT c.name, a.notes, a.artifact_sha256, ar.trust_tier FROM assertion a
+        for cname, notes, sha, tier in self.q("""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, ar.trust_tier FROM assertion a
                 LEFT JOIN collection c ON json_valid(a.notes) AND c.id=json_extract(a.notes,'$.collection_id')
                 LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256
+                LEFT JOIN collection ac ON ac.id=ar.collection_id
                 WHERE a.subject_kind=? AND a.subject_id=? AND a.status<>'rejected'""", kind, sid):
             apid = json.loads(notes).get("apid") if notes and notes.startswith("{") else None
             held = sha if sha and tier in ("T1", "T2", "T3") else None       # the T4 tree export is not a held record
@@ -95,6 +98,16 @@ class Catalog:
                 fam["families"].append({"id": fid, "spouse": sp[0][1] if sp else None, "spouse_id": sp[0][0] if sp else None,
                                         "marriages": [{"id": m[0], "year": year(m[1]), "place": self.place(m[0], m[2]), "citations": self.citations("event", m[0])} for m in marr]})
         return fam
+    def fetched_rows(self, pid):
+        """Checklist row keys (record:instance) whose fetch step is done with an archived artifact in its log."""
+        keys = set()
+        for detail, in self.q("""SELECT q.detail_json FROM research_question q JOIN search_plan sp ON sp.question_id=q.id JOIN search_log l ON l.plan_step_id=sp.id
+                                 WHERE q.subject_person_id=? AND q.kind='missing_record' AND sp.status='done' AND l.artifacts_json IS NOT NULL AND l.artifacts_json<>'[]'""", pid):
+            d = json.loads(detail or "{}"); keys.add(f"{d.get('record')}:{d.get('instance') or ''}")
+        return keys
+    def held_apids(self):
+        """Ancestry record ids whose record is in the archive."""
+        return {v for v, in self.q("SELECT locator_value FROM artifact WHERE locator_kind='apid'")}
     def person_citations(self, pid):
         """All citations attached to a person: on the person row and on every event of theirs."""
         cits = self.citations("person", pid)

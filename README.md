@@ -9,8 +9,8 @@ able to distrust every earlier conclusion.
 | `docs/DATA-ARCHITECTURE.md` | The design: four layers, content-addressed archive, trees/profiles, trust boundaries, aliases. Accepted decisions are recorded there. |
 | `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status). `data/DATA-SOURCES.md` has the reasoning. |
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
-| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`. |
-| `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/`. |
+| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`. |
+| `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/` (snapshots, ignored). |
 | `inbox/` | Drop zone for files to ingest. |
 | `app/person/` | The person screen: stdlib server plus one page. |
 | `CLAUDE.md` | Operating rules for an AI contributor. |
@@ -18,7 +18,8 @@ able to distrust every earlier conclusion.
 | `BACKLOG.md` | Deferred work, self-governing. |
 
 Not in git: `archive/` (content-addressed masters), `catalog/*.db`, `derivatives/`,
-and everything under `trees/*/imports`. Those are backed up by BagIt bags, not by git.
+and everything under `trees/*/imports` and `trees/*/exports`. Those are backed up by
+BagIt bags, not by git.
 
 ```
 python3 tools/initdb.py

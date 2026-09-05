@@ -60,6 +60,8 @@ python3 tools/resolve_places.py             # Nominatim, cached; --reset undoes 
 python3 tools/backfill_aliases.py
 python3 tools/checklist.py "<person>"       # read-only checklist + gaps (footprint on top); --json, --all
 python3 tools/footprint.py "<person>"       # read-only Layer 0 on its own
+python3 tools/plan.py --all                 # materialize questions + steps (idempotent)
+python3 tools/log_search.py --list "<person>"   # the plan with outcomes; --step/--outcome to log a run
 python3 tools/tree.py show
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
 ```

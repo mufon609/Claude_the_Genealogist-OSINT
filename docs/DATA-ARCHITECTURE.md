@@ -20,7 +20,9 @@ it came from, and the system still works when it holds a million artifacts.
 
 Rules that keep the layers honest:
 
-- Layer 4 may not contain an assertion without a link to layer 3.
+- Layer 4 may not contain an assertion without a link to layer 3, or to the
+  artifact itself when the claim is a family link or family event that a tree
+  file states on the family rather than on a persona.
 - Layer 3 may not contain a fact without a link to a layer 2 hash and a region
   (page, frame, line, bounding box) inside it.
 - Layer 2 is never edited. A correction is a new object plus a note.
@@ -51,7 +53,11 @@ accuracy figure. Trust tiers (T1-T5) remain: they classify what *kind* of
 source a record is, not how confident anyone is in it.
 
 An imported tree arrives entirely Undecided. Nothing becomes Accepted without
-a person saying so.
+a person saying so. One link is definitional rather than decided: the persona an
+import creates for each tree entry is linked to the person it creates with
+status Accepted, because that persona *is* the entry. The extractor is recorded
+as the decider, and the link alone never counts as support
+(`v_unsupported_person`).
 
 ## 2. Archive layer
 
@@ -142,6 +148,7 @@ Core tables (the full map by layer is in `schema/README.md`):
 | `person_persona` | Person-to-persona link with the three-state status and who decided it. |
 | `proposal` | AI output awaiting a decision; answers a question about a person. |
 | `alias` | Variant and erroneous forms kept as search keys (§8). |
+| `research_question`, `search_plan`, `search_log` | A question about a person, the ladder steps planned for it, and every run of a step including negatives (`docs/RESEARCH-WORKFLOW.md`). |
 | `external_id` | Any vendor ID for any entity (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
 | `place`, `place_name`, `place_string` | Normalized place hierarchy with dated names; every raw string ever seen and what it resolved to. |
 
@@ -158,13 +165,14 @@ extraction they came from and are regenerable; they are not archived.
 tree/
   inbox/         drop zone: put a file here, run an ingest tool, it is moved out
   archive/       layer 2: objects/ manifests/ bags/  (git-ignored; backed up by bag)
-  catalog/       tree.db + .active-tree             (git-ignored; dumped to SQL for versioning)
+  catalog/       tree.db + .active-tree             (git-ignored; dumped to SQL into a bag)
   derivatives/   thumbnails, OCR text, tiles        (regenerable, not backed up)
   trees/<slug>/  one folder per tree: README.md, imports/ (named copies of what
                  was ingested), exports/ (GEDCOM 7 / Gramps XML snapshots)
   data/          source registry CSV and other reference tables
   schema/        DDL, seeds, manifest JSON Schema
-  tools/         CLI tools (initdb, tree, ingest_gedcom, resolve_places, backfill_aliases)
+  tools/         CLI tools (initdb, tree, ingest_gedcom, resolve_places, backfill_aliases,
+                 checklist, footprint, plan, log_search)
   docs/          this file and its siblings
   app/person/    the person screen: stdlib server + one page
 ```
@@ -234,7 +242,8 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
 
 - Weekly GEDCOM 7 export of layer 4 with a GEDZIP of redistributable media.
   This is the portable backup and the format any other tool can read.
-- Catalog dumped to plain SQL on the same schedule and kept in git or a bag.
+- Catalog dumped to plain SQL on the same schedule and kept in a bag beside the
+  archive bags, never in git: a dump holds living-person data.
 - Archive bags are the master; GEDZIP is a convenience view.
 
 ## 7. Decisions
@@ -249,7 +258,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    (compliance mode), lifecycle to Glacier Deep Archive after 30 days. The
    archive writer targets an S3-compatible interface behind a local-filesystem
    adapter, so switching on S3 later is configuration, not code. Git holds
-   code, docs, the CSV registry, and catalog SQL dumps; never the objects.
+   code, docs and the CSV registry; never the objects, never a catalog dump.
 3. **Living-person policy: two thresholds.** `record_release` follows each
    source's own law (census 72 years under Pub. L. 95-416 / 44 U.S.C. 2108(b);
    PA deaths 50 years and births 105 years under Act 110 of 2011); stored per
@@ -267,7 +276,7 @@ Three things exist for every value, and they live in different layers:
 |---|---|---|---|
 | As written in a record | `persona_fact.value_text`, `place_string.raw` (layer 3) | never | "Worchester, Montgomery, Pennsylvania" |
 | Canonical conclusion | `person_name`, `event.place_id` → `place` (layer 4) | yes, with assertions | Worcester Township, Montgomery Co., PA |
-| The mapping and why they differ | `alias` / `place_string.variant_kind` (schema 0.4.0) | yes, reviewable | kind = typo, Accepted |
+| The mapping and why they differ | `alias` / `place_string.variant_kind` | yes, reviewable | kind = typo, Accepted |
 
 Why the error is kept and indexed rather than fixed:
 
@@ -293,7 +302,7 @@ East/West Norriton 1909; Montgomery Co. formed 1784) · `jurisdiction_error`
 belong in `place_name` with dates. Everything else is an error or variant and
 is attached to the canonical entity as an alias, never promoted to a name.
 
-### Schema (0.4.0)
+### Schema
 
 ```
 alias (tree-scoped for persons/families; tree_id NULL for shared entities)

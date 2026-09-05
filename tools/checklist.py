@@ -88,13 +88,14 @@ def build(cat: Catalog, pid: str):
     for f in fam["families"]:
         if len(f["marriages"]) > 1: questions.append({"kind": "conflict", "detail": f"{len(f['marriages'])} marriage events with {f['spouse']}"})
     fp = footprint(cat, pid)
-    for dup in fp["duplicates"]: questions.append({"kind": "duplicate_person", "detail": dup["why"]})
-    for u in fp["unlinked"]: questions.append({"kind": "unlinked_relative", "detail": u["why"]})
+    for dup in fp["duplicates"]: questions.append({"kind": "duplicate_person", "detail": dup["why"], "other_id": dup["id"]})
+    if any(q["kind"] in ("missing_parents", "missing_spouse", "identity_incomplete") for q in questions):
+        for u in fp["unlinked"]: questions.append({"kind": "unlinked_relative", "detail": u["why"], "other_id": u["id"]})
     uncited = [e for e in ev if not e["citations"]]
     if uncited: questions.append({"kind": "unverified_claim", "detail": f"{len(uncited)} event(s) with no record: " + ", ".join(f"{e['type']} {e['date_text'] or ''}".strip() for e in uncited[:6])})
 
     # ---- checklist rows
-    own = cat.person_citations(pid)
+    own = cat.person_citations(pid); fetched = cat.fetched_rows(pid)
     rel_cits = {}
     for group in ("spouses", "children", "parents", "siblings"):
         for rid, rname in fam[group]: rel_cits[rname] = cat.person_citations(rid)
@@ -121,6 +122,7 @@ def build(cat: Catalog, pid: str):
     A, B = [], []
     def row(group, record, pattern, sources, settles, query, household=False, na=None, instance=None):
         st, via = status_of(pattern, household) if pattern != "no-match" else ("missing", None)
+        if f"{record}:{instance or ''}" in fetched: st, via = "held", None   # a done fetch step archived the record
         if na and st == "missing": st = "n/a"                     # a real citation beats the era rule
         r = {"record": record, "instance": instance, "status": st, "via": via, "settles": settles, "sources": sources,
              "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None)}
@@ -157,12 +159,12 @@ def build(cat: Catalog, pid: str):
         src = VITAL.get(st_ or "", {}).get("marriage", (None, None))
         if m_country and m_country != "united states": src = (None, None); st_ = None
         cited = any(c[0] and re.search(MATCH["marriage"], c[0]) for c in (m["citations"] if m else []) + own + rel_cits.get(f["spouse"] or "", []))
-        r = {"record": "marriage record", "instance": f["spouse"], "status": "cited" if cited else "missing", "via": None,
+        r = {"record": "marriage record", "instance": f["spouse"], "status": "held" if f"marriage record:{f['spouse'] or ''}" in fetched else ("cited" if cited else "missing"), "via": None,
              "settles": "date, place, both sets of parents, maiden name",
              "sources": [src[1]] if src[1] else (CHURCH.get(m_country, []) if m_country and m_country != "united states" else ["C03", "C05", "C06", "C07", "C08", "C09"]), "na_reason": None}
         if m_country and m_country != "united states": r["settles"] += f"; married in {m_country.title()}: church register"
         if my and src[0] and my < src[0]: r["settles"] += f"; before statewide registration in {st_.title()} ({src[0]}): county book or church register"
-        if True:
+        if r["status"] != "held":
             r["search"] = {"type": "couple", "fields": {**fnd, "spouse": f["spouse"], "year": my, "state": st_}, "sources": r["sources"],
                            "mode": {"fetch": r["sources"]} if cited else mode_for(r["sources"]), "expect": r["settles"], "basis": "accepted" if baseline["complete"] else "lead"}
         A.append(r)
