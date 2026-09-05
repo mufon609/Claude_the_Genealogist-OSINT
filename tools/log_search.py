@@ -32,9 +32,9 @@ def rendered_query(query_json, revisions_json):
 def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None):
     ts = now()
     if step_id:
-        st = cx.execute("SELECT id, question_id, query_json, sources_json, revisions_json FROM search_plan WHERE id=?", (step_id,)).fetchone()
+        st = cx.execute("SELECT id, question_id, query_json, sources_json, revisions_json, locator_source_id FROM search_plan WHERE id=?", (step_id,)).fetchone()
         if not st: raise SystemExit(f"no step {step_id}")
-        question_id = st[1]; query = query or rendered_query(st[2], st[4]); source_id = source_id or (json.loads(st[3]) or [None])[0]
+        question_id = st[1]; query = query or rendered_query(st[2], st[4]); source_id = source_id or st[5] or (json.loads(st[3]) or [None])[0]
     if question_id and not cx.execute("SELECT 1 FROM research_question WHERE id=? AND tree_id=?", (question_id, tree_id)).fetchone(): raise SystemExit("question not in this tree")
     lid = ulid()
     cx.execute("""INSERT INTO search_log (id,tree_id,plan_step_id,question_id,executed_at,executed_by,source_id,query_json,outcome,artifacts_json,notes)
@@ -60,11 +60,10 @@ def main():
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); tree_id, slug = resolve_tree(cx, a.tree)
     if a.list:
         cat = Catalog(cx, tree_id); pid = cat.find_person(a.list)
-        for row in cx.execute("""SELECT q.kind, q.detail_json, sp.id, sp.seq, sp.layer, sp.query_type, sp.status, sp.expected, sp.rationale,
+        for row in cx.execute("""SELECT sp.id, sp.kind, sp.mode, sp.status, sp.row_key, sp.locator_value, sp.rationale,
                                         (SELECT GROUP_CONCAT(l.outcome || '@' || substr(l.executed_at,1,10), ' ') FROM search_log l WHERE l.plan_step_id=sp.id)
-                                 FROM research_question q JOIN search_plan sp ON sp.question_id=q.id WHERE q.subject_person_id=? AND q.status='open' ORDER BY q.kind, sp.seq""", (pid,)):
-            d = json.loads(row[1] or "{}"); label = d.get("record", row[0]) + (" " + d["instance"] if d.get("instance") else "")
-            print(f"{row[2]}  L{row[4]} {row[6]:8} {row[5]:18} {label[:34]:34} {row[9] or ''}  -- {row[8][:50]}")
+                                 FROM search_plan sp WHERE sp.person_id=? ORDER BY sp.seq""", (pid,)):
+            print(f"{row[0]}  {row[1]:6} {row[2]:17} {row[3]:8} {row[4][:34]:34} {(row[5] or '')[:20]:20} {row[7] or ''}  -- {row[6][:50]}")
         return
     if a.dismiss:
         cx.execute("BEGIN"); dismiss(cx, tree_id, a.by, a.dismiss, a.note); cx.commit(); print("dismissed", a.dismiss); return

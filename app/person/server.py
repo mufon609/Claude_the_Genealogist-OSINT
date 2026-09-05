@@ -19,7 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, dumps, manifest_path, now, object_path, sha256_file, tree_dir, ulid
 from catalog import Catalog
-from checklist import build, MATCH
+from checklist import build
 from plan import plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 
@@ -91,48 +91,22 @@ def decide_fact(cx, tree_id, pid, field, status, note):
                    (ulid(), tree_id, "person", pid, f"{field}: {status}. {note}", CFG["by"], ts))
     return {"ok": True, "field": field, "status": status, "assertions": n}
 
-def row_pattern(row):
-    """The collection-name pattern the checklist used for a row (mirrors tools/checklist.py MATCH)."""
-    rec = row["record"]
-    if rec == "census household" and row.get("instance"): return MATCH["census"](row["instance"])
-    if rec.endswith("state census"): return MATCH["state_census"]("", row["instance"])
-    for key, name in (("marriage", "marriage record"), ("church", "church register"), ("probate", "will / probate"), ("obituary", "obituary"), ("cemetery", "cemetery"),
-                      ("passenger", "passenger"), ("pension", "pension"), ("deed", "land deed"), ("directory", "city directory"), ("compiled", "compiled"),
-                      ("death_record", "death record"), ("birth_record", "birth record"), ("social_security", "Social Security"), ("naturalization", "naturalization"),
-                      ("draft_ww1", "WWI"), ("draft_ww2", "WWII"), ("draft_civil", "Civil War"), ("military", "military service")):
-        if rec.startswith(name) or name in rec: return MATCH[key]
-    return None
-
 # ------------------------------------------------------------------ views
 def plan_view(cx, pid):
-    out = []
-    for q in cx.execute("SELECT id, kind, detail_json, status FROM research_question WHERE subject_person_id=? AND status='open' ORDER BY kind", (pid,)):
-        d = json.loads(q["detail_json"] or "{}")
-        steps = []
-        for s in cx.execute("SELECT * FROM search_plan WHERE question_id=? ORDER BY seq", (q["id"],)):
-            logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at", (s["id"],))]
-            steps.append({"id": s["id"], "seq": s["seq"], "layer": s["layer"], "type": s["query_type"], "status": s["status"], "fields": json.loads(s["query_json"]),
-                          "revisions": json.loads(s["revisions_json"] or "{}"), "query": rendered_query(s["query_json"], s["revisions_json"]),
-                          "sources": json.loads(s["sources_json"]), "mode": json.loads(s["mode_json"]), "expected": s["expected"], "rationale": s["rationale"], "logs": logs})
-        out.append({"id": q["id"], "kind": q["kind"], "detail": d, "steps": steps})
-    return out
-
-def step_locator(cx, tree_id, st):
-    """Where the record a step points at lives: (source_id, locator_kind, locator_value, collection_id, collection_name).
-    A footprint step names its Ancestry record; a cited checklist row is traced back to the citation it was built from."""
-    f = json.loads(st["query_json"]); d = json.loads(st["detail_json"] or "{}")
-    apid = f.get("apid")
-    if not apid and d.get("status") == "cited":
-        cat = Catalog(cx, tree_id); pat = row_pattern(d)
-        people = [st["subject_person_id"]] + [rid for k in ("spouses", "children", "parents", "siblings") for rid, _ in cat.family(st["subject_person_id"])[k]]
-        for rid in people:
-            hit = next((c for c in cat.person_citations(rid) if pat and c[0] and re.search(pat, c[0], re.I) and c[1]), None)
-            if hit: apid = hit[1]; break
-    if apid:
-        col = cx.execute("""SELECT c.id, c.name FROM assertion a JOIN collection c ON c.id=json_extract(a.notes,'$.collection_id')
-                            WHERE json_valid(a.notes) AND json_extract(a.notes,'$.apid')=? LIMIT 1""", (apid,)).fetchone()
-        return "B02", "apid", apid, (col["id"] if col else None), (col["name"] if col else f.get("collection"))
-    return None, "file", None, None, None
+    """The person's open fact-level questions and every step, each with its log and its fields as rendered."""
+    questions = [{"id": q["id"], "kind": q["kind"], "detail": json.loads(q["detail_json"] or "{}"),
+                  "steps": cx.execute("SELECT COUNT(*) FROM search_plan WHERE question_id=?", (q["id"],)).fetchone()[0]}
+                 for q in cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' ORDER BY kind", (pid,))]
+    steps = []
+    for s in cx.execute("SELECT * FROM search_plan WHERE person_id=? ORDER BY seq", (pid,)):
+        logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at", (s["id"],))]
+        col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
+        steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"],
+                      "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": json.loads(s["query_json"]), "revisions": json.loads(s["revisions_json"] or "{}"),
+                      "query": rendered_query(s["query_json"], s["revisions_json"]), "locator": {"source": s["locator_source_id"], "kind": s["locator_kind"], "value": s["locator_value"]},
+                      "collection": col["name"] if col else None, "on": json.loads(s["on_json"] or "[]"), "url": ancestry_url(s["locator_value"]) if s["locator_kind"] == "apid" else None,
+                      "expected": s["expected"], "rationale": s["rationale"], "logs": logs})
+    return {"questions": questions, "steps": steps}
 
 def source_row(cx, sid):
     r = cx.execute("SELECT id, trust_tier, terms, cost FROM source WHERE id=?", (sid,)).fetchone() if sid else None
@@ -142,10 +116,10 @@ def cost_of(text):
     t = (text or "").strip().lower()
     return next((c for c in ("free", "paid", "member") if t.startswith(c)), "unknown")
 
-def archive_inbox_file(cx, slug, name, st, tree_id, note):
+def archive_inbox_file(cx, slug, name, st, note):
     """Archive a file the person saved to inbox/ for a step. Bytes already in the archive are linked, not copied.
     Provenance comes from the registry: the record's kind (the step's first source) gives the trust tier; where it was
-    retrieved (the citation's source) gives terms and cost. Returns the sha256."""
+    retrieved (the step's locator source) gives terms and cost. Returns the sha256."""
     src = os.path.join(ROOT, "inbox", os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
     sha = sha256_file(src); ts = now()
@@ -154,7 +128,8 @@ def archive_inbox_file(cx, slug, name, st, tree_id, note):
         shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
         return sha
     size = os.path.getsize(src); mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
-    source_id, lkind, lvalue, col_id, col_name = step_locator(cx, tree_id, st)
+    source_id, lkind, lvalue, col_id = st["locator_source_id"], st["locator_kind"] or "file", st["locator_value"], st["collection_id"]
+    col = cx.execute("SELECT name FROM collection WHERE id=?", (col_id,)).fetchone() if col_id else None; col_name = col["name"] if col else None
     sources = json.loads(st["sources_json"])
     kind_row = source_row(cx, sources[0] if sources else None); from_row = source_row(cx, source_id) or kind_row
     tier = kind_row.get("trust_tier") or from_row.get("trust_tier"); terms = from_row.get("terms") or "unknown"; cost = cost_of(from_row.get("cost"))
@@ -174,19 +149,19 @@ def archive_inbox_file(cx, slug, name, st, tree_id, note):
 def log_step(cx, tree_id, slug, step_id, body):
     """Write one run of a step. A found run with a file archives the file and records it on the log; the
     assertion and personas come later from extraction and review, never from the attach."""
-    st = cx.execute("SELECT sp.*, q.subject_person_id, q.detail_json FROM search_plan sp JOIN research_question q ON q.id=sp.question_id WHERE sp.id=? AND q.tree_id=?", (step_id, tree_id)).fetchone()
+    st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone()
     if not st: return {"error": "step not found"}
     outcome = body.get("outcome"); note = body.get("note") or None; query = body.get("query") or rendered_query(st["query_json"], st["revisions_json"])
     artifacts = []
     if outcome == "found" and body.get("file"):
-        try: artifacts.append(archive_inbox_file(cx, slug, body["file"], st, tree_id, note))
+        try: artifacts.append(archive_inbox_file(cx, slug, body["file"], st, note))
         except ValueError as e: return {"error": str(e)}
     lid = log_search(cx, tree_id, CFG["by"], step_id=step_id, outcome=outcome, artifacts=artifacts or None, note=note, query=query)
     return {"ok": True, "log": lid, "artifacts": artifacts}
 
 def revise_step(cx, tree_id, step_id, body):
     """Store the person's include/revise for a step: {field: {"include": false} | {"value": "..."}}."""
-    if not cx.execute("SELECT 1 FROM search_plan sp JOIN research_question q ON q.id=sp.question_id WHERE sp.id=? AND q.tree_id=?", (step_id, tree_id)).fetchone(): return {"error": "step not found"}
+    if not cx.execute("SELECT 1 FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone(): return {"error": "step not found"}
     rev = {k: v for k, v in (body.get("revisions") or {}).items() if isinstance(v, dict) and (v.get("include") is False or v.get("value") not in (None, ""))}
     cx.execute("UPDATE search_plan SET revisions_json=? WHERE id=?", (dumps(rev) if rev else None, step_id))
     return {"ok": True, "revisions": rev}
@@ -196,18 +171,9 @@ def person_view(cx, tree_id, pid):
     r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f)} for f in KEY_FACTS}
     fam = cat.family(pid)
     r["family"] = {k: [{"id": i, "name": n} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
-    # citations behind each checklist row (own first, then relatives'), with fetch links for Ancestry records
-    rels = [(rel["name"], rel["id"]) for k in ("spouses", "children", "parents", "siblings") for rel in r["family"][k]]
-    cites = [(None, c) for c in cat.person_citations(pid)] + [(n, c) for n, rid in rels for c in cat.person_citations(rid)]
-    for grp in ("A", "B"):
-        for row in r["checklist"][grp]:
-            row["citations"] = []
-            if row["status"] not in ("cited", "held"): continue
-            pat = row_pattern(row)
-            seen = set()
-            for who, (cname, apid, held) in cites:
-                if pat and cname and re.search(pat, cname, re.I) and (who is None or row.get("via") == who) and (cname, apid, who) not in seen:
-                    seen.add((cname, apid, who)); row["citations"].append({"collection": cname, "apid": apid, "on": who, "url": ancestry_url(apid), "held": held})
+    held = cat.held_apids()
+    for row in r["checklist"]["A"] + r["checklist"]["B"]:
+        for c in row["citations"]: c["url"] = ancestry_url(c["apid"]); c["held"] = c["apid"] in held
     for rec in r["footprint"]["records"]: rec["url"] = ancestry_url(rec.get("apid"))
     return r
 

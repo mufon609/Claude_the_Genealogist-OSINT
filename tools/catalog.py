@@ -17,8 +17,8 @@ class Catalog:
     def __init__(self, cx, tree_id):
         self.cx, self.tree_id = cx, tree_id
         self.q = lambda s, *a: cx.execute(s, a).fetchall()
-        self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or ""}
-                        for r in self.q("SELECT id, name, access, status, cost FROM source")}
+        self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or "", "connector": r[5] or ""}
+                        for r in self.q("SELECT id, name, access, status, cost, connector FROM source")}
     def find_person(self, key):
         """A person by id, exact display name, or substring of the name (exact wins; several matches are listed on stderr)."""
         r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name LIMIT 5", self.tree_id, key, key)
@@ -90,16 +90,16 @@ class Catalog:
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind=? AND subject_id=?", kind, sid)}
         return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "lead")
     def citations(self, kind, sid):
-        """[(collection name, apid, held artifact sha or None)] for a subject."""
+        """[(collection name, apid, held artifact sha or None, collection id)] for a subject."""
         out = []
-        for cname, notes, sha, tier in self.q("""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, ar.trust_tier FROM assertion a
+        for cname, notes, sha, tier, cid in self.q("""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, ar.trust_tier, COALESCE(c.id, ac.id) FROM assertion a
                 LEFT JOIN collection c ON json_valid(a.notes) AND c.id=json_extract(a.notes,'$.collection_id')
                 LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256
                 LEFT JOIN collection ac ON ac.id=ar.collection_id
                 WHERE a.subject_kind=? AND a.subject_id=? AND a.status<>'rejected'""", kind, sid):
             apid = json.loads(notes).get("apid") if notes and notes.startswith("{") else None
             held = sha if sha and tier in ("T1", "T2", "T3") else None       # the T4 tree export is not a held record
-            if cname or held: out.append((cname or "", apid, held))
+            if cname or held: out.append((cname or "", apid, held, cid))
         return out
     def family(self, pid):
         """Relatives through family memberships; a membership whose assertions are all rejected does not count."""
@@ -119,12 +119,9 @@ class Catalog:
                                         "marriages": [{"id": m[0], "year": year(m[1]), "place": self.place(m[0], m[2]), "basis": self.basis("event", m[0]), "citations": self.citations("event", m[0])} for m in marr]})
         return fam
     def fetched_rows(self, pid):
-        """Checklist row keys (record:instance) whose fetch step is done with an archived artifact in its log."""
-        keys = set()
-        for detail, in self.q("""SELECT q.detail_json FROM research_question q JOIN search_plan sp ON sp.question_id=q.id JOIN search_log l ON l.plan_step_id=sp.id
-                                 WHERE q.subject_person_id=? AND q.kind='missing_record' AND sp.status='done' AND l.artifacts_json IS NOT NULL AND l.artifacts_json<>'[]'""", pid):
-            d = json.loads(detail or "{}"); keys.add(f"{d.get('record')}:{d.get('instance') or ''}")
-        return keys
+        """Checklist row keys (record:instance) with a done step, fetch or search, that has an archived artifact in its log."""
+        return {k for k, in self.q("""SELECT DISTINCT sp.row_key FROM search_plan sp JOIN search_log l ON l.plan_step_id=sp.id
+                                      WHERE sp.person_id=? AND sp.status='done' AND l.artifacts_json IS NOT NULL AND l.artifacts_json<>'[]'""", pid)}
     def held_apids(self):
         """Ancestry record ids whose record is in the archive."""
         return {v for v, in self.q("SELECT locator_value FROM artifact WHERE locator_kind='apid'")}

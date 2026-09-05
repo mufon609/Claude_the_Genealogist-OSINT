@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.5.0
+-- tree catalog schema  v0.6.0
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -39,6 +39,7 @@ CREATE TABLE source (
   trust_tier            TEXT,          -- T1..T5, ref, n/a
   priority              TEXT,          -- P0..P3
   status                TEXT,
+  connector             TEXT,          -- name of the built connector that runs searches against this source; NULL = none, so never 'auto'
   record_release_rule   TEXT,          -- human-readable law/rule, e.g. "72y after census date"
   notes                 TEXT,
   updated_at            TEXT NOT NULL
@@ -425,14 +426,15 @@ CREATE TABLE proposal (
 );
 CREATE INDEX ix_proposal_status ON proposal(tree_id, status, kind);
 
--- A question about a person, generated from gaps in the baseline (RESEARCH-WORKFLOW §2).
--- open until answered or dismissed; the decision that answers it is a proposal.
+-- A fact-level question about a person, generated from gaps in the baseline (RESEARCH-WORKFLOW §2).
+-- open until answered or dismissed; the decision that answers it is a proposal. A missing
+-- checklist row is not a question: it is a unit of work, a search_plan row.
 CREATE TABLE research_question (
   id                      TEXT PRIMARY KEY,
   tree_id                 TEXT NOT NULL REFERENCES tree(id),
   subject_person_id       TEXT NOT NULL REFERENCES person(id),
   kind                    TEXT NOT NULL CHECK (kind IN ('missing_parents','identity_incomplete','missing_spouse','missing_fact',
-                                                        'unverified_claim','conflict','duplicate_person','unlinked_relative','missing_record')),
+                                                        'unverified_claim','conflict','duplicate_person','unlinked_relative')),
   q_key                   TEXT NOT NULL,                -- stable key for idempotent regeneration: kind + detail
   detail_json             TEXT,
   status                  TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed')),
@@ -444,25 +446,36 @@ CREATE TABLE research_question (
 );
 CREATE INDEX ix_question_person ON research_question(subject_person_id, status);
 
--- One step of the search ladder for a question: what to search, where, how (RESEARCH-WORKFLOW §3).
+-- One executable step for a person: a fetch of a record the tree already cites, or a typed search
+-- for a missing checklist row (RESEARCH-WORKFLOW §3). It belongs to the person and a checklist row;
+-- it carries a question only when it answers a fact-level question (a footprint record for missing parents).
 CREATE TABLE search_plan (
-  id            TEXT PRIMARY KEY,
-  question_id   TEXT NOT NULL REFERENCES research_question(id),
-  seq           INTEGER NOT NULL,
-  layer         INTEGER NOT NULL CHECK (layer BETWEEN 0 AND 5),
-  step_key      TEXT NOT NULL,                          -- stable key for idempotent regeneration
-  query_type    TEXT NOT NULL CHECK (query_type IN ('footprint_record','footprint_collection','subject_record','household','couple','name','surname_locality','obituary','probate')),
-  query_json    TEXT NOT NULL,                          -- the foundation fields the step is built from
-  sources_json  TEXT NOT NULL,                          -- registry ids
-  mode_json     TEXT NOT NULL,                          -- {mode: [source ids]}: auto | assisted | awaiting approval | fetch
-  expected      TEXT,
-  status        TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned','done','skipped')),
-  rationale     TEXT,
-  revisions_json TEXT,                                 -- {field: {"include": false} | {"value": "..."}}: the person's include/revise for this step
-  created_at    TEXT NOT NULL,
-  UNIQUE (question_id, step_key)
+  id                TEXT PRIMARY KEY,
+  person_id         TEXT NOT NULL REFERENCES person(id),
+  row_key           TEXT NOT NULL,                      -- "<record>:<instance>" of the checklist row, or "footprint:<locator>" for a record on a relative
+  question_id       TEXT REFERENCES research_question(id),
+  seq               INTEGER NOT NULL,
+  step_key          TEXT NOT NULL,                      -- stable key for idempotent regeneration
+  kind              TEXT NOT NULL CHECK (kind IN ('fetch','search')),
+  query_type        TEXT NOT NULL CHECK (query_type IN ('footprint_record','subject_record','household','couple','name','surname_locality','obituary','probate')),
+  query_json        TEXT NOT NULL,                      -- {field: {"value": ..., "basis": accepted|lead|row}}; empty for a fetch
+  locator_source_id TEXT REFERENCES source(id),         -- fetch: the registry row the record lives at (B02 for an Ancestry citation)
+  locator_kind      TEXT,                               -- apid | ark | naid | memorial_id | url
+  locator_value     TEXT,
+  collection_id     TEXT REFERENCES collection(id),
+  on_json           TEXT,                               -- [[relative name, relation]] the citation sits on; [] when it is on the person
+  sources_json      TEXT NOT NULL,                      -- registry ids for the record's kind
+  mode              TEXT NOT NULL CHECK (mode IN ('fetch','auto','assisted','awaiting_approval')),
+  expected          TEXT,
+  status            TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned','done','skipped')),
+  rationale         TEXT,
+  revisions_json    TEXT,                               -- {field: {"include": false} | {"value": "..."}}: the person's include/revise for this step
+  created_at        TEXT NOT NULL,
+  UNIQUE (person_id, step_key)
 );
-CREATE INDEX ix_search_plan_question ON search_plan(question_id, seq);
+CREATE INDEX ix_search_plan_person   ON search_plan(person_id, seq);
+CREATE INDEX ix_search_plan_question ON search_plan(question_id);
+CREATE INDEX ix_search_plan_locator  ON search_plan(locator_kind, locator_value);
 
 -- Every execution of a step, including the ones that found nothing.
 CREATE TABLE search_log (

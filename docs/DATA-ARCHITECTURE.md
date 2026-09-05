@@ -148,7 +148,7 @@ Core tables (the full map by layer is in `schema/README.md`):
 | `person_persona` | Person-to-persona link with the three-state status and who decided it. |
 | `proposal` | AI output awaiting a decision; answers a question about a person. |
 | `alias` | Variant and erroneous forms kept as search keys (§8). |
-| `research_question`, `search_plan`, `search_log` | A question about a person, the ladder steps planned for it, and every run of a step including negatives (`docs/RESEARCH-WORKFLOW.md`). |
+| `research_question`, `search_plan`, `search_log` | A fact-level question about a person; an executable step on a checklist row of a person (a fetch with its locator, or a typed search with per-field basis); every run of a step including negatives (`docs/RESEARCH-WORKFLOW.md`). |
 | `external_id` | Any vendor ID for any entity (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
 | `place`, `place_name`, `place_string` | Normalized place hierarchy with dated names; every raw string ever seen and what it resolved to. |
 

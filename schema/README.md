@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.5.0; no deployed catalogs exist yet, so changes rebuild rather than migrate. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.6.0; no deployed catalogs exist yet, so changes rebuild rather than migrate. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -20,7 +20,7 @@ Build a fresh catalog with `tools/initdb.py` (add `--force` to overwrite). It se
                event_participant, person_persona, assertion, proposal, external_id, alias, note,
                research_question, search_plan, search_log
                (tree-scoped: person, family, event, assertion, proposal, note, tree_import,
-                research_question, search_log)
+                research_question, search_log; search_plan through its person)
 OPS            schema_migration, audit_log, storage_target, artifact_copy
 VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
                v_artifact_under_replicated, v_external_id_collision, v_person_search_key
@@ -32,6 +32,8 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   Corrections are new rows; removals are `tombstone` rows.
 - Decisions are three-state: `undecided` | `accepted` | `rejected` on `assertion`,
   `person_persona`, `place_string`, `alias`, `proposal`. No numeric confidence columns.
+- `search_plan.mode` is `auto` only when `source.connector` names a built connector;
+  the registry's free text never decides it.
 - Every `persona_fact.fact_type` and `event.event_type` must exist in `event_type`.
 - A `person` is supported only by an Accepted `assertion` (on the person or an
   event of theirs). `v_unsupported_person` lists the rest; after an import that
@@ -76,7 +78,7 @@ tools do not yet: `tools/catalog.py` uses SQLite's `json_valid` / `json_extract`
 | `tools/backfill_aliases.py` | Create `undecided` aliases from as-written persona names; set `place_string.variant_kind`; propose fixes for canonical names containing codes. Re-runnable. |
 | `tools/checklist.py "<person>"` | Read-only per-person checklist and gap generator (`docs/RESEARCH-CHECKLIST.md` §6a): foundation, questions, Group A/B rows with held / cited / missing / n/a, pre-built step per gap with `{value, basis}` fields. Before review: fetch steps only. `--json`, `--all`. |
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicate check, unlinked same-surname leads, records on relatives ranked by shared family members and by what they settle, collections to search next. Used by `checklist.py`; shown only once the baseline is reviewed. |
-| `tools/plan.py "<person>" / --all` | Materialize questions and search steps into `research_question` / `search_plan` from the checklist and footprint; idempotent; closes questions whose gap has gone. |
+| `tools/plan.py "<person>" / --all` | Materialize fact-level questions and executable steps into `research_question` / `search_plan` from the checklist and footprint: one fetch step per citation with its locator, one search step per missing row with `{value, basis}` fields and a registry-driven mode; idempotent; drops steps no longer generated unless run; closes questions whose gap has gone; leaves dismissed ones closed. |
 | `tools/log_search.py --step <id> --outcome …` | Record a run (found / none / blocked / error) with the step's fields as rendered after include/revise; `--dismiss <question id>` closes a question for good; `--list "<person>"` shows the plan with outcomes. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families; shared by the two tools above. |
 | `tools/treelib.py` | Shared helpers: ULID, GEDCOM line parser, GEDCOM date grammar, archive paths. |

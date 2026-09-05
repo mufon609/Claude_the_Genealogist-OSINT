@@ -10,7 +10,7 @@ local storage target. Stdlib only.
 import argparse, csv, datetime as dt, os, sqlite3, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCHEMA_VERSION = "0.5.0"
+SCHEMA_VERSION = "0.6.0"
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 def ulid() -> str:
@@ -35,12 +35,12 @@ def seed_sources(cx: sqlite3.Connection) -> int:
     ts = now()
     cx.executemany(
         """INSERT INTO source (id, category, data_type, name, provider, cost, access, url,
-                               coverage, terms, trust_tier, priority, status,
+                               coverage, terms, trust_tier, priority, status, connector,
                                record_release_rule, notes, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         [(r["ID"], r["Category"], r["DataType"], r["Source"], r["Provider"], r["Cost"],
           r["Access"], r["URL"], r["Coverage"], r["Terms"], r["TrustTier"], r["Priority"],
-          r["Status"], r.get("RecordRelease") or None, r["Notes"], ts) for r in rows])
+          r["Status"], r.get("Connector") or None, r.get("RecordRelease") or None, r["Notes"], ts) for r in rows])
     return len(rows)
 
 def main() -> int:

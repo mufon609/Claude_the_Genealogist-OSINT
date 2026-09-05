@@ -97,16 +97,16 @@ def footprint(cat: Catalog, pid: str):
                 unlinked.append({"id": oid, "name": oname, "role": gen, "why": f"{oname} [{oid[-6:]}]: same surname, born {ob}" + (f", {', '.join(sorted(states & ostates)).title()}" if states & ostates else "") + f"; {gen}, not linked"})
 
     # ---- records on relatives
-    own_keys = set()
-    for cname, apid, held in cat.person_citations(pid):
+    own_keys = set(); held_apids = cat.held_apids()
+    for cname, apid, held, _ in cat.person_citations(pid):
         if apid or held: own_keys.add(f"page:{cname}" if re.search(r"Federal Census|State Census", cname or "") else (apid or held))
     by_key = {}
     for rid, rname, rel in relatives:
-        for cname, apid, held in cat.person_citations(rid):
+        for cname, apid, held, cid in cat.person_citations(rid):
             key = apid or held
             if not key: continue
             if re.search(r"Federal Census|State Census", cname or ""): key = f"page:{cname}"   # one household page, many record ids
-            r = by_key.setdefault(key, {"key": key, "apid": apid, "collection": cname, "held": held, "on": [], "on_subject": key in own_keys})
+            r = by_key.setdefault(key, {"key": key, "apid": apid, "collection": cname, "collection_id": cid, "held": held or (apid in held_apids), "on": [], "on_subject": key in own_keys})
             if (rname, rel) not in r["on"]: r["on"].append((rname, rel))
     records = []
     for r in by_key.values():

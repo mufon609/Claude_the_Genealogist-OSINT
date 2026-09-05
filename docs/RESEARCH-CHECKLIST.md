@@ -237,11 +237,17 @@ result.
 
 ## 7. What this maps to in the schema
 
-- checklist rows = `research_question` rows of kind `missing_record`
-  (with `detail_json` = record type, instance such as census year, group A/B,
-  applicability reason);
-- the pre-built search = `search_plan` steps with `query_json` holding the
-  foundation fields actually used (checked/revised) so the log is exact;
+- a checklist row = `search_plan.row_key` (`"<record>:<instance>"`); a row is
+  a unit of work, not a question, so `research_question` holds only the
+  fact-level kinds and a step carries `question_id` only when it answers one
+  (a footprint record under missing parents);
+- a cited row = one `fetch` step per citation with `locator_source_id`,
+  `locator_kind`, `locator_value`, `collection_id` and `on_json` (the relatives
+  it sits on); a missing row = one `search` step with `query_json` holding the
+  foundation fields as `{value, basis}` and one `mode`;
 - the checkbox and revision state = `search_plan.revisions_json` on the step,
   not on the facts;
-- results = `proposal.question_id` pointing at the gap.
+- held = a done step for the row with an archived artifact in its
+  `search_log`;
+- results = `proposal.question_id` pointing at the question the record
+  answers.

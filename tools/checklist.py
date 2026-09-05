@@ -107,37 +107,49 @@ def build(cat: Catalog, pid: str):
     # ---- checklist rows
     own = cat.person_citations(pid); fetched = cat.fetched_rows(pid)
     rel_cits = {}
-    for group in ("spouses", "children", "parents", "siblings"):
-        for rid, rname in fam[group]: rel_cits[rname] = cat.person_citations(rid)
+    for group, rel in (("spouses", "spouse"), ("children", "child"), ("parents", "parent"), ("siblings", "sibling")):
+        for rid, rname in fam[group]: rel_cits[rname] = (rel, cat.person_citations(rid))
     def status_of(pattern, household=False):
         rx = re.compile(pattern, re.I)
         held = next((c for c in own if c[2] and rx.search(c[0])), None)
         if held: return "held", None
         if any(rx.search(c[0]) for c in own): return "cited", None
         if household:
-            for rname, cits in rel_cits.items():
+            for rname, (rel, cits) in rel_cits.items():
                 if any(c[2] and rx.search(c[0]) for c in cits): return "held", rname
                 if any(rx.search(c[0]) for c in cits): return "cited", rname
         return "missing", None
     DEPENDS = {"D03": "B01"}                      # FamilySearch collections need the API approval tracked on B01
     def mode_for(ids):
-        """{mode: [source ids]} — auto | assisted | awaiting approval, from the registry's Access/Status."""
-        modes = collections.defaultdict(list)
-        for sid in ids:
-            s = cat.sources.get(sid, {}); gate = cat.sources.get(DEPENDS.get(sid, ""), {})
-            if s.get("status") == "blocked-apply" or gate.get("status") == "blocked-apply": modes["awaiting approval"].append(sid)
-            elif re.search(r"REST|API|bulk|SPARQL|loc\.gov", s.get("access", ""), re.I) and not re.search(r"NONE|no API", s.get("access", "")): modes["auto"].append(sid)
-            else: modes["assisted"].append(sid)
-        return dict(modes)
+        """One mode for a search step: auto only when a source has a built connector (registry column), awaiting_approval
+        when every source waits on an application (its status or its gate's is blocked-apply), else assisted."""
+        srcs = [cat.sources.get(sid, {}) for sid in ids]
+        if any(s.get("connector") for s in srcs): return "auto"
+        waits = lambda sid, s: s.get("status") == "blocked-apply" or cat.sources.get(DEPENDS.get(sid, ""), {}).get("status") == "blocked-apply"
+        if ids and all(waits(sid, s) for sid, s in zip(ids, srcs)): return "awaiting_approval"
+        return "assisted"
+    def cited_on(pattern, household):
+        """The citations behind a row: [{apid, collection, collection_id, on: [[name, relation]]}], own first, then relatives'.
+        A census page carries one record id per family member; those collapse to one citation per page."""
+        rx = re.compile(pattern, re.I); out = {}
+        people = [(None, None, own)] + ([(rname, rel, cits) for rname, (rel, cits) in rel_cits.items()] if household else [])
+        for rname, rel, cits in people:
+            for cname, apid, held, cid in cits:
+                if not apid or not rx.search(cname or ""): continue
+                key = f"page:{cname}" if re.search(r"Federal Census|State Census", cname) else apid
+                c = out.setdefault(key, {"apid": apid, "collection": cname, "collection_id": cid, "on": []})
+                if rname and [rname, rel] not in c["on"]: c["on"].append([rname, rel])
+        return list(out.values())
     A, B = [], []
     def row(group, record, pattern, sources, settles, query, household=False, na=None, instance=None):
         st, via = status_of(pattern, household) if pattern != "no-match" else ("missing", None)
         if f"{record}:{instance or ''}" in fetched: st, via = "held", None   # a done fetch step archived the record
         if na and st == "missing": st = "n/a"                     # a real citation beats the era rule
         r = {"record": record, "instance": instance, "status": st, "via": via, "settles": settles, "sources": sources,
-             "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None)}
+             "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None),
+             "citations": cited_on(pattern, household) if st in ("cited", "held") and pattern != "no-match" else []}
         if query and (st == "cited" or (st == "missing" and reviewed)):
-            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": {"fetch": sources} if st == "cited" else mode_for(sources), "expect": settles}
+            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": "fetch" if st == "cited" else mode_for(sources), "expect": settles}
         (A if group == "A" else B).append(r)
     nb = cat.basis("person", pid)
     fnd = {"given": F(given, nb), "surname": F(surname, nb), "variants": F(foundation[0]["variants"], "lead"),
@@ -170,16 +182,19 @@ def build(cat: Catalog, pid: str):
         st_ = (m["place"]["state"] if m and m["place"] else None) or home_state
         src = VITAL.get(st_ or "", {}).get("marriage", (None, None))
         if m_country and m_country != "united states": src = (None, None); st_ = None
-        cited = any(c[0] and re.search(MATCH["marriage"], c[0]) for c in (m["citations"] if m else []) + own + rel_cits.get(f["spouse"] or "", []))
+        mcits = (m["citations"] if m else []) + own + rel_cits.get(f["spouse"] or "", ("", []))[1]
+        cited = any(c[0] and re.search(MATCH["marriage"], c[0]) for c in mcits)
         r = {"record": "marriage record", "instance": f["spouse"], "status": "held" if f"marriage record:{f['spouse'] or ''}" in fetched else ("cited" if cited else "missing"), "via": None,
              "settles": "date, place, both sets of parents, maiden name",
-             "sources": [src[1]] if src[1] else (CHURCH.get(m_country, []) if m_country and m_country != "united states" else ["C03", "C05", "C06", "C07", "C08", "C09"]), "na_reason": None}
+             "sources": [src[1]] if src[1] else (CHURCH.get(m_country, []) if m_country and m_country != "united states" else ["C03", "C05", "C06", "C07", "C08", "C09"]), "na_reason": None,
+             "citations": [{"apid": c[1], "collection": c[0], "collection_id": c[3], "on": [] if c in own or c in (m["citations"] if m else []) else [[f["spouse"], "spouse"]]}
+                           for c in mcits if c[1] and c[0] and re.search(MATCH["marriage"], c[0])]}
         if m_country and m_country != "united states": r["settles"] += f"; married in {m_country.title()}: church register"
         if my and src[0] and my < src[0]: r["settles"] += f"; before statewide registration in {st_.title()} ({src[0]}): county book or church register"
         if r["status"] == "cited" or (r["status"] == "missing" and reviewed):
             mb = m["basis"] if m else "lead"
             r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, mb if m and m["place"] else sb)),
-                           "sources": r["sources"], "mode": {"fetch": r["sources"]} if cited else mode_for(r["sources"]), "expect": r["settles"]}
+                           "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"]), "expect": r["settles"]}
         A.append(r)
     dplace = F(death["place"]["text"], death["basis"]) if death and death["place"] else F(home_state, sb)
     if d and d >= 1800: row("A", "obituary", MATCH["obituary"], ["H01", "H03", "H04"], "survivors, maiden names, places", ("obituary", fields(death_year=F(d, db), place=dplace)))
@@ -251,7 +266,7 @@ def render(r):
             via = f" (on {row['via']})" if row.get("via") else ""
             if row["status"] == "n/a": tail = f"n/a: {row['na_reason']}"
             elif not row["sources"]: tail = row["settles"]
-            elif row.get("search"): tail = "; ".join(f"{m}: {', '.join(ids)}" for m, ids in row["search"]["mode"].items())
+            elif row.get("search"): tail = f"{row['search']['mode']}: {', '.join(row['sources'])}"
             else: tail = ", ".join(row["sources"])
             if row.get("note"): tail += f"   ({row['note']})"
             out.append(f"  [{ {'held':'H','cited':'c','missing':' ','n/a':'-'}[row['status']] }] {row['record']+inst:44} {row['status']+via:26} {tail}")

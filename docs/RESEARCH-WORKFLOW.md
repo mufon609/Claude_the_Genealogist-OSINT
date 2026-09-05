@@ -98,12 +98,19 @@ cites each person on a census page under a different record id, so census
 citations are grouped by year as one page. `tools/checklist.py` shows the top
 of this list under FOOTPRINT, ahead of the Group A rows.
 
-A plan is an ordered list of steps: layer, source (registry ID), a **typed
-query** (`footprint_record`, `footprint_collection`, `subject_record`,
-`household`, `name`, `surname_locality`), execution mode, what a hit would look
-like, and the stop condition. The user approves the plan. Layer 0 steps are
-fetches of records we already cite, so they are cheap, decisive, and usually
-assisted (Ancestry) or automatic (FamilySearch, once approved).
+A plan is a list of executable steps for a person. Each step belongs to a
+checklist row and is one of two kinds. A **fetch** is a record the tree already
+cites, on the person or on a relative: it carries the registry row the record
+lives at, its locator (an Ancestry APID), the collection, and the relatives it
+sits on; every citation on a row is one fetch step, in one shape. A **search**
+is a typed query (`subject_record`, `household`, `couple`, `name`,
+`surname_locality`, `obituary`, `probate`) for a missing row, built from the
+foundation fields with each field's basis, with its registry sources, one mode
+(`auto`, `assisted`, `awaiting_approval`), and what a hit would look like.
+Footprint records on relatives are fetch steps under the fact-level question
+they serve. Running a step (Go, Search, the log buttons) is the approval;
+there is no approval state. Fetches are cheap and decisive, and open before the
+baseline is reviewed because the review needs them.
 
 Record type → era → place → source (layer 2) is a lookup, not a guess. The
 registry's coverage column drives it (MA deaths 1841–1915 are free and indexed;
@@ -116,6 +123,10 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 | auto | FamilySearch (after Innovator approval), WikiTree, loc.gov newspapers, NARA catalog, Open Archives, Wikidata, held archive | the system runs the query, archives raw responses, extracts personas |
 | assisted | Ancestry, Find a Grave, Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`; the system takes it from there |
 | manual | county courthouses, Schwenkfelder Library, parish archives | the system produces a request letter or visit checklist |
+
+A source is `auto` only when its registry row names a built connector (the
+`Connector` column of `data/data-sources.csv`); none does yet, so today every
+search step is `assisted` or `awaiting_approval`.
 
 Every execution is a **research log** row: query as actually run, source, date,
 outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
@@ -154,22 +165,31 @@ question. Accepting grows the baseline, which generates new questions.
      in Northampton papers 1902 (loc.gov); naturalization.
    - L4: only if the footprint fails to name the parents.
 
-## Schema (0.5.0)
+## Schema
 
 ```
-research_question (id, tree_id, subject_person_id, kind, q_key, detail_json, status open|closed, closed_reason, answered_by_proposal_id, created_at, closed_at)
-search_plan       (id, question_id, seq, layer 0-5, step_key, query_type, query_json, sources_json, mode_json, expected, status planned|done|skipped, rationale)
-                   query_type: footprint_record | footprint_collection | subject_record | household | couple | name | surname_locality | obituary | probate
+research_question (id, tree_id, subject_person_id, kind, q_key, detail_json, status open|closed, closed_reason answered|dismissed|gap_gone, answered_by_proposal_id, created_at, closed_at)
+                   kind: missing_parents | identity_incomplete | missing_spouse | missing_fact | unverified_claim | conflict | duplicate_person | unlinked_relative
+search_plan       (id, person_id, row_key, question_id?, seq, step_key, kind fetch|search, query_type, query_json {field: {value, basis}},
+                   locator_source_id, locator_kind, locator_value, collection_id, on_json, sources_json, mode fetch|auto|assisted|awaiting_approval,
+                   expected, status planned|done|skipped, rationale, revisions_json, created_at)
+                   row_key: "<record>:<instance>" of the checklist row, or "footprint:<locator>" for a record on a relative
 search_log        (id, tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome found|none|blocked|error, artifacts_json, notes)
 proposal.question_id
+source.connector
 ```
 
+A question is fact-level; a missing checklist row is a unit of work, a step,
+not a question, and a step carries a question id only when it answers one.
 There is no separate review table: the baseline review is the status on the
 assertions behind each key fact. Questions and steps are keyed so
-`tools/plan.py` regenerates them idempotently and closes a question whose gap
-has gone. `tools/log_search.py` (and the person screen) record every run
-with exactly the fields used; a `found` run marks the step done, a `none`
-run leaves it planned and visible as tried.
+`tools/plan.py` regenerates them idempotently, drops steps no longer generated
+unless they were run, and closes a question whose gap has gone; a question a
+person dismissed stays closed. `tools/log_search.py` (and the person screen)
+record every run with the fields as rendered after include and revise; a
+`found` run marks the step done, a `none` run leaves it planned and visible as
+tried. A found run that archived a file records the artifact on the log; the
+row is then held, and the assertion comes from extraction and review.
 
 ## Rules that hold throughout
 
