@@ -63,16 +63,16 @@ def build(cat: Catalog, pid: str):
     # ---- foundation
     def field(label, value, basis, extra=None):
         return {"field": label, "value": value, "basis": basis, **(extra or {})}
-    foundation = [field("given", given, cat.basis("person", pid), {"variants": sorted({n[0] for n in p["names"][1:] if n[0]} | {a for a in p["aliases"]})}),
-                  field("surname", surname, cat.basis("person", pid), {"variants": sorted({n[1] for n in p["names"][1:] if n[1]})}),
+    foundation = [field("name", " ".join(x for x in (given, surname) if x) or None, cat.basis("person", pid),
+                        {"given": given, "surname": surname, "variants": sorted({" ".join(x for x in (n[0], n[1]) if x) for n in p["names"][1:]} | set(p["aliases"]))}),
                   field("sex", sex, cat.basis("person", pid))]
     for label, e in (("birth", birth), ("death", death)):
         if e: foundation.append(field(label, {"year": e["year"], "date": e["date_text"], "place": e["place"]["text"] if e["place"] else None}, e["basis"]))
-    foundation += [field("parents", [n for _, n in fam["parents"]], "lead" if fam["parents"] else None),
-                   field("spouses", [n for _, n in fam["spouses"]], "lead" if fam["spouses"] else None),
-                   field("children", [n for _, n in fam["children"]], "lead" if fam["children"] else None),
+    foundation += [field("parents", [n for _, n in fam["parents"]], cat.link_basis(pid, "parents")),
+                   field("spouses", [n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")),
+                   field("children", [n for _, n in fam["children"]], cat.link_basis(pid, "children")),
                    field("residences", [{"year": e["year"], "place": e["place"]["text"] if e["place"] else e["date_text"]} for e in ev if e["type"] == "Residence"], "mixed")]
-    key_facts = ["given", "surname", "sex", "birth", "death", "parents", "spouses"]
+    key_facts = ["name", "sex", "birth", "death", "parents", "spouses", "children"]
     accepted = sum(1 for f in foundation if f["field"] in key_facts and f["basis"] == "accepted")
     baseline = {"key_facts_accepted": accepted, "key_facts": len(key_facts), "complete": accepted == len(key_facts)}
 
@@ -128,7 +128,7 @@ def build(cat: Catalog, pid: str):
             r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": {"fetch": sources} if st == "cited" else mode_for(sources),
                            "expect": settles, "basis": "accepted" if baseline["complete"] else "lead"}
         (A if group == "A" else B).append(r)
-    fnd = {"given": given, "surname": surname, "variants": foundation[0]["variants"] + foundation[1]["variants"],
+    fnd = {"given": given, "surname": surname, "variants": foundation[0]["variants"],
            "birth_year": b, "tolerance": 2, "state": home_state, "spouses": [n for _, n in fam["spouses"]], "parents": [n for _, n in fam["parents"]]}
     # A: census households (a foreign-born person is listed from the decade before their earliest US event)
     us_years = [e["year"] for e in ev if e["year"] and e["place"] and e["place"]["country"] == "united states"]

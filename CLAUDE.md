@@ -61,6 +61,7 @@ python3 tools/backfill_aliases.py
 python3 tools/checklist.py "<person>"       # read-only checklist + gaps (footprint on top); --json, --all
 python3 tools/footprint.py "<person>"       # read-only Layer 0 on its own
 python3 tools/tree.py show
+python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
 ```
 
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).

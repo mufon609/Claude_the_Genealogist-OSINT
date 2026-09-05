@@ -55,6 +55,18 @@ class Catalog:
         else: country = next((c for c in ("ireland", "germany", "netherlands", "poland", "japan", "england", "allemagne", "silesia", "schlesien") if f" {c} " in low), None)
         country = {"allemagne": "germany", "silesia": "poland", "schlesien": "poland", "england": "united kingdom"}.get(country, country)
         return {"text": text, "resolved": False, "country": country, "state": st}
+    def link_basis(self, pid, field):
+        """accepted | lead | None for parents / spouses / children, from the family_member assertions behind them."""
+        if field == "children":
+            subs = [json.dumps([f, c, "child"], separators=(",", ":"), sort_keys=True) for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid)
+                    for c, in self.q("SELECT person_id FROM family_member WHERE family_id=? AND role='child'", f)]
+        else:
+            role = "child" if field == "parents" else "partner"
+            subs = [json.dumps([f, pid, role], separators=(",", ":"), sort_keys=True) for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role=?", pid, role)]
+        if not subs: return None
+        st = set()
+        for sid in subs: st |= {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind='family_member' AND subject_id=?", sid)}
+        return "accepted" if "accepted" in st else ("rejected" if st and st <= {"rejected"} else "lead")
     def basis(self, kind, sid):
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind=? AND subject_id=?", kind, sid)}
         return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "lead")

@@ -196,6 +196,24 @@ source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record).
 citation always beats an era rule; the row is then marked with the rule it
 falls outside of.
 
+## 6b. The screen as built
+
+`app/person/server.py` serves it at http://127.0.0.1:8765/ (stdlib only,
+localhost only). The entry page is a person list with years, key facts
+Accepted, household records missing, cited-not-held, and questions. The
+person page has the three regions in order: foundation (key facts with
+Accept / Reject / Undecided, the evidence behind each, an include checkbox
+and a revise field for searches), checklist (footprint records first, then
+Group A, Group B collapsed), and a selected panel showing the search step or
+the citations behind the row clicked, with an Ancestry link for cited
+records. Deciding a fact sets every assertion that supports it and writes an
+audit row; name and sex share the person-level citations from the import, so
+deciding one decides the other, and accepting a person's children accepts the
+same link seen from the child's side as parents. Include and revise are kept
+per person in the browser and only
+change the displayed step; nothing runs until the fetcher and the research
+log exist, so there is no Go button yet.
+
 ## 7. What this maps to in the schema
 
 - checklist rows = `research_question` rows of kind `missing_record`

@@ -12,6 +12,7 @@ able to distrust every earlier conclusion.
 | `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/`. |
 | `inbox/` | Drop zone for files to ingest. |
+| `app/person/` | The person screen: stdlib server plus one page. |
 | `CLAUDE.md` | Operating rules for an AI contributor. |
 | `MEMORY.md` | Cross-cutting working patterns for any contributor; travels with the clone. |
 | `BACKLOG.md` | Deferred work, self-governing. |
@@ -26,4 +27,5 @@ python3 tools/ingest_gedcom.py inbox/<file>.ged
 python3 tools/resolve_places.py
 python3 tools/backfill_aliases.py
 python3 tools/checklist.py "Abram C Brant"      # per-person checklist and gaps
+python3 app/person/server.py                    # the person screen, http://127.0.0.1:8765/
 ```

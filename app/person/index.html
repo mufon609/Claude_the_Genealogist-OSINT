@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Tree</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#f7f6f2;--fg:#1d1d1b;--mut:#6b6a66;--line:#dcd9d0;--card:#fff;--acc:#2b5d9c;--ok:#2e7d32;--bad:#b3261e;--sel:#eef3fa}
+@media(prefers-color-scheme:dark){:root{--bg:#15161a;--fg:#e8e6e1;--mut:#9a988f;--line:#2c2e35;--card:#1d1f25;--acc:#7fa8e0;--ok:#7bc47f;--bad:#f28b82;--sel:#232a36}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+header{display:flex;gap:14px;align-items:center;padding:8px 18px;border-bottom:1px solid var(--line);background:var(--card)}
+header a{color:var(--fg);text-decoration:none;font-weight:600}header small{color:var(--mut)}header .sp{flex:1}
+main{max-width:1180px;margin:0 auto;padding:16px 18px}
+h1{font-size:20px;margin:0}h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:22px 0 8px}
+.mut{color:var(--mut)}a{color:var(--acc)}
+table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:5px 8px 5px 0;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:500;font-size:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}.seg button{border:0;background:none;color:var(--fg);padding:3px 9px;cursor:pointer;font:inherit}
+.seg button.on-accepted{background:var(--ok);color:#fff}.seg button.on-rejected{background:var(--bad);color:#fff}.seg button.on-undecided{background:var(--line)}
+.st{display:inline-block;min-width:58px;font-size:12px;color:var(--mut)}.st.held{color:var(--ok);font-weight:600}.st.cited{color:var(--acc)}.st.missing{color:var(--fg)}
+tr.row{cursor:pointer}tr.row:hover td{background:var(--sel)}tr.row.on td{background:var(--sel)}
+input[type=text],input[type=search]{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
+.fx{display:flex;gap:16px;align-items:flex-start}.fx>*{flex:1;min-width:0}
+details summary{cursor:pointer;color:var(--mut);margin:8px 0}
+.q{padding:4px 0;border-bottom:1px solid var(--line)}.q b{font-weight:600}
+#results{position:sticky;top:12px}#results .card{min-height:120px}
+.pill{display:inline-block;padding:0 6px;border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--mut);margin-left:4px}
+.list td:first-child{width:38%}
+</style></head><body>
+<header><a href="/">Tree</a><small id="tree"></small><span class="sp"></span><small id="who"></small></header>
+<main id="main"></main>
+<script>
+const $=s=>document.querySelector(s), h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEYS=['name','sex','birth','death','parents','spouses','children'];
+let P=null, prefs={};
+const api=(p,o)=>fetch(p,o).then(r=>r.json());
+function fmt(v){if(v==null)return '—';if(Array.isArray(v))return v.length?v.map(x=>typeof x==='object'?[x.year,x.place].filter(Boolean).join(' '):x).join('; '):'—';if(typeof v==='object')return [v.date||v.year,v.place].filter(Boolean).join(', ');return v}
+async function boot(){const t=await api('/api/tree');$('#tree').textContent=t.name;$('#who').textContent='acting as '+t.by;
+ const m=location.pathname.match(/^\/person\/([A-Z0-9]+)/);m?person(m[1]):list()}
+async function list(q=''){const rows=await api('/api/people?q='+encodeURIComponent(q));
+ $('#main').innerHTML=`<h1>People</h1><p class="mut">Open a person. Nothing is searched until their key facts are reviewed.</p>
+ <p><input type="search" id="q" placeholder="name" value="${h(q)}"></p>
+ <table class="list"><tr><th>person</th><th>years</th><th>key facts accepted</th><th>household records missing</th><th>cited, not held</th><th>questions</th></tr>
+ ${rows.map(r=>`<tr><td><a href="/person/${r.id}">${h(r.name)}</a></td><td>${r.span[0]??''}–${r.span[1]??''}</td><td>${r.accepted} of ${r.key_facts}</td><td>${r.gaps}</td><td>${r.to_fetch}</td><td>${r.questions}</td></tr>`).join('')}</table>`;
+ $('#q').oninput=e=>{clearTimeout(window._t);window._t=setTimeout(()=>list(e.target.value),250)};$('#q').focus()}
+async function person(id){P=await api('/api/person/'+id);try{prefs=JSON.parse(localStorage.getItem('prefs:'+id)||'{}')}catch(e){prefs={}};render()}
+function savePrefs(){try{localStorage.setItem('prefs:'+P.person.id,JSON.stringify(prefs))}catch(e){}}
+function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntries(P.foundation.map(f=>[f.field,f]));
+ const link=x=>`<a href="/person/${x.id}">${h(x.name)}</a>`;
+ const acc=KEYS.filter(k=>rv[k].status==='accepted').length;
+ let html=`<h1>${h(p.name)} <span class="mut" style="font-weight:400">${p.span[0]??'?'}–${p.span[1]??'?'}</span></h1>
+ <p class="mut">parents: ${fam.parents.map(link).join(', ')||'—'} · spouse: ${fam.spouses.map(link).join(', ')||'—'} · children: ${fam.children.map(link).join(', ')||'—'}${fam.siblings.length?' · siblings: '+fam.siblings.map(link).join(', '):''}</p>
+ <p><b>${acc} of ${KEYS.length}</b> key facts Accepted${acc<KEYS.length?' <span class="mut">— searches will run on Accepted facts only</span>':''}${p.notes.map(n=>` <span class="pill">${h(n)}</span>`).join('')}</p>
+ <h2>Foundation — what we know</h2><div class="card"><table>
+ <tr><th>fact</th><th>value</th><th>evidence</th><th>decision</th><th>use in searches</th></tr>`;
+ for(const k of KEYS){const f=F[k]||{};const ev=rv[k].evidence;const st=rv[k].status;
+  const evs=ev.length?ev.map(e=>`<div>${e.uncited?'<span class="mut">tree owner, no record</span>':h(e.citation)} ${e.tier?`<span class="pill">${e.tier}</span>`:''}${e.url?` <a href="${e.url}" target="_blank">↗</a>`:''} <span class="mut">${e.status}</span></div>`).join(''):'<span class="mut">none</span>';
+  const seg=st===null?'<span class="mut">no claim</span>':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${k}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
+  const inc=prefs[k]===false?'':'checked';
+  html+=`<tr><td><b>${k}</b></td><td>${h(fmt(f.value))}${f.variants&&f.variants.length?`<div class="mut">variants: ${h(f.variants.join(', '))}</div>`:''}
+   <div class="mut"><input type="text" placeholder="revise for search (spelling, ±years)" value="${h(prefs['rev:'+k]||'')}" onchange="prefs['rev:${k}']=this.value;savePrefs();render()" style="width:100%;margin-top:3px"></div></td>
+   <td>${evs}</td><td><span class="seg">${seg}</span></td><td><input type="checkbox" ${inc} onchange="prefs['${k}']=this.checked;savePrefs();render()"></td></tr>`}
+ const res=F.residences;html+=`<tr><td><b>residences</b></td><td colspan="4">${h(fmt(res.value))}</td></tr></table></div>`;
+ if(P.questions.length){html+=`<h2>Questions</h2><div class="card">${P.questions.map(q=>`<div class="q"><b>${h(q.kind.replace(/_/g,' '))}</b> <span class="mut">${h(q.detail||'')}</span></div>`).join('')}</div>`}
+ html+=`<div class="fx"><div><h2>Checklist — records that should exist</h2>`;
+ const fp=P.footprint;
+ if(fp.records.length){html+=`<div class="card"><div class="mut">Already on this family — fetch first (${fp.summary.records} records on ${fp.summary.relatives} relatives)</div><table>`;
+  fp.records.slice(0,8).forEach((r,i)=>{html+=`<tr class="row" onclick="show('fp',${i})"><td>${h(r.collection)}</td><td class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</td></tr>`});
+  if(fp.records.length>8)html+=`<tr><td colspan="2" class="mut">… ${fp.records.length-8} more</td></tr>`;html+=`</table></div>`}
+ const rowsHtml=(grp)=>P.checklist[grp].map((r,i)=>`<tr class="row" onclick="show('${grp}',${i})"><td><span class="st ${r.status}">${r.status}</span></td><td>${h(r.record)}${r.instance?' '+h(r.instance):''}${r.via?` <span class="mut">on ${h(r.via)}</span>`:''}</td><td class="mut">${r.status==='n/a'?h(r.na_reason):h(r.sources.join(', '))}</td></tr>`).join('');
+ html+=`<div class="card" style="margin-top:10px"><div class="mut">A. Records that hold several family members</div><table>${rowsHtml('A')}</table>
+ <details><summary>B. Records about this person only (${P.checklist.B.length})</summary><table>${rowsHtml('B')}</table></details></div></div>
+ <div id="results"><h2>Selected</h2><div class="card" id="rc"><span class="mut">Click a record row to see its search step, or the citations behind it.</span></div></div></div>`;
+ $('#main').innerHTML=html}
+function show(grp,i){document.querySelectorAll('tr.row').forEach(e=>e.classList.remove('on'));event.currentTarget.classList.add('on');
+ const rc=$('#rc');
+ if(grp==='fp'){const r=P.footprint.records[i];rc.innerHTML=`<b>${h(r.collection)}</b><div class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</div><p>Expected: ${h(r.expect)}</p>${r.url?`<p><a href="${r.url}" target="_blank">open on Ancestry ↗</a> then save the file into <code>inbox/</code></p>`:''}${r.held?'<p class="mut">held in the archive</p>':''}`;return}
+ const r=P.checklist[grp][i];let html=`<b>${h(r.record)}${r.instance?' '+h(r.instance):''}</b> <span class="st ${r.status}">${r.status}</span>${r.note?`<div class="mut">${h(r.note)}</div>`:''}<p>Settles: ${h(r.settles)}</p>`;
+ if(r.citations&&r.citations.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on?` <span class="mut">on ${h(c.on)}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
+ if(r.search){const s=r.search;const fields=Object.fromEntries(Object.entries(s.fields).filter(([k])=>!(k in prefs)||prefs[k]!==false));for(const k of KEYS){if(prefs['rev:'+k])fields['revised_'+k]=prefs['rev:'+k]}
+  html+=`<p><b>Search step</b> <span class="pill">${h(s.type)}</span> <span class="pill">${h(s.basis)}</span></p><div class="mut">mode: ${h(Object.entries(s.mode).map(([m,ids])=>m+': '+ids.join(', ')).join('; '))}</div><pre style="white-space:pre-wrap;font-size:12px">${h(JSON.stringify(fields,null,1))}</pre><div class="mut">Not run yet: the fetcher and the research log are later work. Fields unchecked or revised above are reflected here.</div>`}
+ rc.innerHTML=html}
+async function decide(field,status){const r=await api('/api/person/'+P.person.id+'/fact/'+field,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});
+ if(r.error){$('#rc').innerHTML='<span style="color:var(--bad)">'+h(r.error)+'</span>';return}for(const k of KEYS)P.review[k].status=r.review[k];P.review[field].evidence.forEach(e=>e.status=status);render()}
+boot();
+</script></body></html>

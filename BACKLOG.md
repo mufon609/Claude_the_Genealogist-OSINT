@@ -55,13 +55,6 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
-### A3. Person screen
-
-Foundation (Accepted facts, check / uncheck / revise), checklist with
-tasks, results under the task clicked, three-state review. One person per
-screen, linear flow, no tabs (`docs/RESEARCH-CHECKLIST.md` §6). Local
-server, no framework.
-
 ### A4. Research log and typed search steps
 
 `research_question`, `search_plan`, `search_log` tables and the

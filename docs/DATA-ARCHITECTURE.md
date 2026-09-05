@@ -166,7 +166,7 @@ tree/
   schema/        DDL, seeds, manifest JSON Schema
   tools/         CLI tools (initdb, tree, ingest_gedcom, resolve_places, backfill_aliases)
   docs/          this file and its siblings
-  app/           code, when it exists
+  app/person/    the person screen: stdlib server + one page
 ```
 
 The archive is the permanent home of every file's bytes. `trees/<slug>/imports/`
