@@ -114,9 +114,9 @@ outside the vendor.
 ### Integrity and backup
 
 - Hash on ingest; nightly scrub over a random sample, full scrub monthly.
-- 3-2-1: local disk, external drive (BagIt bags), cloud object storage with
-  object lock (Backblaze B2 or S3). Derivatives are excluded from off-site
-  backup; they regenerate.
+- 3-2-1: local disk, external drive (BagIt bags), S3 with Object Lock (see
+  §7; disabled until the project is finished). Derivatives are excluded from
+  off-site backup; they regenerate.
 - Deletion is a tombstone row in the catalog. Bytes go to a quarantined bag,
   not to /dev/null, unless a takedown requires otherwise.
 
@@ -129,24 +129,21 @@ Write the schema without SQLite-only features so a move to Postgres is a dump
 and restore, not a rewrite. A single-family tree will not outgrow SQLite for
 years; a multi-user site will, and the schema should not care which it is on.
 
-Core tables:
+Core tables (the full map by layer is in `schema/README.md`):
 
 | Table | Purpose |
 |---|---|
-| `source` | Registry, seeded from `data/data-sources.csv`. Its `ID` column becomes the key. |
-| `collection` | A named record set within a source (dbid 2442 = 1940 census). Holds the APID/dbid map. |
-| `artifact` | One row per archived hash. Mirrors the manifest. |
-| `artifact_page` | Page or frame inside a multi-page artifact. |
-| `extraction` | One run of one extractor (human, OCR, HTR, LLM) over one artifact page. Versioned. |
-| `persona` | What one record says about one individual. Belongs to an extraction. |
-| `persona_fact` | Name, date, place, relationship claims on a persona, with region coordinates. |
-| `person` | Layer-4 conclusion. |
-| `person_persona` | Many-to-many link with a three-state status and who decided it. |
-| `event`, `relationship` | Conclusions, each with `evidence_id` links. |
-| `proposal` | AI or hint output awaiting review. |
-| `external_id` | Any vendor ID for a person or artifact (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
-| `place`, `place_name` | Normalized place with GeoNames/Wikidata ID and dated name variants. |
-| `tombstone` | Deleted or withdrawn artifacts and why. |
+| `source`, `collection` | Registry seeded from `data/data-sources.csv`; a collection is a named record set inside a source and holds the vendor id (Ancestry dbid). |
+| `artifact`, `artifact_page`, `tombstone` | One row per archived hash, mirroring the manifest; pages inside it; withdrawn artifacts and why. |
+| `extraction`, `persona`, `persona_fact` | One run of one extractor over an artifact; what one record says about one individual; the claims on that persona with region coordinates. |
+| `tree`, `tree_import` | A workspace of conclusions; which artifact was imported into which tree. |
+| `person`, `person_name`, `family`, `family_member`, `event`, `event_participant` | Layer-4 conclusions. |
+| `assertion` | The evidence link from a conclusion to a persona fact, persona or artifact, with the three-state status. |
+| `person_persona` | Person-to-persona link with the three-state status and who decided it. |
+| `proposal` | AI output awaiting a decision; answers a question about a person. |
+| `alias` | Variant and erroneous forms kept as search keys (§8). |
+| `external_id` | Any vendor ID for any entity (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
+| `place`, `place_name`, `place_string` | Normalized place hierarchy with dated names; every raw string ever seen and what it resolved to. |
 
 Identifiers: ULIDs for everything internal. Sortable, unique across machines,
 no coordination needed if the tree is later merged with a cousin's.
@@ -167,7 +164,7 @@ tree/
                  was ingested), exports/ (GEDCOM 7 / Gramps XML snapshots)
   data/          source registry CSV and other reference tables
   schema/        DDL, seeds, manifest JSON Schema
-  tools/         CLI tools (initdb, tree, ingest_gedcom)
+  tools/         CLI tools (initdb, tree, ingest_gedcom, resolve_places, backfill_aliases)
   docs/          this file and its siblings
   app/           code, when it exists
 ```
@@ -181,8 +178,10 @@ holds a second, human-named copy so a person can find "the GEDCOM I exported on
 A **tree** is a workspace of conclusions. The catalog holds any number of them.
 
 - Layers 1-3 (reference, archive, evidence) are shared by all trees. A census
-  page archived once can support a person in your tree and in a cousin's tree,
-  and cross-tree matching stays possible because personas are tree-independent.
+  page archived once can support a person in your tree and in a cousin's tree.
+  Personas are tree-independent in the schema, so cross-tree matching is
+  possible as an explicit, opt-in operation; it never happens on its own (see
+  trust boundaries below).
 - Layer 4 rows (`person`, `family`, `event`, `assertion`, `proposal`, tree-level
   `note`) carry `tree_id`. `tree_import` records which artifact went into which
   tree and where the named copy was filed.
@@ -214,8 +213,8 @@ So:
 - **Place resolution is the one shared item that carries judgment.** A
   `place_string` resolved to a `place` in one tree is resolved for all. Each
   resolution records who or what resolved it; a fresh tree can re-run
-  resolution and overwrite, and `status='artifact'` / `'rejected'` are visible
-  to every tree. If this ever proves too leaky, `place_string` gains a
+  resolution and overwrite, and a `rejected` string (with its reason) is
+  visible to every tree. If this ever proves too leaky, `place_string` gains a
   `tree_id` and becomes per-tree; the schema change is one column.
 - **Starting fresh** = `tools/tree.py create <slug>`, then import. Nothing from
   any other tree is linked, proposed, or asserted into it.
@@ -226,7 +225,7 @@ So:
 |---|---|---|
 | One family | 10^3 – 10^4 | Everything above, on one machine. |
 | Many families, one site | 10^5 – 10^6 | Catalog to Postgres; objects to S3-compatible store with the same hash paths; search to Meilisearch. Schema unchanged. |
-| Shared/public | 10^6+ | Per-user ACLs on `artifact.rights` and `person.living`; dedup already handled by hashing; CDN for derivatives. |
+| Shared/public | 10^6+ | Per-user ACLs on `artifact.rights` and the living-person redaction; dedup already handled by hashing; CDN for derivatives. |
 
 The only thing that must be right on day one is the schema discipline and the
 manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
@@ -325,8 +324,9 @@ the canonical value.
   and `accepted` aliases, including wrong-jurisdiction forms. The search agent
   must search "Worchester" and "Amwell, Hunterdon, Pennsylvania" as literally
   as the tree owner once typed them.
-- **Matching:** two personas sharing a rare alias (same misspelling) get a
-  linkage bonus; the AI matcher treats recurring errors as fingerprints.
+- **Matching:** two personas sharing a rare alias (the same misspelling) are
+  evidence for the same person; the matcher treats recurring errors as
+  fingerprints when it proposes a match.
 - **Conflicts are not aliases.** A different birth date is a competing
   assertion, kept with its own three-state status and shown as disputed; it is never
   merged into an alias list.

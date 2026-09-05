@@ -40,8 +40,8 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 - Errors in records are never corrected in evidence and never deleted: they become
   `alias` rows (persons) or `place_string.variant_kind` (places) and stay searchable.
 - Vendor IDs go in `external_id`, never in a primary key.
-- Raw place strings go in `place_string` first; `place_id` is filled by a resolver
-  and `status='artifact'` is how "Lehi, UT, USA" gets quarantined.
+- Raw place strings go in `place_string` first; `place_id` is filled by a resolver,
+  and a string that is not a real place is `rejected` with its reason in notes.
 - Living status is computed by the app from `v_person_vitals` with the 100-year
   default and `person.living_override`; it is never stored as a bare flag.
 
@@ -80,5 +80,5 @@ then add tsvector indexes. The DDL uses no engine-specific types or clauses.
 | `FAM` | `family` + `family_member` (each with an assertion) + family events |
 | `2 SOUR` / `_APID` | `assertion.citation_text` (Undecided); the unique record citations are kept in the extraction JSON for the footprint engine |
 | `OBJE` | media references kept in the extraction JSON (the images are not in the export) |
-| `PLAC` | `place_string` rows, status `unresolved` |
+| `PLAC` | `place_string` rows, status `undecided` |
 | header `_TREE NOTE` | `note` on the artifact |

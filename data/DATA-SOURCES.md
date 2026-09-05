@@ -5,8 +5,9 @@ reasoning that does not fit in a cell.
 
 ## 1. What the seed file told us
 
-`source/meta/Ahearn Family Tree.ged` — Ancestry export, GEDCOM 5.5.1, 2025.08 exporter,
-dated 5 Sep 2026.
+`trees/ahearn/imports/2026-09-05_Ahearn-Family-Tree.ged` (named copy; the archive
+holds the hashed master) — Ancestry export, GEDCOM 5.5.1, 2025.08 exporter, dated
+5 Sep 2026.
 
 | Metric | Value |
 |---|---|
@@ -40,17 +41,18 @@ Peters, Redden, Lukens, Dewees, Sevier, Wiegner.
 4. **Modern-vs-historical jurisdiction mix:** `Nieder, Harperdorf, Silesia, Poland`
    uses a German village name under a modern country; needs GOV/Kartenmeister mapping.
 5. **Citations are Ancestry-relative.** `_APID 1,62910::3230778` = dbid 62910, record
-   3230778. Meaningless outside Ancestry unless we keep a dbid → collection-name map.
+   3230778. The ingest keeps the dbid → collection map in the `collection` table so
+   they mean something outside Ancestry.
 6. **Media orphaned.** 49 OBJE records carry `_OID`/`_PID`/`_ENCR` handles only.
-7. **Living people present** with voter-registration citations. Privacy policy needed
-   before anything is shared or fed to a model.
+7. **Living people present** with voter-registration citations. The living-person
+   policy in `docs/DATA-ARCHITECTURE.md` §7 governs what is shared or fed to a model.
 
 ## 2. Taxonomy (CSV `Category` column)
 
 | Code | Category | Why it matters |
 |---|---|---|
 | A | Tree Format | Ingest/export. GEDCOM 5.5.1 in, GEDCOM 7 (+GEDZIP) canonical, GEDCOM X for the evidence graph. |
-| B | Hosted Tree | Other people's conclusions. Useful for hints, never for proof. |
+| B | Hosted Tree | Other people's conclusions. Useful as leads, never as proof. |
 | C | Vital | Birth/marriage/death. Primary or official-index evidence. |
 | D | Census | Household snapshots every 10 years, 1790–1950. |
 | E | Burial | Death date/place + family clustering; Find a Grave is user-contributed. |
@@ -71,7 +73,8 @@ Peters, Redden, Lukens, Dewees, Sevier, Wiegner.
 
 ## 3. Trust tiers (CSV `TrustTier` column)
 
-The AI core should weight evidence by tier, not treat every citation as equal.
+The tier says what *kind* of source a record is. It is shown next to every
+source and never turned into a score; the decision on a fact stays three-state.
 
 | Tier | Meaning | Examples |
 |---|---|---|
@@ -96,18 +99,13 @@ The AI core should weight evidence by tier, not treat every citation as equal.
 | NARA Catalog | REST v2, key by email to Catalog_API@nara.gov | Use now. |
 | IPUMS full count | API for harmonized data; names need restricted-access application | Apply if we want linkage training data. |
 | Open Archives (NL) | REST JSON, free | Use now for Dutch branch. |
-| Gramps Web API | Self-hosted REST, AGPL-3.0 | Candidate backend; license decision needed. |
+| Gramps Web API | Self-hosted REST, AGPL-3.0 | Not the backend (`docs/DATA-ARCHITECTURE.md` §7); export to Gramps XML instead. |
 | DNA vendors | Manual raw-data download only, everywhere | Never automate; user uploads file. |
 
-## 5. Suggested order of work (P0 rows)
+## 5. Deferred work
 
-1. Parse the 5.5.1 file, keep every `_APID`, build the dbid → collection map (S02).
-2. Define the living-person rule and redact before any model sees the data (S01).
-3. Place normalization: GeoNames + Wikidata + Newberry boundaries; flag the Lehi/Provo artifacts (N01–N03).
-4. Apply to FamilySearch Innovator Program (B01) and email NARA for an API key.
-5. Recover the 49 media files from Ancestry manually (M01).
-6. Wire loc.gov newspaper search and WikiTree lookups as the first two live enrichment sources (H01, B04).
-7. Encode the Genealogical Proof Standard as the AI's evidence rubric (R06) using the tiers above.
+Lives in `BACKLOG.md`. Rows whose `Status` is `blocked-apply` or `todo` with a
+P0 priority are the registry's view of the same items.
 
 ## 6. Status vocabulary
 

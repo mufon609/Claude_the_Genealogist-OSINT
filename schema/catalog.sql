@@ -408,7 +408,7 @@ CREATE INDEX ix_assertion_tree     ON assertion(tree_id);
 CREATE INDEX ix_assertion_subject  ON assertion(subject_kind, subject_id);
 CREATE INDEX ix_assertion_artifact ON assertion(artifact_sha256);
 
--- AI or hint output waiting for a human.
+-- AI output waiting for a decision; each proposal answers a question about a person.
 CREATE TABLE proposal (
   id            TEXT PRIMARY KEY,
   tree_id       TEXT NOT NULL REFERENCES tree(id),

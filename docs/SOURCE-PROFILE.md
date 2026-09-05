@@ -130,6 +130,10 @@ One person. Facts on the left with the three-state decision. Sources on the
 right, tiered, each linked to the facts it supports. Questions underneath,
 each with the next concrete step. Nothing else on the first screen.
 
+This is the same screen as `docs/RESEARCH-CHECKLIST.md` §6, which is the
+authoritative description: the facts-and-sources block is its *foundation*
+region, and the questions are its checklist *tasks*.
+
 ## 6. Splitting the work between agents / skills
 
 The split follows the source families in section 2, because each family has

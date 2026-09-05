@@ -41,7 +41,9 @@ Questions are always about a person. They are generated, not typed:
 | `missing_fact` | no birth/death/marriage date or place | John Cassel: death 1802, no birth |
 | `unverified_claim` | fact with no record behind it | every uncited fact |
 | `conflict` | competing values | 5 marriage dates for David Heebner & Maria Kriebel |
-| `unlinked_relative` | a person in the tree who may be the answer | James Ahearn (1810–1899) vs Thomas Ahearn: same surname, same town, no link |
+| `duplicate_person` | two persons with the same name and the same key fact | the two Thomas Ahearns, both born 2 Oct 1846 |
+| `unlinked_relative` | a person in the tree who may be the answer | a same-surname person in the same town with no link |
+| `missing_record` | a checklist row that is missing or cited-but-not-held (`docs/RESEARCH-CHECKLIST.md` §3) | Abram C. Brant: 1900 census household |
 
 42 of the 117 people are dead ends today. Ranking: home person's direct line
 first, then tractability (era and place with good record coverage in the
@@ -136,7 +138,8 @@ question. Accepting grows the baseline, which generates new questions.
    - L2: Thomas's own MA death record 1902 (free, T1, names parents); obituary
      in Northampton papers 1902 (loc.gov); naturalization.
    - L4: only if the footprint fails to name the parents.
-## Schema additions this needs
+
+## Schema additions this needs (not yet in `schema/catalog.sql`; tracked in `BACKLOG.md`)
 
 ```
 review            (id, tree_id, entity_kind, entity_id, fact_ref, status, reviewed_by, reviewed_at, note)   -- status: undecided|accepted|rejected
