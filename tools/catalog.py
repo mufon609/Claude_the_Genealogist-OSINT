@@ -57,6 +57,23 @@ class Catalog:
         else: country = next((c for c in ("ireland", "germany", "netherlands", "poland", "japan", "england", "allemagne", "silesia", "schlesien") if f" {c} " in low), None)
         country = {"allemagne": "germany", "silesia": "poland", "schlesien": "poland", "england": "united kingdom"}.get(country, country)
         return {"text": text, "resolved": False, "country": country, "state": st}
+    KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
+    def key_fact_basis(self, pid, ev=None):
+        """basis per key fact: accepted | lead | rejected | None (no claim)."""
+        ev = self.events(pid) if ev is None else ev
+        out = {"name": self.basis("person", pid), "sex": self.basis("person", pid)}
+        for f in ("birth", "death"):
+            e = next((e for e in ev if e["type"] == f.title()), None); out[f] = e["basis"] if e else None
+        for f in ("parents", "spouses", "children"): out[f] = self.link_basis(pid, f)
+        return out
+    def baseline(self, pid, ev=None):
+        """The baseline is complete when no key fact is Undecided; absent and rejected facts are decided."""
+        kb = self.key_fact_basis(pid, ev); und = [f for f in self.KEY_FACTS if kb[f] == "lead"]
+        return {"key_facts": len(kb), "key_facts_accepted": sum(1 for b in kb.values() if b == "accepted"), "undecided": und, "complete": not und}
+    def link_rejected(self, fid, person_id, role):
+        """True when every assertion behind this family membership is rejected."""
+        st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind='family_member' AND subject_id=?", json.dumps([fid, person_id, role], separators=(",", ":"), sort_keys=True))}
+        return bool(st) and st <= {"rejected"}
     def link_basis(self, pid, field):
         """accepted | lead | None for parents / spouses / children, from the family_member assertions behind them."""
         if field == "children":
@@ -85,9 +102,12 @@ class Catalog:
             if cname or held: out.append((cname or "", apid, held))
         return out
     def family(self, pid):
+        """Relatives through family memberships; a membership whose assertions are all rejected does not count."""
         fam = {"parents": [], "spouses": [], "children": [], "siblings": [], "families": []}
         for fid, role in self.q("SELECT family_id, role FROM family_member WHERE person_id=?", pid):
-            members = self.q("SELECT fm.person_id, fm.role, p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=?", fid)
+            if self.link_rejected(fid, pid, role): continue
+            members = [m for m in self.q("SELECT fm.person_id, fm.role, p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=?", fid)
+                       if not self.link_rejected(fid, m[0], m[1])]
             if role == "child":
                 fam["parents"] += [(m[0], m[2]) for m in members if m[1] == "partner"]
                 fam["siblings"] += [(m[0], m[2]) for m in members if m[1] == "child" and m[0] != pid]
@@ -96,7 +116,7 @@ class Catalog:
                 fam["spouses"] += sp; fam["children"] += [(m[0], m[2]) for m in members if m[1] == "child"]
                 marr = self.q("""SELECT e.id, e.date_start, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.family_id=? AND e.event_type='Marriage'""", fid)
                 fam["families"].append({"id": fid, "spouse": sp[0][1] if sp else None, "spouse_id": sp[0][0] if sp else None,
-                                        "marriages": [{"id": m[0], "year": year(m[1]), "place": self.place(m[0], m[2]), "citations": self.citations("event", m[0])} for m in marr]})
+                                        "marriages": [{"id": m[0], "year": year(m[1]), "place": self.place(m[0], m[2]), "basis": self.basis("event", m[0]), "citations": self.citations("event", m[0])} for m in marr]})
         return fam
     def fetched_rows(self, pid):
         """Checklist row keys (record:instance) whose fetch step is done with an archived artifact in its log."""

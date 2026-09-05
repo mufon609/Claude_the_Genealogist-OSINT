@@ -25,7 +25,10 @@ not hold. None of that is a baseline yet.
   parents, spouses, children. A person is *baseline-complete* when no key fact
   is Undecided.
 - Only Accepted facts feed searches. An Undecided fact can be used as a lead
-  and is labelled as such in every query.
+  and is labelled as such in every query: every query field is `{value, basis}`
+  with basis `accepted` or `lead`. A Rejected fact is left out, and a relative
+  whose family link is Rejected is not a relative to the footprint or the
+  checklist.
 - Review is person-centred: one person, their claims, the records behind each,
   verdict per fact. This is the first screen.
 
@@ -47,8 +50,10 @@ Questions are always about a person. They are generated, not typed:
 
 42 of the 117 people are dead ends today. Ranking: home person's direct line
 first, then tractability (era and place with good record coverage in the
-registry), then how many other questions an answer would unlock. A question is
-**blocked** until its subject is baseline-complete.
+registry), then how many other questions an answer would unlock. Until its subject is
+baseline-complete (no key fact Undecided) a question gets no search steps and
+no footprint, duplicate or unlinked leads; only fetch steps for records the
+tree already cites exist, because the review needs those records.
 
 ## 3. Plan: the search ladder (AI proposes, human approves)
 

@@ -12,7 +12,11 @@ Read-only. For one person it reports:
               (records about this person), each row gated by era, place and sex
               and marked held / cited / missing / n/a; a cited row names the
               relative the citation sits on when it is not on this person
-  search      for every gap, the pre-built step: typed query, sources, mode
+  search      for every gap, the pre-built step: typed query, sources, mode;
+              every query field is {value, basis accepted|lead|row}, rejected
+              facts are omitted. Before the baseline is reviewed only fetch
+              steps for cited records exist: no search steps, no footprint,
+              no duplicate or unlinked leads (docs/RESEARCH-WORKFLOW.md §2).
 """
 import argparse, collections, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -72,9 +76,15 @@ def build(cat: Catalog, pid: str):
                    field("spouses", [n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")),
                    field("children", [n for _, n in fam["children"]], cat.link_basis(pid, "children")),
                    field("residences", [{"year": e["year"], "place": e["place"]["text"] if e["place"] else e["date_text"]} for e in ev if e["type"] == "Residence"], "mixed")]
-    key_facts = ["name", "sex", "birth", "death", "parents", "spouses", "children"]
-    accepted = sum(1 for f in foundation if f["field"] in key_facts and f["basis"] == "accepted")
-    baseline = {"key_facts_accepted": accepted, "key_facts": len(key_facts), "complete": accepted == len(key_facts)}
+    baseline = cat.baseline(pid, ev); reviewed = baseline["complete"]
+    # ---- the fields every query is built from: {value, basis}; a rejected or absent fact is left out
+    def F(value, basis):
+        return None if basis == "rejected" or value in (None, "", []) else {"value": value, "basis": basis or "lead"}
+    ROW = lambda v: {"value": v, "basis": "row"}                  # set by the checklist row, not a fact about the person
+    bb = birth["basis"] if birth and birth["year"] else "lead"    # an estimated year is a lead
+    db = death["basis"] if death and death["year"] else (burial["basis"] if burial and burial["year"] else "lead")
+    sb = "accepted" if any(e["basis"] == "accepted" and e["place"] and e["place"]["state"] == home_state for e in ev) else "lead"
+    fields = lambda **extra: {k: v for k, v in {**fnd, **extra}.items() if v is not None}
 
     # ---- questions from gaps in the tree
     questions = []
@@ -87,7 +97,7 @@ def build(cat: Catalog, pid: str):
     if sum(1 for e in ev if e["type"] == "Birth") > 1: questions.append({"kind": "conflict", "detail": "more than one birth event"})
     for f in fam["families"]:
         if len(f["marriages"]) > 1: questions.append({"kind": "conflict", "detail": f"{len(f['marriages'])} marriage events with {f['spouse']}"})
-    fp = footprint(cat, pid)
+    fp = footprint(cat, pid) if reviewed else {"summary": {"relatives": 0, "records": 0, "shared": 0}, "duplicates": [], "unlinked": [], "records": [], "collections": [], "gated": True}
     for dup in fp["duplicates"]: questions.append({"kind": "duplicate_person", "detail": dup["why"], "other_id": dup["id"]})
     if any(q["kind"] in ("missing_parents", "missing_spouse", "identity_incomplete") for q in questions):
         for u in fp["unlinked"]: questions.append({"kind": "unlinked_relative", "detail": u["why"], "other_id": u["id"]})
@@ -126,12 +136,13 @@ def build(cat: Catalog, pid: str):
         if na and st == "missing": st = "n/a"                     # a real citation beats the era rule
         r = {"record": record, "instance": instance, "status": st, "via": via, "settles": settles, "sources": sources,
              "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None)}
-        if st in ("missing", "cited") and query:
-            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": {"fetch": sources} if st == "cited" else mode_for(sources),
-                           "expect": settles, "basis": "accepted" if baseline["complete"] else "lead"}
+        if query and (st == "cited" or (st == "missing" and reviewed)):
+            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": {"fetch": sources} if st == "cited" else mode_for(sources), "expect": settles}
         (A if group == "A" else B).append(r)
-    fnd = {"given": given, "surname": surname, "variants": foundation[0]["variants"],
-           "birth_year": b, "tolerance": 2, "state": home_state, "spouses": [n for _, n in fam["spouses"]], "parents": [n for _, n in fam["parents"]]}
+    nb = cat.basis("person", pid)
+    fnd = {"given": F(given, nb), "surname": F(surname, nb), "variants": F(foundation[0]["variants"], "lead"),
+           "birth_year": {**F(b, bb), "tolerance": 2} if F(b, bb) else None, "state": F(home_state, sb),
+           "spouses": F([n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")), "parents": F([n for _, n in fam["parents"]], cat.link_basis(pid, "parents"))}
     # A: census households (a foreign-born person is listed from the decade before their earliest US event)
     us_years = [e["year"] for e in ev if e["year"] and e["place"] and e["place"]["country"] == "united states"]
     census_from = b
@@ -141,15 +152,16 @@ def build(cat: Catalog, pid: str):
             if not (census_from <= y <= (d or 9999)): continue
             if y == 1890: row("A", "census household", "no-match", ["D01"], "", None, na="1890 schedules lost", instance=str(y)); continue
             note = "head of household only; counted, not named" if y < 1850 else "everyone in the house: ages, birthplaces, relationships"
+            near = next((e for e in ev if e["type"] == "Residence" and e["year"] and abs(e["year"] - y) <= 5 and e["place"]), None)
             row("A", "census household", MATCH["census"](y), ["D01", "D03"], note,
-                ("household", {**fnd, "year": y, "place": next((e["place"]["text"] for e in ev if e["type"] == "Residence" and e["year"] and abs(e["year"] - y) <= 5 and e["place"]), None)}),
+                ("household", fields(year=ROW(y), place=F(near["place"]["text"], near["basis"]) if near else None)),
                 household=True, instance=str(y))
         for st_, years in STATE_CENSUS.items():
             if st_ in states:
                 for y in years:
                     if b <= y <= (d or 9999):
                         row("A", f"{st_.title()} state census", MATCH["state_census"](st_, y), ["C08" if st_ == "new york" else "C05"], "household off-decade",
-                            ("household", {**fnd, "year": y, "state": st_}), household=True, instance=str(y))
+                            ("household", fields(year=ROW(y), state=ROW(st_))), household=True, instance=str(y))
     # A: marriage per family
     for f in fam["families"]:
         m = f["marriages"][0] if f["marriages"] else None
@@ -164,51 +176,52 @@ def build(cat: Catalog, pid: str):
              "sources": [src[1]] if src[1] else (CHURCH.get(m_country, []) if m_country and m_country != "united states" else ["C03", "C05", "C06", "C07", "C08", "C09"]), "na_reason": None}
         if m_country and m_country != "united states": r["settles"] += f"; married in {m_country.title()}: church register"
         if my and src[0] and my < src[0]: r["settles"] += f"; before statewide registration in {st_.title()} ({src[0]}): county book or church register"
-        if r["status"] != "held":
-            r["search"] = {"type": "couple", "fields": {**fnd, "spouse": f["spouse"], "year": my, "state": st_}, "sources": r["sources"],
-                           "mode": {"fetch": r["sources"]} if cited else mode_for(r["sources"]), "expect": r["settles"], "basis": "accepted" if baseline["complete"] else "lead"}
+        if r["status"] == "cited" or (r["status"] == "missing" and reviewed):
+            mb = m["basis"] if m else "lead"
+            r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, mb if m and m["place"] else sb)),
+                           "sources": r["sources"], "mode": {"fetch": r["sources"]} if cited else mode_for(r["sources"]), "expect": r["settles"]}
         A.append(r)
-    if d and d >= 1800: row("A", "obituary", MATCH["obituary"], ["H01", "H03", "H04"], "survivors, maiden names, places", ("obituary", {**fnd, "death_year": d, "place": death["place"]["text"] if death and death["place"] else home_state}))
-    if d and b and d - b >= 21: row("A", "will / probate", MATCH["probate"], ["J03"], "heirs, spouse, children", ("probate", {**fnd, "death_year": d, "state": home_state}))
-    row("A", "cemetery / family plot", MATCH["cemetery"], ["E01", "E03"], "burial, dates, who is buried together", ("subject_record", {**fnd, "death_year": d}), household=True)
+    dplace = F(death["place"]["text"], death["basis"]) if death and death["place"] else F(home_state, sb)
+    if d and d >= 1800: row("A", "obituary", MATCH["obituary"], ["H01", "H03", "H04"], "survivors, maiden names, places", ("obituary", fields(death_year=F(d, db), place=dplace)))
+    if d and b and d - b >= 21: row("A", "will / probate", MATCH["probate"], ["J03"], "heirs, spouse, children", ("probate", fields(death_year=F(d, db))))
+    row("A", "cemetery / family plot", MATCH["cemetery"], ["E01", "E03"], "burial, dates, who is buried together", ("subject_record", fields(death_year=F(d, db))), household=True)
     church_src = CHURCH.get(home_state or "", ["I03"]) if in_us else CHURCH.get(next(iter(countries), ""), [])
-    row("A", "church register (baptisms, marriages, burials)", MATCH["church"], church_src, "parents, sponsors, dates, religion", ("household", {**fnd, "state": home_state}), household=True)
+    row("A", "church register (baptisms, marriages, burials)", MATCH["church"], church_src, "parents, sponsors, dates, religion", ("household", fields()), household=True)
     if foreign_born and in_us:
-        row("A", "passenger / emigration list", MATCH["passenger"], ["G01", "G04"] if (b or 0) < 1800 else ["G01", "G03"], "origin, who travelled together", ("household", {**fnd, "arrival_after": b}), household=True)
+        row("A", "passenger / emigration list", MATCH["passenger"], ["G01", "G04"] if (b or 0) < 1800 else ["G01", "G03"], "origin, who travelled together", ("household", fields(arrival_after=F(b, bb))), household=True)
     if sex == "M" and b and (1818 <= b <= 1847 or 1725 <= b <= 1765):
-        row("A", "pension file", MATCH["pension"], ["F03", "F04"], "marriage date/place, widow, children", ("subject_record", {**fnd}), household=True)
+        row("A", "pension file", MATCH["pension"], ["F03", "F04"], "marriage date/place, widow, children", ("subject_record", fields()), household=True)
     if in_us and b and (d or 9999) - b >= 21 and home_state == "pennsylvania":
-        row("A", "land deed / warrant", MATCH["deed"], ["J02"], "spouse (dower), heirs", ("subject_record", {**fnd, "state": home_state}), household=True)
-    if in_us and b and 1822 <= (d or 1995): row("A", "city directory / tax list", MATCH["directory"], ["K01"], "residence, occupation, adult sons", ("subject_record", {**fnd}), household=True)
-    row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03"], "leads for everything; never proof", ("name", {**fnd}), household=True)
+        row("A", "land deed / warrant", MATCH["deed"], ["J02"], "spouse (dower), heirs", ("subject_record", fields()), household=True)
+    if in_us and b and 1822 <= (d or 1995): row("A", "city directory / tax list", MATCH["directory"], ["K01"], "residence, occupation, adult sons", ("subject_record", fields()), household=True)
+    row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03"], "leads for everything; never proof", ("name", fields()), household=True)
     # B: individual records
     for label, e, kind in (("death record", death, "death"), ("birth record", birth, "birth")):
-        yr = e["year"] if e else (d if kind == "death" else b)
+        yr = e["year"] if e else (d if kind == "death" else b); yb = e["basis"] if e and e["year"] else (db if kind == "death" else bb)
         country = (e["place"]["country"] if e and e["place"] and e["place"]["country"] else None) or ("united states" if in_us else next(iter(countries), None))
-        st_ = (e["place"]["state"] if e and e["place"] else None) or home_state
+        st_ = (e["place"]["state"] if e and e["place"] else None) or home_state; stb = e["basis"] if e and e["place"] and e["place"]["state"] else sb
         if country and country != "united states":
             civil = CIVIL_ABROAD.get(country)
             before_civil = civil and yr and yr < civil
             row("B", label, MATCH[f"{kind}_record"], CHURCH.get(country, []),
                 f"date, parents; {country.title()} civil registration from {civil}, parish register before" if civil else "date, parents",
-                ("subject_record", {**fnd, "year": yr, "country": country}), instance=str(yr) if yr else None,
-                na=None if not before_civil else None); continue
+                ("subject_record", fields(year=F(yr, yb), country=F(country, yb))), instance=str(yr) if yr else None); continue
         win = VITAL.get(st_ or "", {}).get(kind)
         if st_ and not win:
             row("B", label, MATCH[f"{kind}_record"], [], f"no registry row for {st_.title()} {kind} records yet; add one to data/data-sources.csv",
-                ("subject_record", {**fnd, "year": yr, "state": st_}), instance=str(yr) if yr else None); continue
+                ("subject_record", fields(year=F(yr, yb), state=F(st_, stb))), instance=str(yr) if yr else None); continue
         if win and yr and yr < win[0]:
-            row("B", label, MATCH[f"{kind}_record"], [win[1]], "exact date and place, parents", ("subject_record", {**fnd, "year": yr, "state": st_}),
+            row("B", label, MATCH[f"{kind}_record"], [win[1]], "exact date and place, parents", ("subject_record", fields(year=F(yr, yb), state=F(st_, stb))),
                 na=f"{st_.title()} statewide from {win[0]}; use church/town records", instance=str(yr)); continue
         row("B", label, MATCH[f"{kind}_record"], [win[1]] if win else ["C03", "C05", "C06", "C07", "C08", "C09", "C10"],
-            "parents, informant, exact date and place" if kind == "death" else "exact date and place, parents", ("subject_record", {**fnd, "year": yr, "state": st_}), instance=str(yr) if yr else None)
-    if d and d >= 1936: row("B", "Social Security (SSDI / SS-5)", MATCH["social_security"], ["C01", "C02"], "birth, parents (SS-5)", ("subject_record", {**fnd, "death_year": d}))
-    if foreign_born and in_us and (b or 0) >= 1790: row("B", "naturalization", MATCH["naturalization"], ["G02"], "birthplace, arrival, origin", ("subject_record", {**fnd}))
+            "parents, informant, exact date and place" if kind == "death" else "exact date and place, parents", ("subject_record", fields(year=F(yr, yb), state=F(st_, stb))), instance=str(yr) if yr else None)
+    if d and d >= 1936: row("B", "Social Security (SSDI / SS-5)", MATCH["social_security"], ["C01", "C02"], "birth, parents (SS-5)", ("subject_record", fields(death_year=F(d, db))))
+    if foreign_born and in_us and (b or 0) >= 1790: row("B", "naturalization", MATCH["naturalization"], ["G02"], "birthplace, arrival, origin", ("subject_record", fields()))
     if sex == "M" and b:
-        if 1872 <= b <= 1900: row("B", "WWI draft card", MATCH["draft_ww1"], ["F02"], "exact birth date/place, residence, next of kin", ("subject_record", {**fnd}))
-        if 1877 <= b <= 1927: row("B", "WWII draft card", MATCH["draft_ww2"], ["F02"], "exact birth date/place, residence, employer", ("subject_record", {**fnd}))
-        if 1818 <= b <= 1847: row("B", "Civil War draft registration", MATCH["draft_civil"], ["F03", "F02"], "age, birthplace, occupation", ("subject_record", {**fnd}))
-    if any(e["type"] in ("Military Service", "Military Draft") for e in ev): row("B", "military service record", MATCH["military"], ["F01", "F02"], "service", ("subject_record", {**fnd}))
+        if 1872 <= b <= 1900: row("B", "WWI draft card", MATCH["draft_ww1"], ["F02"], "exact birth date/place, residence, next of kin", ("subject_record", fields()))
+        if 1877 <= b <= 1927: row("B", "WWII draft card", MATCH["draft_ww2"], ["F02"], "exact birth date/place, residence, employer", ("subject_record", fields()))
+        if 1818 <= b <= 1847: row("B", "Civil War draft registration", MATCH["draft_civil"], ["F03", "F02"], "age, birthplace, occupation", ("subject_record", fields()))
+    if any(e["type"] in ("Military Service", "Military Draft") for e in ev): row("B", "military service record", MATCH["military"], ["F01", "F02"], "service", ("subject_record", fields()))
     return {"person": {"id": pid, "name": p["name"], "sex": sex, "span": [b, d], "notes": notes}, "baseline": baseline, "foundation": foundation,
             "questions": questions, "footprint": fp, "checklist": {"A": A, "B": B}}
 
@@ -216,7 +229,7 @@ def build(cat: Catalog, pid: str):
 def render(r):
     P = r["person"]; out = [f"{P['name']}  ({P['span'][0]}–{P['span'][1]})  sex {P['sex']}"]
     for n in P["notes"]: out.append(f"  note: {n}")
-    bl = r["baseline"]; out.append(f"  baseline: {bl['key_facts_accepted']} of {bl['key_facts']} key facts Accepted" + ("" if bl["complete"] else "  -> searches run on leads only after review"))
+    bl = r["baseline"]; out.append(f"  baseline: {bl['key_facts_accepted']} of {bl['key_facts']} key facts Accepted" + ("" if bl["complete"] else f"; undecided: {', '.join(bl['undecided'])}  -> review unlocks searches, the footprint and leads; fetching cited records is open"))
     out.append("\nFOUNDATION")
     for f in r["foundation"]:
         v = f["value"]; v = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v
@@ -224,7 +237,7 @@ def render(r):
     out.append("\nQUESTIONS")
     for q in r["questions"] or [{"kind": "(none)"}]: out.append(f"  {q['kind']:20} {q.get('detail','')}")
     fp = r["footprint"]
-    out.append(f"\nFOOTPRINT: records already on this family (fetch first)  [{fp['summary']['records']} records on {fp['summary']['relatives']} relatives; {fp['summary']['shared']} hold 2+ family members]")
+    out.append("\nFOOTPRINT: shown after the baseline is reviewed" if fp.get("gated") else f"\nFOOTPRINT: records already on this family (fetch first)  [{fp['summary']['records']} records on {fp['summary']['relatives']} relatives; {fp['summary']['shared']} hold 2+ family members]")
     for rec in fp["records"][:10]:
         who = ", ".join(f"{n} ({rel})" for n, rel in rec["on"]); flag = "H" if rec["held"] else ("c" if rec["on_subject"] else " ")
         out.append(f"  [{flag}] {rec['collection'][:40]:40} on {who[:52]:52} -> {rec['expect']}")

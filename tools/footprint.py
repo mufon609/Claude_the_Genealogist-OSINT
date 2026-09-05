@@ -144,7 +144,10 @@ def main():
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
-    fp = footprint(cat, cat.find_person(a.who))
+    pid = cat.find_person(a.who); bl = cat.baseline(pid)
+    if not bl["complete"]:
+        sys.exit(f"{cat.person(pid)['name']}: baseline not reviewed ({', '.join(bl['undecided'])} undecided); the footprint, duplicates and leads come after review")
+    fp = footprint(cat, pid)
     print(json.dumps(fp, ensure_ascii=False, indent=1) if a.json else render(fp))
 
 if __name__ == "__main__":

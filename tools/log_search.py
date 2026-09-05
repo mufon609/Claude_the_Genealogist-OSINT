@@ -17,13 +17,16 @@ from treelib import ROOT, dumps, now, resolve_tree, ulid
 from catalog import Catalog
 
 def rendered_query(query_json, revisions_json):
-    """The step's fields after the person's include/revise: excluded fields are dropped, revised values replace the tree's."""
+    """The step's fields ({value, basis} each) after the person's include/revise: an excluded field is dropped,
+    a revised value replaces the tree's and is a lead that remembers what it revised."""
     fields = json.loads(query_json or "{}"); rev = json.loads(revisions_json or "{}")
     out = {}
     for k, v in fields.items():
+        f = v if isinstance(v, dict) and "basis" in v else {"value": v, "basis": "lead"}
         r = rev.get(k) or {}
         if r.get("include") is False: continue
-        out[k] = r["value"] if r.get("value") not in (None, "") else v
+        if r.get("value") not in (None, ""): f = {"value": r["value"], "basis": "lead", "revised_from": f["value"]}
+        out[k] = f
     return out
 
 def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None):

@@ -196,7 +196,11 @@ the person, and the pre-built search step per gap with its execution mode per
 source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record).
 `--json` gives the machine form; `--all` gives one line per person. A real
 citation always beats an era rule; the row is then marked with the rule it
-falls outside of.
+falls outside of. Every query field is `{value, basis}`: basis `accepted` or
+`lead` for a fact about the person, `row` for a value the checklist row sets
+(a census year); a Rejected fact is left out. Before the baseline is reviewed
+the generator emits only fetch steps for cited records: no search steps, no
+footprint, no duplicate or unlinked leads.
 
 ## 6b. The screen as built
 
@@ -224,9 +228,12 @@ person-level citations from the import, so deciding one decides the other,
 and accepting a person's children accepts the same link seen from the child's
 side as parents. Include and revise live on the step: a search step lists its
 fields with a checkbox and a revise box, saved on the step, and every logged
-run records the fields as rendered. Automatic sources are not wired yet, so
-there is no Go button: assisted sources are worked by opening the link,
-searching with the step's fields, and logging the result.
+run records the fields as rendered, each with its basis. Until the baseline
+is reviewed the page says in one line what review unlocks (searches, the
+family footprint, leads) and that fetching cited records is open. Automatic
+sources are not wired yet, so there is no Go button: assisted sources are
+worked by opening the link, searching with the step's fields, and logging the
+result.
 
 ## 7. What this maps to in the schema
 

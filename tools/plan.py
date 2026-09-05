@@ -4,8 +4,9 @@
 usage: tools/plan.py "<person>" [--tree slug]      tools/plan.py --all [--tree slug]
 
 Idempotent: questions and steps are keyed, so re-running updates what changed,
-adds what is new, and closes questions whose gap has gone (closed_reason
-'gap_gone'). A question a person dismissed or answered stays closed. Steps come
+adds what is new, drops steps no longer generated unless they were run, and
+closes questions whose gap has gone (closed_reason 'gap_gone'). A question a
+person dismissed or answered stays closed. Steps come
 from tools/checklist.py (Group A and B gaps, cited records to fetch) and
 tools/footprint.py (Layer 0 records on relatives). Nothing here runs a search.
 """
@@ -45,7 +46,7 @@ def plan_person(cx, tree_id, pid, by):
                 "query_json": dumps({"record": rec["key"], "apid": rec.get("apid"), "collection": rec["collection"], "on": rec["on"]}),
                 "sources_json": dumps(["B02"] if rec.get("apid") else []), "mode_json": dumps({"fetch": ["B02"]} if rec.get("apid") else {"held": []}),
                 "expected": rec["expect"], "rationale": "already on " + ", ".join(f"{n} ({rel})" for n, rel in rec["on"])})
-    stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0}
+    stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0, "steps_dropped": 0}
     existing = {row[1]: row[0] for row in cx.execute("SELECT id, q_key FROM research_question WHERE subject_person_id=? AND status='open'", (pid,))}
     for key, (kind, detail) in wanted.items():
         if key in existing: qid = existing[key]; cx.execute("UPDATE research_question SET detail_json=? WHERE id=?", (detail, qid)); stats["questions_kept"] += 1
@@ -67,6 +68,10 @@ def plan_person(cx, tree_id, pid, by):
                 cx.execute("""INSERT INTO search_plan (id,question_id,seq,layer,step_key,query_type,query_json,sources_json,mode_json,expected,status,rationale,created_at)
                               VALUES (?,?,?,?,?,?,?,?,?,?,'planned',?,?)""", (ulid(), qid, seq, st["layer"], st["step_key"], st["query_type"], st["query_json"], st["sources_json"], st["mode_json"], st["expected"], st["rationale"], ts))
                 stats["steps_new"] += 1
+        wanted_keys = {st["step_key"] for st in steps_by_q.get(key, [])}
+        for skey, sid in have.items():                                   # a step the generator no longer produces goes, unless it was run
+            if skey not in wanted_keys and not cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=?", (sid,)).fetchone():
+                cx.execute("DELETE FROM search_plan WHERE id=?", (sid,)); stats["steps_dropped"] += 1
     for key, qid in existing.items():
         if key not in wanted:
             cx.execute("UPDATE research_question SET status='closed', closed_reason='gap_gone', closed_at=? WHERE id=?", (ts, qid)); stats["questions_closed"] += 1
