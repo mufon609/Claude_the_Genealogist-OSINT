@@ -55,22 +55,12 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
-### A1. Checklist and gap generator for a person
-
-Given a person's Accepted facts, produce the record checklist
-(`docs/RESEARCH-CHECKLIST.md` §2–3): every applicable row gated by era,
-place and sex, each marked held / cited / missing / n/a, Group A before
-Group B, with the pre-built search step per gap. Pure function over the
-catalog; no UI.
-**Blocks:** A2, A3.
-
 ### A2. Family-footprint step
 
 For a person with a missing link, rank the records already attached to
 their relatives by how many family members share the record, and run the
 duplicate check first (`docs/RESEARCH-WORKFLOW.md` §3, Layer 0). Feeds the
 top of the gap list.
-**Blocked by:** A1.
 
 ### A3. Person screen
 
@@ -78,14 +68,13 @@ Foundation (Accepted facts, check / uncheck / revise), checklist with
 tasks, results under the task clicked, three-state review. One person per
 screen, linear flow, no tabs (`docs/RESEARCH-CHECKLIST.md` §6). Local
 server, no framework.
-**Blocked by:** A1, A2.
+**Blocked by:** A2.
 
 ### A4. Research log and typed search steps
 
 `research_question`, `search_plan`, `search_log` tables and the
 `proposal.question_id` link (`docs/RESEARCH-WORKFLOW.md`, schema
 additions). Every run logged with the exact fields used, negatives included.
-**Blocked by:** A1.
 
 ---
 

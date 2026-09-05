@@ -66,6 +66,7 @@ then add tsvector indexes. The DDL uses no engine-specific types or clauses.
 | `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM 5.5.1 export as a T4 artifact and load it into the active tree. Files from `inbox/` are moved to `trees/<slug>/imports/<date>_<name>` (`--keep` copies instead). The same bytes may be imported into different trees; the same tree refuses a repeat. |
 | `tools/resolve_places.py` | Resolve `place_string` rows via Nominatim: parse + normalize, verify every given component against the candidate's hierarchy, auto-accept only unique full matches (or safe nested/coterminous choices), everything else stays Undecided with a tree-scoped `place_resolution` proposal. Then fills `event.place_id` only where every supporting fact resolved to the same place (audit-logged per event). `--reset` undoes AI-made resolutions and keeps human ones. Overrides in `data/place-overrides.json`. Responses cached under `derivatives/geocode/`. |
 | `tools/backfill_aliases.py` | Create `undecided` aliases from as-written persona names; set `place_string.variant_kind`; propose fixes for canonical names containing codes. Re-runnable. |
+| `tools/checklist.py "<person>"` | Read-only per-person checklist and gap generator (`docs/RESEARCH-CHECKLIST.md` §6a): foundation, questions, Group A/B rows with held / cited / missing / n/a, pre-built search step per gap. `--json`, `--all`. |
 | `tools/treelib.py` | Shared helpers: ULID, GEDCOM line parser, GEDCOM date grammar, archive paths. |
 
 ### How the GEDCOM ingest maps records

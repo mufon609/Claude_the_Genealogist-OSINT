@@ -9,7 +9,7 @@ able to distrust every earlier conclusion.
 | `docs/DATA-ARCHITECTURE.md` | The design: four layers, content-addressed archive, trees/profiles, trust boundaries, aliases. Accepted decisions are recorded there. |
 | `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status). `data/DATA-SOURCES.md` has the reasoning. |
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
-| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`. |
+| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/`. |
 | `inbox/` | Drop zone for files to ingest. |
 | `CLAUDE.md` | Operating rules for an AI contributor. |
@@ -25,4 +25,5 @@ python3 tools/tree.py create <slug> --name "..."
 python3 tools/ingest_gedcom.py inbox/<file>.ged
 python3 tools/resolve_places.py
 python3 tools/backfill_aliases.py
+python3 tools/checklist.py "Abram C Brant"      # per-person checklist and gaps
 ```

@@ -55,9 +55,11 @@ that person's own facts. Many still *name* relatives (B1); some do not (B2).
 | Social Security application (SS-5) | B1: parents | birth, parents | 1936+ | C02 |
 | Naturalization | B1: spouse/children sometimes | birthplace, arrival, origin | 1798+ | G02 |
 | Draft card | B1: next of kin | exact birth date/place, residence, employer | WWI (men b. 1872–1900), WWII (men b. 1877–1927) | F02 |
-| Military service record | B2 | service | | F01–F03 |
-| Gravestone | B2 | dates | | E01 |
-| Voter registration, directory entry | B2 | residence | | K01, C11 |
+| Military service record | B2 | service | only when a military event is already known | F01–F03 |
+
+Gravestones are covered by the Group A cemetery row (the same source names the
+family plot). Directory entries are the Group A directory row. Voter
+registration (C11) is living-person data and is never a checklist row.
 
 Every row is **gated by era, place and sex**, taken from the person's Accepted
 facts and the registry's coverage column. A man born 1880 gets the WWI and
@@ -181,6 +183,18 @@ Layout rules that keep it clean:
 - The search form is never blank: it is always the foundation, and every field
   is one click to exclude.
 - Anything the AI produced is Undecided and lives under the gap it answers.
+
+## 6a. The generator
+
+`tools/checklist.py "<person>"` produces everything above for one person from
+the catalog, read-only: the foundation with each field marked `accepted` or
+`lead`, the generated questions, the Group A and Group B rows with
+held / cited / missing / n/a, the relative a citation sits on when it is not on
+the person, and the pre-built search step per gap with its execution mode per
+source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record).
+`--json` gives the machine form; `--all` gives one line per person. A real
+citation always beats an era rule; the row is then marked with the rule it
+falls outside of.
 
 ## 7. What this maps to in the schema
 

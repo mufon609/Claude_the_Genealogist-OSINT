@@ -58,6 +58,7 @@ python3 tools/tree.py create <slug> --name "…"
 python3 tools/ingest_gedcom.py inbox/<file>.ged
 python3 tools/resolve_places.py             # Nominatim, cached; --reset undoes AI resolutions only
 python3 tools/backfill_aliases.py
+python3 tools/checklist.py "<person>"       # read-only checklist + gaps; --json, --all
 python3 tools/tree.py show
 ```
 
