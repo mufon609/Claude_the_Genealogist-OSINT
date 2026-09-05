@@ -1,7 +1,6 @@
 # Ahearn Family Tree
 
-slug: `ahearn`  
-created: 2026-09-05T21:59:43Z
+slug: `ahearn`
 
 - `imports/` named copies of files ingested into this tree (the archive holds the hashed master)
 - `exports/` GEDCOM 7 / Gramps XML snapshots

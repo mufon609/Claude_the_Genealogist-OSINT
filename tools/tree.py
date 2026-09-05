@@ -25,7 +25,7 @@ def cmd_create(cx, a):
     d = tree_dir(a.slug)
     for sub in ("imports", "exports"): os.makedirs(os.path.join(d, sub), exist_ok=True)
     with open(os.path.join(d, "README.md"), "w", encoding="utf-8") as fh:
-        fh.write(f"# {a.name}\n\nslug: `{a.slug}`  \ncreated: {ts}\n\n"
+        fh.write(f"# {a.name}\n\nslug: `{a.slug}`\n\n"
                  "- `imports/` named copies of files ingested into this tree (the archive holds the hashed master)\n"
                  "- `exports/` GEDCOM 7 / Gramps XML snapshots\n")
     print(f"created tree '{a.slug}' ({tid}) at trees/{a.slug}/")
