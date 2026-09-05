@@ -10,7 +10,9 @@ What happens
      linked by an accepted person_persona. Every event becomes a persona_fact
      and an event with an assertion back to the fact and the artifact.
   4. SOUR records become collections keyed by Ancestry dbid. Citations become
-     assertion.citation_text; unique APIDs become open record_hint proposals.
+     assertion.citation_text (status 'undecided' until reviewed). The unique record
+     citations and media references are kept in the extraction JSON for the
+     footprint engine; they are not a queue.
   5. PLAC strings become place_string rows; Ancestry-HQ artifacts are flagged.
 Nothing is updated in place; re-running on the same file is refused.
 """
@@ -100,9 +102,9 @@ class Ingest:
         if row:
             self.place_strings[raw] = row[0]; self.stats["place_strings_reused"] += 1; return row[0]
         pid = ulid()
-        status, notes = "unresolved", None
+        status, notes = "undecided", None
         if ARTIFACT_PLACE.match(raw):
-            status, notes = "artifact", "Ancestry HQ address leaked into event place"
+            status, notes = "rejected", "Ancestry HQ address leaked into event place"
             self.stats["place_artifacts"] += 1
         self.cx.execute("INSERT INTO place_string (id,raw,status,notes) VALUES (?,?,?,?)", (pid, raw, status, notes))
         self.place_strings[raw] = pid
@@ -170,20 +172,21 @@ class Ingest:
             out.append((text, apid, col[0] if col else None, page, name))
         return out
 
-    def assert_(self, subject_kind, subject_id, cits, persona_fact_id=None, persona_id=None, tree_conf=1):
+    def assert_(self, subject_kind, subject_id, cits, persona_fact_id=None, persona_id=None):
+        """Imported claims are 'undecided' until a human reviews them."""
         if not cits:
             self.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,persona_id,artifact_sha256,
-                               citation_text,confidence,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                               citation_text,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (ulid(), self.tree_id, subject_kind, subject_id, persona_fact_id, persona_id, self.sha,
-                             "Ancestry member tree (no citation)", 0, "accepted", self.by, self.ts, dumps({"uncited": True})))
+                             "Ancestry member tree (no citation)", "undecided", self.by, self.ts, dumps({"uncited": True})))
             self.stats["assertions_uncited"] += 1
             return
         for text, apid, cid, page, name in cits:
             note = dumps({"apid": apid, "collection_id": cid}) if apid else None
             self.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,persona_id,artifact_sha256,
-                               citation_text,confidence,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                               citation_text,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (ulid(), self.tree_id, subject_kind, subject_id, persona_fact_id, persona_id, self.sha,
-                             text, tree_conf, "accepted", self.by, self.ts, note))
+                             text, "undecided", self.by, self.ts, note))
             self.stats["assertions_cited"] += 1
             if apid:
                 a = self.apids[apid]
@@ -270,8 +273,8 @@ class Ingest:
                                    VALUES (?,?,?,?,?,?,?,?)""",
                                 (ulid(), pid, ntype, g2, s2, x2, False, f"{(s2 or '').lower()}, {(g2 or '').lower()}".strip(", ")))
                 self.stats["extra_names"] += 1
-            self.cx.execute("INSERT INTO person_persona (person_id,persona_id,status,confidence,decided_by,decided_at) VALUES (?,?,?,?,?,?)",
-                            (pid, pa, "accepted", 1.0, self.by, self.ts))
+            self.cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,?,?,?)",
+                            (pid, pa, "accepted", self.by, self.ts))   # by construction: this GEDCOM entry *is* this person
             self.cx.execute("INSERT INTO external_id (id,tree_id,entity_kind,entity_id,system,value,created_at) VALUES (?,?,?,?,?,?,?)",
                             (ulid(), self.tree_id, "person", pid, "ancestry_gedcom_xref", xref, self.ts))
             # person-level citations (INDI SOUR + NAME SOUR)
@@ -367,38 +370,31 @@ class Ingest:
                 self.stats["family_events_merged"] += 1
             self.assert_("event", eid, self.citations(node), persona_fact_id=fact_id)
 
-    # ------------------------------------------------------------ hints
-    def load_media(self, roots):
+    # ------------------------------------------------------------ what the tree cited (kept as data, not as a queue)
+    def collect_media(self, roots):
+        """Media objects referenced by the export but not contained in it. Kept in the extraction JSON."""
+        out = []
         for n in roots:
             if n.tag != "OBJE": continue
-            file = n.first("FILE")
-            clon = n.first("_CLON")
-            payload = {"kind": "ancestry_media", "oid": n.val("_OID"), "title": file.val("TITL") if file else None,
-                       "form": file.val("FORM") if file else None, "mtype": n.val("_MTYPE"), "description": n.val("_DSCR"),
-                       "created": n.val("_CREA"), "origin_pid": clon.val("_PID") if clon else None,
-                       "origin_tid": clon.val("_TID") if clon else None,
-                       "persons": self.media_links.get(n.xref, [])}
-            self.cx.execute("""INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status)
-                               VALUES (?,?,?,?,?,?,?,'open')""",
-                            (ulid(), self.tree_id, "record_hint", dumps(payload),
-                             "Media attached in Ancestry tree but not present in GEDCOM export; download manually and archive.",
-                             self.extractor_id, self.ts))
-            self.stats["media_hints"] += 1
+            file = n.first("FILE"); clon = n.first("_CLON")
+            out.append({"oid": n.val("_OID"), "title": file.val("TITL") if file else None, "form": file.val("FORM") if file else None,
+                        "mtype": n.val("_MTYPE"), "description": n.val("_DSCR"), "created": n.val("_CREA"),
+                        "origin_pid": clon.val("_PID") if clon else None, "origin_tid": clon.val("_TID") if clon else None,
+                        "persons": self.media_links.get(n.xref, [])})
+        self.stats["media_refs"] = len(out)
+        return out
 
-    def load_record_hints(self):
+    def collect_cited_records(self):
+        """Unique Ancestry record citations with the subjects they support. Kept in the extraction JSON."""
+        out = []
         for apid, a in self.apids.items():
             m = APID_RE.match(apid)
-            tree_copy = (a["collection"] or "").startswith("Ancestry Family Trees") or not m
-            if tree_copy:
+            if not m or (a["collection"] or "").startswith("Ancestry Family Trees"):
                 self.stats["citations_tree_to_tree"] += len(a["subjects"]); continue
-            payload = {"kind": "ancestry_record", "apid": apid, "dbid": m.group(2), "record_id": m.group(3),
-                       "collection": a["collection"], "collection_id": a.get("collection_id"), "page": a["page"],
-                       "subjects": a["subjects"]}
-            self.cx.execute("""INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status)
-                               VALUES (?,?,?,?,?,?,?,'open')""",
-                            (ulid(), self.tree_id, "record_hint", dumps(payload),
-                             "Cited in imported tree; record image/index not yet archived.", self.extractor_id, self.ts))
-            self.stats["record_hints"] += 1
+            out.append({"apid": apid, "dbid": m.group(2), "record_id": m.group(3), "collection": a["collection"],
+                        "collection_id": a.get("collection_id"), "page": a["page"], "subjects": a["subjects"]})
+        self.stats["cited_records"] = len(out)
+        return out
 
     # ------------------------------------------------------------ run
     def run(self):
@@ -419,10 +415,10 @@ class Ingest:
         self.load_people(roots)
         self.load_families(roots)
         self.resolve_deferred_family_events()
-        self.load_media(roots)
-        self.load_record_hints()
+        media = self.collect_media(roots); cited = self.collect_cited_records()
         summary = dict(self.stats)
-        self.cx.execute("UPDATE extraction SET structured_json=? WHERE id=?", (dumps(summary), self.extraction_id))
+        self.cx.execute("UPDATE extraction SET structured_json=? WHERE id=?",
+                        (dumps({"summary": summary, "media": media, "cited_records": cited}), self.extraction_id))
         self.cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                         (ulid(), self.tree_id, self.ts, self.by, "import", "artifact", self.sha, dumps(summary)))
         self.import_id = ulid()

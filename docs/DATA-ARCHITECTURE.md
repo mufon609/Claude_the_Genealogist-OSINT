@@ -33,6 +33,26 @@ made mechanical. It is also what lets the AI layer be re-run: a better HTR model
 next year produces a new extraction version; nothing above or below it changes
 until someone accepts the new reading.
 
+## 1a. Decision model (accepted 2026-09-05)
+
+Wherever a human decides, there are exactly three states and no score:
+
+| State | Meaning |
+|---|---|
+| **Accepted** | stands; feeds searches, exports and the profile |
+| **Rejected** | does not stand; kept with its reason, never deleted |
+| **Undecided** | research in progress or needed; the default for anything imported or machine-produced |
+
+This applies to assertions (citations), persona-to-person links, place-string
+resolutions, aliases and proposals. There is no numeric confidence anywhere a
+person decides. Machine detail (a geocoder's match score, an OCR engine's
+certainty) may live inside notes/JSON for debugging and is never shown as an
+accuracy figure. Trust tiers (T1-T5) remain: they classify what *kind* of
+source a record is, not how confident anyone is in it.
+
+An imported tree arrives entirely Undecided. Nothing becomes Accepted without
+a person saying so.
+
 ## 2. Archive layer
 
 ### Storage: content-addressed, filesystem first
@@ -121,7 +141,7 @@ Core tables:
 | `persona` | What one record says about one individual. Belongs to an extraction. |
 | `persona_fact` | Name, date, place, relationship claims on a persona, with region coordinates. |
 | `person` | Layer-4 conclusion. |
-| `person_persona` | Many-to-many link plus a confidence and who accepted it. |
+| `person_persona` | Many-to-many link with a three-state status and who decided it. |
 | `event`, `relationship` | Conclusions, each with `evidence_id` links. |
 | `proposal` | AI or hint output awaiting review. |
 | `external_id` | Any vendor ID for a person or artifact (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
@@ -193,7 +213,7 @@ So:
   an explicit per-import flag, off by default.
 - **Place resolution is the one shared item that carries judgment.** A
   `place_string` resolved to a `place` in one tree is resolved for all. Each
-  resolution records `resolver` and `confidence`; a fresh tree can re-run
+  resolution records who or what resolved it; a fresh tree can re-run
   resolution and overwrite, and `status='artifact'` / `'rejected'` are visible
   to every tree. If this ever proves too leaky, `place_string` gains a
   `tree_id` and becomes per-tree; the schema change is one column.
@@ -221,8 +241,8 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
 ## 7. Decisions (accepted 2026-09-05)
 
 1. **Layer-4 store: own schema.** Gramps is a neighbor, not a foundation. Borrow
-   its taxonomy (event types, place hierarchy with dated names, citation
-   confidence 0-4). Ship a Gramps XML exporter alongside GEDCOM 7 so the tree
+   its taxonomy (event types, place hierarchy with dated names; not its 0-4
+   citation confidence scale, see 1a). Ship a Gramps XML exporter alongside GEDCOM 7 so the tree
    opens in Gramps desktop at any time. Persona layer stays native; SQL and
    vector search stay direct; licensing stays open (no AGPL linkage).
 2. **Off-site backup: S3.** Design for it from the start; upload nothing until
@@ -248,7 +268,7 @@ Three things exist for every value, and they live in different layers:
 |---|---|---|---|
 | As written in a record | `persona_fact.value_text`, `place_string.raw` (layer 3) | never | "Worchester, Montgomery, Pennsylvania" |
 | Canonical conclusion | `person_name`, `event.place_id` → `place` (layer 4) | yes, with assertions | Worcester Township, Montgomery Co., PA |
-| The mapping and why they differ | `alias` / `place_string.variant_kind` (schema 0.3.0) | yes, reviewable | kind = typo, confirmed |
+| The mapping and why they differ | `alias` / `place_string.variant_kind` (schema 0.4.0) | yes, reviewable | kind = typo, Accepted |
 
 Why the error is kept and indexed rather than fixed:
 
@@ -274,39 +294,39 @@ East/West Norriton 1909; Montgomery Co. formed 1784) · `jurisdiction_error`
 belong in `place_name` with dates. Everything else is an error or variant and
 is attached to the canonical entity as an alias, never promoted to a name.
 
-### Schema (0.3.0, `schema/migrations/0.3.0.sql`)
+### Schema (0.4.0)
 
 ```
 alias (tree-scoped for persons/families; tree_id NULL for shared entities)
   id, tree_id, entity_kind, entity_id, value, kind, status, source_persona_fact_id,
   source_artifact_sha256, added_by, added_at, notes
-  status: observed | confirmed | not_this_entity
+  status: undecided | accepted | rejected
 place_string.variant_kind   -- same vocabulary; set by tools/backfill_aliases.py
 v_person_search_key         -- canonical names + non-rejected aliases, for search expansion
 ```
 
-`tools/backfill_aliases.py` creates `observed` aliases from the as-written names on
+`tools/backfill_aliases.py` creates `undecided` aliases from the as-written names on
 accepted personas, classifies resolved place strings, and raises a `fact` proposal
 when a canonical name itself contains a code (e.g. suffix "CFT19"); it never edits
 the canonical value.
 
-- `observed` = appears in at least one record linked to this entity (created
+- `undecided` = appears in at least one record linked to this entity (created
   automatically when a persona is accepted onto a person).
-- `confirmed` = a human agreed this variant means this entity.
-- `not_this_entity` = a look-alike that has been checked and rejected; search
-  stops proposing it. Rejection is recorded, not deleted.
+- `accepted` = a human agreed this variant means this entity.
+- `rejected` = a look-alike that has been checked and rejected; search stops
+  proposing it. Rejection is recorded, not deleted.
 
 ### How the app uses aliases
 
 - **Profile:** shows the canonical value, then "also recorded as" with each
   variant, its kind, and how many documents carry it. Click-through to the
   records.
-- **Search / record hunting:** query expansion over canonical + all `observed`
-  and `confirmed` aliases, including wrong-jurisdiction forms. The search agent
+- **Search / record hunting:** query expansion over canonical + all `undecided`
+  and `accepted` aliases, including wrong-jurisdiction forms. The search agent
   must search "Worchester" and "Amwell, Hunterdon, Pennsylvania" as literally
   as the tree owner once typed them.
 - **Matching:** two personas sharing a rare alias (same misspelling) get a
   linkage bonus; the AI matcher treats recurring errors as fingerprints.
 - **Conflicts are not aliases.** A different birth date is a competing
-  assertion, kept with its own confidence and shown as disputed; it is never
+  assertion, kept with its own three-state status and shown as disputed; it is never
   merged into an alias list.

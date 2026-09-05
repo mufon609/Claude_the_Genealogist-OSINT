@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create `observed` aliases for persons from the as-written names on their accepted
+"""Create `undecided` aliases for persons from the as-written names on their accepted
 personas, and classify resolved place strings (place_string.variant_kind).
 
 usage: tools/backfill_aliases.py [--tree slug] [--dry-run]
@@ -87,7 +87,7 @@ def backfill_persons(cx, tree_id, by, ts, stats, report):
             stats["already"] += 1; continue
         kind, note = classify(written, given, surname, suffix)
         cx.execute("""INSERT INTO alias (id,tree_id,entity_kind,entity_id,value,kind,status,source_persona_fact_id,source_artifact_sha256,added_by,added_at,notes)
-                      VALUES (?,?,?,?,?,?,'observed',?,?,?,?,?)""", (ulid(), tree_id, "person", person_id, value, kind, fact_id, sha, by, ts, note))
+                      VALUES (?,?,?,?,?,?,'undecided',?,?,?,?,?)""", (ulid(), tree_id, "person", person_id, value, kind, fact_id, sha, by, ts, note))
         stats["aliases"] += 1; stats["kind:" + kind] += 1
         report.append(("ALIAS", f"{canon}  <-  {value}", f"{kind}: {note}"))
 
@@ -120,14 +120,14 @@ def flag_bad_canonical_names(cx, tree_id, by, ts, stats, report):
         payload = {"kind": "canonical_name_has_code", "person_id": person_id, "person_name_id": name_id,
                    "current": {"given": given, "surname": surname, "suffix": suffix},
                    "suggested": {"given": given, "surname": surname, "suffix": None if suffix and re.search(r"\d", suffix) else suffix}}
-        if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND kind='fact' AND status='open' AND payload_json LIKE ?", (tree_id, f'%"person_name_id":"{name_id}"%')).fetchone():
+        if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND kind='fact' AND status='undecided' AND payload_json LIKE ?", (tree_id, f'%"person_name_id":"{name_id}"%')).fetchone():
             continue
-        cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'open')",
+        cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
                    (ulid(), tree_id, "fact", dumps(payload), "Primary name contains digits/code (research tag copied into the name). Move it to a note.", ext_id, ts))
         stats["bad_name_proposals"] += 1; report.append(("NAME?", f"{given} {surname} {suffix}", "code in canonical name -> proposal"))
 
 def backfill_places(cx, stats, report):
-    for psid, raw, notes in cx.execute("SELECT id, raw, notes FROM place_string WHERE status='resolved' AND variant_kind IS NULL").fetchall():
+    for psid, raw, notes in cx.execute("SELECT id, raw, notes FROM place_string WHERE status='accepted' AND variant_kind IS NULL").fetchall():
         kind = classify_place(raw, notes)
         if kind:
             cx.execute("UPDATE place_string SET variant_kind=? WHERE id=?", (kind, psid))

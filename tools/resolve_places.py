@@ -12,7 +12,7 @@ Rules
     becomes a `place_resolution` proposal (tree-scoped) with the candidates listed.
   * data/place-overrides.json can reject non-places, force review, add candidate
     queries, and attach notes. It is the only hand-authored input.
-  * Resolutions record resolver + confidence; nothing is silently overwritten.
+  * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
 """
 import argparse, difflib, hashlib, json, os, re, sqlite3, sys, time, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -235,19 +235,19 @@ def candidate_summary(c, score, checks):
 def apply_to_events(cx, tree_id, actor, ts):
     """Fill event.place_id where every supporting fact's place string resolved to the same place. Logged per event."""
     rows = cx.execute("""
-        SELECT e.id, GROUP_CONCAT(DISTINCT ps.place_id), COUNT(DISTINCT ps.id), COUNT(DISTINCT CASE WHEN ps.status='resolved' THEN ps.id END), MIN(ps.confidence)
+        SELECT e.id, GROUP_CONCAT(DISTINCT ps.place_id), COUNT(DISTINCT ps.id), COUNT(DISTINCT CASE WHEN ps.status='accepted' THEN ps.id END)
         FROM event e
-        JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status='accepted'
+        JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status <> 'rejected'
         JOIN persona_fact pf ON pf.id=a.persona_fact_id
         JOIN place_string ps ON ps.id=pf.place_string_id
         WHERE e.tree_id=? AND e.place_id IS NULL
         GROUP BY e.id""", (tree_id,)).fetchall()
     n = 0
-    for eid, place_ids, n_strings, n_resolved, min_conf in rows:
+    for eid, place_ids, n_strings, n_resolved in rows:
         if not place_ids or "," in place_ids or n_resolved != n_strings: continue
         cx.execute("UPDATE event SET place_id=?, updated_at=? WHERE id=?", (place_ids, ts, eid))
         cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-                   (ulid(), tree_id, ts, actor, "update", "event", eid, dumps({"place_id": place_ids, "from": "resolved place_string", "min_confidence": min_conf})))
+                   (ulid(), tree_id, ts, actor, "update", "event", eid, dumps({"place_id": place_ids, "from": "accepted place_string"})))
         n += 1
     return n, len(rows) - n
 
@@ -255,8 +255,8 @@ def reset_ai_resolutions(cx, tree_id):
     """Undo AI-made resolutions only. Human resolutions (resolver 'user:...') are kept."""
     cx.execute("UPDATE event SET place_id=NULL WHERE tree_id=? AND id IN (SELECT entity_id FROM audit_log WHERE action='update' AND entity_kind='event' AND actor LIKE 'ai:%')", (tree_id,))
     cx.execute("DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action IN ('update','resolve')", (tree_id,))
-    cx.execute("DELETE FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='open'", (tree_id,))
-    cx.execute("UPDATE place_string SET place_id=NULL, status='unresolved', resolver=NULL, confidence=NULL, resolved_at=NULL, notes=NULL, variant_kind=NULL WHERE resolver LIKE 'ai:%'")
+    cx.execute("DELETE FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided'", (tree_id,))
+    cx.execute("UPDATE place_string SET place_id=NULL, status='undecided', resolver=NULL, resolved_at=NULL, notes=NULL, variant_kind=NULL WHERE resolver LIKE 'ai:%'")
     # orphaned places (no string, no event points at them, and no child)
     while True:
         orphans = [r[0] for r in cx.execute("""SELECT p.id FROM place p
@@ -287,15 +287,15 @@ def main():
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
     if a.reset: reset_ai_resolutions(cx, tree_id)
-    rows = cx.execute("SELECT id, raw FROM place_string WHERE status IN ('unresolved') " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
+    rows = cx.execute("SELECT id, raw FROM place_string WHERE status='undecided' AND place_id IS NULL AND resolver IS NULL " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
                       (a.only,) if a.only else ()).fetchall()
     if a.limit: rows = rows[: a.limit]
-    stats = {"resolved": 0, "review": 0, "rejected": 0, "no_candidates": 0}
+    stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0}
     report = []
     for psid, raw in rows:
         note = ov["note"].get(raw)
         if raw in ov["reject"]:
-            cx.execute("UPDATE place_string SET status='rejected', resolver=?, confidence=1, resolved_at=?, notes=? WHERE id=?",
+            cx.execute("UPDATE place_string SET status='rejected', resolver=?, resolved_at=?, notes=? WHERE id=?",
                        (resolver_tag, ts, dumps({"reason": ov["reject"][raw]}), psid)); stats["rejected"] += 1
             report.append(("REJECT", raw, ov["reject"][raw])); continue
         p = parse(raw)
@@ -331,9 +331,9 @@ def main():
         bare = len(p["components"]) == 1 and not p["country"]
         if not scored:
             payload = {"raw": raw, "place_string_id": psid, "parsed": p, "queries": queries, "candidates": [], "reason": "no candidates"}
-            cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'open')",
+            cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
                        (ulid(), tree_id, "place_resolution", dumps(payload), (note or "") + " No geocoder candidates; resolve by hand.", ext_id, ts))
-            cx.execute("UPDATE place_string SET notes=? WHERE id=?", (dumps({"resolver": resolver_tag, "result": "no_candidates", "note": note}), psid))
+            cx.execute("UPDATE place_string SET resolver=?, resolved_at=?, notes=? WHERE id=?", (resolver_tag, ts, dumps({"result": "no_candidates", "note": note}), psid))
             stats["no_candidates"] += 1; report.append(("NONE", raw, "")); continue
         chosen, how = (full[0][2], "unique full match") if len(full) == 1 else (select_best(p, full) if len(full) > 1 else (None, None))
         if chosen is not None and not forced and not bare:
@@ -342,23 +342,22 @@ def main():
             leaf = st.hierarchy(c)
             if not cx.execute("SELECT 1 FROM place_name WHERE place_id=? AND name=?", (leaf, raw)).fetchone():
                 cx.execute("INSERT INTO place_name (id,place_id,name,is_primary) VALUES (?,?,?,?)", (ulid(), leaf, raw, False))
-            conf = (0.95 if len(p["components"]) >= 2 or p["country"] else 0.8) - (0.1 if len(full) > 1 else 0)
-            cx.execute("UPDATE place_string SET place_id=?, status='resolved', resolver=?, confidence=?, resolved_at=?, notes=? WHERE id=?",
-                       (leaf, resolver_tag, conf, ts, dumps({"queries": queries, "how": how, "match": candidate_summary(c, score, checks),
+            cx.execute("UPDATE place_string SET place_id=?, status='accepted', resolver=?, resolved_at=?, notes=? WHERE id=?",
+                       (leaf, resolver_tag, ts, dumps({"queries": queries, "how": how, "match": candidate_summary(c, score, checks),
                                                              "alternatives": [x.get("display_name") for _, _, x in full if x is not c],
                                                              "details": p["details"], "warnings": p["warnings"], "note": note}), psid))
-            stats["resolved"] += 1; report.append(("OK", raw, (f"[{how}] " if how != "unique full match" else "") + c.get("display_name")))
+            stats["accepted"] += 1; report.append(("OK", raw, (f"[{how}] " if how != "unique full match" else "") + c.get("display_name")))
         else:
             reason = forced or ("bare single token; needs context" if bare else
                                 (how or f"{len(full)} fully-verified candidates") if full else "no candidate matches every component")
             payload = {"raw": raw, "place_string_id": psid, "parsed": p, "queries": queries,
                        "candidates": [candidate_summary(c, s, ch) for s, ch, c in scored[:12]],
                        "suggested": 0 if scored and scored[0][0] >= 0.6 else None, "reason": reason}
-            cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'open')",
+            cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
                        (ulid(), tree_id, "place_resolution", dumps(payload), ((note + " ") if note else "") + reason, ext_id, ts))
-            cx.execute("UPDATE place_string SET status='ambiguous', resolver=?, confidence=?, resolved_at=?, notes=? WHERE id=?",
-                       (resolver_tag, round(scored[0][0], 2), ts, dumps({"result": "review", "reason": reason, "top": candidate_summary(*scored[0][2:3], scored[0][0], scored[0][1]) if scored else None, "note": note}), psid))
-            stats["review"] += 1; report.append(("REVIEW", raw, reason))
+            cx.execute("UPDATE place_string SET status='undecided', resolver=?, resolved_at=?, notes=? WHERE id=?",
+                       (resolver_tag, ts, dumps({"result": "review", "reason": reason, "top": candidate_summary(*scored[0][2:3], scored[0][0], scored[0][1]) if scored else None, "note": note}), psid))
+            stats["undecided"] += 1; report.append(("REVIEW", raw, reason))
     stats["events_placed"], stats["events_left_unplaced"] = apply_to_events(cx, tree_id, resolver_tag, ts)
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, resolver_tag, "resolve", "place_string", "batch", dumps(stats)))

@@ -59,7 +59,7 @@ def cmd_show(cx, a):
     print(f"{t[1]}: {t[2]}\n  id {tid}\n  settings {t[4]}\n  created {t[5]}")
     print(f"  persons {q('SELECT COUNT(*) FROM person WHERE tree_id=?')}  families {q('SELECT COUNT(*) FROM family WHERE tree_id=?')}  "
           f"events {q('SELECT COUNT(*) FROM event WHERE tree_id=?')}  assertions {q('SELECT COUNT(*) FROM assertion WHERE tree_id=?')}")
-    print(f"  open proposals {q('SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status=\"open\"')}")
+    print(f"  undecided proposals {q('SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status=\"undecided\"')}")
     for r in cx.execute("SELECT imported_at, artifact_sha256, original_path FROM tree_import WHERE tree_id=? ORDER BY imported_at", (tid,)):
         print(f"  import {r[0][:10]} {r[1][:12]}… {os.path.relpath(r[2], ROOT) if r[2] else ''}")
 

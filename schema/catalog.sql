@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.3.0
+-- tree catalog schema  v0.4.0
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -8,6 +8,9 @@
 --   * JSON is stored as TEXT (json_* functions exist on both engines).
 --   * booleans are BOOLEAN (SQLite stores 0/1).
 --   * SQLite-only objects (FTS, triggers) live in sqlite_extras.sql.
+--   * DECISIONS: wherever a human decides, the column is `status` with exactly
+--     three values: 'undecided' | 'accepted' | 'rejected'. No numeric confidence.
+--     Machine details (match scores, OCR certainty) stay inside notes/JSON.
 -- Layers: 1 reference  2 archive  3 evidence  4 conclusions  + ops
 -- =============================================================================
 
@@ -93,16 +96,14 @@ CREATE TABLE place_name (
 );
 CREATE INDEX ix_place_name_place ON place_name(place_id);
 
--- Every raw place string ever seen, and what it resolved to. This is where the
--- "Lehi, UT, USA" artifacts get flagged instead of silently mapped.
+-- Every raw place string ever seen, and what it resolved to. accepted = place_id
+-- stands; rejected = not a real place (reason in notes); undecided = still open.
 CREATE TABLE place_string (
   id          TEXT PRIMARY KEY,
   raw         TEXT NOT NULL UNIQUE,
   place_id    TEXT REFERENCES place(id),
-  status      TEXT NOT NULL DEFAULT 'unresolved'
-              CHECK (status IN ('unresolved','resolved','ambiguous','artifact','rejected')),
-  resolver    TEXT,                      -- human:<user> | ai:<extractor_id>
-  confidence  REAL,
+  status      TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
+  resolver    TEXT,                      -- user:<name> | ai:<extractor>   (who last set place_id / status)
   resolved_at TEXT,
   variant_kind TEXT CHECK (variant_kind IN ('typo','phonetic','transcription','abbreviation','translation','historical',
                             'jurisdiction_change','jurisdiction_error','context_glue','detail','unclassified') OR variant_kind IS NULL),
@@ -245,7 +246,6 @@ CREATE TABLE persona_fact (
   calendar        TEXT NOT NULL DEFAULT 'gregorian' CHECK (calendar IN ('gregorian','julian','dual','unknown')),
   place_string_id TEXT REFERENCES place_string(id),
   region_json     TEXT,
-  confidence      REAL,                 -- extractor's own confidence 0..1
   notes           TEXT
 );
 CREATE INDEX ix_persona_fact_persona ON persona_fact(persona_id);
@@ -258,8 +258,7 @@ CREATE TABLE persona_relation (
   related_persona_id  TEXT NOT NULL REFERENCES persona(id),
   kind                TEXT NOT NULL,    -- spouse | parent | child | sibling | head | boarder | witness | informant | employer | other
   value_text          TEXT,             -- as written: "Wife", "Son-in-law"
-  region_json         TEXT,
-  confidence          REAL
+  region_json         TEXT
 );
 CREATE INDEX ix_persona_relation_persona ON persona_relation(persona_id);
 
@@ -379,8 +378,7 @@ CREATE INDEX ix_event_participant_family ON event_participant(family_id);
 CREATE TABLE person_persona (
   person_id   TEXT NOT NULL REFERENCES person(id),
   persona_id  TEXT NOT NULL REFERENCES persona(id),
-  status      TEXT NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed','accepted','rejected')),
-  confidence  REAL,
+  status      TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
   proposal_id TEXT,                     -- REFERENCES proposal(id), declared below
   decided_by  TEXT,
   decided_at  TEXT,
@@ -388,8 +386,9 @@ CREATE TABLE person_persona (
 );
 CREATE INDEX ix_person_persona_persona ON person_persona(persona_id);
 
--- The evidence link for any conclusion. Every layer-4 row should have >= 1
--- accepted assertion (enforced by the application and by v_unsupported_*).
+-- The evidence link for any conclusion. Imported citations start 'undecided';
+-- a human review makes them 'accepted' or 'rejected'. Every layer-4 row should
+-- end up with >= 1 accepted assertion (v_unsupported_* lists the rest).
 CREATE TABLE assertion (
   id              TEXT PRIMARY KEY,
   tree_id         TEXT NOT NULL REFERENCES tree(id),
@@ -399,8 +398,7 @@ CREATE TABLE assertion (
   persona_id      TEXT REFERENCES persona(id),
   artifact_sha256 TEXT REFERENCES artifact(sha256),
   citation_text   TEXT,                 -- Evidence Explained style rendered citation
-  confidence      INTEGER NOT NULL DEFAULT 2 CHECK (confidence BETWEEN 0 AND 4),  -- Gramps scale: 0 very low .. 4 very high
-  status          TEXT NOT NULL DEFAULT 'accepted' CHECK (status IN ('proposed','accepted','rejected')),
+  status          TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
   asserted_by     TEXT NOT NULL,        -- user:<name> | ai:<extractor_id>
   asserted_at     TEXT NOT NULL,
   notes           TEXT,
@@ -414,12 +412,12 @@ CREATE INDEX ix_assertion_artifact ON assertion(artifact_sha256);
 CREATE TABLE proposal (
   id            TEXT PRIMARY KEY,
   tree_id       TEXT NOT NULL REFERENCES tree(id),
-  kind          TEXT NOT NULL CHECK (kind IN ('persona_match','new_person','fact','relation','place_resolution','duplicate_person','record_hint')),
+  kind          TEXT NOT NULL CHECK (kind IN ('persona_match','new_person','fact','relation','place_resolution','duplicate_person')),
   payload_json  TEXT NOT NULL,
   rationale     TEXT,
   generated_by  TEXT NOT NULL REFERENCES extractor(id),
   created_at    TEXT NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','accepted','rejected','superseded')),
+  status        TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
   decided_by    TEXT,
   decided_at    TEXT,
   decision_note TEXT
@@ -457,7 +455,7 @@ CREATE TABLE alias (
   kind                    TEXT NOT NULL CHECK (kind IN ('typo','phonetic','transcription','abbreviation','translation',
                                                         'historical','jurisdiction_change','jurisdiction_error','context_glue',
                                                         'nickname','married_name','detail','unclassified')),
-  status                  TEXT NOT NULL DEFAULT 'observed' CHECK (status IN ('observed','confirmed','not_this_entity')),
+  status                  TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
   source_persona_fact_id  TEXT REFERENCES persona_fact(id),
   source_artifact_sha256  TEXT REFERENCES artifact(sha256),
   added_by                TEXT NOT NULL,
@@ -545,12 +543,15 @@ SELECT e.* FROM event e
 WHERE NOT EXISTS (SELECT 1 FROM assertion a
                    WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status = 'accepted');
 
+-- A person is supported only by an ACCEPTED assertion on the person or on one of
+-- their events. The persona link alone is not support (it is definitional).
 CREATE VIEW v_unsupported_person AS
 SELECT p.* FROM person p
-WHERE NOT EXISTS (SELECT 1 FROM person_persona pp
-                   WHERE pp.person_id = p.id AND pp.status = 'accepted')
+WHERE NOT EXISTS (SELECT 1 FROM assertion a
+                   WHERE a.subject_kind = 'person' AND a.subject_id = p.id AND a.status = 'accepted')
   AND NOT EXISTS (SELECT 1 FROM assertion a
-                   WHERE a.subject_kind = 'person' AND a.subject_id = p.id AND a.status = 'accepted');
+                   JOIN event_participant ep ON ep.event_id = a.subject_id AND ep.person_id = p.id
+                   WHERE a.subject_kind = 'event' AND a.status = 'accepted');
 
 -- Artifacts with fewer than two verified copies.
 CREATE VIEW v_artifact_under_replicated AS
@@ -566,4 +567,4 @@ SELECT pn.person_id, p.tree_id, TRIM(COALESCE(pn.given,'') || ' ' || COALESCE(pn
 FROM person_name pn JOIN person p ON p.id = pn.person_id
 UNION ALL
 SELECT a.entity_id, a.tree_id, a.value, a.kind, a.status
-FROM alias a WHERE a.entity_kind = 'person' AND a.status <> 'not_this_entity';
+FROM alias a WHERE a.entity_kind = 'person' AND a.status <> 'rejected';
