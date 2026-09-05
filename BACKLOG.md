@@ -55,12 +55,6 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
-### A4. Research log and typed search steps
-
-`research_question`, `search_plan`, `search_log` tables and the
-`proposal.question_id` link (`docs/RESEARCH-WORKFLOW.md`, schema
-additions). Every run logged with the exact fields used, negatives included.
-
 ---
 
 ## B. Parallel batch
@@ -125,6 +119,14 @@ uses the same catalog.
 Draft the Third-Party Service Provider application for the user to submit;
 approval moves most Layer 1–2 searches from assisted to automatic.
 **Blocks:** Externally blocked / FamilySearch API.
+
+### C9. Focus views on the tree overview
+
+When a tree overview exists, let the user hide or highlight parts of it with
+saved, hotkey-switchable views: hide the siblings they do not care about on a
+line, keep one child of a large family, dim everything outside the line being
+worked. A view changes only what is shown, never the data. Far out; needs a
+tree overview first.
 
 ---
 
