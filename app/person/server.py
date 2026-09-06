@@ -279,7 +279,8 @@ def answer_questions(cx, tree_id, pid, prop_id):
 
 def assert_facts(cx, tree_id, person_id, persona_id, prop_id, ts):
     """Undecided assertions from a persona's facts to the person: Name and Sex facts assert the person row; an event fact asserts
-    the person's event of that type and year, created from the fact's date when there is none. Returns how many were written."""
+    the person's event of that type and year, created from the fact's date when there is none; a fact of type Unknown (kept under
+    the page's own label) asserts nothing. Returns how many were written."""
     n = 0
     sha = cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()["artifact_sha256"]
     a = cx.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
@@ -292,7 +293,7 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, ts):
     for f in cx.execute("""SELECT pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, et.kind
                            FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)):
         if f["fact_type"] in ("Name", "Sex"): assert_("person", person_id, f["id"]); continue
-        if f["kind"] != "event": continue
+        if f["kind"] != "event" or f["fact_type"] == "Unknown": continue      # a fact under the page's own label names no event of the person
         fy = (f["date_start"] or f["date_end"] or "")[:4]           # an event corresponds by type and year; an undated fact only to an undated event
         events = [e for e in cx.execute("""SELECT e.id, e.date_start, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
                                            WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"]))

@@ -158,7 +158,27 @@ step's fields. Use the schema's kinds: `memorial_id` for Find a Grave, `ark`
 for a FamilySearch record, `naid` for the National Archives, `apid` only for
 the citation's own identity.
 
-### C12. Basis word on residences
+### C12. Name variants in the matcher
+
+The matcher compares the first given name exactly (one-letter initials
+aside), so Annie M Lukens on the 1900 census does not fit Anna Marie Bolton,
+Charlotte's mother in the tree, even though the record's relationship agrees;
+accepting her as a new person adds a third partner to Milton Lukens's family.
+Give the given-name comparison the alias table's variants (Annie/Anna,
+Lottie/Charlotte, Abram/Abraham) and let a married surname fit a birth
+surname when the relationship agrees, so the proposal names the person the
+tree already has. Nothing here changes what a person decides.
+
+### C13. The DOM capture carries the browser extension's own nodes
+
+A record page captured through the Chrome extension's DOM includes the
+extension's injected elements (ids beginning `claude-`), so the archived
+bytes are the rendered page plus a few nodes the site never served. The
+parsers ignore them. Decide whether the capture strips them before hashing,
+or the manifest notes the capture method; the page as served by the site
+would need the site's own save or an endpoint.
+
+### C14. Basis word on residences
 
 The foundation shows basis `mixed` on the residence trail; the docs define
 only `accepted`, `lead`, `row` and `citation`. Give each residence its own
