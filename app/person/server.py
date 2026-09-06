@@ -126,7 +126,7 @@ def decide_fact(cx, tree_id, pid, field, status, note):
     ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or e["held"]]
     for aid in ids:
         n += cx.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=? WHERE id=? AND status<>?", (status, CFG["by"], ts, aid, status)).rowcount
-    if status == "accepted" and not ids: vouched = vouch(cx, tree_id, pid, field, ts); ids = list(vouched)
+    if status == "accepted" and not ids: vouched = vouch(cx, tree_id, pid, field, ts); ids = list(vouched); n += len(vouched)   # a vouch counts as an assertion accepted
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, CFG["by"], "accept" if status == "accepted" else ("reject" if status == "rejected" else "update"),
                 "person", pid, dumps({"fact": field, "status": status, "assertions": n, "vouched": vouched, "note": note or None})))
@@ -137,7 +137,7 @@ def decide_fact(cx, tree_id, pid, field, status, note):
     if status == "accepted" and ids:                             # the proposal whose match brought the accepted evidence answers what the plan now closes
         props = [json.loads(r["notes"]).get("proposal") for r in cx.execute(f"SELECT notes FROM assertion WHERE id IN ({','.join('?'*len(ids))}) AND notes LIKE '{{%'", ids)]
         answered = answer_questions(cx, tree_id, pid, next((x for x in props if x), None))
-    return {"ok": True, "field": field, "status": status, "assertions": n, "vouched": vouched, "answered": answered}
+    return {"ok": True, "field": field, "status": status, "assertions": n, "evidence": len(ids), "vouched": vouched, "answered": answered}   # evidence: the assertions the decision could act on
 
 # ------------------------------------------------------------------ views
 def plan_view(cx, pid):
