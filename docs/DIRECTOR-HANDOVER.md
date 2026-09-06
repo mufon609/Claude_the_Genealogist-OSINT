@@ -49,33 +49,60 @@ include controls are the approval. A claim-absence question closes when an
 accepted match supplies the claim. The audit prompt and the briefs stay in the
 repo. Plain over clever, always.
 
+## Decisions the owner made in conversation, to fold into the design docs
+
+- **The decision card.** Every approval put to the owner, and later every
+  review item on the screen, is one card: a one-line highlight of what it is
+  and the potential links it makes; the person and the fact or link, with the
+  file's claim; the record with its holder, collection, own identity and trust
+  tier; a link to the primary document (the archived copy and the holder's
+  page); what the record says field by field against the claim, as agrees,
+  disagrees or absent; the relationships it states and who on it is already
+  matched; what accepting closes; anything odd. The same card, with the same
+  parts, when the owner decides on a source. Goes into
+  `docs/RESEARCH-CHECKLIST.md` §6 with the next brief that touches the screen.
+- **Standing approval of corroborated file claims** is not decided; it is in
+  the backlog for design first.
+
 ## Where things stand
 
-- Live catalog on schema 0.7.1 (delete triggers on persona and persona_fact),
-  no human decision made yet; the person screen runs locally on it as
-  `user:neural`. A commit guard is installed from `tools/hooks`; scratch runs
-  use `DATA_ROOT` so nothing lands in the shared archive.
-- Verified on real pages: the Find a Grave memorial parser and the FamilySearch
-  record-page parser. Not verified: the Ancestry index parser (paywalled; the
-  account is free), including its claim marker. A page no parser claims yields
-  a failed extraction and no personas.
-- The loop from fetch to proposal to accepted link to closed question is
-  proven on scratch copies with two real free pages (the memorial and the 1900
-  census of the Lukens household). Both pages sit in `inbox/` with the census
-  image; attaching them through the screen is the owner's action, not the
-  worker's.
-- Fetch steps: 912 for the seed tree; 472 re-targeted to free holders
-  (FamilySearch, Find a Grave, National Archives), 440 blocked for want of a
-  free holder, chiefly Pennsylvania certificates. A FamilySearch-held step links
-  to the collection's own search prefilled from the citation's details.
-- No step runs automatically yet: the registry's Connector column is empty.
-- One archive object (the memorial, from a test before `DATA_ROOT` existed) has
-  no catalog row; its removal waits on the owner's word.
-- Next: `docs/briefs/open-source-connectors.md` (a runner and the first two
-  free connectors), then the FamilySearch API application in the backlog, which
-  turns the FamilySearch fetches from browser-assisted into automatic. The
-  matcher's name-variant rule is the one small change most likely to be worth
-  folding into a brief that touches the matcher.
+- The owner is not the operator. The owner decides in conversation; the
+  director records each decision through the screen's own API as the owner,
+  on the owner's explicit word, and the worker fetches, extracts and matches.
+  The owner does no research and opens no screen.
+- Accepted baseline, on the owner's word: the owner (Matthew Alan Ahearn),
+  their parents and their four grandparents. Recorded so far: the family links
+  among the seven and the two uncited births. Their names, sexes and cited
+  births and deaths wait on the vouch in `docs/briefs/owner-vouch.md`; until
+  then the tool cannot accept a fact whose only evidence is an unfetched
+  citation. Everyone else in the file is a hint: Undecided.
+- The mission is the process, not the tree: walk this family outward one
+  person at a time and turn every stall into a tool fix.
+- Live catalog on schema 0.7.1, registry in step with `data/data-sources.csv`
+  (run `initdb --sync-sources` after any registry change). Held records: the
+  Abram C. Brant memorial and the 1900 census of the Lukens household with its
+  image, attached by the director on the owner's instruction; their proposals
+  are Undecided. No fact of anyone outside the seven is Accepted.
+- Verified on real pages: the Find a Grave memorial parser and the
+  FamilySearch record-page parser. Not verified: the Ancestry index parser.
+- Connectors: the runner, `loc_gov` (H01) and `nara_1950` (D05) are committed
+  with their extractor variants; the worker's report on them has not yet been
+  verified by the director. No live step has run automatically.
+- Worker: the first worker is retired; the second worker finishes
+  `owner-vouch.md` from the working tree it left, then takes
+  `no-browser-sources.md`. Browser captures are no longer used. If a page must ever come
+  through the browser again, the page saves itself as a file in one step
+  (a download of its own markup, or Ctrl+S) and the file goes to `inbox/`;
+  never the old method of encoding the page and reading it out through the
+  model in slices, which cost about a hundred thousand tokens and ninety
+  minutes per page.
+- After that: verify the connectors report on scratch; record the remaining
+  approvals through the vouch; then, on the owner's direction, branch out to
+  sources that need no browser: survey the registry's candidates with
+  documented free endpoints (one real request each against this tree's data,
+  exact request, response shape, rate limit, terms, which checklist rows it
+  serves), then connectors for the ones that fill the most gaps. The
+  FamilySearch API application is skipped for now, on the owner's word.
 
 ## How to work
 

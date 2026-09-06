@@ -211,6 +211,22 @@ The foundation shows basis `mixed` on the residence trail; the docs define
 only `accepted`, `lead`, `row` and `citation`. Give each residence its own
 basis or drop the row from the foundation.
 
+### C18. Standing approval: auto-accept a file claim a trusted record corroborates
+
+The owner wants to decide sources as well as facts (each source Accepted,
+Rejected or Undecided per tree) and to say in advance that a fact the
+imported file already claims is Accepted automatically when a record from a
+source they accepted corroborates it. That is a person deciding, delegated as
+a standing rule, so it must be recorded as the rule acting on the owner's
+behalf, auditable and reversible, and it changes the per-fact reading of the
+"nothing Accepted without a person" rule. Needs more depth before any brief:
+what "corroborates" means field by field (exact date, year only, place at
+county level), the bar for the match itself (name plus how many independent
+facts, no disagreement), what happens on a later contradicting record, how a
+source decision is stored (tree-scoped, three states, on the registry row),
+and what the card shows when the rule fired so the owner can undo it. Design
+first, in `docs/RESEARCH-WORKFLOW.md`, then a brief.
+
 ---
 
 ## Externally blocked
