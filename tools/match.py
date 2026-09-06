@@ -34,40 +34,13 @@ skipped, so re-running adds nothing.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, ulid
-from catalog import Catalog, same_page, year
+from catalog import COUNTRY, Catalog, date_verdict, key, place_verdict, same_page, year
 
 MATCHER = ("rule", "matcher", "0.1.0")
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
 
 PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt", "cpl", "pfc", "cmdr", "adm"}
-COUNTRY = re.compile(r"\b(united states of america|united states|u\.s\.a\.|u\.s\.|usa|us)\b", re.I)
-
-def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 def first_given(s): return key((s or "").split()[0]) if (s or "").strip() else ""
-
-def date_verdict(rec, tree):
-    """A record date against the tree's, each {"start", "text", "qualifier"}: (verdict, note). Both full dates: compared as dates,
-    a different day in the same year disagrees. Otherwise the years: a bare year against a full date agrees on the year only and
-    the note says which side gives only a year; a record date marked about, estimated or calculated agrees within two years."""
-    rs, ts = (rec or {}).get("start"), (tree or {}).get("start")
-    if not rs or not ts: return "absent", None
-    if len(rs) == 10 and len(ts) == 10: return ("agrees", None) if rs == ts else ("disagrees", "same year, different day" if rs[:4] == ts[:4] else None)
-    tol = 2 if (rec or {}).get("qualifier") in ("about", "estimated", "calculated") else 0
-    if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
-    return "disagrees", None
-
-def place_verdict(record, tree):
-    """agrees when the tree's place (its last two named parts below the country, e.g. town and county) is found in the record's
-    place text, or the record's first part in the tree's; the tree's own resolved chain reads 'Town < County < State < Country'
-    and the country's spellings are one. absent when either side has none."""
-    if not record or not tree: return "absent"
-    norm = lambda s: COUNTRY.sub("usa", s.lower())
-    tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]; rlow = key(norm(record))
-    below = [p for p in tparts if p != "usa"] or tparts
-    if all(key(p) in rlow for p in below[-2:]): return "agrees"
-    rparts = [p.strip() for p in norm(record).split(",") if p.strip()]
-    if rparts and key(rparts[0]) in key(norm(tree)): return "agrees"
-    return "disagrees"
 
 def name_keys(cat, pid):
     """(first given, surname) keys for a person: every name row and every non-rejected alias."""

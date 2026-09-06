@@ -117,6 +117,35 @@ def search_target(sources, fields):
         if u: return {"url": u, "holder": "Find a Grave"}
     return {"url": None, "holder": None}
 
+# ---------------------------------------------------------------- comparing a record's value with the tree's
+COUNTRY = re.compile(r"\b(united states of america|united states|u\.s\.a\.|u\.s\.|usa|us)\b", re.I)
+
+def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
+def date_verdict(rec, tree):
+    """A record date against the tree's, each {"start", "text", "qualifier"}: (verdict, note). Both full dates: compared as dates,
+    a different day in the same year disagrees. Otherwise the years: a bare year against a full date agrees on the year only and
+    the note says which side gives only a year; a record date marked about, estimated or calculated agrees within two years."""
+    rs, ts = (rec or {}).get("start"), (tree or {}).get("start")
+    if not rs or not ts: return "absent", None
+    if len(rs) == 10 and len(ts) == 10: return ("agrees", None) if rs == ts else ("disagrees", "same year, different day" if rs[:4] == ts[:4] else None)
+    tol = 2 if (rec or {}).get("qualifier") in ("about", "estimated", "calculated") else 0
+    if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
+    return "disagrees", None
+
+def place_verdict(record, tree):
+    """agrees when the tree's place (its last two named parts below the country, e.g. town and county) is found in the record's
+    place text, or the record's first part in the tree's; the tree's own resolved chain reads 'Town < County < State < Country'
+    and the country's spellings are one. absent when either side has none."""
+    if not record or not tree: return "absent"
+    norm = lambda s: COUNTRY.sub("usa", s.lower())
+    tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]; rlow = key(norm(record))
+    below = [p for p in tparts if p != "usa"] or tparts
+    if all(key(p) in rlow for p in below[-2:]): return "agrees"
+    rparts = [p.strip() for p in norm(record).split(",") if p.strip()]
+    if rparts and key(rparts[0]) in key(norm(tree)): return "agrees"
+    return "disagrees"
+
+
 class Catalog:
     def __init__(self, cx, tree_id):
         self.cx, self.tree_id = cx, tree_id
@@ -125,6 +154,24 @@ class Catalog:
                         for r in self.q("SELECT id, name, access, status, cost, connector FROM source")}
         self.holders = holders()
         self._groups = self._held = None
+    def disagreements(self, pid):
+        """Where an accepted record says something else than the tree's event: for each event of the person, every Accepted
+        assertion whose persona fact disagrees with the event's own date (compared as dates) or place, as one line naming both
+        values and the record. The tree's value is never changed by a record; the difference is a conflict question."""
+        out = []
+        for e in self.q("""SELECT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                           WHERE ep.person_id=? ORDER BY e.event_type, e.date_start""", pid):
+            tree_place = self.place(e[0], e[5])["text"] if e[5] else None
+            for f in self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value
+                               FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                               JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
+                               WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", e[0]):
+                dv, _ = date_verdict({"start": f[1], "text": f[0], "qualifier": f[2]}, {"start": e[3], "text": e[2], "qualifier": e[4]})
+                pv = place_verdict(f[3], tree_place)
+                rec = f[4] + (f" ({f[5]})" if f[5] else "")
+                if dv == "disagrees": out.append(f"{e[1].lower()} date: the tree says {e[2]}, {rec} says {f[0]}")
+                if pv == "disagrees": out.append(f"{e[1].lower()} place: the tree says {tree_place}, {rec} says {f[3]}")
+        return out
     def find_person(self, key):
         """A person by id, exact display name, or substring of the name (exact wins; several matches are listed on stderr)."""
         r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name LIMIT 5", self.tree_id, key, key)

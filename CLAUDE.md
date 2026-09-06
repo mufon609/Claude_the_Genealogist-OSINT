@@ -33,8 +33,14 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
 2. **Evidence is immutable.** `artifact`, `persona`, `persona_fact` are
    insert-only. Corrections are new rows; removals are tombstones. Errors in
    records are never corrected in evidence; they become aliases.
-3. **Nothing is Accepted without a person saying so.** Imports and AI output
-   arrive Undecided. Conclusions need an Accepted assertion.
+3. **A person accepts documents, and a document's facts come with it.**
+   Imports and AI output arrive Undecided. Conclusions need an Accepted
+   assertion. The one decision is "is this record about this person"; yes
+   accepts everything the record states, and a discrepancy with the tree's
+   value becomes a conflict question, never a silent overwrite or a silent
+   drop. The owner's standing rule accepts a document that agrees with facts
+   the owner already accepted, recorded as acting on their word and
+   reversible; anything less certain is a card for the owner.
 4. **Trees are isolated.** No automatic reuse of evidence across trees.
 5. **One person per screen.** Foundation → checklist → tasks → results →
    review. No queue screens, no navigation by data type, no hints on a

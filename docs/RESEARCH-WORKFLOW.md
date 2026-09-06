@@ -45,10 +45,10 @@ the children not yet identified). A hint never becomes a fact on its own;
 research turns it into a lead or a match. Hints are shown only on a person
 whose baseline is reviewed, never as a feed.
 
-**Which documents the rule may accept on its own.** The standing rule the
-owner set accepts a document as the person's when it agrees with what the
-person already accepted and nothing disagrees, and everything the document
-states comes with it. It may do so only for document kinds that identify a
+**Which documents the rule may accept on its own.** The standing rule (§5–7)
+accepts a document as the person's when it agrees with what the person already
+accepted and nothing disagrees, and everything the document states comes with
+it. It may do so only for document kinds that identify a
 person fully; every other kind is a hint until a person reads it. The starting list, to be refined as records are
 met:
 
@@ -303,26 +303,45 @@ is plain words, which fields agree, which disagree, which are absent; no score
 is stored or shown. A proposal carries the step's question when the step has
 one, so it **answers a question**: "Is the James Ahearn in this 1870 household
 Thomas's father?" Review happens on the person's screen, on the held record.
-Accepting a match writes the persona link Accepted and an Undecided assertion
-from each of the person's events to the matching persona fact, creating the
-event from the fact's date when the person has none of that type, and the same
-for an attribute the record states (an occupation, an inscription), created
-with the record's value when the person has none; Name and Sex facts assert
-the person; a fact about the record or the page (its id, an age at death)
-asserts nothing. Where the record says the persona is the child,
-parent or spouse of a persona already accepted as a person on the same record,
-the family link between the two carries an Undecided assertion on the
-artifact too, created in a family of the right shape when the tree lacks the
-link: a parent-child relation is evidence on the child's membership (the
-child's parents fact, the parent's children fact), a spouse relation on both
-partners'; a sibling stated on the record gives no membership. Rejecting
-writes the link Rejected. Nothing becomes Accepted at the fact level here: the
-fact decision does that, and it now has held evidence to accept. A
-`new_person` proposal is decided the same way: accepting creates the person in
-this tree with the name as written (a maiden name the record marks becomes the
-birth surname), the persona link Accepted, the same Undecided assertions and
-the same family links. Rejecting writes the proposal rejected and nothing
-else. Every accept, of a match, a new person or a fact,
+The decision is about the document: is this record's persona this person.
+Accepting writes the persona link Accepted and an Accepted assertion from each
+fact the record states to the person: Name and Sex assert the person; an event
+fact asserts the person's event of that type and year, created from the
+record's date when the person has none of that type; an attribute the record
+states (an occupation, an inscription) asserts the person's attribute of that
+type, created with the record's value when the person has none; a fact about
+the record or the page (its id, an age at death) asserts nothing. Where the
+record says the persona is the child, parent or spouse of a persona already
+accepted as a person on the same record, the family link between the two
+carries an Accepted assertion on the artifact too, created in a family of the
+right shape when the tree lacks the link: a parent-child relation is evidence
+on the child's membership, a spouse relation on both partners'; a sibling
+stated on the record gives no membership. Where the record's date or place
+disagrees with the event's own value, the record's statement is still accepted
+as what that record says, the event keeps its value, and the difference is a
+`conflict` question on the person, generated from the catalog
+(`Catalog.disagreements`) and shown in the plan. Nothing a person did not
+approve as a document becomes Accepted: the per-fact decision remains for the
+file's own claims (the vouch) and for undoing a single claim. Rejecting writes
+the link Rejected. A `new_person` proposal is decided the same way: accepting
+creates the person in this tree with the name as written (a maiden name the
+record marks becomes the birth surname), the persona link Accepted, the same
+assertions and the same family links. Rejecting writes the proposal rejected
+and nothing else.
+
+**The standing rule.** After the matcher writes its proposals, the rule takes a
+`persona_match` on the owner's behalf when the record's kind identifies a person
+fully (§0's list: a memorial, a census from 1850, a 1950 schedule), the given
+name and surname agree with the accepted name, at least two accepted facts
+agree (birth date, death date, a death or burial place, a stated relationship
+to a person already matched on the record), and nothing compared disagrees.
+Claims never count. The proposal records the rule as the decider with its
+reason in words, the audit row says the same, and the card shows "accepted by
+rule" with a Reject control: rejecting turns the link and every assertion the
+rule wrote rejected. A proposal the rule does not take is a card for the owner
+with the reason it was not taken. The rule never creates a person.
+
+Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the

@@ -138,23 +138,7 @@ without a county answers thousands and the person sought may sit on a later
 page. Page while the total stays small, or ask the person for a county on the
 step before searching a whole state.
 
-### C9. Standing approval: auto-accept a file claim a trusted record corroborates
-
-The owner wants to decide sources as well as facts (each source Accepted,
-Rejected or Undecided per tree) and to say in advance that a fact the
-imported file already claims is Accepted automatically when a record from a
-source they accepted corroborates it. That is a person deciding, delegated as
-a standing rule, so it must be recorded as the rule acting on the owner's
-behalf, auditable and reversible, and it changes the per-fact reading of the
-"nothing Accepted without a person" rule. Needs more depth before any brief:
-what "corroborates" means field by field (exact date, year only, place at
-county level), the bar for the match itself (name plus how many independent
-facts, no disagreement), what happens on a later contradicting record, how a
-source decision is stored (tree-scoped, three states, on the registry row),
-and what the card shows when the rule fired so the owner can undo it. Design
-first, in `docs/RESEARCH-WORKFLOW.md`, then a brief.
-
-### C10. The memorial's free-text biography is not extracted
+### C9. The memorial's free-text biography is not extracted
 
 A Find a Grave memorial can carry a biography that is the obituary itself
 (Robert Edgar Davidson's names his parents, his siblings, his son and
@@ -165,7 +149,7 @@ labelled fields, so none of that reaches a persona fact or the card. Capture
 the biography as its own fact type, as written, and let the matcher report
 what it states beside the fields.
 
-### C11. A sibling accepted from a memorial lands with no family link
+### C10. A sibling accepted from a memorial lands with no family link
 
 Accepting a new-person proposal for a sibling on a memorial creates the
 person but no family membership, because the record states the sibling of
@@ -173,7 +157,7 @@ the subject, not the parents. When the subject's parents are Accepted, place
 the sibling as their child with an Undecided assertion on the record; until
 then the card says the person would be unlinked, as it does now.
 
-### C12. A household cemetery row reads held through a relative's memorial
+### C11. A household cemetery row reads held through a relative's memorial
 
 The cemetery / family plot row is a Group A household row, so it reads held
 for a person as soon as any relative's memorial is held, and the person never
@@ -183,7 +167,7 @@ one person. Decide whether the row stays a household row with a per-person
 "own memorial" state, or splits into the plot (household) and the person's
 memorial (individual).
 
-### C13. A fetch step for an accepted search candidate
+### C12. A fetch step for an accepted search candidate
 
 Accepting a candidate on a Find a Grave results card should create the fetch
 step for that memorial URL, run by the one-call method through the browser

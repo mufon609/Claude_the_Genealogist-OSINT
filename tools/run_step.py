@@ -21,7 +21,7 @@ from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, 
 from catalog import Catalog
 from log_search import log as log_search, rendered_query
 from extract import extract
-from match import match
+from conclude import match_record
 import connectors
 
 LAST = {}                                                        # (connector, kind) -> time of the last request, for pacing
@@ -89,8 +89,8 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
     for sha in records:                                          # a hit's own record; the search response is the query's evidence, not a record
         eid, n = extract(cx, sha, by)
         if "failed" in n: extracted.append({"sha256": sha, "unparsed": n["failed"]}); continue
-        props = match(cx, eid, by)
-        extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props)})
+        props, taken = match_record(cx, eid, by)
+        extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
     return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [r["url"] for r in reqs], "outcome": outcome, "log": lid, "artifacts": shas, "hits": hits,
             "errors": errors, "extracted": extracted}
 

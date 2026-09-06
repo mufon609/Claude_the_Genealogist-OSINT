@@ -23,10 +23,9 @@ from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer
-from match import match as match_personas
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, render as render_card, render_search, search_card
-from conclude import accept_record_facts, assert_facts, create_person, link_family, record_facts
+from conclude import decide as decide_document, match_record, record_says
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -187,12 +186,13 @@ def artifact_view(cx, tree_id, sha, pid):
             personas.append({"id": p["id"], "name": p["name_text"], "sex": p["sex"], "role": p["role_in_record"], "facts": facts, "relations": rels, "link": link["status"] if link else None})
         exts.append({"id": e["id"], "extractor": f"{e['kind']}:{e['name']}" + (f"@{e['version']}" if e["version"] else ""), "ran_at": e["ran_at"], "personas": personas})
     proposals = []
-    for r in cx.execute("""SELECT p.id, p.kind, p.status, p.rationale, p.payload_json, c.display_name AS candidate FROM proposal p
+    for r in cx.execute("""SELECT p.id, p.kind, p.status, p.rationale, p.payload_json, p.decided_by, p.decision_note, c.display_name AS candidate FROM proposal p
                            LEFT JOIN person c ON c.id=json_extract(p.payload_json,'$.person_id')
                            WHERE p.tree_id=? AND json_extract(p.payload_json,'$.artifact_sha256')=? ORDER BY p.created_at""", (tree_id, sha)):
         c = decision_card(cx, tree_id, r["id"]) if r["kind"] in ("persona_match", "new_person") else None      # the same card the cards tool prints
         proposals.append({"id": r["id"], "kind": r["kind"], "status": r["status"], "rationale": r["rationale"], "persona_id": json.loads(r["payload_json"])["persona_id"],
-                          "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"], "card": c, "card_text": render_card(c) if c else None})
+                          "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"], "card": c, "card_text": render_card(c) if c else None,
+                          "by_rule": (r["decided_by"] or "").startswith("rule:"), "note": r["decision_note"]})
     sc = search_card(cx, tree_id, sha, pid or None) if any(e["extractor"] == "rule:findagrave-search@0.1.0" for e in exts) else None   # a results page shows its candidate card
     return {"sha256": sha, "mime": a["mime"], "tier": a["trust_tier"], "filename": a["original_filename"], "collection": col["name"] if col else None,
             "url": fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else a["locator_value"] if a["locator_kind"] == "url" else None,
@@ -227,20 +227,8 @@ def transcribe(cx, sha, body):
             w.relation(pid, r["persona_id"], r.get("kind") or "other", (r.get("text") or "").strip() or None, "transcription")
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, CFG["by"], "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
-    match_personas(cx, eid, CFG["by"])
+    match_record(cx, eid, CFG["by"])
     return {"ok": True, "extraction": eid, "persona": pid}
-
-ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
-
-def answer_questions(cx, tree_id, pid, prop_id):
-    """Regenerate the person's plan; a question of an answerable kind that the regeneration closes was answered by the
-    proposal: closed_reason answered, answered_by_proposal_id set. Other kinds stay as the planner closed them."""
-    st = plan_person(cx, tree_id, pid, CFG["by"]); answered = []
-    for qid in st.get("closed", []):
-        q = cx.execute("SELECT kind FROM research_question WHERE id=?", (qid,)).fetchone()
-        if q and q["kind"] in ANSWERABLE:
-            cx.execute("UPDATE research_question SET closed_reason='answered', answered_by_proposal_id=? WHERE id=?", (prop_id, qid)); answered.append(qid)
-    return answered
 
 def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members):
     """What the decision closed and what the plan does next, in words: the link made, the questions answered, the checklist rows
@@ -262,8 +250,10 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
         for st in cx.execute("SELECT row_key, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='done' ORDER BY seq", (person_id,)):
             if (st["locator_kind"] == "apid" and st["locator_value"] in ids) or (st["locator_kind"] != "apid" and st["locator_value"] and cx.execute("SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=?", (pe["artifact_sha256"], st["locator_kind"], st["locator_value"])).fetchone()):
                 closed.append(f"the {st['row_key'].split(':')[0]} row for {who}: held, this record")
-        rf = record_facts(cx, tree_id, person_id, pe["artifact_sha256"]) if person_id else []
-        if rf: nxt.append("accept this record's facts, or each on the screen: " + ", ".join(f["fact"] + (f" (left: disagrees on {f['disagrees']})" if f["disagrees"] else "") for f in rf))
+        rs = record_says(cx, tree_id, person_id, pe["artifact_sha256"]) if person_id else []
+        if rs: made.append("accepted with the record: " + ", ".join(f["fact"] for f in rs if f["status"] == "accepted"))
+        for f in rs:
+            if f["disagrees"]: closed.append(f"conflict raised, {f['fact']}: {f['disagrees']}")
     left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') AND json_extract(payload_json,'$.artifact_sha256')=?", (tree_id, pe["artifact_sha256"])).fetchone()[0]
     if left: nxt.append(f"{left} proposal(s) still undecided on this record")
     if person_id:
@@ -273,32 +263,12 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
     return {"made": made, "closed": closed, "next": nxt, "summary": summary}
 
 def decide_proposal(cx, tree_id, prop_id, status):
-    """A person decides a proposal. A persona match accepted: person_persona accepted, Undecided assertions from the persona's
-    facts (assert_facts) and on the family links the record states with persons already matched on it (link_family). A new
-    person accepted: the person is created in this tree, then the same. Rejected: the link rejected for a
-    match, nothing but the proposal for a new person. An accept then regenerates the plans of the person concerned and of the
-    person the record was fetched for, and the questions that regeneration closes are marked answered by this proposal. The
-    response names what the decision made and closed and what the plan does next (decision_outcome). The fact decision on
-    the screen stays the only way to Accept a fact."""
-    p = cx.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
-    if not p or p["kind"] not in ("persona_match", "new_person") or status not in ("accepted", "rejected"): return {"error": "not a persona match or new person, or bad status"}
-    if p["status"] != "undecided": return {"error": "already decided"}
-    pay = json.loads(p["payload_json"]); persona_id, person_id = pay["persona_id"], pay.get("person_id"); ts = now(); n = 0; members = []
-    cx.execute("UPDATE proposal SET status=?, decided_by=?, decided_at=? WHERE id=?", (status, CFG["by"], ts, prop_id))
-    if p["kind"] == "new_person" and status == "accepted": person_id = create_person(cx, tree_id, persona_id, ts)
-    if person_id:
-        cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (person_id, persona_id, status, prop_id, CFG["by"], ts))
-    answered = []
-    if status == "accepted":
-        n, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, CFG["by"], ts)
-        members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, CFG["by"], ts)
-        for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
-            if pid: answered += answer_questions(cx, tree_id, pid, prop_id)
-    outcome = decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members)
-    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-               (ulid(), tree_id, ts, CFG["by"], "accept" if status == "accepted" else "reject", "proposal", prop_id,
-                dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "assertions": n, "memberships": members, "answered": answered, "summary": outcome["summary"]})))
-    return {"ok": True, "status": status, "person": person_id, "assertions": n, "memberships": members, "answered": answered, **outcome}
+    """The person's decision on a document (conclude.decide), answered in words: what it made and closed and what the plan does
+    next (decision_outcome)."""
+    r = decide_document(cx, tree_id, prop_id, status, CFG["by"])
+    if "error" in r: return r
+    p = cx.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
+    return {**r, **decision_outcome(cx, tree_id, p, status, r["person"], r["persona"], prop_id, r["answered"], r["memberships"])}
 
 def other_facts(cx, cat, pid):
     """Every event or attribute of the person beyond the key facts (burial, residences, occupation, an inscription, ...), each a
@@ -362,19 +332,17 @@ class H(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or 0) or b"{}")
         mf = re.match(r"^/api/person/([A-Z0-9]+)/fact/([a-z]+|event:[A-Z0-9]+)$", u.path); mp = re.match(r"^/api/person/([A-Z0-9]+)/plan$", u.path)
-        mr = re.match(r"^/api/person/([A-Z0-9]+)/record/([0-9a-f]{64})/facts$", u.path)
         ms = re.match(r"^/api/step/([A-Z0-9]+)/(log|revise)$", u.path); mq = re.match(r"^/api/question/([A-Z0-9]+)/dismiss$", u.path)
         mt = re.match(r"^/api/artifact/([0-9a-f]{64})/persona$", u.path); md = re.match(r"^/api/proposal/([A-Z0-9]+)/decide$", u.path)
-        if not (mf or mp or ms or mq or mt or md or mr): self.send({"error": "not found"}, code=404); return
+        if not (mf or mp or ms or mq or mt or md): self.send({"error": "not found"}, code=404); return
         with LOCK:
             cx = db()
             try:
                 tree_id, slug, _ = tree_of(cx, q.get("tree", [None])[0])
-                pid = (mf or mp or mr).group(1) if (mf or mp or mr) else None
+                pid = (mf or mp).group(1) if (mf or mp) else None
                 if pid and not cx.execute("SELECT 1 FROM person WHERE id=? AND tree_id=?", (pid, tree_id)).fetchone(): self.send({"error": "not found"}, code=404); return
                 cx.execute("BEGIN")
                 if mf: res = decide_fact(cx, tree_id, pid, mf.group(2), body.get("status"), body.get("note"))
-                elif mr: res = {"ok": True, **accept_record_facts(cx, tree_id, pid, mr.group(2), CFG["by"], now())}
                 elif mp: res = {"ok": True, **plan_person(cx, tree_id, pid, CFG["by"])}
                 elif mq:
                     try: dismiss_question(cx, tree_id, CFG["by"], mq.group(1), body.get("note")); res = {"ok": True}

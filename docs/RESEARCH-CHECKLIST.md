@@ -264,14 +264,11 @@ or a new person; a decision answers in one line with what it made and closed
 plan does next (the facts now carrying held evidence to accept, the proposals
 still open on the record, the steps still planned). A held row
 opens its record through the citation's archived artifact as well as through
-a step. A held record whose persona is accepted as this person offers one
-decision, "accept this record's facts": Accepted on every Undecided assertion
-the record makes on the person's facts that does not disagree with a value
-already Accepted on the same fact, date compared as a date and place as the
-matcher compares it; a family link the record states is left for its own
-decision, because the membership row stands for a couple and a record may name
-only one of them; what the decision did not touch is answered with the reason.
-The match's answer says beforehand what the one decision would do. An assisted search step whose source's search the tool can build
+a step. Accepting a persona
+on a held record as this person accepts everything the record states about
+them (`docs/RESEARCH-WORKFLOW.md` §5–7); the decision's answer lists what came
+in and any conflict it raised. A proposal the standing rule accepted shows
+"accepted by rule" with the reason and a Reject control. An assisted search step whose source's search the tool can build
 (Find a Grave) shows that link, built from the foundation fields; the results
 page saved into `inbox/` comes back as the candidate card on the step's
 record, every row with its fields as agrees, disagrees or absent

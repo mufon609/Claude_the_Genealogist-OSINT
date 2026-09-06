@@ -620,9 +620,9 @@ def main():
     cx.execute("BEGIN"); eid, n = extract(cx, sha, a.by); cx.commit()
     print("extraction", eid, dumps(n))
     if "failed" in n: return
-    from match import match
-    cx.execute("BEGIN"); written = match(cx, eid, a.by); cx.commit()          # the matcher runs on every extraction as it is written
-    print("proposals", len(written))
+    from conclude import match_record
+    cx.execute("BEGIN"); written, taken = match_record(cx, eid, a.by); cx.commit()          # the matcher runs on every extraction as it is written, then the rule
+    print("proposals", len(written), "accepted by rule", len(taken))
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         print(f"  {name} [{role}{', ' + sex if sex else ''}]")
         for ft, v, d, ps, rg in cx.execute("""SELECT pf.fact_type, pf.value_text, pf.date_text, ps.raw, pf.region_json FROM persona_fact pf

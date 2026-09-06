@@ -16,7 +16,8 @@ from treelib import archive_object, dumps, imports_dir, inbox_dir, now
 from catalog import dbid_of, same_page
 from log_search import log as log_search, rendered_query
 from extract import FS_MARK, parse_memorial, parse_record, parse_search
-from match import key as name_key, match as match_personas
+from match import key as name_key
+from conclude import match_record
 
 MEMORIAL_URL = re.compile(r"findagrave\.com/memorial/(\d+)(?:/|$)")
 
@@ -129,7 +130,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         from extract import extract as extract_html
         eid, n = extract_html(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
-        else: out["proposals"] = match_personas(cx, eid, by)
+        else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by)
         if kind == "search" and not out["proposals"] and logs:   # no candidate fits: the run found nothing for the person; the candidates stay on the artifact
             for _, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
