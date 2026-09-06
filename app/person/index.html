@@ -58,7 +58,11 @@ function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntr
   const seg=st===null?'<span class="mut">no claim</span>':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${k}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
   html+=`<tr><td><b>${k}</b></td><td>${h(fmt(f.value))}${f.variants&&f.variants.length?`<div class="mut">variants: ${h(f.variants.join(', '))}</div>`:''}</td>
    <td>${evs}</td><td><span class="seg">${seg}</span></td></tr>`}
- const res=F.residences;html+=`<tr><td><b>residences</b></td><td colspan="3">${h(fmt(res.value))}</td></tr></table></div>`;
+ for(const f of (P.facts||[])){const ev=f.evidence;const st=f.status;
+  const evs=ev.length?ev.map(e=>`<div>${e.uncited?'<span class="mut">tree owner, no record</span>':e.vouched?'<span class="mut">tree owner\'s own knowledge</span>':h(e.citation)} ${e.tier?`<span class="pill">${e.tier}</span>`:''} <span class="pill">${e.status}</span>${e.held?'':' <span class="mut">(not held)</span>'}</div>`).join(''):'<span class="mut">no evidence</span>';
+  const seg=st===null?'':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${f.field}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
+  html+=`<tr><td>${h(f.type.toLowerCase())}</td><td>${h([f.date,f.place,f.value].filter(Boolean).join(' · '))||'—'}</td><td>${evs}</td><td><span class="seg">${seg}</span></td></tr>`}
+ html+=`</table></div>`;
  const plan=P.plan||{questions:[],steps:[]}; const nf=plan.steps.filter(s=>s.kind==='fetch').length, ns=plan.steps.length-nf;
  html+=`<h2>Questions and plan</h2><div class="card">`;
  if(!plan.questions.length&&!plan.steps.length)html+=`<span class="mut">No plan yet.</span> <button onclick="makePlan()">Generate plan from the checklist</button>`;
@@ -113,6 +117,7 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
    html+=`<div style="margin:4px 0 8px 10px"><b>${h(p.name)}</b> <span class="mut">${h([p.role,p.sex].filter(Boolean).join(', '))}</span>${p.link?` <span class="pill">${h(p.link)} for this person</span>`:''}
    ${p.facts.map(f=>`<div class="mut" style="font-size:12px">${factLine(f)}</div>`).join('')}${p.relations.map(r=>`<div class="mut" style="font-size:12px">${h(r.kind)} of ${h(r.other)}${r.text?` (${h(r.text)})`:''}</div>`).join('')}
    ${props.map(x=>`<div style="margin-top:4px"><span class="pill">${h(x.kind.replace('_',' '))}${x.person?': '+h(x.person):''}</span> <span class="pill">${h(x.status)}</span>${x.status==='undecided'?` <span class="seg"><button onclick="decideProposal('${x.id}','accepted')">Accept</button><button onclick="decideProposal('${x.id}','rejected')">Reject</button></span>`:''}${x.card_text?`<pre class="card-text">${h(x.card_text)}</pre>`:` ${h(x.rationale)}`}</div>`).join('')}</div>`}}
+ if(a.extractions.some(e=>e.personas.some(p=>p.link==='accepted')))html+=`<div style="margin:6px 0"><button onclick="recordFacts('${a.sha256}')">Accept this record's facts for ${h(P.person.name)}</button> <span class="mut">every fact it states that does not disagree with an Accepted value; the rest stay for a decision each</span></div>`;
  if(!a.personas_on_record.length)html+=`<div class="mut">No persona on this record yet${a.mime.startsWith('image/')?' (an image is transcribed by hand)':''}. Transcribe one person at a time:</div>`;
  const opts=a.personas_on_record.map(p=>`<option value="${p.id}">${h(p.name)}</option>`).join('');
  html+=`<details ${a.personas_on_record.length?'':'open'}><summary>Transcribe a person from this record</summary><table class="fields">
@@ -121,6 +126,8 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
   ${opts?`<tr><td><b>relation</b></td><td><select id="tr-${id}-rk"><option value="">—</option>${['spouse','parent','child','sibling','head','boarder','informant','other'].map(k=>`<option>${k}</option>`).join('')}</select> of <select id="tr-${id}-rp">${opts}</select> <input type="text" id="tr-${id}-rt" placeholder="as written" style="width:40%"></td></tr>`:''}
   </table><button onclick="transcribe('${a.sha256}')">Add persona</button></details>`;
  return html}
+async function recordFacts(sha){const r=await post('/api/person/'+P.person.id+'/record/'+sha+'/facts',{});if(r.error){fail(r.error);return}await reload();
+ $('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">accepted: ${h(r.accepted.join(', ')||'nothing')}${r.left.length?`; left: ${h(r.left.map(x=>x.fact+' ('+x.reason+')').join('; '))}`:''}</div>`)}
 async function decideProposal(id,status){const r=await post('/api/proposal/'+id+'/decide',{status});if(r.error){fail(r.error);return}await reload();
  if(r.summary)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">${h(r.summary)}</div>`)}
 async function transcribe(sha){const id=sha.slice(0,12);const v=k=>$('#tr-'+id+'-'+k)?.value||'';

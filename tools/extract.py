@@ -4,7 +4,7 @@
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
 
 A parser claims the page by its own marker, or the extraction fails. A Find a
-Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.1.0;
+Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.2.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
 goes to rule:familysearch-record@0.1.0; an
@@ -32,7 +32,13 @@ personas, and the matcher is not run. One extraction per run over the artifact, 
 extraction.structured_json holds the raw parsed page: every label/value pair
 and every table. Re-running inserts a new extraction, marks the old one
 superseded, and rejects the old one's undecided proposals with the note
-superseded: they rested on personas that are no longer current.
+superseded: they rested on personas that are no longer current. A persona the
+old extraction had decided (accepted or rejected as a person) carries its
+decision to the new persona of the same name and role on the same page: the
+decision was about the record, and the bytes have not changed; an accepted link
+then asserts the new extraction's facts and links the same way the decision did,
+adding only what the record did not already assert. Everything else is
+matched again.
 
 Page structure assumed for an Ancestry index page: the record's fields are rows
 of a table with a label cell (th, or the first cell) and a value cell; a table
@@ -45,8 +51,8 @@ h1 bio-name; birth and death as the time/span and place elements birthDateLabel,
 birthLocationLabel, deathDateLabel ("10 Oct 1961 (aged 81)", the age becomes an
 Age fact), deathLocationLabel; the cemetery name and its address spans as the
 Burial place, the plot (plotValueLabel) as the Burial fact's value and the
-inscription (inscriptionValue) as an Unknown fact, both absent on the verified
-page; the memorial id as an Identification Number fact. Family members are the
+inscription (inscriptionValue) as an Inscription fact, as written; the memorial
+id as an Identification Number fact. Family members are the
 member-family lists, each labelled Parents, Spouse, Siblings or Children: one
 persona per member in the label's role word, with the name as written (a
 maiden name is italic on the page and kept inside the name), the birth and
@@ -87,8 +93,9 @@ import argparse, html, json, os, re, sqlite3, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
+from conclude import assert_facts, link_family
 
-EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
+EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.2.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), None: ("rule", "extract", "0.1.0")}
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
@@ -449,7 +456,7 @@ def write_memorial(w, parsed):
         w.fact(subject, "Death", None, m.group(1) if m else f.get("Death Date"), f.get("Death Place"), [k for k in ("Death Date", "Death Place") if f.get(k)])
         if m: w.fact(subject, "Age", f"aged {m.group(2)}", labels=["Death Date"])
     if f.get("Burial Place") or f.get("Plot"): w.fact(subject, "Burial", f"Plot: {f['Plot']}" if f.get("Plot") else None, None, f.get("Burial Place"), [k for k in ("Burial Place", "Plot") if f.get(k)])
-    if f.get("Inscription"): w.fact(subject, "Unknown", f"Inscription: {f['Inscription']}", labels=["Inscription"])
+    if f.get("Inscription"): w.fact(subject, "Inscription", f["Inscription"], labels=["Inscription"])
     if parsed.get("memorial_id"): w.fact(subject, "Identification Number", parsed["memorial_id"], labels=["Find a Grave Memorial ID"])
     for seq, m in enumerate(parsed["members"], 2):
         kind = MEMBER_KIND.get(m["label"].lower(), "other"); role = m["label"].lower().rstrip("s") if kind != "other" else m["label"].lower()
@@ -571,8 +578,9 @@ def extract(cx, sha, by):
     else: full_text = parsed["full_text"]
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
                (eid, sha, ext_id, ts, full_text, dumps(parsed)))
-    old = [r[0] for r in cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND id<>? AND superseded_by IS NULL", (sha, ext_id, eid))]
-    cx.execute("UPDATE extraction SET superseded_by=? WHERE artifact_sha256=? AND extractor_id=? AND id<>? AND superseded_by IS NULL", (eid, sha, ext_id, eid))
+    same = "extractor_id IN (SELECT id FROM extractor WHERE kind=? AND name=?)"      # every version of this parser
+    old = [r[0] for r in cx.execute(f"SELECT id FROM extraction WHERE artifact_sha256=? AND {same} AND id<>? AND superseded_by IS NULL", (sha, *extractor[:2], eid))]
+    cx.execute(f"UPDATE extraction SET superseded_by=? WHERE artifact_sha256=? AND {same} AND id<>? AND superseded_by IS NULL", (eid, sha, *extractor[:2], eid))
     for o in old:                                                # a superseded extraction's undecided proposals rest on personas no longer current
         cx.execute("""UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note='superseded'
                       WHERE status='undecided' AND json_extract(payload_json,'$.extraction_id')=?""", (by, ts, o))
@@ -580,9 +588,28 @@ def extract(cx, sha, by):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
     {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr}.get(kind, write_personas)(w, parsed)
+    w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
     return eid, w.n
+
+def carry_links(cx, old, eid, sha, by, ts):
+    """A decided person-persona link on a superseded extraction moves to the new persona of the same name and role; an accepted
+    one asserts the new facts and links onto the person as the decision did. Returns how many links were carried."""
+    n = 0
+    for o in old:
+        for pp in cx.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at, pe.name_text, pe.role_in_record, p.tree_id
+                                FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id WHERE pe.extraction_id=?""", (o,)).fetchall():
+            new = cx.execute("SELECT id FROM persona WHERE extraction_id=? AND name_text=? AND role_in_record=?", (eid, pp[5], pp[6])).fetchone()
+            if not new: continue
+            cx.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (pp[0], new[0], pp[1], pp[2], pp[3], pp[4])); n += 1
+    for o in old:                                                # links first, so the family relations see every accepted persona
+        for pp in cx.execute("""SELECT pp.person_id, pp.proposal_id, pe.name_text, pe.role_in_record, p.tree_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
+                                JOIN person p ON p.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted'""", (o,)).fetchall():
+            new = cx.execute("SELECT id FROM persona WHERE extraction_id=? AND name_text=? AND role_in_record=?", (eid, pp[2], pp[3])).fetchone()
+            if not new: continue
+            assert_facts(cx, pp[4], pp[0], new[0], pp[1], by, ts); link_family(cx, pp[4], pp[0], new[0], sha, pp[1], by, ts)
+    return n
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("what", help="artifact sha256, or a path whose bytes are archived")
@@ -593,6 +620,9 @@ def main():
     cx.execute("BEGIN"); eid, n = extract(cx, sha, a.by); cx.commit()
     print("extraction", eid, dumps(n))
     if "failed" in n: return
+    from match import match
+    cx.execute("BEGIN"); written = match(cx, eid, a.by); cx.commit()          # the matcher runs on every extraction as it is written
+    print("proposals", len(written))
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         print(f"  {name} [{role}{', ' + sex if sex else ''}]")
         for ft, v, d, ps, rg in cx.execute("""SELECT pf.fact_type, pf.value_text, pf.date_text, ps.raw, pf.region_json FROM persona_fact pf

@@ -26,6 +26,7 @@ from extract import Writer
 from match import match as match_personas
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, render as render_card, render_search, search_card
+from conclude import accept_record_facts, assert_facts, create_person, link_family, record_facts
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -43,6 +44,8 @@ def tree_of(cx, slug=None):
 def fact_subjects(cx, pid, field):
     """(subject_kind, subject_id) rows whose assertions carry this key fact."""
     if field in ("name", "sex"): return [("person", pid)]          # identity facts share the person-level citations
+    if field.startswith("event:"):                                    # any other event or attribute of the person, by id
+        return [("event", r[0]) for r in cx.execute("SELECT event_id FROM event_participant WHERE person_id=? AND event_id=?", (pid, field[6:]))]
     if field in ("birth", "death"):
         return [("event", r[0]) for r in cx.execute("""SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id
                                                       WHERE ep.person_id=? AND e.event_type=?""", (pid, field.title()))]
@@ -95,7 +98,7 @@ def decide_fact(cx, tree_id, pid, field, status, note):
     a citation to a record not yet fetched stays Undecided. When no assertion behind the fact has visible evidence, the accept
     is the person's own knowledge: a vouch (see vouch). Reject and Undecided apply to every assertion behind the fact.
     An accept regenerates the plan and marks the questions it closes answered by the proposal that brought the evidence."""
-    if field not in KEY_FACTS or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
+    if (field not in KEY_FACTS and not (field.startswith("event:") and fact_subjects(cx, pid, field))) or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
     ts = now(); n = 0; vouched = []
     ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or e["held"]]
     for aid in ids:
@@ -239,83 +242,6 @@ def answer_questions(cx, tree_id, pid, prop_id):
             cx.execute("UPDATE research_question SET closed_reason='answered', answered_by_proposal_id=? WHERE id=?", (prop_id, qid)); answered.append(qid)
     return answered
 
-def assert_facts(cx, tree_id, person_id, persona_id, prop_id, ts):
-    """Undecided assertions from a persona's facts to the person: Name and Sex facts assert the person row; an event fact asserts
-    the person's event of that type and year, created from the fact's date when there is none; a fact of type Unknown (kept under
-    the page's own label) asserts nothing. Returns how many were written."""
-    n = 0
-    sha = cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()["artifact_sha256"]
-    a = cx.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
-    cite = a["name"] or a["original_filename"] or sha[:12]
-    def assert_(kind, sid, fid):
-        nonlocal n
-        if cx.execute("SELECT 1 FROM assertion WHERE subject_kind=? AND subject_id=? AND persona_fact_id=?", (kind, sid, fid)).fetchone(): return
-        cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
-                      VALUES (?,?,?,?,?,?,?,'undecided',?,?,?)""", (ulid(), tree_id, kind, sid, fid, sha, cite, CFG["by"], ts, dumps({"proposal": prop_id}))); n += 1
-    for f in cx.execute("""SELECT pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, et.kind
-                           FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)):
-        if f["fact_type"] in ("Name", "Sex"): assert_("person", person_id, f["id"]); continue
-        if f["kind"] != "event" or f["fact_type"] == "Unknown": continue      # a fact under the page's own label names no event of the person
-        fy = (f["date_start"] or f["date_end"] or "")[:4]           # an event corresponds by type and year; an undated fact only to an undated event
-        events = [e for e in cx.execute("""SELECT e.id, e.date_start, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                                           WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"]))
-                  if (e["date_start"] or e["date_end"] or "")[:4] == fy]
-        if not events:
-            eid = ulid()
-            cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                       (eid, tree_id, f["fact_type"], f["date_text"], f["date_start"], f["date_end"], f["date_qualifier"], f["calendar"], ts, ts))
-            cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (ulid(), eid, person_id))
-            events = [{"id": eid}]
-        for e in events: assert_("event", e["id"], f["id"])
-    return n, sha
-
-def create_person(cx, tree_id, persona_id, ts):
-    """A person in this tree from a persona: the name as written split into given names and a surname; a maiden name the
-    record marks becomes the birth surname and the written surname a married name. Returns the person id."""
-    pe = cx.execute("SELECT name_text, sex, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
-    region = json.loads(pe["region_json"] or "{}"); parts = (pe["name_text"] or "").split()
-    given, surname = (" ".join(parts[:-1]), parts[-1]) if len(parts) > 1 else (pe["name_text"], None)
-    pid = ulid()
-    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tree_id, pe["sex"], pe["name_text"], ts, ts))
-    if region.get("maiden") and surname and region["maiden"] != surname:
-        g = given.replace(region["maiden"], "").strip()
-        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (ulid(), pid, g, region["maiden"], f"{region['maiden']}, {g}".lower()))
-        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'married',?,?,0,?)", (ulid(), pid, g, surname, f"{surname}, {g}".lower()))
-    else:
-        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (ulid(), pid, given, surname, f"{surname or ''}, {given}".lower()))
-    return pid
-
-def place_in_family(cx, tree_id, pid, persona_id, sha, prop_id, ts):
-    """Family membership for a new person from the record's own relations: where the persona is the child, parent or spouse of a
-    persona whose match is accepted, the new person joins that person's family (created when the person has none of the right
-    shape), each membership with an Undecided assertion on the artifact. Returns the memberships written."""
-    out = []
-    for r in cx.execute("""SELECT r.kind, r.value_text, pp.person_id AS other FROM persona_relation r
-                           JOIN person_persona pp ON pp.persona_id=r.related_persona_id AND pp.status='accepted'
-                           JOIN person o ON o.id=pp.person_id AND o.tree_id=? WHERE r.persona_id=? AND r.kind IN ('child','parent','spouse')""", (tree_id, persona_id)):
-        other = r["other"]
-        if r["kind"] == "child":     # the new person is a child of the other: the other's family as partner
-            fid = next((f["family_id"] for f in cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", (other,))), None); role = "child"
-            if fid is None: fid = new_family(cx, tree_id, other, ts)
-        elif r["kind"] == "parent":  # the new person is a parent of the other: the family the other is a child of
-            fid = next((f["family_id"] for f in cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role='child'", (other,))), None); role = "partner"
-            if fid is None: fid = ulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fid, tree_id, ts, ts)); cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'child')", (fid, other))
-        else:                        # spouse: a family of the other with room for a second partner, else a new one
-            fid = next((f["family_id"] for f in cx.execute("""SELECT fm.family_id FROM family_member fm WHERE fm.person_id=? AND fm.role='partner'
-                        AND (SELECT COUNT(*) FROM family_member x WHERE x.family_id=fm.family_id AND x.role='partner')=1""", (other,))), None); role = "partner"
-            if fid is None: fid = new_family(cx, tree_id, other, ts)
-        if cx.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, pid, role)).fetchone(): continue
-        cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fid, pid, role))
-        cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
-                      VALUES (?,?,'family_member',?,?,?,?,'undecided',?,?,?)""",
-                   (ulid(), tree_id, dumps([fid, pid, role]), persona_id, sha, f"{r['value_text'] or r['kind']} on the record", CFG["by"], ts, dumps({"proposal": prop_id})))
-        out.append({"family": fid, "role": role, "of": other, "as": r["value_text"] or r["kind"]})
-    return out
-
-def new_family(cx, tree_id, partner, ts):
-    fid = ulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fid, tree_id, ts, ts))
-    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid, partner)); return fid
-
 def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members):
     """What the decision closed and what the plan does next, in words: the link made, the questions answered, the checklist rows
     this record fulfils for the person, the facts now carrying held evidence to accept, the proposals still open on the record,
@@ -328,17 +254,16 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
         made.append(f"rejected: {what} is not {who}" if p["kind"] == "persona_match" else f"rejected: {what} is not a new person for this tree")
     else:
         made.append(f"{what} is {who}" if p["kind"] == "persona_match" else f"{who} created in this tree from {what}")
-        made += [f"{who} joins a family as {m['as']} of {cx.execute('SELECT display_name FROM person WHERE id=?', (m['of'],)).fetchone()['display_name']} (Undecided link)" for m in members]
+        name = lambda i: cx.execute("SELECT display_name FROM person WHERE id=?", (i,)).fetchone()["display_name"]
+        made += [f"{name(m['person'])} is a {'child' if m['role'] == 'child' else 'spouse'} of {name(m['of'])}: " + ("new Undecided link" if m["new"] else "this record as Undecided evidence on the link") for m in members]
         for q in cx.execute(f"SELECT kind, detail_json FROM research_question WHERE id IN ({','.join('?'*len(answered))})", answered) if answered else []:
             closed.append(f"question answered: {q['kind']} {json.loads(q['detail_json'] or '{}').get('detail') or ''}".strip())
         held = held_apids(cx); ids = {k for k, v in held.items() if v == pe["artifact_sha256"]}
         for st in cx.execute("SELECT row_key, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='done' ORDER BY seq", (person_id,)):
             if (st["locator_kind"] == "apid" and st["locator_value"] in ids) or (st["locator_kind"] != "apid" and st["locator_value"] and cx.execute("SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=?", (pe["artifact_sha256"], st["locator_kind"], st["locator_value"])).fetchone()):
                 closed.append(f"the {st['row_key'].split(':')[0]} row for {who}: held, this record")
-        order = {"Name": 0, "Sex": 1, "Birth": 2, "Death": 3, "Burial": 4}
-        facts = [f"{r['fact_type']} {r['date_text'] or r['value_text'] or ''}".strip() for r in sorted(cx.execute("""SELECT DISTINCT pf.fact_type, pf.date_text, pf.value_text FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
-                    WHERE a.tree_id=? AND json_valid(a.notes) AND json_extract(a.notes,'$.proposal')=? AND a.status='undecided'""", (tree_id, prop_id)).fetchall(), key=lambda r: order.get(r["fact_type"], 9))]
-        if facts: nxt.append(f"accept on the screen, with this record as held evidence: {', '.join(facts)}")
+        rf = record_facts(cx, tree_id, person_id, pe["artifact_sha256"]) if person_id else []
+        if rf: nxt.append("accept this record's facts, or each on the screen: " + ", ".join(f["fact"] + (f" (left: disagrees on {f['disagrees']})" if f["disagrees"] else "") for f in rf))
     left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') AND json_extract(payload_json,'$.artifact_sha256')=?", (tree_id, pe["artifact_sha256"])).fetchone()[0]
     if left: nxt.append(f"{left} proposal(s) still undecided on this record")
     if person_id:
@@ -348,9 +273,9 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
     return {"made": made, "closed": closed, "next": nxt, "summary": summary}
 
 def decide_proposal(cx, tree_id, prop_id, status):
-    """A person decides a proposal. A persona match accepted: person_persona accepted and Undecided assertions from the persona's
-    facts (assert_facts). A new person accepted: the person is created in this tree, the persona link accepted, the same
-    assertions, and the family memberships the record's relations give (place_in_family). Rejected: the link rejected for a
+    """A person decides a proposal. A persona match accepted: person_persona accepted, Undecided assertions from the persona's
+    facts (assert_facts) and on the family links the record states with persons already matched on it (link_family). A new
+    person accepted: the person is created in this tree, then the same. Rejected: the link rejected for a
     match, nothing but the proposal for a new person. An accept then regenerates the plans of the person concerned and of the
     person the record was fetched for, and the questions that regeneration closes are marked answered by this proposal. The
     response names what the decision made and closed and what the plan does next (decision_outcome). The fact decision on
@@ -365,8 +290,8 @@ def decide_proposal(cx, tree_id, prop_id, status):
         cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (person_id, persona_id, status, prop_id, CFG["by"], ts))
     answered = []
     if status == "accepted":
-        n, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, ts)
-        if p["kind"] == "new_person": members = place_in_family(cx, tree_id, person_id, persona_id, sha, prop_id, ts)
+        n, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, CFG["by"], ts)
+        members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, CFG["by"], ts)
         for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
             if pid: answered += answer_questions(cx, tree_id, pid, prop_id)
     outcome = decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members)
@@ -375,9 +300,21 @@ def decide_proposal(cx, tree_id, prop_id, status):
                 dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "assertions": n, "memberships": members, "answered": answered, "summary": outcome["summary"]})))
     return {"ok": True, "status": status, "person": person_id, "assertions": n, "memberships": members, "answered": answered, **outcome}
 
+def other_facts(cx, cat, pid):
+    """Every event or attribute of the person beyond the key facts (burial, residences, occupation, an inscription, ...), each a
+    fact decided under the same three states with the same evidence rule, keyed event:<id>."""
+    out = []
+    for e in cx.execute("""SELECT e.id, e.event_type, e.date_text, e.place_id, e.description FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                           WHERE ep.person_id=? AND e.event_type NOT IN ('Birth','Death') ORDER BY e.date_start, e.event_type""", (pid,)):
+        f = f"event:{e['id']}"
+        out.append({"field": f, "type": e["event_type"], "date": e["date_text"], "place": cat.place(e["id"], e["place_id"])["text"] if e["place_id"] else None, "value": e["description"],
+                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f)})
+    return out
+
 def person_view(cx, tree_id, pid):
     cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid)
     r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f)} for f in KEY_FACTS}
+    r["facts"] = other_facts(cx, cat, pid)
     fam = cat.family(pid)
     r["family"] = {k: [{"id": i, "name": n} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
     held = cat.held_apids(); cited = cat.cited()
@@ -424,18 +361,20 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or 0) or b"{}")
-        mf = re.match(r"^/api/person/([A-Z0-9]+)/fact/([a-z]+)$", u.path); mp = re.match(r"^/api/person/([A-Z0-9]+)/plan$", u.path)
+        mf = re.match(r"^/api/person/([A-Z0-9]+)/fact/([a-z]+|event:[A-Z0-9]+)$", u.path); mp = re.match(r"^/api/person/([A-Z0-9]+)/plan$", u.path)
+        mr = re.match(r"^/api/person/([A-Z0-9]+)/record/([0-9a-f]{64})/facts$", u.path)
         ms = re.match(r"^/api/step/([A-Z0-9]+)/(log|revise)$", u.path); mq = re.match(r"^/api/question/([A-Z0-9]+)/dismiss$", u.path)
         mt = re.match(r"^/api/artifact/([0-9a-f]{64})/persona$", u.path); md = re.match(r"^/api/proposal/([A-Z0-9]+)/decide$", u.path)
-        if not (mf or mp or ms or mq or mt or md): self.send({"error": "not found"}, code=404); return
+        if not (mf or mp or ms or mq or mt or md or mr): self.send({"error": "not found"}, code=404); return
         with LOCK:
             cx = db()
             try:
                 tree_id, slug, _ = tree_of(cx, q.get("tree", [None])[0])
-                pid = (mf or mp).group(1) if (mf or mp) else None
+                pid = (mf or mp or mr).group(1) if (mf or mp or mr) else None
                 if pid and not cx.execute("SELECT 1 FROM person WHERE id=? AND tree_id=?", (pid, tree_id)).fetchone(): self.send({"error": "not found"}, code=404); return
                 cx.execute("BEGIN")
                 if mf: res = decide_fact(cx, tree_id, pid, mf.group(2), body.get("status"), body.get("note"))
+                elif mr: res = {"ok": True, **accept_record_facts(cx, tree_id, pid, mr.group(2), CFG["by"], now())}
                 elif mp: res = {"ok": True, **plan_person(cx, tree_id, pid, CFG["by"])}
                 elif mq:
                     try: dismiss_question(cx, tree_id, CFG["by"], mq.group(1), body.get("note")); res = {"ok": True}

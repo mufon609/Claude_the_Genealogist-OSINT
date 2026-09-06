@@ -63,7 +63,9 @@ screen. Then the loop repeats.
   `research_question` / `search_plan`, idempotent), `log_search` (records runs
   into `search_log`), `extract` (personas, facts and relations from an archived
   record page; a parser claims a page by its own marker or the extraction
-  fails), `match` (proposals against the tree, in words), `catalog` (shared
+  fails), `match` (proposals against the tree, in words), `conclude` (what an
+  accepted persona writes on the tree, and the one decision that accepts a
+  record's facts), `catalog` (shared
   read-only access), `run_step` (runs an auto search step through its source's
   connector under `tools/connectors/`: loc.gov for Chronicling America, the
   1950 census site; archives every response, logs the run, extracts and

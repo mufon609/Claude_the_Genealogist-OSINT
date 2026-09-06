@@ -62,4 +62,5 @@ INSERT INTO event_type (name, kind, gedcom_tag, gramps_name) VALUES
  ('Literacy','attribute','FACT',NULL),
  ('Social Security Number','attribute','SSN','Social Security Number'),
  ('Identification Number','attribute','IDNO','Identification Number'),
+ ('Inscription','attribute','FACT',NULL),
  ('Unknown','event','EVEN','Unknown');

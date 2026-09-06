@@ -190,6 +190,7 @@ def match(cx, eid, by):
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pr["id"])).fetchone(): continue
+            if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
             if pr["id"] in chosen:
                 c = chosen[pr["id"]]; fits, agree, disagree, absent = compare(cat, pr, c, chosen)
                 others = [o["name"] for o in cands if o["id"] != c["id"] and compare(cat, pr, o, chosen)[0]]
