@@ -71,11 +71,16 @@ repo. Plain over clever, always.
   on the owner's explicit word, and the worker fetches, extracts and matches.
   The owner does no research and opens no screen.
 - Accepted baseline, on the owner's word: the owner (Matthew Alan Ahearn),
-  their parents and their four grandparents. Recorded so far: the family links
-  among the seven and the two uncited births. Their names, sexes and cited
-  births and deaths wait on the vouch in `docs/briefs/owner-vouch.md`; until
-  then the tool cannot accept a fact whose only evidence is an unfetched
-  citation. Everyone else in the file is a hint: Undecided.
+  their parents and their four grandparents. Recorded through the screen as
+  the owner: the family links among the seven, and every name, birth and
+  death the file claims for them, by vouch where no record is held (14 vouch
+  rows). Everyone else in the file is a hint: Undecided.
+- Six cited Find a Grave memorials sit in `inbox/` by the page-saves-itself
+  method (Noi, Raymond, Frederick Michael Ahearn, Helen Sara Brant, Robert
+  Edgar Davidson, Charlotte D. Brant), waiting for the attach tool of
+  `docs/briefs/inbox-to-cards.md`, which attaches them to every step they
+  fulfil and prints their decision cards. The director then puts the cards to
+  the owner one at a time.
 - The mission is the process, not the tree: walk this family outward one
   person at a time and turn every stall into a tool fix.
 - Live catalog on schema 0.7.1, registry in step with `data/data-sources.csv`
@@ -88,9 +93,9 @@ repo. Plain over clever, always.
 - Connectors: the runner, `loc_gov` (H01) and `nara_1950` (D05) are committed
   with their extractor variants; the worker's report on them has not yet been
   verified by the director. No live step has run automatically.
-- Worker: the first worker is retired; the second worker finishes
-  `owner-vouch.md` from the working tree it left, then takes
-  `no-browser-sources.md`. Browser captures are no longer used. If a page must ever come
+- Worker: the second worker has finished `owner-vouch.md` (accepted) and is
+  on `inbox-to-cards.md`, then `no-browser-sources.md`. A third, dedicated
+  session solved and ran the Find a Grave fetch and is done. Browser captures are no longer used. If a page must ever come
   through the browser again, the page saves itself as a file in one step
   (a download of its own markup, or Ctrl+S) and the file goes to `inbox/`;
   never the old method of encoding the page and reading it out through the

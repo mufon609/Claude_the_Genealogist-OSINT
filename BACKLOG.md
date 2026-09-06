@@ -227,6 +227,22 @@ never reaches a persona fact and the reviewer's card cannot show the
 disagreement. Capture the biography as its own fact type, as written, and
 let the matcher report it beside the field.
 
+### C20. The ingest writes each person-level citation twice
+
+A person's name evidence shows every person-level citation twice (Noi
+Davidson: 14 rows for 7 citations), so the ingest writes one assertion for
+the INDI-level source and one for the NAME-level source of the same citation.
+Write one assertion per citation and rebuild, or if the two levels are
+distinct claims in the file, say so on the row so the screen can show why
+there are two.
+
+### C21. Relation kinds the memorial parser passes through as labels
+
+A Find a Grave memorial lists "Half Siblings" and can list other headings
+the matcher has no relation kind for; the parser keeps the page's own
+heading as the label, which is right, but the matcher must map every
+heading it meets to a relation kind or say on the proposal that it did not.
+
 ---
 
 ## Externally blocked
