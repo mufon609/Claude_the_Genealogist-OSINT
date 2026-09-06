@@ -121,12 +121,18 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 | Mode | Sources | Behaviour |
 |---|---|---|
 | auto | FamilySearch (after Innovator approval), WikiTree, loc.gov newspapers, NARA catalog, Open Archives, Wikidata, held archive | the system runs the query, archives raw responses, extracts personas |
-| assisted | Ancestry, Find a Grave, Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`; the system takes it from there |
+| assisted | Ancestry, Find a Grave, Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time; the system takes it from there |
 | manual | county courthouses, Schwenkfelder Library, parish archives | the system produces a request letter or visit checklist |
 
 A source is `auto` only when its registry row names a built connector (the
 `Connector` column of `data/data-sources.csv`); none does yet, so today every
 search step is `assisted` or `awaiting_approval`.
+
+Open sources with connectors are the standard path and Ancestry is the
+exception: a step runs automatically wherever a free source with a documented
+endpoint holds the record kind, and the browser-driven fetch exists only for
+records the tree already cites at a closed source. Never crawl or search a
+closed source.
 
 Every execution is a **research log** row: query as actually run, source, date,
 outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
