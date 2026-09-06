@@ -143,10 +143,23 @@ written, one relation per stated relationship, the raw parsed page in
 person screen offers a transcription form on a held record with no persona,
 one persona at a time, written as an extraction by extractor `human:<user>`.
 That is the fallback for every image until an OCR or HTR extractor exists.
-Matching compares personas to the tree and produces proposals, but every
-proposal **answers a question**: "Is the James Ahearn in this 1870 household
-Thomas's father?" Review happens on the person's screen, in the language of the
-question. Accepting grows the baseline, which generates new questions.
+
+`tools/match.py` runs on every extraction as it is written. For each person
+whose step the record fulfils, every persona is compared with that person and
+their relatives as the catalog knows them, on name, sex, birth year and the
+relationships the record states. One proposal per persona: `persona_match`
+with the candidate that fits, or `new_person` when nobody does. The rationale
+is plain words, which fields agree, which disagree, which are absent; no score
+is stored or shown. A proposal carries the step's question when the step has
+one, so it **answers a question**: "Is the James Ahearn in this 1870 household
+Thomas's father?" Review happens on the person's screen, on the held record.
+Accepting a match writes the persona link Accepted and an Undecided assertion
+from each of the person's events to the matching persona fact, creating the
+event from the fact's date when the person has none of that type; Name and
+Sex facts assert the person. Rejecting writes the link Rejected. Nothing
+becomes Accepted at the fact level here: the fact decision does that, and it
+now has held evidence to accept. Accepting grows the baseline, which generates
+new questions.
 
 ## Worked example: Thomas Ahearn (1846–1902)
 

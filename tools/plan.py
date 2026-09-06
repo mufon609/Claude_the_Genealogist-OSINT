@@ -9,8 +9,10 @@ cites (one per citation, with its locator), or a typed search for a missing row.
 Footprint records on relatives become fetch steps under the fact-level question
 they serve. Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated unless they were run,
-and closes questions whose gap has gone (closed_reason 'gap_gone'). A question a
-person dismissed or answered stays closed. Nothing here runs a search.
+marks a fetch step done when an archived record at its locator has a persona
+accepted for the person, and closes questions whose gap has gone (closed_reason
+'gap_gone'). A question a person dismissed or answered stays closed. Nothing
+here runs a search.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -54,7 +56,7 @@ def plan_person(cx, tree_id, pid, by):
         if not rec.get("apid") or rec["apid"] in have: continue
         fetches.append(fetch_step(f"footprint:{rec['apid']}", "footprint_record", rec["apid"], rec.get("collection_id"), rec["on"], rec["expect"],
                                   "already on " + ", ".join(f"{n} ({rel})" for n, rel in rec["on"]), [ANCESTRY], home))
-    stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0, "steps_dropped": 0}
+    stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0, "steps_dropped": 0, "steps_done_by_match": 0}
     existing = {row[1]: row[0] for row in cx.execute("SELECT id, q_key FROM research_question WHERE subject_person_id=? AND status='open'", (pid,))}
     qid_by_key = {}
     for key, (kind, detail) in wanted.items():
@@ -87,6 +89,9 @@ def plan_person(cx, tree_id, pid, by):
     for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes, unless it was run
         if skey not in wanted_keys and not cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=?", (sid,)).fetchone():
             cx.execute("DELETE FROM search_plan WHERE id=?", (sid,)); stats["steps_dropped"] += 1
+    stats["steps_done_by_match"] = cx.execute("""UPDATE search_plan SET status='done' WHERE person_id=? AND kind='fetch' AND status='planned' AND EXISTS (
+        SELECT 1 FROM artifact a JOIN persona pe ON pe.artifact_sha256=a.sha256 JOIN person_persona pp ON pp.persona_id=pe.id AND pp.person_id=search_plan.person_id AND pp.status='accepted'
+        WHERE a.locator_kind=search_plan.locator_kind AND a.locator_value=search_plan.locator_value)""", (pid,)).rowcount   # the record is held and matched to this person
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "update", "search_plan", pid, dumps(stats)))
     return stats

@@ -23,6 +23,7 @@ from checklist import build
 from plan import plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer, extract as extract_html
+from match import match as match_personas
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -102,7 +103,8 @@ def plan_view(cx, pid):
     for s in cx.execute("SELECT * FROM search_plan WHERE person_id=? ORDER BY seq", (pid,)):
         logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at", (s["id"],))]
         col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
-        steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"],
+        held = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None
+        steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"], "archived": held["sha256"] if held else None,
                       "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": json.loads(s["query_json"]), "revisions": json.loads(s["revisions_json"] or "{}"),
                       "query": rendered_query(s["query_json"], s["revisions_json"]), "locator": {"source": s["locator_source_id"], "kind": s["locator_kind"], "value": s["locator_value"]},
                       "collection": col["name"] if col else None, "on": json.loads(s["on_json"] or "[]"), "url": ancestry_url(s["locator_value"]) if s["locator_kind"] == "apid" else None,
@@ -144,7 +146,7 @@ def archive_inbox_file(cx, slug, name, st, note):
     cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,manifest_json,created_at)
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, size, mime, manifest.get("source_id"), col_id, lkind, manifest["locator"]["value"], ts, CFG["by"], terms, False, cost, tier, os.path.basename(src), 1, dumps(manifest), ts))
     cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)", (sha, "local", ts, ts, True))
-    if mime.startswith("text/html"): extract_html(cx, sha, CFG["by"])          # an index page is parsed on arrival; an image waits for a transcription
+    if mime.startswith("text/html"): match_personas(cx, extract_html(cx, sha, CFG["by"])[0], CFG["by"])   # an index page is parsed and matched on arrival; an image waits for a transcription
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
     return sha
 
@@ -170,7 +172,7 @@ def revise_step(cx, tree_id, step_id, body):
 
 def artifact_view(cx, tree_id, sha, pid):
     """A held record as the person screen shows it: the file, every current extraction with its personas, facts and
-    relations, and how each persona stands to this person."""
+    relations, how each persona stands to this person, and the proposals the matcher wrote when the record was fetched for this person."""
     a = cx.execute("SELECT sha256, mime, trust_tier, locator_kind, locator_value, original_filename, collection_id FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if not a: return None
     col = cx.execute("SELECT name FROM collection WHERE id=?", (a["collection_id"],)).fetchone() if a["collection_id"] else None
@@ -186,8 +188,14 @@ def artifact_view(cx, tree_id, sha, pid):
             link = cx.execute("SELECT status FROM person_persona WHERE persona_id=? AND person_id=?", (p["id"], pid)).fetchone()
             personas.append({"id": p["id"], "name": p["name_text"], "sex": p["sex"], "role": p["role_in_record"], "facts": facts, "relations": rels, "link": link["status"] if link else None})
         exts.append({"id": e["id"], "extractor": f"{e['kind']}:{e['name']}" + (f"@{e['version']}" if e["version"] else ""), "ran_at": e["ran_at"], "personas": personas})
+    proposals = [{"id": r["id"], "kind": r["kind"], "status": r["status"], "rationale": r["rationale"], "persona_id": json.loads(r["payload_json"])["persona_id"],
+                  "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"]}
+                 for r in cx.execute("""SELECT p.id, p.kind, p.status, p.rationale, p.payload_json, c.display_name AS candidate FROM proposal p
+                                        LEFT JOIN person c ON c.id=json_extract(p.payload_json,'$.person_id')
+                                        WHERE p.tree_id=? AND json_extract(p.payload_json,'$.artifact_sha256')=?
+                                          AND (json_extract(p.payload_json,'$.subject_person_id')=? OR json_extract(p.payload_json,'$.person_id')=?) ORDER BY p.created_at""", (tree_id, sha, pid, pid))]
     return {"sha256": sha, "mime": a["mime"], "tier": a["trust_tier"], "filename": a["original_filename"], "collection": col["name"] if col else None,
-            "url": ancestry_url(a["locator_value"]) if a["locator_kind"] == "apid" else None, "extractions": exts,
+            "url": ancestry_url(a["locator_value"]) if a["locator_kind"] == "apid" else None, "extractions": exts, "proposals": proposals,
             "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
 
 def transcribe(cx, sha, body):
@@ -218,7 +226,45 @@ def transcribe(cx, sha, body):
             w.relation(pid, r["persona_id"], r.get("kind") or "other", (r.get("text") or "").strip() or None, "transcription")
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, CFG["by"], "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
+    match_personas(cx, eid, CFG["by"])
     return {"ok": True, "extraction": eid, "persona": pid}
+
+def decide_proposal(cx, tree_id, prop_id, status):
+    """A person decides a persona match. Accepted: person_persona accepted and, for every persona fact of an event type, an
+    Undecided assertion from the person's event of that type (created from the fact's date when there is none); Name and Sex
+    facts assert the person row. Rejected: person_persona rejected. The fact decision on the screen stays the only way to Accept."""
+    p = cx.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
+    if not p or p["kind"] != "persona_match" or status not in ("accepted", "rejected"): return {"error": "not a persona match, or bad status"}
+    pay = json.loads(p["payload_json"]); persona_id, person_id = pay["persona_id"], pay["person_id"]; ts = now(); n = 0
+    cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (person_id, persona_id, status, prop_id, CFG["by"], ts))
+    cx.execute("UPDATE proposal SET status=?, decided_by=?, decided_at=? WHERE id=?", (status, CFG["by"], ts, prop_id))
+    if status == "accepted":
+        pe = cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone(); sha = pe["artifact_sha256"]
+        a = cx.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
+        cite = a["name"] or a["original_filename"] or sha[:12]
+        def assert_(kind, sid, fid):
+            nonlocal n
+            if cx.execute("SELECT 1 FROM assertion WHERE subject_kind=? AND subject_id=? AND persona_fact_id=?", (kind, sid, fid)).fetchone(): return
+            cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                          VALUES (?,?,?,?,?,?,?,'undecided',?,?,?)""", (ulid(), tree_id, kind, sid, fid, sha, cite, CFG["by"], ts, dumps({"proposal": prop_id}))); n += 1
+        for f in cx.execute("""SELECT pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, et.kind
+                               FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)):
+            if f["fact_type"] in ("Name", "Sex"): assert_("person", person_id, f["id"]); continue
+            if f["kind"] != "event": continue
+            fy = (f["date_start"] or f["date_end"] or "")[:4]           # an event corresponds by type and year; an undated fact only to an undated event
+            events = [e for e in cx.execute("""SELECT e.id, e.date_start, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                               WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"]))
+                      if (e["date_start"] or e["date_end"] or "")[:4] == fy]
+            if not events:
+                eid = ulid()
+                cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                           (eid, tree_id, f["fact_type"], f["date_text"], f["date_start"], f["date_end"], f["date_qualifier"], f["calendar"], ts, ts))
+                cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (ulid(), eid, person_id))
+                events = [{"id": eid}]
+            for e in events: assert_("event", e["id"], f["id"])
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+               (ulid(), tree_id, ts, CFG["by"], "accept" if status == "accepted" else "reject", "proposal", prop_id, dumps({"persona": persona_id, "person": person_id, "assertions": n})))
+    return {"ok": True, "status": status, "assertions": n}
 
 def person_view(cx, tree_id, pid):
     cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid)
@@ -271,8 +317,8 @@ class H(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or 0) or b"{}")
         mf = re.match(r"^/api/person/([A-Z0-9]+)/fact/([a-z]+)$", u.path); mp = re.match(r"^/api/person/([A-Z0-9]+)/plan$", u.path)
         ms = re.match(r"^/api/step/([A-Z0-9]+)/(log|revise)$", u.path); mq = re.match(r"^/api/question/([A-Z0-9]+)/dismiss$", u.path)
-        mt = re.match(r"^/api/artifact/([0-9a-f]{64})/persona$", u.path)
-        if not (mf or mp or ms or mq or mt): self.send({"error": "not found"}, code=404); return
+        mt = re.match(r"^/api/artifact/([0-9a-f]{64})/persona$", u.path); md = re.match(r"^/api/proposal/([A-Z0-9]+)/decide$", u.path)
+        if not (mf or mp or ms or mq or mt or md): self.send({"error": "not found"}, code=404); return
         with LOCK:
             cx = db()
             try:
@@ -286,6 +332,7 @@ class H(BaseHTTPRequestHandler):
                     try: dismiss_question(cx, tree_id, CFG["by"], mq.group(1), body.get("note")); res = {"ok": True}
                     except SystemExit as e: res = {"error": str(e)}
                 elif mt: res = transcribe(cx, mt.group(1), body)
+                elif md: res = decide_proposal(cx, tree_id, md.group(1), body.get("status"))
                 elif ms.group(2) == "log": res = log_step(cx, tree_id, slug, ms.group(1), body)
                 else: res = revise_step(cx, tree_id, ms.group(1), body)
                 if res.get("error"): cx.rollback(); self.send(res, code=400)

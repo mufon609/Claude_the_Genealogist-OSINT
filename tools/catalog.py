@@ -119,9 +119,13 @@ class Catalog:
                                         "marriages": [{"id": m[0], "year": year(m[1]), "place": self.place(m[0], m[2]), "basis": self.basis("event", m[0]), "citations": self.citations("event", m[0])} for m in marr]})
         return fam
     def fetched_rows(self, pid):
-        """Checklist row keys (record:instance) with a done step, fetch or search, that has an archived artifact in its log."""
-        return {k for k, in self.q("""SELECT DISTINCT sp.row_key FROM search_plan sp JOIN search_log l ON l.plan_step_id=sp.id
-                                      WHERE sp.person_id=? AND sp.status='done' AND l.artifacts_json IS NOT NULL AND l.artifacts_json<>'[]'""", pid)}
+        """Checklist row keys (record:instance) with a done step whose record is held: an archived artifact in its log, or an
+        artifact at the step's locator with a persona accepted for this person."""
+        return {k for k, in self.q("""SELECT DISTINCT sp.row_key FROM search_plan sp WHERE sp.person_id=? AND sp.status='done' AND (
+                                        EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=sp.id AND l.artifacts_json IS NOT NULL AND l.artifacts_json<>'[]')
+                                        OR EXISTS (SELECT 1 FROM artifact a JOIN persona pe ON pe.artifact_sha256=a.sha256
+                                                   JOIN person_persona pp ON pp.persona_id=pe.id AND pp.person_id=sp.person_id AND pp.status='accepted'
+                                                   WHERE a.locator_kind=sp.locator_kind AND a.locator_value=sp.locator_value))""", pid)}
     def held_apids(self):
         """Ancestry record ids whose record is in the archive."""
         return {v for v, in self.q("SELECT locator_value FROM artifact WHERE locator_kind='apid'")}

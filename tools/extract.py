@@ -148,6 +148,8 @@ def write_personas(w, parsed):
         ftype, part = fact_for(label)
         if ftype is None: ftype, part = "Unknown", "value"
         slot = by_type.setdefault(ftype, {"date": None, "place": None, "values": []})
+        m = re.fullmatch(r"(home|residence) in (\d{4})", key)        # "Home in 1900": the label carries the year
+        if m and slot["date"] is None: slot["date"] = (m.group(2), label)
         if part == "value": slot["values"].append((value, label))
         elif slot[part] is None: slot[part] = (value, label)
         else: by_type.setdefault(ftype + "#" + label, {"date": None, "place": None, "values": []})[part] = (value, label)
