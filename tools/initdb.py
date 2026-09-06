@@ -2,10 +2,12 @@
 """Create the catalog database and seed reference tables.
 
 usage: tools/initdb.py [--db catalog/tree.db] [--force]
+       tools/initdb.py --sync-sources [--db catalog/tree.db]
 
 Applies schema/catalog.sql, schema/seed_event_type.sql, schema/sqlite_extras.sql,
 then seeds `source` from data/data-sources.csv, a `human` extractor, and the
-local storage target. Stdlib only.
+local storage target. --sync-sources rewrites an existing catalog's source rows
+from the CSV (the registry is reference data) and touches nothing else. Stdlib only.
 """
 import argparse, csv, datetime as dt, os, sqlite3, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -31,6 +33,7 @@ def read(rel: str) -> str:
         return fh.read()
 
 def seed_sources(cx: sqlite3.Connection) -> int:
+    """The registry rows from data/data-sources.csv into source: inserted on a fresh catalog, replaced on --sync-sources."""
     path = os.path.join(ROOT, "data", "data-sources.csv")
     with open(path, newline="", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
@@ -39,7 +42,11 @@ def seed_sources(cx: sqlite3.Connection) -> int:
         """INSERT INTO source (id, category, data_type, name, provider, cost, access, url,
                                coverage, terms, trust_tier, priority, status, connector,
                                record_release_rule, notes, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(id) DO UPDATE SET category=excluded.category, data_type=excluded.data_type, name=excluded.name, provider=excluded.provider,
+             cost=excluded.cost, access=excluded.access, url=excluded.url, coverage=excluded.coverage, terms=excluded.terms, trust_tier=excluded.trust_tier,
+             priority=excluded.priority, status=excluded.status, connector=excluded.connector, record_release_rule=excluded.record_release_rule,
+             notes=excluded.notes, updated_at=excluded.updated_at""",
         [(r["ID"], r["Category"], r["DataType"], r["Source"], r["Provider"], r["Cost"],
           r["Access"], r["URL"], r["Coverage"], r["Terms"], r["TrustTier"], r["Priority"],
           r["Status"], r.get("Connector") or None, r.get("RecordRelease") or None, r["Notes"], ts) for r in rows])
@@ -49,8 +56,12 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     ap.add_argument("--force", action="store_true", help="overwrite an existing db")
+    ap.add_argument("--sync-sources", action="store_true", help="bring an existing catalog's source rows up to data/data-sources.csv; nothing else changes")
     a = ap.parse_args()
 
+    if a.sync_sources:
+        cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+        n = seed_sources(cx); cx.commit(); print(f"{a.db}: {n} source rows in step with data/data-sources.csv"); return 0
     if os.path.exists(a.db):
         if not a.force:
             print(f"refusing to overwrite {a.db} (use --force)", file=sys.stderr); return 2

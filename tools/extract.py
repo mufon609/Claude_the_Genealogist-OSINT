@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract personas and facts from an archived record page (HTML): a Find a Grave memorial, a FamilySearch record page, or an Ancestry index page.
+"""Extract personas and facts from an archived record page (HTML) or a connector response (JSON).
 
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
 
@@ -71,14 +71,26 @@ Grandmother), sex, age and birthplace from the row, the member's own details
 table as its facts, its record ark in region_json, and one relation from the
 member to the subject with the role word as written. The page's own ark, from
 the print header, is written to artifact_locator as kind ark.
+
+Connector responses (JSON, archived by tools/run_step.py) have their own extractors, claimed by the response's shape:
+  rule:nara-1950-schedule@0.1.0  one schedule from the 1950 census site (a single result with scheduleId and names and no
+                                 search highlight, as /api/search?scheduleId= answers): one persona per
+                                 transcribed row the search matched, named as transcribed, with a Residence in the county and
+                                 state in 1950 and the enumeration district and row under their labels; the whole schedule in
+                                 structured_json.
+  rule:loc-gov-ocr@0.1.0         a page's OCR text from loc.gov's text service (segments with full_text): one persona per place
+                                 the searched surname stands in the text, named by the words around it, with the text region;
+                                 a Death before the page's date for an obituary step, else a Residence on the page's date at
+                                 the paper's place. The search that archived the response supplies the surname and step type.
 """
-import argparse, html, os, re, sqlite3, sys
+import argparse, html, json, os, re, sqlite3, sys
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.1.0"), None: ("rule", "extract", "0.1.0")}
+              "familysearch": ("rule", "familysearch-record", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "locgov": ("rule", "loc-gov-ocr", "0.1.0"), None: ("rule", "extract", "0.1.0")}
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
@@ -415,11 +427,70 @@ def write_record(w, parsed):
         write_facts(w, pid, mb)
         w.relation(pid, subject, household_kind(m["role"]), m["role"], m["section"])
 
+def context_for(cx, sha):
+    """What the runner recorded about a connector response: the manifest notes (the hit as the source described it) and the step
+    type and query of the run that archived it."""
+    man = cx.execute("SELECT manifest_json FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    notes = (json.loads(man[0]) if man and man[0] else {}).get("notes") or ""
+    ctx = {"notes": json.loads(notes) if notes.startswith("{") else {}, "step_type": None, "query": {}}
+    row = cx.execute("SELECT sp.query_type, l.query_json FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? ORDER BY l.executed_at DESC LIMIT 1", (f'%"{sha}"%',)).fetchone()
+    if row: ctx["step_type"], ctx["query"] = row[0], {k: (v.get("value") if isinstance(v, dict) else v) for k, v in json.loads(row[1] or "{}").items()}
+    return ctx
+
+def parse_json(data, ctx):
+    """A connector response's kind and parsed form: a 1950 census schedule from the National Archives site (results with
+    scheduleId and names), the OCR text of a Chronicling America page from loc.gov's text service (segments with full_text),
+    else (None, reason)."""
+    try: d = json.loads(data)
+    except ValueError as e: return None, {"reason": f"not JSON: {e}"}
+    res = d.get("results") if isinstance(d, dict) else None
+    if res and len(res) == 1 and isinstance(res[0], dict) and "scheduleId" in res[0] and "names" in res[0] and not res[0].get("highlight"):
+        return "nara1950", {"kind": "nara1950", "schedule": res[0], "matched": ctx["notes"].get("matched") or [], "fields": []}
+    if isinstance(d, dict) and d and all(isinstance(v, dict) and "full_text" in v for v in d.values()):
+        seg, body = next(iter(d.items()))
+        return "locgov", {"kind": "locgov", "segment": seg, "full_text": body["full_text"] or "", "page": ctx["notes"], "step_type": ctx["step_type"], "query": ctx["query"], "fields": []}
+    return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text"}
+
+def write_schedule(w, parsed):
+    """One persona per transcribed row the search matched (every row when nothing was matched): the name as transcribed, a
+    Residence in the schedule's county and state in 1950, the enumeration district and row under their own labels."""
+    sc = parsed["schedule"]; place = ", ".join(x for x in (sc.get("county"), sc.get("state"), "United States") if x)
+    keys = {key_of(m) for m in parsed["matched"]}
+    rows = [r for r in sc.get("names") or [] if r.get("name") and (not keys or key_of(r["name"]) in keys)]
+    for seq, r in enumerate(rows, 1):
+        pid = w.persona(r["name"], None, "listed", seq, {"label": "schedule", "row": r.get("row"), "scheduleId": sc.get("scheduleId"), "ed": sc.get("ed")})
+        w.fact(pid, "Name", r["name"], labels=["name"]); w.fact(pid, "Residence", None, "1950", place, ["county", "state"])
+        w.fact(pid, "Unknown", f"Enumeration District: {sc.get('ed')}", labels=["ed"])
+        if r.get("row") is not None: w.fact(pid, "Unknown", f"Row: {r['row']}", labels=["row"])
+
+def key_of(s): return re.sub(r"[^a-z]", "", (s or "").lower())
+
+def write_ocr(w, parsed):
+    """One persona per place the searched surname stands in the page's OCR text, named by the words around it, with the text
+    region; for an obituary step a Death fact before the page's date, otherwise a Residence on the page's date at the paper's
+    place. Nothing when the surname is not in the text."""
+    text, q, page = parsed["full_text"], parsed["query"], parsed["page"] or {}
+    surname = (q.get("surname") or "").strip()
+    if not surname: return
+    seq, seen = 1, set()
+    for m in re.finditer(r"(?:\b[A-Z][A-Za-z.'-]*\s+){0,2}\b" + re.escape(surname) + r"\b(?:\s+[A-Z][A-Za-z.]*)?", text, re.I):
+        name = re.sub(r"\s+", " ", m.group(0)).strip()
+        if key_of(name) in seen: continue
+        seen.add(key_of(name)); start, end = max(0, m.start() - 160), min(len(text), m.end() + 160)
+        pid = w.persona(name, None, "named in the text", seq, {"label": "ocr", "offset": m.start(), "snippet": text[start:end], "segment": parsed["segment"]}); seq += 1
+        w.fact(pid, "Name", name, labels=["text"])
+        place = ", ".join(x for x in (page.get("city"), page.get("state")) if x) or None
+        if parsed["step_type"] == "obituary" and page.get("date"): w.fact(pid, "Death", None, "Bef " + page["date"], None, ["page date"])
+        elif page.get("date") or place: w.fact(pid, "Residence", None, page.get("date"), place, ["page date", "newspaper place"])
+
 def extract(cx, sha, by):
     art = cx.execute("SELECT sha256, mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if not art: raise SystemExit(f"not in the archive: {sha[:12]}")
-    if not (art[1] or "").startswith("text/html"): raise SystemExit(f"not an HTML page: {art[1]}")
-    with open(object_path(sha), encoding="utf-8", errors="replace") as fh: kind, parsed = parse(fh.read())
+    mime = art[1] or ""
+    with open(object_path(sha), "rb") as fh: data = fh.read()
+    if mime.startswith("text/html"): kind, parsed = parse(data.decode("utf-8", errors="replace"))
+    elif mime.startswith("application/json") or data[:1] in (b"{", b"["): kind, parsed = parse_json(data, context_for(cx, sha))
+    else: kind, parsed = None, {"reason": f"not a record page or a connector response: {mime}"}
     extractor = EXTRACTORS[kind]; ts = now()
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", extractor).fetchone()
     ext_id = row[0] if row else ulid()
@@ -433,7 +504,9 @@ def extract(cx, sha, by):
     full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"])
     if kind == "ancestry": full_text += "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
     elif kind == "familysearch": full_text += "".join(f"\n{m['role']}: {m['name']} {m['sex']} {m['age']} {m['birthplace']}" for m in parsed["members"])
-    else: full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
+    elif kind == "findagrave": full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
+    elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
+    else: full_text = parsed["full_text"]
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
                (eid, sha, ext_id, ts, full_text, dumps(parsed)))
     old = [r[0] for r in cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND id<>? AND superseded_by IS NULL", (sha, ext_id, eid))]
@@ -444,7 +517,7 @@ def extract(cx, sha, by):
     if kind == "familysearch" and parsed.get("ark"):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
-    {"findagrave": write_memorial, "familysearch": write_record}.get(kind, write_personas)(w, parsed)
+    {"findagrave": write_memorial, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr}.get(kind, write_personas)(w, parsed)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
     return eid, w.n

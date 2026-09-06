@@ -127,12 +127,18 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 
 | Mode | Sources | Behaviour |
 |---|---|---|
-| auto | FamilySearch (after Innovator approval), WikiTree, loc.gov newspapers, NARA catalog, Open Archives, Wikidata, held archive | the system runs the query, archives raw responses, extracts personas |
+| auto | Chronicling America (loc.gov), the 1950 census site; FamilySearch after Innovator approval, WikiTree, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
 | assisted | Find a Grave, FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time; the system takes it from there |
 
 A source is `auto` only when its registry row names a built connector (the
-`Connector` column of `data/data-sources.csv`); none does yet, so today every
-search step is `assisted` or `awaiting_approval`.
+`Connector` column of `data/data-sources.csv`): `loc_gov` on H01 (Chronicling
+America through the loc.gov JSON API) and `nara_1950` on D05 (the 1950 census
+site's own name search). `tools/run_step.py` runs an auto step: the connector
+turns the step's rendered fields into requests, every response is archived as
+it came with the request URL as locator, each hit's own transcription or text
+and image are archived too, one `search_log` row holds the exact query, the
+outcome and every hash, and the extractor and matcher run on each hit's record.
+Every other search step is `assisted` or `awaiting_approval`.
 
 Open sources with connectors are the standard path and Ancestry is the
 exception: a step runs automatically wherever a free source with a documented

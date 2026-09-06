@@ -64,9 +64,14 @@ screen. Then the loop repeats.
   into `search_log`), `extract` (personas, facts and relations from an archived
   record page; a parser claims a page by its own marker or the extraction
   fails), `match` (proposals against the tree, in words), `catalog` (shared
-  read-only access). Parsers: the Find a Grave memorial parser and the
-  FamilySearch record-page parser are verified on real pages; the Ancestry
-  index parser is not (Ancestry needs a membership this account lacks).
+  read-only access), `run_step` (runs an auto search step through its source's
+  connector under `tools/connectors/`: loc.gov for Chronicling America, the
+  1950 census site; archives every response, logs the run, extracts and
+  matches). Parsers: the Find a Grave memorial parser and the FamilySearch
+  record-page parser are verified on real pages; the Ancestry index parser is
+  not (Ancestry needs a membership this account lacks). Connector-response
+  extractors: the 1950 schedule and the loc.gov OCR variants are verified on
+  real responses.
 - Screen: `app/person/` — stdlib server plus one page, localhost only. Fact
   decisions write assertion status; plan generation; logging a run; attaching a
   downloaded file from `inbox/`, which archives it, parses and matches a record
@@ -86,8 +91,8 @@ screen. Then the loop repeats.
   195 open fact-level questions and 912 fetch steps, 472 re-targeted to a free
   holder and 440 blocked for want of one; no search step, because search steps
   come after a baseline is reviewed.
-- Not built yet: connectors and the runner that would execute a step against
-  a source, exporters, backups.
+- Not built yet: connectors beyond those two (FamilySearch waits on the API
+  application), exporters, backups.
 
 ## What to look for
 

@@ -65,6 +65,8 @@ python3 tools/plan.py --all                 # materialize questions + steps (ide
 python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --step/--outcome to log a run; --dismiss <question>
 python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial, FamilySearch record, Ancestry index; HTML)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
+python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
+python3 tools/initdb.py --sync-sources       # source rows up to data/data-sources.csv on an existing catalog
 python3 tools/tree.py show
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
 DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # scratch run: its own archive/, inbox/, derivatives/, trees/*/imports

@@ -178,7 +178,34 @@ parsers ignore them. Decide whether the capture strips them before hashing,
 or the manifest notes the capture method; the page as served by the site
 would need the site's own save or an endpoint.
 
-### C14. Basis word on residences
+### C14. Fetch steps at a holder with a connector
+
+A cited 1950 census record (holder D05) carries the citation's indexed name,
+county and enumeration district, which is exactly what the 1950 site's search
+takes, yet the runner executes only `search` steps: a `fetch` step at a
+holder whose registry row names a connector could run the same way, keeping
+the page whose ED matches the citation. The same shape will serve
+FamilySearch once its API is open.
+
+### C15. A held census page is held only under the apid it was archived by
+
+Ancestry cites each household member under their own record id, so the 1900
+page archived at Charlotte D Lukens's apid does not count as held for Milton
+Reager Lukens, whose citations name the same page under his apid; his facts
+stay "record not held" and his baseline cannot be completed. The citation's
+own details (collection, roll, page, ED) identify the page: on attach, write
+every apid whose citation page text matches into `artifact_locator`, and let
+the held rule read locators, not only the artifact's first one.
+
+### C16. The 1950 connector reads only the first page of results
+
+`nara_1950` judges hits on the first 25 schedules the site returns; a search
+without a county (no residence near 1950 in the foundation) answers thousands
+and the person sought may sit on a later page. Page while the total stays
+small, or ask the person for a county on the step before searching a whole
+state.
+
+### C17. Basis word on residences
 
 The foundation shows basis `mixed` on the residence trail; the docs define
 only `accepted`, `lead`, `row` and `citation`. Give each residence its own

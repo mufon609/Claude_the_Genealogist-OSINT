@@ -165,7 +165,7 @@ def build(cat: Catalog, pid: str):
             if y == 1890: row("A", "census household", "no-match", ["D01"], "", None, na="1890 schedules lost", instance=str(y)); continue
             note = "head of household only; counted, not named" if y < 1850 else "everyone in the house: ages, birthplaces, relationships"
             near = next((e for e in ev if e["type"] == "Residence" and e["year"] and abs(e["year"] - y) <= 5 and e["place"]), None)
-            row("A", "census household", MATCH["census"](y), ["D01", "D03"], note,
+            row("A", "census household", MATCH["census"](y), ["D05" if y == 1950 else "D01", "D03"], note,
                 ("household", fields(year=ROW(y), place=F(near["place"]["text"], near["basis"]) if near else None)),
                 household=True, instance=str(y))
         for st_, years in STATE_CENSUS.items():
