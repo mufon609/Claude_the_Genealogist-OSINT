@@ -13,17 +13,18 @@ is written to search_log with the fields as rendered. Nothing here runs a
 search against a source: automatic connectors do not exist yet, so there is no
 Go button.
 """
-import argparse, glob, json, mimetypes, os, re, shutil, sqlite3, sys, threading, urllib.parse
+import argparse, glob, json, mimetypes, os, re, sqlite3, sys, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
-from treelib import active_tree_slug, archive_object, dumps, imports_dir, inbox_dir, now, ulid
+from treelib import active_tree_slug, dumps, inbox_dir, now, ulid
 from catalog import Catalog, held_apids, holders
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
-from extract import Writer, extract as extract_html
+from extract import Writer
 from match import match as match_personas
+from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -160,50 +161,26 @@ def plan_view(cx, pid):
                       "expected": s["expected"], "rationale": s["rationale"], "logs": logs})
     return {"questions": questions, "steps": steps}
 
-def source_row(cx, sid):
-    r = cx.execute("SELECT id, trust_tier, terms, cost FROM source WHERE id=?", (sid,)).fetchone() if sid else None
-    return dict(r) if r else {}
-
-def cost_of(text):
-    t = (text or "").strip().lower()
-    return next((c for c in ("free", "paid", "member") if t.startswith(c)), "unknown")
-
-def archive_inbox_file(cx, slug, name, st, note):
-    """Archive a file the person saved to inbox/ for a step and file the original under the tree. Bytes already in the archive are
-    linked, not copied. Provenance comes from the registry: the record's kind (the step's first source) gives the trust tier; where
-    it was retrieved (the step's locator source) gives terms and cost. Returns (sha256, True when the bytes are new, mime)."""
-    src = os.path.join(inbox_dir(), os.path.basename(name))
-    if not os.path.isfile(src): raise ValueError("file not in inbox")
-    ts = now(); filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)
-    mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
-    source_id, lkind, lvalue, col_id = st["locator_source_id"], st["locator_kind"] or "file", st["locator_value"], st["collection_id"]
-    col = cx.execute("SELECT name FROM collection WHERE id=?", (col_id,)).fetchone() if col_id else None
-    sources = json.loads(st["sources_json"])
-    kind_row = source_row(cx, sources[0] if sources else None); from_row = source_row(cx, source_id) or kind_row
-    with open(src, "rb") as fh: data = fh.read()
-    sha, new = archive_object(cx, data, mime=mime, source_id=source_id or (sources[0] if sources else None), collection_id=col_id, collection_name=col["name"] if col else None,
-                              locator_kind=lkind, locator_value=lvalue or os.path.basename(src), retrieved_by=CFG["by"], terms=from_row.get("terms"), cost=cost_of(from_row.get("cost")),
-                              trust_tier=kind_row.get("trust_tier") or from_row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
-    shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
-    return sha, new, mime
-
 def log_step(cx, tree_id, slug, step_id, body):
-    """Write one run of a step. A found run with a file archives the file and records it on the log, then a record page new to
-    the archive is parsed and matched (the log row first, so the matcher knows which step the record came through; an image
-    waits for a transcription); the assertion and personas come later from extraction and review, never from the attach."""
+    """Write one run of a step. A found run with a file attaches the file (tools/attach.py): archived once, a found run logged
+    on the step the person chose and on every other step the record's own identity fulfils, then a record page new to the
+    archive is parsed and matched; the assertion and personas come later from extraction and review, never from the attach."""
     st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone()
     if not st: return {"error": "step not found"}
     outcome = body.get("outcome"); note = body.get("note") or None; query = body.get("query") or rendered_query(st["query_json"], st["revisions_json"])
-    artifacts, unparsed, new, mime = [], None, False, None
     if outcome == "found" and body.get("file"):
-        try: sha, new, mime = archive_inbox_file(cx, slug, body["file"], st, note); artifacts.append(sha)
+        path = os.path.join(inbox_dir(), os.path.basename(body["file"]))
+        if not os.path.isfile(path): return {"error": "file not in inbox"}
+        kind, value, parsed = (None, None, None)
+        if (mimetypes.guess_type(path)[0] or "").startswith("text/html"):
+            with open(path, "rb") as fh: kind, value, parsed = attach_identity(fh.read().decode("utf-8", errors="replace"))
+        steps = [st] + [s for s in (attach_steps_for(cx, tree_id, kind, value, parsed) if kind else []) if s["id"] != st["id"]]
+        try: r = attach_file(cx, tree_id, slug, body["file"], steps, CFG["by"], note=note, query=query)
         except ValueError as e: return {"error": str(e)}
-    lid = log_search(cx, tree_id, CFG["by"], step_id=step_id, outcome=outcome, artifacts=artifacts or None, note=note, query=query)
-    if new and mime.startswith("text/html"):
-        eid, n = extract_html(cx, sha, CFG["by"])
-        if "failed" in n: unparsed = n["failed"]
-        else: match_personas(cx, eid, CFG["by"])
-    return {"ok": True, "log": lid, "artifacts": artifacts, "unparsed": unparsed}
+        return {"ok": True, "log": r["logs"][0][1] if r["logs"] else None, "artifacts": [r["sha256"]], "unparsed": r["unparsed"], "identity": f"{kind} {value}" if kind else None,
+                "steps": [s["id"] for s in steps], "proposals": len(r["proposals"])}
+    lid = log_search(cx, tree_id, CFG["by"], step_id=step_id, outcome=outcome, artifacts=None, note=note, query=query)
+    return {"ok": True, "log": lid, "artifacts": [], "unparsed": None}
 
 def revise_step(cx, tree_id, step_id, body):
     """Store the person's include/revise for a step: {field: {"include": false} | {"value": "..."}}."""

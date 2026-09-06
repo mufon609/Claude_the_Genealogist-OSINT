@@ -147,6 +147,12 @@ saved page a quarter of the rendered size, nothing transcribed. If the
 browser is set to ask where to save each download, turn that off first or
 answer the dialog by hand; a dialog left open blocks every later browser
 call. Never encode a page and read it out through the model in slices.
+`tools/attach_inbox.py` then takes every file in `inbox/`: it reads the
+record's own identity from the file (the memorial id, the ark), archives it
+once, logs a found run on every fetch step whose citation carries that
+identity, and runs the extractor and matcher once; the screen's own attach
+does the same for the step the person chose plus every other step the record
+fulfils. A file whose identity matches no step stays in the inbox.
 
 A source is `auto` only when its registry row names a built connector (the
 `Connector` column of `data/data-sources.csv`): `loc_gov` on H01 (Chronicling

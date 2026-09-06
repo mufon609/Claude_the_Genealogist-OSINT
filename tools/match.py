@@ -13,7 +13,9 @@ own step and question on the proposal, a relative takes the context they were
 first met in. Every persona on the extraction is compared with
 each candidate on name, sex, birth year and stated relationships. A persona fits
 a candidate when the given name agrees, the surname or a relationship agrees,
-and neither sex nor birth year disagrees. One proposal per persona: kind
+and neither sex nor birth year disagrees; the surname agrees when any token of
+the record's name after the given name is a surname the tree has for the
+candidate (a memorial writes a married woman's birth surname inside her name). One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
 two fit, the other named in the rationale), or new_person when nobody fits. The
 proposal carries the question of the step the candidate came from, when it has
@@ -42,15 +44,17 @@ def name_keys(cat, pid):
     return keys
 
 def split_persona_name(name_text):
-    parts = (name_text or "").replace(",", " ").split()
-    return (first_given(parts[0]) if parts else "", key(parts[-1]) if len(parts) > 1 else "")
+    """(first given name key, [every later token's key]): a memorial writes a woman's name with her birth surname inside it
+    (Helen Sara Brant Ahearn), so any token after the given name may be the surname the tree knows."""
+    parts = [p for p in (name_text or "").replace(",", " ").split() if key(p)]
+    return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:]])
 
 def compare(cat, persona, cand, chosen):
     """Agreements, disagreements and absences between a persona and a candidate person, in words."""
     agree, disagree, absent = [], [], []
-    pg, ps = split_persona_name(persona["name"]); keys = name_keys(cat, cand["id"])
+    pg, rest = split_persona_name(persona["name"]); keys = name_keys(cat, cand["id"]); ps = rest[-1] if rest else ""
     given_ok = any(pg and pg == g for g, _ in keys) or any(pg and len(pg) == 1 and g.startswith(pg) for g, _ in keys)
-    surname_ok = any(ps and ps == s for _, s in keys)
+    surname_ok = any(t and t == s for t in rest for _, s in keys)
     (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     if ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     else: absent.append("surname")
@@ -65,7 +69,7 @@ def compare(cat, persona, cand, chosen):
         other_cand = chosen.get(other_pid)
         if not other_cand: absent.append(f"relationship to {other_name} ({as_written}): {other_name} not yet matched"); continue
         fam = cat.family(cand["id"]); group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
-        if group is None: absent.append(f"relationship to {other_name} ({as_written}) is not a family link"); continue
+        if group is None: absent.append(f"relationship to {other_name} ({as_written}): the record's heading is not one the matcher maps to a family link"); continue
         holds = any(rid == other_cand["id"] for rid, _ in fam[group])
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
@@ -88,7 +92,9 @@ def candidate(cat, pid):
 def persons_for(cx, sha):
     """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, a fetch step pointing at
     its locator, or an accepted persona link on it (question and step None)."""
-    rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ?""", (f'%"{sha}"%',)).fetchall()
+    rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id, sp.on_json='[]' AS own, l.executed_at, sp.seq FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
+                          WHERE l.artifacts_json LIKE ? ORDER BY own DESC, l.executed_at, sp.seq""", (f'%"{sha}"%',)).fetchall()
+    rows = [r[:3] for r in rows]                                  # the step whose citation sits on the person themselves first, then in the order logged
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if loc and loc[0] and loc[1]:
         values = sorted(same_page(cx, loc[1])) if loc[0] == "apid" else [loc[1]]

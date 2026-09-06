@@ -235,8 +235,10 @@ every checklist row and footprint record then shows its step, its log, and
 three ways to log a run: nothing found, blocked, or found with a file picked
 from `inbox/`, which archives the file (bytes already in the archive are
 linked, not copied), files a copy under the tree, and records it on the step's
-log. No assertion is written by the attach; that comes from extraction and
-review. A fact-level question has one Dismiss control, and a dismissed
+log and on every other step the record's own identity fulfils (the memorial id
+or ark read from the file), then parses and matches the page; the same path
+`tools/attach_inbox.py` runs over the whole inbox. No assertion is written by
+the attach; that comes from extraction and review. A fact-level question has one Dismiss control, and a dismissed
 question stays closed when the plan is refreshed. Name and sex share the
 person-level citations from the import, so deciding one decides the other,
 and accepting a person's children accepts the same link seen from the child's

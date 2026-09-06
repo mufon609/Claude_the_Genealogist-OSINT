@@ -63,6 +63,7 @@ python3 tools/checklist.py "<person>"       # read-only checklist + gaps (footpr
 python3 tools/footprint.py "<person>"       # read-only Layer 0 on its own
 python3 tools/plan.py --all                 # materialize questions + steps (idempotent)
 python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --step/--outcome to log a run; --dismiss <question>
+python3 tools/attach_inbox.py               # every inbox file to the fetch steps its own identity fulfils: archived once, logged, extracted, matched
 python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial, FamilySearch record, Ancestry index; HTML)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
