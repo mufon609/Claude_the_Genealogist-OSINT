@@ -13,7 +13,7 @@ table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:5px 8px 
 .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}.seg button{border:0;background:none;color:var(--fg);padding:3px 9px;cursor:pointer;font:inherit}
 .seg button.on-accepted{background:var(--ok);color:#fff}.seg button.on-rejected{background:var(--bad);color:#fff}.seg button.on-undecided{background:var(--line)}
-.st{display:inline-block;min-width:58px;font-size:12px;color:var(--mut)}.st.held{color:var(--ok);font-weight:600}.st.cited{color:var(--acc)}.st.missing{color:var(--fg)}
+pre.card-text{white-space:pre-wrap;font-size:12px;margin:4px 0 6px;padding:6px 8px;background:var(--bg);border:1px solid var(--line);border-radius:4px}.st{display:inline-block;min-width:58px;font-size:12px;color:var(--mut)}.st.held{color:var(--ok);font-weight:600}.st.cited{color:var(--acc)}.st.missing{color:var(--fg)}
 tr.row{cursor:pointer}tr.row:hover td{background:var(--sel)}tr.row.on td{background:var(--sel)}
 input[type=text],input[type=search]{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
 .fx{display:flex;gap:16px;align-items:flex-start}.fx>*{flex:1;min-width:0}
@@ -99,9 +99,10 @@ function show(grp,i){SEL={grp,i};document.querySelectorAll('tr.row').forEach(e=>
  if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open at ${h(c.holder)} ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
  if(r.status==='missing'&&!r.search)html+=`<div class="mut">Search steps for missing records come after the baseline is reviewed.</div>`;
  if(steps.some(s=>s.kind==='search'))html+=`<div class="mut">Automatic sources are not wired yet; for assisted sources open the source, search with the fields below, and log the result here.</div>`;
- rc.innerHTML=html+stepsHtml(steps);inbox();records(steps)}
-function shasOf(steps){const out=[];for(const s of steps){if(s.archived&&!out.includes(s.archived))out.push(s.archived);for(const l of s.logs){for(const sha of JSON.parse(l.artifacts_json||'[]'))if(!out.includes(sha))out.push(sha)}}return out}
-async function records(steps){const shas=shasOf(steps);if(!shas.length)return;const box=document.createElement('div');box.id='records';$('#rc').appendChild(box);
+ rc.innerHTML=html+stepsHtml(steps);inbox();records(steps,r)}
+function shasOf(steps,row){const out=[];for(const s of steps){if(s.archived&&!out.includes(s.archived))out.push(s.archived);for(const l of s.logs){for(const sha of JSON.parse(l.artifacts_json||'[]'))if(!out.includes(sha))out.push(sha)}}
+ for(const c of (row&&row.citations)||[]){if(c.sha256&&!out.includes(c.sha256))out.push(c.sha256)}return out}
+async function records(steps,row){const shas=shasOf(steps,row);if(!shas.length)return;const box=document.createElement('div');box.id='records';$('#rc').appendChild(box);
  for(const sha of shas){const a=await api('/api/artifact/'+sha+'?person='+P.person.id);if(!a.error)box.insertAdjacentHTML('beforeend',recordHtml(a))}}
 function factLine(f){return `${h(f.type)}: ${h([f.value,f.date,f.place].filter(Boolean).join(' · '))}`}
 function recordHtml(a){const id=a.sha256.slice(0,12);
@@ -110,7 +111,7 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
   for(const p of e.personas){const props=(a.proposals||[]).filter(x=>x.persona_id===p.id);
    html+=`<div style="margin:4px 0 8px 10px"><b>${h(p.name)}</b> <span class="mut">${h([p.role,p.sex].filter(Boolean).join(', '))}</span>${p.link?` <span class="pill">${h(p.link)} for this person</span>`:''}
    ${p.facts.map(f=>`<div class="mut" style="font-size:12px">${factLine(f)}</div>`).join('')}${p.relations.map(r=>`<div class="mut" style="font-size:12px">${h(r.kind)} of ${h(r.other)}${r.text?` (${h(r.text)})`:''}</div>`).join('')}
-   ${props.map(x=>`<div style="margin-top:4px"><span class="pill">${h(x.kind.replace('_',' '))}${x.person?': '+h(x.person):''}</span> <span class="pill">${h(x.status)}</span> ${h(x.rationale)}${x.status==='undecided'?` <span class="seg"><button onclick="decideProposal('${x.id}','accepted')">Accept</button><button onclick="decideProposal('${x.id}','rejected')">Reject</button></span>`:''}</div>`).join('')}</div>`}}
+   ${props.map(x=>`<div style="margin-top:4px"><span class="pill">${h(x.kind.replace('_',' '))}${x.person?': '+h(x.person):''}</span> <span class="pill">${h(x.status)}</span>${x.status==='undecided'?` <span class="seg"><button onclick="decideProposal('${x.id}','accepted')">Accept</button><button onclick="decideProposal('${x.id}','rejected')">Reject</button></span>`:''}${x.card_text?`<pre class="card-text">${h(x.card_text)}</pre>`:` ${h(x.rationale)}`}</div>`).join('')}</div>`}}
  if(!a.personas_on_record.length)html+=`<div class="mut">No persona on this record yet${a.mime.startsWith('image/')?' (an image is transcribed by hand)':''}. Transcribe one person at a time:</div>`;
  const opts=a.personas_on_record.map(p=>`<option value="${p.id}">${h(p.name)}</option>`).join('');
  html+=`<details ${a.personas_on_record.length?'':'open'}><summary>Transcribe a person from this record</summary><table class="fields">

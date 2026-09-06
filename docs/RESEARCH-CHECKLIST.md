@@ -253,11 +253,25 @@ a form to transcribe one person at a time (name, role, sex, age, birth, death,
 residence, a relation to a persona already on the record). Under each
 persona sit the matcher's proposals on the record (a record cited on several
 relatives is fetched for all of them, and each proposal names the person it
-concerns), with their rationale in words and Accept / Reject on a persona
-match or a new person; an accept says how many questions it answered. Automatic
-sources are not wired yet, so there is no Go button: assisted sources are
-worked by opening the link, searching with the step's fields, and logging the
-result.
+concerns), each as the decision card, with Accept / Reject on a persona match
+or a new person; an accept says how many questions it answered. A held row
+opens its record through the citation's archived artifact as well as through
+a step. Automatic sources are not wired yet, so there is no Go button:
+assisted sources are worked by opening the link, searching with the step's
+fields, and logging the result.
+
+**The decision card.** Every proposal put to the owner, on the screen and from
+`tools/cards.py`, is one card with the same parts in the same order: a one-line
+highlight of what the record is and the links it makes; the person and the
+fact or link, with the file's claim; the record with its holder, collection,
+own identity and trust tier; the primary document, as the archived copy and the
+holder's page; what the record says field by field against the claim, each
+field agrees, disagrees or absent (a date and a place are two fields); the
+relationships it states and how each persona on the record stands (accepted
+as, proposed as, a new person, no proposal); what accepting closes, from the
+step's question when it has one and from the checklist row otherwise; anything
+odd. The same card, with the same parts, when the owner decides on a source.
+No scores, and no count dressed as one.
 
 ## 7. What this maps to in the schema
 

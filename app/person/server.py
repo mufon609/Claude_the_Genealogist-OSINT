@@ -18,13 +18,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, dumps, inbox_dir, now, ulid
-from catalog import Catalog, held_apids, holders
+from catalog import Catalog, fetch_target, held_apids
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer
 from match import match as match_personas
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
+from cards import card as decision_card, render as render_card
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -73,34 +74,6 @@ def evidence_rows(cx, pid, field):
             out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid,
                         **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": visible})
     return out
-
-HOLDERS = holders()
-
-def fetch_target(apid, url=None, fields=None):
-    """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave; the free
-    holder's own search prefilled from the step's fields (the citation's details, never the person's facts) when they are given,
-    else its collection page; Ancestry's record page when no free holder is known (a membership is needed there)."""
-    m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
-    if not m: return {"url": None, "holder": None}
-    h = (HOLDERS.get(m.group(1)) or [None])[0]
-    if h and h["HolderKind"] == "memorial" and url: return {"url": url, "holder": h["HolderCollection"]}
-    if h and h["HolderKind"] != "memorial": return {"url": holder_search(h, fields) or h["URL"], "holder": h["HolderCollection"]}
-    return {"url": f"https://www.ancestry.com/discoveryui-content/view/{m.group(2)}:{m.group(1)}", "holder": "Ancestry"}
-
-def holder_search(h, fields):
-    """The holder's own search URL from a fetch step's fields. FamilySearch: the collection search as the site itself builds it
-    (f.collectionId, q.givenName, q.residenceDate.from/to and q.residencePlace from the citation's year and census place, q.surname).
-    The National Archives 1950 site: its name search. None when the fields carry no name."""
-    v = lambda k: ((fields or {}).get(k) or {}).get("value")
-    name = (v("name") or "").split()
-    if not name: return None
-    if h["HolderKind"] == "fs_collection":
-        q = [("f.collectionId", h["HolderKey"]), ("q.givenName", " ".join(name[:-1]) or name[0])]
-        if v("year") and v("census place"): q += [("q.residenceDate.from", v("year")), ("q.residenceDate.to", v("year")), ("q.residencePlace", v("census place"))]
-        q.append(("q.surname", name[-1]))
-        return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
-    if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(name))], quote_via=urllib.parse.quote)
-    return None
 
 def vouch(cx, tree_id, pid, field, ts):
     """The person accepts a key fact on their own knowledge: one Accepted assertion per subject of the fact, by the person acting,
@@ -209,11 +182,13 @@ def artifact_view(cx, tree_id, sha, pid):
             link = cx.execute("SELECT status FROM person_persona WHERE persona_id=? AND person_id=?", (p["id"], pid)).fetchone()
             personas.append({"id": p["id"], "name": p["name_text"], "sex": p["sex"], "role": p["role_in_record"], "facts": facts, "relations": rels, "link": link["status"] if link else None})
         exts.append({"id": e["id"], "extractor": f"{e['kind']}:{e['name']}" + (f"@{e['version']}" if e["version"] else ""), "ran_at": e["ran_at"], "personas": personas})
-    proposals = [{"id": r["id"], "kind": r["kind"], "status": r["status"], "rationale": r["rationale"], "persona_id": json.loads(r["payload_json"])["persona_id"],
-                  "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"]}
-                 for r in cx.execute("""SELECT p.id, p.kind, p.status, p.rationale, p.payload_json, c.display_name AS candidate FROM proposal p
-                                        LEFT JOIN person c ON c.id=json_extract(p.payload_json,'$.person_id')
-                                        WHERE p.tree_id=? AND json_extract(p.payload_json,'$.artifact_sha256')=? ORDER BY p.created_at""", (tree_id, sha))]
+    proposals = []
+    for r in cx.execute("""SELECT p.id, p.kind, p.status, p.rationale, p.payload_json, c.display_name AS candidate FROM proposal p
+                           LEFT JOIN person c ON c.id=json_extract(p.payload_json,'$.person_id')
+                           WHERE p.tree_id=? AND json_extract(p.payload_json,'$.artifact_sha256')=? ORDER BY p.created_at""", (tree_id, sha)):
+        c = decision_card(cx, tree_id, r["id"]) if r["kind"] in ("persona_match", "new_person") else None      # the same card the cards tool prints
+        proposals.append({"id": r["id"], "kind": r["kind"], "status": r["status"], "rationale": r["rationale"], "persona_id": json.loads(r["payload_json"])["persona_id"],
+                          "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"], "card": c, "card_text": render_card(c) if c else None})
     return {"sha256": sha, "mime": a["mime"], "tier": a["trust_tier"], "filename": a["original_filename"], "collection": col["name"] if col else None,
             "url": fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else None, "extractions": exts, "proposals": proposals,
             "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
@@ -371,7 +346,7 @@ def person_view(cx, tree_id, pid):
     r["family"] = {k: [{"id": i, "name": n} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
     held = cat.held_apids(); cited = cat.cited()
     for row in r["checklist"]["A"] + r["checklist"]["B"]:
-        for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["held"] = c["apid"] in held
+        for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["held"] = c["apid"] in held; c["sha256"] = held.get(c["apid"])   # a held row opens its record through the artifact
     for rec in r["footprint"]["records"]: rec.update(fetch_target(rec.get("apid"), cited.get(rec.get("apid"), {}).get("url")))
     return r
 
