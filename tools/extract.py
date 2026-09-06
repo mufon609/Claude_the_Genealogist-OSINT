@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Extract personas and facts from an archived Ancestry record page (HTML).
+"""Extract personas and facts from an archived record page (HTML): an Ancestry index page or a Find a Grave memorial.
 
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
 
-One extraction by extractor rule:ancestry-index@0.1.0 over the artifact, with:
+The page's kind is read from the page itself: a Find a Grave memorial (body id
+memorial-summary) goes to extractor rule:findagrave-memorial@0.1.0, anything
+else to rule:ancestry-index@0.1.0. One extraction per run over the artifact, with:
   persona          one per person the page names: the record's subject, each
                    household member, and each relative named in a field
                    (Father, Mother, Spouse, Informant). role_in_record is the
@@ -21,21 +23,37 @@ One extraction by extractor rule:ancestry-index@0.1.0 over the artifact, with:
                    subject (kind parent, "Father's name"), value_text as
                    written.
 extraction.structured_json holds the raw parsed page: every label/value pair
-and every table. Re-running inserts a new extraction and marks the old one
-superseded.
+and every table. Re-running inserts a new extraction, marks the old one
+superseded, and rejects the old one's undecided proposals with the note
+superseded: they rested on personas that are no longer current.
 
-Page structure assumed: the record's fields are rows of a table with a label
-cell (th, or the first cell) and a value cell; a table whose header row has a
-Name column lists household members, one per row (a Relationship column, when
-present, is the member's role). Anything the page does not carry is absent.
+Page structure assumed for an Ancestry index page: the record's fields are rows
+of a table with a label cell (th, or the first cell) and a value cell; a table
+whose header row has a Name column lists household members, one per row (a
+Relationship column, when present, is the member's role). Anything the page
+does not carry is absent.
+
+A Find a Grave memorial (verified on a real page): the subject's name in the
+h1 bio-name; birth and death as the time/span and place elements birthDateLabel,
+birthLocationLabel, deathDateLabel ("10 Oct 1961 (aged 81)", the age becomes an
+Age fact), deathLocationLabel; the cemetery name and its address spans as the
+Burial place, the plot (plotValueLabel) as the Burial fact's value and the
+inscription (inscriptionValue) as an Unknown fact, both absent on the verified
+page; the memorial id as an Identification Number fact. Family members are the
+member-family lists, each labelled Parents, Spouse, Siblings or Children: one
+persona per member in the label's role word, with the name as written (a
+maiden name is italic on the page and kept inside the name), the birth and
+death years, and one relation from the member to the subject (parent, spouse,
+sibling, child) with the label as written. The member's own memorial URL is in
+its region_json. structured_json holds the fields, the members, the source
+block (created by, added, citation) and the photo captions.
 """
 import argparse, html, os, re, sqlite3, sys
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 
-EXTRACTOR = ("rule", "ancestry-index", "0.1.0")
-EXTRACTOR_TAG = "rule:ancestry-index@0.1.0"
+EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0")}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
 LABELS = [
@@ -78,6 +96,74 @@ class Page(HTMLParser):
         if self.stack and self.stack[-1]["rows"] and self.stack[-1]["rows"][-1]: self.stack[-1]["rows"][-1][-1]["text"].append(data)
 
 def clean(s): return re.sub(r"[ \t\r\f\v]+", " ", html.unescape(s)).strip().strip(":").strip()
+
+class Tree(HTMLParser):
+    """A light element tree: {tag, attrs, children} nodes with text children as strings."""
+    VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
+    def __init__(self):
+        super().__init__(convert_charrefs=True); self.root = {"tag": "root", "attrs": {}, "children": []}; self.stack = [self.root]
+    def handle_starttag(self, tag, attrs):
+        node = {"tag": tag, "attrs": dict(attrs), "children": []}; self.stack[-1]["children"].append(node)
+        if tag not in self.VOID: self.stack.append(node)
+    def handle_endtag(self, tag):
+        for i in range(len(self.stack) - 1, 0, -1):
+            if self.stack[i]["tag"] == tag: del self.stack[i:]; break
+    def handle_data(self, data): self.stack[-1]["children"].append(data)
+
+def walk(node):
+    yield node
+    for c in node["children"]:
+        if isinstance(c, dict): yield from walk(c)
+
+def text_of(node):
+    """The node's text with whitespace collapsed, a br as a newline."""
+    out = []
+    for c in node["children"]:
+        if isinstance(c, str): out.append(c)
+        elif c["tag"] == "br": out.append("\n")
+        elif c["tag"] not in ("script", "style"): out.append(text_of(c))
+    norm = lambda line: html.unescape(line).strip()
+    return "\n".join(norm(line) for line in re.sub(r"[ \t\r\f\v]+", " ", "".join(out)).split("\n") if norm(line))
+
+def by_id(root, id_): return next((n for n in walk(root) if n["attrs"].get("id") == id_), None)
+
+def parse_memorial(text):
+    """A Find a Grave memorial page: {"kind": "findagrave", "title", "fields": [[label, value]], "memorial_id", "members": [...], "source": {...}, "photo_captions": [...]}."""
+    t = Tree(); t.feed(text); root = t.root
+    get = lambda i: (text_of(by_id(root, i)) or None) if by_id(root, i) else None
+    fields = []
+    add = lambda label, value: fields.append([label, value]) if value else None
+    add("Name", get("bio-name")); add("Birth Date", get("birthDateLabel")); add("Birth Place", get("birthLocationLabel"))
+    add("Death Date", get("deathDateLabel")); add("Death Place", get("deathLocationLabel"))
+    cemetery = [get(i) for i in ("cemeteryNameLabel", "cemeteryCityName", "cemeteryCountyName", "cemeteryStateName", "cemeteryCountryName")]
+    add("Burial Place", ", ".join(x for x in cemetery if x)); add("Plot", get("plotValueLabel")); add("Inscription", get("inscriptionValue"))
+    memorial_id = get("memNumberLabel"); add("Memorial ID", memorial_id)
+    members = []
+    for ul in (n for n in walk(root) if n["tag"] == "ul" and "member-family" in (n["attrs"].get("class") or "")):
+        label_node = by_id(root, ul["attrs"].get("aria-labelledby") or ""); label = text_of(label_node) if label_node else "Family"
+        for li in (c for c in ul["children"] if isinstance(c, dict) and c["tag"] == "li"):
+            a = next((n for n in walk(li) if n["tag"] == "a" and n["attrs"].get("href")), None)
+            h3 = next((n for n in walk(li) if n["tag"] == "h3"), None)
+            if not h3: continue
+            maiden = next((text_of(n) for n in walk(h3) if n["tag"] == "i"), None)
+            years = {n["attrs"]["itemprop"]: text_of(n) for n in walk(li) if n["attrs"].get("itemprop") in ("birthDate", "deathDate")}
+            members.append({"label": label, "name": text_of(h3).replace("\n", " "), "maiden": maiden, "birth": years.get("birthDate"), "death": years.get("deathDate"),
+                            "url": a["attrs"]["href"] if a else None})
+    src = by_id(root, "source"); source = {}
+    if src:
+        for li in (c for c in src["children"] if isinstance(c, dict) and c["tag"] == "li"):
+            line = text_of(li).replace("\n", " ")
+            if "citation" in (li["attrs"].get("class") or ""): source["citation"] = re.sub(r"^Source (Hide|Show) citation ", "", line)
+            elif line.startswith("Created by"): source["created_by"] = line
+            elif line.startswith("Added"): source["added"] = line
+    captions = [text_of(n).replace("\n", " ") for n in walk(root) if "photo-text" in (n["attrs"].get("class") or "") and text_of(n)]
+    title = next((text_of(n) for n in walk(root) if n["tag"] == "title"), "")
+    return {"kind": "findagrave", "title": title, "fields": fields, "memorial_id": memorial_id, "members": members, "source": source, "photo_captions": captions}
+
+def parse(text):
+    """The page's kind and its parsed form: a Find a Grave memorial, else an Ancestry index page."""
+    if re.search(r'<body[^>]*\bid="memorial-summary"', text): return "findagrave", parse_memorial(text)
+    return "ancestry", parse_page(text)
 
 def parse_page(text):
     """{"title", "fields": [[label, value]], "household": [{"columns": [...], "rows": [[...]]}], "tables": raw} from the HTML."""
@@ -194,23 +280,55 @@ def write_personas(w, parsed):
         for pid, rel in members:
             if pid != head: w.relation(pid, head, household_kind(rel) if rel else "household", rel, "household")
 
+MEMBER_KIND = {"parents": "parent", "spouse": "spouse", "spouses": "spouse", "siblings": "sibling", "half siblings": "sibling", "children": "child"}
+
+def write_memorial(w, parsed):
+    """The memorial's subject with its facts, then one persona per family member with a relation to the subject."""
+    f = dict(parsed["fields"])
+    name = f.get("Name") or parsed["title"] or "(unnamed)"
+    subject = w.persona(name, None, "memorial", 1, {"label": "memorial", "memorial_id": parsed.get("memorial_id")})
+    w.fact(subject, "Name", name, labels=["Name"])
+    if f.get("Birth Date") or f.get("Birth Place"): w.fact(subject, "Birth", None, f.get("Birth Date"), f.get("Birth Place"), [k for k in ("Birth Date", "Birth Place") if f.get(k)])
+    if f.get("Death Date") or f.get("Death Place"):
+        m = re.fullmatch(r"(.*?)\s*\(aged (.+?)\)", f.get("Death Date") or "")
+        w.fact(subject, "Death", None, m.group(1) if m else f.get("Death Date"), f.get("Death Place"), [k for k in ("Death Date", "Death Place") if f.get(k)])
+        if m: w.fact(subject, "Age", f"aged {m.group(2)}", labels=["Death Date"])
+    if f.get("Burial Place") or f.get("Plot"): w.fact(subject, "Burial", f"Plot: {f['Plot']}" if f.get("Plot") else None, None, f.get("Burial Place"), [k for k in ("Burial Place", "Plot") if f.get(k)])
+    if f.get("Inscription"): w.fact(subject, "Unknown", f"Inscription: {f['Inscription']}", labels=["Inscription"])
+    if parsed.get("memorial_id"): w.fact(subject, "Identification Number", parsed["memorial_id"], labels=["Find a Grave Memorial ID"])
+    for seq, m in enumerate(parsed["members"], 2):
+        kind = MEMBER_KIND.get(m["label"].lower(), "other"); role = m["label"].lower().rstrip("s") if kind != "other" else m["label"].lower()
+        if kind == "child": role = "child"
+        pid = w.persona(m["name"], None, role, seq, {"label": m["label"], "url": m.get("url"), "maiden": m.get("maiden")})
+        w.fact(pid, "Name", m["name"], labels=[m["label"]])
+        if m.get("birth"): w.fact(pid, "Birth", None, m["birth"], None, ["birthDate"])
+        if m.get("death"): w.fact(pid, "Death", None, m["death"], None, ["deathDate"])
+        w.relation(pid, subject, kind, m["label"], m["label"])
+
 def extract(cx, sha, by):
     art = cx.execute("SELECT sha256, mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if not art: raise SystemExit(f"not in the archive: {sha[:12]}")
     if not (art[1] or "").startswith("text/html"): raise SystemExit(f"not an HTML page: {art[1]}")
-    with open(object_path(sha), encoding="utf-8", errors="replace") as fh: parsed = parse_page(fh.read())
-    ts = now()
-    row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", EXTRACTOR).fetchone()
+    with open(object_path(sha), encoding="utf-8", errors="replace") as fh: kind, parsed = parse(fh.read())
+    extractor = EXTRACTORS[kind]; ts = now()
+    row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", extractor).fetchone()
     ext_id = row[0] if row else ulid()
-    if not row: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ext_id, *EXTRACTOR, ts))
+    if not row: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ext_id, *extractor, ts))
     eid = ulid()
-    full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"]) + "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
+    full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"])
+    if kind == "ancestry": full_text += "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
+    else: full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
                (eid, sha, ext_id, ts, full_text, dumps(parsed)))
+    old = [r[0] for r in cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND id<>? AND superseded_by IS NULL", (sha, ext_id, eid))]
     cx.execute("UPDATE extraction SET superseded_by=? WHERE artifact_sha256=? AND extractor_id=? AND id<>? AND superseded_by IS NULL", (eid, sha, ext_id, eid))
-    w = Writer(cx, sha, eid); write_personas(w, parsed)
+    for o in old:                                                # a superseded extraction's undecided proposals rest on personas no longer current
+        cx.execute("""UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note='superseded'
+                      WHERE status='undecided' AND json_extract(payload_json,'$.extraction_id')=?""", (by, ts, o))
+    w = Writer(cx, sha, eid)
+    (write_memorial if kind == "findagrave" else write_personas)(w, parsed)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
-               (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": EXTRACTOR_TAG, **w.n})))
+               (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
     return eid, w.n
 
 def main():

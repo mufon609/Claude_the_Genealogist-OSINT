@@ -238,8 +238,10 @@ panel also shows each record its steps archived: the file, its extractions
 with personas, facts and relations, and, when the record has no persona yet,
 a form to transcribe one person at a time (name, role, sex, age, birth, death,
 residence, a relation to a persona already on the record). Under each
-persona sit the matcher's proposals that concern this person, with their
-rationale in words and Accept / Reject on a persona match. Automatic
+persona sit the matcher's proposals on the record (a record cited on several
+relatives is fetched for all of them, and each proposal names the person it
+concerns), with their rationale in words and Accept / Reject on a persona
+match or a new person; an accept says how many questions it answered. Automatic
 sources are not wired yet, so there is no Go button: assisted sources are
 worked by opening the link, searching with the step's fields, and logging the
 result.

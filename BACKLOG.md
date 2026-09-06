@@ -55,6 +55,35 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
+### A1. FamilySearch fetch of a cited census (Phase 3 of `docs/briefs/free-holders-fetch.md`)
+
+The owner has a free FamilySearch account signed into Chrome, so the fetch
+is possible. Not started. Abram C. Brant's 1900 census step (locator
+`1,7602::47389682`, holder FamilySearch collection 1325221) carries the
+citation's own details: Year 1900, Census Place Norristown, Montgomery,
+Pennsylvania, Roll 1444, Page 2, ED 0240, indexed name Charlotte D Lukens.
+Do it in the owner's browser, one record: collection page → the collection's
+own search on the indexed name and place → the record page and its image;
+capture the record page through the DOM and download the image through the
+site's own control into `inbox/`; close the tab. On a scratch copy, archive
+both, write the FamilySearch record-page parser into `tools/extract.py`
+under its own extractor tag, compare field by field, run the matcher, report
+verbatim. The DOM capture transport that worked for Find a Grave is in this
+session's report (page cloned in-page, marker-encoded in a `<pre>`, read in
+25,000-char slices, decoded and SHA-256-verified per chunk).
+**Blocks:** nothing.
+
+### A2. Swap in the rebuilt catalog
+
+`catalog/tree-0.7.0.db` is the catalog rebuilt on schema 0.7.0 (initdb →
+tree create → ingest → resolve_places → backfill_aliases → plan, 195
+questions, 912 steps, the memorial archived). The real `catalog/tree.db` is
+still 0.6.0 and the owner's own person-screen server runs old code on it.
+Move the new file over the old one (the classifier would not let the worker
+do it), restart the server, and delete the duplicate named GEDCOM copy the
+rebuild's ingest left in `trees/ahearn/imports/`.
+**Blocks:** A1 (the fetch step it targets exists only in the rebuilt catalog).
+
 ---
 
 ## B. Parallel batch
@@ -95,17 +124,35 @@ text history independent of the binary db.
 
 ### C4. Fetcher for assisted sources
 
-Build the exact search URL and "what to look for" for Ancestry, Find a
-Grave and Newspapers.com from a gap's foundation fields; archive whatever
-the user drops in `inbox/` and attach it to the gap.
+Build the exact search URL and "what to look for" for Newspapers.com and the
+FamilySearch record search from a gap's foundation fields (fetch steps for
+cited records already carry the citation's details and the free holder's
+URL); archive whatever the user drops in `inbox/` and attach it to the gap.
+
+### C4a. Pennsylvania death and birth certificates have no free holder
+
+Power Library shows a notice that the PA State Archives collections left the
+site, and PHMC points only at Ancestry, so the steps for dbids 5164 and
+60484 stay `blocked`. Watch for the certificates reappearing at a free
+holder (PHMC, Power Library, FamilySearch) and add the row to
+`data/holders.csv`.
+
+### C4b. Question closing precedes the fact decision
+
+Accepting a persona match closes a `missing_fact` / `unverified_claim`
+question as soon as the event and its Undecided assertion exist, because
+the planner's gap definition asks for a cited event, not an accepted one.
+The later fact decision then answers nothing. Decide whether the planner
+should require an Accepted assertion before treating the gap as closed; if
+so, the close moves to the fact decision.
 
 ### C5. OCR / HTR extractor for record images
 
 Turn an archived record image into personas and persona facts by machine,
 versioned by extractor, beside the human transcription the person screen
-offers today. Verify `tools/extract.py` against a real saved Ancestry page
-first: it was built to the page structure described in its docstring, not
-against a saved page.
+offers today. The Ancestry index extractor in `tools/extract.py` is still
+unverified on a real page (Ancestry needs a membership this account lacks);
+the Find a Grave memorial extractor is verified.
 
 ### C6. Place-string review from the catalog
 

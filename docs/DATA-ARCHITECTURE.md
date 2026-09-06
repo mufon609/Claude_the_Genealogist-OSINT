@@ -112,9 +112,10 @@ outside the vendor.
    because the vendor's index is itself evidence of what they read.
 3. API responses (WikiTree, loc.gov, Open Archives) as raw JSON with the request
    URL and time. Cheap, and it makes every AI step reproducible.
-4. Web pages that cannot be fetched programmatically (Find a Grave): a
-   user-initiated save, stored as a single-file HTML plus a PDF print, with the
-   memorial ID as locator.
+4. Web pages that cannot be fetched programmatically (Find a Grave): one
+   page at a time in the owner's own browser, the rendered document captured
+   through the page's DOM as HTML, with the citation's locator and the
+   memorial URL in the manifest.
 5. Family-held material: scans at 400–600 dpi TIFF as master, JPEG derivative.
 
 ### Integrity and backup

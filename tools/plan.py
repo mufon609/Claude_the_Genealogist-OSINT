@@ -95,9 +95,10 @@ def plan_person(cx, tree_id, pid, by):
             else: qid = ulid(); cx.execute("INSERT INTO research_question (id,tree_id,subject_person_id,kind,q_key,detail_json,status,created_at) VALUES (?,?,?,?,?,?,'open',?)", (qid, tree_id, pid, kind, key, detail, ts))
             stats["questions_new"] += 1
         qid_by_key[key] = qid
+    stats["closed"] = []                                                 # the ids closed by this run, for a caller that knows what answered them
     for key, qid in existing.items():
         if key not in wanted:
-            cx.execute("UPDATE research_question SET status='closed', closed_reason='gap_gone', closed_at=? WHERE id=?", (ts, qid)); stats["questions_closed"] += 1
+            cx.execute("UPDATE research_question SET status='closed', closed_reason='gap_gone', closed_at=? WHERE id=?", (ts, qid)); stats["questions_closed"] += 1; stats["closed"].append(qid)
     have_steps = {row[1]: row[0] for row in cx.execute("SELECT id, step_key FROM search_plan WHERE person_id=?", (pid,))}
     seen, wanted_keys = {}, set()
     for seq, st in enumerate(fetches + searches, 1):
@@ -132,7 +133,8 @@ def main():
     total = {}
     for pid in pids:
         cx.execute("BEGIN"); st = plan_person(cx, tree_id, pid, a.by); cx.commit()
-        for k, v in st.items(): total[k] = total.get(k, 0) + v
+        for k, v in st.items():
+            if isinstance(v, int): total[k] = total.get(k, 0) + v
         if not a.all: print(cat.person(pid)["name"], dumps(st))
     if a.all: print(len(pids), "persons", dumps(total))
 

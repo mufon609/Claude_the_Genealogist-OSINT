@@ -110,7 +110,7 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
   for(const p of e.personas){const props=(a.proposals||[]).filter(x=>x.persona_id===p.id);
    html+=`<div style="margin:4px 0 8px 10px"><b>${h(p.name)}</b> <span class="mut">${h([p.role,p.sex].filter(Boolean).join(', '))}</span>${p.link?` <span class="pill">${h(p.link)} for this person</span>`:''}
    ${p.facts.map(f=>`<div class="mut" style="font-size:12px">${factLine(f)}</div>`).join('')}${p.relations.map(r=>`<div class="mut" style="font-size:12px">${h(r.kind)} of ${h(r.other)}${r.text?` (${h(r.text)})`:''}</div>`).join('')}
-   ${props.map(x=>`<div style="margin-top:4px"><span class="pill">${h(x.kind.replace('_',' '))}${x.person?': '+h(x.person):''}</span> <span class="pill">${h(x.status)}</span> ${h(x.rationale)}${x.kind==='persona_match'&&x.status==='undecided'?` <span class="seg"><button onclick="decideProposal('${x.id}','accepted')">Accept</button><button onclick="decideProposal('${x.id}','rejected')">Reject</button></span>`:''}</div>`).join('')}</div>`}}
+   ${props.map(x=>`<div style="margin-top:4px"><span class="pill">${h(x.kind.replace('_',' '))}${x.person?': '+h(x.person):''}</span> <span class="pill">${h(x.status)}</span> ${h(x.rationale)}${x.status==='undecided'?` <span class="seg"><button onclick="decideProposal('${x.id}','accepted')">Accept</button><button onclick="decideProposal('${x.id}','rejected')">Reject</button></span>`:''}</div>`).join('')}</div>`}}
  if(!a.personas_on_record.length)html+=`<div class="mut">No persona on this record yet${a.mime.startsWith('image/')?' (an image is transcribed by hand)':''}. Transcribe one person at a time:</div>`;
  const opts=a.personas_on_record.map(p=>`<option value="${p.id}">${h(p.name)}</option>`).join('');
  html+=`<details ${a.personas_on_record.length?'':'open'}><summary>Transcribe a person from this record</summary><table class="fields">
@@ -119,7 +119,8 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
   ${opts?`<tr><td><b>relation</b></td><td><select id="tr-${id}-rk"><option value="">—</option>${['spouse','parent','child','sibling','head','boarder','informant','other'].map(k=>`<option>${k}</option>`).join('')}</select> of <select id="tr-${id}-rp">${opts}</select> <input type="text" id="tr-${id}-rt" placeholder="as written" style="width:40%"></td></tr>`:''}
   </table><button onclick="transcribe('${a.sha256}')">Add persona</button></details>`;
  return html}
-async function decideProposal(id,status){const r=await post('/api/proposal/'+id+'/decide',{status});if(r.error){fail(r.error);return}await reload()}
+async function decideProposal(id,status){const r=await post('/api/proposal/'+id+'/decide',{status});if(r.error){fail(r.error);return}await reload();
+ if(r.answered&&r.answered.length)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">answered ${r.answered.length} question(s); plan refreshed</div>`)}
 async function transcribe(sha){const id=sha.slice(0,12);const v=k=>$('#tr-'+id+'-'+k)?.value||'';
  const body={name:v('name'),role:v('role'),sex:v('sex'),age:v('age'),birth_date:v('birth_date'),birth_place:v('birth_place'),death_date:v('death_date'),death_place:v('death_place'),residence:v('residence'),relations:v('rk')?[{kind:v('rk'),persona_id:v('rp'),text:v('rt')}]:[]};
  const r=await post('/api/artifact/'+sha+'/persona',body);if(r.error){fail(r.error);return}await reload()}
@@ -135,6 +136,7 @@ async function revise(id,field,what,val){const s=findStep(id);const rev={...s.re
 async function logStep(id,outcome){const s=findStep(id);const body={outcome,note:$('#ln-'+id)?.value||'',query:s.query};if(outcome==='found'){body.file=$('#lf-'+id)?.value;if(!body.file){fail('pick the downloaded file in inbox/ first');return}}
  const r=await post('/api/step/'+id+'/log',body);if(r.error){fail(r.error);return}
  await reload();$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">logged: ${h(outcome)}${r.artifacts&&r.artifacts.length?' · archived '+h(r.artifacts[0].slice(0,12)):''}</div>`)}
-async function decide(field,status){const r=await post('/api/person/'+P.person.id+'/fact/'+field,{status});if(r.error){fail(r.error);return}await reload();if(status==='accepted'&&r.assertions===0)fail('Nothing to accept: no record behind this fact is held yet. Fetch one, then accept.')}
+async function decide(field,status){const r=await post('/api/person/'+P.person.id+'/fact/'+field,{status});if(r.error){fail(r.error);return}await reload();if(status==='accepted'&&r.assertions===0)fail('Nothing to accept: no record behind this fact is held yet. Fetch one, then accept.');
+ if(r.answered&&r.answered.length)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">answered ${r.answered.length} question(s); plan refreshed</div>`)}
 boot();
 </script></body></html>

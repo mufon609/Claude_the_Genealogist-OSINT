@@ -164,15 +164,23 @@ outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
 
 ## 5–7. Extract, match, review
 
-Fetched records go through the evidence layer (extraction → personas). An
-Ancestry record page saved as HTML is parsed on arrival by
-`tools/extract.py` (extractor `rule:ancestry-index@0.1.0`): one persona per
-person the page names, in the page's own role word, one fact per field as
-written, one relation per stated relationship, the raw parsed page in
-`extraction.structured_json`. A record image gets no automatic extraction: the
-person screen offers a transcription form on a held record with no persona,
-one persona at a time, written as an extraction by extractor `human:<user>`.
-That is the fallback for every image until an OCR or HTR extractor exists.
+Fetched records go through the evidence layer (extraction → personas). A
+record page saved as HTML is parsed on arrival by `tools/extract.py`, which
+reads the page's kind from the page itself: a Find a Grave memorial goes to
+extractor `rule:findagrave-memorial@0.1.0` (the memorial's name, dates,
+places, plot, inscription and memorial id on one persona, one persona per
+family member in the page's own label word with a relation to the memorial's
+subject; verified on a real memorial), anything else to
+`rule:ancestry-index@0.1.0` (one persona per person the page names, in the
+page's own role word, one fact per field as written, one relation per stated
+relationship; built to Ancestry's page structure, not yet verified on a real
+page). The raw parsed page is in `extraction.structured_json`. Re-running an
+extractor supersedes its earlier extraction and rejects that extraction's
+undecided proposals with the note `superseded`. A record image gets no
+automatic extraction: the person screen offers a transcription form on a held
+record with no persona, one persona at a time, written as an extraction by
+extractor `human:<user>`. That is the fallback for every image until an OCR or
+HTR extractor exists.
 
 `tools/match.py` runs on every extraction as it is written. For each person
 whose step the record fulfils, every persona is compared with that person and
@@ -188,8 +196,19 @@ from each of the person's events to the matching persona fact, creating the
 event from the fact's date when the person has none of that type; Name and
 Sex facts assert the person. Rejecting writes the link Rejected. Nothing
 becomes Accepted at the fact level here: the fact decision does that, and it
-now has held evidence to accept. Accepting grows the baseline, which generates
-new questions.
+now has held evidence to accept. A `new_person` proposal is decided the same
+way: accepting creates the person in this tree with the name as written (a
+maiden name the record marks becomes the birth surname), the persona link
+Accepted, the same Undecided assertions, and a family membership with an
+Undecided assertion on the artifact where the record says the persona is the
+child, parent or spouse of a person matched on the same record; a sibling
+stated on the record gives no membership. Rejecting writes the proposal
+rejected and nothing else. Every accept, of a match, a new person or a fact,
+regenerates the person's plan in the same request, and an open question of
+kind `missing_parents`, `unverified_claim` or `missing_fact` that the
+regeneration closes is closed as `answered` with the proposal that brought the
+evidence; a `conflict` closes only when a person dismisses it. Accepting grows
+the baseline, which generates new questions.
 
 ## Worked example: Thomas Ahearn (1846–1902)
 
