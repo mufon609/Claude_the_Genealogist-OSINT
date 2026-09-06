@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, archive_object, dumps, imports_dir, inbox_dir, now, ulid
 from catalog import Catalog, holders
 from checklist import build
-from plan import plan_person
+from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer, extract as extract_html
 from match import match as match_personas
@@ -461,6 +461,7 @@ class H(BaseHTTPRequestHandler):
                     if mf: res["review"] = {f: fact_status(cx, pid, f) for f in KEY_FACTS}
                     if mp: res["plan"] = plan_view(cx, pid)
                     self.send(res)
+            except RegistryOutOfStep as e: cx.rollback(); self.send({"error": str(e)}, code=400)   # the plan regeneration inside a decision found the registry out of step
             except Exception as e: cx.rollback(); self.send({"error": repr(e)}, code=500)
             finally: cx.close()
 

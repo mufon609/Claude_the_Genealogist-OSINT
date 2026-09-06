@@ -9,7 +9,9 @@
 
 Build a fresh catalog with `tools/initdb.py` (add `--force` to overwrite). It seeds
 `source` from `data/data-sources.csv`, so the CSV stays the registry of record;
-`data/holders.csv` (free holders of cited collections) is read by the tools directly.
+after any change to the CSV run `tools/initdb.py --sync-sources` on an existing
+catalog, or the plan stops with the missing source ids. `data/holders.csv` (free
+holders of cited collections) is read by the tools directly.
 
 ## Table map by layer
 

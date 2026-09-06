@@ -17,7 +17,10 @@ changed, adds what is new, drops steps no longer generated unless they were run,
 marks a fetch step done when an archived record at its locator has a persona
 accepted for the person, and closes questions whose gap has gone (closed_reason
 'gap_gone'). A question a person dismissed or answered stays closed. Nothing
-here runs a search.
+here runs a search. Before writing anything the plan checks that every holder
+in data/holders.csv and every source id the checklist emits is a row in the
+catalog's source table, and stops with one line naming the missing ids and the
+sync command (tools/initdb.py --sync-sources) when the registry is out of step.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -59,8 +62,21 @@ def fetch_step(cat, row_key, query_type, apid, collection, collection_id, on, ex
             "locator_source_id": source, "locator_kind": "apid", "locator_value": apid, "collection_id": collection_id, "on_json": dumps(on),
             "sources_json": dumps(sources), "mode": mode, "expected": expected, "rationale": f"{where}; {why}"}
 
+class RegistryOutOfStep(Exception):
+    """A source id the plan would write is not in the catalog's source table."""
+
+def check_registry(cx, cat, r=None):
+    """Every holder in data/holders.csv and every source id the checklist emits must be a row in source, or the plan would
+    write a step against a missing row and fail on a foreign key. Raises RegistryOutOfStep naming the ids and the fix."""
+    ids = {h["HolderSourceId"] for rows in cat.holders.values() for h in rows}
+    if r: ids |= {sid for grp in ("A", "B") for row in r["checklist"][grp] for sid in row.get("sources") or []}
+    have = {row[0] for row in cx.execute("SELECT id FROM source")}
+    missing = sorted(ids - have)
+    if missing: raise RegistryOutOfStep(f"registry out of step with the catalog: source id(s) {', '.join(missing)} not in the source table; run python3 tools/initdb.py --sync-sources --db <this catalog>")
+
 def plan_person(cx, tree_id, pid, by):
     cat = Catalog(cx, tree_id); r = build(cat, pid); ts = now(); me = r["person"]["name"]
+    check_registry(cx, cat, r)
     wanted = {q_key(q): (q["kind"], dumps(q)) for q in r["questions"]}
     fetches, searches = [], []
     for grp in ("A", "B"):
@@ -132,7 +148,10 @@ def main():
     pids = [r[0] for r in cx.execute("SELECT id FROM person WHERE tree_id=? ORDER BY display_name", (tree_id,))] if a.all else [cat.find_person(a.who or sys.exit("give a person or --all"))]
     total = {}
     for pid in pids:
-        cx.execute("BEGIN"); st = plan_person(cx, tree_id, pid, a.by); cx.commit()
+        cx.execute("BEGIN")
+        try: st = plan_person(cx, tree_id, pid, a.by)
+        except RegistryOutOfStep as e: cx.rollback(); sys.exit(str(e))
+        cx.commit()
         for k, v in st.items():
             if isinstance(v, int): total[k] = total.get(k, 0) + v
         if not a.all: print(cat.person(pid)["name"], dumps(st))
