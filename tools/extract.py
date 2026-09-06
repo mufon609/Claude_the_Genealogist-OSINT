@@ -83,12 +83,12 @@ Connector responses (JSON, archived by tools/run_step.py) have their own extract
                                  a Death before the page's date for an obituary step, else a Residence on the page's date at
                                  the paper's place. The search that archived the response supplies the surname and step type.
 """
-import argparse, html, json, os, re, sqlite3, sys
+import argparse, html, json, os, re, sqlite3, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 
-EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0"),
+EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), None: ("rule", "extract", "0.1.0")}
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
@@ -253,13 +253,61 @@ def parse_record(text):
                         seen.add(id(tbl)); member["fields"] += label_rows(tbl)
     return out
 
+SEARCH_PARAMS = ("firstname", "lastname", "birthyear", "birthyearfilter", "deathyear", "deathyearfilter", "linkedToName", "includeMaidenName", "location", "orderby", "page")
+
+def parse_search(text):
+    """A Find a Grave memorial search results page: {"kind": "findagrave_search", "query": {param: value} as the page's own form
+    carries them, "url": the search URL rebuilt from them, "count": the matching records the page states, "pages": the page count
+    (goto-max-pages), "page": the page shown, "rows": [{"n", "memorial_id", "url", "name", "birth", "death", "cemetery",
+    "cemetery_url", "place", "plot"}]}. The name is the h2.name-grave's own text without the badges beside it; the dates are
+    b.birthDeathDates; the cemetery is the form to /cemetery/<id>/<slug>; the place and the plot are the p.addr-cemet lines."""
+    t = Tree(); t.feed(text); root = t.root
+    form = next((n for n in walk(root) if n["tag"] == "form" and n["attrs"].get("id") == "memorialNewSearchForm"), None)
+    query = {}
+    for n in walk(form or root):
+        name = n["attrs"].get("name")
+        if name not in SEARCH_PARAMS: continue
+        if n["tag"] == "input":
+            if n["attrs"].get("type") == "checkbox":
+                if "checked" in n["attrs"]: query[name] = n["attrs"].get("value") or "true"
+            elif n["attrs"].get("value"): query.setdefault(name, n["attrs"]["value"])
+        elif n["tag"] == "select":
+            sel = next((o for o in walk(n) if o["tag"] == "option" and "selected" in o["attrs"]), None)
+            if sel and sel["attrs"].get("value"): query.setdefault(name, sel["attrs"]["value"])
+    m = re.search(r"[?&]page=(\d+)", text[:20000]); query.setdefault("page", m.group(1) if m else "1")
+    url = "https://www.findagrave.com/memorial/search?" + "&".join(f"{k}={urllib.parse.quote(str(query[k]))}" for k in SEARCH_PARAMS if k in query and not (k == "page" and query[k] == "1"))
+    count = next((int(m.group(1)) for n in walk(root) if n["tag"] == "h1" and (m := re.search(r"([\d,]+) matching record", text_of(n).replace(",", ""))) ), None)
+    pages = next((int(re.sub(r"\D", "", text_of(n)) or 1) for n in walk(root) if n["attrs"].get("id") == "goto-max-pages"), 1)
+    rows = []
+    for n in walk(root):
+        if n["tag"] != "div" or not (n["attrs"].get("id") or "").startswith("sr-") or "memorial-item" not in (n["attrs"].get("class") or ""): continue
+        mid = n["attrs"]["id"][3:]
+        a = next((x for x in walk(n) if x["tag"] == "a" and (x["attrs"].get("href") or "").startswith("/memorial/")), None)
+        h2 = next((x for x in walk(n) if x["tag"] == "h2" and "name-grave" in (x["attrs"].get("class") or "")), None)
+        i = next((x for x in walk(h2) if x["tag"] == "i"), None) if h2 else None
+        dates = next((text_of(x) for x in walk(n) if x["tag"] == "b" and "birthDeathDates" in (x["attrs"].get("class") or "")), "")
+        birth, death = ([s.strip() or None for s in re.split(r"\s[–-]\s", dates, 1)] + [None, None])[:2] if dates else (None, None)
+        cem = next((x for x in walk(n) if x["tag"] == "form" and (x["attrs"].get("action") or "").startswith("/cemetery/")), None)
+        btn = next((text_of(x) for x in walk(cem) if x["tag"] == "button"), None) if cem else None
+        place = plot = None
+        for pnode in (x for x in walk(n) if x["tag"] == "p" and "addr-cemet" in (x["attrs"].get("class") or "")):
+            txt = re.sub(r"\s*,\s*", ", ", text_of(pnode).replace("\n", " ")).strip(" ,")
+            if txt.lower().startswith("plot info"): plot = re.sub(r"^plot info:?\s*", "", txt, flags=re.I).strip() or None
+            elif place is None: place = txt or None
+        rows.append({"n": len(rows) + 1, "memorial_id": mid, "url": "https://www.findagrave.com" + a["attrs"]["href"] if a else f"https://www.findagrave.com/memorial/{mid}",
+                     "name": text_of(i).replace("\n", " ").strip() if i else (text_of(h2).split("\n")[0].strip() if h2 else None), "birth": birth, "death": death,
+                     "cemetery": btn, "cemetery_url": "https://www.findagrave.com" + cem["attrs"]["action"] if cem else None, "place": place, "plot": plot})
+    return {"kind": "findagrave_search", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "query": query, "url": url, "count": count,
+            "pages": pages, "page": int(query.get("page") or 1), "rows": rows}
+
 def parse(text):
     """The page's kind and its parsed form, or (None, reason) when no parser claims the page."""
     if re.search(r'<body[^>]*\bid="memorial-summary"', text): return "findagrave", parse_memorial(text)
+    if re.search(r'<body[^>]*\bid="memorial-list"', text): return "findagrave_search", parse_search(text)
     if FS_MARK.search(text): return "familysearch", parse_record(text)
     page = parse_page(text)
     if page["fields"] or page["household"]: return "ancestry", page
-    return None, {"reason": "no parser claims this page: not a Find a Grave memorial, not a FamilySearch record page, and no table pairs a label cell with a value cell"}
+    return None, {"reason": "no parser claims this page: not a Find a Grave memorial or search results page, not a FamilySearch record page, and no table pairs a label cell with a value cell"}
 
 def parse_page(text):
     """{"title", "fields": [[label, value]], "household": [{"columns": [...], "rows": [[...]]}], "tables": raw} from the HTML."""
@@ -412,6 +460,19 @@ def write_memorial(w, parsed):
         if m.get("death"): w.fact(pid, "Death", None, m["death"], None, ["deathDate"])
         w.relation(pid, subject, kind, m["label"], m["label"])
 
+def write_search(w, parsed):
+    """One persona per result row of a memorial search: the name as written, birth and death as the row gives them (a year or a
+    date), the cemetery with its place as the Burial place and the plot as its value, the memorial id as the persona's own
+    identity (Identification Number, and the memorial URL in region_json)."""
+    for r in parsed["rows"]:
+        pid = w.persona(r["name"] or "(unnamed)", None, "result", r["n"], {"label": "result", "memorial_id": r["memorial_id"], "url": r["url"], "row": r["n"]})
+        w.fact(pid, "Name", r["name"], labels=["name-grave"])
+        if r["birth"]: w.fact(pid, "Birth", None, r["birth"], None, ["birthDeathDates"])
+        if r["death"]: w.fact(pid, "Death", None, r["death"], None, ["birthDeathDates"])
+        if r["cemetery"] or r["place"] or r["plot"]:
+            w.fact(pid, "Burial", f"Plot: {r['plot']}" if r["plot"] else None, None, ", ".join(x for x in (r["cemetery"], r["place"]) if x) or None, ["cemetery", "addr-cemet"])
+        w.fact(pid, "Identification Number", r["memorial_id"], labels=["Find a Grave Memorial ID"])
+
 def write_record(w, parsed):
     """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a relation to the subject."""
     fields = parsed["fields"]; f = dict(fields)
@@ -501,10 +562,11 @@ def extract(cx, sha, by):
         cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                    (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": "rule:extract@0.1.0", "status": "failed", **parsed})))
         return eid, {"failed": parsed["reason"]}
-    full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"])
+    full_text = "\n".join(f"{l}: {v}" for l, v in parsed.get("fields") or [])
     if kind == "ancestry": full_text += "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
     elif kind == "familysearch": full_text += "".join(f"\n{m['role']}: {m['name']} {m['sex']} {m['age']} {m['birthplace']}" for m in parsed["members"])
     elif kind == "findagrave": full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
+    elif kind == "findagrave_search": full_text = "\n".join(f"{r['n']}: {r['name']} {r['birth'] or ''}-{r['death'] or ''} {r['cemetery'] or ''} {r['place'] or ''} memorial {r['memorial_id']}" for r in parsed["rows"])
     elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
     else: full_text = parsed["full_text"]
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
@@ -517,7 +579,7 @@ def extract(cx, sha, by):
     if kind == "familysearch" and parsed.get("ark"):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
-    {"findagrave": write_memorial, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr}.get(kind, write_personas)(w, parsed)
+    {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr}.get(kind, write_personas)(w, parsed)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
     return eid, w.n

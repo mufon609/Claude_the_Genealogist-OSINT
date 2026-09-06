@@ -152,7 +152,7 @@ def build(cat: Catalog, pid: str):
             r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": "fetch" if st == "cited" else mode_for(sources), "expect": settles}
         (A if group == "A" else B).append(r)
     nb = cat.basis("person", pid)
-    fnd = {"given": F(given, nb), "surname": F(surname, nb), "variants": F(foundation[0]["variants"], "lead"),
+    fnd = {"given": F(given, nb), "surname": F(surname, nb), "sex": F(sex, nb), "variants": F(foundation[0]["variants"], "lead"),
            "birth_year": {**F(b, bb), "tolerance": 2} if F(b, bb) else None, "state": F(home_state, sb),
            "spouses": F([n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")), "parents": F([n for _, n in fam["parents"]], cat.link_basis(pid, "parents"))}
     # A: census households (a foreign-born person is listed from the decade before their earliest US event)

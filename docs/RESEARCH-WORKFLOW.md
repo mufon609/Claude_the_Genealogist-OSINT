@@ -154,6 +154,28 @@ identity, and runs the extractor and matcher once; the screen's own attach
 does the same for the step the person chose plus every other step the record
 fulfils. A file whose identity matches no step stays in the inbox.
 
+**A search at an assisted source.** For a missing cemetery row the step
+carries the Find a Grave search URL built from the foundation fields (first
+given name, surname, birth and death years each with the site's year filter
+at 3, the birth surname included for a woman, the first spouse as the linked
+name; no location, which filters on the cemetery's place rather than the
+death place). The owner's browser opens it once and saves the results page
+into `inbox/`. The results page's identity is the search's own fields, so
+`tools/attach_inbox.py` attaches it to the cemetery search step whose fields
+they are: the page is archived with the search URL as locator, the log row
+carries the query as run and the number of results and pages, and the
+extractor makes one persona per row. The audit is the matcher: every row
+against the person and their relatives, dates compared as dates (a different
+day in the same year disagrees; a bare year against a full date agrees on the
+year only and says so), and a `persona_match` proposal only for a row that
+agrees on the surname and on at least one of birth date, death date or burial
+place with nothing disagreeing. A row that fits nobody gets no proposal; it
+stays a candidate on the page, and the candidate card lists every row with
+its fields as agrees, disagrees or absent and its memorial URL. No fit at all
+sets the run to `none`. Nothing is fetched by the audit: a candidate the owner
+accepts is fetched by the one-call method and attached like any memorial. A
+second page of results is a second run of the step, never automatic.
+
 A source is `auto` only when its registry row names a built connector (the
 `Connector` column of `data/data-sources.csv`): `loc_gov` on H01 (Chronicling
 America through the loc.gov JSON API) and `nara_1950` on D05 (the 1950 census

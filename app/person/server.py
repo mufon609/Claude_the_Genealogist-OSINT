@@ -18,14 +18,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, dumps, inbox_dir, now, ulid
-from catalog import Catalog, fetch_target, held_apids
+from catalog import Catalog, fetch_target, held_apids, search_target
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer
 from match import match as match_personas
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
-from cards import card as decision_card, render as render_card
+from cards import card as decision_card, render as render_card, render_search, search_card
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -130,7 +130,8 @@ def plan_view(cx, pid):
                       "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": fields, "revisions": json.loads(s["revisions_json"] or "{}"),
                       "query": rendered_query(s["query_json"], s["revisions_json"]), "locator": {"source": s["locator_source_id"], "kind": s["locator_kind"], "value": s["locator_value"]},
                       "collection": col["name"] if col else None, "on": json.loads(s["on_json"] or "[]"),
-                      **(fetch_target(s["locator_value"], (fields.get("url") or {}).get("value"), fields) if s["locator_kind"] == "apid" else {"url": None, "holder": None}),
+                      **(fetch_target(s["locator_value"], (fields.get("url") or {}).get("value"), fields) if s["locator_kind"] == "apid"
+                         else search_target(json.loads(s["sources_json"]), rendered_query(s["query_json"], s["revisions_json"])) if s["kind"] == "search" else {"url": None, "holder": None}),
                       "expected": s["expected"], "rationale": s["rationale"], "logs": logs})
     return {"questions": questions, "steps": steps}
 
@@ -148,7 +149,7 @@ def log_step(cx, tree_id, slug, step_id, body):
         if (mimetypes.guess_type(path)[0] or "").startswith("text/html"):
             with open(path, "rb") as fh: kind, value, parsed = attach_identity(fh.read().decode("utf-8", errors="replace"))
         steps = [st] + [s for s in (attach_steps_for(cx, tree_id, kind, value, parsed) if kind else []) if s["id"] != st["id"]]
-        try: r = attach_file(cx, tree_id, slug, body["file"], steps, CFG["by"], note=note, query=query)
+        try: r = attach_file(cx, tree_id, slug, body["file"], steps, CFG["by"], note=note, query=query if kind != "search" else None, kind=kind, value=value, parsed=parsed)
         except ValueError as e: return {"error": str(e)}
         return {"ok": True, "log": r["logs"][0][1] if r["logs"] else None, "artifacts": [r["sha256"]], "unparsed": r["unparsed"], "identity": f"{kind} {value}" if kind else None,
                 "steps": [s["id"] for s in steps], "proposals": len(r["proposals"])}
@@ -189,8 +190,10 @@ def artifact_view(cx, tree_id, sha, pid):
         c = decision_card(cx, tree_id, r["id"]) if r["kind"] in ("persona_match", "new_person") else None      # the same card the cards tool prints
         proposals.append({"id": r["id"], "kind": r["kind"], "status": r["status"], "rationale": r["rationale"], "persona_id": json.loads(r["payload_json"])["persona_id"],
                           "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"], "card": c, "card_text": render_card(c) if c else None})
+    sc = search_card(cx, tree_id, sha, pid or None) if any(e["extractor"] == "rule:findagrave-search@0.1.0" for e in exts) else None   # a results page shows its candidate card
     return {"sha256": sha, "mime": a["mime"], "tier": a["trust_tier"], "filename": a["original_filename"], "collection": col["name"] if col else None,
-            "url": fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else None, "extractions": exts, "proposals": proposals,
+            "url": fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else a["locator_value"] if a["locator_kind"] == "url" else None,
+            "candidates": sc, "candidates_text": render_search(sc) if sc else None, "extractions": exts, "proposals": proposals,
             "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
 
 def transcribe(cx, sha, body):

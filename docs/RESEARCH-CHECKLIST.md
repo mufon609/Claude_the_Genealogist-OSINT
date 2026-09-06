@@ -259,7 +259,11 @@ or a new person; a decision answers in one line with what it made and closed
 plan does next (the facts now carrying held evidence to accept, the proposals
 still open on the record, the steps still planned). A held row
 opens its record through the citation's archived artifact as well as through
-a step. Automatic sources are not wired yet, so there is no Go button:
+a step. An assisted search step whose source's search the tool can build
+(Find a Grave) shows that link, built from the foundation fields; the results
+page saved into `inbox/` comes back as the candidate card on the step's
+record, every row with its fields as agrees, disagrees or absent
+(`docs/RESEARCH-WORKFLOW.md` §4). Automatic sources are not wired yet, so there is no Go button:
 assisted sources are worked by opening the link, searching with the step's
 fields, and logging the result.
 

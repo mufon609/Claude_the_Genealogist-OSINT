@@ -16,36 +16,16 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, ROOT, object_path, resolve_tree
 from catalog import Catalog, fetch_target, year
+from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
 
-def _key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 def _tokens(s): return [t for t in re.split(r"[,\s]+", (s or "").lower()) if re.sub(r"[^a-z]", "", t)]
-
-COUNTRY = re.compile(r"\b(united states of america|united states|u\.s\.a\.|u\.s\.|usa|us)\b", re.I)
-
-def _place_verdict(record, tree):
-    """agrees when the tree's place (its last two named parts below the country, e.g. town and county) is found in the record's
-    place text, or the record's first part in the tree's; the tree's own resolved chain reads 'Town < County < State < Country'
-    and the country's spellings are one."""
-    if not record or not tree: return "absent"
-    norm = lambda s: COUNTRY.sub("usa", s.lower())
-    tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]; rlow = _key(norm(record))
-    below = [p for p in tparts if p != "usa"] or tparts
-    if all(_key(p) in rlow for p in below[-2:]): return "agrees"
-    rparts = [p.strip() for p in norm(record).split(",") if p.strip()]
-    if rparts and _key(rparts[0]) in _key(norm(tree)): return "agrees"
-    return "disagrees"
-
-def _date_verdict(rec_start, tree_start):
-    if not rec_start or not tree_start: return "absent"
-    if rec_start == tree_start: return "agrees"
-    return "agrees" if rec_start[:4] == tree_start[:4] else "disagrees"
 
 def _fmt(date_text, place): return ", ".join(x for x in (date_text, place) if x) or None
 
 def persona_facts(cx, persona_id):
-    return [dict(r) for r in cx.execute("""SELECT pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, ps.raw AS place, pf.region_json
+    return [dict(r) for r in cx.execute("""SELECT pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw AS place, pf.region_json
                                            FROM persona_fact pf LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=? ORDER BY pf.id""", (persona_id,))]
 
 def persona_status(cx, tree_id, persona_id):
@@ -70,10 +50,11 @@ def card(cx, tree_id, prop_id):
     a = cx.execute("""SELECT a.sha256, a.mime, a.trust_tier, a.locator_kind, a.locator_value, a.original_filename, a.retrieved_at, a.source_id, s.name AS source_name, c.name AS collection
                       FROM artifact a LEFT JOIN source s ON s.id=a.source_id LEFT JOIN collection c ON c.id=a.collection_id WHERE a.sha256=?""", (sha,)).fetchone()
     own_ids = [f"{r['kind']} {r['value']}" for r in cx.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=?", (sha,))]
-    mem = next((json.loads(r["region_json"] or "{}").get("memorial_id") for r in cx.execute("SELECT region_json FROM persona WHERE artifact_sha256=? AND role_in_record='memorial'", (sha,))), None)
+    region = json.loads(pe["region_json"] or "{}")
+    mem = region.get("memorial_id") if pe["role_in_record"] == "result" else next((json.loads(r["region_json"] or "{}").get("memorial_id") for r in cx.execute("SELECT region_json FROM persona WHERE artifact_sha256=? AND role_in_record='memorial'", (sha,))), None)
     if mem: own_ids.append(f"memorial {mem}")
     cited = cat.cited().get(a["locator_value"], {}) if a["locator_kind"] == "apid" else {}
-    page = fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else None
+    page = region.get("url") if pe["role_in_record"] == "result" else (fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else a["locator_value"] if a["locator_kind"] == "url" else None)
     ORDER = {"Name": 0, "Sex": 1, "Birth": 2, "Death": 3, "Burial": 4, "Age": 5}
     facts = sorted(persona_facts(cx, pe["id"]), key=lambda f: ORDER.get(f["fact_type"], 9))
     # ---- the person and the file's claim
@@ -96,7 +77,8 @@ def card(cx, tree_id, prop_id):
         for t in ("Birth", "Death", "Burial"):                  # a date and a place are two fields: each agrees, disagrees or is absent on its own
             f = next((x for x in facts if x["fact_type"] == t), None); c = claim[t.lower()]
             if not f and not c: continue
-            fields.append({"field": f"{t} date", "record": f["date_text"] if f else None, "tree": c["date"] if c else None, "verdict": _date_verdict(f["date_start"] if f else None, c["start"] if c else None)})
+            v, note = date_verdict({"start": f["date_start"] or f["date_end"], "qualifier": f["date_qualifier"]} if f else None, {"start": c["start"]} if c else None)
+            fields.append({"field": f"{t} date", "record": f["date_text"] if f else None, "tree": c["date"] if c else None, "verdict": v, "note": note})
             fields.append({"field": f"{t} place", "record": f["place"] if f else None, "tree": c["place"] if c else None, "verdict": _place_verdict(f["place"] if f else None, c["place"] if c else None)})
             if f and f["value_text"]: fields.append({"field": t, "record": f["value_text"], "tree": None, "verdict": "absent"})
         for f in facts:
@@ -122,8 +104,11 @@ def card(cx, tree_id, prop_id):
             q = cx.execute("SELECT kind, detail_json FROM research_question WHERE id=? AND status='open'", (st["question_id"],)).fetchone() if st["question_id"] else None
             if q: closes.append(f"the question {q['kind']} {json.loads(q['detail_json'] or '{}').get('detail') or ''}".strip() + f" ({st['row_key'].split(':')[0]} row)")
             else: closes.append(f"the {st['row_key'].split(':')[0]} row for {person['name']}: this record is the fetch")
+        if pe["role_in_record"] == "result":                  # a search result: the memorial itself is fetched next, then attached like any memorial
+            for st in cx.execute("SELECT row_key FROM search_plan WHERE person_id=? AND kind='search' AND sources_json LIKE '%\"E01\"%' ORDER BY seq", (person_id,)):
+                closes.append(f"the {st['row_key'].split(':')[0]} row for {person['name']}: memorial {mem} is fetched next by the one-call method and attached like any memorial")
         evidence = [f"{f['fact_type']} {f['date_text'] or f['value_text'] or ''}".strip() for f in facts if f["fact_type"] in ("Name", "Birth", "Death", "Burial") and (f["date_text"] or f["value_text"] or f["place"])]
-        if evidence: closes.append("held evidence to accept on: " + ", ".join(evidence))
+        if evidence: closes.append(("held evidence to accept on: " if pe["role_in_record"] != "result" else "the row states, as held evidence once accepted: ") + ", ".join(evidence))
         for q in cx.execute("SELECT kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' AND kind IN ('unverified_claim','missing_fact')", (person_id,)):
             d = json.loads(q["detail_json"] or "{}").get("detail") or ""
             if q["kind"] == "unverified_claim" and any(f["fact_type"] in d for f in facts if f["fact_type"] in ("Birth", "Death", "Burial")): closes.append(f"the question unverified_claim: {d}")
@@ -159,7 +144,8 @@ def card(cx, tree_id, prop_id):
     subj = cx.execute("SELECT display_name FROM person WHERE id=?", (subject,)).fetchone() if subject else None
     return {"id": p["id"], "kind": p["kind"], "status": p["status"], "highlight": highlight, "person": person, "subject": subj["display_name"] if subj else None,
             "persona": {"id": pe["id"], "name": pe["name_text"], "role": pe["role_in_record"], "sex": pe["sex"]},
-            "record": {"holder": a["source_name"], "holder_id": a["source_id"], "collection": a["collection"], "identity": [f"{a['locator_kind']} {a['locator_value']}"] + own_ids, "tier": a["trust_tier"],
+            "record": {"holder": a["source_name"], "holder_id": a["source_id"], "collection": a["collection"] or ("memorial search results page" if a["locator_kind"] == "url" else None),
+                       "identity": ([f"memorial {mem}", f"on the results page {a['locator_value']}"] if pe["role_in_record"] == "result" else [f"{a['locator_kind']} {a['locator_value']}"] + own_ids), "tier": a["trust_tier"],
                        "archived": os.path.relpath(object_path(sha), DATA_ROOT), "sha256": sha, "page": page, "retrieved_at": a["retrieved_at"], "filename": a["original_filename"]},
             "fields": fields, "relationships": rels, "closes": closes, "odd": odd or ["nothing"], "rationale": p["rationale"]}
 
@@ -175,7 +161,7 @@ def render(c):
     r = c["record"]; out.append(L("Record", f"{r['holder'] or r['holder_id']}; {r['collection'] or 'collection unknown'}; {', '.join(r['identity'])}; tier {r['tier']}"))
     out.append(L("Document", f"{r['archived']}" + (f"  |  {r['page']}" if r["page"] else "")))
     for i, f in enumerate(c["fields"]):
-        out.append(L("Fields" if i == 0 else "", f"{f['field']:<14}{f['verdict']:<11}record: {f['record'] or '-'}" + (f"  |  tree: {f['tree']}" if f["tree"] else "")))
+        out.append(L("Fields" if i == 0 else "", f"{f['field']:<14}{f['verdict']:<11}record: {f['record'] or '-'}" + (f"  |  tree: {f['tree']}" if f["tree"] else "") + (f"  [{f['note']}]" if f.get("note") else "")))
     if not c["fields"]: out.append(L("Fields", "the record states nothing beyond the name"))
     for i, rl in enumerate(c["relationships"]):
         line = (f"{rl['as_written'] or rl['kind']} of {rl['other']}" if rl["direction"] == "is" else f"{rl['other']} listed under {rl['as_written'] or rl['kind']}") + f"  ({rl['other_status']})" + ("" if rl["mapped"] else "  [heading not mapped]")
@@ -187,12 +173,67 @@ def render(c):
     out.append(L("Matcher", c["rationale"] or ""))
     return "\n".join(out)
 
+def search_card(cx, tree_id, sha, person_id=None):
+    """The candidate card for one search results page: the search as run, the person it was run for, every row with its fields
+    against the person as agrees, disagrees or absent, whether it fits, and the proposal on it if any."""
+    cx.row_factory = sqlite3.Row
+    a = cx.execute("SELECT sha256, locator_value, retrieved_at, trust_tier, source_id FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    e = cx.execute("""SELECT e.id, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name='findagrave-search' AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
+    if not a or not e: return None
+    parsed = json.loads(e["structured_json"] or "{}"); cat = Catalog(cx, tree_id)
+    runs = cx.execute("""SELECT l.executed_at, l.executed_by, l.outcome, l.notes, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? ORDER BY l.executed_at""", (tree_id, f'%"{sha}"%')).fetchall()
+    person_id = person_id or (runs[0]["person_id"] if runs else None)
+    if not person_id: return None
+    cand = match_candidate(cat, person_id); pr = cat.person(person_id)
+    rows = []
+    for pe in personas_of(cx, e["id"]):
+        region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pe["id"],)).fetchone()["region_json"] or "{}")
+        fits, agree, disagree, absent = compare(cat, pe, cand, {})
+        rows.append({"n": region.get("row"), "name": pe["name"], "birth": pe["birth"]["text"], "death": pe["death"]["text"], "burial": pe["burial place"], "memorial_id": region.get("memorial_id"), "url": region.get("url"),
+                     "fits": fits, "agrees": agree, "disagrees": disagree, "absent": absent, "proposal": persona_status(cx, tree_id, pe["id"])})
+    q = parsed.get("query") or {}
+    return {"kind": "search", "sha256": sha, "person": {"id": person_id, "name": pr["name"], "birth": cand["birth"]["text"], "birth_place": cand["birth"]["place"], "death": cand["death"]["text"], "death_place": cand["death"]["place"], "burial_place": cand["burial place"]},
+            "search": {"holder": "Find a Grave", "query": q, "url": a["locator_value"], "count": parsed.get("count"), "page": parsed.get("page"), "pages": parsed.get("pages"), "rows_on_page": len(rows)},
+            "runs": [dict(r) for r in runs], "archived": os.path.relpath(object_path(sha), DATA_ROOT), "rows": rows,
+            "proposed": [r for r in rows if r["fits"]], "tier": a["trust_tier"]}
+
+def render_search(c):
+    """The candidate card as plain text."""
+    w = 10; L = lambda k, v: f"{k:<{w}}{v}"
+    q = c["search"]["query"]; s = c["search"]; p = c["person"]
+    qs = " ".join(f"{k}={q[k]}" for k in ("firstname", "lastname", "birthyear", "birthyearfilter", "deathyear", "deathyearfilter", "linkedToName", "includeMaidenName", "location") if q.get(k))
+    out = [f"SEARCH {s['holder']} memorial search for {p['name']}: {qs}; {s['count'] if s['count'] is not None else s['rows_on_page']} matching records, page {s['page']} of {s['pages']}, {s['rows_on_page']} rows on this page",
+           L("Person", f"{p['name']}  born {p['birth'] or '-'}" + (f", {p['birth_place']}" if p["birth_place"] else "") + f"; died {p['death'] or '-'}" + (f", {p['death_place']}" if p["death_place"] else "") + (f"; buried {p['burial_place']}" if p["burial_place"] else "")),
+           L("Document", f"{c['archived']}  |  {s['url']}  (tier {c['tier']})")]
+    for r in c["runs"]: out.append(L("Run", f"{r['executed_at']} {r['executed_by']} {r['outcome']}" + (f": {r['notes']}" if r["notes"] else "")))
+    for i, r in enumerate(c["rows"]):
+        head = f"{r['n']:>2}. {r['name']}  {r['birth'] or '?'} – {r['death'] or '?'}  {r['burial'] or 'no cemetery'}  {r['url']}"
+        why = ("FITS: " + "; ".join(r["agrees"])) if r["fits"] else ("does not fit: " + "; ".join(r["disagrees"] or ["nothing beyond the name agrees"]) + ("; agrees: " + "; ".join(r["agrees"]) if r["agrees"] and r["disagrees"] else ""))
+        if r["absent"]: why += "; absent: " + ", ".join(r["absent"])
+        out.append(L("Rows" if i == 0 else "", head)); out.append(L("", "    " + why + (f"  [{r['proposal']}]" if r["proposal"] != "no proposal" else "")))
+    out.append(L("Proposed", ", ".join(f"row {r['n']} (memorial {r['memorial_id']}, {r['proposal']})" for r in c["proposed"]) if c["proposed"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
+    return "\n".join(out)
+
+def search_cards_for(cx, tree_id, pid=None):
+    """Candidate cards for the search results pages logged on a person's search steps (or anyone's) whose proposals are not all decided."""
+    rows = cx.execute(f"""SELECT DISTINCT l.artifacts_json, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id JOIN person p ON p.id=sp.person_id
+                          WHERE p.tree_id=? AND sp.kind='search' AND l.artifacts_json IS NOT NULL {'AND sp.person_id=?' if pid else ''}""", (tree_id, pid) if pid else (tree_id,)).fetchall()
+    out = []
+    for arts, person_id in rows:
+        for sha in json.loads(arts):
+            st = [r[0] for r in cx.execute("SELECT status FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.artifact_sha256')=?", (tree_id, sha))]
+            if st and "undecided" not in st: continue
+            c = search_card(cx, tree_id, sha, person_id)
+            if c: out.append(c)
+    return out
+
 def cards_for(cx, tree_id, pid=None):
-    """Undecided proposals for one person (as the matched person or the subject of a new-person proposal), or for everyone."""
+    """Undecided proposals for one person (as the matched person or the subject of a new-person proposal), or for everyone, with
+    the candidate cards of the person's search runs."""
     if pid: rows = cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
                                  AND (json_extract(payload_json,'$.person_id')=? OR (json_extract(payload_json,'$.person_id') IS NULL AND json_extract(payload_json,'$.subject_person_id')=?)) ORDER BY created_at""", (tree_id, pid, pid)).fetchall()
     else: rows = cx.execute("SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') ORDER BY created_at", (tree_id,)).fetchall()
-    return [c for c in (card(cx, tree_id, r[0]) for r in rows) if c]
+    return search_cards_for(cx, tree_id, pid) + [c for c in (card(cx, tree_id, r[0]) for r in rows) if c]
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true")
@@ -203,6 +244,6 @@ def main():
     out = cards_for(cx, tree_id, None if a.all else cat.find_person(a.who))
     if a.json: print(json.dumps(out, ensure_ascii=False, indent=1)); return
     if not out: print("no undecided proposal" + ("" if a.all else " for this person")); return
-    print("\n\n".join(render(c) for c in out))
+    print("\n\n".join(render_search(c) if c.get("kind") == "search" else render(c) for c in out))
 
 if __name__ == "__main__": main()

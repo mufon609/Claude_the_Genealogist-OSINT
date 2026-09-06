@@ -11,15 +11,23 @@ are those persons and their relatives as the catalog knows them (parents,
 spouses, children, siblings); a person the record was fetched for keeps their
 own step and question on the proposal, a relative takes the context they were
 first met in. Every persona on the extraction is compared with
-each candidate on name, sex, birth year and stated relationships. A persona fits
-a candidate when the given name agrees, the surname or a relationship agrees,
-and neither sex nor birth year disagrees; the surname agrees when any token of
-the record's name after the given name is a surname the tree has for the
-candidate (a memorial writes a married woman's birth surname inside her name). One proposal per persona: kind
+each candidate on name, sex, birth and death dates, burial and death place, and
+stated relationships. Dates are compared as dates when both sides carry a full
+date (a different day in the same year disagrees); a bare year against a full
+date agrees on the year only and says so; a record date marked about, estimated
+or calculated agrees within two years. A prefix (Dr, Maj), a nickname in quotes
+and an extra middle name are not disagreements; the surname agrees when any
+token of the record's name after the given name is a surname the tree has for
+the candidate (a memorial writes a married woman's birth surname inside her
+name). A persona fits a candidate when the given name agrees, nothing compared
+disagrees, and either the surname and at least one of the dates or places
+agree, or a stated relationship agrees. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
 two fit, the other named in the rationale), or new_person when nobody fits. The
 proposal carries the question of the step the candidate came from, when it has
-one. The rationale says in plain words which fields agree, which disagree, which
+one. A row of a search results page (role result) that fits nobody gets no
+proposal: it stays a candidate on the page, and the candidate card says why it
+does not fit. The rationale says in plain words which fields agree, which disagree, which
 are absent. Nothing numeric is stored. A persona that already has a proposal is
 skipped, so re-running adds nothing.
 """
@@ -31,8 +39,35 @@ from catalog import Catalog, same_page, year
 MATCHER = ("rule", "matcher", "0.1.0")
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
 
+PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt", "cpl", "pfc", "cmdr", "adm"}
+COUNTRY = re.compile(r"\b(united states of america|united states|u\.s\.a\.|u\.s\.|usa|us)\b", re.I)
+
 def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 def first_given(s): return key((s or "").split()[0]) if (s or "").strip() else ""
+
+def date_verdict(rec, tree):
+    """A record date against the tree's, each {"start", "text", "qualifier"}: (verdict, note). Both full dates: compared as dates,
+    a different day in the same year disagrees. Otherwise the years: a bare year against a full date agrees on the year only and
+    the note says which side gives only a year; a record date marked about, estimated or calculated agrees within two years."""
+    rs, ts = (rec or {}).get("start"), (tree or {}).get("start")
+    if not rs or not ts: return "absent", None
+    if len(rs) == 10 and len(ts) == 10: return ("agrees", None) if rs == ts else ("disagrees", "same year, different day" if rs[:4] == ts[:4] else None)
+    tol = 2 if (rec or {}).get("qualifier") in ("about", "estimated", "calculated") else 0
+    if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
+    return "disagrees", None
+
+def place_verdict(record, tree):
+    """agrees when the tree's place (its last two named parts below the country, e.g. town and county) is found in the record's
+    place text, or the record's first part in the tree's; the tree's own resolved chain reads 'Town < County < State < Country'
+    and the country's spellings are one. absent when either side has none."""
+    if not record or not tree: return "absent"
+    norm = lambda s: COUNTRY.sub("usa", s.lower())
+    tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]; rlow = key(norm(record))
+    below = [p for p in tparts if p != "usa"] or tparts
+    if all(key(p) in rlow for p in below[-2:]): return "agrees"
+    rparts = [p.strip() for p in norm(record).split(",") if p.strip()]
+    if rparts and key(rparts[0]) in key(norm(tree)): return "agrees"
+    return "disagrees"
 
 def name_keys(cat, pid):
     """(first given, surname) keys for a person: every name row and every non-rejected alias."""
@@ -44,9 +79,11 @@ def name_keys(cat, pid):
     return keys
 
 def split_persona_name(name_text):
-    """(first given name key, [every later token's key]): a memorial writes a woman's name with her birth surname inside it
-    (Helen Sara Brant Ahearn), so any token after the given name may be the surname the tree knows."""
-    parts = [p for p in (name_text or "").replace(",", " ").split() if key(p)]
+    """(first given name key, [every later token's key]) with a leading prefix (Dr, Maj) dropped and quotes gone: a memorial writes a
+    woman's name with her birth surname inside it (Helen Sara Brant Ahearn), so any token after the given name may be the surname
+    the tree knows, and a nickname in quotes is one more token."""
+    parts = [p for p in re.sub(r"[\u201c\u201d\"']", " ", name_text or "").replace(",", " ").split() if key(p)]
+    while parts and key(parts[0]) in PREFIX: parts.pop(0)
     return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:]])
 
 def compare(cat, persona, cand, chosen):
@@ -60,10 +97,16 @@ def compare(cat, persona, cand, chosen):
     else: absent.append("surname")
     if persona["sex"] and cand["sex"] in ("M", "F"): (agree if persona["sex"] == cand["sex"] else disagree).append(f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)")
     else: absent.append("sex")
-    if persona["birth_year"] and cand["birth_year"]:
-        ok = abs(persona["birth_year"] - cand["birth_year"]) <= 2
-        (agree if ok else disagree).append(f"birth year {'agrees' if ok else 'disagrees'} (record {persona['birth_text']}, tree {cand['birth_year']})")
-    else: absent.append("birth year")
+    dated = False
+    for label in ("birth", "death"):
+        v, note = date_verdict(persona[label], cand[label])
+        if v == "absent": absent.append(f"{label} date"); continue
+        words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (f": {note}" if note else "") + ")"
+        (agree if v == "agrees" else disagree).append(words); dated = dated or v == "agrees"
+    for label in ("burial place", "death place"):
+        v = place_verdict(persona[label], cand[label])
+        if v == "absent": absent.append(label); continue
+        (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]})"); dated = dated or v == "agrees"
     rel_ok = False
     for kind, other_pid, as_written, other_name in persona["relations"]:
         other_cand = chosen.get(other_pid)
@@ -74,20 +117,31 @@ def compare(cat, persona, cand, chosen):
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
         rel_ok = rel_ok or holds
-    fits = given_ok and (surname_ok or rel_ok) and not any(d.startswith(("sex", "birth year")) for d in disagree)
+    fits = given_ok and not any(d.startswith(("sex", "birth date", "death date", "burial place", "death place")) for d in disagree) and ((surname_ok and dated) or rel_ok)
     return fits, agree, disagree, absent
+
+def _date(row):
+    return {"text": row[0], "start": row[1] or row[2], "qualifier": row[3]} if row and (row[1] or row[2]) else {"text": None, "start": None, "qualifier": None}
 
 def personas_of(cx, eid):
     out = []
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
-        b = cx.execute("SELECT date_text, date_start, date_end FROM persona_fact WHERE persona_id=? AND fact_type='Birth' AND (date_start IS NOT NULL OR date_end IS NOT NULL)", (pid,)).fetchone()
+        fact = lambda t: cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND (date_start IS NOT NULL OR date_end IS NOT NULL)", (pid, t)).fetchone()
+        place = lambda t: (cx.execute("SELECT ps.raw FROM persona_fact pf JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=? AND pf.fact_type=?", (pid, t)).fetchone() or [None])[0]
         rels = cx.execute("SELECT r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (pid,)).fetchall()
-        out.append({"id": pid, "name": name, "sex": sex, "role": role, "birth_year": year(b[1]) or year(b[2]) if b else None, "birth_text": b[0] if b else None, "relations": rels})
+        out.append({"id": pid, "name": name, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
+                    "burial place": place("Burial"), "death place": place("Death"), "relations": rels})
     return out
 
 def candidate(cat, pid):
-    p = cat.person(pid); ev = cat.events(pid); b = next((e for e in ev if e["type"] == "Birth" and e["year"]), None)
-    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth_year": b["year"] if b else None}
+    p = cat.person(pid); ev = cat.events(pid)
+    def first(t):
+        e = next((e for e in ev if e["type"] == t and (e["year"] or e["place"])), None)
+        if not e: return {"text": None, "start": None, "qualifier": None, "place": None}
+        r = cat.cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
+        return {**_date(r), "place": e["place"]["text"] if e["place"] else None}
+    b, d, bu = first("Birth"), first("Death"), first("Burial")
+    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "burial place": bu["place"], "death place": d["place"]}
 
 def persons_for(cx, sha):
     """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, a fetch step pointing at
@@ -143,6 +197,7 @@ def match(cx, eid, by):
                 if absent: text += " Absent: " + ", ".join(absent) + "."
                 if others: text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
+            elif pr["role"] == "result": continue               # a search result that fits nobody is a candidate kept on the page, not a new person
             else:
                 tried = [compare(cat, pr, c, chosen) for c in cands]
                 why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _) in zip(cands, tried) if not a or d)[:600]

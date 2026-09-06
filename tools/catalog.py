@@ -94,6 +94,29 @@ def holder_search(h, fields):
     if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(name))], quote_via=urllib.parse.quote)
     return None
 
+def findagrave_search_url(fields):
+    """The Find a Grave memorial search as the site's own form builds it, from a search step's fields: firstname (the first given
+    name), lastname, the birth and death years each with the year filter at 3 (the audit narrows the result, not the search),
+    includeMaidenName for a woman, linkedToName for the first spouse, orderby relevance; no location, which filters on the
+    cemetery's place rather than the death place. None without a surname."""
+    v = lambda k: ((fields or {}).get(k) or {}).get("value")
+    if not v("surname"): return None
+    q = [("firstname", (v("given") or "").split()[0] if v("given") else ""), ("lastname", v("surname"))]
+    if v("birth_year"): q += [("birthyear", str(v("birth_year"))), ("birthyearfilter", "3")]
+    if v("death_year"): q += [("deathyear", str(v("death_year"))), ("deathyearfilter", "3")]
+    if v("sex") == "F": q.append(("includeMaidenName", "true"))
+    if v("spouses"): q.append(("linkedToName", v("spouses")[0]))
+    q.append(("orderby", "r"))
+    return "https://www.findagrave.com/memorial/search?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
+
+def search_target(sources, fields):
+    """Where an assisted search step is run by hand: {url, holder} for a source whose own search the tool can build from the
+    step's fields (Find a Grave, E01), else nothing."""
+    if "E01" in (sources or []):
+        u = findagrave_search_url(fields)
+        if u: return {"url": u, "holder": "Find a Grave"}
+    return {"url": None, "holder": None}
+
 class Catalog:
     def __init__(self, cx, tree_id):
         self.cx, self.tree_id = cx, tree_id
