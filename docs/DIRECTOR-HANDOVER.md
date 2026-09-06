@@ -93,9 +93,17 @@ repo. Plain over clever, always.
 - Connectors: the runner, `loc_gov` (H01) and `nara_1950` (D05) are committed
   with their extractor variants; the worker's report on them has not yet been
   verified by the director. No live step has run automatically.
-- Worker: the second worker has finished `owner-vouch.md` (accepted) and is
-  on `inbox-to-cards.md`, then `no-browser-sources.md`. A third, dedicated
-  session solved and ran the Find a Grave fetch and is done. Browser captures are no longer used. If a page must ever come
+- Worker: the second worker has finished `owner-vouch.md`, `inbox-to-cards.md`
+  and Part B of `findagrave-search.md` (all accepted) and is on
+  `record-facts.md`, then `no-browser-sources.md` (its survey requests are
+  already made and held). The dedicated browser session fetched six memorials
+  and two search pages and is done; it is restarted with a list when more are
+  wanted.
+- The owner's first live decisions: Noi Davidson's memorial accepted as hers;
+  her name, birth and death accepted with it as held evidence; her burial and
+  plot wait on `record-facts.md`. The per-person sequence is the record's
+  match, then every fact the record supports, then the next person, and new
+  evidence feeds the next searches before the loop moves on. Browser captures are no longer used. If a page must ever come
   through the browser again, the page saves itself as a file in one step
   (a download of its own markup, or Ctrl+S) and the file goes to `inbox/`;
   never the old method of encoding the page and reading it out through the

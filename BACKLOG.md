@@ -251,6 +251,22 @@ the subject, not the parents. When the subject's parents are Accepted, place
 the sibling as their child with an Undecided assertion on the record; until
 then the card says the person would be unlinked, as it does now.
 
+### C23. A household cemetery row reads cited through a relative's memorial
+
+The cemetery / family plot row is a Group A household row, so it reads cited
+for a person as soon as any relative's Find a Grave or Veterans' Gravesites
+citation exists, and the person never gets a cemetery search step of their
+own while a relative is cited. A memorial is about one person. Decide whether
+the row stays a household row with a per-person "own memorial" state, or
+splits into the plot (household) and the person's memorial (individual).
+
+### C24. A fetch step for an accepted search candidate
+
+Accepting a candidate on a Find a Grave results card should create the fetch
+step for that memorial URL, run by the one-call method through the browser
+session and attached like any memorial. Today the card says so in words and
+the director makes the fetch happen by hand.
+
 ---
 
 ## Externally blocked
