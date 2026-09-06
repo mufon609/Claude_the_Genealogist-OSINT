@@ -162,6 +162,11 @@ Every execution is a **research log** row: query as actually run, source, date,
 outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
 1880 census of Worcester Township for Brant, none found" is evidence and stays.
 
+A `missing_fact` or `unverified_claim` question is about the absence of a
+claim, so it closes as answered the moment an accepted persona match supplies
+the claim with its Undecided assertion. Whether the claim stands is the
+baseline review of that fact, tracked on the assertion, not on the question.
+
 ## 5–7. Extract, match, review
 
 Fetched records go through the evidence layer (extraction → personas). A

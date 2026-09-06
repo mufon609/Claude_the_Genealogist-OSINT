@@ -68,21 +68,12 @@ capture the record page through the DOM and download the image through the
 site's own control into `inbox/`; close the tab. On a scratch copy, archive
 both, write the FamilySearch record-page parser into `tools/extract.py`
 under its own extractor tag, compare field by field, run the matcher, report
-verbatim. The DOM capture transport that worked for Find a Grave is in this
-session's report (page cloned in-page, marker-encoded in a `<pre>`, read in
-25,000-char slices, decoded and SHA-256-verified per chunk).
+verbatim. DOM capture through the Chrome extension: its script output is
+capped near 1.5 KB and rejects text that looks like a query string or a
+hash, so clone the page in-page, marker-encode it into a `<pre>`, read it out
+in 25,000-character slices, decode, and verify each chunk and the whole by
+SHA-256.
 **Blocks:** nothing.
-
-### A2. Swap in the rebuilt catalog
-
-`catalog/tree-0.7.0.db` is the catalog rebuilt on schema 0.7.0 (initdb →
-tree create → ingest → resolve_places → backfill_aliases → plan, 195
-questions, 912 steps, the memorial archived). The real `catalog/tree.db` is
-still 0.6.0 and the owner's own person-screen server runs old code on it.
-Move the new file over the old one (the classifier would not let the worker
-do it), restart the server, and delete the duplicate named GEDCOM copy the
-rebuild's ingest left in `trees/ahearn/imports/`.
-**Blocks:** A1 (the fetch step it targets exists only in the rebuilt catalog).
 
 ---
 
@@ -136,15 +127,6 @@ site, and PHMC points only at Ancestry, so the steps for dbids 5164 and
 60484 stay `blocked`. Watch for the certificates reappearing at a free
 holder (PHMC, Power Library, FamilySearch) and add the row to
 `data/holders.csv`.
-
-### C4b. Question closing precedes the fact decision
-
-Accepting a persona match closes a `missing_fact` / `unverified_claim`
-question as soon as the event and its Undecided assertion exist, because
-the planner's gap definition asks for a cited event, not an accepted one.
-The later fact decision then answers nothing. Decide whether the planner
-should require an Accepted assertion before treating the gap as closed; if
-so, the close moves to the fact decision.
 
 ### C5. OCR / HTR extractor for record images
 
