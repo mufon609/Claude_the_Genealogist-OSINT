@@ -54,7 +54,7 @@ function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntr
  <h2>Foundation — what we know</h2><div class="card"><table>
  <tr><th>fact</th><th>value</th><th>evidence</th><th>decision</th></tr>`;
  for(const k of KEYS){const f=F[k]||{};const ev=rv[k].evidence;const st=rv[k].status;
-  const evs=ev.length?ev.map(e=>`<div>${e.uncited?'<span class="mut">tree owner, no record</span>':h(e.citation)} ${e.tier?`<span class="pill">${e.tier}</span>`:''}${e.url?` <a href="${e.url}" target="_blank">↗</a>`:''} <span class="mut">${e.status}${!e.held&&!e.uncited?', record not held':''}</span></div>`).join(''):'<span class="mut">none</span>';
+  const evs=ev.length?ev.map(e=>`<div>${e.uncited?'<span class="mut">tree owner, no record</span>':e.vouched?'<span class="mut">tree owner\'s own knowledge</span>':h(e.citation)} ${e.tier?`<span class="pill">${e.tier}</span>`:''}${e.url?` <a href="${e.url}" target="_blank">↗</a>`:''} <span class="mut">${e.status}${!e.held&&!e.uncited?', record not held':''}</span></div>`).join(''):'<span class="mut">none</span>';
   const seg=st===null?'<span class="mut">no claim</span>':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${k}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
   html+=`<tr><td><b>${k}</b></td><td>${h(fmt(f.value))}${f.variants&&f.variants.length?`<div class="mut">variants: ${h(f.variants.join(', '))}</div>`:''}</td>
    <td>${evs}</td><td><span class="seg">${seg}</span></td></tr>`}

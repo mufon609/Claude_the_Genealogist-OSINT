@@ -23,7 +23,10 @@ not hold. None of that is a baseline yet.
 - A human reviews each person and sets each key fact to **Accepted**,
   **Rejected**, or leaves it **Undecided**. Key facts: name, sex, birth, death,
   parents, spouses, children. A person is *baseline-complete* when no key fact
-  is Undecided.
+  is Undecided. A person may accept a fact on their own knowledge (a vouch):
+  the fact then traces to the tree file as the archived claim, the acceptance
+  is the person's, it is Accepted like any other, and the record fetch still
+  runs.
 - Only Accepted facts feed searches. An Undecided fact can be used as a lead
   and is labelled as such in every query: every query field is `{value, basis}`
   with basis `accepted` or `lead`. A Rejected fact is left out, and a relative

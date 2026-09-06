@@ -220,7 +220,12 @@ collection page for a citation without a step) or to Ancestry when the
 collection has no free holder and the step is blocked. Deciding a fact sets every assertion that supports it and writes an
 audit row. Accept sets Accepted only on the assertions whose evidence is
 visible: the tree owner's uncited claim and citations whose record is held;
-a citation to a record not yet fetched stays Undecided until the fetch. A
+a citation to a record not yet fetched stays Undecided until the fetch. When
+no evidence behind a fact is visible, Accept is the person's own knowledge: a
+vouch, one Accepted assertion by the person on the tree file's persona, so
+the fact traces to the file as the archived claim and the acceptance to the
+person, the cited records still get fetched, and held evidence later sits
+beside the vouch. A
 "Generate plan" button materializes the questions and steps into the catalog;
 every checklist row and footprint record then shows its step, its log, and
 three ways to log a run: nothing found, blocked, or found with a file picked

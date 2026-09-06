@@ -67,10 +67,10 @@ def evidence_rows(cx, pid, field):
         for r in cx.execute("""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, ar.trust_tier FROM assertion a
                                LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=?""", (k, i)):
             n = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
-            apid = n.get("apid"); uncited = bool(n.get("uncited"))
-            held = uncited or (apid in held_apids) or (r["trust_tier"] in ("T1", "T2", "T3"))   # the evidence the person can see
+            apid = n.get("apid"); uncited = bool(n.get("uncited")); vouched = bool(n.get("vouched"))
+            held = uncited or vouched or (apid in held_apids) or (r["trust_tier"] in ("T1", "T2", "T3"))   # the evidence the person can see
             out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid,
-                        **fetch_target(apid, n.get("url")), "uncited": uncited, "tier": r["trust_tier"], "held": held})
+                        **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": held})
     return out
 
 HOLDERS = holders()
@@ -101,18 +101,35 @@ def holder_search(h, fields):
     if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(name))], quote_via=urllib.parse.quote)
     return None
 
+def vouch(cx, tree_id, pid, field, ts):
+    """The person accepts a key fact on their own knowledge: one Accepted assertion per subject of the fact, by the person acting,
+    on the tree file's persona for this person and the file itself, so the fact traces to the file as the archived claim and the
+    acceptance to the person. Returns the assertion ids written (none when the person has no file persona)."""
+    pe = cx.execute("""SELECT pe.id, pe.artifact_sha256 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN artifact a ON a.sha256=pe.artifact_sha256
+                       WHERE pp.person_id=? AND pp.status='accepted' AND a.mime='text/x-gedcom' ORDER BY pe.sequence LIMIT 1""", (pid,)).fetchone()
+    if not pe: return []
+    out = []
+    for kind, sid in fact_subjects(cx, pid, field):
+        if cx.execute("SELECT 1 FROM assertion WHERE subject_kind=? AND subject_id=? AND json_valid(notes) AND json_extract(notes,'$.vouched')=1", (kind, sid)).fetchone(): continue
+        aid = ulid(); out.append(aid)
+        cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                      VALUES (?,?,?,?,?,?,?,'accepted',?,?,?)""", (aid, tree_id, kind, sid, pe["id"], pe["artifact_sha256"], "Tree owner's own knowledge", CFG["by"], ts, dumps({"vouched": True})))
+    return out
+
 def decide_fact(cx, tree_id, pid, field, status, note):
     """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held);
-    a citation to a record not yet fetched stays Undecided. Reject and Undecided apply to every assertion behind the fact.
+    a citation to a record not yet fetched stays Undecided. When no assertion behind the fact has visible evidence, the accept
+    is the person's own knowledge: a vouch (see vouch). Reject and Undecided apply to every assertion behind the fact.
     An accept regenerates the plan and marks the questions it closes answered by the proposal that brought the evidence."""
     if field not in KEY_FACTS or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
-    ts = now(); n = 0
+    ts = now(); n = 0; vouched = []
     ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or e["held"]]
     for aid in ids:
         n += cx.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=? WHERE id=? AND status<>?", (status, CFG["by"], ts, aid, status)).rowcount
+    if status == "accepted" and not ids: vouched = vouch(cx, tree_id, pid, field, ts); ids = list(vouched)
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, CFG["by"], "accept" if status == "accepted" else ("reject" if status == "rejected" else "update"),
-                "person", pid, dumps({"fact": field, "status": status, "assertions": n, "note": note or None})))
+                "person", pid, dumps({"fact": field, "status": status, "assertions": n, "vouched": vouched, "note": note or None})))
     if note:
         cx.execute("INSERT INTO note (id,tree_id,entity_kind,entity_id,body,author,created_at) VALUES (?,?,?,?,?,?,?)",
                    (ulid(), tree_id, "person", pid, f"{field}: {status}. {note}", CFG["by"], ts))
@@ -120,7 +137,7 @@ def decide_fact(cx, tree_id, pid, field, status, note):
     if status == "accepted" and ids:                             # the proposal whose match brought the accepted evidence answers what the plan now closes
         props = [json.loads(r["notes"]).get("proposal") for r in cx.execute(f"SELECT notes FROM assertion WHERE id IN ({','.join('?'*len(ids))}) AND notes LIKE '{{%'", ids)]
         answered = answer_questions(cx, tree_id, pid, next((x for x in props if x), None))
-    return {"ok": True, "field": field, "status": status, "assertions": n, "answered": answered}
+    return {"ok": True, "field": field, "status": status, "assertions": n, "vouched": vouched, "answered": answered}
 
 # ------------------------------------------------------------------ views
 def plan_view(cx, pid):

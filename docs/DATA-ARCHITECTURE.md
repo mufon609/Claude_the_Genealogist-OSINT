@@ -53,7 +53,10 @@ accuracy figure. Trust tiers (T1-T5) remain: they classify what *kind* of
 source a record is, not how confident anyone is in it.
 
 An imported tree arrives entirely Undecided. Nothing becomes Accepted without
-a person saying so. One link is definitional rather than decided: the persona an
+a person saying so. A person may accept a fact on their own knowledge: the
+acceptance is recorded as their own Accepted assertion on the tree file's
+persona (the archived claim), marked vouched, and the fact's citations stay
+Undecided until their records are fetched. One link is definitional rather than decided: the persona an
 import creates for each tree entry is linked to the person it creates with
 status Accepted, because that persona *is* the entry. The extractor is recorded
 as the decider, and the link alone never counts as support
