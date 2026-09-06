@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, archive_object, dumps, imports_dir, inbox_dir, now, ulid
-from catalog import Catalog, holders
+from catalog import Catalog, held_apids, holders
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
@@ -61,16 +61,16 @@ def fact_status(cx, pid, field):
     return "undecided"
 
 def evidence_rows(cx, pid, field):
-    held_apids = {v for v, in cx.execute("SELECT locator_value FROM artifact WHERE locator_kind='apid'")}
+    held = held_apids(cx)
     out = []
     for k, i in fact_subjects(cx, pid, field):
         for r in cx.execute("""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, ar.trust_tier FROM assertion a
                                LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=?""", (k, i)):
             n = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
             apid = n.get("apid"); uncited = bool(n.get("uncited")); vouched = bool(n.get("vouched"))
-            held = uncited or vouched or (apid in held_apids) or (r["trust_tier"] in ("T1", "T2", "T3"))   # the evidence the person can see
+            visible = uncited or vouched or (apid in held) or (r["trust_tier"] in ("T1", "T2", "T3"))   # the evidence the person can see
             out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid,
-                        **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": held})
+                        **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": visible})
     return out
 
 HOLDERS = holders()
@@ -145,13 +145,14 @@ def plan_view(cx, pid):
     questions = [{"id": q["id"], "kind": q["kind"], "detail": json.loads(q["detail_json"] or "{}"),
                   "steps": cx.execute("SELECT COUNT(*) FROM search_plan WHERE question_id=?", (q["id"],)).fetchone()[0]}
                  for q in cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' ORDER BY kind", (pid,))]
-    steps = []
+    steps = []; archived = held_apids(cx)
     for s in cx.execute("SELECT * FROM search_plan WHERE person_id=? ORDER BY seq", (pid,)):
         logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at", (s["id"],))]
         col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
-        held = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None
+        if s["locator_kind"] == "apid": sha = archived.get(s["locator_value"])
+        else: a = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None; sha = a["sha256"] if a else None
         fields = json.loads(s["query_json"])
-        steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"], "archived": held["sha256"] if held else None,
+        steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"], "archived": sha,
                       "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": fields, "revisions": json.loads(s["revisions_json"] or "{}"),
                       "query": rendered_query(s["query_json"], s["revisions_json"]), "locator": {"source": s["locator_source_id"], "kind": s["locator_kind"], "value": s["locator_value"]},
                       "collection": col["name"] if col else None, "on": json.loads(s["on_json"] or "[]"),
@@ -170,7 +171,7 @@ def cost_of(text):
 def archive_inbox_file(cx, slug, name, st, note):
     """Archive a file the person saved to inbox/ for a step and file the original under the tree. Bytes already in the archive are
     linked, not copied. Provenance comes from the registry: the record's kind (the step's first source) gives the trust tier; where
-    it was retrieved (the step's locator source) gives terms and cost. Returns (sha256, why the page was not parsed or None)."""
+    it was retrieved (the step's locator source) gives terms and cost. Returns (sha256, True when the bytes are new, mime)."""
     src = os.path.join(inbox_dir(), os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
     ts = now(); filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)
@@ -183,25 +184,25 @@ def archive_inbox_file(cx, slug, name, st, note):
     sha, new = archive_object(cx, data, mime=mime, source_id=source_id or (sources[0] if sources else None), collection_id=col_id, collection_name=col["name"] if col else None,
                               locator_kind=lkind, locator_value=lvalue or os.path.basename(src), retrieved_by=CFG["by"], terms=from_row.get("terms"), cost=cost_of(from_row.get("cost")),
                               trust_tier=kind_row.get("trust_tier") or from_row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
-    unparsed = None
-    if new and mime.startswith("text/html"):                      # a record page is parsed and matched on arrival; an image waits for a transcription
-        eid, n = extract_html(cx, sha, CFG["by"])
-        if "failed" in n: unparsed = n["failed"]
-        else: match_personas(cx, eid, CFG["by"])
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
-    return sha, unparsed
+    return sha, new, mime
 
 def log_step(cx, tree_id, slug, step_id, body):
-    """Write one run of a step. A found run with a file archives the file and records it on the log; the
-    assertion and personas come later from extraction and review, never from the attach."""
+    """Write one run of a step. A found run with a file archives the file and records it on the log, then a record page new to
+    the archive is parsed and matched (the log row first, so the matcher knows which step the record came through; an image
+    waits for a transcription); the assertion and personas come later from extraction and review, never from the attach."""
     st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone()
     if not st: return {"error": "step not found"}
     outcome = body.get("outcome"); note = body.get("note") or None; query = body.get("query") or rendered_query(st["query_json"], st["revisions_json"])
-    artifacts, unparsed = [], None
+    artifacts, unparsed, new, mime = [], None, False, None
     if outcome == "found" and body.get("file"):
-        try: sha, unparsed = archive_inbox_file(cx, slug, body["file"], st, note); artifacts.append(sha)
+        try: sha, new, mime = archive_inbox_file(cx, slug, body["file"], st, note); artifacts.append(sha)
         except ValueError as e: return {"error": str(e)}
     lid = log_search(cx, tree_id, CFG["by"], step_id=step_id, outcome=outcome, artifacts=artifacts or None, note=note, query=query)
+    if new and mime.startswith("text/html"):
+        eid, n = extract_html(cx, sha, CFG["by"])
+        if "failed" in n: unparsed = n["failed"]
+        else: match_personas(cx, eid, CFG["by"])
     return {"ok": True, "log": lid, "artifacts": artifacts, "unparsed": unparsed}
 
 def revise_step(cx, tree_id, step_id, body):

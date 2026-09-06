@@ -72,8 +72,11 @@ but the expectation is "counted under the head", not "named".
 ## 3. From checklist to gaps to search tasks (automatic on opening a profile)
 
 For each checklist row: **held** (archived), **cited but not held** (the old
-tree pointed at it), **missing**, or **not applicable**. Everything that is not
-held is a gap, and every gap has a pre-built search step:
+tree pointed at it), **missing**, or **not applicable**. A census page is held
+for every household member cited on it: the citation's own details (collection,
+year, census place, enumeration district, sheet) name the page, whichever
+member's record id it was archived under. Everything that is not held is a gap,
+and every gap has a pre-built search step:
 
 | Gap | Pre-built search |
 |---|---|
@@ -117,9 +120,10 @@ Search foundation (Accepted)                       Task list
 - **Click one gap → Search** runs that single task, seeded with the same
   foundation. One fact, not ten.
 - Results come back as proposals tied to that gap ("this 1900 census page
-  answers *1900 census household*"). The checklist row reads held once a done
-  fetch step for that row has an archived record in its log; the fact behind it
-  is still decided by a person.
+  answers *1900 census household*"). The checklist row reads held once its
+  record is in the archive: a done fetch step for that row with an archived
+  record in its log, or an archived page that a citation on the row names; the
+  fact behind it is still decided by a person.
 
 Every run, including "nothing found", is written to the research log with the
 fields exactly as rendered after include and revise, so the same search is not
@@ -267,7 +271,8 @@ result.
   foundation fields as `{value, basis}` and one `mode`;
 - the checkbox and revision state = `search_plan.revisions_json` on the step,
   not on the facts;
-- held = a done step for the row with an archived artifact in its
-  `search_log`;
+- held = the row's record is in the archive: a done step with an archived
+  artifact in its `search_log`, or an artifact archived under the citation's
+  record id or under another id naming the same census page;
 - results = `proposal.question_id` pointing at the question the record
   answers.

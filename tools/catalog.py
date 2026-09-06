@@ -26,6 +26,44 @@ def dbid_of(apid):
     m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
     return m.group(1) if m else None
 
+PAGE_PART = re.compile(r"^([A-Za-z][A-Za-z .]{0,40}): (.+)$")
+
+def page_key(apid, page):
+    """The census page a citation names, from the citation's own details: the collection with the year, census place,
+    enumeration district and page (sheet) parts of its page text. None when the details do not name one page (no year, place
+    or page part), so a certificate box or a number range never counts as one page."""
+    parts = {}
+    for part in (page or "").split("; "):
+        m = PAGE_PART.match(part.strip())
+        if m: parts.setdefault(m.group(1).lower(), m.group(2).strip())
+    yr = parts.get("year") or parts.get("residence date")
+    place = parts.get("census place") or next((v for k, v in parts.items() if k.startswith("home in ")), None)
+    sheet = parts.get("page") or parts.get("sheet") or parts.get("sheet number")
+    if not (yr and place and sheet): return None
+    return (dbid_of(apid), yr, place, parts.get("enumeration district"), sheet)
+
+def page_groups(cx):
+    """{record id: the record ids whose citations name the same census page}, over every citation in the catalog. Ancestry
+    cites each household member under their own record id; those ids are one page."""
+    by_key = {}
+    for apid, page in cx.execute("""SELECT DISTINCT json_extract(notes,'$.apid'), json_extract(notes,'$.page') FROM assertion WHERE notes LIKE '{"apid":%'"""):
+        k = page_key(apid, page)
+        if k: by_key.setdefault(k, set()).add(apid)
+    return {a: frozenset(g) for g in by_key.values() for a in g}
+
+def same_page(cx, apid, groups=None):
+    """The record ids naming the same census page as this one, itself included."""
+    return set((page_groups(cx) if groups is None else groups).get(apid) or {apid})
+
+def held_apids(cx, groups=None):
+    """{record id: sha256} for every citation whose record is in the archive: the id the record was archived under and every id
+    that names the same census page (the household's page is held for every member cited on it)."""
+    groups = page_groups(cx) if groups is None else groups
+    out = {}
+    for v, sha in cx.execute("SELECT locator_value, sha256 FROM artifact WHERE locator_kind='apid' ORDER BY retrieved_at, sha256"):
+        for a in groups.get(v) or {v}: out.setdefault(a, sha)
+    return out
+
 class Catalog:
     def __init__(self, cx, tree_id):
         self.cx, self.tree_id = cx, tree_id
@@ -33,6 +71,7 @@ class Catalog:
         self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or "", "connector": r[5] or ""}
                         for r in self.q("SELECT id, name, access, status, cost, connector FROM source")}
         self.holders = holders()
+        self._groups = self._held = None
     def find_person(self, key):
         """A person by id, exact display name, or substring of the name (exact wins; several matches are listed on stderr)."""
         r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name LIMIT 5", self.tree_id, key, key)
@@ -112,7 +151,7 @@ class Catalog:
                 LEFT JOIN collection ac ON ac.id=ar.collection_id
                 WHERE a.subject_kind=? AND a.subject_id=? AND a.status<>'rejected'""", kind, sid):
             apid = json.loads(notes).get("apid") if notes and notes.startswith("{") else None
-            held = sha if sha and tier in ("T1", "T2", "T3") else None       # the T4 tree export is not a held record
+            held = sha if sha and tier in ("T1", "T2", "T3") else self.held_apids().get(apid)   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
             if cname or held: out.append((cname or "", apid, held, cid))
         return out
     def family(self, pid):
@@ -134,15 +173,21 @@ class Catalog:
         return fam
     def fetched_rows(self, pid):
         """Checklist row keys (record:instance) with a done step whose record is held: an archived artifact in its log, or an
-        artifact at the step's locator with a persona accepted for this person."""
-        return {k for k, in self.q("""SELECT DISTINCT sp.row_key FROM search_plan sp WHERE sp.person_id=? AND sp.status='done' AND (
-                                        EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=sp.id AND l.artifacts_json IS NOT NULL AND l.artifacts_json<>'[]')
-                                        OR EXISTS (SELECT 1 FROM artifact a JOIN persona pe ON pe.artifact_sha256=a.sha256
-                                                   JOIN person_persona pp ON pp.persona_id=pe.id AND pp.person_id=sp.person_id AND pp.status='accepted'
-                                                   WHERE a.locator_kind=sp.locator_kind AND a.locator_value=sp.locator_value))""", pid)}
+        artifact at the step's locator (for a record id, at any id naming the same census page)."""
+        out = set()
+        for sid, rk, lkind, lval in self.q("SELECT id, row_key, locator_kind, locator_value FROM search_plan WHERE person_id=? AND status='done'", pid):
+            if self.q("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]'", sid): out.add(rk)
+            elif lkind == "apid" and lval in self.held_apids(): out.add(rk)
+            elif lkind and lval and self.q("SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval): out.add(rk)
+        return out
+    def page_groups(self):
+        if self._groups is None: self._groups = page_groups(self.cx)
+        return self._groups
     def held_apids(self):
-        """Ancestry record ids whose record is in the archive."""
-        return {v for v, in self.q("SELECT locator_value FROM artifact WHERE locator_kind='apid'")}
+        """{record id: sha256} for every citation whose record is in the archive, the household page counting for every member cited on it."""
+        if self._held is None: self._held = held_apids(self.cx, self.page_groups())
+        return self._held
+    def same_page(self, apid): return same_page(self.cx, apid, self.page_groups())
     def cited(self):
         """The citation's own details per Ancestry record id, from the import's assertions: {apid: {page, url, names}}, names being
         the tree's names of the people the citation sits on, in the order met (the only name the export carries for the record)."""

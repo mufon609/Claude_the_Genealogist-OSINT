@@ -4,11 +4,13 @@
 usage: tools/match.py <extraction id> [--db catalog/tree.db] [--by user:<you>]
 
 The record was fetched for one or more persons: those whose step logged the
-artifact, those whose fetch step points at the same locator, and those already
-matched on it by an accepted persona link (their steps are gone once the record
-is held for them). The candidates
+artifact, those whose fetch step points at the same locator (for a record id,
+at any id naming the same census page: every household member cited on it),
+and those already matched on it by an accepted persona link. The candidates
 are those persons and their relatives as the catalog knows them (parents,
-spouses, children, siblings). Every persona on the extraction is compared with
+spouses, children, siblings); a person the record was fetched for keeps their
+own step and question on the proposal, a relative takes the context they were
+first met in. Every persona on the extraction is compared with
 each candidate on name, sex, birth year and stated relationships. A persona fits
 a candidate when the given name agrees, the surname or a relationship agrees,
 and neither sex nor birth year disagrees. One proposal per persona: kind
@@ -22,7 +24,7 @@ skipped, so re-running adds nothing.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, ulid
-from catalog import Catalog, year
+from catalog import Catalog, same_page, year
 
 MATCHER = ("rule", "matcher", "0.1.0")
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -89,7 +91,8 @@ def persons_for(cx, sha):
     rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ?""", (f'%"{sha}"%',)).fetchall()
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if loc and loc[0] and loc[1]:
-        rows += cx.execute("SELECT DISTINCT person_id, question_id, id FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value=?", loc).fetchall()
+        values = sorted(same_page(cx, loc[1])) if loc[0] == "apid" else [loc[1]]
+        rows += cx.execute(f"SELECT DISTINCT person_id, question_id, id FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?'*len(values))}) ORDER BY seq", (loc[0], *values)).fetchall()
     rows += cx.execute("""SELECT DISTINCT pp.person_id, NULL, NULL FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                           WHERE pe.artifact_sha256=? AND pp.status='accepted'""", (sha,)).fetchall()
     seen, out = set(), []
@@ -110,9 +113,11 @@ def match(cx, eid, by):
         by_tree.setdefault(cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0], []).append((pid, qid, step_id))
     for tree_id, contexts in by_tree.items():
         cat = Catalog(cx, tree_id); cands, ctx_of = [], {}    # candidate persons in order met; candidate id -> the context it came from
+        for pid, qid, step_id in contexts:                      # a person the record was fetched for keeps their own step and question
+            if pid not in ctx_of: ctx_of[pid] = (pid, qid, step_id); cands.append(candidate(cat, pid))
         for pid, qid, step_id in contexts:
             fam = cat.family(pid)
-            for rid in [pid] + [r for g in ("parents", "spouses", "children", "siblings") for r, _ in fam[g]]:
+            for rid in [r for g in ("parents", "spouses", "children", "siblings") for r, _ in fam[g]]:
                 if rid not in ctx_of: ctx_of[rid] = (pid, qid, step_id); cands.append(candidate(cat, rid))
         chosen = {}                                             # persona id -> candidate, settled in passes so relationships can be checked
         for _ in range(2):
