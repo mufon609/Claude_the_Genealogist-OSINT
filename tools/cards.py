@@ -147,6 +147,8 @@ def card(cx, tree_id, prop_id):
             if f["fact_type"] in ("Death", "Burial", "Residence") and year(f["date_start"]) and year(f["date_start"]) < person["span"][0]: odd.append(f"{f['fact_type']} {f['date_text']} is before the tree's birth year {person['span'][0]}")
     if person and fields and fields[0]["field"] == "Name" and fields[0]["verdict"] == "agrees" and _key(_tokens(fields[0]["record"])[-1]) not in {_key(n[1]) for n in cat.person(person_id)["names"]}: odd.append(f"the record writes the name as {fields[0]['record']}; the tree has {person['name']}")
     if person and any(f["field"] == "Sex" and f["verdict"] == "absent" for f in fields) and not person["claim"]["sex"]: odd.append("the tree has no sex for this person")
+    for f in fields:                                              # a place that is only a country agrees with any place in it; say so
+        if f["field"].endswith(" place") and f["verdict"] == "agrees" and f["record"] and len([p for p in f["record"].split(",") if p.strip()]) == 1 and COUNTRY.fullmatch(f["record"].strip()): odd.append(f"{f['field']} on the record is only a country ({f['record']})")
     if a["mime"] and not a["mime"].startswith("text/html"): odd.append(f"the record is {a['mime']}, transcribed by hand")
     # ---- highlight
     links = [f"{REL_WORD.get(r['kind'], r['kind'])} of {r['other']} ({r['other_status']})" for r in rels if r["direction"] == "is"] or \
