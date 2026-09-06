@@ -17,7 +17,7 @@ import argparse, glob, json, mimetypes, os, re, shutil, sqlite3, sys, threading,
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
-from treelib import active_tree_slug, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, sha256_file, ulid
+from treelib import active_tree_slug, archive_object, dumps, imports_dir, inbox_dir, now, ulid
 from catalog import Catalog, holders
 from checklist import build
 from plan import plan_person
@@ -151,34 +151,23 @@ def cost_of(text):
     return next((c for c in ("free", "paid", "member") if t.startswith(c)), "unknown")
 
 def archive_inbox_file(cx, slug, name, st, note):
-    """Archive a file the person saved to inbox/ for a step. Bytes already in the archive are linked, not copied.
-    Provenance comes from the registry: the record's kind (the step's first source) gives the trust tier; where it was
-    retrieved (the step's locator source) gives terms and cost. Returns (sha256, why the page was not parsed or None)."""
+    """Archive a file the person saved to inbox/ for a step and file the original under the tree. Bytes already in the archive are
+    linked, not copied. Provenance comes from the registry: the record's kind (the step's first source) gives the trust tier; where
+    it was retrieved (the step's locator source) gives terms and cost. Returns (sha256, why the page was not parsed or None)."""
     src = os.path.join(inbox_dir(), os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
-    sha = sha256_file(src); ts = now()
-    filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)
-    if cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone():
-        shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
-        return sha, None
-    size = os.path.getsize(src); mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
+    ts = now(); filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)
+    mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
     source_id, lkind, lvalue, col_id = st["locator_source_id"], st["locator_kind"] or "file", st["locator_value"], st["collection_id"]
-    col = cx.execute("SELECT name FROM collection WHERE id=?", (col_id,)).fetchone() if col_id else None; col_name = col["name"] if col else None
+    col = cx.execute("SELECT name FROM collection WHERE id=?", (col_id,)).fetchone() if col_id else None
     sources = json.loads(st["sources_json"])
     kind_row = source_row(cx, sources[0] if sources else None); from_row = source_row(cx, source_id) or kind_row
-    tier = kind_row.get("trust_tier") or from_row.get("trust_tier"); terms = from_row.get("terms") or "unknown"; cost = cost_of(from_row.get("cost"))
-    manifest = {"schema_version": "0.1.0", "sha256": sha, "bytes": size, "mime": mime, "source_id": source_id or (sources[0] if sources else None), "collection": col_name,
-                "locator": {"kind": lkind, "value": lvalue or os.path.basename(src)}, "retrieved_at": ts, "retrieved_by": CFG["by"],
-                "rights": {"terms": terms, "redistributable": False, "cost": cost}, "trust_tier": tier, "original_filename": os.path.basename(src), "pages": 1, "notes": note or ""}
-    manifest = {k: v for k, v in manifest.items() if v is not None}
-    dst, man = object_path(sha), manifest_path(sha)
-    os.makedirs(os.path.dirname(dst), exist_ok=True); os.makedirs(os.path.dirname(man), exist_ok=True)
-    shutil.copyfile(src, dst); json.dump(manifest, open(man, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-    cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,manifest_json,created_at)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, size, mime, manifest.get("source_id"), col_id, lkind, manifest["locator"]["value"], ts, CFG["by"], terms, False, cost, tier, os.path.basename(src), 1, dumps(manifest), ts))
-    cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)", (sha, "local", ts, ts, True))
+    with open(src, "rb") as fh: data = fh.read()
+    sha, new = archive_object(cx, data, mime=mime, source_id=source_id or (sources[0] if sources else None), collection_id=col_id, collection_name=col["name"] if col else None,
+                              locator_kind=lkind, locator_value=lvalue or os.path.basename(src), retrieved_by=CFG["by"], terms=from_row.get("terms"), cost=cost_of(from_row.get("cost")),
+                              trust_tier=kind_row.get("trust_tier") or from_row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
     unparsed = None
-    if mime.startswith("text/html"):                              # a record page is parsed and matched on arrival; an image waits for a transcription
+    if new and mime.startswith("text/html"):                      # a record page is parsed and matched on arrival; an image waits for a transcription
         eid, n = extract_html(cx, sha, CFG["by"])
         if "failed" in n: unparsed = n["failed"]
         else: match_personas(cx, eid, CFG["by"])

@@ -9,6 +9,7 @@ import datetime as dt, hashlib, json, os, re, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
+USER_AGENT = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"   # sent on every request the tools make
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 def ulid() -> str:
@@ -149,6 +150,29 @@ def parse_gedcom(path: str):
 
 def dumps(o) -> str:
     return json.dumps(o, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+# ---------------------------------------------------------------- archive
+def archive_object(cx, data: bytes, *, mime, source_id, collection_id, locator_kind, locator_value, retrieved_by, terms, cost, trust_tier,
+                   original_filename=None, notes=None, http=None, collection_name=None, pages=1):
+    """Put bytes in the archive: the object, its manifest, the artifact row and its local copy. Bytes already archived are left as
+    they are (artifact rows are insert-only). Returns (sha256, True when the object is new)."""
+    sha = hashlib.sha256(data).hexdigest(); ts = now()
+    if cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return sha, False
+    manifest = {"schema_version": "0.1.0", "sha256": sha, "bytes": len(data), "mime": mime, "source_id": source_id, "collection": collection_name,
+                "locator": {"kind": locator_kind, "value": locator_value}, "retrieved_at": ts, "retrieved_by": retrieved_by, "http": http,
+                "rights": {"terms": terms or "unknown", "redistributable": False, "cost": cost or "unknown"}, "trust_tier": trust_tier,
+                "original_filename": original_filename, "pages": pages, "notes": notes or ""}
+    manifest = {k: v for k, v in manifest.items() if v is not None}
+    dst, man = object_path(sha), manifest_path(sha)
+    os.makedirs(os.path.dirname(dst), exist_ok=True); os.makedirs(os.path.dirname(man), exist_ok=True)
+    with open(dst, "wb") as fh: fh.write(data)
+    with open(man, "w", encoding="utf-8") as fh: json.dump(manifest, fh, ensure_ascii=False, indent=2)
+    cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,manifest_json,created_at)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, len(data), mime, source_id, collection_id, locator_kind, locator_value, ts, retrieved_by,
+                                                                  manifest["rights"]["terms"], False, manifest["rights"]["cost"], trust_tier, original_filename, pages, dumps(manifest), ts))
+    cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)", (sha, "local", ts, ts, True))
+    return sha, True
 
 
 # ---------------------------------------------------------------- trees / profiles

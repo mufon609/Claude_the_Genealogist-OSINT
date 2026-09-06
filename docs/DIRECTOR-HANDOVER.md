@@ -51,25 +51,31 @@ repo. Plain over clever, always.
 
 ## Where things stand
 
-- Live catalog on schema 0.7.0, no human decision made yet; the person screen
-  runs locally on it as `user:neural`.
-- Verified on real pages: the Find a Grave memorial parser. Not verified: the
-  Ancestry index parser (paywalled; the account is free) and the FamilySearch
-  record-page parser (not written). The loop from match to accepted fact to
-  closed question is proven on scratch copies only.
+- Live catalog on schema 0.7.1 (delete triggers on persona and persona_fact),
+  no human decision made yet; the person screen runs locally on it as
+  `user:neural`. A commit guard is installed from `tools/hooks`; scratch runs
+  use `DATA_ROOT` so nothing lands in the shared archive.
+- Verified on real pages: the Find a Grave memorial parser and the FamilySearch
+  record-page parser. Not verified: the Ancestry index parser (paywalled; the
+  account is free), including its claim marker. A page no parser claims yields
+  a failed extraction and no personas.
+- The loop from fetch to proposal to accepted link to closed question is
+  proven on scratch copies with two real free pages (the memorial and the 1900
+  census of the Lukens household). Both pages sit in `inbox/` with the census
+  image; attaching them through the screen is the owner's action, not the
+  worker's.
 - Fetch steps: 912 for the seed tree; 472 re-targeted to free holders
   (FamilySearch, Find a Grave, National Archives), 440 blocked for want of a
-  free holder, chiefly Pennsylvania certificates.
+  free holder, chiefly Pennsylvania certificates. A FamilySearch-held step links
+  to the collection's own search prefilled from the citation's details.
 - No step runs automatically yet: the registry's Connector column is empty.
-- In flight: the FamilySearch fetch of one cited census with its parser, plus
-  building holder search URLs for re-targeted steps (BACKLOG A1 and the
-  resume brief the previous director issued).
-- Next after that: `docs/briefs/open-source-connectors.md` (a runner and the
-  first two free connectors), then the FamilySearch API application in the
-  backlog, which turns the FamilySearch fetches from browser-assisted into
-  automatic.
-- The owner's Find a Grave memorial page for Abram C. Brant sits in `inbox/`;
-  attaching it through the screen is the owner's action, not the worker's.
+- One archive object (the memorial, from a test before `DATA_ROOT` existed) has
+  no catalog row; its removal waits on the owner's word.
+- Next: `docs/briefs/open-source-connectors.md` (a runner and the first two
+  free connectors), then the FamilySearch API application in the backlog, which
+  turns the FamilySearch fetches from browser-assisted into automatic. The
+  matcher's name-variant rule is the one small change most likely to be worth
+  folding into a brief that touches the matcher.
 
 ## How to work
 
