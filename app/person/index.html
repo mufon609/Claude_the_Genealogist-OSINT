@@ -121,7 +121,7 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
   </table><button onclick="transcribe('${a.sha256}')">Add persona</button></details>`;
  return html}
 async function decideProposal(id,status){const r=await post('/api/proposal/'+id+'/decide',{status});if(r.error){fail(r.error);return}await reload();
- if(r.answered&&r.answered.length)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">answered ${r.answered.length} question(s); plan refreshed</div>`)}
+ if(r.summary)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">${h(r.summary)}</div>`)}
 async function transcribe(sha){const id=sha.slice(0,12);const v=k=>$('#tr-'+id+'-'+k)?.value||'';
  const body={name:v('name'),role:v('role'),sex:v('sex'),age:v('age'),birth_date:v('birth_date'),birth_place:v('birth_place'),death_date:v('death_date'),death_place:v('death_place'),residence:v('residence'),relations:v('rk')?[{kind:v('rk'),persona_id:v('rp'),text:v('rt')}]:[]};
  const r=await post('/api/artifact/'+sha+'/persona',body);if(r.error){fail(r.error);return}await reload()}

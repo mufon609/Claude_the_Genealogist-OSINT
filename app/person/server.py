@@ -313,13 +313,45 @@ def new_family(cx, tree_id, partner, ts):
     fid = ulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fid, tree_id, ts, ts))
     cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid, partner)); return fid
 
+def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members):
+    """What the decision closed and what the plan does next, in words: the link made, the questions answered, the checklist rows
+    this record fulfils for the person, the facts now carrying held evidence to accept, the proposals still open on the record,
+    the steps still planned. The last line is the one sentence a director can say."""
+    pe = cx.execute("SELECT name_text, role_in_record, artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()
+    who = cx.execute("SELECT display_name FROM person WHERE id=?", (person_id,)).fetchone()["display_name"] if person_id else None
+    what = f"{pe['name_text']} ({pe['role_in_record']})"
+    closed, made, nxt = [], [], []
+    if status == "rejected":
+        made.append(f"rejected: {what} is not {who}" if p["kind"] == "persona_match" else f"rejected: {what} is not a new person for this tree")
+    else:
+        made.append(f"{what} is {who}" if p["kind"] == "persona_match" else f"{who} created in this tree from {what}")
+        made += [f"{who} joins a family as {m['as']} of {cx.execute('SELECT display_name FROM person WHERE id=?', (m['of'],)).fetchone()['display_name']} (Undecided link)" for m in members]
+        for q in cx.execute(f"SELECT kind, detail_json FROM research_question WHERE id IN ({','.join('?'*len(answered))})", answered) if answered else []:
+            closed.append(f"question answered: {q['kind']} {json.loads(q['detail_json'] or '{}').get('detail') or ''}".strip())
+        held = held_apids(cx); ids = {k for k, v in held.items() if v == pe["artifact_sha256"]}
+        for st in cx.execute("SELECT row_key, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='done' ORDER BY seq", (person_id,)):
+            if (st["locator_kind"] == "apid" and st["locator_value"] in ids) or (st["locator_kind"] != "apid" and st["locator_value"] and cx.execute("SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=?", (pe["artifact_sha256"], st["locator_kind"], st["locator_value"])).fetchone()):
+                closed.append(f"the {st['row_key'].split(':')[0]} row for {who}: held, this record")
+        order = {"Name": 0, "Sex": 1, "Birth": 2, "Death": 3, "Burial": 4}
+        facts = [f"{r['fact_type']} {r['date_text'] or r['value_text'] or ''}".strip() for r in sorted(cx.execute("""SELECT DISTINCT pf.fact_type, pf.date_text, pf.value_text FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                    WHERE a.tree_id=? AND json_valid(a.notes) AND json_extract(a.notes,'$.proposal')=? AND a.status='undecided'""", (tree_id, prop_id)).fetchall(), key=lambda r: order.get(r["fact_type"], 9))]
+        if facts: nxt.append(f"accept on the screen, with this record as held evidence: {', '.join(facts)}")
+    left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') AND json_extract(payload_json,'$.artifact_sha256')=?", (tree_id, pe["artifact_sha256"])).fetchone()[0]
+    if left: nxt.append(f"{left} proposal(s) still undecided on this record")
+    if person_id:
+        planned = [r["row_key"].split(":")[0] for r in cx.execute("SELECT row_key FROM search_plan WHERE person_id=? AND status='planned' ORDER BY seq", (person_id,))]
+        nxt.append(f"{len(planned)} step(s) still planned for {who}" + (f": {', '.join(dict.fromkeys(planned[:4]))}" + (", …" if len(planned) > 4 else "") if planned else ""))
+    summary = "; ".join(made + closed) + (". Next: " + "; ".join(nxt) if nxt else ".")
+    return {"made": made, "closed": closed, "next": nxt, "summary": summary}
+
 def decide_proposal(cx, tree_id, prop_id, status):
     """A person decides a proposal. A persona match accepted: person_persona accepted and Undecided assertions from the persona's
     facts (assert_facts). A new person accepted: the person is created in this tree, the persona link accepted, the same
     assertions, and the family memberships the record's relations give (place_in_family). Rejected: the link rejected for a
     match, nothing but the proposal for a new person. An accept then regenerates the plans of the person concerned and of the
     person the record was fetched for, and the questions that regeneration closes are marked answered by this proposal. The
-    fact decision on the screen stays the only way to Accept a fact."""
+    response names what the decision made and closed and what the plan does next (decision_outcome). The fact decision on
+    the screen stays the only way to Accept a fact."""
     p = cx.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if not p or p["kind"] not in ("persona_match", "new_person") or status not in ("accepted", "rejected"): return {"error": "not a persona match or new person, or bad status"}
     if p["status"] != "undecided": return {"error": "already decided"}
@@ -334,10 +366,11 @@ def decide_proposal(cx, tree_id, prop_id, status):
         if p["kind"] == "new_person": members = place_in_family(cx, tree_id, person_id, persona_id, sha, prop_id, ts)
         for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
             if pid: answered += answer_questions(cx, tree_id, pid, prop_id)
+    outcome = decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members)
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, CFG["by"], "accept" if status == "accepted" else "reject", "proposal", prop_id,
-                dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "assertions": n, "memberships": members, "answered": answered})))
-    return {"ok": True, "status": status, "person": person_id, "assertions": n, "memberships": members, "answered": answered}
+                dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "assertions": n, "memberships": members, "answered": answered, "summary": outcome["summary"]})))
+    return {"ok": True, "status": status, "person": person_id, "assertions": n, "memberships": members, "answered": answered, **outcome}
 
 def person_view(cx, tree_id, pid):
     cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid)

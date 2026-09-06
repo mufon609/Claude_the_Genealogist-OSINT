@@ -254,7 +254,10 @@ residence, a relation to a persona already on the record). Under each
 persona sit the matcher's proposals on the record (a record cited on several
 relatives is fetched for all of them, and each proposal names the person it
 concerns), each as the decision card, with Accept / Reject on a persona match
-or a new person; an accept says how many questions it answered. A held row
+or a new person; a decision answers in one line with what it made and closed
+(the link, the questions answered, the rows this record fulfils) and what the
+plan does next (the facts now carrying held evidence to accept, the proposals
+still open on the record, the steps still planned). A held row
 opens its record through the citation's archived artifact as well as through
 a step. Automatic sources are not wired yet, so there is no Go button:
 assisted sources are worked by opening the link, searching with the step's
