@@ -67,141 +67,78 @@ GEDCOM 7 (with GEDZIP of redistributable media) and Gramps XML, both from
 the conclusions layer, honouring the living-person redaction. Ship together
 so a tree can be round-tripped and opened in Gramps desktop.
 
-### B2. Postgres extras
-
-`schema/postgres_extras.sql` with tsvector indexes mirroring the SQLite
-FTS5 tables, plus the dump/load procedure in `schema/README.md`.
-
 ---
 
 ## C. Anytime (no dependencies)
 
 No upstream blockers; safe to pick up in any session. Default-focus tier.
 
-### C1. Archive integrity scrub
+### C1. Backups and fixity
 
-Nightly sampled and monthly full SHA-256 verification of `archive/objects`
-against `artifact_copy`, updating `last_verified` / `verify_ok`;
-`v_artifact_under_replicated` becomes actionable.
+Package `archive/` as BagIt bags for the external drive (the bag manifest is
+the fixity record), put a plain-SQL dump of `catalog/tree.db` beside them
+(never git: it holds living-person data), and verify `archive/objects`
+against `artifact_copy` on a schedule so `v_artifact_under_replicated`
+becomes actionable.
 
-### C2. BagIt export of the archive
+### C2. Search URL for an assisted search step at FamilySearch
 
-Package `archive/` as BagIt bags for the external drive and, later, the
-S3 master bucket. Bag manifest = fixity record.
+A fetch step at FamilySearch carries the collection's own search prefilled
+from the citation's details. A search step for a missing row at FamilySearch
+(D03) carries no URL, so the step is worked by retyping the foundation into
+the site. Build the URL from the step's fields with their basis, as the Find a
+Grave search URL is built.
 
-### C3. Catalog SQL dump
-
-Scheduled plain-SQL dump of `catalog/tree.db` into a bag beside the archive
-bags, never git (it holds living-person data), so the conclusions layer has a
-text history independent of the binary db.
-
-### C4. Fetcher for assisted sources
-
-Build the exact search URL and "what to look for" for Newspapers.com and the
-FamilySearch record search from a gap's foundation fields (fetch steps for
-cited records already carry the citation's details and the free holder's
-URL); archive whatever the user drops in `inbox/` and attach it to the gap.
-
-### C4a. Pennsylvania death and birth certificates have no free holder
-
-Power Library shows a notice that the PA State Archives collections left the
-site, and PHMC points only at Ancestry, so the steps for dbids 5164 and
-60484 stay `blocked`. Watch for the certificates reappearing at a free
-holder (PHMC, Power Library, FamilySearch) and add the row to
-`data/holders.csv`.
-
-### C5. OCR / HTR extractor for record images
+### C3. OCR / HTR extractor for record images
 
 Turn an archived record image into personas and persona facts by machine,
 versioned by extractor, beside the human transcription the person screen
-offers today. The Ancestry index extractor in `tools/extract.py` is still
-unverified on a real page (Ancestry needs a membership this account lacks);
-the Find a Grave memorial extractor is verified.
+offers today.
 
-### C6. Place-string review from the catalog
+### C4. Place-string review from the catalog
 
-The 41 Undecided place strings and their proposals need a way to be
-decided that fits the person screen (a gap on the person whose facts use
-the string), not a standalone place queue.
+The Undecided place strings and their `place_resolution` proposals have no
+decision path. Decide them on the person screen as a question about the
+person whose facts use the string, never as a standalone place queue.
 
-### C7. Per-tree access control
-
-`tree_member` table keyed on `tree_id`; needed only when a second person
-uses the same catalog.
-
-### C8. FamilySearch Innovator application text
-
-Draft the Third-Party Service Provider application for the user to submit;
-approval moves most Layer 1–2 searches from assisted to automatic.
-**Blocks:** Externally blocked / FamilySearch API.
-
-### C9. Focus views on the tree overview
+### C5. Focus views on the tree overview
 
 When a tree overview exists, let the user hide or highlight parts of it with
 saved, hotkey-switchable views: hide the siblings they do not care about on a
 line, keep one child of a large family, dim everything outside the line being
-worked. A view changes only what is shown, never the data. Far out; needs a
-tree overview first.
+worked. A view changes only what is shown, never the data. Needs a tree
+overview first.
 
-### C10. Proposal kinds with no decision path
-
-`fact` proposals (the alias backfill's canonical-name fixes) can be decided
-nowhere: the person screen decides only persona matches and new persons, and
-no tool decides them. Either give them a control on the person whose name they
-concern, or stop raising them and put the finding in a note.
-
-### C11. Locator kinds on fetch steps
-
-Every fetch step's `locator_kind` is `apid`, including Find a Grave memorials,
-for which the schema names `memorial_id`, while the memorial URL rides in the
-step's fields. Use the schema's kinds: `memorial_id` for Find a Grave, `ark`
-for a FamilySearch record, `naid` for the National Archives, `apid` only for
-the citation's own identity.
-
-### C12. Name variants in the matcher
+### C6. Name variants in the matcher
 
 The matcher compares the first given name exactly (one-letter initials
-aside), so Annie M Lukens on the 1900 census does not fit Anna Marie Bolton,
-Charlotte's mother in the tree, even though the record's relationship agrees;
-accepting her as a new person adds a third partner to Milton Lukens's family.
-Give the given-name comparison the alias table's variants (Annie/Anna,
-Lottie/Charlotte, Abram/Abraham) and let a married surname fit a birth
-surname when the relationship agrees, so the proposal names the person the
-tree already has. Nothing here changes what a person decides.
+aside) and the surname as written, so a mother recorded under her married
+name on a census (Ruth Davidson) does not fit the tree's Ruth M Peters even
+when the record's relationship agrees, and Annie M Lukens does not fit Anna
+Marie Bolton. Give the given-name comparison the alias table's variants and
+let a married surname fit a birth surname when the relationship agrees, so
+the proposal names the person the tree already has. Build it on the first
+fetched page where the matcher actually misses. Nothing here changes what a
+person decides.
 
-### C13. The DOM capture carries the browser extension's own nodes
-
-A record page captured through the Chrome extension's DOM includes the
-extension's injected elements (ids beginning `claude-`), so the archived
-bytes are the rendered page plus a few nodes the site never served. The
-parsers ignore them. Decide whether the capture strips them before hashing,
-or the manifest notes the capture method; the page as served by the site
-would need the site's own save or an endpoint.
-
-### C14. Fetch steps at a holder with a connector
+### C7. Fetch steps at a holder with a connector
 
 A cited 1950 census record (holder D05) carries the citation's indexed name,
 county and enumeration district, which is exactly what the 1950 site's search
-takes, yet the runner executes only `search` steps: a `fetch` step at a
-holder whose registry row names a connector could run the same way, keeping
-the page whose ED matches the citation. The same shape will serve
-FamilySearch once its API is open.
+takes, yet the runner executes only `search` steps. A `fetch` step at a
+holder whose registry row names a connector should run the same way, keeping
+the schedule whose enumeration district matches the citation. The same shape
+will serve FamilySearch once its API is open. First real case: the 1950 page
+cited on Raymond Earl Davidson and both his parents.
 
-### C16. The 1950 connector reads only the first page of results
+### C8. The 1950 connector reads only the first page of results
 
 `nara_1950` judges hits on the first 25 schedules the site returns; a search
-without a county (no residence near 1950 in the foundation) answers thousands
-and the person sought may sit on a later page. Page while the total stays
-small, or ask the person for a county on the step before searching a whole
-state.
+without a county answers thousands and the person sought may sit on a later
+page. Page while the total stays small, or ask the person for a county on the
+step before searching a whole state.
 
-### C17. Basis word on residences
-
-The foundation shows basis `mixed` on the residence trail; the docs define
-only `accepted`, `lead`, `row` and `citation`. Give each residence its own
-basis or drop the row from the foundation.
-
-### C18. Standing approval: auto-accept a file claim a trusted record corroborates
+### C9. Standing approval: auto-accept a file claim a trusted record corroborates
 
 The owner wants to decide sources as well as facts (each source Accepted,
 Rejected or Undecided per tree) and to say in advance that a fact the
@@ -217,33 +154,18 @@ source decision is stored (tree-scoped, three states, on the registry row),
 and what the card shows when the rule fired so the owner can undo it. Design
 first, in `docs/RESEARCH-WORKFLOW.md`, then a brief.
 
-### C19. The memorial's free-text biography is not extracted
+### C10. The memorial's free-text biography is not extracted
 
-A Find a Grave memorial can carry a biography paragraph that refines or
-contradicts the labelled fields (Noi Segawa Davidson: "Born in Morioka,
-Tohoko Region, Iwate State, Japan" against a birth place field of
-"Tokushima, Japan"). The parser reads only the labelled fields, so the claim
-never reaches a persona fact and the reviewer's card cannot show the
-disagreement. Capture the biography as its own fact type, as written, and
-let the matcher report it beside the field.
+A Find a Grave memorial can carry a biography that is the obituary itself
+(Robert Edgar Davidson's names his parents, his siblings, his son and
+daughter-in-law, his grandchildren and his great-grandson) or that refines or
+contradicts the labelled fields (Noi Segawa Davidson: "Born in Morioka"
+against a birth place field of "Tokushima, Japan"). The parser reads only the
+labelled fields, so none of that reaches a persona fact or the card. Capture
+the biography as its own fact type, as written, and let the matcher report
+what it states beside the fields.
 
-### C20. The ingest writes each person-level citation twice
-
-A person's name evidence shows every person-level citation twice (Noi
-Davidson: 14 rows for 7 citations), so the ingest writes one assertion for
-the INDI-level source and one for the NAME-level source of the same citation.
-Write one assertion per citation and rebuild, or if the two levels are
-distinct claims in the file, say so on the row so the screen can show why
-there are two.
-
-### C21. Relation kinds the memorial parser passes through as labels
-
-A Find a Grave memorial lists "Half Siblings" and can list other headings
-the matcher has no relation kind for; the parser keeps the page's own
-heading as the label, which is right, but the matcher must map every
-heading it meets to a relation kind or say on the proposal that it did not.
-
-### C22. A sibling accepted from a memorial lands with no family link
+### C11. A sibling accepted from a memorial lands with no family link
 
 Accepting a new-person proposal for a sibling on a memorial creates the
 person but no family membership, because the record states the sibling of
@@ -251,21 +173,22 @@ the subject, not the parents. When the subject's parents are Accepted, place
 the sibling as their child with an Undecided assertion on the record; until
 then the card says the person would be unlinked, as it does now.
 
-### C23. A household cemetery row reads cited through a relative's memorial
+### C12. A household cemetery row reads held through a relative's memorial
 
-The cemetery / family plot row is a Group A household row, so it reads cited
-for a person as soon as any relative's Find a Grave or Veterans' Gravesites
-citation exists, and the person never gets a cemetery search step of their
-own while a relative is cited. A memorial is about one person. Decide whether
-the row stays a household row with a per-person "own memorial" state, or
-splits into the plot (household) and the person's memorial (individual).
+The cemetery / family plot row is a Group A household row, so it reads held
+for a person as soon as any relative's memorial is held, and the person never
+gets a cemetery search step of their own (Ruth M Peters reads held through
+her husband's and her son's memorials and is on neither). A memorial is about
+one person. Decide whether the row stays a household row with a per-person
+"own memorial" state, or splits into the plot (household) and the person's
+memorial (individual).
 
-### C24. A fetch step for an accepted search candidate
+### C13. A fetch step for an accepted search candidate
 
 Accepting a candidate on a Find a Grave results card should create the fetch
 step for that memorial URL, run by the one-call method through the browser
 session and attached like any memorial. Today the card says so in words and
-the director makes the fetch happen by hand.
+the fetch happens by hand.
 
 ---
 
@@ -274,8 +197,15 @@ the director makes the fetch happen by hand.
 Waiting on events the repo cannot drive.
 
 - **FamilySearch API access** — Innovator Program approval after the
-  application is submitted.
+  application is submitted; the application text is written when the owner
+  wants to submit it. Approval moves most Layer 1–2 searches from assisted to
+  automatic.
 - **NARA Catalog API key** — issued by email on request.
+- **Pennsylvania death and birth certificates** — no free holder: Power
+  Library shows the PA State Archives collections left the site and PHMC
+  points only at Ancestry, so the steps for dbids 5164 and 60484 stay
+  `blocked`. Add the row to `data/holders.csv` when they reappear at a free
+  holder.
 - **German → Polish gazetteer for Silesia (GOV / Kartenmeister)** — needed
   to resolve Harpersdorf, Langneundorf and the Berthelsdorf question; no
   programmatic access confirmed yet.
