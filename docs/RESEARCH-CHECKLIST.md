@@ -81,7 +81,7 @@ held is a gap, and every gap has a pre-built search step:
 | marriage record missing | couple query: both names, Accepted birth years, marriage place = residence at first child's birth if no better; hit names both sets of parents |
 | obituary missing | name + death date ±1 week + death place; newspaper sources for that place |
 | will/probate missing | name + death place county + death year..+5 |
-| cited but not held | fetch step: exact locator (APID/ARK), assisted or automatic |
+| cited but not held | fetch step: the citation's locator (APID) and its own details, re-targeted to the free holder of the collection; `blocked` when the collection has none |
 | death/birth record missing | individual query gated by the jurisdiction's window |
 | parents unknown (dead end) | footprint first (records already on relatives), then Group A rows for the person as a child |
 
@@ -198,7 +198,8 @@ source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record).
 citation always beats an era rule; the row is then marked with the rule it
 falls outside of. Every query field is `{value, basis}`: basis `accepted` or
 `lead` for a fact about the person, `row` for a value the checklist row sets
-(a census year); a Rejected fact is left out. Before the baseline is reviewed
+(a census year), `citation` for a detail the citation itself carries (a fetch
+step's fields); a Rejected fact is left out. Before the baseline is reviewed
 the generator emits only fetch steps for cited records: no search steps, no
 footprint, no duplicate or unlinked leads.
 
@@ -211,8 +212,10 @@ person page has the three regions in order: foundation (key facts with
 Accept / Reject / Undecided and the evidence behind each), checklist
 (footprint records first, then
 Group A, Group B collapsed), and a selected panel showing the search step or
-the citations behind the row clicked, with an Ancestry link for cited
-records. Deciding a fact sets every assertion that supports it and writes an
+the citations behind the row clicked, each with a link to the free holder the
+record is fetched from (the memorial page itself for Find a Grave, the
+collection page for FamilySearch) or to Ancestry when the collection has no
+free holder and the step is blocked. Deciding a fact sets every assertion that supports it and writes an
 audit row. Accept sets Accepted only on the assertions whose evidence is
 visible: the tree owner's uncited claim and citations whose record is held;
 a citation to a record not yet fetched stays Undecided until the fetch. A
@@ -247,9 +250,11 @@ result.
   a unit of work, not a question, so `research_question` holds only the
   fact-level kinds and a step carries `question_id` only when it answers one
   (a footprint record under missing parents);
-- a cited row = one `fetch` step per citation with `locator_source_id`,
-  `locator_kind`, `locator_value`, `collection_id` and `on_json` (the relatives
-  it sits on); a missing row = one `search` step with `query_json` holding the
+- a cited row = one `fetch` step per citation with `locator_source_id` (the
+  free holder, or B02 when there is none and the mode is `blocked`),
+  `locator_kind`, `locator_value`, `collection_id`, `on_json` (the relatives
+  it sits on) and `query_json` holding the citation's own details with basis
+  `citation`; a missing row = one `search` step with `query_json` holding the
   foundation fields as `{value, basis}` and one `mode`;
 - the checkbox and revision state = `search_plan.revisions_json` on the step,
   not on the facts;

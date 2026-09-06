@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, dumps, manifest_path, now, object_path, sha256_file, tree_dir, ulid
-from catalog import Catalog
+from catalog import Catalog, holders
 from checklist import build
 from plan import plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
@@ -70,12 +70,20 @@ def evidence_rows(cx, pid, field):
             apid = n.get("apid"); uncited = bool(n.get("uncited"))
             held = uncited or (apid in held_apids) or (r["trust_tier"] in ("T1", "T2", "T3"))   # the evidence the person can see
             out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid,
-                        "url": ancestry_url(apid), "uncited": uncited, "tier": r["trust_tier"], "held": held})
+                        **fetch_target(apid, n.get("url")), "uncited": uncited, "tier": r["trust_tier"], "held": held})
     return out
 
-def ancestry_url(apid):
+HOLDERS = holders()
+
+def fetch_target(apid, url=None):
+    """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave, the free
+    holder's collection page otherwise, and Ancestry's record page when no free holder is known (a membership is needed there)."""
     m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
-    return f"https://www.ancestry.com/discoveryui-content/view/{m.group(2)}:{m.group(1)}" if m else None
+    if not m: return {"url": None, "holder": None}
+    h = (HOLDERS.get(m.group(1)) or [None])[0]
+    if h and h["HolderKind"] == "memorial" and url: return {"url": url, "holder": h["HolderCollection"]}
+    if h and h["HolderKind"] != "memorial": return {"url": h["URL"], "holder": h["HolderCollection"]}
+    return {"url": f"https://www.ancestry.com/discoveryui-content/view/{m.group(2)}:{m.group(1)}", "holder": "Ancestry"}
 
 def decide_fact(cx, tree_id, pid, field, status, note):
     """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held);
@@ -104,10 +112,12 @@ def plan_view(cx, pid):
         logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at", (s["id"],))]
         col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
         held = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None
+        fields = json.loads(s["query_json"])
         steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"], "archived": held["sha256"] if held else None,
-                      "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": json.loads(s["query_json"]), "revisions": json.loads(s["revisions_json"] or "{}"),
+                      "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": fields, "revisions": json.loads(s["revisions_json"] or "{}"),
                       "query": rendered_query(s["query_json"], s["revisions_json"]), "locator": {"source": s["locator_source_id"], "kind": s["locator_kind"], "value": s["locator_value"]},
-                      "collection": col["name"] if col else None, "on": json.loads(s["on_json"] or "[]"), "url": ancestry_url(s["locator_value"]) if s["locator_kind"] == "apid" else None,
+                      "collection": col["name"] if col else None, "on": json.loads(s["on_json"] or "[]"),
+                      **(fetch_target(s["locator_value"], (fields.get("url") or {}).get("value")) if s["locator_kind"] == "apid" else {"url": None, "holder": None}),
                       "expected": s["expected"], "rationale": s["rationale"], "logs": logs})
     return {"questions": questions, "steps": steps}
 
@@ -195,7 +205,7 @@ def artifact_view(cx, tree_id, sha, pid):
                                         WHERE p.tree_id=? AND json_extract(p.payload_json,'$.artifact_sha256')=?
                                           AND (json_extract(p.payload_json,'$.subject_person_id')=? OR json_extract(p.payload_json,'$.person_id')=?) ORDER BY p.created_at""", (tree_id, sha, pid, pid))]
     return {"sha256": sha, "mime": a["mime"], "tier": a["trust_tier"], "filename": a["original_filename"], "collection": col["name"] if col else None,
-            "url": ancestry_url(a["locator_value"]) if a["locator_kind"] == "apid" else None, "extractions": exts, "proposals": proposals,
+            "url": fetch_target(a["locator_value"])["url"] if a["locator_kind"] == "apid" else None, "extractions": exts, "proposals": proposals,
             "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
 
 def transcribe(cx, sha, body):
@@ -271,10 +281,10 @@ def person_view(cx, tree_id, pid):
     r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f)} for f in KEY_FACTS}
     fam = cat.family(pid)
     r["family"] = {k: [{"id": i, "name": n} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
-    held = cat.held_apids()
+    held = cat.held_apids(); cited = cat.cited()
     for row in r["checklist"]["A"] + r["checklist"]["B"]:
-        for c in row["citations"]: c["url"] = ancestry_url(c["apid"]); c["held"] = c["apid"] in held
-    for rec in r["footprint"]["records"]: rec["url"] = ancestry_url(rec.get("apid"))
+        for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["held"] = c["apid"] in held
+    for rec in r["footprint"]["records"]: rec.update(fetch_target(rec.get("apid"), cited.get(rec.get("apid"), {}).get("url")))
     return r
 
 def people(cx, tree_id, q=""):

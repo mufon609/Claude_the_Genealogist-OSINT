@@ -2,7 +2,9 @@
 
 Shared by tools/checklist.py and tools/footprint.py. Nothing here writes.
 """
-import collections, json, re, sqlite3, sys
+import collections, csv, json, os, re, sqlite3, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 US_STATES = {"alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia","hawaii",
              "idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts","michigan",
@@ -13,12 +15,24 @@ US_NAMES = {"united states","usa","united states of america","us","british colon
 
 def year(s): return int(s[:4]) if s and s[:4].isdigit() else None
 
+def holders():
+    """Free holders of the Ancestry collections the tree cites (data/holders.csv): {dbid: [row, ...]}, first row preferred."""
+    out = {}
+    with open(os.path.join(ROOT, "data", "holders.csv"), newline="", encoding="utf-8") as fh:
+        for r in csv.DictReader(fh): out.setdefault(r["AncestryDbid"], []).append(r)
+    return out
+
+def dbid_of(apid):
+    m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
+    return m.group(1) if m else None
+
 class Catalog:
     def __init__(self, cx, tree_id):
         self.cx, self.tree_id = cx, tree_id
         self.q = lambda s, *a: cx.execute(s, a).fetchall()
         self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or "", "connector": r[5] or ""}
                         for r in self.q("SELECT id, name, access, status, cost, connector FROM source")}
+        self.holders = holders()
     def find_person(self, key):
         """A person by id, exact display name, or substring of the name (exact wins; several matches are listed on stderr)."""
         r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name LIMIT 5", self.tree_id, key, key)
@@ -129,6 +143,20 @@ class Catalog:
     def held_apids(self):
         """Ancestry record ids whose record is in the archive."""
         return {v for v, in self.q("SELECT locator_value FROM artifact WHERE locator_kind='apid'")}
+    def cited(self):
+        """The citation's own details per Ancestry record id, from the import's assertions: {apid: {page, url, names}}, names being
+        the tree's names of the people the citation sits on, in the order met (the only name the export carries for the record)."""
+        if getattr(self, "_cited", None) is not None: return self._cited
+        out = {}
+        for apid, page, url, name in self.q("""SELECT json_extract(a.notes,'$.apid'), json_extract(a.notes,'$.page'), json_extract(a.notes,'$.url'), p.display_name
+                FROM assertion a LEFT JOIN person p ON p.id = CASE a.subject_kind WHEN 'person' THEN a.subject_id
+                     ELSE (SELECT ep.person_id FROM event_participant ep WHERE ep.event_id=a.subject_id AND ep.person_id IS NOT NULL LIMIT 1) END
+                WHERE a.tree_id=? AND a.notes LIKE '{"apid":%' ORDER BY a.asserted_at, a.id""", self.tree_id):
+            c = out.setdefault(apid, {"page": page, "url": url, "names": []})
+            c["page"] = c["page"] or page; c["url"] = c["url"] or url
+            if name and name not in c["names"]: c["names"].append(name)
+        self._cited = out
+        return out
     def person_citations(self, pid):
         """All citations attached to a person: on the person row and on every event of theirs."""
         cits = self.citations("person", pid)

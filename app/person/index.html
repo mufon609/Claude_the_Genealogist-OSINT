@@ -78,7 +78,8 @@ function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntr
 function stepsFor(grp,i){const steps=(P.plan||{steps:[]}).steps;
  if(grp==='fp'){const r=P.footprint.records[i];return steps.filter(s=>s.kind==='fetch'&&s.locator.value===r.apid)}
  const r=P.checklist[grp][i];const key=`${r.record}:${r.instance||''}`;return steps.filter(s=>s.row_key===key)}
-function fieldsHtml(s){if(s.kind==='fetch')return '';
+function fieldsHtml(s){if(s.kind==='fetch'){const rows=Object.entries(s.fields).filter(([k])=>k!=='url').map(([k,v])=>`<tr><td><b>${h(k)}</b></td><td class="mut">${h(v.value)}</td></tr>`).join('');
+  return rows?`<div class="mut" style="margin-top:6px">Look for (the citation's own details):</div><table class="fields">${rows}</table>`:''}
  const rows=Object.entries(s.fields).map(([k,v])=>{const r=s.revisions[k]||{};const inc=r.include===false?'':'checked';
   const val=v&&typeof v==='object'&&'value' in v?v.value:v, basis=v&&typeof v==='object'&&v.basis?v.basis:'';
   return `<tr><td><input type="checkbox" ${inc} onchange="revise('${s.id}','${k}','include',this.checked)"></td><td><b>${h(k)}</b></td><td class="mut">${h(Array.isArray(val)||(val&&typeof val==='object')?JSON.stringify(val):val)}${v&&v.tolerance?' ±'+v.tolerance:''}${basis?` <span class="pill">${h(basis)}</span>`:''}</td><td><input type="text" placeholder="revise for search" value="${h(r.value||'')}" onchange="revise('${s.id}','${k}','value',this.value)"></td></tr>`}).join('');
@@ -86,7 +87,7 @@ function fieldsHtml(s){if(s.kind==='fetch')return '';
 function stepsHtml(steps){if(!steps.length)return `<div class="mut">No plan step for this row yet — generate or refresh the plan above.</div>`;return steps.map(stepHtml).join('<hr style="border:0;border-top:1px solid var(--line)">')}
 function stepHtml(s){
  const logs=s.logs.length?`<div class="mut">Log:</div>`+s.logs.map(l=>`<div>${h(l.executed_at.slice(0,10))} <b>${h(l.outcome)}</b> <span class="mut">${h(l.executed_by)} ${h(l.notes||'')}</span>${l.artifacts_json?' <span class="pill">archived</span>':''}</div>`).join(''):'<div class="mut">Not tried yet.</div>';
- const where=s.kind==='fetch'?`<div>${h(s.collection||'')}${s.on.length?` <span class="mut">on ${h(s.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</span>`:''}${s.url?` <a href="${s.url}" target="_blank">open on Ancestry ↗</a> <span class="mut">then save the file into inbox/</span>`:''}</div>`:`<div class="mut">sources: ${h(s.sources.join(', '))}</div>`;
+ const where=s.kind==='fetch'?`<div>${h(s.collection||'')}${s.on.length?` <span class="mut">on ${h(s.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</span>`:''}${s.url?` <a href="${s.url}" target="_blank">open at ${h(s.holder)} ↗</a> <span class="mut">${s.mode==='blocked'?'(needs a membership)':'then save the file into inbox/'}</span>`:''}</div>`:`<div class="mut">sources: ${h(s.sources.join(', '))}</div>`;
  return `<p><b>${s.kind==='fetch'?'Fetch':'Search'}</b> <span class="pill">${h(s.mode)}</span> <span class="pill">${h(s.type)}</span> <span class="pill">${h(s.status)}</span> <span class="mut">${h(s.rationale||'')}</span></p>${where}${s.expected?`<div class="mut">Expected: ${h(s.expected)}</div>`:''}${fieldsHtml(s)}${logs}
  <div style="margin-top:8px"><input type="text" id="ln-${s.id}" placeholder="note (what was searched, where)" style="width:100%"></div>
  <div style="margin-top:6px"><button onclick="logStep('${s.id}','none')">Nothing found</button> <button onclick="logStep('${s.id}','blocked')">Blocked</button>
@@ -95,7 +96,7 @@ function show(grp,i){SEL={grp,i};document.querySelectorAll('tr.row').forEach(e=>
  const rc=$('#rc');const steps=stepsFor(grp,i);
  if(grp==='fp'){const r=P.footprint.records[i];rc.innerHTML=`<b>${h(r.collection)}</b><div class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</div><p>Expected: ${h(r.expect)}</p>${r.held?'<p class="mut">held in the archive</p>':''}`+stepsHtml(steps);inbox();records(steps);return}
  const r=P.checklist[grp][i];let html=`<b>${h(r.record)}${r.instance?' '+h(r.instance):''}</b> <span class="st ${r.status}">${r.status}</span>${r.note?`<div class="mut">${h(r.note)}</div>`:''}<p>Settles: ${h(r.settles)}</p>`;
- if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
+ if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open at ${h(c.holder)} ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
  if(r.status==='missing'&&!r.search)html+=`<div class="mut">Search steps for missing records come after the baseline is reviewed.</div>`;
  if(steps.some(s=>s.kind==='search'))html+=`<div class="mut">Automatic sources are not wired yet; for assisted sources open the source, search with the fields below, and log the result here.</div>`;
  rc.innerHTML=html+stepsHtml(steps);inbox();records(steps)}

@@ -90,7 +90,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 | Source | Programmatic access | Verdict |
 |---|---|---|
 | FamilySearch | REST, OAuth2, free, **closed to public** — Innovator Program application required | Apply early; it is the single largest free index. Sandbox on approval. |
-| Ancestry | **None.** Internal API rewritten early 2026, partners only. ToS bans scraping. | User-exported GEDCOM is the only lawful path. |
+| Ancestry | **None.** Internal API rewritten early 2026, partners only. ToS bans scraping. Record pages and images need a membership this account lacks. | User-exported GEDCOM is the only lawful path in; cited records are fetched from free holders (`holders.csv`). |
 | Find a Grave | **None.** Ancestry-owned; ToS bans automation. | Store memorial IDs; user-initiated fetch only. |
 | MyHeritage Family Graph | REST JSON, free, app-key approval | Read-only. Docs are old; confirm keys still issued. |
 | WikiTree | REST JSON, free, no auth for public profiles | Use now. |
@@ -102,12 +102,25 @@ source and never turned into a score; the decision on a fact stays three-state.
 | Gramps Web API | Self-hosted REST, AGPL-3.0 | Not the backend (`docs/DATA-ARCHITECTURE.md` §7); export to Gramps XML instead. |
 | DNA vendors | Manual raw-data download only, everywhere | Never automate; user uploads file. |
 
-## 5. Deferred work
+## 5. Free holders of cited collections
+
+`holders.csv` maps each Ancestry collection the tree cites (by dbid) to the
+free holders of the same record set: the holder's registry row, the kind and
+key of its collection (a FamilySearch collection id, a site, a memorial URL
+from the citation itself), the collection page, and what the holder covers.
+Every FamilySearch id was checked by opening the collection page. Rows for the
+same dbid are in order of preference. A cited collection with no row here has
+no free holder yet and its fetch steps are `blocked`; the Pennsylvania death
+and birth certificates are the notable case, viewable only through Ancestry
+(free with a Pennsylvania address) since the State Archives collections left
+Power Library.
+
+## 6. Deferred work
 
 Lives in `BACKLOG.md`. Rows whose `Status` is `blocked-apply` or `todo` with a
 P0 priority are the registry's view of the same items.
 
-## 6. Status vocabulary
+## 7. Status vocabulary
 
 `todo` · `investigating` · `verified` (facts checked against the source) · `in-use`
 (wired into a tool) · `blocked` (no lawful programmatic path) · `blocked-apply` (needs

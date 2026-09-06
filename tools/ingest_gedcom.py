@@ -50,7 +50,7 @@ class Ingest:
         self.persons = {}          # INDI xref -> person_id
         self.personas = {}         # INDI xref -> persona_id
         self.families = {}         # FAM xref -> family_id
-        self.apids = collections.defaultdict(lambda: {"subjects": [], "page": None, "collection": None})
+        self.apids = collections.defaultdict(lambda: {"subjects": [], "page": None, "url": None, "collection": None})
         self.stats = collections.Counter()
         self.head_note = None
         self.deferred_family_events = []   # (indi_node, event_node, etype, person_id, persona_id)
@@ -162,15 +162,17 @@ class Ingest:
 
     # ------------------------------------------------------------ citations
     def citations(self, node):
-        """Return list of (citation_text, apid, collection_id) for SOUR children of node."""
+        """Return list of (citation_text, apid, collection_id, page, name, url) for SOUR children of node: the citation's
+        own details are its PAGE text and, for Find a Grave, the memorial URL under DATA/WWW."""
         out = []
         for s in node.all("SOUR"):
             col = self.collections.get(s.value)
             name = col[1] if col else s.value
             page = s.val("PAGE")
             apid = s.val("_APID")
-            text = name + (f"; {page}" if page else "")
-            out.append((text, apid, col[0] if col else None, page, name))
+            data = s.first("DATA"); url = data.val("WWW") if data else None
+            text = name + (f"; {page}" if page else "") + (f"; {url}" if url else "")
+            out.append((text, apid, col[0] if col else None, page, name, url))
         return out
 
     def assert_(self, subject_kind, subject_id, cits, persona_fact_id=None, persona_id=None):
@@ -182,8 +184,8 @@ class Ingest:
                              "Ancestry member tree (no citation)", "undecided", EXTRACTOR_TAG, self.ts, dumps({"uncited": True})))
             self.stats["assertions_uncited"] += 1
             return
-        for text, apid, cid, page, name in cits:
-            note = dumps({"apid": apid, "collection_id": cid}) if apid else None
+        for text, apid, cid, page, name, url in cits:
+            note = dumps({"apid": apid, "collection_id": cid, "page": page, "url": url}) if apid else None
             self.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,persona_id,artifact_sha256,
                                citation_text,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (ulid(), self.tree_id, subject_kind, subject_id, persona_fact_id, persona_id, self.sha,
@@ -192,7 +194,7 @@ class Ingest:
             if apid:
                 a = self.apids[apid]
                 a["subjects"].append({"kind": subject_kind, "id": subject_id})
-                a["page"] = a["page"] or page; a["collection"] = a["collection"] or name; a["collection_id"] = cid
+                a["page"] = a["page"] or page; a["url"] = a["url"] or url; a["collection"] = a["collection"] or name; a["collection_id"] = cid
 
     # ------------------------------------------------------------ people
     def event_from(self, node, etype, person_id=None, family_id=None, persona_id=None):
@@ -393,7 +395,7 @@ class Ingest:
             if not m or (a["collection"] or "").startswith("Ancestry Family Trees"):
                 self.stats["citations_tree_to_tree"] += len(a["subjects"]); continue
             out.append({"apid": apid, "dbid": m.group(2), "record_id": m.group(3), "collection": a["collection"],
-                        "collection_id": a.get("collection_id"), "page": a["page"], "subjects": a["subjects"]})
+                        "collection_id": a.get("collection_id"), "page": a["page"], "url": a["url"], "subjects": a["subjects"]})
         self.stats["cited_records"] = len(out)
         return out
 

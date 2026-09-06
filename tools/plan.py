@@ -7,7 +7,12 @@ Questions are fact-level (missing parents, no surname, conflict, ...). A step
 belongs to the person and a checklist row: a fetch of a record the tree already
 cites (one per citation, with its locator), or a typed search for a missing row.
 Footprint records on relatives become fetch steps under the fact-level question
-they serve. Idempotent: questions and steps are keyed, so re-running updates what
+they serve. A fetch is re-targeted to the free holder of the citation's
+collection (data/holders.csv): the step's locator source is the holder and its
+fields are the citation's own details (collection, the name the citation sits
+on, the page text's parts, the memorial URL), basis citation. A citation whose
+collection has no free holder stays a fetch step with mode blocked and the
+reason in its rationale. Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated unless they were run,
 marks a fetch step done when an archived record at its locator has a persona
 accepted for the person, and closes questions whose gap has gone (closed_reason
@@ -17,7 +22,7 @@ here runs a search.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, resolve_tree, ulid
-from catalog import Catalog
+from catalog import Catalog, dbid_of
 from checklist import build
 
 FOOTPRINT_HOME = ("missing_parents", "identity_incomplete", "missing_spouse", "unverified_claim")
@@ -28,13 +33,34 @@ def q_key(q):
     if q.get("other_id"): return q["kind"] + ":" + q["other_id"]
     return q["kind"] + ":" + re.sub(r"\s+", " ", (q.get("detail") or "")).strip()[:120]
 
-def fetch_step(row_key, query_type, apid, collection_id, on, expected, rationale, sources, question_key=None):
-    return {"step_key": f"fetch:{apid}", "row_key": row_key, "question_key": question_key, "kind": "fetch", "query_type": query_type, "query_json": "{}",
-            "locator_source_id": ANCESTRY, "locator_kind": "apid", "locator_value": apid, "collection_id": collection_id, "on_json": dumps(on),
-            "sources_json": dumps(sources), "mode": "fetch", "expected": expected, "rationale": rationale}
+def citation_fields(collection, cited, name):
+    """The citation's own details as query fields, each {value, basis 'citation'}: the collection, the name the citation sits on,
+    every 'Label: value' part of the page text under its label, the rest of the page text under 'citation', the memorial URL."""
+    f = lambda v: {"value": v, "basis": "citation"}
+    out = {"collection": f(collection)}
+    if name: out["name"] = f(name)
+    rest = []
+    for part in (cited.get("page") or "").split("; "):
+        m = re.fullmatch(r"([A-Za-z][A-Za-z .]{0,40}): (.+)", part.strip())
+        if m and m.group(1).lower() not in out: out[m.group(1).lower()] = f(m.group(2).strip())
+        elif part.strip(): rest.append(part.strip())
+    if rest: out["citation"] = f("; ".join(rest))
+    if cited.get("url"): out["url"] = f(cited["url"])
+    return out
+
+def fetch_step(cat, row_key, query_type, apid, collection, collection_id, on, expected, where, sources, name, question_key=None):
+    cited = cat.cited().get(apid, {})
+    holder = (cat.holders.get(dbid_of(apid)) or [None])[0]
+    names = cited.get("names") or []
+    fields = citation_fields(collection, cited, names[0] if names else name)
+    if holder: source, mode, why = holder["HolderSourceId"], "fetch", f"fetch the record at {holder['HolderCollection']}"
+    else: source, mode, why = ANCESTRY, "blocked", "blocked: no free holder of this collection yet, and Ancestry needs a membership this account lacks"
+    return {"step_key": f"fetch:{apid}", "row_key": row_key, "question_key": question_key, "kind": "fetch", "query_type": query_type, "query_json": dumps(fields),
+            "locator_source_id": source, "locator_kind": "apid", "locator_value": apid, "collection_id": collection_id, "on_json": dumps(on),
+            "sources_json": dumps(sources), "mode": mode, "expected": expected, "rationale": f"{where}; {why}"}
 
 def plan_person(cx, tree_id, pid, by):
-    cat = Catalog(cx, tree_id); r = build(cat, pid); ts = now()
+    cat = Catalog(cx, tree_id); r = build(cat, pid); ts = now(); me = r["person"]["name"]
     wanted = {q_key(q): (q["kind"], dumps(q)) for q in r["questions"]}
     fetches, searches = [], []
     for grp in ("A", "B"):
@@ -45,7 +71,8 @@ def plan_person(cx, tree_id, pid, by):
             if row["status"] == "cited":
                 for c in row["citations"]:
                     where = "cited on " + ", ".join(n for n, _ in c["on"]) if c["on"] else "cited on this person"
-                    fetches.append(fetch_step(rk, s["type"], c["apid"], c["collection_id"], c["on"], row["settles"], f"{where}; fetch the record", row["sources"]))
+                    fetches.append(fetch_step(cat, rk, s["type"], c["apid"], c["collection"], c["collection_id"], c["on"], row["settles"], where, row["sources"],
+                                              c["on"][0][0] if c["on"] else me))
             else:
                 searches.append({"step_key": f"search:{rk}", "row_key": rk, "question_key": None, "kind": "search", "query_type": s["type"], "query_json": dumps(s["fields"]),
                                  "locator_source_id": None, "locator_kind": None, "locator_value": None, "collection_id": None, "on_json": None,
@@ -54,8 +81,8 @@ def plan_person(cx, tree_id, pid, by):
     have = {st["locator_value"] for st in fetches}
     for rec in r["footprint"]["records"][:12]:
         if not rec.get("apid") or rec["apid"] in have: continue
-        fetches.append(fetch_step(f"footprint:{rec['apid']}", "footprint_record", rec["apid"], rec.get("collection_id"), rec["on"], rec["expect"],
-                                  "already on " + ", ".join(f"{n} ({rel})" for n, rel in rec["on"]), [ANCESTRY], home))
+        fetches.append(fetch_step(cat, f"footprint:{rec['apid']}", "footprint_record", rec["apid"], rec["collection"], rec.get("collection_id"), rec["on"], rec["expect"],
+                                  "already on " + ", ".join(f"{n} ({rel})" for n, rel in rec["on"]), [ANCESTRY], rec["on"][0][0] if rec["on"] else me, home))
     stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0, "steps_dropped": 0, "steps_done_by_match": 0}
     existing = {row[1]: row[0] for row in cx.execute("SELECT id, q_key FROM research_question WHERE subject_person_id=? AND status='open'", (pid,))}
     qid_by_key = {}

@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.6.0
+-- tree catalog schema  v0.7.0
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -459,14 +459,14 @@ CREATE TABLE search_plan (
   step_key          TEXT NOT NULL,                      -- stable key for idempotent regeneration
   kind              TEXT NOT NULL CHECK (kind IN ('fetch','search')),
   query_type        TEXT NOT NULL CHECK (query_type IN ('footprint_record','subject_record','household','couple','name','surname_locality','obituary','probate')),
-  query_json        TEXT NOT NULL,                      -- {field: {"value": ..., "basis": accepted|lead|row}}; empty for a fetch
-  locator_source_id TEXT REFERENCES source(id),         -- fetch: the registry row the record lives at (B02 for an Ancestry citation)
-  locator_kind      TEXT,                               -- apid | ark | naid | memorial_id | url
+  query_json        TEXT NOT NULL,                      -- search: {field: {"value": ..., "basis": accepted|lead|row}}; fetch: the citation's own details, basis citation
+  locator_source_id TEXT REFERENCES source(id),         -- fetch: the registry row the record is fetched from: the free holder of the citation's collection (data/holders.csv), or B02 when none is known
+  locator_kind      TEXT,                               -- apid | ark | naid | memorial_id | url: the citation's identity for the record
   locator_value     TEXT,
   collection_id     TEXT REFERENCES collection(id),
   on_json           TEXT,                               -- [[relative name, relation]] the citation sits on; [] when it is on the person
   sources_json      TEXT NOT NULL,                      -- registry ids for the record's kind
-  mode              TEXT NOT NULL CHECK (mode IN ('fetch','auto','assisted','awaiting_approval')),
+  mode              TEXT NOT NULL CHECK (mode IN ('fetch','blocked','auto','assisted','awaiting_approval')),   -- blocked: a cited record with no free holder
   expected          TEXT,
   status            TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned','done','skipped')),
   rationale         TEXT,

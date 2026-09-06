@@ -7,7 +7,7 @@ able to distrust every earlier conclusion.
 | Where | What |
 |---|---|
 | `docs/DATA-ARCHITECTURE.md` | The design: four layers, content-addressed archive, trees/profiles, trust boundaries, aliases. Accepted decisions are recorded there. |
-| `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status). `data/DATA-SOURCES.md` has the reasoning. |
+| `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status). `data/holders.csv` maps cited Ancestry collections to their free holders. `data/DATA-SOURCES.md` has the reasoning. |
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
 | `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/` (snapshots, ignored). |

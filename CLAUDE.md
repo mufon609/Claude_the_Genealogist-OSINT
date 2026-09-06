@@ -19,7 +19,7 @@ people; everything else exists to serve that.
 | Baseline → questions → search ladder → review | `docs/RESEARCH-WORKFLOW.md` |
 | Per-person checklist, gaps, search foundation, the screen | `docs/RESEARCH-CHECKLIST.md` |
 | What the imported tree holds; agent duties | `docs/SOURCE-PROFILE.md` |
-| Source registry and its reasoning | `data/data-sources.csv`, `data/DATA-SOURCES.md` |
+| Source registry, free holders of cited collections, the reasoning | `data/data-sources.csv`, `data/holders.csv`, `data/DATA-SOURCES.md` |
 | Tables, invariants, tools | `schema/README.md`, `schema/catalog.sql` |
 | Deferred work | `BACKLOG.md` |
 

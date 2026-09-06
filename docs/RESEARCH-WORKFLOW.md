@@ -100,13 +100,20 @@ of this list under FOOTPRINT, ahead of the Group A rows.
 
 A plan is a list of executable steps for a person. Each step belongs to a
 checklist row and is one of two kinds. A **fetch** is a record the tree already
-cites, on the person or on a relative: it carries the registry row the record
-lives at, its locator (an Ancestry APID), the collection, and the relatives it
-sits on; every citation on a row is one fetch step, in one shape. A **search**
+cites, on the person or on a relative: it carries the citation's locator (an
+Ancestry APID, the record's identity), the collection, the relatives it sits
+on, the registry row the record is fetched from (the free holder of the
+collection, `data/holders.csv`), and the citation's own details as its fields
+(collection, the name the citation sits on, the page text's parts such as
+year, census place, enumeration district, sheet, the memorial URL), each with
+basis `citation`; every citation on a row is one fetch step, in one shape. A
+citation whose collection has no free holder is a fetch step with mode
+`blocked` and the reason in its rationale. A **search**
 is a typed query (`subject_record`, `household`, `couple`, `name`,
 `surname_locality`, `obituary`, `probate`) for a missing row, built from the
 foundation fields with each field's basis, with its registry sources, one mode
 (`auto`, `assisted`, `awaiting_approval`), and what a hit would look like.
+A fetch step's fields carry basis `citation`.
 Footprint records on relatives are fetch steps under the fact-level question
 they serve. Running a step (Go, Search, the log buttons) is the approval;
 there is no approval state. Fetches are cheap and decisive, and open before the
@@ -121,7 +128,7 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 | Mode | Sources | Behaviour |
 |---|---|---|
 | auto | FamilySearch (after Innovator approval), WikiTree, loc.gov newspapers, NARA catalog, Open Archives, Wikidata, held archive | the system runs the query, archives raw responses, extracts personas |
-| assisted | Ancestry, Find a Grave, Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time; the system takes it from there |
+| assisted | Find a Grave, FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time; the system takes it from there |
 | manual | county courthouses, Schwenkfelder Library, parish archives | the system produces a request letter or visit checklist |
 
 A source is `auto` only when its registry row names a built connector (the
@@ -133,6 +140,23 @@ exception: a step runs automatically wherever a free source with a documented
 endpoint holds the record kind, and the browser-driven fetch exists only for
 records the tree already cites at a closed source. Never crawl or search a
 closed source.
+
+**A cited record may be fetched from any holder of the same collection.**
+Ancestry is a citation source, not a fetch source: its record pages and
+images need a membership this account lacks. The record a citation points at
+is the same census sheet, certificate or memorial wherever it is held, so the
+fetch step is re-targeted to the free holder of the collection
+(`data/holders.csv`: FamilySearch for the federal censuses and the
+Massachusetts, Kentucky, Tennessee, New Jersey and Ohio vital collections, the
+National Archives site for 1950, Find a Grave for its own index). The lookup at
+the holder uses the citation's own details only: the collection, the year,
+the census place, the enumeration district and sheet, the certificate range,
+the memorial URL, and the name the citation sits on (the tree's name of that
+person, the only name the export carries for the record). It never uses the
+person's unreviewed facts, so a fetch stays allowed before the baseline is
+reviewed. One record at a time, found through the holder's own collection
+search on those details, in the owner's own browser when the holder has no
+endpoint. A collection with no free holder yet leaves its steps `blocked`.
 
 Every execution is a **research log** row: query as actually run, source, date,
 outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
@@ -198,7 +222,7 @@ new questions.
 research_question (id, tree_id, subject_person_id, kind, q_key, detail_json, status open|closed, closed_reason answered|dismissed|gap_gone, answered_by_proposal_id, created_at, closed_at)
                    kind: missing_parents | identity_incomplete | missing_spouse | missing_fact | unverified_claim | conflict | duplicate_person | unlinked_relative
 search_plan       (id, person_id, row_key, question_id?, seq, step_key, kind fetch|search, query_type, query_json {field: {value, basis}},
-                   locator_source_id, locator_kind, locator_value, collection_id, on_json, sources_json, mode fetch|auto|assisted|awaiting_approval,
+                   locator_source_id, locator_kind, locator_value, collection_id, on_json, sources_json, mode fetch|blocked|auto|assisted|awaiting_approval,
                    expected, status planned|done|skipped, rationale, revisions_json, created_at)
                    row_key: "<record>:<instance>" of the checklist row, or "footprint:<locator>" for a record on a relative
 search_log        (id, tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome found|none|blocked|error, artifacts_json, notes)

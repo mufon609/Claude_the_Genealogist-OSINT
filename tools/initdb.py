@@ -10,7 +10,7 @@ local storage target. Stdlib only.
 import argparse, csv, datetime as dt, os, sqlite3, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCHEMA_VERSION = "0.6.0"
+SCHEMA_VERSION = "0.7.0"
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 def ulid() -> str:

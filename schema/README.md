@@ -2,13 +2,14 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.6.0; no deployed catalogs exist yet, so changes rebuild rather than migrate. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.0; no deployed catalogs exist yet, so changes rebuild rather than migrate. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
 
 Build a fresh catalog with `tools/initdb.py` (add `--force` to overwrite). It seeds
-`source` from `data/data-sources.csv`, so the CSV stays the registry of record.
+`source` from `data/data-sources.csv`, so the CSV stays the registry of record;
+`data/holders.csv` (free holders of cited collections) is read by the tools directly.
 
 ## Table map by layer
 
@@ -33,7 +34,9 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 - Decisions are three-state: `undecided` | `accepted` | `rejected` on `assertion`,
   `person_persona`, `place_string`, `alias`, `proposal`. No numeric confidence columns.
 - `search_plan.mode` is `auto` only when `source.connector` names a built connector;
-  the registry's free text never decides it.
+  the registry's free text never decides it. A fetch step's `locator_source_id` is the
+  free holder of the citation's collection (`data/holders.csv`); with no holder the
+  mode is `blocked`.
 - Every `persona_fact.fact_type` and `event.event_type` must exist in `event_type`.
 - A `person` is supported only by an Accepted `assertion` (on the person or an
   event of theirs). `v_unsupported_person` lists the rest; after an import that
@@ -81,7 +84,7 @@ tools do not yet: `tools/catalog.py` uses SQLite's `json_valid` / `json_extract`
 | `tools/backfill_aliases.py` | Create `undecided` aliases from as-written persona names; set `place_string.variant_kind`; propose fixes for canonical names containing codes. Re-runnable. |
 | `tools/checklist.py "<person>"` | Read-only per-person checklist and gap generator (`docs/RESEARCH-CHECKLIST.md` §6a): foundation, questions, Group A/B rows with held / cited / missing / n/a, pre-built step per gap with `{value, basis}` fields. Before review: fetch steps only. `--json`, `--all`. |
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicate check, unlinked same-surname leads, records on relatives ranked by shared family members and by what they settle, collections to search next. Used by `checklist.py`; shown only once the baseline is reviewed. |
-| `tools/plan.py "<person>" / --all` | Materialize fact-level questions and executable steps into `research_question` / `search_plan` from the checklist and footprint: one fetch step per citation with its locator, one search step per missing row with `{value, basis}` fields and a registry-driven mode; idempotent; drops steps no longer generated unless run; marks a fetch step done when the record at its locator has a persona accepted for the person; closes questions whose gap has gone; leaves dismissed ones closed. |
+| `tools/plan.py "<person>" / --all` | Materialize fact-level questions and executable steps into `research_question` / `search_plan` from the checklist and footprint: one fetch step per citation with its locator, the citation's own details as fields (basis `citation`) and the free holder of its collection as locator source (`blocked` when there is none), one search step per missing row with `{value, basis}` fields and a registry-driven mode; idempotent; drops steps no longer generated unless run; marks a fetch step done when the record at its locator has a persona accepted for the person; closes questions whose gap has gone; leaves dismissed ones closed. |
 | `tools/log_search.py --step <id> --outcome …` | Record a run (found / none / blocked / error) with the step's fields as rendered after include/revise; `--dismiss <question id>` closes a question for good; `--list "<person>"` shows the plan with outcomes. |
 | `tools/extract.py <sha256 or path>` | Parse an archived Ancestry record page (HTML) into one extraction by `rule:ancestry-index@0.1.0`: a persona per person named, a fact per field as written, a relation per stated relationship, the raw parsed page in `structured_json`. Run on arrival by the person screen's attach; a second run supersedes the first. |
 | `tools/match.py <extraction id>` | Compare every persona of an extraction with the person the record was fetched for and their relatives on name, sex, birth year and stated relationships; write one `persona_match` or `new_person` proposal per persona with a plain-words rationale. Run on every extraction as it is written; re-running adds nothing. |
