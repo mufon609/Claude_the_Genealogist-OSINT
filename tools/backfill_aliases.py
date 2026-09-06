@@ -110,21 +110,16 @@ def classify_place(raw, notes):
     return None
 
 def flag_bad_canonical_names(cx, tree_id, by, ts, stats, report):
-    """Canonical names carrying codes/digits (e.g. suffix 'CFT19') are conclusions a human must fix; propose, don't edit."""
-    rows = cx.execute("""SELECT pn.person_id, pn.id, pn.given, pn.surname, pn.suffix FROM person_name pn JOIN person p ON p.id=pn.person_id
+    """A canonical name carrying a code or digits (a research tag such as 'CFT19' copied into the suffix) is the tree owner's
+    conclusion; the backfill edits nothing and writes one note on the person saying which part is not a name."""
+    rows = cx.execute("""SELECT pn.person_id, pn.given, pn.surname, pn.suffix FROM person_name pn JOIN person p ON p.id=pn.person_id
                          WHERE p.tree_id=? AND (pn.suffix GLOB '*[0-9]*' OR pn.given GLOB '*[0-9]*' OR pn.surname GLOB '*[0-9]*')""", (tree_id,)).fetchall()
-    ext = cx.execute("SELECT id FROM extractor WHERE kind='rule' AND name='alias-backfill'").fetchone()
-    ext_id = ext[0] if ext else ulid()
-    if not ext: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ext_id, "rule", "alias-backfill", "0.1.0", ts))
-    for person_id, name_id, given, surname, suffix in rows:
-        payload = {"kind": "canonical_name_has_code", "person_id": person_id, "person_name_id": name_id,
-                   "current": {"given": given, "surname": surname, "suffix": suffix},
-                   "suggested": {"given": given, "surname": surname, "suffix": None if suffix and re.search(r"\d", suffix) else suffix}}
-        if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND kind='fact' AND status='undecided' AND payload_json LIKE ?", (tree_id, f'%"person_name_id":"{name_id}"%')).fetchone():
-            continue
-        cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
-                   (ulid(), tree_id, "fact", dumps(payload), "Primary name contains digits/code (research tag copied into the name). Move it to a note.", ext_id, ts))
-        stats["bad_name_proposals"] += 1; report.append(("NAME?", f"{given} {surname} {suffix}", "code in canonical name -> proposal"))
+    for person_id, given, surname, suffix in rows:
+        part = next(v for v in (suffix, given, surname) if v and re.search(r"\d", v))
+        body = f"The primary name carries the code {part!r} from the imported file; it is a research tag, not part of the name."
+        if cx.execute("SELECT 1 FROM note WHERE tree_id=? AND entity_kind='person' AND entity_id=? AND body=?", (tree_id, person_id, body)).fetchone(): continue
+        cx.execute("INSERT INTO note (id,tree_id,entity_kind,entity_id,body,author,created_at) VALUES (?,?,?,?,?,?,?)", (ulid(), tree_id, "person", person_id, body, by, ts))
+        stats["bad_name_notes"] += 1; report.append(("NAME?", f"{given} {surname} {suffix}", "code in canonical name -> note on the person"))
 
 def backfill_places(cx, stats, report):
     for psid, raw, notes in cx.execute("SELECT id, raw, notes FROM place_string WHERE status='accepted' AND variant_kind IS NULL").fetchall():

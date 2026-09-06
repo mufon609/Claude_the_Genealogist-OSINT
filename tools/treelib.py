@@ -176,7 +176,7 @@ def archive_object(cx, data: bytes, *, mime, source_id, collection_id, locator_k
 
 
 # ---------------------------------------------------------------- trees / profiles
-ACTIVE_TREE_FILE = os.path.join(ROOT, "catalog", ".active-tree")
+ACTIVE_TREE_FILE = os.path.join(DATA_ROOT, "catalog", ".active-tree")
 
 def active_tree_slug(explicit=None):
     """Resolution order: --tree flag, $TREE, catalog/.active-tree."""
@@ -199,8 +199,8 @@ def resolve_tree(cx, explicit=None):
     return row[0], row[1]
 
 def tree_dir(slug: str) -> str:
-    """The tree's folder in the repository: its README."""
-    return os.path.join(ROOT, "trees", slug)
+    """The tree's folder, holding its README: in the repository, or under DATA_ROOT for a scratch run."""
+    return os.path.join(DATA_ROOT, "trees", slug)
 
 def imports_dir(slug: str) -> str:
     """The tree's named copies of imported files, under DATA_ROOT."""

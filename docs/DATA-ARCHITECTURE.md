@@ -318,9 +318,9 @@ v_person_search_key         -- canonical names + non-rejected aliases, for searc
 ```
 
 `tools/backfill_aliases.py` creates `undecided` aliases from the as-written names on
-accepted personas, classifies resolved place strings, and raises a `fact` proposal
-when a canonical name itself contains a code (e.g. suffix "CFT19"); it never edits
-the canonical value.
+accepted personas, classifies resolved place strings, and writes a note on the
+person when a canonical name itself contains a code (e.g. suffix "CFT19"); it never
+edits the canonical value.
 
 - `undecided` = appears in at least one record linked to this entity (created
   automatically when a persona is accepted onto a person).

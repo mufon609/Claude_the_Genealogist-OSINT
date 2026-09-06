@@ -280,8 +280,8 @@ class Ingest:
                             (pid, pa, "accepted", EXTRACTOR_TAG, self.ts))   # definitional: this GEDCOM entry *is* this person (DATA-ARCHITECTURE §1a)
             self.cx.execute("INSERT INTO external_id (id,tree_id,entity_kind,entity_id,system,value,created_at) VALUES (?,?,?,?,?,?,?)",
                             (ulid(), self.tree_id, "person", pid, "ancestry_gedcom_xref", xref, self.ts))
-            # person-level citations (INDI SOUR + NAME SOUR)
-            cits = self.citations(n) + [c for nm in names for c in self.citations(nm)]
+            # person-level citations: the INDI and NAME levels carry the same citation twice; one assertion per record id
+            cits = list({(c[1] or c[0]): c for c in self.citations(n) + [c for nm in names for c in self.citations(nm)]}.values())
             self.assert_("person", pid, cits, persona_id=pa)
             # events
             for c in n.children:
