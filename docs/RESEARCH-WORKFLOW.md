@@ -131,7 +131,22 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 | Mode | Sources | Behaviour |
 |---|---|---|
 | auto | Chronicling America (loc.gov), the 1950 census site; FamilySearch after Innovator approval, WikiTree, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
-| assisted | Find a Grave, FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time; the system takes it from there |
+| assisted | Find a Grave, FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
+
+**The page saves itself.** A cited page at an assisted source is saved from
+the owner's own browser in one call and never read through the model: open
+the citation's URL in a new tab, wait for the page to load, run one script
+in the page that clones the document, removes `iframe`, `script`, `style`,
+`link` and `noscript` elements, and hands the result to the browser as a
+download named after the record's own id; the script returns the byte count
+and whether the parser's marker and the family markup are present, and all
+three must hold before the tab is closed. Move the file from the download
+folder to `inbox/` and log the step as found with it. Measured on a Find a
+Grave memorial: one call, about half a minute from navigation to file, the
+saved page a quarter of the rendered size, nothing transcribed. If the
+browser is set to ask where to save each download, turn that off first or
+answer the dialog by hand; a dialog left open blocks every later browser
+call. Never encode a page and read it out through the model in slices.
 
 A source is `auto` only when its registry row names a built connector (the
 `Connector` column of `data/data-sources.csv`): `loc_gov` on H01 (Chronicling

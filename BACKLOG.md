@@ -227,6 +227,16 @@ source decision is stored (tree-scoped, three states, on the registry row),
 and what the card shows when the rule fired so the owner can undo it. Design
 first, in `docs/RESEARCH-WORKFLOW.md`, then a brief.
 
+### C19. The memorial's free-text biography is not extracted
+
+A Find a Grave memorial can carry a biography paragraph that refines or
+contradicts the labelled fields (Noi Segawa Davidson: "Born in Morioka,
+Tohoko Region, Iwate State, Japan" against a birth place field of
+"Tokushima, Japan"). The parser reads only the labelled fields, so the claim
+never reaches a persona fact and the reviewer's card cannot show the
+disagreement. Capture the biography as its own fact type, as written, and
+let the matcher report it beside the field.
+
 ---
 
 ## Externally blocked
