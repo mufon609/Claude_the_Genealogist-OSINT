@@ -51,7 +51,7 @@ screen. Then the loop repeats.
   evidence (extractions and personas per artifact, insert-only), conclusions
   (persons, families, events, assertions, tree-scoped, mutable with three-state
   status). Read `docs/DATA-ARCHITECTURE.md`.
-- Catalog: portable SQL, SQLite now, schema in `schema/catalog.sql` (0.5.0),
+- Catalog: portable SQL, SQLite now, schema in `schema/catalog.sql` (0.7.1),
   invariants in `schema/README.md`. No deployed catalog exists, so schema
   changes rebuild from the tools rather than migrate.
 - Tools, all stdlib Python, in `tools/`: `initdb`, `tree`, `ingest_gedcom`
@@ -61,11 +61,18 @@ screen. Then the loop repeats.
   (per-person foundation, questions, Group A/B rows, pre-built search step per
   gap), `footprint` (Layer 0), `plan` (materializes questions and steps into
   `research_question` / `search_plan`, idempotent), `log_search` (records runs
-  into `search_log`), `catalog` (shared read-only access).
+  into `search_log`), `extract` (personas, facts and relations from an archived
+  record page; a parser claims a page by its own marker or the extraction
+  fails), `match` (proposals against the tree, in words), `catalog` (shared
+  read-only access). Parsers: the Find a Grave memorial parser is verified on a
+  real page; the Ancestry index parser is not (Ancestry needs a membership this
+  account lacks).
 - Screen: `app/person/` — stdlib server plus one page, localhost only. Fact
   decisions write assertion status; plan generation; logging a run; attaching a
-  downloaded file from `inbox/`, which archives it and attaches it to the person
-  as an Undecided citation.
+  downloaded file from `inbox/`, which archives it, parses and matches a record
+  page on arrival, and shows the proposals for the person to decide; a persona
+  match or new person accepted writes Undecided assertions and closes the
+  questions it answered.
 - Design docs: `docs/RESEARCH-WORKFLOW.md` (the loop and the search ladder),
   `docs/RESEARCH-CHECKLIST.md` (checklist, gaps, foundation controls, the
   screen), `docs/SOURCE-PROFILE.md` (what the seed tree holds, agent split),
@@ -75,11 +82,12 @@ screen. Then the loop repeats.
 - Seed data: one Ancestry export of 117 people (Pennsylvania Schwenkfelder and
   Mennonite lines, Massachusetts, Kentucky, Tennessee, New York; Silesian,
   Saxon, Dutch and Irish origins). Nothing has been reviewed yet; all 1,354
-  imported citations are Undecided. Plans have been generated for everyone:
-  about 1,650 open questions and 1,900 steps, 1,000 of them Layer 0 fetches.
-- Not built yet: automatic execution against any source, the assisted fetcher
-  that builds exact search URLs, the extractor that turns a fetched record into
-  personas, the matcher that produces proposals, exporters, backups.
+  imported assertions are Undecided. Plans have been generated for everyone:
+  195 open fact-level questions and 912 fetch steps, 472 re-targeted to a free
+  holder and 440 blocked for want of one; no search step, because search steps
+  come after a baseline is reviewed.
+- Not built yet: connectors and the runner that would execute a step against
+  a source, the FamilySearch record-page parser, exporters, backups.
 
 ## What to look for
 

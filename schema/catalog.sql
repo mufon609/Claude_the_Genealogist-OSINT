@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.7.0
+-- tree catalog schema  v0.7.1
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.

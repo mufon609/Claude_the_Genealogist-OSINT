@@ -1,0 +1,13 @@
+#!/bin/sh
+# Refuses a commit that stages data: the archive, catalog databases, derivatives, the inbox
+# (except its .gitkeep), a tree's imports or exports, or any .ged / .db / .db-wal / .db-shm file.
+# Installed once with: git config core.hooksPath tools/hooks
+bad=$(git diff --cached --name-only --diff-filter=ACMR | grep -E \
+  '^(archive/|derivatives/|inbox/(.+)|catalog/.*\.(db|db-wal|db-shm)$|trees/[^/]+/(imports|exports)/)|\.(ged|db|db-wal|db-shm)$' \
+  | grep -v '^inbox/\.gitkeep$')
+if [ -n "$bad" ]; then
+  echo "pre-commit: data never enters git; unstage these:" >&2
+  echo "$bad" | sed 's/^/  /' >&2
+  exit 1
+fi
+exit 0

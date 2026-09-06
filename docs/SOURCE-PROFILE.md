@@ -152,7 +152,7 @@ its own access path, its own record shape, and its own way of naming relatives.
 | **Migration** | G01–G05, I04–I09 | origin village, arrival, naturalization; the Silesia→PA and Ireland→MA jumps | 2, 4 |
 | **Place** | N01–N07 | resolves strings, keeps jurisdiction history (Montgomery Co. 1784, Norriton 1909) | support |
 | **Names & aliases** | O01–O04 + `alias` | variants, phonetic keys, query expansion | support |
-| **Fetcher** | assisted sources (Ancestry, Find a Grave, Newspapers.com) | exact URLs and "what to look for" for the user; archives what comes back | all |
+| **Fetcher** | the free holders of cited collections (FamilySearch, Find a Grave, the National Archives; Ancestry is a citation source only) and assisted sources (Newspapers.com) | the holder's link and the citation's own details as "what to look for"; archives what the user drops in `inbox/` | all |
 | **Extractor** | archived images / index JSON | personas and facts from a record (index parse, OCR/HTR, LLM reading) | all |
 | **Matcher** | personas vs tree | proposals that answer a question | all |
 | **Research log** | every search | outcome incl. negative results | all |

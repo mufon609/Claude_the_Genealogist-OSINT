@@ -3,9 +3,13 @@
 
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
 
-The page's kind is read from the page itself: a Find a Grave memorial (body id
-memorial-summary) goes to extractor rule:findagrave-memorial@0.1.0, anything
-else to rule:ancestry-index@0.1.0. One extraction per run over the artifact, with:
+A parser claims the page by its own marker, or the extraction fails. A Find a
+Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.1.0;
+an Ancestry index page (a table whose rows pair a label cell with a value cell,
+the shape that parser reads; unverified on a real page) goes to
+rule:ancestry-index@0.1.0. A page no parser claims gets one extraction by
+rule:extract@0.1.0 with status failed, the reason in structured_json, no
+personas, and the matcher is not run. One extraction per run over the artifact, with:
   persona          one per person the page names: the record's subject, each
                    household member, and each relative named in a field
                    (Father, Mother, Spouse, Informant). role_in_record is the
@@ -53,7 +57,7 @@ from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 
-EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0")}
+EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0"), None: ("rule", "extract", "0.1.0")}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
 LABELS = [
@@ -161,9 +165,11 @@ def parse_memorial(text):
     return {"kind": "findagrave", "title": title, "fields": fields, "memorial_id": memorial_id, "members": members, "source": source, "photo_captions": captions}
 
 def parse(text):
-    """The page's kind and its parsed form: a Find a Grave memorial, else an Ancestry index page."""
+    """The page's kind and its parsed form, or (None, reason) when no parser claims the page."""
     if re.search(r'<body[^>]*\bid="memorial-summary"', text): return "findagrave", parse_memorial(text)
-    return "ancestry", parse_page(text)
+    page = parse_page(text)
+    if page["fields"] or page["household"]: return "ancestry", page
+    return None, {"reason": "no parser claims this page: not a Find a Grave memorial, and no table pairs a label cell with a value cell"}
 
 def parse_page(text):
     """{"title", "fields": [[label, value]], "household": [{"columns": [...], "rows": [[...]]}], "tables": raw} from the HTML."""
@@ -315,6 +321,11 @@ def extract(cx, sha, by):
     ext_id = row[0] if row else ulid()
     if not row: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ext_id, *extractor, ts))
     eid = ulid()
+    if kind is None:
+        cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'failed',?)", (eid, sha, ext_id, ts, dumps(parsed)))
+        cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
+                   (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": "rule:extract@0.1.0", "status": "failed", **parsed})))
+        return eid, {"failed": parsed["reason"]}
     full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"])
     if kind == "ancestry": full_text += "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
     else: full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
@@ -339,6 +350,7 @@ def main():
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
     cx.execute("BEGIN"); eid, n = extract(cx, sha, a.by); cx.commit()
     print("extraction", eid, dumps(n))
+    if "failed" in n: return
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         print(f"  {name} [{role}{', ' + sex if sex else ''}]")
         for ft, v, d, ps, rg in cx.execute("""SELECT pf.fact_type, pf.value_text, pf.date_text, ps.raw, pf.region_json FROM persona_fact pf

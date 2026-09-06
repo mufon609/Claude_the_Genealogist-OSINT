@@ -43,7 +43,8 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
 6. **Plain over clever.** No bells and whistles. If a feature is not in the
    design docs, ask before building it.
 7. **Data never enters git.** `archive/`, `catalog/*.db`, `derivatives/`,
-   `inbox/`, `trees/*/imports` are ignored; the commit command guards it.
+   `inbox/`, `trees/*/imports` are ignored, and the commit hook refuses them:
+   install it once with `git config core.hooksPath tools/hooks`.
 8. **No bandaids.** Fix the cause or file it in `BACKLOG.md`. No parking
    comments, no compensating checks. Comments describe current code, never
    history (see `MEMORY.md`).
@@ -66,6 +67,7 @@ python3 tools/extract.py <sha256>            # personas + facts from an archived
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/tree.py show
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
+DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # scratch run: its own archive/, inbox/, derivatives/, trees/*/imports
 ```
 
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).

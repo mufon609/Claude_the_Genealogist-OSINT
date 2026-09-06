@@ -135,7 +135,7 @@ async function revise(id,field,what,val){const s=findStep(id);const rev={...s.re
  const r=await post('/api/step/'+id+'/revise',{revisions:rev});if(r.error){fail(r.error);return}reload()}
 async function logStep(id,outcome){const s=findStep(id);const body={outcome,note:$('#ln-'+id)?.value||'',query:s.query};if(outcome==='found'){body.file=$('#lf-'+id)?.value;if(!body.file){fail('pick the downloaded file in inbox/ first');return}}
  const r=await post('/api/step/'+id+'/log',body);if(r.error){fail(r.error);return}
- await reload();$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">logged: ${h(outcome)}${r.artifacts&&r.artifacts.length?' · archived '+h(r.artifacts[0].slice(0,12)):''}</div>`)}
+ await reload();$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">logged: ${h(outcome)}${r.artifacts&&r.artifacts.length?' · archived '+h(r.artifacts[0].slice(0,12)):''}${r.unparsed?` <span style="color:var(--bad)">· unparsed: ${h(r.unparsed)}</span>`:''}</div>`)}
 async function decide(field,status){const r=await post('/api/person/'+P.person.id+'/fact/'+field,{status});if(r.error){fail(r.error);return}await reload();if(status==='accepted'&&r.assertions===0)fail('Nothing to accept: no record behind this fact is held yet. Fetch one, then accept.');
  if(r.answered&&r.answered.length)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">answered ${r.answered.length} question(s); plan refreshed</div>`)}
 boot();

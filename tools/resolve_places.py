@@ -16,11 +16,11 @@ Rules
 """
 import argparse, difflib, hashlib, json, os, re, sqlite3, sys, time, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, now, resolve_tree, ulid
+from treelib import ROOT, derivatives_dir, dumps, now, resolve_tree, ulid
 
 RESOLVER = ("rule", "nominatim-resolver", "0.1.0")
 UA = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"
-CACHE = os.path.join(ROOT, "derivatives", "geocode", "nominatim")
+CACHE = os.path.join(derivatives_dir(), "geocode", "nominatim")
 ENDPOINT = "https://nominatim.openstreetmap.org/search"
 
 COUNTRY_SYN = {"usa": "United States", "u.s.a.": "United States", "us": "United States", "united states": "United States",

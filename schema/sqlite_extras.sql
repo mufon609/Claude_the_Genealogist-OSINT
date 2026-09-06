@@ -43,6 +43,12 @@ END;
 CREATE TRIGGER trg_persona_no_update BEFORE UPDATE ON persona BEGIN
   SELECT RAISE(ABORT, 'persona rows are immutable; re-run the extraction');
 END;
+CREATE TRIGGER trg_persona_no_delete BEFORE DELETE ON persona BEGIN
+  SELECT RAISE(ABORT, 'persona rows are never deleted; re-run the extraction');
+END;
 CREATE TRIGGER trg_persona_fact_no_update BEFORE UPDATE ON persona_fact BEGIN
   SELECT RAISE(ABORT, 'persona_fact rows are immutable; re-run the extraction');
+END;
+CREATE TRIGGER trg_persona_fact_no_delete BEFORE DELETE ON persona_fact BEGIN
+  SELECT RAISE(ABORT, 'persona_fact rows are never deleted; re-run the extraction');
 END;

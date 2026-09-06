@@ -18,8 +18,8 @@ Nothing is updated in place; re-running on the same file is refused.
 """
 import argparse, collections, json, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import (ROOT, Node, dumps, manifest_path, now, object_path, parse_gedcom,
-                     parse_gedcom_date, resolve_tree, sha256_file, tree_dir, ulid)
+from treelib import (ROOT, Node, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
+                     parse_gedcom_date, resolve_tree, sha256_file, ulid)
 
 EXTRACTOR = ("rule", "gedcom-ingest", "0.1.0")
 EXTRACTOR_TAG = ":".join(EXTRACTOR[:2]) + "@" + EXTRACTOR[2]   # who asserts imported claims and links personas: the extractor, not the user
@@ -431,7 +431,7 @@ class Ingest:
 
     def file_original(self, move: bool):
         """Put a human-named copy under trees/<slug>/imports/<date>_<name>; move if it came from the inbox."""
-        dst_dir = os.path.join(tree_dir(self.tree_slug), "imports")
+        dst_dir = imports_dir(self.tree_slug)
         os.makedirs(dst_dir, exist_ok=True)
         base = re.sub(r"^\d{4}-\d{2}-\d{2}_", "", re.sub(r"\s+", "-", os.path.basename(self.path)))
         already_filed = os.path.dirname(os.path.abspath(self.path)) == os.path.abspath(dst_dir)
@@ -466,7 +466,7 @@ def main():
             for p in (object_path(ing.sha), manifest_path(ing.sha)):
                 if os.path.exists(p): os.remove(p)
         raise
-    in_inbox = os.path.abspath(a.path).startswith(os.path.join(ROOT, "inbox") + os.sep)
+    in_inbox = os.path.abspath(a.path).startswith(inbox_dir() + os.sep)
     filed = ing.file_original(move=in_inbox and not a.keep)
     print(f"ingested {os.path.basename(a.path)} -> tree '{slug}', artifact {ing.sha[:12]}…\n  filed at {os.path.relpath(filed, ROOT)}")
     for k in sorted(summary): print(f"  {k:28} {summary[k]}")

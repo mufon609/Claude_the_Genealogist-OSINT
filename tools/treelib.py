@@ -1,7 +1,14 @@
-"""Shared helpers for tree tools: ULIDs, timestamps, GEDCOM date parsing, archive paths."""
+"""Shared helpers for tree tools: ULIDs, timestamps, GEDCOM date parsing, data paths.
+
+ROOT is the repository. DATA_ROOT is where the data directories live (archive/,
+derivatives/, inbox/, trees/<slug>/imports, trees/<slug>/exports): the
+repository by default, or the directory named by the environment variable
+DATA_ROOT, so a scratch run keeps its files apart from the owner's.
+"""
 import datetime as dt, hashlib, json, os, re, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 def ulid() -> str:
@@ -21,11 +28,20 @@ def sha256_file(path: str) -> str:
             h.update(chunk)
     return h.hexdigest()
 
+def archive_dir() -> str:
+    return os.path.join(DATA_ROOT, "archive")
+
+def inbox_dir() -> str:
+    return os.path.join(DATA_ROOT, "inbox")
+
+def derivatives_dir() -> str:
+    return os.path.join(DATA_ROOT, "derivatives")
+
 def object_path(sha: str) -> str:
-    return os.path.join(ROOT, "archive", "objects", "sha256", sha[:2], sha[2:4], sha)
+    return os.path.join(archive_dir(), "objects", "sha256", sha[:2], sha[2:4], sha)
 
 def manifest_path(sha: str) -> str:
-    return os.path.join(ROOT, "archive", "manifests", "sha256", sha[:2], sha[2:4], sha + ".json")
+    return os.path.join(archive_dir(), "manifests", "sha256", sha[:2], sha[2:4], sha + ".json")
 
 # ---------------------------------------------------------------- GEDCOM dates
 _MONTHS = {m: i for i, m in enumerate(
@@ -159,4 +175,12 @@ def resolve_tree(cx, explicit=None):
     return row[0], row[1]
 
 def tree_dir(slug: str) -> str:
+    """The tree's folder in the repository: its README."""
     return os.path.join(ROOT, "trees", slug)
+
+def imports_dir(slug: str) -> str:
+    """The tree's named copies of imported files, under DATA_ROOT."""
+    return os.path.join(DATA_ROOT, "trees", slug, "imports")
+
+def exports_dir(slug: str) -> str:
+    return os.path.join(DATA_ROOT, "trees", slug, "exports")

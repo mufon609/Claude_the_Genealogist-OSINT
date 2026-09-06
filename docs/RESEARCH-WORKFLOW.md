@@ -129,7 +129,6 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 |---|---|---|
 | auto | FamilySearch (after Innovator approval), WikiTree, loc.gov newspapers, NARA catalog, Open Archives, Wikidata, held archive | the system runs the query, archives raw responses, extracts personas |
 | assisted | Find a Grave, FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time; the system takes it from there |
-| manual | county courthouses, Schwenkfelder Library, parish archives | the system produces a request letter or visit checklist |
 
 A source is `auto` only when its registry row names a built connector (the
 `Connector` column of `data/data-sources.csv`); none does yet, so today every

@@ -8,7 +8,7 @@
 """
 import argparse, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ACTIVE_TREE_FILE, ROOT, active_tree_slug, dumps, now, tree_dir, ulid
+from treelib import ACTIVE_TREE_FILE, ROOT, active_tree_slug, dumps, exports_dir, imports_dir, now, tree_dir, ulid
 
 def connect(db):
     cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); return cx
@@ -22,8 +22,8 @@ def cmd_create(cx, a):
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id) VALUES (?,?,?,?,?,?,?)",
                (ulid(), tid, ts, a.by, "insert", "tree", tid))
     cx.commit()
-    d = tree_dir(a.slug)
-    for sub in ("imports", "exports"): os.makedirs(os.path.join(d, sub), exist_ok=True)
+    d = tree_dir(a.slug); os.makedirs(d, exist_ok=True)
+    for sub in (imports_dir(a.slug), exports_dir(a.slug)): os.makedirs(sub, exist_ok=True)
     with open(os.path.join(d, "README.md"), "w", encoding="utf-8") as fh:
         fh.write(f"# {a.name}\n\nslug: `{a.slug}`\n\n"
                  "- `imports/` named copies of files ingested into this tree (the archive holds the hashed master)\n"

@@ -55,25 +55,7 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
-### A1. FamilySearch fetch of a cited census (Phase 3 of `docs/briefs/free-holders-fetch.md`)
-
-The owner has a free FamilySearch account signed into Chrome, so the fetch
-is possible. Not started. Abram C. Brant's 1900 census step (locator
-`1,7602::47389682`, holder FamilySearch collection 1325221) carries the
-citation's own details: Year 1900, Census Place Norristown, Montgomery,
-Pennsylvania, Roll 1444, Page 2, ED 0240, indexed name Charlotte D Lukens.
-Do it in the owner's browser, one record: collection page → the collection's
-own search on the indexed name and place → the record page and its image;
-capture the record page through the DOM and download the image through the
-site's own control into `inbox/`; close the tab. On a scratch copy, archive
-both, write the FamilySearch record-page parser into `tools/extract.py`
-under its own extractor tag, compare field by field, run the matcher, report
-verbatim. DOM capture through the Chrome extension: its script output is
-capped near 1.5 KB and rejects text that looks like a query string or a
-hash, so clone the page in-page, marker-encode it into a `<pre>`, read it out
-in 25,000-character slices, decode, and verify each chunk and the whole by
-SHA-256.
-**Blocks:** nothing.
+No items.
 
 ---
 
@@ -160,6 +142,27 @@ saved, hotkey-switchable views: hide the siblings they do not care about on a
 line, keep one child of a large family, dim everything outside the line being
 worked. A view changes only what is shown, never the data. Far out; needs a
 tree overview first.
+
+### C10. Proposal kinds with no decision path
+
+`fact` proposals (the alias backfill's canonical-name fixes) can be decided
+nowhere: the person screen decides only persona matches and new persons, and
+no tool decides them. Either give them a control on the person whose name they
+concern, or stop raising them and put the finding in a note.
+
+### C11. Locator kinds on fetch steps
+
+Every fetch step's `locator_kind` is `apid`, including Find a Grave memorials,
+for which the schema names `memorial_id`, while the memorial URL rides in the
+step's fields. Use the schema's kinds: `memorial_id` for Find a Grave, `ark`
+for a FamilySearch record, `naid` for the National Archives, `apid` only for
+the citation's own identity.
+
+### C12. Basis word on residences
+
+The foundation shows basis `mixed` on the residence trail; the docs define
+only `accepted`, `lead`, `row` and `citation`. Give each residence its own
+basis or drop the row from the foundation.
 
 ---
 

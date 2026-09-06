@@ -17,7 +17,7 @@ import argparse, glob, json, mimetypes, os, re, shutil, sqlite3, sys, threading,
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
-from treelib import active_tree_slug, dumps, manifest_path, now, object_path, sha256_file, tree_dir, ulid
+from treelib import active_tree_slug, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, sha256_file, ulid
 from catalog import Catalog, holders
 from checklist import build
 from plan import plan_person
@@ -137,14 +137,14 @@ def cost_of(text):
 def archive_inbox_file(cx, slug, name, st, note):
     """Archive a file the person saved to inbox/ for a step. Bytes already in the archive are linked, not copied.
     Provenance comes from the registry: the record's kind (the step's first source) gives the trust tier; where it was
-    retrieved (the step's locator source) gives terms and cost. Returns the sha256."""
-    src = os.path.join(ROOT, "inbox", os.path.basename(name))
+    retrieved (the step's locator source) gives terms and cost. Returns (sha256, why the page was not parsed or None)."""
+    src = os.path.join(inbox_dir(), os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
     sha = sha256_file(src); ts = now()
-    filed = os.path.join(tree_dir(slug), "imports", "records"); os.makedirs(filed, exist_ok=True)
+    filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)
     if cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone():
         shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
-        return sha
+        return sha, None
     size = os.path.getsize(src); mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
     source_id, lkind, lvalue, col_id = st["locator_source_id"], st["locator_kind"] or "file", st["locator_value"], st["collection_id"]
     col = cx.execute("SELECT name FROM collection WHERE id=?", (col_id,)).fetchone() if col_id else None; col_name = col["name"] if col else None
@@ -161,9 +161,13 @@ def archive_inbox_file(cx, slug, name, st, note):
     cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,manifest_json,created_at)
                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, size, mime, manifest.get("source_id"), col_id, lkind, manifest["locator"]["value"], ts, CFG["by"], terms, False, cost, tier, os.path.basename(src), 1, dumps(manifest), ts))
     cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)", (sha, "local", ts, ts, True))
-    if mime.startswith("text/html"): match_personas(cx, extract_html(cx, sha, CFG["by"])[0], CFG["by"])   # an index page is parsed and matched on arrival; an image waits for a transcription
+    unparsed = None
+    if mime.startswith("text/html"):                              # a record page is parsed and matched on arrival; an image waits for a transcription
+        eid, n = extract_html(cx, sha, CFG["by"])
+        if "failed" in n: unparsed = n["failed"]
+        else: match_personas(cx, eid, CFG["by"])
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
-    return sha
+    return sha, unparsed
 
 def log_step(cx, tree_id, slug, step_id, body):
     """Write one run of a step. A found run with a file archives the file and records it on the log; the
@@ -171,12 +175,12 @@ def log_step(cx, tree_id, slug, step_id, body):
     st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone()
     if not st: return {"error": "step not found"}
     outcome = body.get("outcome"); note = body.get("note") or None; query = body.get("query") or rendered_query(st["query_json"], st["revisions_json"])
-    artifacts = []
+    artifacts, unparsed = [], None
     if outcome == "found" and body.get("file"):
-        try: artifacts.append(archive_inbox_file(cx, slug, body["file"], st, note))
+        try: sha, unparsed = archive_inbox_file(cx, slug, body["file"], st, note); artifacts.append(sha)
         except ValueError as e: return {"error": str(e)}
     lid = log_search(cx, tree_id, CFG["by"], step_id=step_id, outcome=outcome, artifacts=artifacts or None, note=note, query=query)
-    return {"ok": True, "log": lid, "artifacts": artifacts}
+    return {"ok": True, "log": lid, "artifacts": artifacts, "unparsed": unparsed}
 
 def revise_step(cx, tree_id, step_id, body):
     """Store the person's include/revise for a step: {field: {"include": false} | {"value": "..."}}."""
@@ -394,7 +398,7 @@ class H(BaseHTTPRequestHandler):
             if tree_id is None: self.send({"error": "no tree"}, code=400); return
             if u.path == "/api/tree": self.send({"slug": slug, "name": tname, "by": CFG["by"], "trees": [r["slug"] for r in cx.execute("SELECT slug FROM tree ORDER BY slug")]}); return
             if u.path == "/api/people": self.send(people(cx, tree_id, q.get("q", [""])[0])); return
-            if u.path == "/api/inbox": self.send(sorted(os.path.basename(f) for f in glob.glob(os.path.join(ROOT, "inbox", "*")) if os.path.isfile(f) and not f.endswith(".gitkeep"))); return
+            if u.path == "/api/inbox": self.send(sorted(os.path.basename(f) for f in glob.glob(os.path.join(inbox_dir(), "*")) if os.path.isfile(f) and not f.endswith(".gitkeep"))); return
             ma = re.match(r"^/api/artifact/([0-9a-f]{64})$", u.path)
             if ma:
                 v = artifact_view(cx, tree_id, ma.group(1), q.get("person", [""])[0])

@@ -8,9 +8,11 @@ then seeds `source` from data/data-sources.csv, a `human` extractor, and the
 local storage target. Stdlib only.
 """
 import argparse, csv, datetime as dt, os, sqlite3, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from treelib import archive_dir
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCHEMA_VERSION = "0.7.0"
+SCHEMA_VERSION = "0.7.1"
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 def ulid() -> str:
@@ -68,7 +70,7 @@ def main() -> int:
                (ulid(), "human", "manual", "1", ts))
     cx.execute("""INSERT INTO storage_target (name, kind, uri, is_master, object_lock, enabled, notes)
                   VALUES ('local','local',?,1,0,1,'primary on-disk archive')""",
-               ("file://" + os.path.join(ROOT, "archive"),))
+               ("file://" + archive_dir(),))
     cx.execute("""INSERT INTO storage_target (name, kind, uri, is_master, object_lock, enabled, notes)
                   VALUES ('s3-master','s3','s3://CHANGE-ME/tree/bags',0,1,0,
                           'disabled until project is finished; Versioning + Object Lock compliance, lifecycle to Deep Archive @30d')""")
