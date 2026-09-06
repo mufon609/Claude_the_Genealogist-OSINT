@@ -165,7 +165,7 @@ class Catalog:
         return {"text": text, "resolved": False, "country": country, "state": st}
     KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
     def key_fact_basis(self, pid, ev=None):
-        """basis per key fact: accepted | lead | rejected | None (no claim)."""
+        """basis per key fact: accepted | claim | rejected | None (no claim)."""
         ev = self.events(pid) if ev is None else ev
         out = {"name": self.basis("person", pid), "sex": self.basis("person", pid)}
         for f in ("birth", "death"):
@@ -174,14 +174,14 @@ class Catalog:
         return out
     def baseline(self, pid, ev=None):
         """The baseline is complete when no key fact is Undecided; absent and rejected facts are decided."""
-        kb = self.key_fact_basis(pid, ev); und = [f for f in self.KEY_FACTS if kb[f] == "lead"]
+        kb = self.key_fact_basis(pid, ev); und = [f for f in self.KEY_FACTS if kb[f] == "claim"]
         return {"key_facts": len(kb), "key_facts_accepted": sum(1 for b in kb.values() if b == "accepted"), "undecided": und, "complete": not und}
     def link_rejected(self, fid, person_id, role):
         """True when every assertion behind this family membership is rejected."""
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind='family_member' AND subject_id=?", json.dumps([fid, person_id, role], separators=(",", ":"), sort_keys=True))}
         return bool(st) and st <= {"rejected"}
     def link_basis(self, pid, field):
-        """accepted | lead | None for parents / spouses / children, from the family_member assertions behind them."""
+        """accepted | claim | None for parents / spouses / children, from the family_member assertions behind them."""
         if field == "children":
             subs = [json.dumps([f, c, "child"], separators=(",", ":"), sort_keys=True) for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid)
                     for c, in self.q("SELECT person_id FROM family_member WHERE family_id=? AND role='child'", f)]
@@ -191,10 +191,10 @@ class Catalog:
         if not subs: return None
         st = set()
         for sid in subs: st |= {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind='family_member' AND subject_id=?", sid)}
-        return "accepted" if "accepted" in st else ("rejected" if st and st <= {"rejected"} else "lead")
+        return "accepted" if "accepted" in st else ("rejected" if st and st <= {"rejected"} else "claim")
     def basis(self, kind, sid):
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind=? AND subject_id=?", kind, sid)}
-        return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "lead")
+        return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "claim")
     def citations(self, kind, sid):
         """[(collection name, apid, held artifact sha or None, collection id)] for a subject."""
         out = []

@@ -43,7 +43,7 @@ the whole household and proves relationships. These are worked first.
 | Pension file | veteran, widow, children | marriage date/place, children's births | Rev War, Civil War | F03, F04 |
 | Land deed | grantor, spouse (dower), heirs | spouse, heirs | PA 1682+ | J01, J02 |
 | City directory / tax list | adults of a household | residence, occupation, adult sons | 1822–1995 | K01, J04 |
-| Family Bible / compiled genealogy | whole lineage | leads for everything; **never proof** | | L01–L03, I01 |
+| Family Bible / compiled genealogy | whole lineage | hints for everything; **never proof** | | L01–L03, I01 |
 
 **Group B: records about one person.** Filled in after Group A, to complete
 that person's own facts. Many still *name* relatives (B1); some do not (B2).
@@ -194,18 +194,18 @@ Layout rules that keep it clean:
 
 `tools/checklist.py "<person>"` produces everything above for one person from
 the catalog, read-only: the foundation with each field marked `accepted` or
-`lead`, the generated questions, the Group A and Group B rows with
+`claim`, the generated questions, the Group A and Group B rows with
 held / cited / missing / n/a, the relative a citation sits on when it is not on
 the person, and the pre-built search step per gap with its execution mode per
 source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record).
 `--json` gives the machine form; `--all` gives one line per person. A real
 citation always beats an era rule; the row is then marked with the rule it
 falls outside of. Every query field is `{value, basis}`: basis `accepted` or
-`lead` for a fact about the person, `row` for a value the checklist row sets
+`claim` for a fact about the person, `row` for a value the checklist row sets
 (a census year), `citation` for a detail the citation itself carries (a fetch
 step's fields); a Rejected fact is left out. Before the baseline is reviewed
 the generator emits only fetch steps for cited records: no search steps, no
-footprint, no duplicate or unlinked leads.
+footprint, no duplicate or unlinked persons.
 
 ## 6b. The screen as built
 
@@ -221,7 +221,12 @@ record is fetched from (the memorial page itself for Find a Grave; for a
 FamilySearch step the collection's own search prefilled from the citation's
 details, for a National Archives 1950 step the site's name search, the
 collection page for a citation without a step) or to Ancestry when the
-collection has no free holder and the step is blocked. Deciding a fact sets every assertion that supports it and writes an
+collection has no free holder and the step is blocked. Every fact of the
+person is decidable under the same three states: the seven key facts first,
+then every other event or attribute the person has (burial, residences,
+occupation, an inscription), each with its evidence; a fact a held record
+states that the tree had no event for appears once a match is accepted, created
+from the record's fact with its Undecided assertion. Deciding a fact sets every assertion that supports it and writes an
 audit row. Accept sets Accepted only on the assertions whose evidence is
 visible: the tree owner's uncited claim and citations whose record is held;
 a citation to a record not yet fetched stays Undecided until the fetch. When
@@ -246,7 +251,7 @@ side as parents. Include and revise live on the step: a search step lists its
 fields with a checkbox and a revise box, saved on the step, and every logged
 run records the fields as rendered, each with its basis. Until the baseline
 is reviewed the page says in one line what review unlocks (searches, the
-family footprint, leads) and that fetching cited records is open. A held row's
+family footprint, unlinked persons) and that fetching cited records is open. A held row's
 panel also shows each record its steps archived: the file, its extractions
 with personas, facts and relations, and, when the record has no persona yet,
 a form to transcribe one person at a time (name, role, sex, age, birth, death,
@@ -259,7 +264,14 @@ or a new person; a decision answers in one line with what it made and closed
 plan does next (the facts now carrying held evidence to accept, the proposals
 still open on the record, the steps still planned). A held row
 opens its record through the citation's archived artifact as well as through
-a step. An assisted search step whose source's search the tool can build
+a step. A held record whose persona is accepted as this person offers one
+decision, "accept this record's facts": Accepted on every Undecided assertion
+the record makes on the person's facts that does not disagree with a value
+already Accepted on the same fact, date compared as a date and place as the
+matcher compares it; a family link the record states is left for its own
+decision, because the membership row stands for a couple and a record may name
+only one of them; what the decision did not touch is answered with the reason.
+The match's answer says beforehand what the one decision would do. An assisted search step whose source's search the tool can build
 (Find a Grave) shows that link, built from the foundation fields; the results
 page saved into `inbox/` comes back as the candidate card on the step's
 record, every row with its fields as agrees, disagrees or absent

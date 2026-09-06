@@ -147,7 +147,7 @@ its own access path, its own record shape, and its own way of naming relatives.
 | **Vital & church** | C01–C11, I01–I09 | parents' names, maiden names, exact dates; Schwenkfelder/Mennonite/Dutch/Irish registers | 1, 2 |
 | **Burial** | E01–E04 | death/burial dates, family plot links; T3, always to be confirmed elsewhere | 2 |
 | **Newspaper** | H01–H06 | obituaries: survivors, maiden names, places | 2 |
-| **Compiled & books** | L01–L03, DAR/SAR | leads (never proof); full-text search of published genealogies | 2, 5 |
+| **Compiled & books** | L01–L03, DAR/SAR | hints (never proof); full-text search of published genealogies | 2, 5 |
 | **Probate, land, tax** | J01–J04 | heirs, relationships pre-1850 | 2 |
 | **Migration** | G01–G05, I04–I09 | origin village, arrival, naturalization; the Silesia→PA and Ireland→MA jumps | 2, 4 |
 | **Place** | N01–N07 | resolves strings, keeps jurisdiction history (Montgomery Co. 1784, Norriton 1909) | support |

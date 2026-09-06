@@ -56,7 +56,7 @@ def expect(collection, rel, subject_alive_in_year, subject_sex):
     if re.search(r"Wills|Probate", c): return {"parent": "the subject named as heir", "spouse": "subject as heir/executor", "child": "subject as heir if alive"}.get(rel, "heirs named")
     if re.search(r"Grave|Cemetery|Burial", c): return f"memorial of the {rel}: family plot, linked memorials"
     if re.search(r"Church|Mennonite|Presbyterian|Reformed|Parish", c): return "register entry names parents and sponsors" if rel == "child" else f"church register with the {rel}'s family"
-    if re.search(r"Histories|History Books|Genealog|Cyclopedia|Surname|Membership", c): return "compiled lineage; subject likely included (lead, not proof)"
+    if re.search(r"Histories|History Books|Genealog|Cyclopedia|Surname|Membership", c): return "compiled lineage; subject likely included (a hint, not proof)"
     if re.search(r"Draft", c): return "next of kin / employer on the draft card" if rel in ("child", "spouse") else "draft card of a relative"
     if re.search(r"Directories", c): return "adults of the household, address"
     if re.search(r"Naturalization|Passenger|Immigration", c): return "family group, origin, arrival"
@@ -129,7 +129,7 @@ def render(fp):
     P = fp["person"]; s = fp["summary"]
     out = [f"{P['name']}  ({P['span'][0]}–{P['span'][1]})", f"  {s['records']} records on {s['relatives']} relatives; {s['shared']} hold 2+ family members"]
     if fp["duplicates"]: out.append("\nDUPLICATES (resolve first)"); out += [f"  {x['why']}" for x in fp["duplicates"]]
-    if fp["unlinked"]: out.append("\nUNLINKED, SAME SURNAME (leads)"); out += [f"  {x['why']}" for x in fp["unlinked"]]
+    if fp["unlinked"]: out.append("\nUNLINKED, SAME SURNAME (hints)"); out += [f"  {x['why']}" for x in fp["unlinked"]]
     out.append("\nRECORDS ON RELATIVES, RANKED")
     for r in fp["records"]:
         flag = "H" if r["held"] else " "
@@ -146,7 +146,7 @@ def main():
     cx = sqlite3.connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     pid = cat.find_person(a.who); bl = cat.baseline(pid)
     if not bl["complete"]:
-        sys.exit(f"{cat.person(pid)['name']}: baseline not reviewed ({', '.join(bl['undecided'])} undecided); the footprint, duplicates and leads come after review")
+        sys.exit(f"{cat.person(pid)['name']}: baseline not reviewed ({', '.join(bl['undecided'])} undecided); the footprint, duplicates and unlinked persons come after review")
     fp = footprint(cat, pid)
     print(json.dumps(fp, ensure_ascii=False, indent=1) if a.json else render(fp))
 

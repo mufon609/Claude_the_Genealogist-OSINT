@@ -18,14 +18,14 @@ from catalog import Catalog
 
 def rendered_query(query_json, revisions_json):
     """The step's fields ({value, basis} each) after the person's include/revise: an excluded field is dropped,
-    a revised value replaces the tree's and is a lead that remembers what it revised."""
+    a revised value replaces the tree's and is a claim of the searcher that remembers what it revised."""
     fields = json.loads(query_json or "{}"); rev = json.loads(revisions_json or "{}")
     out = {}
     for k, v in fields.items():
-        f = v if isinstance(v, dict) and "basis" in v else {"value": v, "basis": "lead"}
+        f = v if isinstance(v, dict) and "basis" in v else {"value": v, "basis": "claim"}
         r = rev.get(k) or {}
         if r.get("include") is False: continue
-        if r.get("value") not in (None, ""): f = {"value": r["value"], "basis": "lead", "revised_from": f["value"]}
+        if r.get("value") not in (None, ""): f = {"value": r["value"], "basis": "claim", "revised_from": f["value"]}
         out[k] = f
     return out
 

@@ -37,9 +37,12 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    arrive Undecided. Conclusions need an Accepted assertion.
 4. **Trees are isolated.** No automatic reuse of evidence across trees.
 5. **One person per screen.** Foundation → checklist → tasks → results →
-   review. No queue screens, no navigation by data type, no hint feeds on
-   unreviewed people. Define the screen's goal in one sentence and confirm
-   it before building.
+   review. No queue screens, no navigation by data type, no hints on a
+   person whose baseline is not reviewed. Leads (follow-up work the evidence
+   produced) and hints (documents that overlap the person but do not identify
+   them) are defined in `docs/RESEARCH-WORKFLOW.md` §0 and live on the
+   person. Define the screen's goal in one sentence and confirm it before
+   building.
 6. **Plain over clever.** No bells and whistles. If a feature is not in the
    design docs, ask before building it.
 7. **Data never enters git.** `archive/`, `catalog/*.db`, `derivatives/`,

@@ -14,6 +14,57 @@ does not need a name until a name has been found.
       └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+## 0. Terms
+
+**Claim.** What the imported file or a searcher says without a record behind it.
+An Undecided fact in a query carries basis `claim`; an Accepted one carries
+`accepted`. Nothing is searched on claims alone.
+
+**Lead.** A piece of follow-up work about one person that the evidence produced
+and the loop can act on: a record to fetch because a held record names it
+(the parent's memorial linked from Raymond Earl Davidson's), a search to run
+because an accepted fact makes it possible (the 1950 household at the address
+the 1940 census gives), a person named on an accepted record who is not yet in
+the tree. A lead has a person, what to do, where to do it, and what produced it
+(the record, fact or citation). Leads are the queue of work; every lead is a
+plan step with its log, so what was tried and what it gave is never lost. A
+lead closes when it is run, found or none, or when its gap has gone. Accepting
+a document produces leads; running them consumes leads. The file's citations
+are leads whose origin is the file.
+
+**Hint.** A document, or a row on a search page, that overlaps the person on
+some of what identifies them but not on enough for the matcher to propose it or
+the rule to accept it: the surname, the place and the period agree, but there
+is no age, no full name, no stated relationship. A census before 1850 that
+names the head and counts the rest; a tax list; a directory line; a search row
+with a bare year; a newspaper hit before its text is read. Hints are kept on
+the person with what agrees and what is missing, for research when the leads
+run dry. A document already accepted as the person's can also stay a hint
+while it still has work in it (the pre-1850 household accepted as the family's,
+the children not yet identified). A hint never becomes a fact on its own;
+research turns it into a lead or a match. Hints are shown only on a person
+whose baseline is reviewed, never as a feed.
+
+**Which documents the rule may accept on its own.** The standing rule the
+owner set accepts a document as the person's when it agrees with what the
+person already accepted and nothing disagrees, and everything the document
+states comes with it. It may do so only for document kinds that identify a
+person fully; every other kind is a hint until a person reads it. The starting list, to be refined as records are
+met:
+
+| Document | What it gives | Standing |
+|---|---|---|
+| Federal or state census 1850 on | full names and ages; relationships from 1880 | automated |
+| Federal census 1790–1840 | the head's name, the rest counted | hint |
+| Find a Grave memorial | full name, dates, cemetery, linked family | automated |
+| Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
+| Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
+| Church register entry | names and dates when the register keeps them | automated when dated and the parents are named; hint otherwise |
+| Obituary, newspaper hit | free text | hint until the text is read; then the named survivors decide |
+| Will, probate, land, tax, directory | names, no ages | hint |
+| Compiled genealogy, family Bible | lineage, no proof | hint, never proof |
+| A row on a search results page | name, years, place | hint; its own record is the document |
+
 ## 1. Baseline: what we know and have approved
 
 An imported tree is a set of **claims**, not knowledge. The Ahearn import has 232
@@ -27,9 +78,9 @@ not hold. None of that is a baseline yet.
   the fact then traces to the tree file as the archived claim, the acceptance
   is the person's, it is Accepted like any other, and the record fetch still
   runs.
-- Only Accepted facts feed searches. An Undecided fact can be used as a lead
-  and is labelled as such in every query: every query field is `{value, basis}`
-  with basis `accepted` or `lead`. A Rejected fact is left out, and a relative
+- Only Accepted facts feed searches. An Undecided fact is a claim and is
+  labelled as such in every query: every query field is `{value, basis}` with
+  basis `accepted` or `claim`. A Rejected fact is left out, and a relative
   whose family link is Rejected is not a relative to the footprint or the
   checklist.
 - Review is person-centred: one person, their claims, the records behind each,
@@ -55,7 +106,7 @@ Questions are always about a person. They are generated, not typed:
 first, then tractability (era and place with good record coverage in the
 registry), then how many other questions an answer would unlock. Until its subject is
 baseline-complete (no key fact Undecided) a question gets no search steps and
-no footprint, duplicate or unlinked leads; only fetch steps for records the
+no footprint, duplicate or unlinked persons; only fetch steps for records the
 tree already cites exist, because the review needs those records.
 
 ## 3. Plan: the search ladder
@@ -93,7 +144,7 @@ holding all 4 Peters. Those are where a missing Cassel, Lukens or Peters is foun
 
 `tools/footprint.py "<person>"` computes Layer 0 from the catalog, read-only:
 the duplicate check first (same name and birth year, or same name and the same
-spouse or parents), unlinked same-surname persons as leads with a generation
+spouse or parents), unlinked same-surname persons as hints with a generation
 label, then every record cited or held on a spouse, child, parent or sibling
 that is not already on the person, ranked by how many family members share it
 and by what it would settle, with the collections to search next. Ancestry
@@ -223,16 +274,21 @@ baseline review of that fact, tracked on the assertion, not on the question.
 Fetched records go through the evidence layer (extraction → personas). A
 record page saved as HTML is parsed on arrival by `tools/extract.py`, which
 reads the page's kind from the page itself: a Find a Grave memorial goes to
-extractor `rule:findagrave-memorial@0.1.0` (the memorial's name, dates,
-places, plot, inscription and memorial id on one persona, one persona per
-family member in the page's own label word with a relation to the memorial's
-subject; verified on a real memorial), anything else to
+extractor `rule:findagrave-memorial@0.2.0` (the memorial's name, dates,
+places, plot, inscription as written and memorial id on one persona, one
+persona per family member in the page's own label word with a relation to the
+memorial's subject; verified on a real memorial), anything else to
 `rule:ancestry-index@0.1.0` (one persona per person the page names, in the
 page's own role word, one fact per field as written, one relation per stated
 relationship; built to Ancestry's page structure, not yet verified on a real
 page). The raw parsed page is in `extraction.structured_json`. Re-running an
-extractor supersedes its earlier extraction and rejects that extraction's
-undecided proposals with the note `superseded`. A record image gets no
+extractor, at any version, supersedes its earlier extraction and rejects that
+extraction's undecided proposals with the note `superseded`; a persona the
+earlier extraction had decided carries its decision to the new persona of the
+same name and role on the same page (the decision was about the record, whose
+bytes have not changed), an accepted one asserting the new facts the record
+gives and nothing it already asserted, and the matcher proposes the rest
+again. A record image gets no
 automatic extraction: the person screen offers a transcription form on a held
 record with no persona, one persona at a time, written as an extraction by
 extractor `human:<user>`. That is the fallback for every image until an OCR or
@@ -249,17 +305,24 @@ one, so it **answers a question**: "Is the James Ahearn in this 1870 household
 Thomas's father?" Review happens on the person's screen, on the held record.
 Accepting a match writes the persona link Accepted and an Undecided assertion
 from each of the person's events to the matching persona fact, creating the
-event from the fact's date when the person has none of that type; Name and
-Sex facts assert the person. Rejecting writes the link Rejected. Nothing
-becomes Accepted at the fact level here: the fact decision does that, and it
-now has held evidence to accept. A `new_person` proposal is decided the same
-way: accepting creates the person in this tree with the name as written (a
-maiden name the record marks becomes the birth surname), the persona link
-Accepted, the same Undecided assertions, and a family membership with an
-Undecided assertion on the artifact where the record says the persona is the
-child, parent or spouse of a person matched on the same record; a sibling
-stated on the record gives no membership. Rejecting writes the proposal
-rejected and nothing else. Every accept, of a match, a new person or a fact,
+event from the fact's date when the person has none of that type, and the same
+for an attribute the record states (an occupation, an inscription), created
+with the record's value when the person has none; Name and Sex facts assert
+the person; a fact about the record or the page (its id, an age at death)
+asserts nothing. Where the record says the persona is the child,
+parent or spouse of a persona already accepted as a person on the same record,
+the family link between the two carries an Undecided assertion on the
+artifact too, created in a family of the right shape when the tree lacks the
+link: a parent-child relation is evidence on the child's membership (the
+child's parents fact, the parent's children fact), a spouse relation on both
+partners'; a sibling stated on the record gives no membership. Rejecting
+writes the link Rejected. Nothing becomes Accepted at the fact level here: the
+fact decision does that, and it now has held evidence to accept. A
+`new_person` proposal is decided the same way: accepting creates the person in
+this tree with the name as written (a maiden name the record marks becomes the
+birth surname), the persona link Accepted, the same Undecided assertions and
+the same family links. Rejecting writes the proposal rejected and nothing
+else. Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the

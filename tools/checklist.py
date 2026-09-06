@@ -5,18 +5,18 @@ usage: tools/checklist.py "<person name or id>" [--tree slug] [--json]
        tools/checklist.py --all [--tree slug]          # one line per person
 
 Read-only. For one person it reports:
-  foundation  the facts search would be seeded with, each marked accepted or lead
-              (an Undecided fact is a lead; nothing runs on leads until reviewed)
+  foundation  the facts search would be seeded with, each marked accepted or claim
+              (an Undecided fact is a claim; nothing runs on claims until reviewed)
   questions   generated from gaps in the tree (missing parents, no surname, ...)
   checklist   Group A (records that hold several family members) then Group B
               (records about this person), each row gated by era, place and sex
               and marked held / cited / missing / n/a; a cited row names the
               relative the citation sits on when it is not on this person
   search      for every gap, the pre-built step: typed query, sources, mode;
-              every query field is {value, basis accepted|lead|row}, rejected
+              every query field is {value, basis accepted|claim|row}, rejected
               facts are omitted. Before the baseline is reviewed only fetch
               steps for cited records exist: no search steps, no footprint,
-              no duplicate or unlinked leads (docs/RESEARCH-WORKFLOW.md §2).
+              no duplicate or unlinked persons (docs/RESEARCH-WORKFLOW.md §2).
 """
 import argparse, collections, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -75,15 +75,16 @@ def build(cat: Catalog, pid: str):
     foundation += [field("parents", [n for _, n in fam["parents"]], cat.link_basis(pid, "parents")),
                    field("spouses", [n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")),
                    field("children", [n for _, n in fam["children"]], cat.link_basis(pid, "children")),
-                   field("residences", [{"year": e["year"], "place": e["place"]["text"] if e["place"] else e["date_text"]} for e in ev if e["type"] == "Residence"], "mixed")]
+                   field("residences", [{"year": e["year"], "place": e["place"]["text"] if e["place"] else e["date_text"], "basis": e["basis"]} for e in ev if e["type"] == "Residence"],
+                         "accepted" if ev and all(e["basis"] == "accepted" for e in ev if e["type"] == "Residence") else "claim")]
     baseline = cat.baseline(pid, ev); reviewed = baseline["complete"]
     # ---- the fields every query is built from: {value, basis}; a rejected or absent fact is left out
     def F(value, basis):
-        return None if basis == "rejected" or value in (None, "", []) else {"value": value, "basis": basis or "lead"}
+        return None if basis == "rejected" or value in (None, "", []) else {"value": value, "basis": basis or "claim"}
     ROW = lambda v: {"value": v, "basis": "row"}                  # set by the checklist row, not a fact about the person
-    bb = birth["basis"] if birth and birth["year"] else "lead"    # an estimated year is a lead
-    db = death["basis"] if death and death["year"] else (burial["basis"] if burial and burial["year"] else "lead")
-    sb = "accepted" if any(e["basis"] == "accepted" and e["place"] and e["place"]["state"] == home_state for e in ev) else "lead"
+    bb = birth["basis"] if birth and birth["year"] else "claim"    # an estimated year is a claim
+    db = death["basis"] if death and death["year"] else (burial["basis"] if burial and burial["year"] else "claim")
+    sb = "accepted" if any(e["basis"] == "accepted" and e["place"] and e["place"]["state"] == home_state for e in ev) else "claim"
     fields = lambda **extra: {k: v for k, v in {**fnd, **extra}.items() if v is not None}
 
     # ---- questions from gaps in the tree
@@ -152,7 +153,7 @@ def build(cat: Catalog, pid: str):
             r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": "fetch" if st == "cited" else mode_for(sources), "expect": settles}
         (A if group == "A" else B).append(r)
     nb = cat.basis("person", pid)
-    fnd = {"given": F(given, nb), "surname": F(surname, nb), "sex": F(sex, nb), "variants": F(foundation[0]["variants"], "lead"),
+    fnd = {"given": F(given, nb), "surname": F(surname, nb), "sex": F(sex, nb), "variants": F(foundation[0]["variants"], "claim"),
            "birth_year": {**F(b, bb), "tolerance": 2} if F(b, bb) else None, "state": F(home_state, sb),
            "spouses": F([n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")), "parents": F([n for _, n in fam["parents"]], cat.link_basis(pid, "parents"))}
     # A: census households (a foreign-born person is listed from the decade before their earliest US event)
@@ -192,7 +193,7 @@ def build(cat: Catalog, pid: str):
         if m_country and m_country != "united states": r["settles"] += f"; married in {m_country.title()}: church register"
         if my and src[0] and my < src[0]: r["settles"] += f"; before statewide registration in {st_.title()} ({src[0]}): county book or church register"
         if r["status"] == "cited" or (r["status"] == "missing" and reviewed):
-            mb = m["basis"] if m else "lead"
+            mb = m["basis"] if m else "claim"
             r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, mb if m and m["place"] else sb)),
                            "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"]), "expect": r["settles"]}
         A.append(r)
@@ -209,7 +210,7 @@ def build(cat: Catalog, pid: str):
     if in_us and b and (d or 9999) - b >= 21 and home_state == "pennsylvania":
         row("A", "land deed / warrant", MATCH["deed"], ["J02"], "spouse (dower), heirs", ("subject_record", fields()), household=True)
     if in_us and b and 1822 <= (d or 1995): row("A", "city directory / tax list", MATCH["directory"], ["K01"], "residence, occupation, adult sons", ("subject_record", fields()), household=True)
-    row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03"], "leads for everything; never proof", ("name", fields()), household=True)
+    row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03"], "hints for everything; never proof", ("name", fields()), household=True)
     # B: individual records
     for label, e, kind in (("death record", death, "death"), ("birth record", birth, "birth")):
         yr = e["year"] if e else (d if kind == "death" else b); yb = e["basis"] if e and e["year"] else (db if kind == "death" else bb)
