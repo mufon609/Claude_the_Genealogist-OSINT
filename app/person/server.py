@@ -75,15 +75,31 @@ def evidence_rows(cx, pid, field):
 
 HOLDERS = holders()
 
-def fetch_target(apid, url=None):
-    """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave, the free
-    holder's collection page otherwise, and Ancestry's record page when no free holder is known (a membership is needed there)."""
+def fetch_target(apid, url=None, fields=None):
+    """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave; the free
+    holder's own search prefilled from the step's fields (the citation's details, never the person's facts) when they are given,
+    else its collection page; Ancestry's record page when no free holder is known (a membership is needed there)."""
     m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
     if not m: return {"url": None, "holder": None}
     h = (HOLDERS.get(m.group(1)) or [None])[0]
     if h and h["HolderKind"] == "memorial" and url: return {"url": url, "holder": h["HolderCollection"]}
-    if h and h["HolderKind"] != "memorial": return {"url": h["URL"], "holder": h["HolderCollection"]}
+    if h and h["HolderKind"] != "memorial": return {"url": holder_search(h, fields) or h["URL"], "holder": h["HolderCollection"]}
     return {"url": f"https://www.ancestry.com/discoveryui-content/view/{m.group(2)}:{m.group(1)}", "holder": "Ancestry"}
+
+def holder_search(h, fields):
+    """The holder's own search URL from a fetch step's fields. FamilySearch: the collection search as the site itself builds it
+    (f.collectionId, q.givenName, q.residenceDate.from/to and q.residencePlace from the citation's year and census place, q.surname).
+    The National Archives 1950 site: its name search. None when the fields carry no name."""
+    v = lambda k: ((fields or {}).get(k) or {}).get("value")
+    name = (v("name") or "").split()
+    if not name: return None
+    if h["HolderKind"] == "fs_collection":
+        q = [("f.collectionId", h["HolderKey"]), ("q.givenName", " ".join(name[:-1]) or name[0])]
+        if v("year") and v("census place"): q += [("q.residenceDate.from", v("year")), ("q.residenceDate.to", v("year")), ("q.residencePlace", v("census place"))]
+        q.append(("q.surname", name[-1]))
+        return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
+    if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(name))], quote_via=urllib.parse.quote)
+    return None
 
 def decide_fact(cx, tree_id, pid, field, status, note):
     """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held);
@@ -122,7 +138,7 @@ def plan_view(cx, pid):
                       "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": fields, "revisions": json.loads(s["revisions_json"] or "{}"),
                       "query": rendered_query(s["query_json"], s["revisions_json"]), "locator": {"source": s["locator_source_id"], "kind": s["locator_kind"], "value": s["locator_value"]},
                       "collection": col["name"] if col else None, "on": json.loads(s["on_json"] or "[]"),
-                      **(fetch_target(s["locator_value"], (fields.get("url") or {}).get("value")) if s["locator_kind"] == "apid" else {"url": None, "holder": None}),
+                      **(fetch_target(s["locator_value"], (fields.get("url") or {}).get("value"), fields) if s["locator_kind"] == "apid" else {"url": None, "holder": None}),
                       "expected": s["expected"], "rationale": s["rationale"], "logs": logs})
     return {"questions": questions, "steps": steps}
 

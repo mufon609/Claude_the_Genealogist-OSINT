@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Extract personas and facts from an archived record page (HTML): an Ancestry index page or a Find a Grave memorial.
+"""Extract personas and facts from an archived record page (HTML): a Find a Grave memorial, a FamilySearch record page, or an Ancestry index page.
 
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
 
 A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.1.0;
-an Ancestry index page (a table whose rows pair a label cell with a value cell,
+a FamilySearch record page (its "Cite This Record" block, data-testid
+documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
+goes to rule:familysearch-record@0.1.0; an
+Ancestry index page (a table whose rows pair a label cell with a value cell,
 the shape that parser reads; unverified on a real page) goes to
 rule:ancestry-index@0.1.0. A page no parser claims gets one extraction by
 rule:extract@0.1.0 with status failed, the reason in structured_json, no
@@ -51,13 +54,32 @@ death years, and one relation from the member to the subject (parent, spouse,
 sibling, child) with the label as written. The member's own memorial URL is in
 its region_json. structured_json holds the fields, the members, the source
 block (created by, added, citation) and the photo captions.
+
+A FamilySearch record page (verified on a real 1900 census page): the subject's
+name in the h1 and the collection in the h2; the "Document Information" table
+(digital folder, microfilm, image number, batch) kept in structured_json; the
+subject's details table under "Cite This Record" as the fields, labelled as the
+page labels them (Name, Sex, Age, Birth Date, Birthplace, Marital Status, Race,
+Relationship to Head of Household, Father's Birthplace, Mother's Birthplace,
+Event Type, Event Date, Event Place, Event Place (Original), and the sheet and
+line). Event Date and Event Place become one fact of the event's type (a Census
+event is a Residence); Event Place (Original) and the parents' birthplaces stay
+as Unknown facts under their labels; identifiers stay in structured_json. The
+household tables ("Parents and Siblings", "Extended Family") give one persona
+per member: the name, the page's own role word (Father, Sister, Maternal
+Grandmother), sex, age and birthplace from the row, the member's own details
+table as its facts, its record ark in region_json, and one relation from the
+member to the subject with the role word as written. The page's own ark, from
+the print header, is written to artifact_locator as kind ark.
 """
 import argparse, html, os, re, sqlite3, sys
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 
-EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0"), None: ("rule", "extract", "0.1.0")}
+EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.1.0"), None: ("rule", "extract", "0.1.0")}
+EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
 LABELS = [
@@ -66,7 +88,7 @@ LABELS = [
     (r"^death (date|year)$|^death$|^died$", "Death", "date"), (r"^death ?place$|^death location$", "Death", "place"),
     (r"^burial (date|year)$", "Burial", "date"), (r"^burial ?place$|^cemetery$", "Burial", "place"),
     (r"^marriage (date|year)$", "Marriage", "date"), (r"^marriage ?place$", "Marriage", "place"),
-    (r"^(residence|home) (date|year)$|^residence$|^home in \d{4}$|^home$", "Residence", "place"), (r"^residence ?place$|^street address$", "Residence", "place"),
+    (r"^(residence|home) (date|year)$", "Residence", "date"), (r"^residence$|^home in \d{4}$|^home$|^residence ?place$|^street address$", "Residence", "place"),
     (r"^(relation(ship)?( to head( of house(hold)?)?)?)$", "Relationship", "value"), (r"^occupation$", "Occupation", "value"),
     (r"^marital status$", "Marital Status", "value"), (r"^race$|^color( or race)?$", "Race", "value"), (r"^nationality$", "Nationality", "value"),
     (r"^arrival (date|year)$", "Arrival", "date"), (r"^arrival ?place$|^port of arrival$", "Arrival", "place"),
@@ -75,9 +97,10 @@ LABELS = [
 ]
 RELATIVE_LABELS = {"father": ("father", "parent"), "mother": ("mother", "parent"), "spouse": ("spouse", "spouse"), "husband": ("husband", "spouse"),
                    "wife": ("wife", "spouse"), "informant": ("informant", "informant"), "child": ("child", "child")}
-HOUSEHOLD_KINDS = [(r"^(self|head)", "head"), (r"wife|husband|spouse", "spouse"), (r"son|daughter|child", "child"), (r"father|mother|parent", "parent"),
-                   (r"brother|sister", "sibling"), (r"boarder|lodger|servant|roomer", "boarder"), (r"in.law", "other")]
-SKIP = re.compile(r"source|citation|page|line|sheet|enumeration|district|roll|film|series|ward|township|county|state|record type|record number|title|url|household members|save|print", re.I)
+HOUSEHOLD_KINDS = [(r"grand|in.law|aunt|uncle|niece|nephew|cousin|step", "other"), (r"^(self|head)", "head"), (r"wife|husband|spouse", "spouse"),
+                   (r"son|daughter|child", "child"), (r"father|mother|parent", "parent"), (r"brother|sister", "sibling"), (r"boarder|lodger|servant|roomer", "boarder")]
+SKIP = re.compile(r"source|citation|page|line|sheet|enumeration|district|roll|film|series|ward|township|county|state|record type|record number|title|url|household members|save|print"
+                  r"|household identifier|affiliate|digital folder|image number|indexing batch|event type", re.I)
 
 class Page(HTMLParser):
     """Collects every table as rows of cell texts (with th flagged), nested tables included, in document order."""
@@ -164,12 +187,67 @@ def parse_memorial(text):
     title = next((text_of(n) for n in walk(root) if n["tag"] == "title"), "")
     return {"kind": "findagrave", "title": title, "fields": fields, "memorial_id": memorial_id, "members": members, "source": source, "photo_captions": captions}
 
+FS_MARK = re.compile(r'data-testid="documentInformationCitation"[^\x00]{0,400}?https://www\.familysearch\.org/ark:/61903/1:1:')
+
+def rows_of(table):
+    """The table's own rows (not a nested table's), each as its cells."""
+    out = []
+    for c in table["children"]:
+        if not isinstance(c, dict): continue
+        for r in ([c] if c["tag"] == "tr" else [x for x in c["children"] if isinstance(x, dict) and x["tag"] == "tr"] if c["tag"] in ("thead", "tbody", "tfoot") else []):
+            out.append([x for x in r["children"] if isinstance(x, dict) and x["tag"] in ("th", "td")])
+    return out
+
+def visible(node):
+    """The node with its display:none subtrees removed (a collapsed panel beside a value is not the value)."""
+    return {"tag": node["tag"], "attrs": node["attrs"], "children": [visible(c) if isinstance(c, dict) else c for c in node["children"]
+            if not (isinstance(c, dict) and re.search(r"display:\s*none", c["attrs"].get("style") or ""))]}
+
+def label_rows(table):
+    """[[label, value]] from a table whose rows pair a th with a td, the value as shown."""
+    return [[text_of(r[0]), text_of(visible(r[1])).replace("\n", " ")] for r in rows_of(table) if len(r) >= 2 and r[0]["tag"] == "th" and text_of(r[0])]
+
+def parse_record(text):
+    """A FamilySearch record page: {"kind": "familysearch", "title", "name", "collection", "ark", "citation", "document": [[label, value]],
+    "fields": [[label, value]], "members": [{"section", "name", "role", "sex", "age", "birthplace", "url", "fields"}]}."""
+    t = Tree(); t.feed(text); root = t.root
+    main = next((n for n in walk(root) if n["tag"] == "main"), root)
+    head = lambda tag: next((text_of(n) for n in walk(main) if n["tag"] == tag), None)
+    out = {"kind": "familysearch", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "name": head("h1"), "collection": head("h2"),
+           "ark": None, "citation": None, "document": [], "fields": [], "members": []}
+    m = next((re.search(r"ark:/61903/1:1:[A-Z0-9-]+", text_of(n)) for n in walk(root) if n["tag"] == "h3" and "ark:/61903/1:1:" in text_of(n)), None)
+    if m: out["ark"] = m.group(0)
+    cite = next((n for n in walk(main) if n["attrs"].get("data-testid") == "documentInformationCitation"), None)
+    if cite: out["citation"] = text_of(cite).replace("\n", " ")
+    section, seen = "", set()
+    for n in walk(main):
+        if n["tag"] == "h3": section = text_of(n); continue
+        if n["tag"] != "table" or id(n) in seen: continue
+        seen.add(id(n)); rows = rows_of(n)
+        if section.startswith("Document Information"): out["document"] += label_rows(n)
+        elif section.startswith("Cite This Record") and not out["fields"]: out["fields"] = label_rows(n)
+        elif rows and any(len(r) == 5 for r in rows):                       # household: a member row, then a row holding its details table
+            member = None
+            for r in rows:
+                if len(r) == 5 and r[0]["tag"] == "th":
+                    a = next((x for x in walk(r[0]) if x["tag"] == "a"), None)
+                    name = text_of(a) if a else text_of(r[0]).split("\n")[0]
+                    role = text_of(r[0]).replace("\n", " ").replace(name, "", 1).strip()
+                    member = {"section": section, "name": name, "role": role, "sex": text_of(r[1]), "age": text_of(r[2]), "birthplace": text_of(r[3]),
+                              "url": a["attrs"].get("href") if a else None, "fields": []}
+                    out["members"].append(member)
+                elif len(r) == 1 and member is not None:
+                    for tbl in (x for x in walk(r[0]) if x["tag"] == "table"):
+                        seen.add(id(tbl)); member["fields"] += label_rows(tbl)
+    return out
+
 def parse(text):
     """The page's kind and its parsed form, or (None, reason) when no parser claims the page."""
     if re.search(r'<body[^>]*\bid="memorial-summary"', text): return "findagrave", parse_memorial(text)
+    if FS_MARK.search(text): return "familysearch", parse_record(text)
     page = parse_page(text)
     if page["fields"] or page["household"]: return "ancestry", page
-    return None, {"reason": "no parser claims this page: not a Find a Grave memorial, and no table pairs a label cell with a value cell"}
+    return None, {"reason": "no parser claims this page: not a Find a Grave memorial, not a FamilySearch record page, and no table pairs a label cell with a value cell"}
 
 def parse_page(text):
     """{"title", "fields": [[label, value]], "household": [{"columns": [...], "rows": [[...]]}], "tables": raw} from the HTML."""
@@ -227,16 +305,18 @@ class Writer:
         self.cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
                         (ulid(), a, b, kind, as_written, dumps({"label": label}))); self.n["relations"] += 1
 
-def write_personas(w, parsed):
-    """The subject from the field table, relatives named in fields, household members; facts and relations for each."""
-    fields = parsed["fields"]
-    by_type = {}                                   # (fact_type) -> {"date": (value, label), "place": (value, label), "values": [(value, label)]}
-    named = []                                     # (label word, name)
+def field_facts(fields):
+    """Group label/value rows into facts: {fact_type: {"date": (value, label), "place": (value, label), "values": [(value, label)]}}, and the
+    relatives named in fields as [(label word, name)]. A date and a place of one type are one fact; a second date or place of the same
+    type gets its own slot keyed by label. "Event Date" and "Event Place" take the type named by "Event Type" (Census is a Residence)."""
+    by_type, named = {}, {}
+    etype = next((EVENT_TYPES.get(v.lower().strip()) for l, v in fields if l.lower().strip() == "event type"), None)
     for label, value in fields:
         if not value or SKIP.search(label): continue
         key = label.lower().strip()
+        if etype and key in ("event date", "event place"): label = f"{etype} {key.split()[1].title()}"; key = label.lower()
         rel = re.fullmatch(r"(father|mother|spouse|husband|wife|informant|child)(?:'s)?(?: name)?", key)
-        if rel: named.append((rel.group(1), value)); continue
+        if rel: named[rel.group(1)] = value; continue
         ftype, part = fact_for(label)
         if ftype is None: ftype, part = "Unknown", "value"
         slot = by_type.setdefault(ftype, {"date": None, "place": None, "values": []})
@@ -245,18 +325,27 @@ def write_personas(w, parsed):
         if part == "value": slot["values"].append((value, label))
         elif slot[part] is None: slot[part] = (value, label)
         else: by_type.setdefault(ftype + "#" + label, {"date": None, "place": None, "values": []})[part] = (value, label)
+    return by_type, list(named.items())
+
+def write_facts(w, pid, by_type):
+    for ftype, slot in by_type.items():
+        base = ftype.split("#")[0]
+        if slot["date"] or slot["place"]:
+            w.fact(pid, base, None, slot["date"][0] if slot["date"] else None, slot["place"][0] if slot["place"] else None,
+                   [x[1] for x in (slot["date"], slot["place"]) if x])
+        for value, label in slot["values"]:
+            w.fact(pid, base, value if base != "Unknown" else f"{label}: {value}", labels=[label])
+
+def write_personas(w, parsed):
+    """The subject from the field table, relatives named in fields, household members; facts and relations for each."""
+    fields = parsed["fields"]
+    by_type, named = field_facts(fields)
     name = next((v for l, v in fields if fact_for(l)[0] == "Name"), None) or parsed["title"] or "(unnamed)"
     sex = next((sex_of(v) for l, v in fields if fact_for(l)[0] == "Sex"), None)
     rel_word = next((v for l, v in fields if fact_for(l)[0] == "Relationship"), None)
     role = (rel_word or ("deceased" if "Death" in by_type else "subject")).lower()
     subject = w.persona(name, sex, role, 1, {"label": "record"})
-    for ftype, slot in by_type.items():
-        base = ftype.split("#")[0]
-        if slot["date"] or slot["place"]:
-            w.fact(subject, base, None, slot["date"][0] if slot["date"] else None, slot["place"][0] if slot["place"] else None,
-                   [x[1] for x in (slot["date"], slot["place"]) if x])
-        for value, label in slot["values"]:
-            w.fact(subject, base, value if base != "Unknown" else f"{label}: {value}", labels=[label])
+    write_facts(w, subject, by_type)
     personas = {name.lower(): subject}
     seq = 2
     for word, value in named:
@@ -311,6 +400,21 @@ def write_memorial(w, parsed):
         if m.get("death"): w.fact(pid, "Death", None, m["death"], None, ["deathDate"])
         w.relation(pid, subject, kind, m["label"], m["label"])
 
+def write_record(w, parsed):
+    """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a relation to the subject."""
+    fields = parsed["fields"]; f = dict(fields)
+    by_type, _ = field_facts(fields)
+    name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
+    role = (f.get("Relationship to Head of Household") or "subject").lower()
+    subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark")})
+    write_facts(w, subject, by_type)
+    for seq, m in enumerate(parsed["members"], 2):
+        mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
+        mb, _ = field_facts(mf)
+        pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url")})
+        write_facts(w, pid, mb)
+        w.relation(pid, subject, household_kind(m["role"]), m["role"], m["section"])
+
 def extract(cx, sha, by):
     art = cx.execute("SELECT sha256, mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if not art: raise SystemExit(f"not in the archive: {sha[:12]}")
@@ -328,6 +432,7 @@ def extract(cx, sha, by):
         return eid, {"failed": parsed["reason"]}
     full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"])
     if kind == "ancestry": full_text += "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
+    elif kind == "familysearch": full_text += "".join(f"\n{m['role']}: {m['name']} {m['sex']} {m['age']} {m['birthplace']}" for m in parsed["members"])
     else: full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
                (eid, sha, ext_id, ts, full_text, dumps(parsed)))
@@ -336,8 +441,10 @@ def extract(cx, sha, by):
     for o in old:                                                # a superseded extraction's undecided proposals rest on personas no longer current
         cx.execute("""UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note='superseded'
                       WHERE status='undecided' AND json_extract(payload_json,'$.extraction_id')=?""", (by, ts, o))
+    if kind == "familysearch" and parsed.get("ark"):
+        cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
-    (write_memorial if kind == "findagrave" else write_personas)(w, parsed)
+    {"findagrave": write_memorial, "familysearch": write_record}.get(kind, write_personas)(w, parsed)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
     return eid, w.n

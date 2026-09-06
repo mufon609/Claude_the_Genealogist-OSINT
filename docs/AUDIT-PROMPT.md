@@ -64,9 +64,9 @@ screen. Then the loop repeats.
   into `search_log`), `extract` (personas, facts and relations from an archived
   record page; a parser claims a page by its own marker or the extraction
   fails), `match` (proposals against the tree, in words), `catalog` (shared
-  read-only access). Parsers: the Find a Grave memorial parser is verified on a
-  real page; the Ancestry index parser is not (Ancestry needs a membership this
-  account lacks).
+  read-only access). Parsers: the Find a Grave memorial parser and the
+  FamilySearch record-page parser are verified on real pages; the Ancestry
+  index parser is not (Ancestry needs a membership this account lacks).
 - Screen: `app/person/` — stdlib server plus one page, localhost only. Fact
   decisions write assertion status; plan generation; logging a run; attaching a
   downloaded file from `inbox/`, which archives it, parses and matches a record
@@ -87,7 +87,7 @@ screen. Then the loop repeats.
   holder and 440 blocked for want of one; no search step, because search steps
   come after a baseline is reviewed.
 - Not built yet: connectors and the runner that would execute a step against
-  a source, the FamilySearch record-page parser, exporters, backups.
+  a source, exporters, backups.
 
 ## What to look for
 

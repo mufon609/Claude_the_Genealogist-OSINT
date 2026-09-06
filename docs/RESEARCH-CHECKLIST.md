@@ -213,9 +213,11 @@ Accept / Reject / Undecided and the evidence behind each), checklist
 (footprint records first, then
 Group A, Group B collapsed), and a selected panel showing the search step or
 the citations behind the row clicked, each with a link to the free holder the
-record is fetched from (the memorial page itself for Find a Grave, the
-collection page for FamilySearch) or to Ancestry when the collection has no
-free holder and the step is blocked. Deciding a fact sets every assertion that supports it and writes an
+record is fetched from (the memorial page itself for Find a Grave; for a
+FamilySearch step the collection's own search prefilled from the citation's
+details, for a National Archives 1950 step the site's name search, the
+collection page for a citation without a step) or to Ancestry when the
+collection has no free holder and the step is blocked. Deciding a fact sets every assertion that supports it and writes an
 audit row. Accept sets Accepted only on the assertions whose evidence is
 visible: the tree owner's uncited claim and citations whose record is held;
 a citation to a record not yet fetched stays Undecided until the fetch. A
