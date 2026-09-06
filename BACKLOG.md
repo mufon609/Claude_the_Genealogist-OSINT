@@ -243,6 +243,14 @@ the matcher has no relation kind for; the parser keeps the page's own
 heading as the label, which is right, but the matcher must map every
 heading it meets to a relation kind or say on the proposal that it did not.
 
+### C22. A sibling accepted from a memorial lands with no family link
+
+Accepting a new-person proposal for a sibling on a memorial creates the
+person but no family membership, because the record states the sibling of
+the subject, not the parents. When the subject's parents are Accepted, place
+the sibling as their child with an Undecided assertion on the record; until
+then the card says the person would be unlinked, as it does now.
+
 ---
 
 ## Externally blocked
