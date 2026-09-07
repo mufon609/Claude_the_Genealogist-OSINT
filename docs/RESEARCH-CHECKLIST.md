@@ -219,7 +219,9 @@ everything else follows from them. The cards are laid out from the home person
 parents above it; then the others in the file with something waiting, and the
 rest folded away with a name search. A badge is a plain count of what waits:
 documents to decide, steps that run on their own, steps that need a hand,
-conflicts; a person with every key fact accepted and nothing waiting says so.
+conflicts, and "rests on sources anyone can edit" when every accepted fact of
+the person comes from a T4 source; a person with every key fact accepted and
+nothing waiting says so.
 The
 person page puts the documents first: every record waiting for a decision
 about this person as its card (the highlight, the record with holder,

@@ -46,7 +46,7 @@ async function boot(){const t=await api('/api/tree');$('#tree').textContent=t.na
  const m=location.pathname.match(/^\/person\/([A-Z0-9]+)/);m?person(m[1]):overview()}
 function badges(c){const b=[];if(c.documents)b.push(`<span class="badge doc">${c.documents} document${c.documents>1?'s':''} to decide</span>`);
  if(c.runs_next)b.push(`<span class="badge run">${c.runs_next} run${c.runs_next>1?'':'s'} on their own</span>`);if(c.needs_hand&&c.accepted)b.push(`<span class="badge">${c.needs_hand} need${c.needs_hand>1?'':'s'} a hand</span>`);
- if(c.conflicts)b.push(`<span class="badge conf">${c.conflicts} conflict${c.conflicts>1?'s':''}</span>`);return b.join('')}
+ if(c.conflicts)b.push(`<span class="badge conf">${c.conflicts} conflict${c.conflicts>1?'s':''}</span>`);if(c.editable_only)b.push(`<span class="badge conf">rests on sources anyone can edit</span>`);return b.join('')}
 function cardHtml(c){const done=c.accepted===c.key_facts&&!c.documents&&!c.conflicts;
  return `<a class="pc${done?' done':''}" href="/person/${c.id}"><b>${h(c.name)}</b><span class="yrs">${c.span[0]??'?'}–${c.span[1]??''} · ${c.accepted} of ${c.key_facts} key facts</span><span class="w">${badges(c)||(done?'<span class="badge">nothing waiting</span>':'')}</span></a>`}
 async function overview(){const o=await api('/api/overview');const labels=['you','parents','grandparents','great-grandparents','great-great-grandparents','5th generation back','6th generation back','7th generation back'];

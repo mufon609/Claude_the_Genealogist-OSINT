@@ -267,7 +267,12 @@ class Catalog:
             if (kind == "fetch" and mode == "fetch" and holder in conn) or (kind == "search" and mode == "auto"): runs += 1
             elif (kind == "fetch" and mode == "fetch") or (kind == "search" and mode == "assisted"): hand += 1
         conflicts = self.q("SELECT COUNT(*) FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", pid)[0][0]
-        return {"documents": docs, "runs_next": runs, "needs_hand": hand, "conflicts": conflicts}
+        tiers = {t for t, in self.q("""SELECT CASE WHEN json_valid(a.notes) AND json_extract(a.notes,'$.vouched')=1 THEN 'vouch' ELSE s.trust_tier END FROM assertion a
+                                       LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
+                                       WHERE a.tree_id=? AND a.status='accepted' AND ((a.subject_kind='person' AND a.subject_id=?)
+                                          OR (a.subject_kind='event' AND a.subject_id IN (SELECT event_id FROM event_participant WHERE person_id=?)))""", self.tree_id, pid, pid)}
+        editable_only = bool(tiers) and tiers <= {"T4"}         # every accepted fact rests on a source anyone can edit
+        return {"documents": docs, "runs_next": runs, "needs_hand": hand, "conflicts": conflicts, "editable_only": editable_only}
     def family(self, pid):
         """Relatives through family memberships; a membership whose assertions are all rejected does not count."""
         fam = {"parents": [], "spouses": [], "children": [], "siblings": [], "families": []}

@@ -50,15 +50,21 @@ whose baseline is reviewed, never as a feed.
 **Which documents the rule may accept on its own.** The standing rule (§5–7)
 accepts a document as the person's when it agrees with what the person already
 accepted and nothing disagrees, and everything the document states comes with
-it. It may do so only for document kinds that identify a
-person fully; every other kind is a hint until a person reads it. The starting list, to be refined as records are
-met:
+it. It may do so only for document kinds that identify a person fully, from
+sources nobody can edit at will (registry tiers T1–T3: certificates, census,
+obituaries, published works), and only counting accepted facts that themselves
+rest on such a source or on the owner's own word. A page anyone can edit (T4:
+Find a Grave, member trees) is a lead and a card, never a ground the rule
+stands on, and a person whose accepted facts rest on T4 alone is marked so on
+their card until a trusted record about them is accepted. Every other kind is
+a hint until a person reads it. The starting list, to be refined as records
+are met:
 
 | Document | What it gives | Standing |
 |---|---|---|
 | Federal or state census 1850 on | full names and ages; relationships from 1880 | automated |
 | Federal census 1790–1840 | the head's name, the rest counted | hint |
-| Find a Grave memorial | full name, dates, cemetery, linked family | automated |
+| Find a Grave memorial | full name, dates, cemetery, linked family | a card, always: anyone can edit the page |
 | Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
 | Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
 | Church register entry | names and dates when the register keeps them | automated when dated and the parents are named; hint otherwise |
@@ -209,7 +215,11 @@ browser is set to ask where to save each download, turn that off first or
 answer the dialog by hand; a dialog left open blocks every later browser
 call. Chrome lets a page start one download without a hand on it: a second
 page saved in the same tab lands nowhere, so each page gets its own tab,
-closed after the file arrives. Never encode a page and read it out through the model in slices.
+closed after the file arrives. `tools/memorials.py list` prints every memorial
+a planned fetch step points at, once, leads from held records first, with the
+people waiting on it; a browser session works down that list one tab per page;
+`tools/memorials.py collect` then moves every saved page from the download
+folder into `inbox/` and attaches each by its own identity. Never encode a page and read it out through the model in slices.
 `tools/attach_inbox.py` then takes every file in `inbox/`: it reads the
 record's own identity from the file (the memorial id, the ark), archives it
 once, logs a found run on every fetch step whose citation carries that
@@ -353,11 +363,13 @@ and nothing else.
 
 **The standing rule.** After the matcher writes its proposals, the rule takes a
 `persona_match` on the owner's behalf when the record's kind identifies a person
-fully (§0's list: a memorial, a census from 1850, a 1950 schedule), the given
-name and surname agree with the accepted name, at least two accepted facts
-agree (birth date, death date, a death or burial place, a stated relationship
-to a person already matched on the record), and nothing compared disagrees.
-Claims never count. The proposal records the rule as the decider with its
+fully (§0's list: a census from 1850, a 1950 schedule, a certificate) and its
+source is one nobody can edit at will (T1–T3), the given name and surname agree
+with the accepted name, at least two accepted facts agree (birth date, death
+date, a death or burial place, a stated relationship to a person already
+matched on the record) and each rests on a trusted source or on the owner's
+own word, and nothing compared disagrees. Claims never count, and a fact that
+rests only on a page anyone can edit does not count either. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the
 rule wrote rejected. A proposal the rule does not take is a card for the owner

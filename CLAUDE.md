@@ -38,9 +38,11 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    assertion. The one decision is "is this record about this person"; yes
    accepts everything the record states, and a discrepancy with the tree's
    value becomes a conflict question, never a silent overwrite or a silent
-   drop. The owner's standing rule accepts a document that agrees with facts
-   the owner already accepted, recorded as acting on their word and
-   reversible; anything less certain is a card for the owner.
+   drop. The owner's standing rule accepts a document from a source nobody can
+   edit at will that agrees with facts the owner already accepted on such
+   sources, recorded as acting on their word and reversible; a page anyone can
+   edit (Find a Grave, member trees) is always a card; anything less certain is
+   a card for the owner.
 4. **Trees are isolated.** No automatic reuse of evidence across trees.
 5. **One person per screen.** Foundation → checklist → tasks → results →
    review. No queue screens, no navigation by data type, no hints on a
@@ -74,6 +76,7 @@ python3 tools/footprint.py "<person>"       # read-only Layer 0 on its own
 python3 tools/plan.py --all                 # materialize questions + steps (idempotent)
 python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --step/--outcome to log a run; --dismiss <question>
 python3 tools/attach_inbox.py               # every inbox file to the fetch steps its own identity fulfils: archived once, logged, extracted, matched
+python3 tools/memorials.py list             # the memorials waiting to be saved in the browser, one tab per page; `collect` brings the saved pages in
 python3 tools/cards.py "<person>"           # every Undecided proposal about the person as a decision card; --all, --json
 python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial, FamilySearch record, Ancestry index; HTML)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words

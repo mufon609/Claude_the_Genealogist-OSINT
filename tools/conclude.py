@@ -8,9 +8,11 @@ too. Where the record disagrees with the tree's own value the record's statement
 the tree's value stays, and the difference is a conflict question the generator raises (Catalog.disagreements). A new person
 is never created without the owner. Anything less certain than the rule below is a card for the owner.
 
-The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7): a record of a kind that identifies a person fully is accepted as
-the person's when the name agrees with the accepted name, at least two accepted facts agree (birth date, death date, a
-burial or death place, a stated relationship to someone already matched on the record), and nothing compared disagrees.
+The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7): a record of a kind that identifies a person fully, from a source
+nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with the accepted name, at least two
+accepted facts agree (birth date, death date, a burial or death place, a stated relationship to someone already matched on
+the record), each resting on a trusted source or on the owner's own word, and nothing compared disagrees. A Find a Grave
+page (T4) is never taken by the rule and never counts as the ground for one.
 The rule acts on the owner's word, is recorded as such on the proposal and in the audit log, and the owner can reject what
 it accepted: the link and every assertion it wrote turn rejected.
 
@@ -30,6 +32,17 @@ from plan import plan_person
 
 SKIP = ("Unknown", "Age", "Identification Number")      # about the record or the page, not facts of the person
 AUTOMATED = ("findagrave-memorial", "familysearch-record", "nara-1950-schedule")   # parsers of documents that identify a person fully (§0)
+TRUSTED = ("T1", "T2", "T3")                            # a record the rule may act on or count: not one anyone can edit (T4)
+
+def trusted_evidence(cx, tree_id, kind, ids):
+    """Whether an accepted assertion on any of these subjects rests on a trusted source (T1–T3) or on the owner's own word (a
+    vouch); an accepted fact that rests only on a source anyone can edit does not count for the rule."""
+    q = _q(cx)
+    for sid in ids:
+        if q.execute("""SELECT 1 FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
+                        WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted'
+                        AND (substr(s.trust_tier,1,2) IN ('T1','T2','T3') OR (json_valid(a.notes) AND json_extract(a.notes,'$.vouched')=1))""", (tree_id, kind, sid)).fetchone(): return True
+    return False
 ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
 
 class _q:
@@ -228,9 +241,10 @@ def rule_accepts(cx, tree_id, prop):
     q = _q(cx)
     pay = json.loads(prop["payload_json"]); pid, sha = pay.get("person_id"), pay["artifact_sha256"]
     if prop["kind"] != "persona_match" or not pid: return False, "a new person is the owner's decision"
-    x = q.execute("""SELECT x.name, c.name AS collection FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
-                     LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
+    x = q.execute("""SELECT x.name, c.name AS collection, s.trust_tier, s.name AS source FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
+                     LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
     if not x or x["name"] not in AUTOMATED: return False, f"a {x['name'] if x else 'record'} is a hint until a person reads it"
+    if str(x["trust_tier"] or "")[:2] not in TRUSTED: return False, f"anyone can edit a {x['source'] or 'T4'} page: the owner decides it"
     yr = re.search(r"\b(1[78]\d\d)\b", x["collection"] or "")
     if x["name"] == "familysearch-record" and yr and int(yr.group(1)) < 1850: return False, "a census before 1850 names only the head"
     cat = Catalog(cx, tree_id)
@@ -242,18 +256,23 @@ def rule_accepts(cx, tree_id, prop):
     if disagree: return False, "disagrees: " + "; ".join(disagree)
     if not any(a.startswith("given name agrees") for a in agree) or not any(a.startswith("surname agrees") for a in agree): return False, "the name does not agree in full"
     if cat.basis("person", pid) != "accepted": return False, "the name is not accepted yet"
-    ev = cat.events(pid); basis = cat.key_fact_basis(pid, ev); points = []
+    if not trusted_evidence(cx, tree_id, "person", [pid]): return False, "the accepted name rests only on sources anyone can edit"
+    ev = cat.events(pid); points = []
+    ok = lambda t: trusted_evidence(cx, tree_id, "event", [e["id"] for e in ev if e["type"] == t])
     for a in agree:
-        if a.startswith("birth date agrees") and basis.get("birth") == "accepted": points.append("birth date")
-        if a.startswith("death date agrees") and basis.get("death") == "accepted": points.append("death date")
-        if a.startswith("death place agrees") and basis.get("death") == "accepted": points.append("death place")
-        if a.startswith("burial place agrees") and any(e["type"] == "Burial" and e["basis"] == "accepted" for e in ev): points.append("burial place")
+        if a.startswith("birth date agrees") and ok("Birth"): points.append("birth date")
+        if a.startswith("death date agrees") and ok("Death"): points.append("death date")
+        if a.startswith("death place agrees") and ok("Death"): points.append("death place")
+        if a.startswith("burial place agrees") and ok("Burial"): points.append("burial place")
     fam = cat.family(pid)
     for kind, other_pid, _, other_name in persona["relations"]:
         oc = chosen.get(other_pid); group = {"child": "parents", "parent": "children", "spouse": "spouses"}.get(kind)
-        if oc and group and any(rid == oc["id"] for rid, _ in fam[group]) and cat.link_basis(pid, group) == "accepted": points.append(f"{REL_OF[group]} {other_name}")
-    if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only; two accepted facts are needed"
-    return True, "agrees with your accepted name, " + " and ".join(points) + "; nothing disagrees"
+        if not (oc and group and any(rid == oc["id"] for rid, _ in fam[group])): continue
+        role = "child" if group == "parents" else "partner"
+        rows = [dumps([fid, pid, role]) for fid, in q.execute("SELECT family_id FROM family_member WHERE person_id=? AND role=?", (pid, role))]
+        if trusted_evidence(cx, tree_id, "family_member", rows): points.append(f"{REL_OF[group]} {other_name}")
+    if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
+    return True, "agrees with your accepted name, " + " and ".join(points) + " from trusted sources; nothing disagrees"
 
 def match_record(cx, eid, by):
     """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the

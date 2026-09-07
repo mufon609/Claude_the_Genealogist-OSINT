@@ -80,8 +80,8 @@ source and never turned into a score; the decision on a fact stays three-state.
 |---|---|---|
 | T1 | Image of an original record | Death certificate, census page, parish register, will |
 | T2 | Official or archival index/transcription | SSDI, state death index, NARA AAD, IPUMS |
-| T3 | Curated secondary | Find a Grave memorial, obituary, published family history, DAR/SAR application |
-| T4 | User-contributed tree | Ancestry member trees, FamilySearch Tree, Geni, WikiTree (WikiTree is better sourced, call it T3/T4) |
+| T3 | Published secondary: printed or curated, not editable by its readers | Obituary, published family history, DAR/SAR application, cemetery transcription |
+| T4 | Anyone can edit it | Ancestry member trees, FamilySearch Tree, Geni, WikiTree, Find a Grave, BillionGraves. A T4 record is a lead and a card, never a source the rule trusts on its own, and a person whose accepted facts rest on T4 alone is marked so |
 | T5 | AI-inferred (our own) | Suggested match, extracted fact from OCR — must always cite the T1–T3 it came from |
 | ref | Reference data, not evidence | Gazetteers, name dictionaries, cM tables |
 

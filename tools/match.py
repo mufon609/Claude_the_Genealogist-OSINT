@@ -22,7 +22,9 @@ surname agrees when any token of the record's name after the given name is a
 surname the tree has for the candidate (a memorial writes a married woman's
 birth surname inside her name). A persona fits a candidate when the given name agrees, nothing compared
 disagrees, and either the surname and at least one of the dates or places
-agree, or a stated relationship agrees. One proposal per persona: kind
+agree, or a stated relationship agrees; a persona whose own memorial link is a
+memorial already accepted as a person fits that person outright, and that
+person joins the candidates whether or not they are a relative in the tree. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
 two fit, the other named in the rationale), or new_person when nobody fits. The
 proposal carries the question of the step the candidate came from, when it has
@@ -84,6 +86,8 @@ def compare(cat, persona, cand, chosen):
         v = place_verdict(persona[label], cand[label])
         if v == "absent": absent.append(label); continue
         (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]})"); dated = dated or v == "agrees"
+    same = bool(persona.get("memorial")) and persona["memorial"] in (cand.get("memorials") or set())
+    if same: agree.append(f"the same memorial {persona['memorial']} is already accepted as {cand['name']}")
     rel_ok = False
     for kind, other_pid, as_written, other_name in persona["relations"]:
         other_cand = chosen.get(other_pid)
@@ -94,7 +98,7 @@ def compare(cat, persona, cand, chosen):
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
         rel_ok = rel_ok or holds
-    fits = given_ok and not any(d.startswith(("sex", "birth date", "death date", "burial place", "death place")) for d in disagree) and ((surname_ok and dated) or rel_ok)
+    fits = not any(d.startswith(("sex", "birth date", "death date", "burial place", "death place")) for d in disagree) and (same or (given_ok and ((surname_ok and dated) or rel_ok)))
     return fits, agree, disagree, absent
 
 def _date(row):
@@ -106,9 +110,31 @@ def personas_of(cx, eid):
         fact = lambda t: cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND (date_start IS NOT NULL OR date_end IS NOT NULL)", (pid, t)).fetchone()
         place = lambda t: (cx.execute("SELECT ps.raw FROM persona_fact pf JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=? AND pf.fact_type=?", (pid, t)).fetchone() or [None])[0]
         rels = cx.execute("SELECT r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (pid,)).fetchall()
+        region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pid,)).fetchone()[0] or "{}")
+        m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
         out.append({"id": pid, "name": name, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
-                    "burial place": place("Burial"), "death place": place("Death"), "relations": rels})
+                    "burial place": place("Burial"), "death place": place("Death"), "relations": rels, "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None})
     return out
+
+def memorials_of(cx, pid):
+    """The Find a Grave memorial ids already accepted as this person: the id of a memorial page accepted as theirs, and the id a
+    held record links beside a persona accepted as them. A record's link to the same memorial is the same identity."""
+    ids = set()
+    for region, sha, role in cx.execute("""SELECT pe.region_json, pe.artifact_sha256, pe.role_in_record FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
+                                            WHERE pp.person_id=? AND pp.status='accepted'""", (pid,)):
+        r = json.loads(region or "{}"); m = re.search(r"/memorial/(\d+)(?:/|$)", r.get("url") or "")
+        if r.get("memorial_id"): ids.add(str(r["memorial_id"]))
+        if m: ids.add(m.group(1))
+        if role == "memorial":
+            for v, in cx.execute("SELECT value FROM artifact_locator WHERE artifact_sha256=? AND kind='memorial_id'", (sha,)): ids.add(v)
+    return ids
+
+def by_memorial(cx, tree_id, mid):
+    """Persons of the tree already accepted under this memorial id, by memorials_of."""
+    return [pid for pid, in cx.execute("""SELECT DISTINCT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
+                                          WHERE p.tree_id=? AND pp.status='accepted' AND (json_extract(pe.region_json,'$.memorial_id')=? OR json_extract(pe.region_json,'$.url') LIKE ?
+                                             OR (pe.role_in_record='memorial' AND EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=pe.artifact_sha256 AND l.kind='memorial_id' AND l.value=?)))""",
+                                       (tree_id, mid, f"%/memorial/{mid}/%", mid))]
 
 def candidate(cat, pid):
     p = cat.person(pid); ev = cat.events(pid)
@@ -118,7 +144,7 @@ def candidate(cat, pid):
         r = cat.cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
         return {**_date(r), "place": e["place"]["text"] if e["place"] else None}
     b, d, bu = first("Birth"), first("Death"), first("Burial")
-    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "burial place": bu["place"], "death place": d["place"]}
+    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "burial place": bu["place"], "death place": d["place"], "memorials": memorials_of(cat.cx, pid)}
 
 def persons_for(cx, sha):
     """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, a fetch step pointing at
@@ -156,6 +182,10 @@ def match(cx, eid, by):
             fam = cat.family(pid)
             for rid in [r for g in ("parents", "spouses", "children", "siblings") for r, _ in fam[g]]:
                 if rid not in ctx_of: ctx_of[rid] = (pid, qid, step_id); cands.append(candidate(cat, rid))
+        for pr in personas:                                     # a persona whose memorial link is already accepted as someone: that person is a candidate
+            if pr.get("memorial"):
+                for rid in by_memorial(cx, tree_id, pr["memorial"]):
+                    if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
         chosen = {}                                             # persona id -> candidate, settled in passes so relationships can be checked
         for _ in range(2):
             for pr in personas:
