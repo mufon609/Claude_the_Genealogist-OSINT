@@ -232,6 +232,8 @@ def transcribe(cx, sha, body, by=None, about=None):
         d = bdate if ftype == "Birth" else (body.get(dk) or "").strip() or None
         if d or body.get(pk): w.fact(pid, ftype, None, d, (body.get(pk) or "").strip() or None, [k for k in (dk if d else None, pk if body.get(pk) else None) if k] + (["age"] if ftype == "Birth" and d and d.startswith("CAL") else []))
     if body.get("residence"): w.fact(pid, "Residence", None, str(body.get("year") or "") or None, body["residence"].strip(), ["residence"])
+    if body.get("marriage_date") or body.get("marriage_place"): w.fact(pid, "Marriage", None, (body.get("marriage_date") or "").strip() or None, (body.get("marriage_place") or "").strip() or None, [k for k in ("marriage_date", "marriage_place") if body.get(k)])
+    for label, value in (body.get("as_written") or {}).items(): w.fact(pid, "Unknown", f"{label}: {value}", labels=[label])   # the record's own words that fit no fact type
     for k in ("occupation", "marital_status"):
         if body.get(k): w.fact(pid, {"occupation": "Occupation", "marital_status": "Marital Status"}[k], str(body[k]).strip(), labels=[k])
     for r in body.get("relations") or []:
