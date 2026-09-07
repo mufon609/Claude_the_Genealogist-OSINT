@@ -221,11 +221,15 @@ rest folded away with a name search. A badge is a plain count of what waits:
 documents to decide, steps that run on their own, steps that need a hand,
 conflicts; a person with every key fact accepted and nothing waiting says so.
 The
-person page has the three regions in order: foundation (key facts with
-Accept / Reject / Undecided and the evidence behind each), checklist
-(footprint records first, then
-Group A, Group B collapsed), and a selected panel showing the search step or
-the citations behind the row clicked, each with a link to the free holder the
+person page puts the documents first: every record waiting for a decision
+about this person as its card (the highlight, the record with holder,
+collection, identity and tier, the tree's claim, each field as agrees,
+disagrees or absent, the relationships stated, what adding it closes), with
+Add and Ignore; then what is known (key facts with the documents they rest
+on, then every other fact, the per-fact buttons kept for the owner's own
+knowledge and for undoing a claim); then what the plan does next (questions,
+the footprint, Group A, Group B collapsed) with a selected panel showing the
+step or the citations behind the row clicked, each with a link to the free holder the
 record is fetched from (the memorial page itself for Find a Grave; for a
 FamilySearch step the collection's own search prefilled from the citation's
 details, for a National Archives 1950 step the site's name search, the

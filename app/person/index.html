@@ -28,6 +28,9 @@ details summary{cursor:pointer;color:var(--mut);margin:8px 0}
 .badge{font-size:12px;padding:0 7px;border-radius:10px;border:1px solid var(--line);color:var(--mut)}.badge.doc{background:var(--acc);color:#fff;border-color:var(--acc)}.badge.run{border-color:var(--ok);color:var(--ok)}.badge.conf{border-color:var(--bad);color:var(--bad)}
 .pc.done{opacity:.75}.gen-label{width:100%;text-align:center;color:var(--mut);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
 .reason{display:inline-flex;gap:6px;margin-left:6px}.reason input{width:260px}
+.doc{margin-bottom:10px}.doc-head{margin-bottom:4px}.doc-fields td,.doc-fields th{padding:2px 10px 2px 0;border:0;font-size:13px}.doc-fields th{font-size:11px}
+.v{font-size:12px;padding:0 6px;border-radius:10px;border:1px solid var(--line)}.v.agrees,.v.accepted{color:var(--ok);border-color:var(--ok)}.v.disagrees,.v.rejected{color:var(--bad);border-color:var(--bad)}.v.absent,.v.undecided{color:var(--mut)}
+#rc>div{margin:6px 0}
 .fields td{padding:2px 8px 2px 0;border:0;font-size:13px}.fields input[type=text]{padding:2px 6px;width:100%}
 </style></head><body>
 <header><a href="/">Tree</a><small id="tree"></small><span class="sp"></span><small id="who"></small></header>
@@ -62,41 +65,61 @@ async function list(q=''){const rows=await api('/api/people?q='+encodeURICompone
  $('#q').oninput=e=>{clearTimeout(window._t);window._t=setTimeout(()=>list(e.target.value),250)};$('#q').focus()}
 async function person(id){P=await api('/api/person/'+id);render()}
 async function reload(){P=await api('/api/person/'+P.person.id);render();if(SEL)show(SEL.grp,SEL.i)}
+function verdict(v){return `<span class="v ${v}">${v}</span>`}
+function docHtml(c){const r=c.record;const id=c.id;
+ const fields=c.fields.length?`<table class="fields doc-fields"><tr><th></th><th>record says</th><th>tree says</th><th></th></tr>${c.fields.map(f=>`<tr><td><b>${h(f.field)}</b></td><td>${h(f.record??'—')}</td><td class="mut">${h(f.tree??'—')}</td><td>${verdict(f.verdict)}${f.note?` <span class="mut">${h(f.note)}</span>`:''}</td></tr>`).join('')}</table>`:`<div class="mut">the record states nothing beyond the name</div>`;
+ const rels=c.relationships.length?`<div class="mut" style="margin-top:6px">${c.relationships.map(x=>`${x.direction==='is'?`${h(x.as_written||x.kind)} of ${h(x.other)}`:`${h(x.other)} listed under ${h(x.as_written||x.kind)}`} <span class="pill">${h(x.other_status)}</span>`).join(' · ')}</div>`:'';
+ const closes=c.closes.length?`<div style="margin-top:6px"><span class="mut">Adding it: </span>${c.closes.map(h).join('; ')}</div>`:'';
+ const oddList=(c.odd||[]).filter(x=>x&&x!=='nothing');const odd=oddList.length?`<div style="margin-top:4px;color:var(--bad)">${oddList.map(h).join('; ')}</div>`:'';
+ return `<div class="card doc" id="doc-${id}"><div class="doc-head"><b>${h(c.highlight)}</b></div>
+  <div class="mut">${h(r.holder||r.holder_id||'')}${r.collection?` · ${h(r.collection)}`:''}${r.identity.length?` · ${h(r.identity.join(', '))}`:''} <span class="pill">${h(r.tier||'')}</span>${r.page?` · <a href="${r.page}" target="_blank" rel="noopener">the holder's page</a>`:''}</div>
+  ${c.person?`<div class="mut">the tree's claim: ${h(claimText(c.person.claim))}</div>`:c.subject?`<div class="mut">nobody in the tree yet; the record is about the family of ${h(c.subject)}</div>`:''}
+  ${fields}${rels}${closes}${odd}
+  <div style="margin-top:8px"><span class="seg"><button class="on-accepted" onclick="decideProposal('${id}','accepted')">Add</button><button onclick="ignore('${id}')">Ignore</button></span><span id="ig-${id}"></span></div></div>`}
+function claimText(cl){const f=(d)=>d&&(d.date||d.place)?[d.date,d.place].filter(Boolean).join(', '):null;return [f(cl.birth)?'born '+f(cl.birth):null,f(cl.death)?'died '+f(cl.death):null,f(cl.burial)?'buried '+f(cl.burial):null].filter(Boolean).join('; ')||'no dates'}
+function evidenceHtml(ev){const records=ev.filter(e=>e.held&&!e.uncited&&!e.vouched&&e.tier!=='T4'), vouched=ev.filter(e=>e.vouched), file=ev.filter(e=>(e.uncited||e.tier==='T4')&&!e.vouched);
+ const groups={};for(const e of records){const k=(e.citation||'').split(';')[0]+(e.ident?', '+e.ident:'');(groups[k]=groups[k]||{tier:e.tier,statuses:new Set()}).statuses.add(e.status)}
+ const parts=Object.entries(groups).map(([k,g])=>{const st=g.statuses.has('accepted')?'accepted':g.statuses.has('rejected')&&g.statuses.size===1?'rejected':'undecided';return `<div>${h(k)} ${g.tier?`<span class="pill">${g.tier}</span>`:''} <span class="v ${st}">${st}</span></div>`});
+ if(vouched.length)parts.push(`<div class="mut">your own knowledge <span class="v accepted">accepted</span></div>`);
+ if(file.length)parts.push(`<div class="mut">the file's claim${file.length>1?'s':''} (${file.length}) <span class="pill">${file.some(e=>e.status==='accepted')?'accepted':'undecided'}</span></div>`);
+ return parts.join('')||'<span class="mut">no evidence</span>'}
 function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntries(P.foundation.map(f=>[f.field,f]));
  const link=x=>`<a href="/person/${x.id}">${h(x.name)}</a>`;
  const acc=KEYS.filter(k=>rv[k].status==='accepted').length;
  let html=`<h1>${h(p.name)} <span class="mut" style="font-weight:400">${p.span[0]??'?'}–${p.span[1]??'?'}</span></h1>
  <p class="mut">parents: ${fam.parents.map(link).join(', ')||'—'} · spouse: ${fam.spouses.map(link).join(', ')||'—'} · children: ${fam.children.map(link).join(', ')||'—'}${fam.siblings.length?' · siblings: '+fam.siblings.map(link).join(', '):''}</p>`;
  const bl=P.baseline;
- html+=`<p><b>${acc} of ${KEYS.length}</b> key facts Accepted${bl.complete?'':` <span class="mut">— decide ${bl.undecided.join(', ')} to unlock searches, the family footprint and leads; fetching cited records is open now</span>`}${p.notes.map(n=>` <span class="pill">${h(n)}</span>`).join('')}</p>`;
- html+=`
- <h2>Foundation — what we know</h2><div class="card"><table>
- <tr><th>fact</th><th>value</th><th>evidence</th><th>decision</th></tr>`;
+ html+=`<p><b>${acc} of ${KEYS.length}</b> key facts accepted ${badges({...P.waiting,accepted:acc})}${bl.complete?'':` <span class="mut">— ${bl.undecided.join(', ')} still undecided; searches, the family footprint and leads open when every key fact is decided; fetching cited records is open now</span>`}${p.notes.map(n=>` <span class="pill">${h(n)}</span>`).join('')}</p>`;
+ html+=`<h2>Documents to decide</h2>`;
+ if(P.documents.length){html+=`<p class="mut">Each is one decision: is this record about this person? Add takes everything it states; Ignore keeps your reason for later searches.</p>`+P.documents.map(docHtml).join('')}
+ else html+=`<div class="card mut">No document waits on this person.${P.waiting.runs_next?` ${P.waiting.runs_next} step${P.waiting.runs_next>1?'s':''} run${P.waiting.runs_next>1?'':'s'} on their own next.`:''}${P.waiting.needs_hand?` ${P.waiting.needs_hand} need${P.waiting.needs_hand>1?'':'s'} a hand in the browser.`:''}</div>`;
+ for(const c of (P.candidates||[]))html+=`<div class="card"><pre class="card-text">${h(c.text)}</pre></div>`;
+ html+=`<div id="rc"></div>
+ <h2>What is known</h2><div class="card"><table>
+ <tr><th>fact</th><th>value</th><th>from</th><th>decision</th></tr>`;
  for(const k of KEYS){const f=F[k]||{};const ev=rv[k].evidence;const st=rv[k].status;
-  const evs=ev.length?ev.map(e=>`<div>${e.uncited?'<span class="mut">tree owner, no record</span>':e.vouched?'<span class="mut">tree owner\'s own knowledge</span>':h(e.citation)} ${e.tier?`<span class="pill">${e.tier}</span>`:''}${e.url?` <a href="${e.url}" target="_blank">↗</a>`:''} <span class="mut">${e.status}${!e.held&&!e.uncited?', record not held':''}</span></div>`).join(''):'<span class="mut">none</span>';
   const seg=st===null?'<span class="mut">no claim</span>':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${k}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
-  html+=`<tr><td><b>${k}</b></td><td>${h(fmt(f.value))}${f.variants&&f.variants.length?`<div class="mut">variants: ${h(f.variants.join(', '))}</div>`:''}</td>
-   <td>${evs}</td><td><span class="seg">${seg}</span></td></tr>`}
- for(const f of (P.facts||[])){const ev=f.evidence;const st=f.status;
-  const evs=ev.length?ev.map(e=>`<div>${e.uncited?'<span class="mut">tree owner, no record</span>':e.vouched?'<span class="mut">tree owner\'s own knowledge</span>':h(e.citation)} ${e.tier?`<span class="pill">${e.tier}</span>`:''} <span class="pill">${e.status}</span>${e.held?'':' <span class="mut">(not held)</span>'}</div>`).join(''):'<span class="mut">no evidence</span>';
+  html+=`<tr><td><b>${k}</b></td><td>${h(fmt(f.value))}${f.variants&&f.variants.length?`<div class="mut">variants: ${h(f.variants.join(', '))}</div>`:''}</td><td>${evidenceHtml(ev)}</td><td><span class="seg">${seg}</span></td></tr>`}
+ for(const f of (P.facts||[])){const st=f.status;
   const seg=st===null?'':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${f.field}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
-  html+=`<tr><td>${h(f.type.toLowerCase())}</td><td>${h([f.date,f.place,f.value].filter(Boolean).join(' · '))||'—'}</td><td>${evs}</td><td><span class="seg">${seg}</span></td></tr>`}
- html+=`</table></div>`;
+  html+=`<tr><td>${h(f.type.toLowerCase())}</td><td>${h([f.date,f.place,f.value].filter(Boolean).join(' · '))||'—'}</td><td>${evidenceHtml(f.evidence)}</td><td><span class="seg">${seg}</span></td></tr>`}
+ html+=`</table><div class="mut" style="margin-top:6px">A fact's status comes from the documents accepted about the person. The buttons are for your own knowledge when no record is held, and for undoing a single claim.</div></div>`;
  const plan=P.plan||{questions:[],steps:[]}; const nf=plan.steps.filter(s=>s.kind==='fetch').length, ns=plan.steps.length-nf;
- html+=`<h2>Questions and plan</h2><div class="card">`;
+ html+=`<h2>What the plan does next</h2><div class="card">`;
  if(!plan.questions.length&&!plan.steps.length)html+=`<span class="mut">No plan yet.</span> <button onclick="makePlan()">Generate plan from the checklist</button>`;
  else{html+=`<div class="mut">${plan.questions.length} open question(s); ${nf} fetch step(s) and ${ns} search step(s) on the rows below. <button onclick="makePlan()">Refresh plan</button></div>`;
   for(const q of plan.questions){html+=`<div class="q"><b>${h(q.kind.replace(/_/g,' '))}</b> <span class="mut">${h(q.detail.detail||'')}</span>${q.steps?` <span class="pill">${q.steps} steps</span>`:''}<span class="sp"></span><button onclick="dismiss('${q.id}')">Dismiss</button></div>`}}
  html+=`</div>`;
- html+=`<div class="fx"><div><h2>Checklist — records that should exist</h2>`;
+ html+=`<div class="fx"><div><h2>Records that should exist</h2>`;
  const fp=P.footprint;
  if(fp.records.length){html+=`<div class="card"><div class="mut">Already on this family — fetch first (${fp.summary.records} records on ${fp.summary.relatives} relatives)</div><table>`;
   fp.records.slice(0,8).forEach((r,i)=>{html+=`<tr class="row" data-grp="fp" data-i="${i}" onclick="show('fp',${i})"><td>${h(r.collection)}</td><td class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</td></tr>`});
   if(fp.records.length>8)html+=`<tr><td colspan="2" class="mut">… ${fp.records.length-8} more</td></tr>`;html+=`</table></div>`}
- const rowsHtml=(grp)=>P.checklist[grp].map((r,i)=>`<tr class="row" data-grp="${grp}" data-i="${i}" onclick="show('${grp}',${i})"><td><span class="st ${r.status}">${r.status}</span></td><td>${h(r.record)}${r.instance?' '+h(r.instance):''}${r.via?` <span class="mut">on ${h(r.via)}</span>`:''}</td><td class="mut">${r.status==='n/a'?h(r.na_reason):h(r.sources.join(', '))}</td></tr>`).join('');
+ const rowsHtml=(grp)=>P.checklist[grp].map((r,i)=>`<tr class="row" data-grp="${grp}" data-i="${i}" onclick="show('${grp}',${i})"><td><span class="st ${r.status}">${r.status}</span></td><td>${h(r.record)}${r.instance?' '+h(r.instance):''}${r.via?` <span class="mut">on ${h(r.via)}</span>`:''}</td><td class="mut">${h(r.sources.join(', '))}</td></tr>`).join('');
  html+=`<div class="card" style="margin-top:10px"><div class="mut">A. Records that hold several family members</div><table>${rowsHtml('A')}</table>
  <details><summary>B. Records about this person only (${P.checklist.B.length})</summary><table>${rowsHtml('B')}</table></details></div></div>
- <div id="results"><h2>Selected</h2><div class="card" id="rc"><span class="mut">Click a record row to see its search step, or the citations behind it.</span></div></div></div>`;
+ <div id="results"><h2>Selected</h2><div class="card" id="rc2"><span class="mut">Click a record row to see its step, the record held, or the citations behind it.</span></div></div></div>`;
+ if(P.decided.length)html+=`<details><summary>Documents decided (${P.decided.length})</summary><div class="card">${P.decided.map(d=>`<div class="q"><span class="v ${d.status==='accepted'?'agrees':'disagrees'}">${d.status}</span> <b>${h(d.persona)}</b> <span class="mut">${h(d.role||'')} on ${h(d.record||'')}${d.by_rule?' · by rule':''}${d.note?' · '+h(d.note):''}</span><span class="sp"></span>${d.by_rule&&d.status==='accepted'?`<span class="seg"><button onclick="ignore('${d.id}')">Set aside</button></span><span id="ig-${d.id}"></span>`:''}</div>`).join('')}</div></details>`;
  $('#main').innerHTML=html}
 function stepsFor(grp,i){const steps=(P.plan||{steps:[]}).steps;
  if(grp==='fp'){const r=P.footprint.records[i];return steps.filter(s=>s.kind==='fetch'&&s.locator.value===r.apid)}
@@ -116,7 +139,7 @@ function stepHtml(s){
  <div style="margin-top:6px"><button onclick="logStep('${s.id}','none')">Nothing found</button> <button onclick="logStep('${s.id}','blocked')">Blocked</button>
  <span style="margin-left:10px">Found: <select id="lf-${s.id}" class="lfile"><option value="">— file in inbox —</option></select> <button onclick="inbox()">refresh</button> <button onclick="logStep('${s.id}','found')">Archive + log</button></span></div>`}
 function show(grp,i){SEL={grp,i};document.querySelectorAll('tr.row').forEach(e=>e.classList.toggle('on',e.dataset.grp===grp&&e.dataset.i==String(i)));
- const rc=$('#rc');const steps=stepsFor(grp,i);
+ const rc=$('#rc2');const steps=stepsFor(grp,i);
  if(grp==='fp'){const r=P.footprint.records[i];rc.innerHTML=`<b>${h(r.collection)}</b><div class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</div><p>Expected: ${h(r.expect)}</p>${r.held?'<p class="mut">held in the archive</p>':''}`+stepsHtml(steps);inbox();records(steps);return}
  const r=P.checklist[grp][i];let html=`<b>${h(r.record)}${r.instance?' '+h(r.instance):''}</b> <span class="st ${r.status}">${r.status}</span>${r.note?`<div class="mut">${h(r.note)}</div>`:''}<p>Settles: ${h(r.settles)}</p>`;
  if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open at ${h(c.holder)} ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
@@ -125,7 +148,7 @@ function show(grp,i){SEL={grp,i};document.querySelectorAll('tr.row').forEach(e=>
  rc.innerHTML=html+stepsHtml(steps);inbox();records(steps,r)}
 function shasOf(steps,row){const out=[];for(const s of steps){if(s.archived&&!out.includes(s.archived))out.push(s.archived);for(const l of s.logs){for(const sha of JSON.parse(l.artifacts_json||'[]'))if(!out.includes(sha))out.push(sha)}}
  for(const c of (row&&row.citations)||[]){if(c.sha256&&!out.includes(c.sha256))out.push(c.sha256)}return out}
-async function records(steps,row){const shas=shasOf(steps,row);if(!shas.length)return;const box=document.createElement('div');box.id='records';$('#rc').appendChild(box);
+async function records(steps,row){const shas=shasOf(steps,row);if(!shas.length)return;const box=document.createElement('div');box.id='records';$('#rc2').appendChild(box);
  for(const sha of shas){const a=await api('/api/artifact/'+sha+'?person='+P.person.id);if(!a.error)box.insertAdjacentHTML('beforeend',recordHtml(a))}}
 function factLine(f){return `${h(f.type)}: ${h([f.value,f.date,f.place].filter(Boolean).join(' · '))}`}
 function recordHtml(a){const id=a.sha256.slice(0,12);

@@ -24,7 +24,7 @@ from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
-from cards import card as decision_card, render as render_card, render_search, search_card
+from cards import card as decision_card, render as render_card, render_search, search_card, search_cards_for
 from conclude import decide as decide_document, match_record, record_says
 
 LOCK = threading.Lock()
@@ -73,7 +73,12 @@ def evidence_rows(cx, pid, field):
             n = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
             apid = n.get("apid"); uncited = bool(n.get("uncited")); vouched = bool(n.get("vouched"))
             visible = uncited or vouched or (apid in held) or (r["trust_tier"] in ("T1", "T2", "T3"))   # the evidence the person can see
-            out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid,
+            ident = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in cx.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=? ORDER BY kind", (r["artifact_sha256"],))) if r["artifact_sha256"] else ""
+            if not ident and r["artifact_sha256"]:
+                loc = cx.execute("SELECT locator_value, manifest_json FROM artifact WHERE sha256=?", (r["artifact_sha256"],)).fetchone()
+                m = re.search(r"scheduleId\W+(\d+)", (loc["locator_value"] or "") + " " + (loc["manifest_json"] or "")) if loc else None
+                ident = f"schedule {m.group(1)}" if m else ""
+            out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid, "sha256": r["artifact_sha256"], "ident": ident,
                         **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": visible})
     return out
 
@@ -292,6 +297,16 @@ def person_view(cx, tree_id, pid):
     cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid)
     r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f)} for f in KEY_FACTS}
     r["facts"] = other_facts(cx, cat, pid)
+    r["waiting"] = cat.waiting(pid)
+    r["documents"] = [c for c in (decision_card(cx, tree_id, row[0]) for row in cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
+        AND (json_extract(payload_json,'$.person_id')=? OR (kind='new_person' AND json_extract(payload_json,'$.subject_person_id')=?)) ORDER BY created_at""", (tree_id, pid, pid))) if c]
+    r["candidates"] = [{"sha256": c["sha256"], "text": render_search(c)} for c in search_cards_for(cx, tree_id, pid)]
+    r["decided"] = [{"id": d["id"], "kind": d["kind"], "status": d["status"], "by_rule": (d["decided_by"] or "").startswith("rule:"), "note": d["decision_note"], "at": d["decided_at"],
+                     "persona": d["name_text"], "role": d["role_in_record"], "sha256": d["artifact_sha256"], "record": d["collection"] or d["original_filename"]}
+                    for d in cx.execute("""SELECT p.id, p.kind, p.status, p.decided_by, p.decision_note, p.decided_at, pe.name_text, pe.role_in_record, pe.artifact_sha256, a.original_filename, c.name AS collection
+                        FROM proposal p JOIN persona pe ON pe.id=json_extract(p.payload_json,'$.persona_id') JOIN artifact a ON a.sha256=pe.artifact_sha256 LEFT JOIN collection c ON c.id=a.collection_id
+                        WHERE p.tree_id=? AND p.status<>'undecided' AND p.kind IN ('persona_match','new_person') AND coalesce(p.decision_note,'')<>'superseded'
+                        AND (json_extract(p.payload_json,'$.person_id')=? OR (p.kind='new_person' AND json_extract(p.payload_json,'$.subject_person_id')=?)) ORDER BY p.decided_at DESC""", (tree_id, pid, pid))]
     fam = cat.family(pid)
     r["family"] = {k: [{"id": i, "name": n} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
     held = cat.held_apids(); cited = cat.cited()
