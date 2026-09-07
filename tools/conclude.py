@@ -21,6 +21,7 @@ no longer take is withdrawn, the record a card for the owner again.
 
 usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
        tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
+       tools/conclude.py assertion <assertion id> accept|reject|undecided [--note "…"]   one statement of one record, on its own
        tools/conclude.py reconsider [--dry-run]                                   the rule re-examines its decisions
        tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…" [--marriage "14 AUG 1959"]
        tools/conclude.py link "<person>" --parent "<other>" [--parent "<other>"] --record <sha256> --note "…"
@@ -441,6 +442,8 @@ def main():
     dc = sub.add_parser("decide", help="the decision on a card: is this record's persona this person (or a new person)"); dc.add_argument("proposal"); dc.add_argument("verdict", choices=["accept", "reject"]); dc.add_argument("--note")
     fc = sub.add_parser("fact", help="a key fact of a person decided: accept touches held evidence or is your own word (a vouch); reject and undecided touch every assertion behind it")
     fc.add_argument("person"); fc.add_argument("field"); fc.add_argument("verdict", choices=["accept", "reject", "undecided"]); fc.add_argument("--note")
+    ac = sub.add_parser("assertion", help="one statement of one record on one subject, decided on its own (a fact decision touches every statement behind the fact)")
+    ac.add_argument("assertion"); ac.add_argument("verdict", choices=["accept", "reject", "undecided"]); ac.add_argument("--note")
     r = sub.add_parser("reconsider", help="the rule re-examines every decision it made; one it would no longer take is withdrawn and the record is a card again")
     r.add_argument("--dry-run", action="store_true", help="report only")
     l = sub.add_parser("link", help="place a person in a family on your own word, on a record that stops short of naming both parties")
@@ -450,7 +453,7 @@ def main():
     d = sub.add_parser("divorce", help="a Divorce event between two people, with the evidence you name")
     d.add_argument("a"); d.add_argument("b"); d.add_argument("--date", help="GEDCOM form (BET 1950 AND 1959)")
     d.add_argument("--evidence", action="append", required=True, help="sha256[:persona fact id][:citation words]"); d.add_argument("--note", required=True)
-    for x in (dc, fc, r, l, d):
+    for x in (dc, fc, ac, r, l, d):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
@@ -471,6 +474,17 @@ def main():
             res = decide_fact(cx, tree_id, pid, a.field, {"accept": "accepted", "reject": "rejected", "undecided": "undecided"}[a.verdict], a.note, a.by)
             if "error" in res: raise SystemExit(res["error"])
             print(f"{a.field} {res['status']}: {res['assertions']} assertion(s) touched" + (f", {len(res['vouched'])} written on your own word" if res["vouched"] else "") + (f", {len(res['answered'])} question(s) answered" if res["answered"] else ""))
+        elif a.cmd == "assertion":
+            row = cx.execute("SELECT id, subject_kind, subject_id, status, citation_text FROM assertion WHERE id=? AND tree_id=?", (a.assertion, tree_id)).fetchone()
+            if not row: raise SystemExit("no such assertion in this tree")
+            status = {"accept": "accepted", "reject": "rejected", "undecided": "undecided"}[a.verdict]; ts = now()
+            cx.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=? WHERE id=?", (status, a.by, ts, row["id"]))
+            cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                       (ulid(), tree_id, ts, a.by, {"accepted": "accept", "rejected": "reject", "undecided": "update"}[status], "assertion", row["id"], dumps({"was": row["status"], "now": status, "subject": [row["subject_kind"], row["subject_id"]], "note": a.note})))
+            people = [r[0] for r in cx.execute("SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL", (row["subject_id"],))] if row["subject_kind"] == "event" \
+                     else [row["subject_id"]] if row["subject_kind"] == "person" else [json.loads(row["subject_id"])[1]] if row["subject_kind"] == "family_member" else []
+            for pid in people: plan_person(cx, tree_id, pid, a.by)
+            print(f"assertion {row['id'][-6:]} on {row['subject_kind']} ({row['citation_text'] or ''}): {row['status']} -> {status}; plan regenerated for {len(people)} person(s)")
         elif a.cmd == "reconsider":
             rows = reconsider(cx, tree_id, a.by, dry_run=a.dry_run)
             for x in rows: print(f"{'kept' if x['kept'] else ('would withdraw' if a.dry_run else 'withdrawn'):15} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
