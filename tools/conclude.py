@@ -36,12 +36,13 @@ TRUSTED = ("T1", "T2", "T3")                            # a record the rule may 
 
 def trusted_evidence(cx, tree_id, kind, ids):
     """Whether an accepted assertion on any of these subjects rests on a trusted source (T1–T3) or on the owner's own word (a
-    vouch); an accepted fact that rests only on a source anyone can edit does not count for the rule."""
+    vouch, or the file's uncited claim the owner accepted, which is the same thing: no record, their knowledge); an accepted
+    fact that rests only on a source anyone can edit does not count for the rule."""
     q = _q(cx)
     for sid in ids:
         if q.execute("""SELECT 1 FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                         WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted'
-                        AND (substr(s.trust_tier,1,2) IN ('T1','T2','T3') OR (json_valid(a.notes) AND json_extract(a.notes,'$.vouched')=1))""", (tree_id, kind, sid)).fetchone(): return True
+                        AND (substr(s.trust_tier,1,2) IN ('T1','T2','T3') OR (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1)))""", (tree_id, kind, sid)).fetchone(): return True
     return False
 ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
 

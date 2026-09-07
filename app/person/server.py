@@ -308,7 +308,7 @@ def person_view(cx, tree_id, pid):
                         WHERE p.tree_id=? AND p.status<>'undecided' AND p.kind IN ('persona_match','new_person') AND coalesce(p.decision_note,'')<>'superseded'
                         AND (json_extract(p.payload_json,'$.person_id')=? OR (p.kind='new_person' AND json_extract(p.payload_json,'$.subject_person_id')=?)) ORDER BY p.decided_at DESC""", (tree_id, pid, pid))]
     fam = cat.family(pid)
-    r["family"] = {k: [{"id": i, "name": n} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
+    r["family"] = {k: [{"id": i, "name": n, "accepted": fact_status(cx, pid, k) == "accepted" if k in ("parents", "spouses", "children") else None} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
     held = cat.held_apids(); cited = cat.cited()
     for row in r["checklist"]["A"] + r["checklist"]["B"]:
         for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["held"] = c["apid"] in held; c["sha256"] = held.get(c["apid"])   # a held row opens its record through the artifact
@@ -325,23 +325,36 @@ def people(cx, tree_id, q=""):
     cat = Catalog(cx, tree_id)
     return [person_card(cx, cat, pid) for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name", (tree_id, f"%{q}%"))]
 
+def link_trusted(cx, tree_id, pid):
+    """Whether the person's parents link rests on a trusted record (T1–T3) or on the owner's own word, rather than on a page
+    anyone can edit alone."""
+    from conclude import trusted_evidence
+    rows = [dumps([fid, pid, "child"]) for fid, in cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role='child'", (pid,))]
+    return trusted_evidence(cx, tree_id, "family_member", rows)
+
 def overview(cx, tree_id):
-    """The tree overview: the family as people cards laid out from the home person outward, one row per generation of
-    ancestors (a card's parents sit above it, father then mother), each card saying what waits on the person; then everyone
-    else in the file, for the badge alone. Opening a card is the person screen."""
+    """The tree overview: the people the owner has confirmed, laid out from the home person upward one row per generation, a
+    card's parents above it (father then mother). The walk follows a parents link only where the owner accepted it, so the tree
+    ends at the last accepted link; beyond it the file's claim of parents is named on the card as a claim, and the people it
+    names stay out of the tree until a decision puts them in. A link resting on an editable source alone is said so."""
     cat = Catalog(cx, tree_id)
     home = cx.execute("SELECT home_person_id FROM tree WHERE id=?", (tree_id,)).fetchone()[0]
-    if not home: return {"home": None, "generations": [], "others": people(cx, tree_id)}
+    if not home: return {"home": None, "generations": [], "others": people(cx, tree_id), "unconfirmed": 0}
     gens, seen, row = [], set(), [home]
-    while row and len(gens) < 8:
+    while row and len(gens) < 12:
         cards = []
         for pid in row:
             if pid in seen: continue
             seen.add(pid); c = person_card(cx, cat, pid)
             parents = sorted(cat.family(pid)["parents"], key=lambda x: 0 if (cx.execute("SELECT sex FROM person WHERE id=?", (x[0],)).fetchone() or [""])[0] == "M" else 1)
-            c["parents"] = [p for p, _ in parents]; cards.append(c)
+            accepted = fact_status(cx, pid, "parents") == "accepted"
+            c["parents"] = [p for p, _ in parents] if accepted else []
+            c["link_trusted"] = link_trusted(cx, tree_id, pid) if accepted else None
+            c["claimed_parents"] = [n for _, n in parents] if parents and not accepted else []
+            cards.append(c)
         gens.append(cards); row = [p for c in cards for p in c["parents"]]
-    return {"home": home, "generations": gens, "others": [c for c in people(cx, tree_id) if c["id"] not in seen]}
+    others = [c for c in people(cx, tree_id) if c["id"] not in seen]
+    return {"home": home, "generations": gens, "others": [c for c in others if c["documents"] or c["conflicts"]], "unconfirmed": len(others)}
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass

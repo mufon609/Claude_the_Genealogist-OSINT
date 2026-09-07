@@ -216,8 +216,13 @@ says how many documents wait for a decision and what can run next; opening a
 card is the person screen, where the waiting documents are decided first and
 everything else follows from them. The cards are laid out from the home person
 (`tools/tree.py home`) upward, one row per generation of ancestors, a card's
-parents above it; then the others in the file with something waiting, and the
-rest folded away with a name search. A badge is a plain count of what waits:
+parents above it, following a parents link only where the owner accepted it:
+the tree ends at the last accepted link, a card at the edge names the parents
+the file claims as a claim, and a link resting on an editable source alone
+says so. The rest of the file's people are a count, with those that have a
+document waiting folded away; nobody enters the tree until a document the
+owner accepts places them, and if a link falls, everything beyond it leaves
+the page. A badge is a plain count of what waits:
 documents to decide, steps that run on their own, steps that need a hand,
 conflicts, and "rests on sources anyone can edit" when every accepted fact of
 the person comes from a T4 source; a person with every key fact accepted and
