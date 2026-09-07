@@ -375,13 +375,21 @@ with its facts as written, a birth calculated from an age and the record's year
 the head. What the reading proposes is decided like any record. That is the
 path for every image until an OCR or HTR extractor exists.
 
-`tools/match.py` runs on every extraction as it is written. For each person
-whose step the record fulfils, every persona is compared with that person and
-their relatives as the catalog knows them, and with two more kinds of
-candidate the record itself points at: a person already accepted under the
-memorial the persona links (the same page is the same identity), and a person
-of the tree with the persona's surname and a birth within three years of the
-persona's, who may stand in the tree with no family link yet. The comparison
+`tools/match.py` runs on every extraction as it is written, one person at a
+time. For each person whose step the record fulfils, every persona is
+compared with that person and their relatives as the catalog knows them, but
+a proposal may name only the person the record was fetched for, a person
+attached to them by accepted links, or a person already accepted under the
+memorial the persona links (the same page is the same identity); a persona
+that fits a relative the file merely claims waits, shown on the card as
+waiting on this decision. Accepting the document as that person's runs the
+matcher again: the record's other personas are then proposed against the
+accepted person's relatives, claims included, and against a person of the
+tree with the persona's surname and a birth within three years who stands in
+the tree with no family link yet; a persona the record relates to the accepted
+person and that fits nobody is proposed as a new person then, never before. So
+a household or a profile is decided one person after another, each on the
+record's own words about the last. The comparison
 is on name, sex, birth and death dates, birth, burial and death place, the
 residence the record gives against every place the tree knows the person at,
 and the relationships the record states; a persona fits only on more than a

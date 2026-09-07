@@ -215,8 +215,19 @@ def persons_for(cx, sha):
         if r[0] not in seen: seen.add(r[0]); out.append(r)
     return out
 
+def linked(cat, a, b):
+    """Whether two persons stand in one family on accepted links: both memberships carry an accepted assertion."""
+    for fid, ra, rb in cat.q("""SELECT fm.family_id, fm.role, x.role FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=?
+                                 WHERE fm.person_id=?""", b, a):
+        if cat.basis("family_member", dumps([fid, a, ra])) == "accepted" and cat.basis("family_member", dumps([fid, b, rb])) == "accepted": return True
+    return False
+
 def match(cx, eid, by, about=None):
-    """about: person ids the owner says the record concerns, when no step or link names them (a family-held file)."""
+    """One person at a time: a record proposes first the persona that may be the person it was fetched for (or a person already
+    attached to them by accepted links, or already accepted under the same memorial); the record's other personas wait. Once a
+    person is accepted on the record, its other personas are proposed against that person's relatives as the catalog knows
+    them, claims included, and a persona the record relates to an accepted person and that fits nobody is proposed as a new
+    person. about: person ids the owner says the record concerns, when no step or link names them (a family-held file)."""
     ext = cx.execute("SELECT artifact_sha256 FROM extraction WHERE id=?", (eid,)).fetchone()
     if not ext: raise SystemExit(f"no extraction {eid}")
     sha = ext[0]; ts = now()
@@ -229,18 +240,29 @@ def match(cx, eid, by, about=None):
         by_tree.setdefault(cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0], []).append((pid, qid, step_id))
     for tree_id, contexts in by_tree.items():
         cat = Catalog(cx, tree_id); cands, ctx_of = [], {}    # candidate persons in order met; candidate id -> the context it came from
+        accepted_here = {r[0] for r in cx.execute("""SELECT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
+                                                      WHERE pe.extraction_id=? AND pp.status='accepted' AND p.tree_id=?""", (eid, tree_id))}
+        open_now = set()                                        # persons a proposal may name now: the record's own people, and what accepted links or decisions attach to them
         for pid, qid, step_id in contexts:                      # a person the record was fetched for keeps their own step and question
-            if pid not in ctx_of: ctx_of[pid] = (pid, qid, step_id); cands.append(candidate(cat, pid))
+            if pid not in ctx_of: ctx_of[pid] = (pid, qid, step_id); cands.append(candidate(cat, pid)); open_now.add(pid)
         for pid, qid, step_id in contexts:
             fam = cat.family(pid)
             for rid in [r for g in ("parents", "spouses", "children", "siblings") for r, _ in fam[g]]:
                 if rid not in ctx_of: ctx_of[rid] = (pid, qid, step_id); cands.append(candidate(cat, rid))
+                if pid in accepted_here or linked(cat, pid, rid): open_now.add(rid)     # a relative reached by an accepted link, or through a person accepted on this record
         for pr in personas:                                     # a persona whose memorial link is already accepted as someone: that person is a candidate
             if pr.get("memorial"):
                 for rid in by_memorial(cx, tree_id, pr["memorial"]):
                     if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
-            for rid in by_name_and_year(cat, cx, tree_id, pr):    # a person of the tree with the persona's surname and birth year, linked to nobody yet
-                if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
+                    open_now.add(rid)
+            if accepted_here:
+                for rid in by_name_and_year(cat, cx, tree_id, pr):    # a person of the tree with the persona's surname and birth year, linked to nobody yet
+                    if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
+                    open_now.add(rid)
+        accepted_personas = {r[0] for r in cx.execute("""SELECT pp.persona_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
+                                                          WHERE pe.extraction_id=? AND pp.status='accepted' AND p.tree_id=?""", (eid, tree_id))}
+        related_to_accepted = lambda pr: any(o in accepted_personas for _, o, _, _ in pr["relations"]) or bool(cx.execute(
+            f"""SELECT 1 FROM persona_relation r WHERE r.related_persona_id=? AND r.persona_id IN ({','.join('?' * len(accepted_personas)) or "''"})""", (pr["id"], *accepted_personas)).fetchone())
         chosen = {}                                             # persona id -> candidate, settled in passes so relationships can be checked
         nearly = {}                                             # persona id -> candidate of the same name with a disagreement: proposed, never taken
         for _ in range(2):
@@ -257,6 +279,8 @@ def match(cx, eid, by, about=None):
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pr["id"])).fetchone(): continue
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
             if pr["id"] in chosen and pr["role"] == "named in the text" and pr["id"] in nearly: continue   # a name in running text on the name alone is a hint on the page, not a card
+            if pr["id"] in chosen and chosen[pr["id"]]["id"] not in open_now: continue   # fits a person nothing yet attaches to this record: waits for the decision on the record's own person
+            if pr["id"] not in chosen and not related_to_accepted(pr): continue        # a new person is proposed only from a record already accepted as somebody's, for those it relates to them
             if pr["id"] in chosen:
                 c = chosen[pr["id"]]; fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
                 others = [o["name"] for o in cands if o["id"] != c["id"] and compare(cat, pr, o, chosen)[0]]

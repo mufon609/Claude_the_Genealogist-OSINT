@@ -99,9 +99,9 @@ def card(cx, tree_id, prop_id):
     # ---- relationships the record states, both ways, with how the other persona stands
     rels = []
     for r in cx.execute("SELECT r.kind, r.value_text, o.id AS oid, o.name_text AS other FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (pe["id"],)):
-        rels.append({"direction": "is", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]), "mapped": r["kind"] in REL_WORD, "oid": r["oid"]})
+        rels.append({"direction": "is", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]).replace("no proposal", "waits on this decision"), "mapped": r["kind"] in REL_WORD, "oid": r["oid"]})
     for r in cx.execute("SELECT r.kind, r.value_text, o.id AS oid, o.name_text AS other FROM persona_relation r JOIN persona o ON o.id=r.persona_id WHERE r.related_persona_id=?", (pe["id"],)):
-        rels.append({"direction": "has", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]), "mapped": r["kind"] in REL_WORD, "oid": r["oid"]})
+        rels.append({"direction": "has", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]).replace("no proposal", "waits on this decision"), "mapped": r["kind"] in REL_WORD, "oid": r["oid"]})
     def sibling_place(r):
         """Where a sibling stated on the record would put this persona: the other's accepted parents, or nothing."""
         pp = cx.execute("SELECT pp.person_id FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND p.tree_id=?", (r["oid"], tree_id)).fetchone()
