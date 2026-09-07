@@ -398,7 +398,9 @@ residence the record gives against every place the tree knows the person at,
 and the relationships the record states; a persona fits only on more than a
 name and a year (a place, a death, a full date or a stated relationship); a census index's estimated birth year and a
 household member's age become a calculated birth year the matcher allows two
-years on. A given name agrees through its common short forms (Willie for
+years on. A surname agrees as written or as a spelling variant, the same
+Soundex code within two edits (Ahearn and Ahern, Brant and Brandt), said so
+in the rationale. A given name agrees through its common short forms (Willie for
 William, Charley for Charles) and across a one-letter slip in a longer name; a
 wife written under her husband's surname is not a surname disagreement. A
 persona of the same name as a candidate that disagrees on something else is

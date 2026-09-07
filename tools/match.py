@@ -62,6 +62,36 @@ def same_given(a, b):
         return any(l[:i] + l[i + 1:] == s for i in range(len(l)))
     return False
 
+def soundex(s):
+    """The American Soundex code of a surname, the index makers' own way of saying two spellings are one name."""
+    s = re.sub(r"[^a-z]", "", (s or "").lower())
+    if not s: return ""
+    codes = {**dict.fromkeys("bfpv", "1"), **dict.fromkeys("cgjkqsxz", "2"), **dict.fromkeys("dt", "3"), "l": "4", **dict.fromkeys("mn", "5"), "r": "6"}
+    out, last = s[0].upper(), codes.get(s[0], "")
+    for ch in s[1:]:
+        c = codes.get(ch, "")
+        if c and c != last: out += c
+        if ch not in "hw": last = c
+    return (out + "000")[:4]
+
+def edits(a, b):
+    """The edit distance between two keys."""
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1): cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+def same_surname(a, b):
+    """Whether two surname keys are one name: written the same, or a spelling variant (the same Soundex code and at most two
+    edits apart, so Ahearn and Ahern, Brant and Brandt, Kriebel and Krebel; not Brant and Grant). Returns "" when they differ,
+    "agrees" when written the same, "variant" for a spelling variant."""
+    if not a or not b: return ""
+    if a == b: return "agrees"
+    if len(a) >= 4 and len(b) >= 4 and soundex(a) == soundex(b) and edits(a, b) <= 2: return "variant"
+    return ""
+
 def name_keys(cat, pid):
     """(first given, surname) keys for a person: every name row and every non-rejected alias."""
     keys = set()
@@ -88,14 +118,16 @@ def compare(cat, persona, cand, chosen):
     agree, disagree, absent = [], [], []
     keys = name_keys(cat, cand["id"])
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]     # every name the record gives: at birth, current, as written elsewhere on it
-    pg, rest = next(((g, r) for g, r in names if any(same_given(g, k) for k, _ in keys) and any(t and t == s for t in r for _, s in keys)), names[0])
+    pg, rest = next(((g, r) for g, r in names if any(same_given(g, k) for k, _ in keys) and any(same_surname(t, s) for t in r for _, s in keys)), names[0])
     ps = rest[-1] if rest else ""
     given_ok = any(same_given(g, k) for g, _ in names for k, _ in keys)
-    surname_ok = any(t and t == s for _, r in names for t in r for _, s in keys)
+    how = next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s) == "agrees"), None) \
+          or next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s)), None)
+    surname_ok = bool(how)
     married = bool(ps) and not surname_ok and persona.get("spouse_surname") == ps           # a wife under her husband's surname on the record
     (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
-    elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
+    elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'}" + (" as a spelling variant" if how == "variant" else "") + f" (record {persona['name']}, tree {cand['name']})")
     else: absent.append("surname")
     if persona["sex"] and cand["sex"] in ("M", "F"): (agree if persona["sex"] == cand["sex"] else disagree).append(f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)")
     else: absent.append("sex")

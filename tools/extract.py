@@ -614,6 +614,10 @@ def write_record(w, parsed):
     name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
     role = (f.get("Relationship to Head of Household") or "subject").lower()
     subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark")})
+    year = re.search(r"\b(1[789]\d\d)\b", f.get("Event Date") or "") or re.fullmatch(r".*\b(1[789]\d\d)\b.*", re.sub(r"\b1[789]\d\d-1[789]\d\d\b", "", parsed.get("collection") or ""))   # the record's own date, else the collection's single year; a range is not a year
+    age = re.match(r"\s*(\d{1,3})", f.get("Age") or "")
+    if year and age and not (by_type.get("Birth") or {}).get("date"):     # the principal's birth year, calculated from the age on the record's date, as for a household member
+        by_type.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
     write_facts(w, subject, by_type)
     seq0 = 2
     for label, who in named:                                         # a relative the record names in a field: Father's Name, Mother's Name, Spouse
@@ -621,7 +625,6 @@ def write_record(w, parsed):
         pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
         w.fact(pid, "Name", who, labels=[label])
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
-    year = re.search(r"\b(1[789]\d\d)\b", f.get("Event Date") or "") or re.fullmatch(r".*\b(1[789]\d\d)\b.*", re.sub(r"\b1[789]\d\d-1[789]\d\d\b", "", parsed.get("collection") or ""))   # the record's own date, else the collection's single year; a range is not a year
     for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], seq0):   # a surname alone or UNKNOWN names nobody
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)
