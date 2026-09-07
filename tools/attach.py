@@ -4,9 +4,10 @@ and the matcher once, after the log rows exist, so the matcher sees every person
 One code path for tools/attach_inbox.py and the person screen's "Archive + log". The record's identity is read from the
 file itself, never from its name: a Find a Grave memorial id from the memorial's own markup (memNumberLabel), a
 FamilySearch ark from the record page's print header. The steps a record fulfils are the tree's fetch steps whose citation
-carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record id the artifact was
-archived under (and every id naming the same census page) once it is in the archive, else the census page the record
-page itself names (year, enumeration district, sheet, county and state) against each step's citation details. A file
+carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record ids the artifact holds
+(catalog.holds: its own and, on the same sheet, those of the people the page names) once it is in the archive, else the
+census page the record page itself names (year, enumeration district, sheet, county and state) against each step's
+citation details, for the people the page names by name and birth year. A file
 whose identity matches no step is not archived by the inbox tool; the screen still attaches it to the step the person
 chose. Archived bytes are linked, not copied, and a step already logged with the same artifact is not logged again.
 """
@@ -135,8 +136,13 @@ def _steps_by_kind(cx, tree_id, parsed):
     return out
 
 def _named_on(cx, person_id, parsed):
-    """Whether a record page names this person: its subject or a household member (catalog.person_named)."""
-    return person_named(cx, person_id, [(parsed or {}).get("name") or ""] + [m.get("name") or "" for m in (parsed or {}).get("members") or []])
+    """Whether a record page names this person: its subject or a household member, each with the birth year its age and the
+    record's year give (catalog.person_named)."""
+    p = parsed or {}; f = {k.lower(): v for k, v in p.get("fields") or []}
+    yr = _int(f.get("event date")) or _int(p.get("collection"))
+    born = lambda age: yr - _int(age) if yr and _int(age) is not None else None
+    people = [(p.get("name") or "", born(f.get("age")))] + [(m.get("name") or "", born(m.get("age"))) for m in p.get("members") or []]
+    return person_named(cx, person_id, people)
 
 def _split_name(text): return name_parts(text)
 

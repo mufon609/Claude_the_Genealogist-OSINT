@@ -15,7 +15,7 @@ card from card() and render() here, so the two never drift. Nothing here writes.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, ROOT, object_path, resolve_tree
-from catalog import Catalog, fetch_target, tier_sql, year
+from catalog import Catalog, fetch_target, tier_sql, year, held_for, holds
 from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, same_surname
 from conclude import sibling_home
 
@@ -113,7 +113,7 @@ def card(cx, tree_id, prop_id):
     # ---- what accepting closes
     closes = []; subject = pay.get("subject_person_id")
     if person_id:
-        held = cat.held_apids(); ids = {k for k, v in held.items() if v == sha}
+        hs = cat.holdings(); ids = {k for k in holds(cx, sha, cat.page_groups()) if held_for(cx, k, person_id, hs) == sha}   # the citations this record holds for this person
         for st in cx.execute("SELECT id, row_key, question_id, status FROM search_plan WHERE person_id=? AND kind='fetch' ORDER BY seq", (person_id,)):
             loc = cx.execute("SELECT locator_kind, locator_value FROM search_plan WHERE id=?", (st["id"],)).fetchone()
             if not ((loc["locator_kind"] == "apid" and loc["locator_value"] in ids) or (loc["locator_kind"] != "apid" and cx.execute("SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=?", (sha, loc["locator_kind"], loc["locator_value"])).fetchone())): continue

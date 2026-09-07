@@ -107,21 +107,31 @@ def name_parts(text):
     parts = [key(x) for x in re.sub(r"^(mr|mrs|miss|ms|dr)\.?\s+", "", (text or "").strip(), flags=re.I).split() if key(x)]
     return (parts[0], parts[1:]) if parts else ("", [])
 
-def person_named(cx, person_id, names):
-    """Whether a record that names these people, as written, names this person: one of the names carries the person's first given
-    name and a surname the tree holds for them, as written or as a spelling variant, or a wife's husband's surname."""
+def person_named(cx, person_id, people):
+    """Whether a record that names these people names this person. Each is a name as written or (name, birth year): one of them
+    carries the person's first given name and a surname the tree holds for them, as written or as a spelling variant, or a wife's
+    husband's surname, and where the record and the tree both give a birth year the two lie within three years (a calculated
+    year allows two; a five-year-old and her aunt of the same name are not one person)."""
     keys = [(key((g or "").split()[0]) if g else "", key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (person_id,))]
+    born = next((year(r[0]) for r in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                                   WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (person_id,))), None)
     keys += [(g, key((sp or "").split()[-1])) for g, _ in list(keys) for sp, in cx.execute("""SELECT p.display_name FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.role='partner' AND x.person_id<>fm.person_id
                                                                                                    JOIN person p ON p.id=x.person_id WHERE fm.person_id=? AND fm.role='partner'""", (person_id,)) if sp]
-    for n in names:
+    for item in people:
+        n, y = item if isinstance(item, tuple) else (item, None)
         pg, rest = name_parts(n)
-        if pg and any(pg == g and any(same_surname(t, s) for t in rest) for g, s in keys): return True
+        if not (pg and any(pg == g and any(same_surname(t, s) for t in rest) for g, s in keys)): continue
+        if y and born and abs(y - born) > 3: continue
+        return True
     return False
 
-def page_names(cx, sha):
-    """The names a record page holds, as written: the personas of its current extraction (the latest not superseded, not failed)."""
+def page_people(cx, sha):
+    """The people a record page holds, as written: (name, birth year or None) per persona of its current extraction (the latest
+    not superseded, not failed), the year from the persona's Birth fact, calculated from an age or given."""
     e = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND status<>'failed' AND superseded_by IS NULL ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
-    return [r[0] for r in cx.execute("SELECT name_text FROM persona WHERE extraction_id=?", (e[0],))] if e else []
+    if not e: return []
+    return [(n, year(b)) for n, b in cx.execute("""SELECT pe.name_text, (SELECT f.date_start FROM persona_fact f WHERE f.persona_id=pe.id AND f.fact_type='Birth' AND f.date_start IS NOT NULL LIMIT 1)
+                                                   FROM persona pe WHERE pe.extraction_id=? ORDER BY pe.sequence""", (e[0],))]
 
 def cited_persons(cx, apid):
     """The persons a citation sits on: the subject of every assertion carrying this record id, through the event's participant."""
@@ -137,8 +147,24 @@ def holds(cx, sha, groups=None):
     if not a or a[0] != "apid" or not a[1]: return set()
     group = same_page(cx, a[1], groups)
     if not (a[2] or "").startswith("text/html"): return set(group)
-    names = page_names(cx, sha)
-    return {a[1]} | {x for x in group if x != a[1] and names and any(person_named(cx, p, names) for p in cited_persons(cx, x))}
+    people = page_people(cx, sha)
+    return {a[1]} | {x for x in group if x != a[1] and people and any(person_named(cx, p, people) for p in cited_persons(cx, x))}
+
+def holdings(cx, groups=None):
+    """[(sha256, the record id it was archived under, mime, the ids it holds, the people it holds or None for an image)] for every
+    artifact archived under a record id, first archived first."""
+    groups = page_groups(cx) if groups is None else groups
+    return [(sha, own, mime or "", holds(cx, sha, groups), page_people(cx, sha) if (mime or "").startswith("text/html") else None)
+            for sha, own, mime in cx.execute("SELECT sha256, locator_value, mime FROM artifact WHERE locator_kind='apid' AND locator_value IS NOT NULL ORDER BY retrieved_at, sha256")]
+
+def held_for(cx, apid, person_id, holdings_=None):
+    """The archived record that holds this citation for this person: an artifact archived under the id itself, a sheet image or a
+    schedule naming the sheet, or a record page that names the person. None when the archive holds the sheet but not the
+    person's household (a citation on a parent to the daughter's own record id is not held by the daughter's household page)."""
+    for sha, own, mime, ids, people in (holdings(cx) if holdings_ is None else holdings_):
+        if apid not in ids: continue
+        if own == apid or people is None or person_named(cx, person_id, people): return sha
+    return None
 
 def held_apids(cx, groups=None):
     """{record id: sha256} for every citation whose record is in the archive: the id the record was archived under and every other
@@ -148,6 +174,8 @@ def held_apids(cx, groups=None):
     for sha, in cx.execute("SELECT sha256 FROM artifact WHERE locator_kind='apid' ORDER BY retrieved_at, sha256"):
         for a in holds(cx, sha, groups): out.setdefault(a, sha)
     return out
+
+HOLDERS = None                                   # data/holders.csv, read once per process by fetch_target
 
 def fetch_target(apid, url=None, fields=None):
     """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave; the free
@@ -293,7 +321,7 @@ class Catalog:
         self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or "", "connector": r[5] or ""}
                         for r in self.q("SELECT id, name, access, status, cost, connector FROM source")}
         self.holders = holders()
-        self._groups = self._held = None
+        self._groups = self._held = self._holdings = None
     def disagreements(self, pid):
         """Where an accepted record says something else than the tree's event: for each event of the person, every Accepted
         assertion whose persona fact disagrees with the event's own date (compared as dates) or place, as one line naming both
@@ -387,8 +415,9 @@ class Catalog:
     def basis(self, kind, sid):
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind=? AND subject_id=?", kind, sid)}
         return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "claim")
-    def citations(self, kind, sid):
-        """[(collection name, apid, held artifact sha or None, collection id)] for a subject."""
+    def citations(self, kind, sid, person_id=None):
+        """[(collection name, apid, held artifact sha or None, collection id)] for a subject; held for the person given, when
+        one is (a page holds a citation for the people it names), else for anyone."""
         out = []
         for cname, notes, sha, tier, cid in self.q(f"""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, {tier_sql()}, COALESCE(c.id, ac.id) FROM assertion a
                 LEFT JOIN collection c ON json_valid(a.notes) AND c.id=json_extract(a.notes,'$.collection_id')
@@ -396,7 +425,7 @@ class Catalog:
                 LEFT JOIN collection ac ON ac.id=ar.collection_id
                 WHERE a.subject_kind=? AND a.subject_id=? AND a.status<>'rejected'""", kind, sid):
             apid = json.loads(notes).get("apid") if notes and notes.startswith("{") else None
-            held = sha if sha and (tier or "")[:2] in ("T1", "T2", "T3") else self.held_apids().get(apid)   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
+            held = sha if sha and (tier or "")[:2] in ("T1", "T2", "T3") else (self.held_for(apid, person_id) if person_id else self.held_apids().get(apid))   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
             if cname or held: out.append((cname or "", apid, held, cid))
         return out
     def waiting(self, pid):
@@ -439,12 +468,12 @@ class Catalog:
         return fam
     def fetched_rows(self, pid):
         """Checklist row keys (record:instance) with a done step whose record is held: an archived artifact in its log, or an
-        artifact at the step's locator (for a record id, at any id naming the same census page). {row key: whether a held
+        artifact at the step's locator (for a record id, one that holds it for this person). {row key: whether a held
         record is on the person themselves (a step with on_json []) rather than on a relative}."""
         out = {}
         for sid, rk, lkind, lval, on in self.q("SELECT id, row_key, locator_kind, locator_value, on_json FROM search_plan WHERE person_id=? AND status='done'", pid):
             held = (bool(self.q("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]'", sid))
-                    or (lkind == "apid" and lval in self.held_apids()) or bool(lkind and lval and self.q("SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval)))
+                    or (lkind == "apid" and bool(self.held_for(lval, pid))) or bool(lkind and lval and self.q("SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval)))
             if held: out[rk] = out.get(rk, False) or (on or "[]") == "[]"
         return out
     def page_groups(self):
@@ -454,6 +483,12 @@ class Catalog:
         """{record id: sha256} for every citation whose record is in the archive: what each artifact holds (holds)."""
         if self._held is None: self._held = held_apids(self.cx, self.page_groups())
         return self._held
+    def holdings(self):
+        if self._holdings is None: self._holdings = holdings(self.cx, self.page_groups())
+        return self._holdings
+    def held_for(self, apid, pid):
+        """The archived record holding this citation for this person (held_for), or None."""
+        return held_for(self.cx, apid, pid, self.holdings()) if apid else None
     def same_page(self, apid): return same_page(self.cx, apid, self.page_groups())
     def cited(self):
         """The citation's own details per Ancestry record id, from the import's assertions: {apid: {page, url, names}}, names being
@@ -471,8 +506,8 @@ class Catalog:
         return out
     def person_citations(self, pid):
         """All citations attached to a person: on the person row and on every event of theirs."""
-        cits = self.citations("person", pid)
+        cits = self.citations("person", pid, pid)
         for eid, in self.q("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=?", pid):
-            cits += self.citations("event", eid)
+            cits += self.citations("event", eid, pid)
         return cits
 

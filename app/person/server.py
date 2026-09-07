@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, dumps, inbox_dir, now, ulid
-from catalog import Catalog, fetch_target, held_apids, search_target, tier_sql
+from catalog import Catalog, fetch_target, held_for, holdings, holds, search_target, tier_sql
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
@@ -47,11 +47,11 @@ def plan_view(cx, pid):
     questions = [{"id": q["id"], "kind": q["kind"], "detail": json.loads(q["detail_json"] or "{}"),
                   "steps": cx.execute("SELECT COUNT(*) FROM search_plan WHERE question_id=?", (q["id"],)).fetchone()[0]}
                  for q in cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' ORDER BY kind", (pid,))]
-    steps = []; archived = held_apids(cx)
+    steps = []; hs = holdings(cx)
     for s in cx.execute("SELECT * FROM search_plan WHERE person_id=? ORDER BY seq", (pid,)):
         logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at", (s["id"],))]
         col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
-        if s["locator_kind"] == "apid": sha = archived.get(s["locator_value"])
+        if s["locator_kind"] == "apid": sha = held_for(cx, s["locator_value"], pid, hs)
         else: a = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None; sha = a["sha256"] if a else None
         fields = json.loads(s["query_json"])
         steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"], "archived": sha,
@@ -182,7 +182,7 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
                  f"{name(m['person'])} is a {'child' if m['role'] == 'child' else 'spouse'} of {name(m['of'])}: " + ("a new link, on this record" if m["new"] else "this record accepted as evidence on the link") for m in members]
         for q in cx.execute(f"SELECT kind, detail_json FROM research_question WHERE id IN ({','.join('?'*len(answered))})", answered) if answered else []:
             closed.append(f"question answered: {q['kind']} {json.loads(q['detail_json'] or '{}').get('detail') or ''}".strip())
-        held = held_apids(cx); ids = {k for k, v in held.items() if v == pe["artifact_sha256"]}
+        hs = holdings(cx); ids = {k for k in holds(cx, pe["artifact_sha256"]) if held_for(cx, k, person_id, hs) == pe["artifact_sha256"]}
         for st in cx.execute("SELECT row_key, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='done' ORDER BY seq", (person_id,)):
             if (st["locator_kind"] == "apid" and st["locator_value"] in ids) or (st["locator_kind"] != "apid" and st["locator_value"] and cx.execute("SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=?", (pe["artifact_sha256"], st["locator_kind"], st["locator_value"])).fetchone()):
                 closed.append(f"the {st['row_key'].split(':')[0]} row for {who}: held, this record")
@@ -236,9 +236,9 @@ def person_view(cx, tree_id, pid):
     for sp in r["family"]["spouses"]:                                    # what the couple's family says: married when, divorced when
         f = next((x for x in fam["families"] if x["spouse_id"] == sp["id"]), None)
         if f: sp["married"] = [m["year"] for m in f["marriages"] if m["year"]]; sp["divorced"] = [d["date"] or str(d["year"]) for d in f["divorces"]]
-    held = cat.held_apids(); cited = cat.cited()
+    cited = cat.cited()
     for row in r["checklist"]["A"] + r["checklist"]["B"]:
-        for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["held"] = c["apid"] in held; c["sha256"] = held.get(c["apid"])   # a held row opens its record through the artifact
+        for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["sha256"] = cat.held_for(c["apid"], pid); c["held"] = bool(c["sha256"])   # a held row opens its record through the artifact
     for rec in r["footprint"]["records"]: rec.update(fetch_target(rec.get("apid"), cited.get(rec.get("apid"), {}).get("url")))
     return r
 

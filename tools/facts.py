@@ -8,7 +8,7 @@ regenerates the person's plan.
 """
 import json, re
 from treelib import dumps, now, ulid
-from catalog import fetch_target, held_apids, tier_sql
+from catalog import fetch_target, held_for, holdings, tier_sql
 from conclude import answer_questions
 
 KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
@@ -38,14 +38,14 @@ def fact_status(cx, pid, field):
     return "undecided"
 
 def evidence_rows(cx, pid, field):
-    held = held_apids(cx)
+    hs = holdings(cx)
     out = []
     for k, i in fact_subjects(cx, pid, field):
         for r in cx.execute(f"""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, {tier_sql()} AS trust_tier FROM assertion a
                                LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id WHERE a.subject_kind=? AND a.subject_id=?""", (k, i)):
             n = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
             apid = n.get("apid"); uncited = bool(n.get("uncited")); vouched = bool(n.get("vouched"))
-            visible = uncited or vouched or (apid in held) or ((r["trust_tier"] or "")[:2] in ("T1", "T2", "T3"))   # the evidence the person can see
+            visible = uncited or vouched or bool(apid and held_for(cx, apid, pid, hs)) or ((r["trust_tier"] or "")[:2] in ("T1", "T2", "T3"))   # the evidence the person can see
             ident = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in cx.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=? ORDER BY kind", (r["artifact_sha256"],))) if r["artifact_sha256"] else ""
             if not ident and r["artifact_sha256"]:
                 loc = cx.execute("SELECT locator_value, manifest_json FROM artifact WHERE sha256=?", (r["artifact_sha256"],)).fetchone()

@@ -97,7 +97,7 @@ def footprint(cat: Catalog, pid: str):
                 unlinked.append({"id": oid, "name": oname, "role": gen, "why": f"{oname} [{oid[-6:]}]: same surname, born {ob}" + (f", {', '.join(sorted(states & ostates)).title()}" if states & ostates else "") + f"; {gen}, not linked"})
 
     # ---- records on relatives
-    own_keys = set(); held_apids = cat.held_apids()
+    own_keys = set()
     for cname, apid, held, _ in cat.person_citations(pid):
         if apid or held: own_keys.add(f"page:{cname}" if re.search(r"Federal Census|State Census", cname or "") else (apid or held))
     by_key = {}
@@ -106,7 +106,7 @@ def footprint(cat: Catalog, pid: str):
             key = apid or held
             if not key: continue
             if re.search(r"Federal Census|State Census", cname or ""): key = f"page:{cname}"   # one household page, many record ids
-            r = by_key.setdefault(key, {"key": key, "apid": apid, "collection": cname, "collection_id": cid, "held": held or (apid in held_apids), "on": [], "on_subject": key in own_keys})
+            r = by_key.setdefault(key, {"key": key, "apid": apid, "collection": cname, "collection_id": cid, "held": held or bool(cat.held_for(apid, rid)), "on": [], "on_subject": key in own_keys})
             if (rname, rel) not in r["on"]: r["on"].append((rname, rel))
     records = []
     for r in by_key.values():

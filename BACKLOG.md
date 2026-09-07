@@ -194,17 +194,6 @@ the place strings it resolves or resets, so a reset-and-rerun cannot be
 audited after the fact. One audit row per string whose status or place
 changed.
 
-### C14. Four 1940 census rows held in error on the live catalog
-
-The 1940 page fetched for Frederick Micheal Ahearn Jr was logged found on
-nine steps by the same-sheet rule; it shows one household, so the rows of
-Abram C Brant, Charlotte D Lukens, James Joseph Ahearn and Francis Thomas
-Ahearn read held with no persona of theirs. The rule now holds only the
-household the page names. Owner run, once: `log_search.py --reopen <step
-id> --note "the page held shows another household on the sheet"` for each of
-those four steps (`log_search.py --list "<person>"` shows them as done on the
-1940 row), under the owner's --by.
-
 ---
 
 ## Externally blocked

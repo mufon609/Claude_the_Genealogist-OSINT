@@ -4,9 +4,9 @@
 usage: tools/match.py <extraction id> [--db catalog/tree.db] [--by user:<you>]
 
 The record was fetched for one or more persons: those whose step logged the
-artifact, those whose fetch step points at the same locator (for a record id,
-at any id naming the same census page: every household member cited on it),
-and those already matched on it by an accepted persona link. The candidates
+artifact, those whose fetch step points at a record id the artifact holds
+(catalog.holds: the household a record page names, the whole sheet for an
+image), and those already matched on it by an accepted persona link. The candidates
 are those persons and their relatives as the catalog knows them (parents,
 spouses, children, siblings); a person the record was fetched for keeps their
 own step and question on the proposal, a relative takes the context they were

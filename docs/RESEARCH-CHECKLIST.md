@@ -75,11 +75,15 @@ but the expectation is "counted under the head", not "named".
 ## 3. From checklist to gaps to search tasks (automatic on opening a profile)
 
 For each checklist row: **held** (archived), **cited but not held** (the old
-tree pointed at it), **missing**, or **not applicable**. A census page is held
-for every household member cited on it: the citation's own details (collection,
-year, census place, enumeration district, sheet) name the page, whichever
-member's record id it was archived under. Everything that is not held is a gap,
-and every gap has a pre-built search step:
+tree pointed at it), **missing**, or **not applicable**. What an archived record
+holds depends on what it shows: a sheet image or a 1950 schedule shows the whole
+sheet, so it holds every citation whose own details (collection, year, census
+place, enumeration district, sheet) name that sheet; a record page shows one
+household, so it holds its own citation and those of the people it names, by
+first given name, surname (as written or a spelling variant) and birth year,
+never another household's on the same sheet. A relative's held record that does
+not name the person is not their household: the row reads missing, not cited.
+Everything that is not held is a gap, and every gap has a pre-built search step:
 
 | Gap | Pre-built search |
 |---|---|
@@ -335,7 +339,8 @@ No scores, and no count dressed as one.
 - the checkbox and revision state = `search_plan.revisions_json` on the step,
   not on the facts;
 - held = the row's record is in the archive: a done step with an archived
-  artifact in its `search_log`, or an artifact archived under the citation's
-  record id or under another id naming the same census page;
+  artifact in its `search_log`, or an artifact that holds the citation for the
+  person (`catalog.held_for`: archived under the citation's record id, a sheet
+  image naming the sheet, or a record page naming the person);
 - results = `proposal.question_id` pointing at the question the record
   answers.

@@ -14,9 +14,9 @@ on, the page text's parts, the memorial URL), basis citation. A citation whose
 collection has no free holder stays a fetch step with mode blocked and the
 reason in its rationale. Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated unless they were run,
-marks a fetch step done when its record is in the archive (under the step's
-record id or under another id naming the same census page: a household's page
-is held for every member cited on it), keeps done steps, and closes questions
+marks a fetch step done when an archived record holds its citation for the
+person (catalog.held_for: the step's own record id, a sheet image of the page,
+or a record page naming the person), keeps done steps, and closes questions
 whose gap has gone (closed_reason 'gap_gone'). A question a person dismissed or answered stays closed. Nothing
 here runs a search. Before writing anything the plan checks that every holder
 in data/holders.csv and every source id the checklist emits is a row in the
@@ -166,9 +166,8 @@ def plan_person(cx, tree_id, pid, by):
         else:
             cx.execute("""INSERT INTO search_plan (row_key,question_id,seq,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,collection_id,on_json,sources_json,mode,expected,rationale,
                           id,person_id,step_key,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'planned',?)""", cols + (ulid(), pid, st["step_key"], ts)); stats["steps_new"] += 1
-    held = cat.held_apids()                                              # a fetch step whose record is in the archive is done, whichever household member's id it was archived under
     for sid, lkind, lval in cx.execute("SELECT id, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='planned'", (pid,)).fetchall():
-        if (lkind == "apid" and lval in held) or (lkind and lkind != "apid" and lval and cx.execute("""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?
+        if (lkind == "apid" and cat.held_for(lval, pid)) or (lkind and lkind != "apid" and lval and cx.execute("""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?
                 UNION SELECT 1 FROM artifact_locator WHERE kind=? AND value=?""", (lkind, lval, lkind, lval)).fetchone()):
             cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,)); stats["steps_done_by_archive"] += 1
     for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes, unless it was run or is done

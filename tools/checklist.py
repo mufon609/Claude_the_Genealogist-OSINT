@@ -120,6 +120,7 @@ def build(cat: Catalog, pid: str):
         if any(rx.search(c[0]) for c in own): return "cited", None
         if household:
             for rname, (rel, cits) in rel_cits.items():
+                cits = [c for c in cits if not (c[2] and c[1] and not cat.held_for(c[1], pid))]   # a held record on the relative that does not name this person is not their household
                 if any(c[2] and rx.search(c[0]) for c in cits): return "held", rname
                 if any(rx.search(c[0]) for c in cits): return "cited", rname
         return "missing", None
@@ -140,6 +141,7 @@ def build(cat: Catalog, pid: str):
         for rname, rel, cits in people:
             for cname, apid, held, cid in cits:
                 if not apid or not rx.search(cname or ""): continue
+                if rname and held and not cat.held_for(apid, pid): continue        # the relative's record is held and does not name this person: not their household
                 key = f"page:{cname}" if re.search(r"Federal Census|State Census", cname) else apid
                 c = out.setdefault(key, {"apid": apid, "collection": cname, "collection_id": cid, "on": []})
                 if rname and [rname, rel] not in c["on"]: c["on"].append([rname, rel])
