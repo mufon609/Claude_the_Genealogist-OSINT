@@ -207,7 +207,9 @@ Grave memorial: one call, about half a minute from navigation to file, the
 saved page a quarter of the rendered size, nothing transcribed. If the
 browser is set to ask where to save each download, turn that off first or
 answer the dialog by hand; a dialog left open blocks every later browser
-call. Never encode a page and read it out through the model in slices.
+call. Chrome lets a page start one download without a hand on it: a second
+page saved in the same tab lands nowhere, so each page gets its own tab,
+closed after the file arrives. Never encode a page and read it out through the model in slices.
 `tools/attach_inbox.py` then takes every file in `inbox/`: it reads the
 record's own identity from the file (the memorial id, the ark), archives it
 once, logs a found run on every fetch step whose citation carries that
