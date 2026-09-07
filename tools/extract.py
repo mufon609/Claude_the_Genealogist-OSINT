@@ -384,6 +384,10 @@ def field_facts(fields):
         if etype and key in ("event date", "event place"): label = f"{etype} {key.split()[1].title()}"; key = label.lower()
         rel = re.fullmatch(r"(father|mother|spouse|husband|wife|informant|child)(?:'s)?(?: name)?", key)
         if rel: named[rel.group(1)] = value; continue
+        if key == "birth year (estimated)":                              # the index's own estimate from the age: a calculated birth year
+            slot = by_type.setdefault("Birth", {"date": None, "place": None, "values": []})
+            if slot["date"] is None: slot["date"] = (f"CAL {re.sub(r'[^0-9]', '', value)}", label)
+            continue
         ftype, part = fact_for(label)
         if ftype is None: ftype, part = "Unknown", "value"
         slot = by_type.setdefault(ftype, {"date": None, "place": None, "values": []})
@@ -488,9 +492,13 @@ def write_record(w, parsed):
     role = (f.get("Relationship to Head of Household") or "subject").lower()
     subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark")})
     write_facts(w, subject, by_type)
+    year = re.search(r"\b(1[789]\d\d)\b", (f.get("Event Date") or "") + " " + (parsed.get("collection") or ""))
     for seq, m in enumerate(parsed["members"], 2):
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)
+        age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
+        if year and age and not (mb.get("Birth") or {}).get("date"):     # a household member's birth year, calculated from the age on the census date
+            mb.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
         pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url")})
         write_facts(w, pid, mb)
         w.relation(pid, subject, household_kind(m["role"]), m["role"], m["section"])

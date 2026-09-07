@@ -44,6 +44,23 @@ REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblin
 
 PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt", "cpl", "pfc", "cmdr", "adm"}
 def first_given(s): return key((s or "").split()[0]) if (s or "").strip() else ""
+NICK = [{"william", "willie", "will", "bill", "billy"}, {"charles", "charley", "charlie", "chas"}, {"robert", "bob", "bobby", "rob"}, {"john", "johnny", "jno", "jack"},
+        {"james", "jim", "jimmy", "jas"}, {"joseph", "joe", "jos"}, {"thomas", "tom", "thos"}, {"richard", "dick"}, {"edward", "ed", "eddie", "ned"}, {"frederick", "fred", "freddie"},
+        {"raymond", "ray"}, {"daniel", "dan", "danny"}, {"benjamin", "ben"}, {"samuel", "sam"}, {"elizabeth", "eliza", "lizzie", "betty", "beth", "bess", "bessie"}, {"margaret", "maggie", "peggy", "madge"},
+        {"mary", "mamie", "polly", "mae", "may"}, {"catherine", "katherine", "kate", "katie", "kathryn"}, {"ann", "anna", "annie", "nancy"}, {"sarah", "sallie", "sally"}, {"jane", "jennie", "jenny"},
+        {"lura", "lou", "laura"}, {"corinne", "carinne", "corrine"}, {"helen", "nellie", "ellen"}, {"susan", "susanna", "susannah", "sue", "susie"}, {"minerva", "minnie"}, {"matthew", "matt"},
+        {"patrick", "pat", "paddy"}, {"abraham", "abram", "abe"}, {"charlotte", "lottie"}, {"emily", "emma"}, {"martha", "mattie", "patsy"}, {"cassandra", "cassie"}, {"ollie", "oliver", "olive"}]
+def same_given(a, b):
+    """Two given-name keys are the same name: equal, one an initial of the other, a nickname of the other, or one letter apart when
+    both are five letters or longer (a transcriber's slip)."""
+    if not a or not b: return False
+    if a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b)): return True
+    if any(a in g and b in g for g in NICK): return True
+    if min(len(a), len(b)) >= 5 and abs(len(a) - len(b)) <= 1:
+        if len(a) == len(b): return sum(x != y for x, y in zip(a, b)) == 1
+        s, l = (a, b) if len(a) < len(b) else (b, a)
+        return any(l[:i] + l[i + 1:] == s for i in range(len(l)))
+    return False
 
 def name_keys(cat, pid):
     """(first given, surname) keys for a person: every name row and every non-rejected alias."""
@@ -69,10 +86,12 @@ def compare(cat, persona, cand, chosen):
     """Agreements, disagreements and absences between a persona and a candidate person, in words."""
     agree, disagree, absent = [], [], []
     pg, rest = split_persona_name(persona["name"]); keys = name_keys(cat, cand["id"]); ps = rest[-1] if rest else ""
-    given_ok = any(pg and pg == g for g, _ in keys) or any(pg and len(pg) == 1 and g.startswith(pg) for g, _ in keys)
+    given_ok = any(same_given(pg, g) for g, _ in keys)
     surname_ok = any(t and t == s for t in rest for _, s in keys)
+    married = bool(ps) and not surname_ok and persona.get("spouse_surname") == ps           # a wife under her husband's surname on the record
     (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
-    if ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
+    if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
+    elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     else: absent.append("surname")
     if persona["sex"] and cand["sex"] in ("M", "F"): (agree if persona["sex"] == cand["sex"] else disagree).append(f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)")
     else: absent.append("sex")
@@ -98,8 +117,10 @@ def compare(cat, persona, cand, chosen):
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
         rel_ok = rel_ok or holds
-    fits = not any(d.startswith(("sex", "birth date", "death date", "burial place", "death place")) for d in disagree) and (same or (given_ok and ((surname_ok and dated) or rel_ok)))
-    return fits, agree, disagree, absent
+    clean = not any(d.startswith(("sex", "birth date", "death date", "burial place", "death place")) for d in disagree)
+    fits = clean and (same or (given_ok and (((surname_ok or married) and dated) or rel_ok)))
+    near = not fits and given_ok and (surname_ok or married or same) and not any(d.startswith("sex") for d in disagree)   # the same name, something else disagrees: a card, never a rule decision
+    return fits, agree, disagree, absent, near
 
 def _date(row):
     return {"text": row[0], "start": row[1] or row[2], "qualifier": row[3]} if row and (row[1] or row[2]) else {"text": None, "start": None, "qualifier": None}
@@ -114,6 +135,10 @@ def personas_of(cx, eid):
         m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
         out.append({"id": pid, "name": name, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
                     "burial place": place("Burial"), "death place": place("Death"), "relations": rels, "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None})
+    names = {p["id"]: p["name"] for p in out}
+    for p in out:                                                # a spouse relation on the record: the other's surname, for a wife written under it
+        sp = next((names[r[1]] for r in p["relations"] if r[0] == "spouse" and r[1] in names), None)
+        p["spouse_surname"] = split_persona_name(sp)[1][-1] if sp and split_persona_name(sp)[1] else None
     return out
 
 def memorials_of(cx, pid):
@@ -128,6 +153,19 @@ def memorials_of(cx, pid):
         if role == "memorial":
             for v, in cx.execute("SELECT value FROM artifact_locator WHERE artifact_sha256=? AND kind='memorial_id'", (sha,)): ids.add(v)
     return ids
+
+def by_name_and_year(cat, cx, tree_id, persona):
+    """Persons of the tree whose surname is the persona's and whose birth year lies within three years of the persona's, when the
+    persona has both: a household record names people the tree may hold without a family link yet (a sibling added from a
+    memorial), and those belong among the candidates on their own evidence."""
+    given, rest = split_persona_name(persona["name"]); by = (persona["birth"] or {}).get("start")
+    if not rest or not by or not by[:4].isdigit(): return []
+    y = int(by[:4]); out = []
+    for pid, in cx.execute("""SELECT DISTINCT p.id FROM person p JOIN person_name n ON n.person_id=p.id JOIN event_participant ep ON ep.person_id=p.id
+                              JOIN event e ON e.id=ep.event_id AND e.event_type='Birth' WHERE p.tree_id=? AND e.date_start IS NOT NULL
+                              AND CAST(substr(e.date_start,1,4) AS INTEGER) BETWEEN ? AND ?""", (tree_id, y - 3, y + 3)):
+        if any(s in rest for _, s in name_keys(cat, pid) if s): out.append(pid)
+    return out
 
 def by_memorial(cx, tree_id, mid):
     """Persons of the tree already accepted under this memorial id, by memorials_of."""
@@ -186,29 +224,34 @@ def match(cx, eid, by):
             if pr.get("memorial"):
                 for rid in by_memorial(cx, tree_id, pr["memorial"]):
                     if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
+            for rid in by_name_and_year(cat, cx, tree_id, pr):    # a person of the tree with the persona's surname and birth year, linked to nobody yet
+                if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
         chosen = {}                                             # persona id -> candidate, settled in passes so relationships can be checked
+        nearly = {}                                             # persona id -> candidate of the same name with a disagreement: proposed, never taken
         for _ in range(2):
             for pr in personas:
-                best = None
+                best = None; close = None
                 for c in cands:
-                    fits, agree, disagree, absent = compare(cat, pr, c, chosen)
+                    fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
                     if fits and (best is None or len(agree) > len(best[1])): best = (c, agree, disagree, absent)
-                if best: chosen[pr["id"]] = best[0]
+                    if near and (close is None or len(agree) > len(close[1])): close = (c, agree, disagree, absent)
+                if best: chosen[pr["id"]] = best[0]; nearly.pop(pr["id"], None)
+                elif close: chosen[pr["id"]] = close[0]; nearly[pr["id"]] = close[0]
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pr["id"])).fetchone(): continue
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
             if pr["id"] in chosen:
-                c = chosen[pr["id"]]; fits, agree, disagree, absent = compare(cat, pr, c, chosen)
+                c = chosen[pr["id"]]; fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
                 others = [o["name"] for o in cands if o["id"] != c["id"] and compare(cat, pr, o, chosen)[0]]
-                text = f"{pr['name']} ({pr['role']}) may be {c['name']}. " + " ".join(s[0].upper() + s[1:] + "." for s in agree + disagree)
+                text = f"{pr['name']} ({pr['role']}) may be {c['name']}" + (", though something disagrees. " if pr["id"] in nearly else ". ") + " ".join(s[0].upper() + s[1:] + "." for s in agree + disagree)
                 if absent: text += " Absent: " + ", ".join(absent) + "."
                 if others: text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
             elif pr["role"] in ("result", "listed"): continue   # a search result or a schedule row that fits nobody stays on the page, not a new person
             else:
                 tried = [compare(cat, pr, c, chosen) for c in cands]
-                why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _) in zip(cands, tried) if not a or d)[:600]
+                why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _, _) in zip(cands, tried) if not a or d)[:600]
                 text = f"{pr['name']} ({pr['role']}) fits nobody in the family of {names}. " + why
                 kind, person_id, (pid, qid, step_id) = "new_person", None, contexts[0]
             prop = ulid()

@@ -252,7 +252,7 @@ def rule_accepts(cx, tree_id, prop):
     if not persona: return False, "persona not found"
     chosen = {r["persona_id"]: candidate(cat, r["person_id"]) for r in q.execute("""SELECT pp.persona_id, pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                     JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=?""", (pay["extraction_id"], tree_id))}
-    cand = candidate(cat, pid); fits, agree, disagree, absent = compare(cat, persona, cand, chosen)
+    cand = candidate(cat, pid); fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
     if disagree: return False, "disagrees: " + "; ".join(disagree)
     if not any(a.startswith("given name agrees") for a in agree) or not any(a.startswith("surname agrees") for a in agree): return False, "the name does not agree in full"
     if cat.basis("person", pid) != "accepted": return False, "the name is not accepted yet"

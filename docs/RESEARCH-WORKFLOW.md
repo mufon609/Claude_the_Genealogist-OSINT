@@ -328,8 +328,21 @@ path for every image until an OCR or HTR extractor exists.
 
 `tools/match.py` runs on every extraction as it is written. For each person
 whose step the record fulfils, every persona is compared with that person and
-their relatives as the catalog knows them, on name, sex, birth year and the
-relationships the record states. One proposal per persona: `persona_match`
+their relatives as the catalog knows them, and with two more kinds of
+candidate the record itself points at: a person already accepted under the
+memorial the persona links (the same page is the same identity), and a person
+of the tree with the persona's surname and a birth within three years of the
+persona's, who may stand in the tree with no family link yet. The comparison
+is on name, sex, birth and death dates, burial and death place and the
+relationships the record states; a census index's estimated birth year and a
+household member's age become a calculated birth year the matcher allows two
+years on. A given name agrees through its common short forms (Willie for
+William, Charley for Charles) and across a one-letter slip in a longer name; a
+wife written under her husband's surname is not a surname disagreement. A
+persona of the same name as a candidate that disagrees on something else is
+still proposed as that candidate, with the disagreement in its rationale, so
+the owner sees the likely identity and the difference together; the rule never
+takes such a proposal. One proposal per persona: `persona_match`
 with the candidate that fits, or `new_person` when nobody does. The rationale
 is plain words, which fields agree, which disagree, which are absent; no score
 is stored or shown. A proposal carries the step's question when the step has

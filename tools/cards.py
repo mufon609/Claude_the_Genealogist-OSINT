@@ -188,7 +188,7 @@ def search_card(cx, tree_id, sha, person_id=None):
     rows = []
     for pe in personas_of(cx, e["id"]):
         region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pe["id"],)).fetchone()["region_json"] or "{}")
-        fits, agree, disagree, absent = compare(cat, pe, cand, {})
+        fits, agree, disagree, absent, near = compare(cat, pe, cand, {})
         rows.append({"n": region.get("row"), "name": pe["name"], "birth": pe["birth"]["text"], "death": pe["death"]["text"], "burial": pe["burial place"], "memorial_id": region.get("memorial_id"), "url": region.get("url"),
                      "fits": fits, "agrees": agree, "disagrees": disagree, "absent": absent, "proposal": persona_status(cx, tree_id, pe["id"])})
     q = parsed.get("query") or {}
