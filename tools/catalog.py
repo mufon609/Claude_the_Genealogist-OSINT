@@ -141,10 +141,20 @@ def aad_search_url(fields):
     q.append(("rpp", "50"))
     return "https://aad.archives.gov/aad/display-partial-records.jsp?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
 
+def hathitrust_search_url(fields):
+    """HathiTrust's full-text search as its own form submits it: the first given name and the surname as a phrase, full view
+    only. The site sits behind a browser challenge, so the results are read in the browser. None without a surname."""
+    v = lambda k: ((fields or {}).get(k) or {}).get("value")
+    if not v("surname"): return None
+    first = str(v("given")).split()[0] if v("given") else None
+    q = [("q1", " ".join(x for x in (first, str(v("surname"))) if x)), ("anyall1", "phrase"), ("lmt", "ft")]
+    return "https://babel.hathitrust.org/cgi/ls?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
+
 def search_target(sources, fields):
     """Where an assisted search step is run by hand: {url, holder} for a source whose own search the tool can build from the
     step's fields (Find a Grave, E01; FamilySearch, D03), else nothing."""
-    for sid, build, holder in (("E01", findagrave_search_url, "Find a Grave"), ("F01", aad_search_url, "National Archives AAD"), ("D03", familysearch_search_url, "FamilySearch")):
+    for sid, build, holder in (("E01", findagrave_search_url, "Find a Grave"), ("F01", aad_search_url, "National Archives AAD"), ("D03", familysearch_search_url, "FamilySearch"),
+                               ("L01", hathitrust_search_url, "HathiTrust")):
         if sid in (sources or []):
             u = build(fields)
             if u: return {"url": u, "holder": holder}

@@ -43,7 +43,7 @@ the whole household and proves relationships. These are worked first.
 | Pension file | veteran, widow, children | marriage date/place, children's births | Rev War, Civil War | F03, F04 |
 | Land deed | grantor, spouse (dower), heirs | spouse, heirs | PA 1682+ | J01, J02 |
 | City directory / tax list | adults of a household | residence, occupation, adult sons | 1822–1995 | K01, J04 |
-| Family Bible / compiled genealogy | whole lineage | hints for everything; **never proof** | | L01–L03, I01 |
+| Family Bible / compiled genealogy | whole lineage | hints for everything; **never proof** | | L01–L03, B04 (WikiTree), I01 |
 
 **Group B: records about one person.** Filled in after Group A, to complete
 that person's own facts. Many still *name* relatives (B1); some do not (B2).

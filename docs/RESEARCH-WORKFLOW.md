@@ -288,7 +288,10 @@ site's own name search), and on the Internet Archive's full-text search
 `ia_newspapers` on H07 (the newspaperarchive collection, an obituary step
 keeping the death year and the next), `ia_directories` on K01 (items with
 directory in the title, the person's adult years) and `ia_books` on L02
-(everything else, hints). `tools/run_step.py` runs an auto step at every
+(genealogies and histories by title, hints), and `wikitree` on B04 (the
+shared tree's search by name and birth or death year, each profile fetched
+with its parents, spouses, children and siblings; a page anyone can edit, so
+always a card). `tools/run_step.py` runs an auto step at every
 connector its sources have, one log row per source: the connector turns the
 step's rendered fields into requests, every response is archived as it came
 with the request URL as locator, each hit's own transcription or text and

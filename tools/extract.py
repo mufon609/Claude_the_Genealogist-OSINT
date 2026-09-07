@@ -100,7 +100,8 @@ from conclude import assert_facts, link_family
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.2.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
-              "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), None: ("rule", "extract", "0.1.0")}
+              "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
+              None: ("rule", "extract", "0.1.0")}
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
@@ -534,6 +535,45 @@ def write_search(w, parsed):
             w.fact(pid, "Burial", f"Plot: {r['plot']}" if r["plot"] else None, None, ", ".join(x for x in (r["cemetery"], r["place"]) if x) or None, ["cemetery", "addr-cemet"])
         w.fact(pid, "Identification Number", r["memorial_id"], labels=["Find a Grave Memorial ID"])
 
+def wt_date(s):
+    """A WikiTree date (1810-06-25, 1863-00-00, 0000-00-00) in GEDCOM form, or None."""
+    m = re.fullmatch(r"(\d{4})-(\d\d)-(\d\d)", s or "")
+    if not m or m.group(1) == "0000": return None
+    y, mo, d = m.group(1), int(m.group(2)), int(m.group(3))
+    return " ".join(x for x in (str(d) if d else None, MONTHS[mo - 1] if mo else None, y) if x)
+
+def wt_name(p):
+    return " ".join(x for x in (p.get("FirstName"), p.get("MiddleName"), p.get("LastNameAtBirth")) if x).strip() or p.get("Name") or "(unnamed)"
+
+def write_wikitree(w, parsed):
+    """The profile's subject with its facts (the name at birth, a current surname as a married name, sex, birth and death with
+    their places, the biography as written, the profile id as the identity), then one persona per parent, spouse, child and
+    sibling the profile links, each with its own dates and places and a relation to the subject."""
+    p = parsed["profile"]; name = wt_name(p)
+    sex = {"Male": "M", "Female": "F"}.get(p.get("Gender"))
+    subject = w.persona(name, sex, "profile", 1, {"label": "profile", "profile": p.get("Name"), "url": f"https://www.wikitree.com/wiki/{p.get('Name')}",
+                                                  "maiden": p.get("LastNameAtBirth") if p.get("LastNameCurrent") and p.get("LastNameCurrent") != p.get("LastNameAtBirth") else None})
+    w.fact(subject, "Name", name, labels=["FirstName", "MiddleName", "LastNameAtBirth"])
+    if p.get("LastNameCurrent") and p.get("LastNameCurrent") != p.get("LastNameAtBirth"): w.fact(subject, "Name", " ".join(x for x in (p.get("FirstName"), p.get("LastNameCurrent")) if x), labels=["LastNameCurrent"])
+    if sex: w.fact(subject, "Sex", sex, labels=["Gender"])
+    if wt_date(p.get("BirthDate")) or p.get("BirthLocation"): w.fact(subject, "Birth", None, wt_date(p.get("BirthDate")), p.get("BirthLocation") or None, ["BirthDate", "BirthLocation"])
+    if wt_date(p.get("DeathDate")) or p.get("DeathLocation"): w.fact(subject, "Death", None, wt_date(p.get("DeathDate")), p.get("DeathLocation") or None, ["DeathDate", "DeathLocation"])
+    bio = re.sub(r"\s+", " ", re.sub(r"<[^>]+>|\{\{[^}]*\}\}|\[\[(?:[^\]|]*\|)?([^\]]*)\]\]|'{2,}|==+", r"\1", p.get("bio") or p.get("Bio") or "")).strip()   # wiki markup off, the link text kept
+    if bio: w.fact(subject, "Biography", bio, labels=["Bio"])
+    w.fact(subject, "Identification Number", p.get("Name"), labels=["WikiTree ID"])
+    seq = 2
+    for group, kind, role in (("Parents", "parent", "parent"), ("Spouses", "spouse", "spouse"), ("Children", "child", "child"), ("Siblings", "sibling", "sibling")):
+        rel = p.get(group); rel = list(rel.values()) if isinstance(rel, dict) else (rel if isinstance(rel, list) else [])
+        for r in rel:
+            if not isinstance(r, dict) or not r.get("Name"): continue
+            rs = {"Male": "M", "Female": "F"}.get(r.get("Gender")); rn = wt_name(r)
+            pid = w.persona(rn, rs, role, seq, {"label": group, "profile": r.get("Name"), "url": f"https://www.wikitree.com/wiki/{r.get('Name')}"}); seq += 1
+            w.fact(pid, "Name", rn, labels=[group])
+            if wt_date(r.get("BirthDate")) or r.get("BirthLocation"): w.fact(pid, "Birth", None, wt_date(r.get("BirthDate")), r.get("BirthLocation") or None, ["BirthDate"])
+            if wt_date(r.get("DeathDate")) or r.get("DeathLocation"): w.fact(pid, "Death", None, wt_date(r.get("DeathDate")), r.get("DeathLocation") or None, ["DeathDate"])
+            w.fact(pid, "Identification Number", r.get("Name"), labels=["WikiTree ID"])
+            w.relation(pid, subject, kind, group[:-1] if group.endswith("s") else group, group)
+
 def write_aad_search(w, parsed):
     """One persona per row of an enlistment search: the name the right way round, the birth year, a Residence in the county and
     state in the enlistment year, the serial number as its identity, the record's own page in region_json."""
@@ -614,6 +654,8 @@ def parse_json(data, ctx):
     if isinstance(d, dict) and d and all(isinstance(v, dict) and "full_text" in v for v in d.values()):
         seg, body = next(iter(d.items()))
         return "locgov", {"kind": "locgov", "segment": seg, "full_text": body["full_text"] or "", "page": ctx["notes"], "step_type": ctx["step_type"], "query": ctx["query"], "fields": []}
+    if isinstance(d, list) and d and isinstance(d[0], dict) and isinstance(d[0].get("profile"), dict) and d[0]["profile"].get("Name"):   # a WikiTree profile with its relatives
+        return "wikitree", {"kind": "wikitree", "profile": d[0]["profile"], "fields": []}
     if isinstance(d, dict) and "ia" in d and "matches" in d and "q" in d:      # the Archive's search inside one item: matches with their text and page
         n = ctx["notes"]; pages = n.get("pages") or []           # the pages the runner chose and fetched images of (connectors/ia.py)
         text = "\n".join(re.sub(r"</?IA_FTS_MATCH>", "", m.get("text") or "") for m in d["matches"] or [] if any(p.get("page") in pages for p in m.get("par") or []))
@@ -681,6 +723,7 @@ def extract(cx, sha, by):
     elif kind == "familysearch": full_text += "".join(f"\n{m['role']}: {m['name']} {m['sex']} {m['age']} {m['birthplace']}" for m in parsed["members"])
     elif kind == "findagrave": full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
     elif kind == "aad_record": full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"])
+    elif kind == "wikitree": full_text = "\n".join(f"{k}: {v}" for k, v in parsed["profile"].items() if isinstance(v, (str, int)) and v not in ("", None))
     elif kind == "aad_search": full_text = "\n".join(f"{r['n']}: {r['name']} b. {r['birth_year'] or '?'} {r['county'] or ''} {r['state'] or ''} enlisted {r['enlisted_year'] or '?'}" for r in parsed["rows"])
     elif kind == "findagrave_search": full_text = "\n".join(f"{r['n']}: {r['name']} {r['birth'] or ''}-{r['death'] or ''} {r['cemetery'] or ''} {r['place'] or ''} memorial {r['memorial_id']}" for r in parsed["rows"])
     elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
@@ -697,7 +740,7 @@ def extract(cx, sha, by):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
     {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
-     "aad_search": write_aad_search, "aad_record": write_aad_record}.get(kind, write_personas)(w, parsed)
+     "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))

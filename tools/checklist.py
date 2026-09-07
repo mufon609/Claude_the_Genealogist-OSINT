@@ -218,7 +218,7 @@ def build(cat: Catalog, pid: str):
         if t and not re.search(r"\d", t) and t.lower() not in US_STATES and t.lower() not in US_NAMES and not re.search(r"\bcounty\b", t, re.I) and t not in towns: towns.append(t)
         if e.get("basis") != "accepted": tb = "claim"
     if in_us and b and 1822 <= (d or 1995): row("A", "city directory / tax list", MATCH["directory"], ["K01"], "residence, occupation, adult sons", ("subject_record", fields(towns=F(towns, tb) if towns else None)), household=True)
-    row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03"], "hints for everything; never proof", ("name", fields()), household=True)
+    row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03", "B04"], "hints for everything; never proof", ("name", fields()), household=True)
     # B: individual records
     for label, e, kind in (("death record", death, "death"), ("birth record", birth, "birth")):
         yr = e["year"] if e else (d if kind == "death" else b); yb = e["basis"] if e and e["year"] else (db if kind == "death" else bb)

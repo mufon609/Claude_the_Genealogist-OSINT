@@ -85,9 +85,12 @@ def split_persona_name(name_text):
 def compare(cat, persona, cand, chosen):
     """Agreements, disagreements and absences between a persona and a candidate person, in words."""
     agree, disagree, absent = [], [], []
-    pg, rest = split_persona_name(persona["name"]); keys = name_keys(cat, cand["id"]); ps = rest[-1] if rest else ""
-    given_ok = any(same_given(pg, g) for g, _ in keys)
-    surname_ok = any(t and t == s for t in rest for _, s in keys)
+    keys = name_keys(cat, cand["id"])
+    names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]     # every name the record gives: at birth, current, as written elsewhere on it
+    pg, rest = next(((g, r) for g, r in names if any(same_given(g, k) for k, _ in keys) and any(t and t == s for t in r for _, s in keys)), names[0])
+    ps = rest[-1] if rest else ""
+    given_ok = any(same_given(g, k) for g, _ in names for k, _ in keys)
+    surname_ok = any(t and t == s for _, r in names for t in r for _, s in keys)
     married = bool(ps) and not surname_ok and persona.get("spouse_surname") == ps           # a wife under her husband's surname on the record
     (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
@@ -136,11 +139,12 @@ def personas_of(cx, eid):
     out = []
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         fact = lambda t: cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND (date_start IS NOT NULL OR date_end IS NOT NULL)", (pid, t)).fetchone()
+        names = [name] + [v for v, in cx.execute("SELECT value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL AND value_text<>?", (pid, name))]
         place = lambda t: (cx.execute("SELECT ps.raw FROM persona_fact pf JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=? AND pf.fact_type=?", (pid, t)).fetchone() or [None])[0]
         rels = cx.execute("SELECT r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (pid,)).fetchall()
         region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pid,)).fetchone()[0] or "{}")
         m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
-        out.append({"id": pid, "name": name, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
+        out.append({"id": pid, "name": name, "names": names, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
                     "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels,
                     "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None})
     names = {p["id"]: p["name"] for p in out}
