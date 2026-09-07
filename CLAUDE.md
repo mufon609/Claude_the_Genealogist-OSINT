@@ -22,6 +22,7 @@ people; everything else exists to serve that.
 | Source registry, free holders of cited collections, the reasoning | `data/data-sources.csv`, `data/holders.csv`, `data/DATA-SOURCES.md` |
 | Tables, invariants, tools | `schema/README.md`, `schema/catalog.sql` |
 | Deferred work | `BACKLOG.md` |
+| What past sessions were asked to build (a record, not decisions); the audit's terms of reference | `docs/briefs/`, `docs/AUDIT-PROMPT.md` |
 
 Anything marked accepted in those docs stands. Do not reopen it in code.
 
@@ -59,7 +60,9 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
 8. **No bandaids.** Fix the cause or file it in `BACKLOG.md`. No parking
    comments, no compensating checks. Comments describe current code, never
    history (see `MEMORY.md`).
-9. **Commit only when asked**, directly to `main`, with the tools green.
+9. **Commit each finished piece of code or doc work**, directly to `main`,
+   with the tools green, without waiting to be asked. Research decisions
+   live in the catalog and never enter git.
 10. **Working notes are a report**, returned to the user, never committed.
 
 ## Working the repo
@@ -89,6 +92,7 @@ python3 tools/backup.py verify                # every archived object hashed aga
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
 python3 tools/initdb.py --sync-event-types   # after any change to schema/seed_event_type.sql: the new types on an existing catalog
 python3 tools/tree.py show
+python3 tools/tree.py overview                # the tree as confirmed, from the home person upward, and its edge
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
 DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # scratch run: its own archive/, inbox/, derivatives/, trees/*/imports
 ```
@@ -98,16 +102,24 @@ DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # scratch r
 One person, one document at a time. The live catalog is where research
 decisions are made; a scratch copy is for testing code, never for decisions.
 
-1. `python3 tools/tree.py show` and the overview (the screen, or
-   `python3 tools/checklist.py --all`) say who is confirmed. Take the person
-   at the edge of the confirmed tree: a parent or spouse the file claims
-   whose link is not yet accepted, or a confirmed person with an open
-   question. Never a person two links away from anyone confirmed.
-2. `python3 tools/checklist.py "<person>"`: the seven key facts with their
+1. `python3 tools/tree.py overview` prints the tree as confirmed: the home
+   person and everyone reached from them by a parents link the owner
+   accepted, generation by generation, and at the edge the parents the file
+   claims but nobody has accepted. Take the person at that edge: a parent or
+   spouse the file claims whose link is not yet accepted, or a confirmed
+   person with an open question. Never a person two links away from anyone
+   confirmed. `python3 tools/checklist.py --all` lists everyone with whether
+   their baseline is reviewed.
+2. `python3 tools/checklist.py "<person>"`: the seven key facts (`name`,
+   `sex`, `birth`, `death`, `parents`, `spouses`, `children`) with their
    basis. Decide each with `tools/conclude.py fact`: accept what a held
    record supports or what you know yourself (a vouch, recorded as your
-   word), reject what is wrong, leave the rest undecided. Searches open
-   only when every key fact is decided; fetching cited records is open now.
+   word), reject what is wrong, leave the rest undecided. A key fact the
+   file makes no claim about (no spouse named) has nothing to decide and
+   counts as decided. Searches open only when every key fact is decided;
+   fetching cited records is open now.
+   A name two people share is refused; name the person by the six
+   characters the listing shows: `"Noi Davidson [MEXW2C]"`.
 3. `python3 tools/plan.py "<person>"`, then `python3 tools/log_search.py
    --list "<person>"`: the fetch steps for records the file cites and the
    search steps for missing rows, each with its source and mode.
@@ -127,10 +139,16 @@ decisions are made; a scratch copy is for testing code, never for decisions.
 
 Report what was decided and on what record, in words; never a score.
 
+Every tool that writes takes `--by`. The owner acting is `user:<name>`; a
+session acting on the owner's behalf is `agent:<session> for user:<name>`,
+so the audit trail says who did what. A writing tool run without `--by`
+records the shell user as the owner.
+
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).
 - Verify after every change: `PRAGMA integrity_check`, `foreign_key_check`,
-  and the `v_unsupported_*` views. Test decisions on a scratch copy of the
-  catalog, never on the real one.
+  and the `v_unsupported_*` views. Test code changes on a scratch copy of
+  the catalog, never on the real one; research decisions are made on the
+  live catalog, which is the work.
 - Place resolution auto-accepts only unique full matches; everything else
   stays Undecided. Never widen that.
 - External services: Nominatim public endpoint at 1 req/s with cache;

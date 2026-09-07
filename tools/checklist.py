@@ -288,10 +288,14 @@ def main():
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if a.all:
+        rows = []
         for pid, name in cat.q("SELECT id, display_name FROM person WHERE tree_id=? ORDER BY display_name", tree_id):
             r = build(cat, pid); A = r["checklist"]["A"]; B = r["checklist"]["B"]
             gaps = lambda rows: sum(1 for x in rows if x["status"] == "missing"); cited = lambda rows: sum(1 for x in rows if x["status"] == "cited")
-            print(f"{name[:34]:34} A: {gaps(A):2} missing {cited(A):2} to fetch | B: {gaps(B):2} missing {cited(B):2} to fetch | questions {len(r['questions'])}")
+            rows.append({"id": pid, "person": name, "decided": 7 - len(r["baseline"]["undecided"]) if r["baseline"].get("undecided") is not None else None, "baseline_complete": r["baseline"]["complete"],
+                         "A_missing": gaps(A), "A_to_fetch": cited(A), "B_missing": gaps(B), "B_to_fetch": cited(B), "questions": len(r["questions"])})
+        if a.json: print(json.dumps(rows, ensure_ascii=False, indent=1)); return
+        for x in rows: print(f"{x['person'][:30]:30} [{x['id'][-6:]}] {'reviewed ' if x['baseline_complete'] else 'to review'} A: {x['A_missing']:2} missing {x['A_to_fetch']:2} to fetch | B: {x['B_missing']:2} missing {x['B_to_fetch']:2} to fetch | questions {x['questions']}")
         return
     if not a.who: sys.exit("give a person name/id or --all")
     r = build(cat, cat.find_person(a.who))

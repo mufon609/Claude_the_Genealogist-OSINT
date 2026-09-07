@@ -132,7 +132,7 @@ Every run, including "nothing found", is written to the research log with the
 fields exactly as rendered after include and revise, so the same search is not
 repeated blindly and negative results count.
 
-## 5. Real examples (computed from the catalog, before any review)
+## 5. Real examples (as imported on 5 September 2026, before any review; the live checklist is the current state)
 
 **Abram C. Brant (1880–1961)** — foundation: both parents, spouse, birth and
 death from certificates. Group A gaps: 1880, 1900, 1930, 1940, 1950 census

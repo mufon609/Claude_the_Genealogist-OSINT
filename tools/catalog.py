@@ -229,11 +229,16 @@ class Catalog:
                 if pv == "disagrees": out.append(f"{e[1].lower()} place: the tree says {tree_place}, {rec} says {f[3]}")
         return out
     def find_person(self, key):
-        """A person by id, exact display name, or substring of the name (exact wins; several matches are listed on stderr)."""
-        r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name LIMIT 5", self.tree_id, key, key)
-        if not r: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name LIMIT 5", self.tree_id, f"%{key}%")
+        """A person by id, by the last six characters of the id in brackets or alone ("Noi Davidson [MEXW2C]", "MEXW2C"), by exact
+        display name, or by a substring of the name. Several matches stop the tool and list them with their six characters, so a
+        decision never lands on whichever sorts first."""
+        m = re.search(r"\[([A-Z0-9]{6})\]\s*$", key or "") or re.fullmatch(r"[A-Z0-9]{6}", (key or "").strip())
+        if m: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND id LIKE ?", self.tree_id, "%" + (m.group(1) if m.groups() else m.group(0)))
+        else:
+            r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name", self.tree_id, key, key)
+            if not r: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name LIMIT 8", self.tree_id, f"%{key}%")
         if not r: sys.exit(f"no person matching {key!r}")
-        if len(r) > 1: print("matches:", ", ".join(f"{n} [{i[-6:]}]" for i, n in r), file=sys.stderr)
+        if len(r) > 1: sys.exit(f"{len(r)} people match {key!r}: " + ", ".join(f"{n} [{i[-6:]}]" for i, n in r) + "; name one by its six characters")
         return r[0][0]
     def person(self, pid):
         r = self.q("SELECT id, display_name, sex FROM person WHERE id=?", pid)[0]

@@ -27,6 +27,7 @@ from attach import attach as attach_file, identity as attach_identity, steps_for
 from cards import card as decision_card, render as render_card, render_search, search_card, search_cards_for
 from conclude import decide as decide_document, match_record, record_says
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
+from overview import overview, people, person_card
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -240,56 +241,6 @@ def person_view(cx, tree_id, pid):
         for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["held"] = c["apid"] in held; c["sha256"] = held.get(c["apid"])   # a held row opens its record through the artifact
     for rec in r["footprint"]["records"]: rec.update(fetch_target(rec.get("apid"), cited.get(rec.get("apid"), {}).get("url")))
     return r
-
-def person_card(cx, cat, pid):
-    """One person as the overview shows them: name, years, how many key facts are accepted, the spouses the owner accepted
-    with the marriage and divorce dates accepted on the family, the spouses the file claims as claims, and what waits."""
-    name, sex = cx.execute("SELECT display_name, sex FROM person WHERE id=?", (pid,)).fetchone()
-    ev = cat.events(pid); b = next((e["year"] for e in ev if e["type"] == "Birth"), None); d = next((e["year"] for e in ev if e["type"] == "Death"), None)
-    fam = cat.family(pid); spouses, claimed = [], []
-    for f in fam["families"]:
-        if not f["spouse_id"]: continue
-        if cat.basis("family_member", dumps([f["id"], pid, "partner"])) == "accepted" and cat.basis("family_member", dumps([f["id"], f["spouse_id"], "partner"])) == "accepted":
-            spouses.append({"id": f["spouse_id"], "name": f["spouse"], "married": [m["year"] for m in f["marriages"] if m["year"] and m["basis"] == "accepted"],
-                            "divorced": [x["date"] or str(x["year"]) for x in f["divorces"] if x["basis"] == "accepted"]})
-        else: claimed.append(f["spouse"])
-    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS),
-            "spouses": spouses, "claimed_spouses": claimed, **cat.waiting(pid)}
-
-def people(cx, tree_id, q=""):
-    cat = Catalog(cx, tree_id)
-    return [person_card(cx, cat, pid) for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name", (tree_id, f"%{q}%"))]
-
-def link_trusted(cx, tree_id, pid):
-    """Whether the person's parents link rests on a trusted record (T1–T3) or on the owner's own word, rather than on a page
-    anyone can edit alone."""
-    from conclude import trusted_evidence
-    rows = [dumps([fid, pid, "child"]) for fid, in cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role='child'", (pid,))]
-    return trusted_evidence(cx, tree_id, "family_member", rows)
-
-def overview(cx, tree_id):
-    """The tree overview: the people the owner has confirmed, laid out from the home person upward one row per generation, a
-    card's parents above it (father then mother). The walk follows a parents link only where the owner accepted it, so the tree
-    ends at the last accepted link; beyond it the file's claim of parents is named on the card as a claim, and the people it
-    names stay out of the tree until a decision puts them in. A link resting on an editable source alone is said so."""
-    cat = Catalog(cx, tree_id)
-    home = cx.execute("SELECT home_person_id FROM tree WHERE id=?", (tree_id,)).fetchone()[0]
-    if not home: return {"home": None, "generations": [], "others": people(cx, tree_id), "unconfirmed": 0}
-    gens, seen, row = [], set(), [home]
-    while row and len(gens) < 12:
-        cards = []
-        for pid in row:
-            if pid in seen: continue
-            seen.add(pid); c = person_card(cx, cat, pid)
-            parents = sorted(cat.family(pid)["parents"], key=lambda x: 0 if (cx.execute("SELECT sex FROM person WHERE id=?", (x[0],)).fetchone() or [""])[0] == "M" else 1)
-            accepted = fact_status(cx, pid, "parents") == "accepted"
-            c["parents"] = [p for p, _ in parents] if accepted else []
-            c["link_trusted"] = link_trusted(cx, tree_id, pid) if accepted else None
-            c["claimed_parents"] = [n for _, n in parents] if parents and not accepted else []
-            cards.append(c)
-        gens.append(cards); row = [p for c in cards for p in c["parents"]]
-    others = [c for c in people(cx, tree_id) if c["id"] not in seen]
-    return {"home": home, "generations": gens, "others": [c for c in others if c["documents"] or c["conflicts"]], "unconfirmed": len(others)}
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass

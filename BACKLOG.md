@@ -155,10 +155,12 @@ matcher on the result, and the tools on a scratch copy, so a session can say
 
 ### C9. Bring the live catalog to the current rules
 
-Owner runs, in this order, after the code of 7 September: sync the registry
-and the event types, the rule's re-examination of its own decisions, the
-place resolver reset and re-run, plans regenerated, then a first watched run
-of the connectors:
+Owner runs, once, in this order, for the code this file is committed with:
+sync the registry and the event types, the rule's re-examination of its own
+decisions, the place resolver reset and re-run, plans regenerated, then a
+first watched run of the connectors. Every writing command takes `--by`;
+a session running them for the owner passes `--by "agent:<session> for
+user:<owner>"`:
 
 ```
 python3 tools/initdb.py --sync-sources

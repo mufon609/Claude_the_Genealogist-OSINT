@@ -151,7 +151,8 @@ or unattested. Most "fix the BACKLOG" work is triage, not building.
 In this repo, commit straight to `main` — do not branch first. Standard
 discipline still holds: the tools and checks must be green to commit, and
 data files (archive, catalog, imports, derivatives) never enter git. Commit
-only when asked.
+each finished piece of code or doc work without waiting to be asked; a
+research decision is never a commit.
 
 ### Commit before auditing, in multi-agent batches
 

@@ -76,9 +76,10 @@ are met:
 
 ## 1. Baseline: what we know and have approved
 
-An imported tree is a set of **claims**, not knowledge. The Ahearn import has 232
-facts with no citation at all and 1,122 citations that point at records we do
-not hold. None of that is a baseline yet.
+An imported tree is a set of **claims**, not knowledge. The Ahearn import, as
+imported on 5 September 2026, had 232 facts with no citation at all and 1,122
+citations that point at records we did not hold. None of that is a baseline;
+the live checklist says where the review stands now.
 
 - A person accepts documents, not facts: the decision on a held record is
   whether it is about this person, and every fact the record states comes with
@@ -113,7 +114,7 @@ Questions are always about a person. They are generated, not typed:
 | `duplicate_person` | two persons with the same name and the same key fact | the two Thomas Ahearns, both born 2 Oct 1846 |
 | `unlinked_relative` | a person in the tree who may be the answer | a same-surname person in the same town with no link |
 
-42 of the 117 people in the imported file are dead ends. Ranking: home person's direct line
+42 of the 117 people in the file as imported are dead ends. Ranking: home person's direct line
 first, then tractability (era and place with good record coverage in the
 registry), then how many other questions an answer would unlock. Until its subject is
 baseline-complete (no key fact Undecided) a question gets no search steps and
@@ -218,7 +219,8 @@ the owner's own browser in one call and never read through the model: open
 the citation's URL in a new tab, wait for the page to load, run one script
 in the page that clones the document, removes `iframe`, `script`, `style`,
 `link` and `noscript` elements, and hands the result to the browser as a
-download named after the record's own id; the script returns the byte count
+download named after the record's own id (`tools/save_page.js`, run in the
+page with the file name filled in); the script returns the byte count
 and whether the parser's marker and the family markup are present, and all
 three must hold before the tab is closed. Move the file from the download
 folder to `inbox/` and log the step as found with it. Measured on a Find a

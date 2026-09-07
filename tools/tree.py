@@ -5,6 +5,7 @@
   tools/tree.py list
   tools/tree.py use <slug>          # sets catalog/.active-tree
   tools/tree.py show [<slug>]
+  tools/tree.py overview [<slug>]      the tree as confirmed: home person upward, key facts accepted, the edge
   tools/tree.py home "<person>" [--tree <slug>]   # the person the tree overview starts from
 """
 import argparse, json, os, sqlite3, sys
@@ -60,9 +61,19 @@ def cmd_show(cx, a):
     print(f"{t[1]}: {t[2]}\n  id {tid}\n  settings {t[4]}\n  created {t[5]}")
     print(f"  persons {q('SELECT COUNT(*) FROM person WHERE tree_id=?')}  families {q('SELECT COUNT(*) FROM family WHERE tree_id=?')}  "
           f"events {q('SELECT COUNT(*) FROM event WHERE tree_id=?')}  assertions {q('SELECT COUNT(*) FROM assertion WHERE tree_id=?')}")
-    print(f"  undecided proposals {q('SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status=\"undecided\"')}")
+    kinds = ", ".join(f"{n} {k.replace('_', ' ')}" for k, n in cx.execute("SELECT kind, COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' GROUP BY kind ORDER BY kind", (tid,)))
+    print(f"  undecided proposals {q('SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status=\"undecided\"')}" + (f" ({kinds}; persona matches and new persons are cards, place resolutions wait on a decision path)" if kinds else ""))
     for r in cx.execute("SELECT imported_at, artifact_sha256, original_path FROM tree_import WHERE tree_id=? ORDER BY imported_at", (tid,)):
         print(f"  import {r[0][:10]} {r[1][:12]}… {os.path.relpath(r[2], ROOT) if r[2] else ''}")
+
+def cmd_overview(cx, a):
+    """The tree as confirmed, from the home person upward, with the edge where the file's claims stop being accepted."""
+    from overview import overview, render
+    slug = a.slug or active_tree_slug()
+    t = cx.execute("SELECT id FROM tree WHERE slug=?", (slug,)).fetchone()
+    if not t: sys.exit(f"tree '{slug}' does not exist")
+    cx.row_factory = sqlite3.Row
+    print(render(overview(cx, t[0]), cx))
 
 def cmd_home(cx, a):
     """The home person: the overview lays the family out from them. A name or id, exact or a substring with one match."""
@@ -84,10 +95,11 @@ def main():
     sub.add_parser("list")
     u = sub.add_parser("use"); u.add_argument("slug")
     sh = sub.add_parser("show"); sh.add_argument("slug", nargs="?")
+    ov = sub.add_parser("overview", help="the tree as confirmed, from the home person upward, and its edge"); ov.add_argument("slug", nargs="?")
     hm = sub.add_parser("home"); hm.add_argument("person"); hm.add_argument("--tree")
     a = ap.parse_args()
     cx = connect(a.db)
-    {"create": cmd_create, "list": cmd_list, "use": cmd_use, "show": cmd_show, "home": cmd_home}[a.cmd](cx, a)
+    {"create": cmd_create, "list": cmd_list, "use": cmd_use, "show": cmd_show, "overview": cmd_overview, "home": cmd_home}[a.cmd](cx, a)
 
 if __name__ == "__main__":
     main()
