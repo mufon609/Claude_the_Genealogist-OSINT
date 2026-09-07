@@ -12,7 +12,7 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 """
 import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import archive_object, dumps, imports_dir, inbox_dir, now
+from treelib import archive_object, dumps, imports_dir, inbox_dir, now, ulid
 from catalog import dbid_of, same_page
 from log_search import log as log_search, rendered_query
 from extract import FS_MARK, parse_memorial, parse_record, parse_search
@@ -88,11 +88,33 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
             return cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                   AND sp.locator_value IN ({','.join('?'*len(ids))}) ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, *ids)).fetchall()
         named = _page_named(parsed or {})
-        if not named: return []
-        rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
-                             AND sp.query_type='household' ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id,)).fetchall()
-        return [r for r in rows if _cites_page(r, named)]
+        if named:
+            rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
+                                 AND sp.query_type='household' ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id,)).fetchall()
+            return [r for r in rows if _cites_page(r, named)]
+        return _steps_by_kind(cx, tree_id, parsed or {})
     return []
+
+ROW_OF = [(r"obituar", "obituary"), (r"death", "death record"), (r"birth", "birth record"), (r"marriage", "marriage record"), (r"social security|numident", "Social Security (SSDI / SS-5)"),
+          (r"draft", "WWII draft card"), (r"naturali", "naturalization"), (r"find a grave|burial|cemetery", "cemetery / family plot")]
+
+def _steps_by_kind(cx, tree_id, parsed):
+    """A record that names no census page: the steps of the checklist row its collection is about (an obituary collection to the
+    obituary row, a death index to the death record row, the Social Security files to that row), on every person of the tree
+    whose name is the record's principal name. The record satisfies the row whatever holder the file had pointed at."""
+    coll = (parsed.get("collection") or "").lower(); row = next((r for rx, r in ROW_OF if re.search(rx, coll)), None)
+    if not row: return []
+    pg, rest = _split_name(parsed.get("name") or "")
+    if not pg or not rest: return []
+    out = []
+    for r in cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned' AND sp.row_key LIKE ? ORDER BY sp.seq""", (tree_id, row + ":%")):
+        keys = {(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
+        if any(g == pg and sn in rest for g, sn in keys): out.append(r)
+    return out
+
+def _split_name(text):
+    parts = [name_key(x) for x in re.sub(r"^(mr|mrs|miss|ms|dr)\.?\s+", "", (text or "").strip(), flags=re.I).split() if name_key(x)]
+    return (parts[0], parts[1:]) if parts else ("", [])
 
 def _source_row(cx, sid):
     r = cx.execute("SELECT id, trust_tier, terms, cost FROM source WHERE id=?", (sid,)).fetchone() if sid else None
@@ -114,11 +136,18 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     sources = json.loads(st["sources_json"] or "[]"); kind_row = _source_row(cx, sources[0] if sources else None); from_row = _source_row(cx, st["locator_source_id"]) or kind_row
     col = cx.execute("SELECT name FROM collection WHERE id=?", (st["collection_id"],)).fetchone() if st["collection_id"] else None
     lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else (st["locator_kind"] or "file", st["locator_value"] or os.path.basename(src), col[0] if col else None))
+    holder = {"ark": "D03", "memorial": "E01", "search": "E01"}.get(kind)          # the page's own identity says where it came from, whatever holder the step pointed at
+    from_row = _source_row(cx, holder) or from_row
+    if kind == "ark" and (parsed or {}).get("collection"):                           # the record's own collection at its holder
+        own = re.sub(r"^[^•]*•\s*", "", parsed["collection"]).strip()
+        row = cx.execute("SELECT id, name FROM collection WHERE source_id=? AND name=?", (holder, own)).fetchone()
+        if not row: cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, holder, own, "other", own)); row = (cid, own)
+        st = dict(st); st["collection_id"], cname = row[0], row[1]
     if kind == "search":
         query = {k: {"value": v, "basis": "run"} for k, v in parsed["query"].items()}
         note = "; ".join(x for x in (f"{parsed['count'] if parsed['count'] is not None else len(parsed['rows'])} matching records, page {parsed['page']} of {parsed['pages']}, {len(parsed['rows'])} rows on this page", note) if x)
     with open(src, "rb") as fh: data = fh.read()
-    sha, new = archive_object(cx, data, mime=mime, source_id=st["locator_source_id"] or (sources[0] if sources else None), collection_id=st["collection_id"], collection_name=cname,
+    sha, new = archive_object(cx, data, mime=mime, source_id=holder or st["locator_source_id"] or (sources[0] if sources else None), collection_id=st["collection_id"], collection_name=cname,
                               locator_kind=lkind, locator_value=lvalue, retrieved_by=by, terms=from_row.get("terms"),
                               cost=_cost(from_row.get("cost")), trust_tier=kind_row.get("trust_tier") or from_row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
     if kind == "memorial": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "memorial_id", value))   # the page's own identity, however it was cited

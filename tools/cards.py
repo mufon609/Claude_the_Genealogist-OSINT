@@ -50,6 +50,13 @@ def card(cx, tree_id, prop_id):
     a = cx.execute("""SELECT a.sha256, a.mime, a.trust_tier, a.locator_kind, a.locator_value, a.original_filename, a.retrieved_at, a.source_id, s.name AS source_name, c.name AS collection
                       FROM artifact a LEFT JOIN source s ON s.id=a.source_id LEFT JOIN collection c ON c.id=a.collection_id WHERE a.sha256=?""", (sha,)).fetchone()
     own_ids = [f"{r['kind']} {r['value']}" for r in cx.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=?", (sha,))]
+    kinds = {x.split()[0] for x in own_ids}                        # the page's own identity says where it came from, whatever row it was archived under
+    holder_id = "D03" if "ark" in kinds else "E01" if "memorial_id" in kinds else a["source_id"]
+    holder_name = (cx.execute("SELECT name FROM source WHERE id=?", (holder_id,)).fetchone() or [a["source_name"]])[0]
+    own_collection = None
+    if "ark" in kinds:                                           # a FamilySearch record names its own collection on the page
+        ex = cx.execute("SELECT structured_json FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL AND structured_json LIKE '%collection%' ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
+        if ex: own_collection = re.sub(r"^[^•]*•\s*", "", (json.loads(ex[0]).get("collection") or "")).strip() or None
     region = json.loads(pe["region_json"] or "{}")
     mem = region.get("memorial_id") if pe["role_in_record"] == "result" else next((json.loads(r["region_json"] or "{}").get("memorial_id") for r in cx.execute("SELECT region_json FROM persona WHERE artifact_sha256=? AND role_in_record='memorial'", (sha,))), None)
     if mem: own_ids.append(f"memorial {mem}")
@@ -144,7 +151,7 @@ def card(cx, tree_id, prop_id):
     subj = cx.execute("SELECT display_name FROM person WHERE id=?", (subject,)).fetchone() if subject else None
     return {"id": p["id"], "kind": p["kind"], "status": p["status"], "highlight": highlight, "person": person, "subject": subj["display_name"] if subj else None,
             "persona": {"id": pe["id"], "name": pe["name_text"], "role": pe["role_in_record"], "sex": pe["sex"]},
-            "record": {"holder": a["source_name"], "holder_id": a["source_id"], "collection": a["collection"] or ("memorial search results page" if a["locator_kind"] == "url" else None),
+            "record": {"holder": holder_name, "holder_id": holder_id, "collection": own_collection or a["collection"] or ("memorial search results page" if a["locator_kind"] == "url" else None),
                        "identity": ([f"memorial {mem}", f"on the results page {a['locator_value']}"] if pe["role_in_record"] == "result" else [f"{a['locator_kind']} {a['locator_value']}"] + own_ids), "tier": a["trust_tier"],
                        "archived": os.path.relpath(object_path(sha), DATA_ROOT), "sha256": sha, "page": page, "retrieved_at": a["retrieved_at"], "filename": a["original_filename"]},
             "fields": fields, "relationships": rels, "closes": closes, "odd": odd or ["nothing"], "rationale": p["rationale"]}

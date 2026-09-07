@@ -33,6 +33,7 @@ from plan import plan_person
 SKIP = ("Unknown", "Age", "Identification Number")      # about the record or the page, not facts of the person
 AUTOMATED = ("findagrave-memorial", "familysearch-record", "nara-1950-schedule")   # parsers of documents that identify a person fully (§0)
 TRUSTED = ("T1", "T2", "T3")                            # a record the rule may act on or count: not one anyone can edit (T4)
+# An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under.
 
 def trusted_evidence(cx, tree_id, kind, ids):
     """Whether an accepted assertion on any of these subjects rests on a trusted source (T1–T3) or on the owner's own word (a
@@ -42,7 +43,8 @@ def trusted_evidence(cx, tree_id, kind, ids):
     for sid in ids:
         if q.execute("""SELECT 1 FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                         WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted'
-                        AND (substr(s.trust_tier,1,2) IN ('T1','T2','T3') OR (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1)))""", (tree_id, kind, sid)).fetchone(): return True
+                        AND (substr(coalesce((SELECT s2.trust_tier FROM source s2 WHERE s2.id = CASE WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='ark') THEN 'D03'
+                                                                             WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='memorial_id') THEN 'E01' END), s.trust_tier),1,2) IN ('T1','T2','T3') OR (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1)))""", (tree_id, kind, sid)).fetchone(): return True
     return False
 ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
 
@@ -242,7 +244,8 @@ def rule_accepts(cx, tree_id, prop):
     q = _q(cx)
     pay = json.loads(prop["payload_json"]); pid, sha = pay.get("person_id"), pay["artifact_sha256"]
     if prop["kind"] != "persona_match" or not pid: return False, "a new person is the owner's decision"
-    x = q.execute("""SELECT x.name, c.name AS collection, s.trust_tier, s.name AS source FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
+    x = q.execute(f"""SELECT x.name, c.name AS collection, coalesce((SELECT s2.trust_tier FROM source s2 WHERE s2.id = CASE WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='ark') THEN 'D03'
+                                                                             WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='memorial_id') THEN 'E01' END), s.trust_tier) AS trust_tier, s.name AS source FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
                      LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
     if not x or x["name"] not in AUTOMATED: return False, f"a {x['name'] if x else 'record'} is a hint until a person reads it"
     if str(x["trust_tier"] or "")[:2] not in TRUSTED: return False, f"anyone can edit a {x['source'] or 'T4'} page: the owner decides it"
@@ -266,7 +269,11 @@ def rule_accepts(cx, tree_id, prop):
         if a.startswith("death place agrees") and ok("Death"): points.append("death place")
         if a.startswith("burial place agrees") and ok("Burial"): points.append("burial place")
     fam = cat.family(pid)
-    for kind, other_pid, _, other_name in persona["relations"]:
+    INV = {"child": "parent", "parent": "child", "spouse": "spouse"}
+    relations = [(k, o, None, n) for k, o, _, n in persona["relations"]]      # the persona is the <kind> of the other
+    relations += [(INV[r[0]], r[1], None, r[2]) for r in q.execute("""SELECT r.kind, r.persona_id, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.persona_id
+                                                                         WHERE r.related_persona_id=? AND r.kind IN ('child','parent','spouse')""", (persona["id"],))]   # the other is the <kind> of the persona
+    for kind, other_pid, _, other_name in relations:
         oc = chosen.get(other_pid); group = {"child": "parents", "parent": "children", "spouse": "spouses"}.get(kind)
         if not (oc and group and any(rid == oc["id"] for rid, _ in fam[group])): continue
         role = "child" if group == "parents" else "partner"

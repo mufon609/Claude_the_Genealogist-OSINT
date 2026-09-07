@@ -267,7 +267,8 @@ class Catalog:
             if (kind == "fetch" and mode == "fetch" and holder in conn) or (kind == "search" and mode == "auto"): runs += 1
             elif (kind == "fetch" and mode == "fetch") or (kind == "search" and mode == "assisted"): hand += 1
         conflicts = self.q("SELECT COUNT(*) FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", pid)[0][0]
-        tiers = {t for t, in self.q("""SELECT CASE WHEN json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1) THEN 'vouch' ELSE s.trust_tier END FROM assertion a
+        tiers = {t for t, in self.q("""SELECT CASE WHEN json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1) THEN 'vouch' ELSE coalesce((SELECT s2.trust_tier FROM source s2 WHERE s2.id = CASE WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='ark') THEN 'D03'
+                                                                             WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='memorial_id') THEN 'E01' END), s.trust_tier) END FROM assertion a
                                        LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                                        WHERE a.tree_id=? AND a.status='accepted' AND ((a.subject_kind='person' AND a.subject_id=?)
                                           OR (a.subject_kind='event' AND a.subject_id IN (SELECT event_id FROM event_participant WHERE person_id=?)))""", self.tree_id, pid, pid)}

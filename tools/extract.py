@@ -462,7 +462,7 @@ def write_memorial(w, parsed):
     if f.get("Burial Place") or f.get("Plot"): w.fact(subject, "Burial", f"Plot: {f['Plot']}" if f.get("Plot") else None, None, f.get("Burial Place"), [k for k in ("Burial Place", "Plot") if f.get(k)])
     if f.get("Inscription"): w.fact(subject, "Inscription", f["Inscription"], labels=["Inscription"])
     if parsed.get("memorial_id"): w.fact(subject, "Identification Number", parsed["memorial_id"], labels=["Find a Grave Memorial ID"])
-    for seq, m in enumerate(parsed["members"], 2):
+    for seq, m in enumerate(parsed["members"], seq0):
         kind = MEMBER_KIND.get(m["label"].lower(), "other"); role = m["label"].lower().rstrip("s") if kind != "other" else m["label"].lower()
         if kind == "child": role = "child"
         pid = w.persona(m["name"], None, role, seq, {"label": m["label"], "url": m.get("url"), "maiden": m.get("maiden")})
@@ -487,13 +487,18 @@ def write_search(w, parsed):
 def write_record(w, parsed):
     """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a relation to the subject."""
     fields = parsed["fields"]; f = dict(fields)
-    by_type, _ = field_facts(fields)
+    by_type, named = field_facts(fields)
     name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
     role = (f.get("Relationship to Head of Household") or "subject").lower()
     subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark")})
     write_facts(w, subject, by_type)
+    seq0 = 2
+    for label, who in named:                                         # a relative the record names in a field: Father's Name, Mother's Name, Spouse
+        pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
+        w.fact(pid, "Name", who, labels=[label])
+        w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
     year = re.search(r"\b(1[789]\d\d)\b", (f.get("Event Date") or "") + " " + (parsed.get("collection") or ""))
-    for seq, m in enumerate(parsed["members"], 2):
+    for seq, m in enumerate(parsed["members"], seq0):
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)
         age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
