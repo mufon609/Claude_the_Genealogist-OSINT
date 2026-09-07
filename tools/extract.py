@@ -429,11 +429,13 @@ def field_facts(fields, default_etype=None):
     by_type, named = {}, {}
     etype = next((EVENT_TYPES.get(v.lower().strip()) for l, v in fields if l.lower().strip() == "event type"), None) or default_etype   # a page with no Event Type row takes its collection's kind
     has_place = any(l.lower().strip() == "event place" and (v or "").strip() for l, v in fields)
+    has_event = bool(etype) and any(l.lower().strip() in ("event date", "event place", "event place (original)") and (v or "").strip() for l, v in fields)
     for label, value in fields:
         if not value or SKIP.search(label): continue
         key = label.lower().strip()
         if key == "event place (original)" and not has_place: key = "event place"      # the place as written, when the page gives no standardized one
-        if etype and key in ("event date", "event place"): label = f"{etype} {key.split()[1].title()}"; key = label.lower()
+        is_event = etype and key in ("event date", "event place")
+        if is_event: label = f"{etype} {key.split()[1].title()}"; key = label.lower()
         rel = re.fullmatch(r"(father|mother|spouse|husband|wife|informant|child)(?:'s)?(?: name)?", key)
         if rel: named[rel.group(1)] = value; continue
         if key == "birth year (estimated)":                              # the index's own estimate from the age: a calculated birth year
@@ -443,7 +445,8 @@ def field_facts(fields, default_etype=None):
         ftype, part = fact_for(label)
         if ftype is None: ftype, part = "Unknown", "value"
         m = re.fullmatch(r"(home|residence) in (\d{4})", key)        # "Home in 1900": the label carries the year, and the stay is its own fact beside the record's own residence
-        slot = by_type.setdefault(ftype + "#" + label if m else ftype, {"date": None, "place": None, "values": []})
+        own = has_event and ftype == etype and not is_event and part in ("date", "place")   # a residence the record dates beside its own event (Residence Date 1935 on a 1940 census): its own stay
+        slot = by_type.setdefault(ftype + "#" + label if m else ftype + "#own" if own else ftype, {"date": None, "place": None, "values": []})
         if m and slot["date"] is None: slot["date"] = (m.group(2), label)
         if part == "place" and re.fullmatch(r"\s*same (house|place)\s*", value, re.I):   # the census's shorthand: the same dwelling as on the census date, not a place name
             slot["same"] = label; continue
