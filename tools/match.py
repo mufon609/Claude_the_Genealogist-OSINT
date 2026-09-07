@@ -243,6 +243,7 @@ def match(cx, eid, by, about=None):
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pr["id"])).fetchone(): continue
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
+            if pr["id"] in chosen and pr["role"] == "named in the text" and pr["id"] in nearly: continue   # a name in running text on the name alone is a hint on the page, not a card
             if pr["id"] in chosen:
                 c = chosen[pr["id"]]; fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
                 others = [o["name"] for o in cands if o["id"] != c["id"] and compare(cat, pr, o, chosen)[0]]
@@ -250,7 +251,7 @@ def match(cx, eid, by, about=None):
                 if absent: text += " Absent: " + ", ".join(absent) + "."
                 if others: text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
-            elif pr["role"] in ("result", "listed"): continue   # a search result or a schedule row that fits nobody stays on the page, not a new person
+            elif pr["role"] in ("result", "listed", "named in the text"): continue   # a search result, a schedule row or a name in running text that fits nobody stays on the page as a hint, not a new person
             else:
                 tried = [compare(cat, pr, c, chosen) for c in cands]
                 why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _, _) in zip(cands, tried) if not a or d)[:600]

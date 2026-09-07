@@ -84,6 +84,8 @@ Connector responses (JSON, archived by tools/run_step.py) have their own extract
                                  transcribed row the search matched, named as transcribed, with a Residence in the county and
                                  state in 1950 and the enumeration district and row under their labels; the whole schedule in
                                  structured_json.
+  rule:ia-search-inside@0.1.0    the Internet Archive's search inside one item (ia, q, matches with text and page): the matches'
+                                 text read as loc-gov-ocr reads a page, the item's date as the page's date.
   rule:loc-gov-ocr@0.1.0         a page's OCR text from loc.gov's text service (segments with full_text): one persona per place
                                  the searched surname stands in the text, named by the words around it, with the text region;
                                  a Death before the page's date for an obituary step, else a Residence on the page's date at
@@ -97,7 +99,7 @@ from conclude import assert_facts, link_family
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.2.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
-              "locgov": ("rule", "loc-gov-ocr", "0.1.0"), None: ("rule", "extract", "0.1.0")}
+              "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"), None: ("rule", "extract", "0.1.0")}
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
@@ -535,7 +537,12 @@ def parse_json(data, ctx):
     if isinstance(d, dict) and d and all(isinstance(v, dict) and "full_text" in v for v in d.values()):
         seg, body = next(iter(d.items()))
         return "locgov", {"kind": "locgov", "segment": seg, "full_text": body["full_text"] or "", "page": ctx["notes"], "step_type": ctx["step_type"], "query": ctx["query"], "fields": []}
-    return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text"}
+    if isinstance(d, dict) and "ia" in d and "matches" in d and "q" in d:      # the Archive's search inside one item: matches with their text and page
+        n = ctx["notes"]; pages = n.get("pages") or []           # the pages the runner chose and fetched images of (connectors/ia.py)
+        text = "\n".join(re.sub(r"</?IA_FTS_MATCH>", "", m.get("text") or "") for m in d["matches"] or [] if any(p.get("page") in pages for p in m.get("par") or []))
+        page = {"date": n.get("date") or (str(n["year"]) if n.get("year") else None), "title": n.get("title"), "item": n.get("item"), "pages": pages}
+        return "ia_inside", {"kind": "ia_inside", "segment": d["ia"], "full_text": text, "page": page, "step_type": ctx["step_type"], "query": ctx["query"], "fields": []}
+    return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text, not the Archive's search inside an item"}
 
 def write_schedule(w, parsed):
     """One persona per transcribed row the search matched (every row when nothing was matched): the name as transcribed, a
@@ -551,6 +558,8 @@ def write_schedule(w, parsed):
 
 def key_of(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 
+STOP = {"and", "or", "of", "the", "by", "to", "in", "at", "for", "with", "from", "mr", "mrs", "miss", "see", "also", "v", "vs"}
+
 def write_ocr(w, parsed):
     """One persona per place the searched surname stands in the page's OCR text, named by the words around it, with the text
     region; for an obituary step a Death fact before the page's date, otherwise a Residence on the page's date at the paper's
@@ -559,8 +568,11 @@ def write_ocr(w, parsed):
     surname = (q.get("surname") or "").strip()
     if not surname: return
     seq, seen = 1, set()
-    for m in re.finditer(r"(?:\b[A-Z][A-Za-z.'-]*\s+){0,2}\b" + re.escape(surname) + r"\b(?:\s+[A-Z][A-Za-z.]*)?", text, re.I):
-        name = re.sub(r"\s+", " ", m.group(0)).strip()
+    for m in re.finditer(r"(?:\b[A-Z][A-Za-z.'-]*\s+){0,2}\b(?i:" + re.escape(surname) + r")\b(?:\s+[A-Z][A-Za-z.]*)?", text):   # capitalized words around the surname, the surname in any case
+        words = re.sub(r"\s+", " ", m.group(0)).strip().split()
+        cut = [i for i, w_ in enumerate(words[:-1]) if w_.strip(".").lower() in STOP]     # "RECTOR AND Davidson": what stands before a stop word is not the name
+        if cut: words = words[cut[-1] + 1:]
+        name = " ".join(words)
         if key_of(name) in seen: continue
         seen.add(key_of(name)); start, end = max(0, m.start() - 160), min(len(text), m.end() + 160)
         pid = w.persona(name, None, "named in the text", seq, {"label": "ocr", "offset": m.start(), "snippet": text[start:end], "segment": parsed["segment"]}); seq += 1
@@ -605,7 +617,7 @@ def extract(cx, sha, by):
     if kind == "familysearch" and parsed.get("ark"):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
-    {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr}.get(kind, write_personas)(w, parsed)
+    {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))

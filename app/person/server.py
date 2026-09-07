@@ -25,7 +25,7 @@ from log_search import dismiss as dismiss_question, log as log_search, rendered_
 from extract import Writer
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, render as render_card, render_search, search_card, search_cards_for
-from conclude import decide as decide_document, match_record, record_says
+from conclude import answer_questions, decide as decide_document, match_record, record_says
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -117,7 +117,7 @@ def decide_fact(cx, tree_id, pid, field, status, note):
     answered = []
     if status == "accepted" and ids:                             # the proposal whose match brought the accepted evidence answers what the plan now closes
         props = [json.loads(r["notes"]).get("proposal") for r in cx.execute(f"SELECT notes FROM assertion WHERE id IN ({','.join('?'*len(ids))}) AND notes LIKE '{{%'", ids)]
-        answered = answer_questions(cx, tree_id, pid, next((x for x in props if x), None))
+        answered = answer_questions(cx, tree_id, pid, next((x for x in props if x), None), CFG["by"])
     return {"ok": True, "field": field, "status": status, "assertions": n, "evidence": len(ids), "vouched": vouched, "answered": answered}   # evidence: the assertions the decision could act on
 
 # ------------------------------------------------------------------ views

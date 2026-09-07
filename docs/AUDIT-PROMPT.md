@@ -75,9 +75,10 @@ screen. Then the loop repeats.
   `memorials` (the Find a Grave pages waiting to be saved in the browser, and
   the saved ones collected), `cards` (every Undecided proposal as a decision
   card), `catalog` (shared read-only access), `treelib` (shared helpers),
-  `run_step` (runs an auto search step through its source's
-  connector under `tools/connectors/`: loc.gov for Chronicling America, the
-  1950 census site; archives every response, logs the run, extracts and
+  `run_step` (runs an auto search step through every connector its sources
+  have under `tools/connectors/`: loc.gov for Chronicling America, the 1950
+  census site, the Internet Archive's full-text search for newspapers,
+  directories and books; archives every response, logs the run, extracts and
   matches). Parsers: the Find a Grave memorial parser and the FamilySearch
   record-page parser are verified on real pages; the Ancestry index parser is
   not (Ancestry needs a membership this account lacks). Connector-response
@@ -107,8 +108,8 @@ screen. Then the loop repeats.
   never a checklist: the loop starts from the people the owner accepted and
   walks outward on records. Plans exist for everyone; search steps exist only
   for reviewed people.
-- Not built yet: connectors beyond those two (FamilySearch waits on the API
-  application), exporters, backups.
+- Not built yet: connectors beyond those five (FamilySearch waits on the API
+  application), exporters.
 
 ## What to look for
 

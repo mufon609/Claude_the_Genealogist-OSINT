@@ -14,6 +14,8 @@ row records the exact query, the outcome (found when a hit was archived, none wh
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
 a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed.
+A step whose sources have several connectors runs at each, one log row per source. A fetched response may name more to
+fetch (an item's metadata, then the search inside it, then its pages: connector.follow).
 --all runs every planned step a connector can take, in plan order, keeping each connector's pace across steps.
 --dry-run prints the requests and sends nothing.
 """
@@ -44,13 +46,18 @@ def collection_for(cx, conn):
     cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, conn.SOURCE, conn.COLLECTION, "other", conn.__name__.split(".")[-1]))
     return cid
 
-def connector_for(cat, step):
-    """A search step's connector is the first of its sources with one; a fetch step's is its holder's (the locator source)."""
+def connectors_for(cat, step):
+    """A search step's connectors are those of its sources that have one, in the row's order; a fetch step's is its holder's
+    (the locator source). Each is a query at a different holder and gets its own log row."""
     sids = [step["locator_source_id"]] if step["kind"] == "fetch" else json.loads(step["sources_json"] or "[]")
+    out = []
     for sid in sids:
         name = (cat.sources.get(sid) or {}).get("connector")
-        if name: return connectors.load(name)
-    return None
+        if name: out.append(connectors.load(name))
+    return out
+
+def connector_for(cat, step):
+    conns = connectors_for(cat, step); return conns[0] if conns else None
 
 def runnable(cx, cat, tree_id):
     """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector."""
@@ -69,13 +76,30 @@ def household_steps(cx, tree_id, step):
     return [r for r in rows if all(v(json.loads(r["query_json"] or "{}"), k) == v(q, k) for k in ("year", "enumeration district", "census place", "page"))]
 
 def run(cx, cat, tree_id, step, by, dry_run=False):
-    """One step: requests, responses archived, hits fetched and archived, the log row, extraction and matching."""
-    conn = connector_for(cat, step)
-    if conn is None: return {"error": "no source of this step has a connector"}
+    """One step through every connector its sources have: one run each (run_connector), then extraction and matching over
+    every record any of them archived. Returns one result per connector."""
+    conns = connectors_for(cat, step)
+    if not conns: return [{"error": "no source of this step has a connector"}]
+    out = []
+    for conn in conns:
+        r = run_connector(cx, cat, tree_id, step, conn, by, dry_run)
+        if dry_run or "error" in r: out.append(r); continue
+        extracted = []
+        for sha in r.pop("records"):                             # a hit's own record; the search response is the query's evidence, not a record
+            eid, n = extract(cx, sha, by)
+            if "failed" in n: extracted.append({"sha256": sha, "unparsed": n["failed"]}); continue
+            props, taken = match_record(cx, eid, by)
+            extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
+        out.append({**r, "extracted": extracted})
+    return out
+
+def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
+    """One step at one connector: requests, responses archived, hits fetched and archived, the log row under the connector's
+    source. Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     reqs = conn.requests(query)
     if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs}
-    if not reqs: return {"error": "the fields give the connector nothing to ask; a surname is needed"}
+    if not reqs: return {"connector": conn.__name__.split(".")[-1], "error": "the fields give the connector nothing to ask; a surname is needed"}
     src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (conn.SOURCE,)).fetchone()
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")
@@ -88,12 +112,16 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
         if sha not in shas: shas.append(sha)
         return sha
     def hits_of_page(h):
-        got = []
-        for f in h["fetch"]:
+        got, todo = [], list(h["fetch"])
+        while todo:                                              # a fetched response may name more to fetch (connector.follow)
+            f = todo.pop(0)
             try: d2, h2 = fetch(f["url"], f["kind"], conn)
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e: errors.append(f"{f['url']}: {e}"); continue
-            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"]}))
-            if f["kind"] != "image": records.append(got[-1])
+            if hasattr(conn, "follow"):                          # first, so what the response taught (the pages chosen) is in this artifact's notes
+                try: todo += conn.follow(f, d2, h)
+                except ValueError as e: errors.append(f"{f['url']}: {e}")
+            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], **({"page_number": f["page"]} if f.get("page") else {})}))
+            if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
     for rq in reqs:
@@ -107,7 +135,7 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
                 except ValueError: totals.append(None)
                 try: asked.append(conn.narrow(url, data) if hasattr(conn, "narrow") else None)
                 except ValueError: pass
-            page_hits = conn.hits(url, data)
+            page_hits = conn.hits(url, data, rq) if conn.hits.__code__.co_argcount > 2 else conn.hits(url, data)
             try: url = conn.next_page(url, data) if hasattr(conn, "next_page") and rq["kind"] == "search" else None
             except ValueError: url = None
             for h in page_hits:
@@ -116,20 +144,14 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [a for a in asked if a] + [h["label"] for h in hits] + errors if x)[:1000] or None
 
-    lid = log_search(cx, tree_id, by, step_id=step["id"], outcome=outcome, artifacts=shas or None, note=note, query=query)
+    lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query)
     household = []
     if step["kind"] == "fetch" and outcome == "found":              # the page is held for every household member cited on it
         for other in household_steps(cx, tree_id, step):
             log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
                        query=rendered_query(other["query_json"], other["revisions_json"])); household.append(other["id"])
-    extracted = []
-    for sha in records:                                          # a hit's own record; the search response is the query's evidence, not a record
-        eid, n = extract(cx, sha, by)
-        if "failed" in n: extracted.append({"sha256": sha, "unparsed": n["failed"]}); continue
-        props, taken = match_record(cx, eid, by)
-        extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
     return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [r["url"] for r in reqs], "outcome": outcome, "log": lid, "artifacts": shas, "hits": hits,
-            "errors": errors, "household_steps": household, "extracted": extracted}
+            "errors": errors, "household_steps": household, "records": records}
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("step", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--dry-run", action="store_true")
@@ -150,6 +172,7 @@ def main():
         cx.execute("BEGIN")
         try: res = run(cx, cat, tree_id, st, a.by); cx.commit()
         except Exception: cx.rollback(); raise
-        print(who, st["id"], st["row_key"]); print("  ", dumps(res))
+        print(who, st["id"], st["row_key"])
+        for r in res: print("  ", dumps(r))
 
 if __name__ == "__main__": main()

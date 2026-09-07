@@ -173,7 +173,9 @@ collection, `data/holders.csv`), and the citation's own details as its fields
 year, census place, enumeration district, sheet, the memorial URL), each with
 basis `citation`; every citation on a row is one fetch step, in one shape. A
 citation whose collection has no free holder is a fetch step with mode
-`blocked` and the reason in its rationale. A **search**
+`blocked` and the reason in its rationale; a reviewed person whose row is cited
+only through blocked fetches also gets the row's search step at the free
+sources, as for a missing row. A **search**
 is a typed query (`subject_record`, `household`, `couple`, `name`,
 `surname_locality`, `obituary`, `probate`) for a missing row, built from the
 foundation fields with each field's basis, with its registry sources, one mode
@@ -271,12 +273,19 @@ second page of results is a second run of the step, never automatic.
 
 A source is `auto` only when its registry row names a built connector (the
 `Connector` column of `data/data-sources.csv`): `loc_gov` on H01 (Chronicling
-America through the loc.gov JSON API) and `nara_1950` on D05 (the 1950 census
-site's own name search). `tools/run_step.py` runs an auto step: the connector
-turns the step's rendered fields into requests, every response is archived as
-it came with the request URL as locator, each hit's own transcription or text
-and image are archived too, one `search_log` row holds the exact query, the
-outcome and every hash, and the extractor and matcher run on each hit's record.
+America through the loc.gov JSON API), `nara_1950` on D05 (the 1950 census
+site's own name search), and on the Internet Archive's full-text search
+`ia_newspapers` on H07 (the newspaperarchive collection, an obituary step
+keeping the death year and the next), `ia_directories` on K01 (items with
+directory in the title, the person's adult years) and `ia_books` on L02
+(everything else, hints). `tools/run_step.py` runs an auto step at every
+connector its sources have, one log row per source: the connector turns the
+step's rendered fields into requests, every response is archived as it came
+with the request URL as locator, each hit's own transcription or text and
+image are archived too (a hit may lead on: an Archive item's metadata names
+the server, the search inside it names the page, the reader gives the page
+image), one `search_log` row holds the exact query, the outcome and every
+hash, and the extractor and matcher run on each hit's record.
 It runs a fetch step the same way when the citation's free holder has a
 connector: the 1950 site takes the citation's surname within its enumeration
 district and answers with the household's schedule, whose every row becomes a
