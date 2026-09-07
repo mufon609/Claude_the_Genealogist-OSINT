@@ -89,19 +89,32 @@ from the citation's details. A search step for a missing row at FamilySearch
 the site. Build the URL from the step's fields with their basis, as the Find a
 Grave search URL is built.
 
-### C3. OCR / HTR extractor for record images
+### C3. The New York State marriage index as a source
+
+Reclaim the Records put the state marriage index 1881–1967 on the Internet
+Archive, one item per year (brides and grooms apart before 1955), as scanned
+pages with poor OCR: a Soundex block per page, each line surname, given name,
+place the licence was issued, the spouse's surname to four letters, month,
+day, certificate number. Tonight one page was archived by hand as a record
+under New York vital records (C08) and read by the model. Make it a step: for
+a missing marriage row, locate the Soundex block's pages in the year range
+from the OCR word patterns, archive the pages that carry the surname, and read
+them; the OCR alone cannot find a name, so the pages must be looked at. The
+same shape serves every New York marriage the tree is missing.
+
+### C4. OCR / HTR extractor for record images
 
 Turn an archived record image into personas and persona facts by machine,
 versioned by extractor, beside the human transcription the person screen
 offers today.
 
-### C4. Place-string review from the catalog
+### C5. Place-string review from the catalog
 
 The Undecided place strings and their `place_resolution` proposals have no
 decision path. Decide them on the person screen as a question about the
 person whose facts use the string, never as a standalone place queue.
 
-### C5. Focus views on the tree overview
+### C6. Focus views on the tree overview
 
 When a tree overview exists, let the user hide or highlight parts of it with
 saved, hotkey-switchable views: hide the siblings they do not care about on a
@@ -109,7 +122,7 @@ line, keep one child of a large family, dim everything outside the line being
 worked. A view changes only what is shown, never the data. Needs a tree
 overview first.
 
-### C6. Name variants in the matcher
+### C7. Name variants in the matcher
 
 The matcher compares the first given name exactly (one-letter initials
 aside) and the surname as written, so a mother recorded under her married
@@ -121,14 +134,14 @@ the proposal names the person the tree already has. Build it on the first
 fetched page where the matcher actually misses. Nothing here changes what a
 person decides.
 
-### C7. The 1950 connector reads only the first page of results
+### C8. The 1950 connector reads only the first page of results
 
 `nara_1950` judges hits on the first 25 schedules the site returns; a search
 without a county answers thousands and the person sought may sit on a later
 page. Page while the total stays small, or ask the person for a county on the
 step before searching a whole state.
 
-### C8. The memorial's free-text biography is not extracted
+### C9. The memorial's free-text biography is not extracted
 
 A Find a Grave memorial can carry a biography that is the obituary itself
 (Robert Edgar Davidson's names his parents, his siblings, his son and
@@ -139,7 +152,7 @@ labelled fields, so none of that reaches a persona fact or the card. Capture
 the biography as its own fact type, as written, and let the matcher report
 what it states beside the fields.
 
-### C9. A sibling accepted from a memorial lands with no family link
+### C10. A sibling accepted from a memorial lands with no family link
 
 Accepting a new-person proposal for a sibling on a memorial creates the
 person but no family membership, because the record states the sibling of
@@ -147,7 +160,7 @@ the subject, not the parents. When the subject's parents are Accepted, place
 the sibling as their child with an Undecided assertion on the record; until
 then the card says the person would be unlinked, as it does now.
 
-### C10. A household cemetery row reads held through a relative's memorial
+### C11. A household cemetery row reads held through a relative's memorial
 
 The cemetery / family plot row is a Group A household row, so it reads held
 for a person as soon as any relative's memorial is held, and the person never
