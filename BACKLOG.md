@@ -166,6 +166,45 @@ DELETE FROM assertion WHERE id IN (SELECT a.id FROM assertion a JOIN assertion b
   AND b.artifact_sha256=a.artifact_sha256 AND coalesce(b.notes,'')=coalesce(a.notes,'') AND b.id<a.id);
 ```
 
+### C10. Cards grouped by record
+
+`cards.py "<person>"` prints every card in one list; a person with four
+memorial cards and one census card cannot see at a glance which card is on
+the record their current step fetched. Group the cards by record, the
+record of the step being worked first.
+
+### C11. Every assisted fetch waiting, in one list
+
+`memorials.py list` prints the Find a Grave pages waiting, with the people
+on each. FamilySearch and enlistment fetches have no such list: the link is
+read from the screen or built by hand. One command lists every assisted step
+waiting at every holder, with the step id, the holder, the prefilled link
+and the file name to save under.
+
+### C12. The attach says why each step is fulfilled
+
+`attach_inbox.py` names the steps a page fulfils and not the reason (the
+citation's own record; the same sheet as the citation on Helen Sara Brant).
+One reason per step, printed and kept in the run's log note.
+
+### C13. The resolver's changes in the audit log
+
+`resolve_places.py` writes audit rows for the events it places and none for
+the place strings it resolves or resets, so a reset-and-rerun cannot be
+audited after the fact. One audit row per string whose status or place
+changed.
+
+### C14. Four 1940 census rows held in error on the live catalog
+
+The 1940 page fetched for Frederick Micheal Ahearn Jr was logged found on
+nine steps by the same-sheet rule; it shows one household, so the rows of
+Abram C Brant, Charlotte D Lukens, James Joseph Ahearn and Francis Thomas
+Ahearn read held with no persona of theirs. The rule now holds only the
+household the page names. Owner run, once: `log_search.py --reopen <step
+id> --note "the page held shows another household on the sheet"` for each of
+those four steps (`log_search.py --list "<person>"` shows them as done on the
+1940 row), under the owner's --by.
+
 ---
 
 ## Externally blocked

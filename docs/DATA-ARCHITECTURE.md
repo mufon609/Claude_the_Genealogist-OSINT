@@ -274,7 +274,8 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    source's own law (census 72 years under Pub. L. 95-416 / 44 U.S.C. 2108(b);
    PA deaths 50 years and births 105 years under Act 110 of 2011); stored per
    row in the source registry. `presumed_living` = born within 100 years and no
-   death evidence, manual override allowed, redacted in every export and
+   death evidence, manual override allowed, searched at no source on its own
+   (their search steps are assisted), redacted in every export and
    derivative, retained in the archive under ACL. Both thresholds configurable.
 
 ## 8. Wrong source data, variants and aliases

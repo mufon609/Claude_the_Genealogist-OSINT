@@ -138,15 +138,23 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    are accepted on it, so a child's parents fact is decided by the parents'
    own cards on the same record, each their own turn.
 6. `python3 tools/checklist.py "<person>"` again: what is held, what is
-   still missing, what the plan does next. When the person's rows are held
-   or exhausted, move to the next person at the edge.
+   still missing, what the plan does next. A turn can end with a key fact
+   still undecided that only a relative's card on the same record closes
+   (a child's parents, a wife's spouse): those cards are the next turns, and
+   a six-of-seven is not a failure. When the person's rows are held or
+   exhausted, move to the next person at the edge.
+   `python3 tools/conclude.py facts "<person>"` lists every fact with its
+   event id and every statement behind it with its assertion id.
 
 Report what was decided and on what record, in words; never a score.
 
 Every tool that writes takes `--by`. The owner acting is `user:<name>`; a
 session acting on the owner's behalf is `agent:<session> for user:<name>`,
 so the audit trail says who did what. A writing tool run without `--by`
-records the shell user as the owner.
+records the shell user as the owner. The read-only tools (`checklist`,
+`cards`, `footprint`, `backup verify`) and the registry syncs take no `--by`.
+No search runs on its own for a person presumed living (born within a
+hundred years, no death): their steps are assisted, and a person runs them.
 
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).
 - Verify after every change: `PRAGMA integrity_check`, `foreign_key_check`,

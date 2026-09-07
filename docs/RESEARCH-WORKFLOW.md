@@ -204,6 +204,12 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 | auto | Chronicling America (loc.gov), the 1950 census site; FamilySearch after Innovator approval, WikiTree, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
 | assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
 
+**Adjusting a prefilled search.** A person at the keyboard may change the
+fields of a prefilled search before running it (a wider year, a middle name,
+a place spelt as the site wants it); the run's log carries the fields as run,
+so the change is a logged act. A link that is wrong for the citation itself
+(a suffix taken as a surname) is a defect: report it, do not work around it.
+
 **The enlistment file.** The WWII Army enlistment step for a man born 1895
 to 1927 carries the National Archives' own fielded search prefilled (the name
 as the file writes it, the year of birth as two digits); the site answers a

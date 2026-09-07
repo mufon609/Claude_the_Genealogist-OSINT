@@ -46,7 +46,7 @@ def card(cx, tree_id, prop_id):
     p = cx.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if not p or p["kind"] not in ("persona_match", "new_person"): return None
     pay = json.loads(p["payload_json"]); cat = Catalog(cx, tree_id)
-    pe = cx.execute("SELECT id, name_text, sex, role_in_record, region_json, artifact_sha256 FROM persona WHERE id=?", (pay["persona_id"],)).fetchone()
+    pe = cx.execute("SELECT id, name_text, sex, role_in_record, region_json, artifact_sha256, extraction_id FROM persona WHERE id=?", (pay["persona_id"],)).fetchone()
     sha = pe["artifact_sha256"]
     a = cx.execute(f"""SELECT a.sha256, a.mime, {tier_sql('a')} AS trust_tier, a.locator_kind, a.locator_value, a.original_filename, a.retrieved_at, a.source_id, s.name AS source_name, c.name AS collection
                       FROM artifact a LEFT JOIN source s ON s.id=a.source_id LEFT JOIN collection c ON c.id=a.collection_id WHERE a.sha256=?""", (sha,)).fetchone()
@@ -76,10 +76,12 @@ def card(cx, tree_id, prop_id):
         person = {"id": person_id, "name": pr["name"], "span": [year(claim["birth"]["start"]) if claim["birth"] else None, year(claim["death"]["start"]) if claim["death"] else None], "claim": claim}
         # field by field
         name_f = next((f for f in facts if f["fact_type"] == "Name"), None)
-        if name_f:
-            rt = _tokens(name_f["value_text"]); keys = {(_key(n[0].split()[0]) if n[0] else "", _key(n[1])) for n in pr["names"]}
-            given_ok = any(g and rt and _key(rt[0]) == g for g, _ in keys); sur_ok = any(s and same_surname(_key(t), s) for t in rt[1:] for _, s in keys)
-            fields.append({"field": "Name", "record": name_f["value_text"], "tree": pr["name"], "verdict": "agrees" if given_ok and sur_ok else ("disagrees" if rt else "absent")})
+        if name_f:                                                  # as the matcher compares it: every name the record gives, short forms, spelling variants, a married surname
+            pers = next((x for x in personas_of(cx, pe["extraction_id"]) if x["id"] == pe["id"]), None)
+            _, agree, disagree, absent, _ = compare(cat, pers, match_candidate(cat, person_id), {}) if pers else (None, [], [], [], None)
+            g_ok = any(a.startswith("given name agrees") for a in agree); s_ok = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
+            note = next((a[a.index("(") - 1:].strip() for a in agree if a.startswith("surname agrees as")), None) or next((a for a in absent if a.startswith("surname:")), None)
+            fields.append({"field": "Name", "record": name_f["value_text"], "tree": pr["name"], "verdict": "agrees" if g_ok and s_ok else ("disagrees" if disagree or not g_ok else "absent"), "note": note})
         sx = pe["sex"] or next((f["value_text"] for f in facts if f["fact_type"] == "Sex"), None)
         fields.append({"field": "Sex", "record": sx, "tree": pr["sex"], "verdict": "absent" if not (sx and pr["sex"] in ("M", "F")) else ("agrees" if sx[:1].upper() == pr["sex"] else "disagrees")})
         for t in ("Birth", "Death", "Burial"):                  # a date and a place are two fields: each agrees, disagrees or is absent on its own

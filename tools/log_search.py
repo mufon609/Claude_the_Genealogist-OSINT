@@ -29,6 +29,14 @@ def rendered_query(query_json, revisions_json):
         out[k] = f
     return out
 
+def reopen(cx, tree_id, by, step_id, note):
+    """A step marked done by a run that did not hold its record after all is planned again; the run's log row stays as what
+    happened and a new row says why the step reopened."""
+    st = cx.execute("SELECT id, status FROM search_plan WHERE id=?", (step_id,)).fetchone()
+    if not st: raise SystemExit(f"no step {step_id}")
+    cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (step_id,))
+    return log(cx, tree_id, by, step_id=step_id, outcome="none", note=f"reopened: {note}")
+
 def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None):
     ts = now()
     if step_id:
@@ -54,12 +62,13 @@ def dismiss(cx, tree_id, by, question_id, note=None):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--step"); ap.add_argument("--question"); ap.add_argument("--source"); ap.add_argument("--outcome", choices=["found", "none", "blocked", "error"])
-    ap.add_argument("--artifact", action="append"); ap.add_argument("--note"); ap.add_argument("--query"); ap.add_argument("--list"); ap.add_argument("--dismiss"); ap.add_argument("--tree")
+    ap.add_argument("--artifact", action="append"); ap.add_argument("--note"); ap.add_argument("--query"); ap.add_argument("--list"); ap.add_argument("--dismiss"); ap.add_argument("--reopen", help="a step marked done in error: planned again, with --note saying why"); ap.add_argument("--tree")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); tree_id, slug = resolve_tree(cx, a.tree)
     if a.list:
         cat = Catalog(cx, tree_id); pid = cat.find_person(a.list)
+        print(f"{'step id':26}  {'kind':6} {'mode':17} {'status':8} {'row':34} {'locator':20} runs (outcome@date)  -- rationale")
         for row in cx.execute("""SELECT sp.id, sp.kind, sp.mode, sp.status, sp.row_key, sp.locator_value, sp.rationale,
                                         (SELECT GROUP_CONCAT(l.outcome || '@' || substr(l.executed_at,1,10), ' ') FROM search_log l WHERE l.plan_step_id=sp.id)
                                  FROM search_plan sp WHERE sp.person_id=? ORDER BY sp.seq""", (pid,)):
@@ -67,6 +76,9 @@ def main():
         return
     if a.dismiss:
         cx.execute("BEGIN"); dismiss(cx, tree_id, a.by, a.dismiss, a.note); cx.commit(); print("dismissed", a.dismiss); return
+    if a.reopen:
+        if not a.note: sys.exit("--note says why the step reopens")
+        cx.execute("BEGIN"); lid = reopen(cx, tree_id, a.by, a.reopen, a.note); cx.commit(); print("reopened", a.reopen, "log", lid); return
     if not a.outcome: sys.exit("--outcome required")
     cx.execute("BEGIN"); lid = log(cx, tree_id, a.by, a.step, a.question, a.source, a.outcome, a.artifact, a.note, json.loads(a.query) if a.query else None); cx.commit()
     print("logged", lid, a.outcome)

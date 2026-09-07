@@ -18,7 +18,7 @@ Read-only. For one person it reports:
               steps for cited records exist: no search steps, no footprint,
               no duplicate or unlinked persons (docs/RESEARCH-WORKFLOW.md §2).
 """
-import argparse, collections, json, os, re, sqlite3, sys
+import argparse, collections, datetime as dt, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, resolve_tree
 from catalog import Catalog, US_STATES, US_NAMES, year
@@ -57,6 +57,7 @@ def build(cat: Catalog, pid: str):
     notes = []
     if b is None and dated: b = min(dated) - 20; notes.append(f"birth year estimated as {b} from earliest dated event")
     known_death = d                                               # the death the tree states; the assumed lifespan below gates era rows only, never a search for a death
+    living = not known_death and bool(b) and b >= dt.date.today().year - 100   # presumed living (docs/DATA-ARCHITECTURE.md §7): no search runs for them on its own
     if d is None and b: d = b + 90; notes.append(f"no death: lifespan assumed to {d}")
     places = [e["place"] for e in ev if e["place"]]
     countries = {pl["country"] for pl in places if pl["country"]}; states = [pl["state"] for pl in places if pl["state"]]
@@ -127,7 +128,7 @@ def build(cat: Catalog, pid: str):
         """One mode for a search step: auto only when a source has a built connector (registry column), awaiting_approval
         when every source waits on an application (its status or its gate's is blocked-apply), else assisted."""
         srcs = [cat.sources.get(sid, {}) for sid in ids]
-        if any(s.get("connector") for s in srcs): return "auto"
+        if any(s.get("connector") for s in srcs): return "assisted" if living else "auto"
         waits = lambda sid, s: s.get("status") == "blocked-apply" or cat.sources.get(DEPENDS.get(sid, ""), {}).get("status") == "blocked-apply"
         if ids and all(waits(sid, s) for sid, s in zip(ids, srcs)): return "awaiting_approval"
         return "assisted"

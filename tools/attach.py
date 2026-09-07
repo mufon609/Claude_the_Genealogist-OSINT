@@ -106,8 +106,9 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
                             WHERE l.kind='ark' AND l.value=? AND a.locator_kind='apid'""", (value,)).fetchone()
         if loc:
             ids = sorted(same_page(cx, loc[0]))
-            return cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
+            rows = cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                   AND sp.locator_value IN ({','.join('?'*len(ids))}) ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, *ids)).fetchall()
+            return [r for r in rows if _named_on(cx, r["person_id"], parsed)]      # the page shows one household: it holds the rows of the people it names, not every household on the sheet
         named = _page_named(parsed or {})
         if named:
             rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
@@ -132,6 +133,19 @@ def _steps_by_kind(cx, tree_id, parsed):
         keys = {(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
         if any(g == pg and sn in rest for g, sn in keys): out.append(r)
     return out
+
+def _named_on(cx, person_id, parsed):
+    """Whether a record page names this person: the subject or a household member with the person's first given name and a
+    surname the tree holds for them, as written or as a spelling variant."""
+    from match import same_surname
+    names = [(parsed or {}).get("name") or ""] + [m.get("name") or "" for m in (parsed or {}).get("members") or []]
+    keys = [(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (person_id,))]
+    keys += [(g, name_key((sp or "").split()[-1])) for g, _ in list(keys) for sp, in cx.execute("""SELECT p.display_name FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.role='partner' AND x.person_id<>fm.person_id
+                                                                                                       JOIN person p ON p.id=x.person_id WHERE fm.person_id=? AND fm.role='partner'""", (person_id,)) if sp]   # a wife under her husband's surname
+    for n in names:
+        pg, rest = _split_name(n)
+        if pg and any(pg == g and any(same_surname(t, s) for t in rest) for g, s in keys): return True
+    return False
 
 def _split_name(text):
     parts = [name_key(x) for x in re.sub(r"^(mr|mrs|miss|ms|dr)\.?\s+", "", (text or "").strip(), flags=re.I).split() if name_key(x)]

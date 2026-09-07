@@ -22,6 +22,7 @@ no longer take is withdrawn, the record a card for the owner again.
 usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
        tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
        tools/conclude.py assertion <assertion id> accept|reject|undecided [--note "…"]   one statement of one record, on its own
+       tools/conclude.py facts "<person>"                                          every fact with its event id and every statement behind it with its id
        tools/conclude.py reconsider [--dry-run]                                   the rule re-examines its decisions
        tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…" [--marriage "14 AUG 1959"]
        tools/conclude.py link "<person>" --parent "<other>" [--parent "<other>"] --record <sha256> --note "…"
@@ -444,6 +445,7 @@ def main():
     fc.add_argument("person"); fc.add_argument("field"); fc.add_argument("verdict", choices=["accept", "reject", "undecided"]); fc.add_argument("--note")
     ac = sub.add_parser("assertion", help="one statement of one record on one subject, decided on its own (a fact decision touches every statement behind the fact)")
     ac.add_argument("assertion"); ac.add_argument("verdict", choices=["accept", "reject", "undecided"]); ac.add_argument("--note")
+    ls = sub.add_parser("facts", help="a person's key facts, events and attributes with their ids, and every statement behind each with its id, status and record"); ls.add_argument("person")
     r = sub.add_parser("reconsider", help="the rule re-examines every decision it made; one it would no longer take is withdrawn and the record is a card again")
     r.add_argument("--dry-run", action="store_true", help="report only")
     l = sub.add_parser("link", help="place a person in a family on your own word, on a record that stops short of naming both parties")
@@ -453,7 +455,7 @@ def main():
     d = sub.add_parser("divorce", help="a Divorce event between two people, with the evidence you name")
     d.add_argument("a"); d.add_argument("b"); d.add_argument("--date", help="GEDCOM form (BET 1950 AND 1959)")
     d.add_argument("--evidence", action="append", required=True, help="sha256[:persona fact id][:citation words]"); d.add_argument("--note", required=True)
-    for x in (dc, fc, ac, r, l, d):
+    for x in (dc, fc, ac, ls, r, l, d):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
@@ -465,7 +467,11 @@ def main():
             if "error" in res: raise SystemExit(res["error"])
             who = cx.execute("SELECT display_name FROM person WHERE id=?", (res["person"],)).fetchone()
             print(f"{res['status']}: {res['kind'].replace('_', ' ')} {who[0] if who else ''}; {res['assertions']} assertion(s), {len(res['memberships'])} family link(s), {len(res['answered'])} question(s) answered")
-            for m in res["memberships"]: print("   ", cx.execute("SELECT display_name FROM person WHERE id=?", (m["person"],)).fetchone()[0], m["role"], "of", cx.execute("SELECT display_name FROM person WHERE id=?", (m["of"],)).fetchone()[0], "(undecided: the record states a sibling)" if m.get("undecided") else "")
+            if res["status"] == "accepted" and res["person"]:
+                sha = cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (res["persona"],)).fetchone()[0]
+                for f in record_says(cx, tree_id, res["person"], sha): print(f"    {f['status']:9} {f['fact']}" + (f"  [conflict: {f['disagrees']}]" if f["disagrees"] else ""))
+            nm = lambda i: cx.execute("SELECT display_name FROM person WHERE id=?", (i,)).fetchone()[0]
+            for m in res["memberships"]: print("   ", f"{nm(m['person'])} placed beside {nm(m['of'])} as a child of the same parents, undecided: the record states a sibling, not the parents" if m.get("undecided") else f"{nm(m['person'])} {'child' if m['role'] == 'child' else 'spouse'} of {nm(m['of'])}: " + ("a new link, on this record" if m["new"] else "this record accepted as evidence on the link"))
             left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')=(SELECT json_extract(payload_json,'$.artifact_sha256') FROM proposal WHERE id=?)", (tree_id, a.proposal)).fetchone()[0]
             print(f"    {left} card(s) still waiting on this record" if left else "    nothing else waits on this record")
         elif a.cmd == "fact":
@@ -474,6 +480,8 @@ def main():
             res = decide_fact(cx, tree_id, pid, a.field, {"accept": "accepted", "reject": "rejected", "undecided": "undecided"}[a.verdict], a.note, a.by)
             if "error" in res: raise SystemExit(res["error"])
             print(f"{a.field} {res['status']}: {res['assertions']} assertion(s) touched" + (f", {len(res['vouched'])} written on your own word" if res["vouched"] else "") + (f", {len(res['answered'])} question(s) answered" if res["answered"] else ""))
+            from facts import evidence_rows
+            for e in evidence_rows(cx, pid, a.field): print(f"    {e['id'][-6:]} {e['status']:9} {e['tier'] or '-':5} {e['citation'] or ''}" + (" (your own word)" if e["vouched"] else " (the file's uncited claim)" if e["uncited"] else ""))
         elif a.cmd == "assertion":
             row = cx.execute("SELECT id, subject_kind, subject_id, status, citation_text FROM assertion WHERE id=? AND tree_id=?", (a.assertion, tree_id)).fetchone()
             if not row: raise SystemExit("no such assertion in this tree")
@@ -485,6 +493,17 @@ def main():
                      else [row["subject_id"]] if row["subject_kind"] == "person" else [json.loads(row["subject_id"])[1]] if row["subject_kind"] == "family_member" else []
             for pid in people: plan_person(cx, tree_id, pid, a.by)
             print(f"assertion {row['id'][-6:]} on {row['subject_kind']} ({row['citation_text'] or ''}): {row['status']} -> {status}; plan regenerated for {len(people)} person(s)")
+        elif a.cmd == "facts":
+            from facts import KEY_FACTS, evidence_rows, fact_status
+            pid = cat.find_person(a.person); print(cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0], f"[{pid[-6:]}]")
+            rows = [(f, f, None) for f in KEY_FACTS] + [(f"event:{e['id']}", f"{e['event_type'].lower()} {e['date_text'] or ''} {cat.place(e['id'], e['place_id'])['text'] if e['place_id'] else ''} {e['description'] or ''}".strip(), e["id"])
+                                                        for e in cx.execute("""SELECT e.id, e.event_type, e.date_text, e.place_id, e.description FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                                                               WHERE ep.person_id=? AND e.event_type NOT IN ('Birth','Death') ORDER BY e.date_start, e.event_type""", (pid,))]
+            for field, label, eid in rows:
+                st = fact_status(cx, pid, field)
+                if st is None and eid is None: print(f"  {label:11} no claim"); continue
+                print(f"  {label[:60]:60} {st or '-':9}" + (f"  event:{eid}" if eid else ""))
+                for e in evidence_rows(cx, pid, field): print(f"      {e['id']} {e['status']:9} {e['tier'] or '-':5} {(e['citation'] or '')[:60]}" + (" (your own word)" if e["vouched"] else " (the file's uncited claim)" if e["uncited"] else "") + ("" if e["held"] else "  not held"))
         elif a.cmd == "reconsider":
             rows = reconsider(cx, tree_id, a.by, dry_run=a.dry_run)
             for x in rows: print(f"{'kept' if x['kept'] else ('would withdraw' if a.dry_run else 'withdrawn'):15} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
