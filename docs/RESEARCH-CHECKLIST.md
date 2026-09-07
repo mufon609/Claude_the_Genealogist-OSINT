@@ -210,8 +210,17 @@ footprint, no duplicate or unlinked persons.
 ## 6b. The screen as built
 
 `app/person/server.py` serves it at http://127.0.0.1:8765/ (stdlib only,
-localhost only). The entry page is a person list with years, key facts
-Accepted, household records missing, cited-not-held, and questions. The
+localhost only). The entry page is the tree overview, whose goal in one
+sentence: the overview shows the family as people cards; a badge on a card
+says how many documents wait for a decision and what can run next; opening a
+card is the person screen, where the waiting documents are decided first and
+everything else follows from them. The cards are laid out from the home person
+(`tools/tree.py home`) upward, one row per generation of ancestors, a card's
+parents above it; then the others in the file with something waiting, and the
+rest folded away with a name search. A badge is a plain count of what waits:
+documents to decide, steps that run on their own, steps that need a hand,
+conflicts; a person with every key fact accepted and nothing waiting says so.
+The
 person page has the three regions in order: foundation (key facts with
 Accept / Reject / Undecided and the evidence behind each), checklist
 (footprint records first, then
@@ -259,8 +268,9 @@ residence, a relation to a persona already on the record); the model reads an
 image the same way, as extractor `llm:<model>`. Under each
 persona sit the matcher's proposals on the record (a record cited on several
 relatives is fetched for all of them, and each proposal names the person it
-concerns), each as the decision card, with Accept / Reject on a persona match
-or a new person; a decision answers in one line with what it made and closed
+concerns), each as the decision card, with Add / Ignore on a persona match or a
+new person, Ignore asking why so the reason is kept on the decision and shown
+on the card afterwards; a decision answers in one line with what it made and closed
 (the link, the questions answered, the rows this record fulfils) and what the
 plan does next (the facts now carrying held evidence to accept, the proposals
 still open on the record, the steps still planned). A held row

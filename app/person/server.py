@@ -269,10 +269,10 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
     summary = "; ".join(made + closed) + (". Next: " + "; ".join(nxt) if nxt else ".")
     return {"made": made, "closed": closed, "next": nxt, "summary": summary}
 
-def decide_proposal(cx, tree_id, prop_id, status):
-    """The person's decision on a document (conclude.decide), answered in words: what it made and closed and what the plan does
-    next (decision_outcome)."""
-    r = decide_document(cx, tree_id, prop_id, status, CFG["by"])
+def decide_proposal(cx, tree_id, prop_id, status, note=None):
+    """The person's decision on a document (conclude.decide), with the reason they give when they set one aside, answered in
+    words: what it made and closed and what the plan does next (decision_outcome)."""
+    r = decide_document(cx, tree_id, prop_id, status, CFG["by"], note=note)
     if "error" in r: return r
     p = cx.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
     return {**r, **decision_outcome(cx, tree_id, p, status, r["person"], r["persona"], prop_id, r["answered"], r["memberships"])}
@@ -300,15 +300,33 @@ def person_view(cx, tree_id, pid):
     for rec in r["footprint"]["records"]: rec.update(fetch_target(rec.get("apid"), cited.get(rec.get("apid"), {}).get("url")))
     return r
 
+def person_card(cx, cat, pid):
+    """One person as the overview shows them: name, years, how many key facts are accepted, and what waits on them."""
+    name, sex = cx.execute("SELECT display_name, sex FROM person WHERE id=?", (pid,)).fetchone()
+    ev = cat.events(pid); b = next((e["year"] for e in ev if e["type"] == "Birth"), None); d = next((e["year"] for e in ev if e["type"] == "Death"), None)
+    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS), **cat.waiting(pid)}
+
 def people(cx, tree_id, q=""):
-    cat = Catalog(cx, tree_id); out = []
-    for pid, name in cx.execute("SELECT id, display_name FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name", (tree_id, f"%{q}%")):
-        r = build(cat, pid)
-        acc = sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted")
-        out.append({"id": pid, "name": name, "span": r["person"]["span"], "accepted": acc, "key_facts": len(KEY_FACTS),
-                    "gaps": sum(1 for x in r["checklist"]["A"] if x["status"] == "missing"), "to_fetch": sum(1 for x in r["checklist"]["A"] + r["checklist"]["B"] if x["status"] == "cited"),
-                    "questions": len(r["questions"])})
-    return out
+    cat = Catalog(cx, tree_id)
+    return [person_card(cx, cat, pid) for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name", (tree_id, f"%{q}%"))]
+
+def overview(cx, tree_id):
+    """The tree overview: the family as people cards laid out from the home person outward, one row per generation of
+    ancestors (a card's parents sit above it, father then mother), each card saying what waits on the person; then everyone
+    else in the file, for the badge alone. Opening a card is the person screen."""
+    cat = Catalog(cx, tree_id)
+    home = cx.execute("SELECT home_person_id FROM tree WHERE id=?", (tree_id,)).fetchone()[0]
+    if not home: return {"home": None, "generations": [], "others": people(cx, tree_id)}
+    gens, seen, row = [], set(), [home]
+    while row and len(gens) < 8:
+        cards = []
+        for pid in row:
+            if pid in seen: continue
+            seen.add(pid); c = person_card(cx, cat, pid)
+            parents = sorted(cat.family(pid)["parents"], key=lambda x: 0 if (cx.execute("SELECT sex FROM person WHERE id=?", (x[0],)).fetchone() or [""])[0] == "M" else 1)
+            c["parents"] = [p for p, _ in parents]; cards.append(c)
+        gens.append(cards); row = [p for c in cards for p in c["parents"]]
+    return {"home": home, "generations": gens, "others": [c for c in people(cx, tree_id) if c["id"] not in seen]}
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -324,6 +342,7 @@ class H(BaseHTTPRequestHandler):
             if tree_id is None: self.send({"error": "no tree"}, code=400); return
             if u.path == "/api/tree": self.send({"slug": slug, "name": tname, "by": CFG["by"], "trees": [r["slug"] for r in cx.execute("SELECT slug FROM tree ORDER BY slug")]}); return
             if u.path == "/api/people": self.send(people(cx, tree_id, q.get("q", [""])[0])); return
+            if u.path == "/api/overview": self.send(overview(cx, tree_id)); return
             if u.path == "/api/inbox": self.send(sorted(os.path.basename(f) for f in glob.glob(os.path.join(inbox_dir(), "*")) if os.path.isfile(f) and not f.endswith(".gitkeep"))); return
             ma = re.match(r"^/api/artifact/([0-9a-f]{64})$", u.path)
             if ma:
@@ -355,7 +374,7 @@ class H(BaseHTTPRequestHandler):
                     try: dismiss_question(cx, tree_id, CFG["by"], mq.group(1), body.get("note")); res = {"ok": True}
                     except SystemExit as e: res = {"error": str(e)}
                 elif mt: res = transcribe(cx, mt.group(1), body)
-                elif md: res = decide_proposal(cx, tree_id, md.group(1), body.get("status"))
+                elif md: res = decide_proposal(cx, tree_id, md.group(1), body.get("status"), (body.get("note") or "").strip() or None)
                 elif ms.group(2) == "log": res = log_step(cx, tree_id, slug, ms.group(1), body)
                 else: res = revise_step(cx, tree_id, ms.group(1), body)
                 if res.get("error"): cx.rollback(); self.send(res, code=400)

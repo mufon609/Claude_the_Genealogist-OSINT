@@ -5,6 +5,7 @@
   tools/tree.py list
   tools/tree.py use <slug>          # sets catalog/.active-tree
   tools/tree.py show [<slug>]
+  tools/tree.py home "<person>" [--tree <slug>]   # the person the tree overview starts from
 """
 import argparse, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -63,6 +64,18 @@ def cmd_show(cx, a):
     for r in cx.execute("SELECT imported_at, artifact_sha256, original_path FROM tree_import WHERE tree_id=? ORDER BY imported_at", (tid,)):
         print(f"  import {r[0][:10]} {r[1][:12]}… {os.path.relpath(r[2], ROOT) if r[2] else ''}")
 
+def cmd_home(cx, a):
+    """The home person: the overview lays the family out from them. A name or id, exact or a substring with one match."""
+    slug = a.tree or active_tree_slug()
+    t = cx.execute("SELECT id FROM tree WHERE slug=?", (slug,)).fetchone()
+    if not t: sys.exit(f"tree '{slug}' does not exist")
+    rows = cx.execute("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?)", (t[0], a.person, a.person)).fetchall()
+    if not rows: rows = cx.execute("SELECT id, display_name FROM person WHERE tree_id=? AND display_name LIKE ?", (t[0], f"%{a.person}%")).fetchall()
+    if len(rows) != 1: sys.exit("no such person" if not rows else "several match: " + ", ".join(r[1] for r in rows))
+    cx.execute("UPDATE tree SET home_person_id=?, updated_at=? WHERE id=?", (rows[0][0], now(), t[0]))
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), t[0], now(), a.by, "update", "tree", t[0], dumps({"home_person_id": rows[0][0]})))
+    cx.commit(); print(f"home person of {slug}: {rows[0][1]}")
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
@@ -71,9 +84,10 @@ def main():
     sub.add_parser("list")
     u = sub.add_parser("use"); u.add_argument("slug")
     sh = sub.add_parser("show"); sh.add_argument("slug", nargs="?")
+    hm = sub.add_parser("home"); hm.add_argument("person"); hm.add_argument("--tree")
     a = ap.parse_args()
     cx = connect(a.db)
-    {"create": cmd_create, "list": cmd_list, "use": cmd_use, "show": cmd_show}[a.cmd](cx, a)
+    {"create": cmd_create, "list": cmd_list, "use": cmd_use, "show": cmd_show, "home": cmd_home}[a.cmd](cx, a)
 
 if __name__ == "__main__":
     main()

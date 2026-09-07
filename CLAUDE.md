@@ -65,6 +65,7 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
 ```
 python3 tools/initdb.py --force              # a fresh catalog; the live one holds decisions and is migrated, never rebuilt
 python3 tools/tree.py create <slug> --name "…"
+python3 tools/tree.py home "<person>"          # the person the overview starts from
 python3 tools/ingest_gedcom.py inbox/<file>.ged
 python3 tools/resolve_places.py             # Nominatim, cached; --reset undoes AI resolutions only
 python3 tools/backfill_aliases.py

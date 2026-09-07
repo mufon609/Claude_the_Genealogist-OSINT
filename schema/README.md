@@ -80,7 +80,7 @@ tools do not yet: `tools/catalog.py` uses SQLite's `json_valid` / `json_extract`
 | Tool | Purpose |
 |---|---|
 | `tools/initdb.py` | Create the catalog and seed reference tables (`--force` to rebuild). |
-| `tools/tree.py create|list|use|show` | Manage trees (profiles). `use` sets the active tree in `catalog/.active-tree`; every tool also accepts `--tree` and `$TREE`. |
+| `tools/tree.py create|list|use|show|home` | Manage trees (profiles). `use` sets the active tree in `catalog/.active-tree`; `home "<person>"` sets the person the overview lays the family out from; every tool also accepts `--tree` and `$TREE`. |
 | `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM 5.5.1 export as a T4 artifact and load it into the active tree. Files from `inbox/` are moved to `trees/<slug>/imports/<date>_<name>` (`--keep` copies instead). The same bytes may be imported into different trees; the same tree refuses a repeat. |
 | `tools/resolve_places.py` | Resolve `place_string` rows via Nominatim: parse + normalize, verify every given component against the candidate's hierarchy, auto-accept only unique full matches (or safe nested/coterminous choices), everything else stays Undecided with a tree-scoped `place_resolution` proposal. Then fills `event.place_id` only where every supporting fact resolved to the same place (audit-logged per event). `--reset` undoes AI-made resolutions and keeps human ones. Overrides in `data/place-overrides.json`. Responses cached under `derivatives/geocode/`. |
 | `tools/backfill_aliases.py` | Create `undecided` aliases from as-written persona names; set `place_string.variant_kind`; write a note on a person whose canonical name carries a code. Re-runnable. |

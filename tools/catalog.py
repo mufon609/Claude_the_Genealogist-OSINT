@@ -254,6 +254,20 @@ class Catalog:
             held = sha if sha and tier in ("T1", "T2", "T3") else self.held_apids().get(apid)   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
             if cname or held: out.append((cname or "", apid, held, cid))
         return out
+    def waiting(self, pid):
+        """What waits on a person, in plain counts: documents to decide (proposals about them: a persona proposed as them, a new
+        person on a record fetched for them), steps that run on their own (a connector can take them), steps that need a hand
+        (a page saved in the owner's browser, an assisted search), and conflicts open. Nothing here is a score."""
+        docs = self.q("""SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
+                         AND (json_extract(payload_json,'$.person_id')=? OR (kind='new_person' AND json_extract(payload_json,'$.subject_person_id')=?))""", self.tree_id, pid, pid)[0][0]
+        conn = {sid for sid, s in self.sources.items() if s.get("connector")}
+        runs, hand = 0, 0
+        for kind, mode, holder, sources in self.q("SELECT kind, mode, locator_source_id, sources_json FROM search_plan WHERE person_id=? AND status='planned'", pid):
+            srcs = json.loads(sources or "[]")
+            if (kind == "fetch" and mode == "fetch" and holder in conn) or (kind == "search" and mode == "auto"): runs += 1
+            elif (kind == "fetch" and mode == "fetch") or (kind == "search" and mode == "assisted"): hand += 1
+        conflicts = self.q("SELECT COUNT(*) FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", pid)[0][0]
+        return {"documents": docs, "runs_next": runs, "needs_hand": hand, "conflicts": conflicts}
     def family(self, pid):
         """Relatives through family memberships; a membership whose assertions are all rejected does not count."""
         fam = {"parents": [], "spouses": [], "children": [], "siblings": [], "families": []}
