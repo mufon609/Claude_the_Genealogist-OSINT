@@ -428,9 +428,11 @@ def field_facts(fields, default_etype=None):
     type gets its own slot keyed by label. "Event Date" and "Event Place" take the type named by "Event Type" (Census is a Residence)."""
     by_type, named = {}, {}
     etype = next((EVENT_TYPES.get(v.lower().strip()) for l, v in fields if l.lower().strip() == "event type"), None) or default_etype   # a page with no Event Type row takes its collection's kind
+    has_place = any(l.lower().strip() == "event place" and (v or "").strip() for l, v in fields)
     for label, value in fields:
         if not value or SKIP.search(label): continue
         key = label.lower().strip()
+        if key == "event place (original)" and not has_place: key = "event place"      # the place as written, when the page gives no standardized one
         if etype and key in ("event date", "event place"): label = f"{etype} {key.split()[1].title()}"; key = label.lower()
         rel = re.fullmatch(r"(father|mother|spouse|husband|wife|informant|child)(?:'s)?(?: name)?", key)
         if rel: named[rel.group(1)] = value; continue
@@ -440,17 +442,23 @@ def field_facts(fields, default_etype=None):
             continue
         ftype, part = fact_for(label)
         if ftype is None: ftype, part = "Unknown", "value"
-        slot = by_type.setdefault(ftype, {"date": None, "place": None, "values": []})
-        m = re.fullmatch(r"(home|residence) in (\d{4})", key)        # "Home in 1900": the label carries the year
+        m = re.fullmatch(r"(home|residence) in (\d{4})", key)        # "Home in 1900": the label carries the year, and the stay is its own fact beside the record's own residence
+        slot = by_type.setdefault(ftype + "#" + label if m else ftype, {"date": None, "place": None, "values": []})
         if m and slot["date"] is None: slot["date"] = (m.group(2), label)
+        if part == "place" and re.fullmatch(r"\s*same (house|place)\s*", value, re.I):   # the census's shorthand: the same dwelling as on the census date, not a place name
+            slot["same"] = label; continue
         if part == "value": slot["values"].append((value, label))
         elif slot[part] is None: slot[part] = (value, label)
         else: by_type.setdefault(ftype + "#" + label, {"date": None, "place": None, "values": []})[part] = (value, label)
     return by_type, list(named.items())
 
 def write_facts(w, pid, by_type):
+    """One fact per slot; a Residence dated by its label with no place of its own ("Home in 1935: Same House") takes the record's
+    own residence place, since that is what the shorthand says."""
+    home = next((s["place"] for k, s in by_type.items() if k.split("#")[0] == "Residence" and s["place"] and not s.get("same")), None)
     for ftype, slot in by_type.items():
         base = ftype.split("#")[0]
+        if slot.get("same") and home and not slot["place"]: slot["place"] = (home[0], slot["same"])
         if slot["date"] or slot["place"]:
             w.fact(pid, base, None, slot["date"][0] if slot["date"] else None, slot["place"][0] if slot["place"] else None,
                    [x[1] for x in (slot["date"], slot["place"]) if x])

@@ -16,7 +16,7 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, ROOT, object_path, resolve_tree
 from catalog import Catalog, fetch_target, tier_sql, year
-from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict
+from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, same_surname
 from conclude import sibling_home
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
@@ -78,7 +78,7 @@ def card(cx, tree_id, prop_id):
         name_f = next((f for f in facts if f["fact_type"] == "Name"), None)
         if name_f:
             rt = _tokens(name_f["value_text"]); keys = {(_key(n[0].split()[0]) if n[0] else "", _key(n[1])) for n in pr["names"]}
-            given_ok = any(g and rt and _key(rt[0]) == g for g, _ in keys); sur_ok = any(s and _key(t) == s for t in rt[1:] for _, s in keys)
+            given_ok = any(g and rt and _key(rt[0]) == g for g, _ in keys); sur_ok = any(s and same_surname(_key(t), s) for t in rt[1:] for _, s in keys)
             fields.append({"field": "Name", "record": name_f["value_text"], "tree": pr["name"], "verdict": "agrees" if given_ok and sur_ok else ("disagrees" if rt else "absent")})
         sx = pe["sex"] or next((f["value_text"] for f in facts if f["fact_type"] == "Sex"), None)
         fields.append({"field": "Sex", "record": sx, "tree": pr["sex"], "verdict": "absent" if not (sx and pr["sex"] in ("M", "F")) else ("agrees" if sx[:1].upper() == pr["sex"] else "disagrees")})

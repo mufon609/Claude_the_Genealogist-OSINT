@@ -133,6 +133,9 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    Accepting takes everything the record states about the person; a
    difference with the tree becomes a conflict question, never an
    overwrite. The record's other personas come up as cards only after that.
+   A family link the record states is asserted when both people it relates
+   are accepted on it, so a child's parents fact is decided by the parents'
+   own cards on the same record, each their own turn.
 6. `python3 tools/checklist.py "<person>"` again: what is held, what is
    still missing, what the plan does next. When the person's rows are held
    or exhausted, move to the next person at the edge.
