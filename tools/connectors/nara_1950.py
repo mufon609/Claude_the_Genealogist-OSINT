@@ -13,6 +13,7 @@ from connectors.loc_gov import US_STATES
 SOURCE = "D05"
 COLLECTION = "1950 Census (National Archives)"
 RATE = {"search": 60, "json": 60, "image": 60}
+MOST = 200                                                   # results read before the step is asked to narrow: a county on the place
 ABBR = dict(zip(sorted(US_STATES), ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT",
                                     "NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"]))
 
@@ -44,6 +45,22 @@ def requests(fields):
 
 def total(body):
     t = json.loads(body).get("total"); return t if isinstance(t, int) else None
+
+def next_page(url, body):
+    """The next page of the same search while the total stays within MOST and this page was full; None at the end, and None
+    when the total is beyond MOST, where narrow() says what to add."""
+    d = json.loads(body); results = d.get("results") or []; t = total(body)
+    qs = urllib.parse.parse_qs(urllib.parse.urlparse(url).query); page = int(qs.get("page", ["1"])[0])
+    if not results or t is None or t > MOST or page * len(results) >= t: return None
+    qs["page"] = [str(page + 1)]
+    return urllib.parse.urlunparse(urllib.parse.urlparse(url)._replace(query=urllib.parse.urlencode(qs, doseq=True, quote_via=urllib.parse.quote)))
+
+def narrow(url, body):
+    """What the step needs when the source answers with more than MOST results: a county on the place, then a state."""
+    t = total(body); qs = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+    if t is None or t <= MOST: return None
+    need = "a state" if not qs.get("state") else "a county" if not qs.get("county") else "a fuller name"
+    return f"the source answered {t} results and only the first page was read: add {need} to the step's place and run it again"
 
 def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 

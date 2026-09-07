@@ -84,6 +84,7 @@ python3 tools/run_step.py <step id>          # run an auto search step through i
 python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions; one it would no longer take is a card again; --dry-run
 python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…"   # your own word on a family link a record stops short of; --parent, --marriage; `divorce` likewise
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
+python3 tools/initdb.py --sync-event-types   # after any change to schema/seed_event_type.sql: the new types on an existing catalog
 python3 tools/tree.py show
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
 DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # scratch run: its own archive/, inbox/, derivatives/, trees/*/imports

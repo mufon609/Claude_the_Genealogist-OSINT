@@ -87,23 +87,35 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
                                 retrieved_by=by, terms=terms, cost=cost, trust_tier=tier, notes=dumps(notes) if notes else (label or ""), http=http)
         if sha not in shas: shas.append(sha)
         return sha
+    def hits_of_page(h):
+        got = []
+        for f in h["fetch"]:
+            try: d2, h2 = fetch(f["url"], f["kind"], conn)
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e: errors.append(f"{f['url']}: {e}"); continue
+            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"]}))
+            if f["kind"] != "image": records.append(got[-1])
+        hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got})
+    asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
     for rq in reqs:
-        try: data, http = fetch(rq["url"], rq["kind"], conn)
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e: errors.append(f"{rq['url']}: {e}"); continue
-        keep(data, http, rq["kind"], rq["url"], {"request": rq["kind"], "query": query})
-        try: totals.append(conn.total(data))
-        except ValueError: totals.append(None)
-        for h in conn.hits(rq["url"], data):
-            got = []
-            for f in h["fetch"]:
-                try: d2, h2 = fetch(f["url"], f["kind"], conn)
-                except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e: errors.append(f"{f['url']}: {e}"); continue
-                got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"]}))
-                if f["kind"] != "image": records.append(got[-1])
-            hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got})
+        url = rq["url"]
+        while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
+            try: data, http = fetch(url, rq["kind"], conn)
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e: errors.append(f"{url}: {e}"); break
+            keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": query})
+            if url == rq["url"]:
+                try: totals.append(conn.total(data))
+                except ValueError: totals.append(None)
+                try: asked.append(conn.narrow(url, data) if hasattr(conn, "narrow") else None)
+                except ValueError: pass
+            page_hits = conn.hits(url, data)
+            try: url = conn.next_page(url, data) if hasattr(conn, "next_page") and rq["kind"] == "search" else None
+            except ValueError: url = None
+            for h in page_hits:
+                hits_of_page(h)
     outcome = "found" if hits else ("error" if errors and not shas else "none")
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
-    note = "; ".join(x for x in [answered] + [h["label"] for h in hits] + errors if x)[:1000] or None
+    note = "; ".join(x for x in [answered] + [a for a in asked if a] + [h["label"] for h in hits] + errors if x)[:1000] or None
+
     lid = log_search(cx, tree_id, by, step_id=step["id"], outcome=outcome, artifacts=shas or None, note=note, query=query)
     household = []
     if step["kind"] == "fetch" and outcome == "found":              # the page is held for every household member cited on it

@@ -3,6 +3,7 @@
 
 usage: tools/initdb.py [--db catalog/tree.db] [--force]
        tools/initdb.py --sync-sources [--db catalog/tree.db]
+       tools/initdb.py --sync-event-types [--db catalog/tree.db]
 
 Applies schema/catalog.sql, schema/seed_event_type.sql, schema/sqlite_extras.sql,
 then seeds `source` from data/data-sources.csv, a `human` extractor, and the
@@ -57,11 +58,17 @@ def main() -> int:
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     ap.add_argument("--force", action="store_true", help="overwrite an existing db")
     ap.add_argument("--sync-sources", action="store_true", help="bring an existing catalog's source rows up to data/data-sources.csv; nothing else changes")
+    ap.add_argument("--sync-event-types", action="store_true", help="add the event types schema/seed_event_type.sql has that an existing catalog lacks; nothing else changes")
     a = ap.parse_args()
 
     if a.sync_sources:
         cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
         n = seed_sources(cx); cx.commit(); print(f"{a.db}: {n} source rows in step with data/data-sources.csv"); return 0
+    if a.sync_event_types:
+        cx = sqlite3.connect(a.db)
+        before = cx.execute("SELECT COUNT(*) FROM event_type").fetchone()[0]
+        cx.executescript(read("schema/seed_event_type.sql").replace("INSERT INTO event_type", "INSERT OR IGNORE INTO event_type")); cx.commit()
+        print(f"{a.db}: {cx.execute('SELECT COUNT(*) FROM event_type').fetchone()[0] - before} event type(s) added"); return 0
     if os.path.exists(a.db):
         if not a.force:
             print(f"refusing to overwrite {a.db} (use --force)", file=sys.stderr); return 2

@@ -109,12 +109,32 @@ def findagrave_search_url(fields):
     q.append(("orderby", "r"))
     return "https://www.findagrave.com/memorial/search?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
 
+def familysearch_search_url(fields):
+    """The FamilySearch record search as the site's own form builds it, from a search step's fields: q.givenName and q.surname,
+    the birth year with the step's tolerance as q.birthLikeDate.from/to, a death year likewise, the state as q.anyPlace, the
+    first spouse's names as q.spouseGivenName / q.spouseSurname, and for a census household step with a year the census
+    collection itself as f.collectionId (data/holders.csv). None without a surname."""
+    v = lambda k: ((fields or {}).get(k) or {}).get("value")
+    if not v("surname"): return None
+    q = [("q.givenName", v("given") or ""), ("q.surname", v("surname"))]
+    tol = ((fields or {}).get("birth_year") or {}).get("tolerance") or 2
+    if v("birth_year"): q += [("q.birthLikeDate.from", str(int(v("birth_year")) - tol)), ("q.birthLikeDate.to", str(int(v("birth_year")) + tol))]
+    if v("death_year"): q += [("q.deathLikeDate.from", str(int(v("death_year")) - tol)), ("q.deathLikeDate.to", str(int(v("death_year")) + tol))]
+    if v("state"): q.append(("q.anyPlace", str(v("state")).title()))
+    sp = (v("spouses") or [None])[0] if isinstance(v("spouses"), list) else v("spouse")
+    if sp and len(str(sp).split()) > 1: q += [("q.spouseGivenName", " ".join(str(sp).split()[:-1])), ("q.spouseSurname", str(sp).split()[-1])]
+    if v("year"):
+        coll = next((h for rows in holders().values() for h in rows if h["HolderKind"] == "fs_collection" and h["HolderCollection"] == f"United States, Census, {v('year')}"), None)
+        if coll: q.insert(0, ("f.collectionId", coll["HolderKey"]))
+    return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
+
 def search_target(sources, fields):
     """Where an assisted search step is run by hand: {url, holder} for a source whose own search the tool can build from the
-    step's fields (Find a Grave, E01), else nothing."""
-    if "E01" in (sources or []):
-        u = findagrave_search_url(fields)
-        if u: return {"url": u, "holder": "Find a Grave"}
+    step's fields (Find a Grave, E01; FamilySearch, D03), else nothing."""
+    for sid, build, holder in (("E01", findagrave_search_url, "Find a Grave"), ("D03", familysearch_search_url, "FamilySearch")):
+        if sid in (sources or []):
+            u = build(fields)
+            if u: return {"url": u, "holder": holder}
     return {"url": None, "holder": None}
 
 # ---------------------------------------------------------------- comparing a record's value with the tree's

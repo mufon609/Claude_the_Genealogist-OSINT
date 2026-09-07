@@ -183,6 +183,7 @@ def parse_memorial(text):
     add("Death Date", get("deathDateLabel")); add("Death Place", get("deathLocationLabel"))
     cemetery = [get(i) for i in ("cemeteryNameLabel", "cemeteryCityName", "cemeteryCountyName", "cemeteryStateName", "cemeteryCountryName")]
     add("Burial Place", ", ".join(x for x in cemetery if x)); add("Plot", get("plotValueLabel")); add("Inscription", get("inscriptionValue"))
+    add("Biography", get("fullBio"))                            # the contributor's text, often the obituary itself, as written
     memorial_id = get("memNumberLabel"); add("Memorial ID", memorial_id)
     members = []
     for ul in (n for n in walk(root) if n["tag"] == "ul" and "member-family" in (n["attrs"].get("class") or "")):
@@ -462,8 +463,9 @@ def write_memorial(w, parsed):
         if m: w.fact(subject, "Age", f"aged {m.group(2)}", labels=["Death Date"])
     if f.get("Burial Place") or f.get("Plot"): w.fact(subject, "Burial", f"Plot: {f['Plot']}" if f.get("Plot") else None, None, f.get("Burial Place"), [k for k in ("Burial Place", "Plot") if f.get(k)])
     if f.get("Inscription"): w.fact(subject, "Inscription", f["Inscription"], labels=["Inscription"])
+    if f.get("Biography"): w.fact(subject, "Biography", f["Biography"], labels=["Biography"])
     if parsed.get("memorial_id"): w.fact(subject, "Identification Number", parsed["memorial_id"], labels=["Find a Grave Memorial ID"])
-    for seq, m in enumerate(parsed["members"], seq0):
+    for seq, m in enumerate(parsed["members"], 2):                # the subject is persona 1
         kind = MEMBER_KIND.get(m["label"].lower(), "other"); role = m["label"].lower().rstrip("s") if kind != "other" else m["label"].lower()
         if kind == "child": role = "child"
         pid = w.persona(m["name"], None, role, seq, {"label": m["label"], "url": m.get("url"), "maiden": m.get("maiden")})

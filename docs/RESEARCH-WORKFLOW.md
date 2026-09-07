@@ -323,8 +323,8 @@ Fetched records go through the evidence layer (extraction → personas). A
 record page saved as HTML is parsed on arrival by `tools/extract.py`, which
 reads the page's kind from the page itself: a Find a Grave memorial goes to
 extractor `rule:findagrave-memorial@0.2.0` (the memorial's name, dates,
-places, plot, inscription as written and memorial id on one persona, one
-persona per family member in the page's own label word with a relation to the
+places, plot, inscription and biography as written and memorial id on one
+persona, one persona per family member in the page's own label word with a relation to the
 memorial's subject; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
@@ -388,7 +388,10 @@ accepted as a person on the same record, the family link between the two
 carries an Accepted assertion on the artifact too, created in a family of the
 right shape when the tree lacks the link: a parent-child relation is evidence
 on the child's membership, a spouse relation on both partners'; a sibling
-stated on the record gives no membership. Where the record's date or place
+stated on the record places the person as a child of the other's accepted
+parents with an Undecided assertion (the record states the sibling, not the
+parents), and only when the other is an accepted child of one family;
+otherwise a sibling gives no membership. Where the record's date or place
 disagrees with the event's own value, the record's statement is still accepted
 as what that record says, the event keeps its value, and the difference is a
 `conflict` question on the person, generated from the catalog

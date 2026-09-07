@@ -295,7 +295,8 @@ them (`docs/RESEARCH-WORKFLOW.md` §5–7); the decision's answer lists what cam
 in and any conflict it raised. A proposal the standing rule accepted shows
 "accepted by rule" with the reason and a Reject control; one the rule took
 back (`tools/conclude.py reconsider`) is a card again with the rule's reason. An assisted search step whose source's search the tool can build
-(Find a Grave) shows that link, built from the foundation fields; the results
+(Find a Grave; FamilySearch, the census collection itself for a household
+step with a year) shows that link, built from the foundation fields; the results
 page saved into `inbox/` comes back as the candidate card on the step's
 record, every row with its fields as agrees, disagrees or absent
 (`docs/RESEARCH-WORKFLOW.md` §4). An auto step runs through its connector

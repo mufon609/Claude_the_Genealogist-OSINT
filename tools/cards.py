@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, ROOT, object_path, resolve_tree
 from catalog import Catalog, fetch_target, tier_sql, year
 from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict
+from conclude import sibling_home
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
 
@@ -98,9 +99,15 @@ def card(cx, tree_id, prop_id):
     # ---- relationships the record states, both ways, with how the other persona stands
     rels = []
     for r in cx.execute("SELECT r.kind, r.value_text, o.id AS oid, o.name_text AS other FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (pe["id"],)):
-        rels.append({"direction": "is", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]), "mapped": r["kind"] in REL_WORD})
+        rels.append({"direction": "is", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]), "mapped": r["kind"] in REL_WORD, "oid": r["oid"]})
     for r in cx.execute("SELECT r.kind, r.value_text, o.id AS oid, o.name_text AS other FROM persona_relation r JOIN persona o ON o.id=r.persona_id WHERE r.related_persona_id=?", (pe["id"],)):
-        rels.append({"direction": "has", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]), "mapped": r["kind"] in REL_WORD})
+        rels.append({"direction": "has", "kind": r["kind"], "as_written": r["value_text"], "other": r["other"], "other_status": persona_status(cx, tree_id, r["oid"]), "mapped": r["kind"] in REL_WORD, "oid": r["oid"]})
+    def sibling_place(r):
+        """Where a sibling stated on the record would put this persona: the other's accepted parents, or nothing."""
+        pp = cx.execute("SELECT pp.person_id FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND p.tree_id=?", (r["oid"], tree_id)).fetchone()
+        home = sibling_home(cx, tree_id, pp["person_id"]) if pp else None
+        if not home: return None
+        return " and ".join(n for n, in cx.execute("SELECT p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=? AND fm.role='partner'", (home,))) or "the family with no parent named"
     # ---- what accepting closes
     closes = []; subject = pay.get("subject_person_id")
     if person_id:
@@ -126,9 +133,11 @@ def card(cx, tree_id, prop_id):
             if r["other_status"].startswith("accepted as "): closes.append(f"creates {pe['name_text']} in this tree as {REL_WORD[r['kind']]} of {r['other_status'][12:]} (the record's {r['as_written']})")
             elif r["other_status"].startswith("proposed as "): closes.append(f"creates {pe['name_text']} in this tree; joins the family of {r['other_status'][12:]} as {REL_WORD[r['kind']]} once that match is accepted (the record's {r['as_written']})")
             else: closes.append(f"creates {pe['name_text']} in this tree; the record's {r['as_written']} of {r['other']}, who is {r['other_status']}")
-        for r in [r for r in rels if r["direction"] == "is" and r["kind"] == "sibling"]:
-            closes.append(f"creates {pe['name_text']} in this tree with no family link yet: the record's {r['as_written']} of {r['other']} ({r['other_status']}) places nobody until the parents are stated")
-        if not joins and not any(r["direction"] == "is" and r["kind"] == "sibling" for r in rels): closes.append(f"creates {pe['name_text']} in this tree with no family link: the record states none the matcher maps")
+        for r in [r for r in rels if r["kind"] == "sibling"]:
+            where = sibling_place(r)
+            if where: closes.append(f"creates {pe['name_text']} in this tree as a child of {where}, undecided: the record's {r['as_written']} of {r['other']} states a sibling, not the parents")
+            else: closes.append(f"creates {pe['name_text']} in this tree with no family link yet: the record's {r['as_written']} of {r['other']} ({r['other_status']}) places nobody until the parents are accepted")
+        if not joins and not any(r["kind"] == "sibling" for r in rels): closes.append(f"creates {pe['name_text']} in this tree with no family link: the record states none the matcher maps")
     # ---- anything odd
     odd = [f"{f['field']} disagrees: record {f['record']}, tree {f['tree']}" for f in fields if f["verdict"] == "disagrees"]
     m = re.search(r"Also fits: (.+?)\.$", p["rationale"] or "")

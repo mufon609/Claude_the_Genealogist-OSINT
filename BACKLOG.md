@@ -81,15 +81,7 @@ the fixity record), put a plain-SQL dump of `catalog/tree.db` beside them
 against `artifact_copy` on a schedule so `v_artifact_under_replicated`
 becomes actionable.
 
-### C2. Search URL for an assisted search step at FamilySearch
-
-A fetch step at FamilySearch carries the collection's own search prefilled
-from the citation's details. A search step for a missing row at FamilySearch
-(D03) carries no URL, so the step is worked by retyping the foundation into
-the site. Build the URL from the step's fields with their basis, as the Find a
-Grave search URL is built.
-
-### C3. The New York State marriage index as a source
+### C2. The New York State marriage index as a source
 
 Reclaim the Records put the state marriage index 1881–1967 on the Internet
 Archive, one item per year (brides and grooms apart before 1955), as scanned
@@ -102,18 +94,18 @@ from the OCR word patterns, archive the pages that carry the surname, and read
 them; the OCR alone cannot find a name, so the pages must be looked at. The
 same shape serves every New York marriage the tree is missing.
 
-### C4. OCR / HTR extractor for record images
+### C3. OCR / HTR extractor for record images
 
 Turn an archived record image into personas and persona facts by machine,
 versioned by extractor, beside the person screen's transcription form.
 
-### C5. Place-string review from the catalog
+### C4. Place-string review from the catalog
 
 The Undecided place strings and their `place_resolution` proposals have no
 decision path. Decide them on the person screen as a question about the
 person whose facts use the string, never as a standalone place queue.
 
-### C6. Focus views on the tree overview
+### C5. Focus views on the tree overview
 
 When a tree overview exists, let the user hide or highlight parts of it with
 saved, hotkey-switchable views: hide the siblings they do not care about on a
@@ -121,7 +113,7 @@ line, keep one child of a large family, dim everything outside the line being
 worked. A view changes only what is shown, never the data. Needs a tree
 overview first.
 
-### C7. Name variants in the matcher
+### C6. Name variants in the matcher
 
 The matcher compares the first given name exactly (one-letter initials
 aside) and the surname as written, so a mother recorded under her married
@@ -133,33 +125,7 @@ the proposal names the person the tree already has. Build it on the first
 fetched page where the matcher actually misses. Nothing here changes what a
 person decides.
 
-### C8. The 1950 connector reads only the first page of results
-
-`nara_1950` judges hits on the first 25 schedules the site returns; a search
-without a county answers thousands and the person sought may sit on a later
-page. Page while the total stays small, or ask the person for a county on the
-step before searching a whole state.
-
-### C9. The memorial's free-text biography is not extracted
-
-A Find a Grave memorial can carry a biography that is the obituary itself
-(Robert Edgar Davidson's names his parents, his siblings, his son and
-daughter-in-law, his grandchildren and his great-grandson) or that refines or
-contradicts the labelled fields (Noi Segawa Davidson: "Born in Morioka"
-against a birth place field of "Tokushima, Japan"). The parser reads only the
-labelled fields, so none of that reaches a persona fact or the card. Capture
-the biography as its own fact type, as written, and let the matcher report
-what it states beside the fields.
-
-### C10. A sibling accepted from a memorial lands with no family link
-
-Accepting a new-person proposal for a sibling on a memorial creates the
-person but no family membership, because the record states the sibling of
-the subject, not the parents. When the subject's parents are Accepted, place
-the sibling as their child with an Undecided assertion on the record; until
-then the card says the person would be unlinked, as it does now.
-
-### C11. A household cemetery row reads held through a relative's memorial
+### C7. A household cemetery row reads held through a relative's memorial
 
 The cemetery / family plot row is a Group A household row, so it reads held
 for a person as soon as any relative's memorial is held, and the person never
@@ -169,7 +135,7 @@ one person. Decide whether the row stays a household row with a per-person
 "own memorial" state, or splits into the plot (household) and the person's
 memorial (individual).
 
-### C12. Place resolution accepts more than a unique full match
+### C8. Place resolution accepts more than a unique full match
 
 The resolver auto-accepts a string on "preferred administrative boundary",
 "dropped non-place candidates" and "US state name" as well as on a unique
@@ -179,7 +145,7 @@ Either narrow `tools/resolve_places.py` to the rule in `CLAUDE.md` (a unique
 full match, and the sanctioned nested choices) and reset the rest to
 Undecided with `--reset`, or amend the rule in the docs with the reason.
 
-### C13. Repeated assertions of one statement
+### C9. Repeated assertions of one statement
 
 The catalog holds groups of identical assertions (same subject, same persona
 fact, same record): the import writes one per citation when the file cites
