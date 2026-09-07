@@ -379,9 +379,10 @@ path for every image until an OCR or HTR extractor exists.
 time. For each person whose step the record fulfils, every persona is
 compared with that person and their relatives as the catalog knows them, but
 a proposal may name only the person the record was fetched for, a person
-attached to them by accepted links, or a person already accepted under the
-memorial the persona links (the same page is the same identity); a persona
-that fits a relative the file merely claims waits, shown on the card as
+attached to them by a record already accepted (a vouched link is a claim the
+owner stands behind, not a document, so a vouched relative waits too), or a
+person already accepted under the memorial the persona links (the same page
+is the same identity); every other persona waits, shown on the card as
 waiting on this decision. Accepting the document as that person's runs the
 matcher again: the record's other personas are then proposed against the
 accepted person's relatives, claims included, and against a person of the

@@ -216,15 +216,20 @@ def persons_for(cx, sha):
     return out
 
 def linked(cat, a, b):
-    """Whether two persons stand in one family on accepted links: both memberships carry an accepted assertion."""
+    """Whether two persons stand in one family on a record: both memberships carry an accepted assertion resting on an archived
+    record, not on the tree file's claim and not on the owner's word alone. A vouch is a claim the owner stands behind, not a
+    document, so a vouched relative waits like any other until the record's own person is decided."""
+    on_record = lambda fid, who, role: bool(cat.q("""SELECT 1 FROM assertion a WHERE a.subject_kind='family_member' AND a.subject_id=? AND a.status='accepted'
+                                                      AND a.artifact_sha256 IS NOT NULL AND a.artifact_sha256 NOT IN (SELECT artifact_sha256 FROM tree_import)
+                                                      AND NOT (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1))""", dumps([fid, who, role])))
     for fid, ra, rb in cat.q("""SELECT fm.family_id, fm.role, x.role FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=?
                                  WHERE fm.person_id=?""", b, a):
-        if cat.basis("family_member", dumps([fid, a, ra])) == "accepted" and cat.basis("family_member", dumps([fid, b, rb])) == "accepted": return True
+        if on_record(fid, a, ra) and on_record(fid, b, rb): return True
     return False
 
 def match(cx, eid, by, about=None):
     """One person at a time: a record proposes first the persona that may be the person it was fetched for (or a person already
-    attached to them by accepted links, or already accepted under the same memorial); the record's other personas wait. Once a
+    attached to them by a record accepted earlier, or already accepted under the same memorial); the record's other personas wait. Once a
     person is accepted on the record, its other personas are proposed against that person's relatives as the catalog knows
     them, claims included, and a persona the record relates to an accepted person and that fits nobody is proposed as a new
     person. about: person ids the owner says the record concerns, when no step or link names them (a family-held file)."""
@@ -249,7 +254,7 @@ def match(cx, eid, by, about=None):
             fam = cat.family(pid)
             for rid in [r for g in ("parents", "spouses", "children", "siblings") for r, _ in fam[g]]:
                 if rid not in ctx_of: ctx_of[rid] = (pid, qid, step_id); cands.append(candidate(cat, rid))
-                if pid in accepted_here or linked(cat, pid, rid): open_now.add(rid)     # a relative reached by an accepted link, or through a person accepted on this record
+                if pid in accepted_here or linked(cat, pid, rid): open_now.add(rid)     # a relative attached by an accepted record, or reached through a person accepted on this one
         for pr in personas:                                     # a persona whose memorial link is already accepted as someone: that person is a candidate
             if pr.get("memorial"):
                 for rid in by_memorial(cx, tree_id, pr["memorial"]):
