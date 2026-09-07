@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Run a search step whose mode is auto against its source's connector.
+"""Run a step through a connector: a search step whose mode is auto, or a fetch step whose holder has a connector.
 
 usage: tools/run_step.py <step id> [--dry-run] [--db catalog/tree.db] [--tree slug] [--by agent:run_step]
        tools/run_step.py --all [--dry-run] ...
 
-The step's fields, after the person's include and revise, become the connector's requests (tools/connectors/). Every
+A search step's fields, after the person's include and revise, become the connector's requests (tools/connectors/); a fetch
+step's are the citation's own details (the name the citation sits on, the census place, the enumeration district), and a
+page found is logged found on every household member's step that cites the same page. Every
 request goes out with treelib.USER_AGENT at the source's documented rate; every response is archived as it came, a JSON
 artifact whose locator is the request URL and whose source is the registry row; each hit's own transcription, text or
 image is fetched and archived the same way with what the response said about it in the manifest notes. One search_log
@@ -12,7 +14,7 @@ row records the exact query, the outcome (found when a hit was archived, none wh
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
 a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed.
---all runs every planned auto step of the active tree in plan order, keeping each connector's pace across steps.
+--all runs every planned step a connector can take, in plan order, keeping each connector's pace across steps.
 --dry-run prints the requests and sends nothing.
 """
 import argparse, json, os, sqlite3, sys, time, urllib.error, urllib.request
@@ -43,10 +45,28 @@ def collection_for(cx, conn):
     return cid
 
 def connector_for(cat, step):
-    for sid in json.loads(step["sources_json"] or "[]"):
+    """A search step's connector is the first of its sources with one; a fetch step's is its holder's (the locator source)."""
+    sids = [step["locator_source_id"]] if step["kind"] == "fetch" else json.loads(step["sources_json"] or "[]")
+    for sid in sids:
         name = (cat.sources.get(sid) or {}).get("connector")
         if name: return connectors.load(name)
     return None
+
+def runnable(cx, cat, tree_id):
+    """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector."""
+    with_conn = [sid for sid, s in cat.sources.items() if s.get("connector")]
+    return cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
+                          AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch' AND sp.locator_source_id IN ({','.join('?'*len(with_conn)) or "''"})))
+                          ORDER BY p.display_name, sp.seq""", (tree_id, *with_conn)).fetchall()
+
+def household_steps(cx, tree_id, step):
+    """The other fetch steps at the same holder whose citations name the same census page (year, enumeration district, census
+    place and page): every household member cited on it. A page fetched once is held for all of them."""
+    q = json.loads(step["query_json"] or "{}"); v = lambda d, k: ((d.get(k) or {}).get("value") or "").strip().lower()
+    if not v(q, "enumeration district"): return []
+    rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.id<>?
+                         AND sp.locator_source_id=? AND sp.status='planned'""", (tree_id, step["id"], step["locator_source_id"])).fetchall()
+    return [r for r in rows if all(v(json.loads(r["query_json"] or "{}"), k) == v(q, k) for k in ("year", "enumeration district", "census place", "page"))]
 
 def run(cx, cat, tree_id, step, by, dry_run=False):
     """One step: requests, responses archived, hits fetched and archived, the log row, extraction and matching."""
@@ -85,6 +105,11 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [h["label"] for h in hits] + errors if x)[:1000] or None
     lid = log_search(cx, tree_id, by, step_id=step["id"], outcome=outcome, artifacts=shas or None, note=note, query=query)
+    household = []
+    if step["kind"] == "fetch" and outcome == "found":              # the page is held for every household member cited on it
+        for other in household_steps(cx, tree_id, step):
+            log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
+                       query=rendered_query(other["query_json"], other["revisions_json"])); household.append(other["id"])
     extracted = []
     for sha in records:                                          # a hit's own record; the search response is the query's evidence, not a record
         eid, n = extract(cx, sha, by)
@@ -92,7 +117,7 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
         props, taken = match_record(cx, eid, by)
         extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
     return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [r["url"] for r in reqs], "outcome": outcome, "log": lid, "artifacts": shas, "hits": hits,
-            "errors": errors, "extracted": extracted}
+            "errors": errors, "household_steps": household, "extracted": extracted}
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("step", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--dry-run", action="store_true")
@@ -100,14 +125,12 @@ def main():
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
-    if a.all:
-        steps = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.mode='auto' AND sp.status='planned'
-                              ORDER BY p.display_name, sp.seq""", (tree_id,)).fetchall()
+    if a.all: steps = runnable(cx, cat, tree_id)
     else:
         if not a.step: sys.exit("give a step id or --all")
         st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (a.step, tree_id)).fetchone()
         if not st: sys.exit(f"no step {a.step} in tree {slug}")
-        if st["kind"] != "search" or st["mode"] != "auto": sys.exit(f"step {a.step} is {st['kind']}/{st['mode']}, not an auto search")
+        if connector_for(cat, st) is None or st["status"] != "planned": sys.exit(f"step {a.step} is {st['kind']}/{st['mode']}/{st['status']}: no connector runs it")
         steps = [st]
     for st in steps:
         who = cx.execute("SELECT display_name FROM person WHERE id=?", (st["person_id"],)).fetchone()[0]

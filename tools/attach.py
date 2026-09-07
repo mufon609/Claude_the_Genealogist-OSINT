@@ -121,6 +121,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     sha, new = archive_object(cx, data, mime=mime, source_id=st["locator_source_id"] or (sources[0] if sources else None), collection_id=st["collection_id"], collection_name=cname,
                               locator_kind=lkind, locator_value=lvalue, retrieved_by=by, terms=from_row.get("terms"),
                               cost=_cost(from_row.get("cost")), trust_tier=kind_row.get("trust_tier") or from_row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
+    if kind == "memorial": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "memorial_id", value))   # the page's own identity, however it was cited
     logs = []
     for s in steps:
         if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (s["id"], f'%"{sha}"%')).fetchone(): continue

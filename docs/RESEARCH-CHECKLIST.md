@@ -255,7 +255,8 @@ family footprint, unlinked persons) and that fetching cited records is open. A h
 panel also shows each record its steps archived: the file, its extractions
 with personas, facts and relations, and, when the record has no persona yet,
 a form to transcribe one person at a time (name, role, sex, age, birth, death,
-residence, a relation to a persona already on the record). Under each
+residence, a relation to a persona already on the record); the model reads an
+image the same way, as extractor `llm:<model>`. Under each
 persona sit the matcher's proposals on the record (a record cited on several
 relatives is fetched for all of them, and each proposal names the person it
 concerns), each as the decision card, with Accept / Reject on a persona match

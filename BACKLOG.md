@@ -121,24 +121,14 @@ the proposal names the person the tree already has. Build it on the first
 fetched page where the matcher actually misses. Nothing here changes what a
 person decides.
 
-### C7. Fetch steps at a holder with a connector
-
-A cited 1950 census record (holder D05) carries the citation's indexed name,
-county and enumeration district, which is exactly what the 1950 site's search
-takes, yet the runner executes only `search` steps. A `fetch` step at a
-holder whose registry row names a connector should run the same way, keeping
-the schedule whose enumeration district matches the citation. The same shape
-will serve FamilySearch once its API is open. First real case: the 1950 page
-cited on Raymond Earl Davidson and both his parents.
-
-### C8. The 1950 connector reads only the first page of results
+### C7. The 1950 connector reads only the first page of results
 
 `nara_1950` judges hits on the first 25 schedules the site returns; a search
 without a county answers thousands and the person sought may sit on a later
 page. Page while the total stays small, or ask the person for a county on the
 step before searching a whole state.
 
-### C9. The memorial's free-text biography is not extracted
+### C8. The memorial's free-text biography is not extracted
 
 A Find a Grave memorial can carry a biography that is the obituary itself
 (Robert Edgar Davidson's names his parents, his siblings, his son and
@@ -149,7 +139,7 @@ labelled fields, so none of that reaches a persona fact or the card. Capture
 the biography as its own fact type, as written, and let the matcher report
 what it states beside the fields.
 
-### C10. A sibling accepted from a memorial lands with no family link
+### C9. A sibling accepted from a memorial lands with no family link
 
 Accepting a new-person proposal for a sibling on a memorial creates the
 person but no family membership, because the record states the sibling of
@@ -157,7 +147,7 @@ the subject, not the parents. When the subject's parents are Accepted, place
 the sibling as their child with an Undecided assertion on the record; until
 then the card says the person would be unlinked, as it does now.
 
-### C11. A household cemetery row reads held through a relative's memorial
+### C10. A household cemetery row reads held through a relative's memorial
 
 The cemetery / family plot row is a Group A household row, so it reads held
 for a person as soon as any relative's memorial is held, and the person never
@@ -166,13 +156,6 @@ her husband's and her son's memorials and is on neither). A memorial is about
 one person. Decide whether the row stays a household row with a per-person
 "own memorial" state, or splits into the plot (household) and the person's
 memorial (individual).
-
-### C12. A fetch step for an accepted search candidate
-
-Accepting a candidate on a Find a Grave results card should create the fetch
-step for that memorial URL, run by the one-call method through the browser
-session and attached like any memorial. Today the card says so in words and
-the fetch happens by hand.
 
 ---
 

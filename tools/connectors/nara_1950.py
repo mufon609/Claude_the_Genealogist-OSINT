@@ -25,13 +25,20 @@ def place_parts(place):
     return county, ABBR.get(state.lower()) if state else None
 
 def requests(fields):
+    """A search step's fields (given, surname, place) become a name search in the state and county. A fetch step's fields are the
+    citation's own (name, census place, enumeration district): the search is by surname within that enumeration district, which
+    the site's own search takes as a filter, so the answer is the household's schedule and its neighbours' rather than a state."""
     surname, given = value(fields, "surname"), value(fields, "given")
+    if not surname and value(fields, "name"):
+        parts = str(value(fields, "name")).split(); surname, given = parts[-1], " ".join(parts[:-1]) or None
     if not surname: return []
-    county, state = place_parts(value(fields, "place"))
+    county, state = place_parts(value(fields, "place") or value(fields, "census place"))
     if not state and value(fields, "state"): state = ABBR.get(str(value(fields, "state")).lower())
-    q = [("name", " ".join(x for x in ((given or "").split()[0] if given else None, surname) if x))]
+    ed = re.sub(r"\s", "", str(value(fields, "enumeration district") or ""))
+    q = [("name", surname if ed else " ".join(x for x in ((given or "").split()[0] if given else None, surname) if x))]
     if state: q.append(("state", state))
     if county: q.append(("county", county))
+    if ed: q.append(("ed", ed))
     q.append(("page", "1"))
     return [{"url": "https://1950census.archives.gov/api/search?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote), "kind": "search"}]
 
@@ -41,17 +48,21 @@ def total(body):
 def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 
 def hits(url, body):
-    d = json.loads(body); q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query).get("name", [""])[0].split()
+    """A schedule is a hit when a highlighted name carries both the given name and the surname searched. Within an enumeration
+    district the site's own fuzzy match is the filter (a surname the transcriber misread still comes back), so every schedule it
+    returns is a hit and the whole page is read: the household is the record, not one row."""
+    d = json.loads(body); qs = urllib.parse.parse_qs(urllib.parse.urlparse(url).query); q = qs.get("name", [""])[0].split()
     given, surname = (key(q[0]), key(q[-1])) if len(q) > 1 else ("", key(q[0]) if q else "")
-    out = []
+    within_ed = bool(qs.get("ed")); out = []
     for r in d.get("results") or []:
         names = [n for v in (r.get("highlight") or {}).values() for n in v]
         matched = [n for n in names if surname and surname in key(n) and (not given or given in key(n))]
-        if not matched: continue
-        out.append({"label": f"{r.get('state')}, {r.get('county')}, ED {r.get('ed')}: {', '.join(matched)}",
+        if within_ed: matched = []                              # the whole schedule: every row becomes a persona
+        elif not matched: continue
+        out.append({"label": f"{r.get('state')}, {r.get('county')}, ED {r.get('ed')}: {', '.join(matched or names) or 'the schedule'}",
                     "locator": {"kind": "url", "value": f"https://1950census.archives.gov/api/search?scheduleId={r['scheduleId']}"},
                     "notes": {"scheduleId": r.get("scheduleId"), "state": r.get("state"), "abbr": r.get("abbr"), "county": r.get("county"), "ed": r.get("ed"),
-                              "matched": matched, "image": r.get("image")},
+                              "matched": matched, "highlighted": names, "image": r.get("image")},
                     "fetch": [{"url": f"https://1950census.archives.gov/api/search?scheduleId={r['scheduleId']}", "kind": "json"},
                               {"url": "https://1950census.archives.gov/iiif/2/" + urllib.parse.quote(r["image"], safe="") + "/full/full/0/default.jpg", "kind": "image"}] if r.get("image") else
                              [{"url": f"https://1950census.archives.gov/api/search?scheduleId={r['scheduleId']}", "kind": "json"}]})

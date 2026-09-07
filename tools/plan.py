@@ -63,6 +63,32 @@ def fetch_step(cat, row_key, query_type, apid, collection, collection_id, on, ex
             "locator_source_id": source, "locator_kind": "apid", "locator_value": apid, "collection_id": collection_id, "on_json": dumps(on),
             "sources_json": dumps(sources), "mode": mode, "expected": expected, "rationale": f"{where}; {why}"}
 
+MEMORIAL = re.compile(r"/memorial/(\d+)(?:/|$)")
+REL_TO = {"parent": "child", "child": "parent", "spouse": "spouse", "sibling": "sibling"}      # the record's subject, seen from the persona
+
+def linked_records(cx, tree_id, cat, pid, me):
+    """Fetch steps for the records a held record links from a persona accepted as this person: a Find a Grave memorial lists its
+    family members with each one's own memorial, so once the owner has said the listed parent is John Y Davidson, John's own
+    memorial is a lead on John (docs/RESEARCH-WORKFLOW.md §0), under his cemetery row, with the linked record's own identity as
+    the locator and the page's words as its fields (basis record). Nothing is generated for a persona only proposed."""
+    out = []; q = cx.cursor(); q.row_factory = sqlite3.Row
+    col = q.execute("SELECT id, name FROM collection WHERE name LIKE 'U.S., Find a Grave%' ORDER BY name LIMIT 1").fetchone()
+    for r in q.execute("""SELECT pe.name_text, pe.role_in_record, pe.region_json, s.display_name AS subject FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
+                           JOIN extraction e ON e.id=pe.extraction_id JOIN persona sub ON sub.extraction_id=e.id AND sub.role_in_record='memorial'
+                           LEFT JOIN person_persona sp ON sp.persona_id=sub.id AND sp.status='accepted' LEFT JOIN person s ON s.id=sp.person_id
+                           WHERE pp.person_id=? AND pp.status='accepted' AND e.superseded_by IS NULL AND pe.role_in_record<>'memorial'""", (pid,)):
+        m = MEMORIAL.search((json.loads(r["region_json"] or "{}").get("url") or ""))
+        if not m: continue
+        mid = m.group(1); url = f"https://www.findagrave.com/memorial/{mid}/"
+        subject = r["subject"] or "the memorial's subject"; rel = REL_TO.get(r["role_in_record"], r["role_in_record"])
+        fields = {"collection": {"value": col["name"] if col else "Find a Grave", "basis": "record"}, "name": {"value": r["name_text"], "basis": "record"},
+                  "url": {"value": url, "basis": "record"}, "linked from": {"value": f"{subject}'s memorial, where {r['name_text']} is listed under {r['role_in_record']}", "basis": "record"}}
+        out.append({"step_key": f"fetch:memorial:{mid}", "row_key": "cemetery / family plot:", "question_key": None, "kind": "fetch", "query_type": "subject_record",
+                    "query_json": dumps(fields), "locator_source_id": "E01", "locator_kind": "memorial_id", "locator_value": mid, "collection_id": col["id"] if col else None,
+                    "on_json": dumps([[subject, rel]]), "sources_json": dumps(["E01"]), "mode": "fetch", "expected": "the person's own memorial: name, dates, cemetery, plot, the family it links",
+                    "rationale": f"named on {subject}'s memorial with a link to their own; fetch it by the one-call method"})
+    return out
+
 class RegistryOutOfStep(Exception):
     """A source id the plan would write is not in the catalog's source table."""
 
@@ -94,6 +120,8 @@ def plan_person(cx, tree_id, pid, by):
                 searches.append({"step_key": f"search:{rk}", "row_key": rk, "question_key": None, "kind": "search", "query_type": s["type"], "query_json": dumps(s["fields"]),
                                  "locator_source_id": None, "locator_kind": None, "locator_value": None, "collection_id": None, "on_json": None,
                                  "sources_json": dumps(s["sources"]), "mode": s["mode"], "expected": s["expect"], "rationale": f"{row['record']} is missing for this person"})
+    for lk in linked_records(cx, tree_id, cat, pid, me):                # a held record that names this person and links their own record: a lead
+        if not any(lk["locator_value"] in (json.loads(f["query_json"]).get("url") or {}).get("value", "") for f in fetches): fetches.append(lk)
     home = next((k for k in wanted if wanted[k][0] in FOOTPRINT_HOME), None)
     have = {st["locator_value"] for st in fetches}
     for rec in r["footprint"]["records"][:12]:
@@ -133,7 +161,8 @@ def plan_person(cx, tree_id, pid, by):
                           id,person_id,step_key,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'planned',?)""", cols + (ulid(), pid, st["step_key"], ts)); stats["steps_new"] += 1
     held = cat.held_apids()                                              # a fetch step whose record is in the archive is done, whichever household member's id it was archived under
     for sid, lkind, lval in cx.execute("SELECT id, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='planned'", (pid,)).fetchall():
-        if (lkind == "apid" and lval in held) or (lkind and lkind != "apid" and lval and cx.execute("SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?", (lkind, lval)).fetchone()):
+        if (lkind == "apid" and lval in held) or (lkind and lkind != "apid" and lval and cx.execute("""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?
+                UNION SELECT 1 FROM artifact_locator WHERE kind=? AND value=?""", (lkind, lval, lkind, lval)).fetchone()):
             cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,)); stats["steps_done_by_archive"] += 1
     for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes, unless it was run or is done
         if skey not in wanted_keys and not cx.execute("SELECT 1 FROM search_plan sp WHERE sp.id=? AND (sp.status='done' OR EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=sp.id))", (sid,)).fetchone():

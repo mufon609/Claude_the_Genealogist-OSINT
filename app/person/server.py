@@ -199,36 +199,43 @@ def artifact_view(cx, tree_id, sha, pid):
             "candidates": sc, "candidates_text": render_search(sc) if sc else None, "extractions": exts, "proposals": proposals,
             "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
 
-def transcribe(cx, sha, body):
-    """One persona typed from a held record by the person acting: an extraction by extractor human:<user> on the
-    artifact (created on the first persona), the persona, its facts, and its relations to personas already on the record."""
+def transcribe(cx, sha, body, by=None):
+    """One persona read from a held record, by the person acting (extractor human:<user>) or by a model reading the image
+    (extractor llm:<model>, docs/DATA-ARCHITECTURE.md §1): an extraction on the artifact (created on the first persona), the
+    persona in the record's own role word, its facts as written, a birth calculated from an age and the record's year, and its
+    relations to personas already on the record."""
     if not cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return {"error": "not in the archive"}
     name = (body.get("name") or "").strip()
     if not name: return {"error": "a name is required"}
-    ts = now(); who = CFG["by"].split(":", 1)[-1]
-    x = cx.execute("SELECT id FROM extractor WHERE kind='human' AND name=? AND version IS NULL", (who,)).fetchone()
+    ts = now(); kind, who = ((by or CFG["by"]).split(":", 1) + [None])[:2]; kind = "llm" if kind in ("llm", "model") else "human"
+    x = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version IS NULL", (kind, who)).fetchone()
     xid = x["id"] if x else ulid()
-    if not x: cx.execute("INSERT INTO extractor (id,kind,name,created_at) VALUES (?,?,?,?)", (xid, "human", who, ts))
+    if not x: cx.execute("INSERT INTO extractor (id,kind,name,created_at) VALUES (?,?,?,?)", (xid, kind, who, ts))
     e = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND superseded_by IS NULL", (sha, xid)).fetchone()
     eid = e["id"] if e else ulid()
-    if not e: cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')", (eid, sha, xid, ts))
+    if not e: cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'complete',?)", (eid, sha, xid, ts, dumps({"read": "the page image, one person per row" if kind == "llm" else "typed by hand", "year": body.get("year")})))
     seq = cx.execute("SELECT COUNT(*) FROM persona WHERE extraction_id=?", (eid,)).fetchone()[0] + 1
     w = Writer(cx, sha, eid)
     sex = body.get("sex") if body.get("sex") in ("M", "F") else None
-    pid = w.persona(name, sex, (body.get("role") or "").strip().lower() or None, seq, {"label": "transcription"})
+    pid = w.persona(name, sex, (body.get("role") or "").strip().lower() or None, seq, {"label": "transcription", "line": body.get("line")})
     w.fact(pid, "Name", name, labels=["name"])
     if sex: w.fact(pid, "Sex", body["sex"], labels=["sex"])
-    if body.get("age"): w.fact(pid, "Age", body["age"].strip(), labels=["age"])
+    if body.get("age"): w.fact(pid, "Age", str(body["age"]).strip(), labels=["age"])
+    bdate = (body.get("birth_date") or "").strip() or None
+    if not bdate and body.get("age") and body.get("year") and str(body["age"]).strip().isdigit(): bdate = f"CAL {int(body['year']) - int(str(body['age']).strip())}"   # from the age on the record's date
     for ftype, dk, pk in (("Birth", "birth_date", "birth_place"), ("Death", "death_date", "death_place")):
-        if body.get(dk) or body.get(pk): w.fact(pid, ftype, None, (body.get(dk) or "").strip() or None, (body.get(pk) or "").strip() or None, [k for k in (dk, pk) if body.get(k)])
-    if body.get("residence"): w.fact(pid, "Residence", None, None, body["residence"].strip(), ["residence"])
+        d = bdate if ftype == "Birth" else (body.get(dk) or "").strip() or None
+        if d or body.get(pk): w.fact(pid, ftype, None, d, (body.get(pk) or "").strip() or None, [k for k in (dk if d else None, pk if body.get(pk) else None) if k] + (["age"] if ftype == "Birth" and d and d.startswith("CAL") else []))
+    if body.get("residence"): w.fact(pid, "Residence", None, str(body.get("year") or "") or None, body["residence"].strip(), ["residence"])
+    for k in ("occupation", "marital_status"):
+        if body.get(k): w.fact(pid, {"occupation": "Occupation", "marital_status": "Marital Status"}[k], str(body[k]).strip(), labels=[k])
     for r in body.get("relations") or []:
         if r.get("persona_id") and cx.execute("SELECT 1 FROM persona WHERE id=? AND artifact_sha256=?", (r["persona_id"], sha)).fetchone():
             w.relation(pid, r["persona_id"], r.get("kind") or "other", (r.get("text") or "").strip() or None, "transcription")
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
-               (ulid(), ts, CFG["by"], "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
-    match_record(cx, eid, CFG["by"])
-    return {"ok": True, "extraction": eid, "persona": pid}
+               (ulid(), ts, by or CFG["by"], "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
+    written, taken = match_record(cx, eid, CFG["by"])
+    return {"ok": True, "extraction": eid, "persona": pid, "proposals": len(written), "accepted_by_rule": len(taken)}
 
 def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members):
     """What the decision closed and what the plan does next, in words: the link made, the questions answered, the checklist rows

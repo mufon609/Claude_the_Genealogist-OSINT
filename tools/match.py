@@ -16,10 +16,11 @@ stated relationships. Dates are compared as dates when both sides carry a full
 date (a different day in the same year disagrees); a bare year against a full
 date agrees on the year only and says so; a record date marked about, estimated
 or calculated agrees within two years. A prefix (Dr, Maj), a nickname in quotes
-and an extra middle name are not disagreements; the surname agrees when any
-token of the record's name after the given name is a surname the tree has for
-the candidate (a memorial writes a married woman's birth surname inside her
-name). A persona fits a candidate when the given name agrees, nothing compared
+and an extra middle name are not disagreements; a name written surname first
+(Davidson, Robert E.) is read as such and an initial is never a surname; the
+surname agrees when any token of the record's name after the given name is a
+surname the tree has for the candidate (a memorial writes a married woman's
+birth surname inside her name). A persona fits a candidate when the given name agrees, nothing compared
 disagrees, and either the surname and at least one of the dates or places
 agree, or a stated relationship agrees. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
@@ -55,9 +56,12 @@ def split_persona_name(name_text):
     """(first given name key, [every later token's key]) with a leading prefix (Dr, Maj) dropped and quotes gone: a memorial writes a
     woman's name with her birth surname inside it (Helen Sara Brant Ahearn), so any token after the given name may be the surname
     the tree knows, and a nickname in quotes is one more token."""
-    parts = [p for p in re.sub(r"[\u201c\u201d\"']", " ", name_text or "").replace(",", " ").split() if key(p)]
+    text = re.sub(r"[\u201c\u201d\"']", " ", name_text or "").strip()
+    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", text)                   # a census writes the surname first: "Davidson, Robert E."
+    if m: text = f"{m.group(2)} {m.group(1)}"
+    parts = [p for p in text.replace(",", " ").split() if key(p)]
     while parts and key(parts[0]) in PREFIX: parts.pop(0)
-    return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:]])
+    return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:] if len(key(p)) > 1])   # an initial is not a surname
 
 def compare(cat, persona, cand, chosen):
     """Agreements, disagreements and absences between a persona and a candidate person, in words."""
@@ -171,7 +175,7 @@ def match(cx, eid, by):
                 if absent: text += " Absent: " + ", ".join(absent) + "."
                 if others: text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
-            elif pr["role"] == "result": continue               # a search result that fits nobody is a candidate kept on the page, not a new person
+            elif pr["role"] in ("result", "listed"): continue   # a search result or a schedule row that fits nobody stays on the page, not a new person
             else:
                 tried = [compare(cat, pr, c, chosen) for c in cands]
                 why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _) in zip(cands, tried) if not a or d)[:600]

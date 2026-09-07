@@ -18,7 +18,9 @@ does not need a name until a name has been found.
 
 **Claim.** What the imported file or a searcher says without a record behind it.
 An Undecided fact in a query carries basis `claim`; an Accepted one carries
-`accepted`. Nothing is searched on claims alone.
+`accepted`; a citation's own detail carries `citation`, a checklist row's value
+`row`, and what a held record itself says (the name as written, the record it
+links) `record`. Nothing is searched on claims alone.
 
 **Lead.** A piece of follow-up work about one person that the evidence produced
 and the loop can act on: a record to fetch because a held record names it
@@ -171,7 +173,13 @@ foundation fields with each field's basis, with its registry sources, one mode
 (`auto`, `assisted`, `awaiting_approval`), and what a hit would look like.
 A fetch step's fields carry basis `citation`.
 Footprint records on relatives are fetch steps under the fact-level question
-they serve. Running a step (Go, Search, the log buttons) is the approval;
+they serve. A held record that names a person and links their own record makes
+a fetch step for that record on that person, once the persona is accepted as
+them: a memorial lists each family member with their own memorial, so the
+accepted parent's memorial is a lead under the parent's cemetery row, with the
+linked record's own identity (`memorial_id`) as the locator and the page's
+words as its fields (basis `record`); nothing is generated for a persona only
+proposed. Running a step (Go, Search, the log buttons) is the approval;
 there is no approval state. Fetches are cheap and decisive, and open before the
 baseline is reviewed because the review needs them.
 
@@ -237,7 +245,13 @@ turns the step's rendered fields into requests, every response is archived as
 it came with the request URL as locator, each hit's own transcription or text
 and image are archived too, one `search_log` row holds the exact query, the
 outcome and every hash, and the extractor and matcher run on each hit's record.
-Every other search step is `assisted` or `awaiting_approval`.
+It runs a fetch step the same way when the citation's free holder has a
+connector: the 1950 site takes the citation's surname within its enumeration
+district and answers with the household's schedule, whose every row becomes a
+persona and whose image is archived beside it; the page is logged found on
+every household member's step that cites the same year, district, place and
+page. A schedule row that fits nobody stays on the page. Every other search
+step is `assisted` or `awaiting_approval`.
 
 Open sources with connectors are the standard path and Ancestry is the
 exception: a step runs automatically wherever a free source with a documented
@@ -291,10 +305,14 @@ same name and role on the same page (the decision was about the record, whose
 bytes have not changed), an accepted one asserting the new facts the record
 gives and nothing it already asserted, and the matcher proposes the rest
 again. A record image gets no
-automatic extraction: the person screen offers a transcription form on a held
-record with no persona, one persona at a time, written as an extraction by
-extractor `human:<user>`. That is the fallback for every image until an OCR or
-HTR extractor exists.
+automatic extraction: it is read one person per row, by the person acting
+through the screen's transcription form (extractor `human:<user>`) or by the
+model reading the image (extractor `llm:<model>`, layer 3 like any extraction,
+`docs/DATA-ARCHITECTURE.md` §1), each persona in the record's own role word
+with its facts as written, a birth calculated from an age and the record's year
+(qualifier `calculated`, so the matcher allows two years), and its relation to
+the head. What the reading proposes is decided like any record. That is the
+path for every image until an OCR or HTR extractor exists.
 
 `tools/match.py` runs on every extraction as it is written. For each person
 whose step the record fulfils, every persona is compared with that person and
