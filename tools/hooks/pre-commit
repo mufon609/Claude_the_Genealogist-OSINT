@@ -1,10 +1,11 @@
 #!/bin/sh
 # Refuses a commit that stages data: the archive, catalog databases, derivatives, the inbox
-# (except its .gitkeep), a tree's imports or exports, or any .ged / .db / .db-wal / .db-shm file.
+# (except its .gitkeep), a tree's imports or exports, or any .ged / .db / .db-wal / .db-shm file; the one .ged allowed is the
+# harness's own tests/fixtures/harness.ged, a small file of the owner's family written for the tests.
 # Installed once with: git config core.hooksPath tools/hooks
 bad=$(git diff --cached --name-only --diff-filter=ACMR | grep -E \
   '^(archive/|derivatives/|inbox/(.+)|catalog/.*\.(db|db-wal|db-shm)$|trees/[^/]+/(imports|exports)/)|\.(ged|db|db-wal|db-shm)$' \
-  | grep -v '^inbox/\.gitkeep$')
+  | grep -v '^inbox/\.gitkeep$' | grep -v '^tests/fixtures/harness\.ged$')
 if [ -n "$bad" ]; then
   echo "pre-commit: data never enters git; unstage these:" >&2
   echo "$bad" | sed 's/^/  /' >&2

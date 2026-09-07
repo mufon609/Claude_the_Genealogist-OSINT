@@ -120,7 +120,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
             if hasattr(conn, "follow"):                          # first, so what the response taught (the pages chosen) is in this artifact's notes
                 try: todo += conn.follow(f, d2, h)
                 except ValueError as e: errors.append(f"{f['url']}: {e}")
-            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], "step_type": step["query_type"], **({"page_number": f["page"]} if f.get("page") else {})}))   # the step's kind on the response itself, so it reads the same on its own
+            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], "step_type": step["query_type"], "connector": conn.__name__.split(".")[-1], **({"page_number": f["page"]} if f.get("page") else {})}))   # the step's kind and the connector on the response itself, so it reads the same on its own
             if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)

@@ -134,14 +134,14 @@ def check_wikitree(ps, fail):
 
 def check_locgov(ps, fail):
     fail(len(ps) >= 1 and all("davidson" in p["name"].lower() for p in ps), f"a persona per place the searched surname stands in the page's OCR text; got {[p['name'] for p in ps][:6]}")
-    fail(all(fact(p, "Death", date="Bef 1918-05-10") for p in ps), "on an obituary step, a Death before the page's date")
-    fail(all('"segment":"/service/ndnp' in p["region"] for p in ps), "the page's segment as the persona's region")
+    fail(not any(t in ("Death", "Residence") for p in ps for t, _, _, _ in p["facts"]), "no date of life made from the page's date: running text states none")
+    fail(all('"segment":"/service/ndnp' in p["region"] and '"date":"1918-05-10"' in p["region"] and "union city" in p["region"] for p in ps), "the page's segment, date and place in the persona's region")
 
 def check_ia_inside(ps, fail):
     fail(len(ps) >= 1, f"a persona per place the searched surname stands in the chosen pages' text; got {len(ps)}")
     fail(all("heebner" in p["name"].lower() for p in ps), f"every persona named around Heebner; got {[p['name'] for p in ps][:6]}")
-    fail(all(fact(p, "Residence", date="1879-01-01") for p in ps), "a Residence on the book's date for a compiled-genealogy hit")
-    fail(all('"segment":"genealogicalreco01krie"' in p["region"] for p in ps), "the item as the persona's segment")
+    fail(not any(t in ("Death", "Residence") for p in ps for t, _, _, _ in p["facts"]), "no residence made from a book's date: only a directory entry states one")
+    fail(all('"segment":"genealogicalreco01krie"' in p["region"] and '"date":"1879-01-01"' in p["region"] for p in ps), "the item and its date in the persona's region")
 
 # file, mime, source id, locator kind, locator value, the extractor expected, the check, and for a connector's response what the
 # run's log knew that its manifest does not; a fixture with a .manifest.json sidecar takes mime, source, locator and notes from

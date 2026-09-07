@@ -85,11 +85,13 @@ Connector responses (JSON, archived by tools/run_step.py) have their own extract
                                  state in 1950 and the enumeration district and row under their labels; the whole schedule in
                                  structured_json.
   rule:ia-search-inside@0.1.0    the Internet Archive's search inside one item (ia, q, matches with text and page): the matches'
-                                 text read as loc-gov-ocr reads a page, the item's date as the page's date.
+                                 text read as loc-gov-ocr reads a page, the item's date and title as the page's; a directory
+                                 entry (the Archive's directory connector) also gives a Residence on the directory's date.
   rule:loc-gov-ocr@0.1.0         a page's OCR text from loc.gov's text service (segments with full_text): one persona per place
-                                 the searched surname stands in the text, named by the words around it, with the text region;
-                                 a Death before the page's date for an obituary step, else a Residence on the page's date at
-                                 the paper's place. The search that archived the response supplies the surname and step type.
+                                 the searched surname stands in the text, named by the words around it, with the snippet and
+                                 the page's date, title and place in the region, and no fact beyond the name: running text
+                                 states no date of the person's life. The runner's notes on the response supply the surname,
+                                 the step's kind and the connector.
 """
 import argparse, html, json, os, re, sqlite3, sys, urllib.parse
 from html.parser import HTMLParser
@@ -709,9 +711,11 @@ def key_of(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 STOP = {"and", "or", "of", "the", "by", "to", "in", "at", "for", "with", "from", "mr", "mrs", "miss", "see", "also", "v", "vs"}
 
 def write_ocr(w, parsed):
-    """One persona per place the searched surname stands in the page's OCR text, named by the words around it, with the text
-    region; for an obituary step a Death fact before the page's date, otherwise a Residence on the page's date at the paper's
-    place. Nothing when the surname is not in the text."""
+    """One persona per place the searched surname stands in the page's OCR text, named by the words around it, with the
+    snippet, its offset and the page (its date, title and place) in the region. A page of running text states no date of the
+    person's life, so the persona carries its name and nothing else; a directory entry (the Archive's directory connector)
+    does state a residence, so it carries a Residence on the directory's date at its place. Nothing when the surname is not
+    in the text."""
     text, q, page = parsed["full_text"], parsed["query"], parsed["page"] or {}
     surname = (q.get("surname") or "").strip()
     if not surname: return
@@ -723,11 +727,12 @@ def write_ocr(w, parsed):
         name = " ".join(words)
         if key_of(name) in seen: continue
         seen.add(key_of(name)); start, end = max(0, m.start() - 160), min(len(text), m.end() + 160)
-        pid = w.persona(name, None, "named in the text", seq, {"label": "ocr", "offset": m.start(), "snippet": text[start:end], "segment": parsed["segment"]}); seq += 1
-        w.fact(pid, "Name", name, labels=["text"])
         place = ", ".join(x for x in (page.get("city"), page.get("state")) if x) or None
-        if parsed["step_type"] == "obituary" and page.get("date"): w.fact(pid, "Death", None, "Bef " + page["date"], None, ["page date"])
-        elif page.get("date") or place: w.fact(pid, "Residence", None, page.get("date"), place, ["page date", "newspaper place"])
+        region = {"label": "ocr", "offset": m.start(), "snippet": text[start:end], "segment": parsed["segment"],
+                  "page": {k: v for k, v in (("date", page.get("date")), ("title", page.get("title")), ("place", place)) if v}}
+        pid = w.persona(name, None, "named in the text", seq, region); seq += 1
+        w.fact(pid, "Name", name, labels=["text"])
+        if page.get("connector") == "ia_directories" and (page.get("date") or place): w.fact(pid, "Residence", None, page.get("date"), place, ["directory date", "directory place"])
 
 def extract(cx, sha, by):
     art = cx.execute("SELECT sha256, mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
