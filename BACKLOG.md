@@ -153,28 +153,7 @@ family-held file), and a script that runs every parser on its fixture, the
 matcher on the result, and the tools on a scratch copy, so a session can say
 "green" from one command.
 
-### C9. Bring the live catalog to the current rules
-
-Owner runs, once, in this order, for the code this file is committed with:
-sync the registry and the event types, the rule's re-examination of its own
-decisions, the place resolver reset and re-run, plans regenerated, then a
-first watched run of the connectors. Every writing command takes `--by`;
-a session running them for the owner passes `--by "agent:<session> for
-user:<owner>"`:
-
-```
-python3 tools/initdb.py --sync-sources
-python3 tools/initdb.py --sync-event-types
-python3 tools/conclude.py reconsider --dry-run
-python3 tools/conclude.py reconsider
-python3 tools/resolve_places.py --reset
-python3 tools/resolve_places.py
-python3 tools/plan.py --all
-python3 tools/run_step.py --all --dry-run
-python3 tools/backup.py verify
-```
-
-### C10. Fold the repeated assertions one decision wrote
+### C9. Fold the repeated assertions one decision wrote
 
 Two events carry the same statement of the same record several times over
 (eight extra rows, all written by one rule decision on 7 September; the
