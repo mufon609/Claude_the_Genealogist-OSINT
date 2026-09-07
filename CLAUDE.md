@@ -83,6 +83,7 @@ python3 tools/match.py <extraction id>       # proposals: persona match or new p
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
 python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions; one it would no longer take is a card again; --dry-run
 python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…"   # your own word on a family link a record stops short of; --parent, --marriage; `divorce` likewise
+python3 tools/backup.py verify                # every archived object hashed against its sha256; `bag <dir> --target <drive>` writes a BagIt bag with the catalog dumped to SQL; `check <bag>`
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
 python3 tools/initdb.py --sync-event-types   # after any change to schema/seed_event_type.sql: the new types on an existing catalog
 python3 tools/tree.py show

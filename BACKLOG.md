@@ -73,15 +73,7 @@ so a tree can be round-tripped and opened in Gramps desktop.
 
 No upstream blockers; safe to pick up in any session. Default-focus tier.
 
-### C1. Backups and fixity
-
-Package `archive/` as BagIt bags for the external drive (the bag manifest is
-the fixity record), put a plain-SQL dump of `catalog/tree.db` beside them
-(never git: it holds living-person data), and verify `archive/objects`
-against `artifact_copy` on a schedule so `v_artifact_under_replicated`
-becomes actionable.
-
-### C2. The New York State marriage index as a source
+### C1. The New York State marriage index as a source
 
 Reclaim the Records put the state marriage index 1881–1967 on the Internet
 Archive, one item per year (brides and grooms apart before 1955), as scanned
@@ -94,18 +86,18 @@ from the OCR word patterns, archive the pages that carry the surname, and read
 them; the OCR alone cannot find a name, so the pages must be looked at. The
 same shape serves every New York marriage the tree is missing.
 
-### C3. OCR / HTR extractor for record images
+### C2. OCR / HTR extractor for record images
 
 Turn an archived record image into personas and persona facts by machine,
 versioned by extractor, beside the person screen's transcription form.
 
-### C4. Place-string review from the catalog
+### C3. Place-string review from the catalog
 
 The Undecided place strings and their `place_resolution` proposals have no
 decision path. Decide them on the person screen as a question about the
 person whose facts use the string, never as a standalone place queue.
 
-### C5. Focus views on the tree overview
+### C4. Focus views on the tree overview
 
 When a tree overview exists, let the user hide or highlight parts of it with
 saved, hotkey-switchable views: hide the siblings they do not care about on a
@@ -113,7 +105,7 @@ line, keep one child of a large family, dim everything outside the line being
 worked. A view changes only what is shown, never the data. Needs a tree
 overview first.
 
-### C6. Name variants in the matcher
+### C5. Name variants in the matcher
 
 The matcher compares the first given name exactly (one-letter initials
 aside) and the surname as written, so a mother recorded under her married
@@ -125,7 +117,7 @@ the proposal names the person the tree already has. Build it on the first
 fetched page where the matcher actually misses. Nothing here changes what a
 person decides.
 
-### C7. A household cemetery row reads held through a relative's memorial
+### C6. A household cemetery row reads held through a relative's memorial
 
 The cemetery / family plot row is a Group A household row, so it reads held
 for a person as soon as any relative's memorial is held, and the person never
@@ -135,7 +127,7 @@ one person. Decide whether the row stays a household row with a per-person
 "own memorial" state, or splits into the plot (household) and the person's
 memorial (individual).
 
-### C8. Place resolution accepts more than a unique full match
+### C7. Place resolution accepts more than a unique full match
 
 The resolver auto-accepts a string on "preferred administrative boundary",
 "dropped non-place candidates" and "US state name" as well as on a unique
@@ -145,7 +137,7 @@ Either narrow `tools/resolve_places.py` to the rule in `CLAUDE.md` (a unique
 full match, and the sanctioned nested choices) and reset the rest to
 Undecided with `--reset`, or amend the rule in the docs with the reason.
 
-### C9. Repeated assertions of one statement
+### C8. Repeated assertions of one statement
 
 The catalog holds groups of identical assertions (same subject, same persona
 fact, same record): the import writes one per citation when the file cites

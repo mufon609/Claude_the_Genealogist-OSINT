@@ -129,10 +129,12 @@ outside the vendor.
 
 ### Integrity and backup
 
-- Hash on ingest; nightly scrub over a random sample, full scrub monthly.
-- 3-2-1: local disk, external drive (BagIt bags), S3 with Object Lock (see
-  §7; disabled until the project is finished). Derivatives are excluded from
-  off-site backup; they regenerate.
+- Hash on ingest; a scrub over a random sample often, the whole archive
+  monthly (`tools/backup.py verify`, the result on `artifact_copy`).
+- 3-2-1: local disk, external drive (BagIt bags written by
+  `tools/backup.py bag`, checked on the drive by `check`), S3 with Object Lock
+  (see §7; disabled until the project is finished). Derivatives are excluded
+  from off-site backup; they regenerate.
 - Deletion is a tombstone row in the catalog. Bytes go to a quarantined bag,
   not to /dev/null, unless a takedown requires otherwise.
 
