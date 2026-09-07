@@ -1,0 +1,151 @@
+0 HEAD
+1 SOUR Ancestry.com Family Trees
+2 NAME Ancestry.com Member Trees
+2 VERS 2025.08
+2 _TREE Harness
+3 NOTE A small file of the owner's family, written for tools/check.py: the Ahearn household of the 1940 census of Caln Township and Helen's parents, so the matcher, the standing rule and the decision writers can be run against the saved pages under tests/fixtures/.
+2 CORP Ancestry.com
+1 DATE 7 Sep 2026
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+1 SUBM @SUBM1@
+0 @SUBM1@ SUBM
+1 NAME The harness
+0 @I1@ INDI
+1 NAME Frederick Michael /Ahearn/
+2 GIVN Frederick Michael
+2 SURN Ahearn
+1 SEX M
+1 FAMC @F3@
+1 FAMS @F1@
+1 BIRT
+2 DATE 22 May 1907
+2 PLAC Northampton, Hampshire, Massachusetts, USA
+1 DEAT
+2 DATE 19 Feb 2001
+2 PLAC Boca Raton, Palm Beach, Florida, USA
+1 RESI
+2 DATE 1940
+2 PLAC Caln Township, Chester, Pennsylvania, USA
+2 SOUR @S1@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440831
+0 @I2@ INDI
+1 NAME Helen Sara /Brant/
+2 GIVN Helen Sara
+2 SURN Brant
+1 SEX F
+1 FAMC @F2@
+1 FAMS @F1@
+1 BIRT
+2 DATE 11 Jul 1909
+2 PLAC Philadelphia, Philadelphia, Pennsylvania, USA
+1 DEAT
+2 DATE 24 Jan 1986
+2 PLAC Boca Raton, Palm Beach, Florida, USA
+1 RESI
+2 DATE 1940
+2 PLAC Caln Township, Chester, Pennsylvania, USA
+2 SOUR @S1@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440833
+0 @I3@ INDI
+1 NAME Frederick Micheal /Ahearn/ Jr
+2 GIVN Frederick Micheal
+2 SURN Ahearn
+2 NSFX Jr
+1 SEX M
+1 FAMC @F1@
+1 BIRT
+2 DATE 6 Nov 1932
+2 PLAC Coatesville, Chester, Pennsylvania, USA
+1 DEAT
+2 DATE 3 Apr 2016
+2 PLAC New Jersey, USA
+1 RESI
+2 DATE 1940
+2 PLAC Caln Township, Chester, Pennsylvania, USA
+2 SOUR @S1@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440834
+0 @I4@ INDI
+1 NAME Alicia /Ahern/
+2 GIVN Alicia
+2 SURN Ahern
+1 SEX F
+1 FAMC @F1@
+1 BIRT
+2 DATE Abt 1935
+2 PLAC Pennsylvania, USA
+0 @I5@ INDI
+1 NAME Abram C /Brant/
+2 GIVN Abram C
+2 SURN Brant
+1 SEX M
+1 FAMS @F2@
+1 BIRT
+2 DATE 20 Sep 1880
+2 PLAC Worcester Township, Montgomery, Pennsylvania, USA
+1 DEAT
+2 DATE 10 Oct 1961
+2 PLAC Pottstown, Montgomery, Pennsylvania, USA
+1 BURI
+2 PLAC Norristown, Montgomery, Pennsylvania, USA
+2 SOUR @S2@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019650/abram-c-brant
+3 _APID 1,60525::38130497
+0 @I6@ INDI
+1 NAME Charlotte D /Lukens/
+2 GIVN Charlotte D
+2 SURN Lukens
+1 SEX F
+1 FAMS @F2@
+1 BIRT
+2 DATE 12 Apr 1882
+2 PLAC Norristown, Montgomery, Pennsylvania, USA
+1 DEAT
+2 DATE 19 Dec 1968
+2 PLAC Norristown, Montgomery, Pennsylvania, USA
+0 @I7@ INDI
+1 NAME James Joseph /Ahearn/
+2 GIVN James Joseph
+2 SURN Ahearn
+1 SEX M
+1 FAMS @F3@
+1 BIRT
+2 DATE 1873
+2 PLAC Massachusetts, USA
+1 DEAT
+2 DATE 1940
+0 @F1@ FAM
+1 HUSB @I1@
+1 WIFE @I2@
+1 CHIL @I3@
+1 CHIL @I4@
+1 MARR
+2 DATE 1930
+0 @F2@ FAM
+1 HUSB @I5@
+1 WIFE @I6@
+1 CHIL @I2@
+0 @F3@ FAM
+1 HUSB @I7@
+1 CHIL @I1@
+0 @S1@ SOUR
+1 TITL 1940 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2012
+2 PLAC Lehi, UT, USA
+1 _APID 1,2442::0
+0 @S2@ SOUR
+1 TITL U.S., Find a Grave® Index, 1600s-Current
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2012
+2 PLAC Lehi, UT, USA
+1 _APID 1,60525::0
+0 TRLR

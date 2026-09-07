@@ -33,3 +33,17 @@ step's kind), as the extractor reads it on arrival.
 
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified.
+
+## The harness tree
+
+`harness.ged` is a small GEDCOM in Ancestry's shape, written by hand for `tools/check.py`: the Ahearn household of the
+1940 census of Caln Township (Frederick Michael Ahearn, Helen Sara Brant, Frederick Micheal Ahearn Jr, Alicia Ahern),
+Helen's parents Abram C Brant and Charlotte D Lukens, and Frederick's father James Joseph Ahearn, each with the citations
+the owner's file carries for the two pages above (the 1940 record ids, Abram's memorial). Ingested into a scratch catalog,
+it is what the matcher, the standing rule and the decision writers are run against: the four cards the 1940 page makes,
+the rule refusing each (no accepted fact, a disagreement), the son accepted with his facts and no link, the mother's
+accept asserting the mother-son link, the father's the couple and his side of the link, the sister placed beside her
+brother undecided, the memorial's one card for Abram and the rule refusing a page anyone can edit, his wife and daughter
+and the new people the memorial links coming up only once he is accepted, a rejection writing nothing else, a new person
+created with her marked maiden name as her birth surname, the page re-read carrying four decided links, and the plan
+regenerating unchanged. It is the only `.ged` the commit guard allows.

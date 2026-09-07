@@ -141,16 +141,6 @@ only as records under the step's log. Show a reviewed person's hints as the
 doc says: each with what agrees, what is missing and the page, for research
 when the leads run dry, never as a feed.
 
-### C8. The decision writers on a scratch catalog, in the harness
-
-`tools/check.py` reads every parser against its saved page. The matcher, the
-standing rule and the decision writers still have no test: a synthetic GEDCOM
-of invented people under `tests/`, ingested by the tools into the harness's
-scratch catalog, then the matcher, the rule and the writers run on the
-fixtures against it, asserting what each writes and refuses (the T4 refusal,
-the two-facts rule, the one-person gate, the sibling placement, the couple
-relation). The commit guard must allow that one `.ged` path and no other.
-
 ### C9. Fold the repeated assertions one decision wrote
 
 Two events carry the same statement of the same record several times over

@@ -18,7 +18,7 @@ BY = "agent:check"
 def scratch(keep):
     d = tempfile.mkdtemp(prefix="tree-check-")
     os.environ["DATA_ROOT"] = d                                  # before treelib is imported: every data path resolves under it
-    db = os.path.join(d, "catalog", "tree.db"); os.makedirs(os.path.dirname(db))
+    db = os.path.join(d, "catalog", "tree.db"); os.makedirs(os.path.dirname(db)); os.makedirs(os.path.join(d, "inbox"))
     r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "initdb.py"), "--db", db], capture_output=True, text=True)
     if r.returncode: sys.exit(f"initdb failed:\n{r.stdout}{r.stderr}")
     return d, db
@@ -160,6 +160,116 @@ FIXTURE_SET = [
     ("findagrave-search-davidson-robert-1915-2004.html", "text/html", "E01", "url", "https://www.findagrave.com/memorial/search?firstname=Robert&lastname=Davidson&birthyear=1915&deathyear=2004", "findagrave-search", check_fg_search),
 ]
 
+def run(*args):
+    r = subprocess.run([sys.executable, *args], capture_output=True, text=True, env=os.environ)
+    if r.returncode: raise RuntimeError(f"{os.path.basename(args[0])} failed:\n{r.stdout}{r.stderr}")
+    return r.stdout
+
+def decisions(keep, show):
+    """The matcher, the standing rule and the decision writers on a scratch catalog holding tests/fixtures/harness.ged (the
+    Ahearn household of 1940 and Helen's parents), with the 1940 page and Abram C Brant's memorial arriving as they would
+    through the inbox. Returns the failures found."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from attach import attach_inbox
+    from conclude import decide, rule_accepts
+    from extract import extract
+    from facts import fact_status
+    from plan import plan_person
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    say = (lambda *a: print("    ", *a)) if show else (lambda *a: None)
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "harness", "--name", "Harness")
+    run(os.path.join(ROOT, "tools", "ingest_gedcom.py"), os.path.join(FIXTURES, "harness.ged"), "--keep", "--db", db, "--tree", "harness", "--by", BY)
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='harness'").fetchone()[0]
+    who = {r["display_name"]: r["id"] for r in cx.execute("SELECT id, display_name FROM person WHERE tree_id=?", (tid,))}
+    name = lambda pid: next(n for n, i in who.items() if i == pid)
+    for pid in who.values(): plan_person(cx, tid, pid, BY)
+    cx.commit()
+    fail(len(who) == 7, f"seven persons ingested, got {len(who)}")
+    props = lambda **w: [dict(r) for r in cx.execute("SELECT * FROM proposal WHERE tree_id=? AND status=? AND kind IN ('persona_match','new_person') ORDER BY created_at, id", (tid, w.get("status", "undecided")))]
+    person_of = lambda p: json.loads(p["payload_json"]).get("person_id")
+    nassert = lambda: cx.execute("SELECT COUNT(*) FROM assertion WHERE tree_id=? AND status='accepted'", (tid,)).fetchone()[0]
+    memberships = lambda: [(name(fm["person_id"]), fm["role"], a["status"], (json.loads(a["notes"] or "{}").get("placed")))
+                           for fm in cx.execute("SELECT family_id, person_id, role FROM family_member")
+                           for a in cx.execute("SELECT status, notes FROM assertion WHERE subject_kind='family_member' AND subject_id=? AND artifact_sha256 NOT IN (SELECT artifact_sha256 FROM tree_import)", (treelib.dumps([fm["family_id"], fm["person_id"], fm["role"]]),))]
+    # ---- the 1940 page arrives: four people cite it under their own record ids, each is the record's own person; the rule takes none
+    shutil.copy(os.path.join(FIXTURES, "familysearch-census-1940-KQX1-VT9.html"), os.path.join(treelib.inbox_dir(), "familysearch-census-1940-KQX1-VT9.html"))
+    res = attach_inbox(cx, tid, "harness", BY, ["familysearch-census-1940-KQX1-VT9.html"]); cx.commit(); say("attach 1940:", res)
+    ps = props(); named = sorted(name(person_of(p)) for p in ps if person_of(p))
+    fail(named == ["Alicia Ahern", "Frederick Michael Ahearn", "Frederick Micheal Ahearn Jr", "Helen Sara Brant"], f"a card for each of the four the page names and cites, nobody else; got {named}")
+    fail(all(p["kind"] == "persona_match" for p in ps), "every card a persona match: the tree has them all")
+    reasons = {name(person_of(p)): rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (p["id"],)).fetchone()) for p in ps}
+    say("rule:", reasons)
+    fail(all(not ok for ok, _ in reasons.values()), "the rule takes nothing on a tree with no accepted fact")
+    fail("not accepted" in reasons["Frederick Micheal Ahearn Jr"][1].lower(), f"the rule stands on accepted facts only, and the son has none: {reasons['Frederick Micheal Ahearn Jr'][1]}")
+    fail("disagree" in reasons["Frederick Michael Ahearn"][1].lower(), f"a disagreement refuses the father: {reasons['Frederick Michael Ahearn'][1]}")
+    card = {name(person_of(p)): p["id"] for p in ps}
+    # ---- the son accepted: his facts, no family link yet
+    n0 = nassert(); r = decide(cx, tid, card["Frederick Micheal Ahearn Jr"], "accepted", BY, "harness"); cx.commit(); say("son:", r)
+    fail(r.get("ok") and r["assertions"] >= 6 and not r["memberships"], f"the son's facts accepted from the record and no family link before a parent is: {r}")
+    fail(fact_status(cx, who["Frederick Micheal Ahearn Jr"], "name") == "accepted" and fact_status(cx, who["Frederick Micheal Ahearn Jr"], "birth") == "accepted", "his name and birth read accepted")
+    fail(fact_status(cx, who["Frederick Micheal Ahearn Jr"], "parents") == "undecided", "his parents still undecided")
+    # ---- the mother accepted: the mother-son link
+    r = decide(cx, tid, card["Helen Sara Brant"], "accepted", BY, "harness"); cx.commit(); say("mother:", r)
+    fail(any(m.get("role") == "child" and m.get("person") == who["Frederick Micheal Ahearn Jr"] for m in r["memberships"]), f"accepting the mother asserts the son's child membership: {r['memberships']}")
+    fail(fact_status(cx, who["Frederick Micheal Ahearn Jr"], "parents") == "accepted", "the son's parents read accepted on the record")
+    fail(fact_status(cx, who["Helen Sara Brant"], "spouses") == "undecided", "her spouses wait for the father's card")
+    # ---- the father accepted: the couple relation and the link from his side
+    r = decide(cx, tid, card["Frederick Michael Ahearn"], "accepted", BY, "harness"); cx.commit(); say("father:", r)
+    fail(any(m.get("role") == "child" for m in r["memberships"]) and any(m.get("role") == "partner" or m.get("role") == "spouse" for m in r["memberships"]), f"the father's accept asserts the child link and the couple: {r['memberships']}")
+    fail(fact_status(cx, who["Helen Sara Brant"], "spouses") == "accepted" and fact_status(cx, who["Frederick Michael Ahearn"], "spouses") == "accepted", "both spouses facts accepted on the couple relation")
+    birth = cx.execute("""SELECT e.date_text, ps.raw FROM event e JOIN event_participant ep ON ep.event_id=e.id JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status='accepted'
+                          JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                          WHERE ep.person_id=? AND e.event_type='Birth' AND a.artifact_sha256='3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e'""", (who["Frederick Michael Ahearn"],)).fetchone()
+    fail(birth and birth[0] == "22 May 1907" and birth[1] == "Pennsylvania", f"the record's birthplace accepted as what the record says, on the tree's own Birth event, whose value stays: {tuple(birth) if birth else None}")   # the conflict question itself needs the tree's place resolved, which takes the geocoder
+    # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
+    r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
+    fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
+    # ---- the memorial arrives: T4, a card for Abram alone; the people it links wait on his decision
+    shutil.copy(os.path.join(FIXTURES, "findagrave-memorial-78019650.html"), os.path.join(treelib.inbox_dir(), "findagrave-memorial-78019650.html"))
+    res = attach_inbox(cx, tid, "harness", BY, ["findagrave-memorial-78019650.html"]); cx.commit(); say("attach memorial:", res)
+    ps = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256", "").startswith("576c97b3")]
+    persona_name = lambda p: cx.execute("SELECT name_text FROM persona WHERE id=?", (json.loads(p["payload_json"])["persona_id"],)).fetchone()[0]
+    fail(ps and all(p["kind"] == "persona_match" and name(person_of(p)) == "Abram C Brant" for p in ps), f"every card on the memorial names Abram, the person it was fetched for; the people it links wait: {[(p['kind'], name(person_of(p)) if person_of(p) else None) for p in ps]}")
+    subject = next((p for p in ps if persona_name(p) == "Abram C Brant"), None)
+    fail(subject is not None and sum(1 for p in ps if persona_name(p) == "Abram C Brant") == 1, f"the memorial's subject proposed as him once: {[persona_name(p) for p in ps]}")
+    ok, why = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (subject["id"],)).fetchone()); say("rule on T4:", ok, why)
+    fail(not ok and ("edit" in why.lower() or "find a grave" in why.lower()), f"the rule refuses a page anyone can edit: {why}")
+    # ---- Abram accepted: his daughter and wife come up as cards, his parents and siblings as new people
+    r = decide(cx, tid, subject["id"], "accepted", BY, "harness"); cx.commit(); say("Abram:", r)
+    after = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256", "").startswith("576c97b3")]
+    matched = sorted(name(person_of(p)) for p in after if p["kind"] == "persona_match"); new = [p for p in after if p["kind"] == "new_person"]
+    say("after Abram:", matched, [persona_name(p) for p in new])
+    fail({"Charlotte D Lukens", "Helen Sara Brant"} <= set(matched), f"his wife and daughter proposed once he is accepted: {matched}")
+    fail(len(new) >= 3 and "Sarah D. Cassel Brant" in [persona_name(p) for p in new], f"his mother and siblings, not in the tree, proposed as new people: {[persona_name(p) for p in new]}")
+    # ---- a rejection writes the proposal and nothing else; a new person accepted is created with the link the record states
+    n1 = nassert(); persons1 = cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0]
+    r = decide(cx, tid, new[-1]["id"], "rejected", BY, "harness"); cx.commit()
+    fail(r.get("ok") and nassert() == n1 and cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0] == persons1, "rejecting a new person writes the proposal and nothing else")
+    parent = next((p for p in new if persona_name(p) == "Sarah D. Cassel Brant"), None)
+    if parent:
+        r = decide(cx, tid, parent["id"], "accepted", BY, "harness"); cx.commit(); say("new person:", r)
+        made = cx.execute("SELECT p.display_name, n.given, n.surname FROM person p JOIN person_name n ON n.person_id=p.id AND n.is_primary=1 WHERE p.id=?", (r.get("person"),)).fetchone()
+        say("made:", tuple(made) if made else None)
+        fail(made and "Sarah" in made[0] and made[2] == "Cassel", f"the person created with the name as written and the marked maiden name as her birth surname: {tuple(made) if made else None}")
+        fail(any(m.get("role") == "child" and m.get("person") == who["Abram C Brant"] for m in r["memberships"]), f"Abram placed as the new parent's child on the record: {r['memberships']}")
+    # ---- the page read again: the decided links carry to the new personas, the old cards close as superseded
+    eid, n = extract(cx, "3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e", BY); cx.commit(); say("re-read:", n)
+    fail(n.get("links_carried") == 4, f"four decided links carried to the new personas: {n}")
+    old = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')='3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e'", (tid,)).fetchone()[0]
+    fail(old == 0, f"no undecided card left on the re-read page: {old}")
+    # ---- the plan is idempotent and the catalog whole
+    st1 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
+    st2 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
+    fail(all(v["steps_new"] == 0 and v["steps_dropped"] == 0 and v["questions_new"] == 0 and v["questions_closed"] == 0 for v in st2.values()), f"a second plan run changes nothing: {[v for v in st2.values() if v['steps_new'] or v['steps_dropped'] or v['questions_new'] or v['questions_closed']]}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("decisions scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def compiles():
     """Every tool and the screen's server compile; the first thing green means."""
     import py_compile
@@ -214,8 +324,13 @@ def main():
         else: print(f"ok   {name}: {ext[0]}@{ext[1]}, {len(ps)} persona(s)")
     ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
     if ok != "ok" or fk: bad += 1; print(f"FAIL scratch catalog: integrity {ok}, foreign keys {len(fk)}")
-    if a.keep: print("scratch kept at", d)
+    cx.close()
+    if a.keep: print("parsers scratch kept at", d)
     else: shutil.rmtree(d, ignore_errors=True)
+    try: fails = decisions(a.keep, a.show)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL decisions on harness.ged: " + "; ".join(fails))
+    else: print("ok   decisions on harness.ged: the matcher, the rule and the writers as the docs say")
     print("green" if not bad else f"{bad} failure(s)")
     sys.exit(1 if bad else 0)
 
