@@ -324,7 +324,9 @@ def person_card(cx, cat, pid):
     """One person as the overview shows them: name, years, how many key facts are accepted, and what waits on them."""
     name, sex = cx.execute("SELECT display_name, sex FROM person WHERE id=?", (pid,)).fetchone()
     ev = cat.events(pid); b = next((e["year"] for e in ev if e["type"] == "Birth"), None); d = next((e["year"] for e in ev if e["type"] == "Death"), None)
-    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS), **cat.waiting(pid)}
+    fam = cat.family(pid)
+    spouses = [{"id": f["spouse_id"], "name": f["spouse"], "married": [m["year"] for m in f["marriages"] if m["year"]], "divorced": [x["date"] or str(x["year"]) for x in f["divorces"]]} for f in fam["families"] if f["spouse_id"]]
+    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS), "spouses": spouses, **cat.waiting(pid)}
 
 def people(cx, tree_id, q=""):
     cat = Catalog(cx, tree_id)
