@@ -58,7 +58,9 @@ that person's own facts. Many still *name* relatives (B1); some do not (B2).
 | Military service record | B2 | service | only when a military event is already known | F01–F03 |
 
 Gravestones are covered by the Group A cemetery row (the same source names the
-family plot). Directory entries are the Group A directory row. Voter
+family plot); a memorial is about one person, so the row reads held only
+through the person's own memorial, and the relatives a memorial links are
+leads on it. Directory entries are the Group A directory row. Voter
 registration (C11) is living-person data and is never a checklist row.
 
 Every row is **gated by era, place and sex**, taken from the person's Accepted

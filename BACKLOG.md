@@ -117,34 +117,18 @@ the proposal names the person the tree already has. Build it on the first
 fetched page where the matcher actually misses. Nothing here changes what a
 person decides.
 
-### C6. A household cemetery row reads held through a relative's memorial
+### C6. Fold the repeated assertions one decision wrote
 
-The cemetery / family plot row is a Group A household row, so it reads held
-for a person as soon as any relative's memorial is held, and the person never
-gets a cemetery search step of their own (Ruth M Peters reads held through
-her husband's and her son's memorials and is on neither). A memorial is about
-one person. Decide whether the row stays a household row with a per-person
-"own memorial" state, or splits into the plot (household) and the person's
-memorial (individual).
+Two events carry the same statement of the same record several times over
+(eight extra rows, all written by one rule decision on 7 September; the
+writers no longer repeat a statement). Keep the first row of each group and
+delete the rest, then run the checks:
 
-### C7. Place resolution accepts more than a unique full match
-
-The resolver auto-accepts a string on "preferred administrative boundary",
-"dropped non-place candidates" and "US state name" as well as on a unique
-full match and the nested or coterminous choices `schema/README.md` sanctions;
-the live catalog holds 22 such acceptances beyond the sanctioned kinds.
-Either narrow `tools/resolve_places.py` to the rule in `CLAUDE.md` (a unique
-full match, and the sanctioned nested choices) and reset the rest to
-Undecided with `--reset`, or amend the rule in the docs with the reason.
-
-### C8. Repeated assertions of one statement
-
-The catalog holds groups of identical assertions (same subject, same persona
-fact, same record): the import writes one per citation when the file cites
-the same record twice on one fact, and twelve rows written on 7 September
-repeat a record's statement on one event. The current writers do not repeat a
-statement. Decide whether a repeated citation from the file is one assertion
-or one per citation, and fold the rest.
+```
+DELETE FROM assertion WHERE id IN (SELECT a.id FROM assertion a JOIN assertion b
+  ON b.subject_kind=a.subject_kind AND b.subject_id=a.subject_id AND b.persona_fact_id=a.persona_fact_id
+  AND b.artifact_sha256=a.artifact_sha256 AND coalesce(b.notes,'')=coalesce(a.notes,'') AND b.id<a.id);
+```
 
 ---
 

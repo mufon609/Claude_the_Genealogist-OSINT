@@ -326,12 +326,13 @@ class Catalog:
         return fam
     def fetched_rows(self, pid):
         """Checklist row keys (record:instance) with a done step whose record is held: an archived artifact in its log, or an
-        artifact at the step's locator (for a record id, at any id naming the same census page)."""
-        out = set()
-        for sid, rk, lkind, lval in self.q("SELECT id, row_key, locator_kind, locator_value FROM search_plan WHERE person_id=? AND status='done'", pid):
-            if self.q("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]'", sid): out.add(rk)
-            elif lkind == "apid" and lval in self.held_apids(): out.add(rk)
-            elif lkind and lval and self.q("SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval): out.add(rk)
+        artifact at the step's locator (for a record id, at any id naming the same census page). {row key: whether a held
+        record is on the person themselves (a step with on_json []) rather than on a relative}."""
+        out = {}
+        for sid, rk, lkind, lval, on in self.q("SELECT id, row_key, locator_kind, locator_value, on_json FROM search_plan WHERE person_id=? AND status='done'", pid):
+            held = (bool(self.q("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]'", sid))
+                    or (lkind == "apid" and lval in self.held_apids()) or bool(lkind and lval and self.q("SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval)))
+            if held: out[rk] = out.get(rk, False) or (on or "[]") == "[]"
         return out
     def page_groups(self):
         if self._groups is None: self._groups = page_groups(self.cx)

@@ -145,7 +145,7 @@ def build(cat: Catalog, pid: str):
     A, B = [], []
     def row(group, record, pattern, sources, settles, query, household=False, na=None, instance=None):
         st, via = status_of(pattern, household) if pattern != "no-match" else ("missing", None)
-        if f"{record}:{instance or ''}" in fetched: st, via = "held", None   # a done step (fetch or search) archived the record
+        if f"{record}:{instance or ''}" in fetched and (household or fetched[f"{record}:{instance or ''}"]): st, via = "held", None   # a done step archived the record; for a row about one person, a record on the person
         if na and st == "missing": st = "n/a"                     # a real citation beats the era rule
         r = {"record": record, "instance": instance, "status": st, "via": via, "settles": settles, "sources": sources,
              "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None),
@@ -201,7 +201,7 @@ def build(cat: Catalog, pid: str):
     dplace = F(death["place"]["text"], death["basis"]) if death and death["place"] else F(home_state, sb)
     if d and d >= 1800: row("A", "obituary", MATCH["obituary"], ["H01", "H03", "H04"], "survivors, maiden names, places", ("obituary", fields(death_year=F(d, db), place=dplace)))
     if d and b and d - b >= 21: row("A", "will / probate", MATCH["probate"], ["J03"], "heirs, spouse, children", ("probate", fields(death_year=F(d, db))))
-    row("A", "cemetery / family plot", MATCH["cemetery"], ["E01", "E03"], "burial, dates, who is buried together", ("subject_record", fields(death_year=F(d, db))), household=True)
+    row("A", "cemetery / family plot", MATCH["cemetery"], ["E01", "E03"], "burial, dates, who is buried together", ("subject_record", fields(death_year=F(d, db))))   # a memorial is about one person: held through the person's own, the plot's relatives are leads on it
     church_src = CHURCH.get(home_state or "", ["I03"]) if in_us or not countries else CHURCH.get(next(iter(countries), ""), [])   # no place at all: the tree's US default
     row("A", "church register (baptisms, marriages, burials)", MATCH["church"], church_src, "parents, sponsors, dates, religion", ("household", fields()), household=True)
     if foreign_born and in_us:

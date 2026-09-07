@@ -184,7 +184,10 @@ class Ingest:
                              "Ancestry member tree (no citation)", "undecided", EXTRACTOR_TAG, self.ts, dumps({"uncited": True})))
             self.stats["assertions_uncited"] += 1
             return
+        seen = set()                                          # the file may cite one record twice on one fact: one statement, one assertion
         for text, apid, cid, page, name, url in cits:
+            if (apid or text) in seen: continue
+            seen.add(apid or text)
             note = dumps({"apid": apid, "collection_id": cid, "page": page, "url": url}) if apid else None
             self.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,persona_id,artifact_sha256,
                                citation_text,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",

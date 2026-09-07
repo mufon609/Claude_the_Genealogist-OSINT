@@ -70,7 +70,8 @@ def linked_records(cx, tree_id, cat, pid, me):
     """Fetch steps for the records a held record links from a persona accepted as this person: a Find a Grave memorial lists its
     family members with each one's own memorial, so once the owner has said the listed parent is John Y Davidson, John's own
     memorial is a lead on John (docs/RESEARCH-WORKFLOW.md §0), under his cemetery row, with the linked record's own identity as
-    the locator and the page's words as its fields (basis record). Nothing is generated for a persona only proposed."""
+    the locator and the page's words as its fields (basis record); the record is John's own, so the step sits on him and the
+    "linked from" field says where it came from. Nothing is generated for a persona only proposed."""
     out = []; q = cx.cursor(); q.row_factory = sqlite3.Row
     col = q.execute("SELECT id, name FROM collection WHERE name LIKE 'U.S., Find a Grave%' ORDER BY name LIMIT 1").fetchone()
     for r in q.execute("""SELECT pe.name_text, pe.role_in_record, pe.region_json, s.display_name AS subject FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
@@ -85,7 +86,7 @@ def linked_records(cx, tree_id, cat, pid, me):
                   "url": {"value": url, "basis": "record"}, "linked from": {"value": f"{subject}'s memorial, where {r['name_text']} is listed under {r['role_in_record']}", "basis": "record"}}
         out.append({"step_key": f"fetch:memorial:{mid}", "row_key": "cemetery / family plot:", "question_key": None, "kind": "fetch", "query_type": "subject_record",
                     "query_json": dumps(fields), "locator_source_id": "E01", "locator_kind": "memorial_id", "locator_value": mid, "collection_id": col["id"] if col else None,
-                    "on_json": dumps([[subject, rel]]), "sources_json": dumps(["E01"]), "mode": "fetch", "expected": "the person's own memorial: name, dates, cemetery, plot, the family it links",
+                    "on_json": "[]", "sources_json": dumps(["E01"]), "mode": "fetch", "expected": "the person's own memorial: name, dates, cemetery, plot, the family it links",
                     "rationale": f"named on {subject}'s memorial with a link to their own; fetch it by the one-call method"})
     return out
 

@@ -200,20 +200,20 @@ def is_ancestor(a, b):
     return any(norm(v) == an for v in vals if v != leaf or norm(v) != norm(leaf))
 
 def select_best(p, full):
-    """Given >1 fully-verified candidates, pick one only when the choice is safe. Returns (cand, note) or (None, reason)."""
+    """Given >1 fully-verified candidates, pick one only when the candidates are the same place at nested levels (a borough
+    and its township of the same name, coterminous units): the locality level when the string has more than one part, else
+    the enclosing unit. Every other choice among verified candidates is the owner's (CLAUDE.md: auto-accept only a unique
+    full match; never widen that). Returns (cand, note) or (None, reason)."""
     cands = [c for _, _, c in full]
     head = p["components"][0].lower() if p["components"] else ""
     wants_feature = any(k in head for k in ("church", "cemetery", "road", "street"))
     kept = [c for c in cands if wants_feature or c.get("category") not in NONPLACE_CLASSES]
     if any(c.get("type") != "census" for c in kept): kept = [c for c in kept if c.get("type") != "census"]
-    if len(kept) == 1: return kept[0], "dropped non-place candidates"
     if not kept: return None, "only non-place candidates"
-    if len(p["components"]) == 1 and p["components"][0].lower() in US_STATES:
-        st = [c for c in kept if c.get("addresstype") == "state"]
-        if len(st) == 1: return st[0], "US state name"
+    if len(kept) == 1: return None, "one place among non-place candidates: the owner chooses"
     admin = [c for c in kept if c.get("category") == "boundary" and c.get("type") == "administrative"]
     if admin: kept = admin
-    if len(kept) == 1: return kept[0], "preferred administrative boundary"
+    if len(kept) == 1: return None, "one administrative boundary among other candidates: the owner chooses"
     # same name, nested chain?
     names = {norm(c.get("name") or "") for c in kept}
     chain = all(is_ancestor(a, b) or is_ancestor(b, a) for i, a in enumerate(kept) for b in kept[i + 1:])
