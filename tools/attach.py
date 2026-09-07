@@ -168,6 +168,27 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
     return out
 
+def attach_held(cx, tree_id, slug, name, about_id, by, note=None):
+    """A family-held file (a photograph of an object, a letter, a Bible page) with no record identity: archived under the
+    family-held source (M05) with the owner's note as its description, filed under the tree, and put before the matcher for
+    the person the owner says it is about. What it says about anyone is read afterwards, one persona at a time (the screen's
+    transcription form or the model), and decided on a card. Returns the artifact hash and whether it was new."""
+    src = os.path.join(inbox_dir(), os.path.basename(name))
+    if not os.path.isfile(src): raise ValueError("file not in inbox")
+    ts = now(); mime = mimetypes.guess_type(src)[0] or ("image/heic" if src.lower().endswith(".heic") else "application/octet-stream")
+    row = _source_row(cx, "M05")
+    col = cx.execute("SELECT id FROM collection WHERE source_id='M05' AND name='Family-held originals'").fetchone()
+    cid = col[0] if col else ulid()
+    if not col: cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, "M05", "Family-held originals", "other", "family"))
+    with open(src, "rb") as fh: data = fh.read()
+    sha, new = archive_object(cx, data, mime=mime, source_id="M05", collection_id=cid, collection_name="Family-held originals", locator_kind="file", locator_value=os.path.basename(src),
+                              retrieved_by=by, terms=row.get("terms"), cost="free", trust_tier=row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
+    cx.execute("INSERT INTO note (id,tree_id,entity_kind,entity_id,body,author,created_at) VALUES (?,?,?,?,?,?,?)",
+               (ulid(), tree_id, "artifact", sha, f"about {cx.execute('SELECT display_name FROM person WHERE id=?', (about_id,)).fetchone()[0]}, on the owner's word" + (f": {note}" if note else ""), by, ts))
+    filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)
+    shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
+    return sha, new
+
 def attach_inbox(cx, tree_id, slug, by, names=None):
     """Every file in the inbox (or the named ones): identity from the file, the steps it fulfils, attach. A file with no
     identity or no step stays in the inbox. Returns one result per file."""

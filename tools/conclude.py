@@ -293,11 +293,11 @@ def rule_accepts(cx, tree_id, prop):
     if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
     return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees"
 
-def match_record(cx, eid, by):
+def match_record(cx, eid, by, about=None):
     """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the
     owner's behalf, recorded as the rule. Returns (proposals written, proposals the rule accepted with the reason)."""
     q = _q(cx)
-    written = match(cx, eid, by); taken = []
+    written = match(cx, eid, by, about=about); taken = []
     for prop_id, kind, name, person_id in written:
         p = q.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
         ok, why = rule_accepts(cx, p["tree_id"], p)

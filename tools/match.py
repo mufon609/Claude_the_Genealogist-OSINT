@@ -201,7 +201,8 @@ def persons_for(cx, sha):
         if r[0] not in seen: seen.add(r[0]); out.append(r)
     return out
 
-def match(cx, eid, by):
+def match(cx, eid, by, about=None):
+    """about: person ids the owner says the record concerns, when no step or link names them (a family-held file)."""
     ext = cx.execute("SELECT artifact_sha256 FROM extraction WHERE id=?", (eid,)).fetchone()
     if not ext: raise SystemExit(f"no extraction {eid}")
     sha = ext[0]; ts = now()
@@ -210,7 +211,7 @@ def match(cx, eid, by):
     if not row: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (mid, *MATCHER, ts))
     personas = personas_of(cx, eid); written = []
     by_tree = {}                                                # tree id -> [(person id, question id, step id)]
-    for pid, qid, step_id in persons_for(cx, sha):
+    for pid, qid, step_id in persons_for(cx, sha) + [(a, None, None) for a in (about or [])]:
         by_tree.setdefault(cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0], []).append((pid, qid, step_id))
     for tree_id, contexts in by_tree.items():
         cat = Catalog(cx, tree_id); cands, ctx_of = [], {}    # candidate persons in order met; candidate id -> the context it came from
@@ -244,7 +245,7 @@ def match(cx, eid, by):
             if pr["id"] in chosen:
                 c = chosen[pr["id"]]; fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
                 others = [o["name"] for o in cands if o["id"] != c["id"] and compare(cat, pr, o, chosen)[0]]
-                text = f"{pr['name']} ({pr['role']}) may be {c['name']}" + (", though something disagrees. " if pr["id"] in nearly else ". ") + " ".join(s[0].upper() + s[1:] + "." for s in agree + disagree)
+                text = f"{pr['name']} ({pr['role']}) may be {c['name']}" + ((", though something disagrees. " if disagree else ", on the name alone. ") if pr["id"] in nearly else ". ") + " ".join(s[0].upper() + s[1:] + "." for s in agree + disagree)
                 if absent: text += " Absent: " + ", ".join(absent) + "."
                 if others: text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]

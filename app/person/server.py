@@ -204,7 +204,7 @@ def artifact_view(cx, tree_id, sha, pid):
             "candidates": sc, "candidates_text": render_search(sc) if sc else None, "extractions": exts, "proposals": proposals,
             "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
 
-def transcribe(cx, sha, body, by=None):
+def transcribe(cx, sha, body, by=None, about=None):
     """One persona read from a held record, by the person acting (extractor human:<user>) or by a model reading the image
     (extractor llm:<model>, docs/DATA-ARCHITECTURE.md §1): an extraction on the artifact (created on the first persona), the
     persona in the record's own role word, its facts as written, a birth calculated from an age and the record's year, and its
@@ -239,7 +239,7 @@ def transcribe(cx, sha, body, by=None):
             w.relation(pid, r["persona_id"], r.get("kind") or "other", (r.get("text") or "").strip() or None, "transcription")
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by or CFG["by"], "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
-    written, taken = match_record(cx, eid, CFG["by"])
+    written, taken = match_record(cx, eid, CFG["by"], about=about)
     return {"ok": True, "extraction": eid, "persona": pid, "proposals": len(written), "accepted_by_rule": len(taken)}
 
 def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members):

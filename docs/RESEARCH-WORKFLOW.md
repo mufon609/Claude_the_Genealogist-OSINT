@@ -227,6 +227,14 @@ identity, and runs the extractor and matcher once; the screen's own attach
 does the same for the step the person chose plus every other step the record
 fulfils. A file whose identity matches no step stays in the inbox.
 
+**A family-held original.** A photograph or scan of something the family
+holds (an heirloom's label, a letter, a Bible page) has no record identity and
+no step. It is archived under the family-held source (M05, tier T3: a family
+statement) on the owner's word about whom it concerns, filed under the tree,
+and read one persona at a time by the owner or the model; the matcher puts the
+reading before the owner as a card for the person named. Nothing on it is taken
+by the rule.
+
 **A search at an assisted source.** For a missing cemetery row the step
 carries the Find a Grave search URL built from the foundation fields (first
 given name, surname, birth and death years each with the site's year filter
