@@ -499,7 +499,7 @@ def write_record(w, parsed):
         w.fact(pid, "Name", who, labels=[label])
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
     year = re.search(r"\b(1[789]\d\d)\b", (f.get("Event Date") or "") + " " + (parsed.get("collection") or ""))
-    for seq, m in enumerate(parsed["members"], seq0):
+    for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], seq0):   # a surname alone or UNKNOWN names nobody
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)
         age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
