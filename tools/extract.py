@@ -494,6 +494,7 @@ def write_record(w, parsed):
     write_facts(w, subject, by_type)
     seq0 = 2
     for label, who in named:                                         # a relative the record names in a field: Father's Name, Mother's Name, Spouse
+        if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Davidson") names nobody
         pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
         w.fact(pid, "Name", who, labels=[label])
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
