@@ -155,12 +155,11 @@ session acting on the owner's behalf is `agent:<session> for user:<name>`,
 so the audit trail says who did what. A writing tool run without `--by`
 records the shell user as the owner. The read-only tools (`checklist`,
 `cards`, `footprint`, `backup verify`) and the registry syncs take no `--by`.
-No search runs on its own for a person presumed living (born within a
-hundred years, no death): their search steps are assisted, and a person runs
-them. That is the only difference. A record fetched for a relative that
-names them attaches to them as to anyone: their rows read held, their persona
-is proposed, their card is decided; the records the file cites on them are
-fetched like any other.
+One default, the owner's to change: a search step on a person with no death
+and born within a hundred years is assisted rather than automatic, so a
+person runs it. Nothing else differs for them: a record fetched for a
+relative that names them attaches to them as to anyone, and the records the
+file cites on them are fetched like any other.
 
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).
 - Verify after every change: `PRAGMA integrity_check`, `foreign_key_check`,
