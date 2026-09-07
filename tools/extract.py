@@ -636,6 +636,7 @@ def write_record(w, parsed):
         pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
         w.fact(pid, "Name", who, labels=[label])
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
+    members_written = []
     for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], seq0):   # a surname alone or UNKNOWN names nobody
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)
@@ -645,6 +646,10 @@ def write_record(w, parsed):
         pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url")})
         write_facts(w, pid, mb)
         w.relation(pid, subject, household_kind(m["role"]), m["role"], m["section"])
+        members_written.append((pid, m["role"].lower(), m["section"]))
+    parents = [(pid, role, sec) for pid, role, sec in members_written if role in ("father", "mother")]
+    if len(parents) == 2 and parents[0][1] != parents[1][1]:      # a census household lists the subject's father and mother together: the household's couple
+        w.relation(parents[0][0], parents[1][0], "spouse", "Parents", parents[0][2])
 
 def context_for(cx, sha):
     """What the runner recorded about a connector response: the manifest notes (the hit as the source described it) and the step
