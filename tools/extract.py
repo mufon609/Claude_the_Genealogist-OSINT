@@ -387,7 +387,7 @@ def field_facts(fields, default_etype=None):
         if rel: named[rel.group(1)] = value; continue
         if key == "birth year (estimated)":                              # the index's own estimate from the age: a calculated birth year
             slot = by_type.setdefault("Birth", {"date": None, "place": None, "values": []})
-            if slot["date"] is None: slot["date"] = (f"CAL {re.sub(r'[^0-9]', '', value)}", label)
+            if slot["date"] is None and re.search(r"\d{4}", value): slot["date"] = (f"CAL {re.search(r'\d{4}', value).group(0)}", label)   # the first year of an estimate; a range is one year in the index's practice
             continue
         ftype, part = fact_for(label)
         if ftype is None: ftype, part = "Unknown", "value"
@@ -500,7 +500,7 @@ def write_record(w, parsed):
         pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
         w.fact(pid, "Name", who, labels=[label])
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
-    year = re.search(r"\b(1[789]\d\d)\b", (f.get("Event Date") or "") + " " + (parsed.get("collection") or ""))
+    year = re.search(r"\b(1[789]\d\d)\b", f.get("Event Date") or "") or re.fullmatch(r".*\b(1[789]\d\d)\b.*", re.sub(r"\b1[789]\d\d-1[789]\d\d\b", "", parsed.get("collection") or ""))   # the record's own date, else the collection's single year; a range is not a year
     for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], seq0):   # a surname alone or UNKNOWN names nobody
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)

@@ -145,7 +145,7 @@ its own access path, its own record shape, and its own way of naming relatives.
 |---|---|---|---|
 | **Owner** (deciding documents; the standing rule deciding the certain ones) | the held records | a record Accepted or Rejected as the person's, its facts with it | before anything |
 | **Footprint** | the catalog itself | for a question: ranked records already attached to relatives; duplicate check | 0 |
-| **Census** | D01–D04 | households, ages, birthplaces, co-residents → candidate parents/spouses | 1, 3 |
+| **Census** | D01–D05 | households, ages, birthplaces, co-residents → candidate parents/spouses | 1, 3 |
 | **Vital & church** | C01–C11, I01–I09 | parents' names, maiden names, exact dates; Schwenkfelder/Mennonite/Dutch/Irish registers | 1, 2 |
 | **Burial** | E01–E04 | death/burial dates, family plot links; T3, always to be confirmed elsewhere | 2 |
 | **Newspaper** | H01–H06 | obituaries: survivors, maiden names, places | 2 |

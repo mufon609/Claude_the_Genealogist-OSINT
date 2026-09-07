@@ -1,6 +1,6 @@
 """Read-only access to a tree's people, events, places, citations and families.
 
-Shared by tools/checklist.py and tools/footprint.py. Nothing here writes.
+Shared by every tool and by the person screen. Nothing here writes.
 """
 import collections, csv, json, os, re, sqlite3, sys, urllib.parse
 
@@ -146,6 +146,18 @@ def place_verdict(record, tree):
     return "disagrees"
 
 
+def tier_sql(ar="ar", s="s"):
+    """SQL for an artifact's effective trust tier, given the artifact's alias and its joined source's alias: the tier of the
+    source the artifact's own identity names (an ark is FamilySearch, a memorial id is Find a Grave), else of the source it
+    was archived under. artifact.trust_tier is the tier copied at archive time and can fall behind the registry."""
+    return f"""coalesce((SELECT s2.trust_tier FROM source s2 WHERE s2.id = CASE WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256={ar}.sha256 AND l.kind='ark') THEN 'D03'
+                                                                 WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256={ar}.sha256 AND l.kind='memorial_id') THEN 'E01' END), {s}.trust_tier)"""
+
+def source_tier(cx, sha):
+    """An artifact's effective trust tier (tier_sql), or None."""
+    r = cx.execute(f"SELECT {tier_sql()} FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
+    return r[0] if r else None
+
 class Catalog:
     def __init__(self, cx, tree_id):
         self.cx, self.tree_id = cx, tree_id
@@ -245,13 +257,13 @@ class Catalog:
     def citations(self, kind, sid):
         """[(collection name, apid, held artifact sha or None, collection id)] for a subject."""
         out = []
-        for cname, notes, sha, tier, cid in self.q("""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, ar.trust_tier, COALESCE(c.id, ac.id) FROM assertion a
+        for cname, notes, sha, tier, cid in self.q(f"""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, {tier_sql()}, COALESCE(c.id, ac.id) FROM assertion a
                 LEFT JOIN collection c ON json_valid(a.notes) AND c.id=json_extract(a.notes,'$.collection_id')
-                LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256
+                LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                 LEFT JOIN collection ac ON ac.id=ar.collection_id
                 WHERE a.subject_kind=? AND a.subject_id=? AND a.status<>'rejected'""", kind, sid):
             apid = json.loads(notes).get("apid") if notes and notes.startswith("{") else None
-            held = sha if sha and tier in ("T1", "T2", "T3") else self.held_apids().get(apid)   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
+            held = sha if sha and (tier or "")[:2] in ("T1", "T2", "T3") else self.held_apids().get(apid)   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
             if cname or held: out.append((cname or "", apid, held, cid))
         return out
     def waiting(self, pid):
@@ -267,8 +279,7 @@ class Catalog:
             if (kind == "fetch" and mode == "fetch" and holder in conn) or (kind == "search" and mode == "auto"): runs += 1
             elif (kind == "fetch" and mode == "fetch") or (kind == "search" and mode == "assisted"): hand += 1
         conflicts = self.q("SELECT COUNT(*) FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", pid)[0][0]
-        tiers = {t for t, in self.q("""SELECT CASE WHEN json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1) THEN 'vouch' ELSE coalesce((SELECT s2.trust_tier FROM source s2 WHERE s2.id = CASE WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='ark') THEN 'D03'
-                                                                             WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=ar.sha256 AND l.kind='memorial_id') THEN 'E01' END), s.trust_tier) END FROM assertion a
+        tiers = {t for t, in self.q(f"""SELECT CASE WHEN json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1) THEN 'vouch' ELSE {tier_sql()} END FROM assertion a
                                        LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                                        WHERE a.tree_id=? AND a.status='accepted' AND ((a.subject_kind='person' AND a.subject_id=?)
                                           OR (a.subject_kind='event' AND a.subject_id IN (SELECT event_id FROM event_participant WHERE person_id=?)))""", self.tree_id, pid, pid)}

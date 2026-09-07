@@ -13,7 +13,7 @@ Read-only. For one person it reports:
               and marked held / cited / missing / n/a; a cited row names the
               relative the citation sits on when it is not on this person
   search      for every gap, the pre-built step: typed query, sources, mode;
-              every query field is {value, basis accepted|claim|row}, rejected
+              every query field is {value, basis accepted|claim|row|citation|record}, rejected
               facts are omitted. Before the baseline is reviewed only fetch
               steps for cited records exist: no search steps, no footprint,
               no duplicate or unlinked persons (docs/RESEARCH-WORKFLOW.md §2).

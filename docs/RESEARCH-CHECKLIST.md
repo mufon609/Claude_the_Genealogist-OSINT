@@ -199,7 +199,8 @@ the catalog, read-only: the foundation with each field marked `accepted` or
 `claim`, the generated questions, the Group A and Group B rows with
 held / cited / missing / n/a, the relative a citation sits on when it is not on
 the person, and the pre-built search step per gap with its execution mode per
-source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record).
+source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record,
+`blocked` for one with no free holder).
 `--json` gives the machine form; `--all` gives one line per person. A real
 citation always beats an era rule; the row is then marked with the rule it
 falls outside of. Every query field is `{value, basis}`: basis `accepted` or
@@ -292,13 +293,15 @@ a step. Accepting a persona
 on a held record as this person accepts everything the record states about
 them (`docs/RESEARCH-WORKFLOW.md` §5–7); the decision's answer lists what came
 in and any conflict it raised. A proposal the standing rule accepted shows
-"accepted by rule" with the reason and a Reject control. An assisted search step whose source's search the tool can build
+"accepted by rule" with the reason and a Reject control; one the rule took
+back (`tools/conclude.py reconsider`) is a card again with the rule's reason. An assisted search step whose source's search the tool can build
 (Find a Grave) shows that link, built from the foundation fields; the results
 page saved into `inbox/` comes back as the candidate card on the step's
 record, every row with its fields as agrees, disagrees or absent
-(`docs/RESEARCH-WORKFLOW.md` §4). Automatic sources are not wired yet, so there is no Go button:
-assisted sources are worked by opening the link, searching with the step's
-fields, and logging the result.
+(`docs/RESEARCH-WORKFLOW.md` §4). An auto step runs through its connector
+from `tools/run_step.py`; the screen has no run control. Assisted sources are
+worked by opening the link, searching with the step's fields, and logging the
+result.
 
 **The decision card.** Every proposal put to the owner, on the screen and from
 `tools/cards.py`, is one card with the same parts in the same order: a one-line

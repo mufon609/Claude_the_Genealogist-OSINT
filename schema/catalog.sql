@@ -459,7 +459,7 @@ CREATE TABLE search_plan (
   step_key          TEXT NOT NULL,                      -- stable key for idempotent regeneration
   kind              TEXT NOT NULL CHECK (kind IN ('fetch','search')),
   query_type        TEXT NOT NULL CHECK (query_type IN ('footprint_record','subject_record','household','couple','name','surname_locality','obituary','probate')),
-  query_json        TEXT NOT NULL,                      -- search: {field: {"value": ..., "basis": accepted|lead|row}}; fetch: the citation's own details, basis citation
+  query_json        TEXT NOT NULL,                      -- search: {field: {"value": ..., "basis": accepted|claim|row|record|run}}; fetch: the citation's own details, basis citation
   locator_source_id TEXT REFERENCES source(id),         -- fetch: the registry row the record is fetched from: the free holder of the citation's collection (data/holders.csv), or B02 when none is known
   locator_kind      TEXT,                               -- apid | ark | naid | memorial_id | url: the citation's identity for the record
   locator_value     TEXT,

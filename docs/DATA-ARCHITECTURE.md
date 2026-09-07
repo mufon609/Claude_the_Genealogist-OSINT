@@ -59,7 +59,8 @@ a person saying so, and what a person says yes to is a document: a record
 accepted as theirs brings every fact it states, a value that differs from the
 tree's becomes a conflict question, and a standing rule may say yes for them
 to a record that agrees with facts they already accepted, recorded as acting
-on their word and reversible (`docs/RESEARCH-WORKFLOW.md` §5–7). A person may accept a fact on their own knowledge: the
+on their word and reversible, and taken back by the rule itself when it would
+no longer make it (`docs/RESEARCH-WORKFLOW.md` §5–7). A person may accept a fact on their own knowledge: the
 acceptance is recorded as their own Accepted assertion on the tree file's
 persona (the archived claim), marked vouched, and the fact's citations stay
 Undecided until their records are fetched. One link is definitional rather than decided: the persona an
@@ -93,18 +94,17 @@ archive/
 
 ```json
 {
+  "schema_version": "0.1.0",
   "sha256": "…", "bytes": 1834021, "mime": "image/jpeg",
   "source_id": "D01",                      // key into the source registry (the CSV)
   "collection": "1940 United States Federal Census",
-  "locator": {"kind": "apid", "value": "1,2442::12345678"},   // or ark:/61903/…, memorial id, NARA NAID
-  "locator_alt": [{"kind": "url", "value": "https://…"}],
+  "locator": {"kind": "apid", "value": "1,2442::12345678"},   // or ark:/61903/…, memorial id, NARA NAID; other identities go to artifact_locator
   "retrieved_at": "2026-09-05T18:02:11Z",
   "retrieved_by": "user:neural",           // or agent:fetcher@0.3
   "http": {"status": 200, "etag": "…", "last_modified": "…"},
   "rights": {"terms": "ancestry-tos", "redistributable": false, "cost": "paid"},
   "trust_tier": "T1",
-  "original_filename": "…", "pages": 1, "page_of_parent": null,
-  "derived_from": null,                    // parent sha256 for crops/rotations
+  "original_filename": "…", "pages": 1,
   "notes": ""
 }
 ```
@@ -204,8 +204,7 @@ A **tree** is a workspace of conclusions. The catalog holds any number of them.
   `note`) carry `tree_id`. `tree_import` records which artifact went into which
   tree and where the named copy was filed.
 - Switching: `tools/tree.py use <slug>` writes `catalog/.active-tree`; any tool
-  accepts `--tree <slug>` and honours `$TREE`. The app will do the same with a
-  session setting.
+  accepts `--tree <slug>` and honours `$TREE`; the screen takes `?tree=<slug>`.
 - Per-tree settings (living-person threshold, home person) live in
   `tree.settings_json` and `tree.home_person_id`.
 - Access control per tree is a later addition: a `tree_member` table keyed on
@@ -306,7 +305,8 @@ Why the error is kept and indexed rather than fixed:
 `historical` (Harpersdorf → Twardocice) · `jurisdiction_change` (Norriton →
 East/West Norriton 1909; Montgomery Co. formed 1784) · `jurisdiction_error`
 (Amwell, Hunterdon, *Pennsylvania*) · `context_glue` (date fused into place) ·
-`nickname` · `married_name`.
+`nickname` · `married_name` · `detail` (a fuller form of the same name) ·
+`unclassified` (not yet sorted).
 
 `historical`, `jurisdiction_change` and `translation` are legitimate names and
 belong in `place_name` with dates. Everything else is an error or variant and

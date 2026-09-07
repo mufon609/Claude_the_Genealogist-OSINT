@@ -54,7 +54,7 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
 6. **Plain over clever.** No bells and whistles. If a feature is not in the
    design docs, ask before building it.
 7. **Data never enters git.** `archive/`, `catalog/*.db`, `derivatives/`,
-   `inbox/`, `trees/*/imports` are ignored, and the commit hook refuses them:
+   `inbox/`, `trees/*/imports`, `trees/*/exports` are ignored, and the commit hook refuses them:
    install it once with `git config core.hooksPath tools/hooks`.
 8. **No bandaids.** Fix the cause or file it in `BACKLOG.md`. No parking
    comments, no compensating checks. Comments describe current code, never
@@ -81,6 +81,8 @@ python3 tools/cards.py "<person>"           # every Undecided proposal about the
 python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial, FamilySearch record, Ancestry index; HTML)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
+python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions; one it would no longer take is a card again; --dry-run
+python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…"   # your own word on a family link a record stops short of; --parent, --marriage; `divorce` likewise
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
 python3 tools/tree.py show
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/

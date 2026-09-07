@@ -49,7 +49,8 @@ function badges(c){const b=[];if(c.documents)b.push(`<span class="badge doc">${c
  if(c.runs_next)b.push(`<span class="badge run">${c.runs_next} run${c.runs_next>1?'':'s'} on their own</span>`);if(c.needs_hand&&c.accepted)b.push(`<span class="badge">${c.needs_hand} need${c.needs_hand>1?'':'s'} a hand</span>`);
  if(c.conflicts)b.push(`<span class="badge conf">${c.conflicts} conflict${c.conflicts>1?'s':''}</span>`);if(c.editable_only)b.push(`<span class="badge conf">rests on sources anyone can edit</span>`);return b.join('')}
 function cardHtml(c){const done=c.accepted===c.key_facts&&!c.documents&&!c.conflicts;
- const claim=c.claimed_parents&&c.claimed_parents.length?`<span class="claim">the file names parents ${h(c.claimed_parents.join(' and '))}: not confirmed</span>`:'';
+ const claims=[];if(c.claimed_parents&&c.claimed_parents.length)claims.push(`parents ${h(c.claimed_parents.join(' and '))}`);if(c.claimed_spouses&&c.claimed_spouses.length)claims.push(`spouse ${h(c.claimed_spouses.join(', '))}`);
+ const claim=claims.length?`<span class="claim">the file names ${claims.join('; ')}: not confirmed</span>`:'';
  const link=c.link_trusted===false?`<span class="badge conf">parents link rests on an editable source</span>`:'';
  const sp=(c.spouses||[]).map(x=>`${x.divorced&&x.divorced.length?'💔 ':''}${h(x.name)}${x.married&&x.married.length?' m. '+h(x.married.join(', ')):''}${x.divorced&&x.divorced.length?' · divorced '+h(x.divorced.join(', ').replace(/^BET /,'').replace(/ AND /,'–')):''}`).join(' · ');
  return `<a class="pc${done?' done':''}" href="/person/${c.id}"><b>${h(c.name)}</b><span class="yrs">${c.span[0]??'?'}–${c.span[1]??''} · ${c.accepted} of ${c.key_facts} key facts</span>${sp?`<span class="yrs">${sp}</span>`:''}<span class="w">${badges(c)}${link}${(!badges(c)&&!link&&done)?'<span class="badge">nothing waiting</span>':''}</span>${claim}</a>`}
@@ -148,7 +149,7 @@ function show(grp,i){SEL={grp,i};document.querySelectorAll('tr.row').forEach(e=>
  const r=P.checklist[grp][i];let html=`<b>${h(r.record)}${r.instance?' '+h(r.instance):''}</b> <span class="st ${r.status}">${r.status}</span>${r.note?`<div class="mut">${h(r.note)}</div>`:''}<p>Settles: ${h(r.settles)}</p>`;
  if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open at ${h(c.holder)} ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
  if(r.status==='missing'&&!r.search)html+=`<div class="mut">Search steps for missing records come after the baseline is reviewed.</div>`;
- if(steps.some(s=>s.kind==='search'))html+=`<div class="mut">Automatic sources are not wired yet; for assisted sources open the source, search with the fields below, and log the result here.</div>`;
+ if(steps.some(s=>s.kind==='search'))html+=`<div class="mut">An auto step runs through its connector (tools/run_step.py); for an assisted source open it, search with the fields below, and log the result here.</div>`;
  rc.innerHTML=html+stepsHtml(steps);inbox();records(steps,r)}
 function shasOf(steps,row){const out=[];for(const s of steps){if(s.archived&&!out.includes(s.archived))out.push(s.archived);for(const l of s.logs){for(const sha of JSON.parse(l.artifacts_json||'[]'))if(!out.includes(sha))out.push(sha)}}
  for(const c of (row&&row.citations)||[]){if(c.sha256&&!out.includes(c.sha256))out.push(c.sha256)}return out}

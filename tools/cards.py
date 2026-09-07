@@ -4,7 +4,7 @@
 usage: tools/cards.py "<person>" [--tree slug] [--db catalog/tree.db] [--json]
        tools/cards.py --all [--tree slug] [--json]          # every person with an Undecided proposal
 
-One card per proposal, in the shape the owner approved (docs/DIRECTOR-HANDOVER.md, the decision card): a one-line
+One card per proposal, in the shape the owner approved (docs/RESEARCH-CHECKLIST.md §6b, the decision card): a one-line
 highlight of what the record is and the links it makes; the person and the fact or link with the file's claim; the record
 with its holder, collection, own identity and trust tier; the primary document as the archived path and the holder's page;
 what the record says field by field against the tree's claim, as agrees, disagrees or absent; the relationships the record
@@ -15,7 +15,7 @@ card from card() and render() here, so the two never drift. Nothing here writes.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, ROOT, object_path, resolve_tree
-from catalog import Catalog, fetch_target, year
+from catalog import Catalog, fetch_target, tier_sql, year
 from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
@@ -47,7 +47,7 @@ def card(cx, tree_id, prop_id):
     pay = json.loads(p["payload_json"]); cat = Catalog(cx, tree_id)
     pe = cx.execute("SELECT id, name_text, sex, role_in_record, region_json, artifact_sha256 FROM persona WHERE id=?", (pay["persona_id"],)).fetchone()
     sha = pe["artifact_sha256"]
-    a = cx.execute("""SELECT a.sha256, a.mime, a.trust_tier, a.locator_kind, a.locator_value, a.original_filename, a.retrieved_at, a.source_id, s.name AS source_name, c.name AS collection
+    a = cx.execute(f"""SELECT a.sha256, a.mime, {tier_sql('a')} AS trust_tier, a.locator_kind, a.locator_value, a.original_filename, a.retrieved_at, a.source_id, s.name AS source_name, c.name AS collection
                       FROM artifact a LEFT JOIN source s ON s.id=a.source_id LEFT JOIN collection c ON c.id=a.collection_id WHERE a.sha256=?""", (sha,)).fetchone()
     own_ids = [f"{r['kind']} {r['value']}" for r in cx.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=?", (sha,))]
     kinds = {x.split()[0] for x in own_ids}                        # the page's own identity says where it came from, whatever row it was archived under
@@ -184,7 +184,7 @@ def search_card(cx, tree_id, sha, person_id=None):
     """The candidate card for one search results page: the search as run, the person it was run for, every row with its fields
     against the person as agrees, disagrees or absent, whether it fits, and the proposal on it if any."""
     cx.row_factory = sqlite3.Row
-    a = cx.execute("SELECT sha256, locator_value, retrieved_at, trust_tier, source_id FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    a = cx.execute(f"SELECT ar.sha256, ar.locator_value, ar.retrieved_at, {tier_sql()} AS trust_tier, ar.source_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
     e = cx.execute("""SELECT e.id, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name='findagrave-search' AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
     if not a or not e: return None
     parsed = json.loads(e["structured_json"] or "{}"); cat = Catalog(cx, tree_id)

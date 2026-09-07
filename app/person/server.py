@@ -9,16 +9,16 @@ footprint and checklist with the search step per gap, results for the row you
 click. Deciding a fact sets the status of the assertions behind it and writes
 an audit row. A plan step can be logged (nothing found, blocked, found with a
 file from inbox/) and its fields included or revised for the search; every run
-is written to search_log with the fields as rendered. Nothing here runs a
-search against a source: automatic connectors do not exist yet, so there is no
-Go button.
+is written to search_log with the fields as rendered. The screen runs no
+search itself: an auto step runs through its connector from tools/run_step.py,
+and a record page saved in the browser comes in through inbox/.
 """
 import argparse, glob, json, mimetypes, os, re, sqlite3, sys, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import active_tree_slug, dumps, inbox_dir, now, ulid
-from catalog import Catalog, fetch_target, held_apids, search_target
+from catalog import Catalog, fetch_target, held_apids, search_target, tier_sql
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
@@ -68,11 +68,11 @@ def evidence_rows(cx, pid, field):
     held = held_apids(cx)
     out = []
     for k, i in fact_subjects(cx, pid, field):
-        for r in cx.execute("""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, ar.trust_tier FROM assertion a
-                               LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=?""", (k, i)):
+        for r in cx.execute(f"""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, {tier_sql()} AS trust_tier FROM assertion a
+                               LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id WHERE a.subject_kind=? AND a.subject_id=?""", (k, i)):
             n = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
             apid = n.get("apid"); uncited = bool(n.get("uncited")); vouched = bool(n.get("vouched"))
-            visible = uncited or vouched or (apid in held) or (r["trust_tier"] in ("T1", "T2", "T3"))   # the evidence the person can see
+            visible = uncited or vouched or (apid in held) or ((r["trust_tier"] or "")[:2] in ("T1", "T2", "T3"))   # the evidence the person can see
             ident = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in cx.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=? ORDER BY kind", (r["artifact_sha256"],))) if r["artifact_sha256"] else ""
             if not ident and r["artifact_sha256"]:
                 loc = cx.execute("SELECT locator_value, manifest_json FROM artifact WHERE sha256=?", (r["artifact_sha256"],)).fetchone()
@@ -174,7 +174,7 @@ def artifact_view(cx, tree_id, sha, pid):
     """A held record as the person screen shows it: the file, every current extraction with its personas, facts and
     relations, how each persona stands to this person, and every proposal the matcher wrote on the record: a record cited on
     several relatives is fetched for all of them, and each proposal names the person it concerns."""
-    a = cx.execute("SELECT sha256, mime, trust_tier, locator_kind, locator_value, original_filename, collection_id FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    a = cx.execute(f"SELECT ar.sha256, ar.mime, {tier_sql()} AS trust_tier, ar.locator_kind, ar.locator_value, ar.original_filename, ar.collection_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
     if not a: return None
     cited = Catalog(cx, tree_id).cited().get(a["locator_value"], {}) if a["locator_kind"] == "apid" else {}
     col = cx.execute("SELECT name FROM collection WHERE id=?", (a["collection_id"],)).fetchone() if a["collection_id"] else None
@@ -321,12 +321,19 @@ def person_view(cx, tree_id, pid):
     return r
 
 def person_card(cx, cat, pid):
-    """One person as the overview shows them: name, years, how many key facts are accepted, and what waits on them."""
+    """One person as the overview shows them: name, years, how many key facts are accepted, the spouses the owner accepted
+    with the marriage and divorce dates accepted on the family, the spouses the file claims as claims, and what waits."""
     name, sex = cx.execute("SELECT display_name, sex FROM person WHERE id=?", (pid,)).fetchone()
     ev = cat.events(pid); b = next((e["year"] for e in ev if e["type"] == "Birth"), None); d = next((e["year"] for e in ev if e["type"] == "Death"), None)
-    fam = cat.family(pid)
-    spouses = [{"id": f["spouse_id"], "name": f["spouse"], "married": [m["year"] for m in f["marriages"] if m["year"]], "divorced": [x["date"] or str(x["year"]) for x in f["divorces"]]} for f in fam["families"] if f["spouse_id"]]
-    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS), "spouses": spouses, **cat.waiting(pid)}
+    fam = cat.family(pid); spouses, claimed = [], []
+    for f in fam["families"]:
+        if not f["spouse_id"]: continue
+        if cat.basis("family_member", dumps([f["id"], pid, "partner"])) == "accepted" and cat.basis("family_member", dumps([f["id"], f["spouse_id"], "partner"])) == "accepted":
+            spouses.append({"id": f["spouse_id"], "name": f["spouse"], "married": [m["year"] for m in f["marriages"] if m["year"] and m["basis"] == "accepted"],
+                            "divorced": [x["date"] or str(x["year"]) for x in f["divorces"] if x["basis"] == "accepted"]})
+        else: claimed.append(f["spouse"])
+    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS),
+            "spouses": spouses, "claimed_spouses": claimed, **cat.waiting(pid)}
 
 def people(cx, tree_id, q=""):
     cat = Catalog(cx, tree_id)

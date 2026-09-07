@@ -95,7 +95,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 | MyHeritage Family Graph | REST JSON, free, app-key approval | Read-only. Docs are old; confirm keys still issued. |
 | WikiTree | REST JSON, free, no auth for public profiles | Use now. |
 | Geni | REST JSON, OAuth, sandbox | Use later. |
-| Chronicling America | loc.gov JSON/YAML API (legacy API retired 2025); 20 JSON requests a minute, 150 text-service requests a minute | Connector `loc_gov` (H01) runs obituary steps: collection search on surname and given name, the year, the state; each hit's OCR text archived. |
+| Chronicling America | loc.gov JSON/YAML API; 20 JSON requests a minute, 150 text-service requests a minute | Connector `loc_gov` (H01) runs obituary steps: collection search on surname and given name, the year, the state; each hit's OCR text archived. |
 | 1950 census site | `1950census.archives.gov/api/search` (name, state, county; `scheduleId` for one schedule), IIIF page images; no stated rate limit | Connector `nara_1950` (D05) runs 1950 household steps at one request a second; a hit is a schedule whose matched row carries both names; its transcription and image archived. |
 | NARA Catalog | REST v2, key by email to Catalog_API@nara.gov | Use now. |
 | IPUMS full count | API for harmonized data; names need restricted-access application | Apply if we want linkage training data. |

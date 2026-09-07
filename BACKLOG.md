@@ -95,8 +95,8 @@ Reclaim the Records put the state marriage index 1881–1967 on the Internet
 Archive, one item per year (brides and grooms apart before 1955), as scanned
 pages with poor OCR: a Soundex block per page, each line surname, given name,
 place the licence was issued, the spouse's surname to four letters, month,
-day, certificate number. Tonight one page was archived by hand as a record
-under New York vital records (C08) and read by the model. Make it a step: for
+day, certificate number. One such page is archived as a record under New
+York vital records (C08), read by the model. Make it a step: for
 a missing marriage row, locate the Soundex block's pages in the year range
 from the OCR word patterns, archive the pages that carry the surname, and read
 them; the OCR alone cannot find a name, so the pages must be looked at. The
@@ -105,8 +105,7 @@ same shape serves every New York marriage the tree is missing.
 ### C4. OCR / HTR extractor for record images
 
 Turn an archived record image into personas and persona facts by machine,
-versioned by extractor, beside the human transcription the person screen
-offers today.
+versioned by extractor, beside the person screen's transcription form.
 
 ### C5. Place-string review from the catalog
 
@@ -169,6 +168,25 @@ her husband's and her son's memorials and is on neither). A memorial is about
 one person. Decide whether the row stays a household row with a per-person
 "own memorial" state, or splits into the plot (household) and the person's
 memorial (individual).
+
+### C12. Place resolution accepts more than a unique full match
+
+The resolver auto-accepts a string on "preferred administrative boundary",
+"dropped non-place candidates" and "US state name" as well as on a unique
+full match and the nested or coterminous choices `schema/README.md` sanctions;
+the live catalog holds 22 such acceptances beyond the sanctioned kinds.
+Either narrow `tools/resolve_places.py` to the rule in `CLAUDE.md` (a unique
+full match, and the sanctioned nested choices) and reset the rest to
+Undecided with `--reset`, or amend the rule in the docs with the reason.
+
+### C13. Repeated assertions of one statement
+
+The catalog holds groups of identical assertions (same subject, same persona
+fact, same record): the import writes one per citation when the file cites
+the same record twice on one fact, and twelve rows written on 7 September
+repeat a record's statement on one event. The current writers do not repeat a
+statement. Decide whether a repeated citation from the file is one assertion
+or one per citation, and fold the rest.
 
 ---
 

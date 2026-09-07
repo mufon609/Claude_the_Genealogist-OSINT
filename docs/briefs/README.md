@@ -3,7 +3,8 @@
 Task briefs written for a separate worker session, a way of working no longer
 used: the owner now decides in conversation with one session that builds and
 records. A brief stays here after it is done, as the record of what was asked;
-the commits carry what was built.
+the commits carry what was built. The handover document some briefs name is
+gone; the decision card it defined lives in `docs/RESEARCH-CHECKLIST.md` §6b.
 
 | Brief | State | Use |
 |---|---|---|
@@ -13,7 +14,7 @@ the commits carry what was built.
 | `open-source-connectors.md` | done | The runner and the first two free-source connectors (loc.gov newspapers, the 1950 census at the National Archives). |
 | `owner-vouch.md` | done | The owner vouches for a fact on their own knowledge; the registry stays in step with the catalog; a held census page is held for every citation to the same page. |
 | `no-browser-sources.md` | not started | Survey the registry's free sources with documented endpoints against this family, build connectors for the ones that fill the most gaps, run them on scratch and report the results as decision cards. |
-| `findagrave-fetch-method.md` | dedicated session | Fetch one cited memorial in the owner's browser by a method that costs one or two calls and no model transcription; measure it; test on scratch; commit nothing. |
+| `findagrave-fetch-method.md` | done | Fetch one cited memorial in the owner's browser by a method that costs one or two calls and no model transcription; measure it; test on scratch; commit nothing. |
 | `inbox-to-cards.md` | done | One tool attaches every inbox file to the steps it fulfils by the record's own identity, extracts and matches after logging, and renders each Undecided proposal as the owner's decision card. |
 | `findagrave-search.md` | done | A person with no memorial cited: search Find a Grave from the foundation, save the results page, audit every candidate against what we know, log the search, fetch only the memorials that fit. |
-| `record-facts.md` | superseded: the owner decides documents, and a document's facts come with it; Phase 2 (the record's exact value becomes the tree's) stays open | After a match: every fact the record supports is decidable, one decision accepts the record's facts, and the record's more exact value can become the tree's. |
+| `record-facts.md` | superseded: the owner decides documents, and a document's facts come with it; the tree keeps its own value and a record that differs raises a conflict question, so Phase 2 (the record's exact value becomes the tree's) does not happen | After a match: every fact the record supports is decidable, one decision accepts the record's facts, and the record's more exact value can become the tree's. |

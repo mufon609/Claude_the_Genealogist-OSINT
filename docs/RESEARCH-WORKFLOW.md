@@ -19,8 +19,9 @@ does not need a name until a name has been found.
 **Claim.** What the imported file or a searcher says without a record behind it.
 An Undecided fact in a query carries basis `claim`; an Accepted one carries
 `accepted`; a citation's own detail carries `citation`, a checklist row's value
-`row`, and what a held record itself says (the name as written, the record it
-links) `record`. Nothing is searched on claims alone.
+`row`, what a held record itself says (the name as written, the record it
+links) `record`, and the search as it was run on a saved results page `run`.
+Nothing is searched on claims alone.
 
 **Lead.** A piece of follow-up work about one person that the evidence produced
 and the loop can act on: a record to fetch because a held record names it
@@ -324,11 +325,18 @@ reads the page's kind from the page itself: a Find a Grave memorial goes to
 extractor `rule:findagrave-memorial@0.2.0` (the memorial's name, dates,
 places, plot, inscription as written and memorial id on one persona, one
 persona per family member in the page's own label word with a relation to the
-memorial's subject; verified on a real memorial), anything else to
-`rule:ancestry-index@0.1.0` (one persona per person the page names, in the
-page's own role word, one fact per field as written, one relation per stated
-relationship; built to Ancestry's page structure, not yet verified on a real
-page). The raw parsed page is in `extraction.structured_json`. Re-running an
+memorial's subject; verified on a real memorial), a Find a Grave search
+results page to `rule:findagrave-search@0.1.0` (one persona per row, the
+memorial id and URL as its identity), a FamilySearch record page to
+`rule:familysearch-record@0.1.0` (one persona per person the page names, in
+the page's own role word, one fact per field as written, one relation per
+stated relationship, the relatives its fields name as personas; verified on
+real pages), an Ancestry index page to `rule:ancestry-index@0.1.0` (built to
+Ancestry's page structure, not yet verified on a real page), a 1950 census
+site response to `rule:nara-1950-schedule@0.1.0` and a loc.gov OCR response
+to `rule:loc-gov-ocr@0.1.0`; a page no parser claims gets a failed extraction
+by `rule:extract@0.1.0` and is reported. The raw parsed page is in
+`extraction.structured_json`. Re-running an
 extractor, at any version, supersedes its earlier extraction and rejects that
 extraction's undecided proposals with the note `superseded`; a persona the
 earlier extraction had decided carries its decision to the new persona of the
@@ -394,20 +402,30 @@ assertions and the same family links. Rejecting writes the proposal rejected
 and nothing else.
 
 **The standing rule.** After the matcher writes its proposals, the rule takes a
-`persona_match` on the owner's behalf when the record's kind identifies a person
-fully (§0's list: a census from 1850, a 1950 schedule, a certificate) and its
-source is one nobody can edit at will (T1–T3), the given name and surname agree
-with the accepted name, at least two accepted facts agree (birth date, death
-date, a death or burial place, a stated relationship to a person the record
-names who fits a relative the tree already links; a date agreeing to the day,
-and a relationship the tree holds on trusted evidence, each count double) and
-each rests on a trusted source or on the owner's own word,
-and nothing compared disagrees. Claims never count, and a fact that
+`persona_match` on the owner's behalf when the record's collection is of a kind
+that identifies a person fully (§0's list: a census from 1850, a 1950 schedule,
+a certificate or index of birth, death or marriage, Social Security, service
+records; an obituary collection, a land or public records index is a hint) and
+its source is one nobody can edit at will (T1–T3), the given name and surname
+agree with the accepted name, at least two accepted facts agree (birth date,
+death date, a death or burial place, a stated relationship to a person the
+record names who fits a relative the tree already links; a date agreeing to
+the day on a trusted statement of the day, and a relationship the tree holds
+on trusted evidence, each count double) and each rests, on the very event or
+link compared, on a trusted source or on the owner's own word, and nothing
+compared disagrees. Claims never count, and a fact that
 rests only on a page anyone can edit does not count either. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the
 rule wrote rejected. A proposal the rule does not take is a card for the owner
-with the reason it was not taken. The rule never creates a person.
+with the reason it was not taken. The rule never creates a person. The rule
+can take a decision back: `tools/conclude.py reconsider` examines every
+decision it made, oldest first, as the rule stands now and on the ground that
+stood before it (its own assertions and those of later rule decisions do not
+count), withdraws one it would no longer take, and the record is a card for
+the owner again with the reason; accepting that card makes everything the
+decision had written stand again. Run it after any change to the rule or to a
+source's tier.
 
 Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of

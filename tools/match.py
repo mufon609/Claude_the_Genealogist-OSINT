@@ -178,11 +178,12 @@ def candidate(cat, pid):
     p = cat.person(pid); ev = cat.events(pid)
     def first(t):
         e = next((e for e in ev if e["type"] == t and (e["year"] or e["place"])), None)
-        if not e: return {"text": None, "start": None, "qualifier": None, "place": None}
+        if not e: return {"text": None, "start": None, "qualifier": None, "place": None, "event": None}
         r = cat.cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
-        return {**_date(r), "place": e["place"]["text"] if e["place"] else None}
+        return {**_date(r), "place": e["place"]["text"] if e["place"] else None, "event": e["id"]}
     b, d, bu = first("Birth"), first("Death"), first("Burial")
-    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "burial place": bu["place"], "death place": d["place"], "memorials": memorials_of(cat.cx, pid)}
+    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "burial place": bu["place"], "death place": d["place"], "memorials": memorials_of(cat.cx, pid),
+            "events": {"Birth": b["event"], "Death": d["event"], "Burial": bu["event"]}}      # the events compared, for the rule's ground
 
 def persons_for(cx, sha):
     """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, a fetch step pointing at
