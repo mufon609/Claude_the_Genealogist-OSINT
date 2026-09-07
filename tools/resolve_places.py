@@ -13,6 +13,9 @@ Rules
   * data/place-overrides.json can reject non-places, force review, add candidate
     queries, and attach notes. It is the only hand-authored input.
   * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
+  * Every string the resolver accepts, rejects or resets (--reset) gets one audit row
+    under the person or agent who ran it (--by), the resolver's tag and the change in
+    the diff, so a reset-and-rerun can be read back afterwards.
 """
 import argparse, difflib, hashlib, json, os, re, sqlite3, sys, time, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -251,11 +254,19 @@ def apply_to_events(cx, tree_id, actor, ts):
         n += 1
     return n, len(rows) - n
 
-def reset_ai_resolutions(cx, tree_id):
-    """Undo AI-made resolutions only. Human resolutions (resolver 'user:...') are kept."""
+def audit_string(cx, tree_id, ts, by, psid, diff):
+    """One audit row per place string whose status or place the resolver changes, under the person or agent who ran it (the
+    resolver's own tag is in the diff), so a reset, which clears the resolver's rows, leaves the record of what it undid."""
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+               (ulid(), tree_id, ts, by, "update", "place_string", psid, dumps(diff)))
+
+def reset_ai_resolutions(cx, tree_id, by, ts):
+    """Undo AI-made resolutions only. Human resolutions (resolver 'user:...') are kept. One audit row per string reset."""
     cx.execute("UPDATE event SET place_id=NULL WHERE tree_id=? AND id IN (SELECT entity_id FROM audit_log WHERE action='update' AND entity_kind='event' AND actor LIKE 'ai:%')", (tree_id,))
     cx.execute("DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action IN ('update','resolve')", (tree_id,))
     cx.execute("DELETE FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided'", (tree_id,))
+    for psid, raw, status, place_id, resolver in cx.execute("SELECT id, raw, status, place_id, resolver FROM place_string WHERE resolver LIKE 'ai:%' AND (status<>'undecided' OR place_id IS NOT NULL)").fetchall():
+        audit_string(cx, tree_id, ts, by, psid, {"raw": raw, "reset": True, "resolver": resolver, "from": {"status": status, "place_id": place_id}, "to": {"status": "undecided", "place_id": None}})
     cx.execute("UPDATE place_string SET place_id=NULL, status='undecided', resolver=NULL, resolved_at=NULL, notes=NULL, variant_kind=NULL WHERE resolver LIKE 'ai:%'")
     # orphaned places (no string, no event points at them, and no child)
     while True:
@@ -286,7 +297,7 @@ def main():
                    (ext_id, *RESOLVER, dumps({"endpoint": ENDPOINT, "verify": "all components must match; unique full match auto-resolves"}), now()))
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
-    if a.reset: reset_ai_resolutions(cx, tree_id)
+    if a.reset: reset_ai_resolutions(cx, tree_id, a.by, ts)
     rows = cx.execute("SELECT id, raw FROM place_string WHERE status='undecided' AND place_id IS NULL AND resolver IS NULL " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
                       (a.only,) if a.only else ()).fetchall()
     if a.limit: rows = rows[: a.limit]
@@ -297,6 +308,7 @@ def main():
         if raw in ov["reject"]:
             cx.execute("UPDATE place_string SET status='rejected', resolver=?, resolved_at=?, notes=? WHERE id=?",
                        (resolver_tag, ts, dumps({"reason": ov["reject"][raw]}), psid)); stats["rejected"] += 1
+            audit_string(cx, tree_id, ts, a.by, psid, {"raw": raw, "resolver": resolver_tag, "from": {"status": "undecided", "place_id": None}, "to": {"status": "rejected", "place_id": None}, "reason": ov["reject"][raw]})
             report.append(("REJECT", raw, ov["reject"][raw])); continue
         p = parse(raw)
         if not p["components"] and not p["country"] and not p["region"]:
@@ -347,6 +359,7 @@ def main():
                                                              "alternatives": [x.get("display_name") for _, _, x in full if x is not c],
                                                              "details": p["details"], "warnings": p["warnings"], "note": note}), psid))
             stats["accepted"] += 1; report.append(("OK", raw, (f"[{how}] " if how != "unique full match" else "") + c.get("display_name")))
+            audit_string(cx, tree_id, ts, a.by, psid, {"raw": raw, "resolver": resolver_tag, "from": {"status": "undecided", "place_id": None}, "to": {"status": "accepted", "place_id": leaf}, "how": how, "place": c.get("display_name")})
         else:
             reason = forced or ("bare single token; needs context" if bare else
                                 (how or f"{len(full)} fully-verified candidates") if full else "no candidate matches every component")

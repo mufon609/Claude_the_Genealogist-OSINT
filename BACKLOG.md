@@ -187,13 +187,6 @@ and the file name to save under.
 citation's own record; the same sheet as the citation on Helen Sara Brant).
 One reason per step, printed and kept in the run's log note.
 
-### C13. The resolver's changes in the audit log
-
-`resolve_places.py` writes audit rows for the events it places and none for
-the place strings it resolves or resets, so a reset-and-rerun cannot be
-audited after the fact. One audit row per string whose status or place
-changed.
-
 ---
 
 ## Externally blocked
