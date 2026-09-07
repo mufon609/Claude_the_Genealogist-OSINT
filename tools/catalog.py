@@ -137,7 +137,7 @@ def place_verdict(record, tree):
     place text, or the record's first part in the tree's; the tree's own resolved chain reads 'Town < County < State < Country'
     and the country's spellings are one. absent when either side has none."""
     if not record or not tree: return "absent"
-    norm = lambda s: COUNTRY.sub("usa", s.lower())
+    norm = lambda s: re.sub(r"\b(county|co\.?|township|twp\.?|magisterial district \d+|district \d+)\b", " ", COUNTRY.sub("usa", s.lower()))   # a jurisdiction word is not a place part
     tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]; rlow = key(norm(record))
     below = [p for p in tparts if p != "usa"] or tparts
     if all(key(p) in rlow for p in below[-2:]): return "agrees"
