@@ -37,7 +37,7 @@ skipped, so re-running adds nothing.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, ulid
-from catalog import COUNTRY, SUFFIX, Catalog, date_verdict, key, place_verdict, same_page, year
+from catalog import COUNTRY, SUFFIX, Catalog, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 
 MATCHER = ("rule", "matcher", "0.1.0")
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -61,36 +61,6 @@ def same_given(a, b):
         s, l = (a, b) if len(a) < len(b) else (b, a)
         return any(l[:i] + l[i + 1:] == s for i in range(len(l)))
     return False
-
-def soundex(s):
-    """The American Soundex code of a surname, the index makers' own way of saying two spellings are one name."""
-    s = re.sub(r"[^a-z]", "", (s or "").lower())
-    if not s: return ""
-    codes = {**dict.fromkeys("bfpv", "1"), **dict.fromkeys("cgjkqsxz", "2"), **dict.fromkeys("dt", "3"), "l": "4", **dict.fromkeys("mn", "5"), "r": "6"}
-    out, last = s[0].upper(), codes.get(s[0], "")
-    for ch in s[1:]:
-        c = codes.get(ch, "")
-        if c and c != last: out += c
-        if ch not in "hw": last = c
-    return (out + "000")[:4]
-
-def edits(a, b):
-    """The edit distance between two keys."""
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        cur = [i]
-        for j, cb in enumerate(b, 1): cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
-        prev = cur
-    return prev[-1]
-
-def same_surname(a, b):
-    """Whether two surname keys are one name: written the same, or a spelling variant (the same Soundex code and at most two
-    edits apart, so Ahearn and Ahern, Brant and Brandt, Kriebel and Krebel; not Brant and Grant). Returns "" when they differ,
-    "agrees" when written the same, "variant" for a spelling variant."""
-    if not a or not b: return ""
-    if a == b: return "agrees"
-    if len(a) >= 4 and len(b) >= 4 and soundex(a) == soundex(b) and edits(a, b) <= 2: return "variant"
-    return ""
 
 def name_keys(cat, pid):
     """(first given, surname) keys for a person: every name row and every non-rejected alias."""
@@ -240,7 +210,7 @@ def persons_for(cx, sha):
     rows = [r[:3] for r in rows]                                  # the step whose citation sits on the person themselves first, then in the order logged
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if loc and loc[0] and loc[1]:
-        values = sorted(same_page(cx, loc[1])) if loc[0] == "apid" else [loc[1]]
+        values = sorted(holds(cx, sha)) if loc[0] == "apid" else [loc[1]]      # the ids the artifact holds: the household it names, or the whole sheet for an image
         rows += cx.execute(f"SELECT DISTINCT person_id, question_id, id FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?'*len(values))}) ORDER BY seq", (loc[0], *values)).fetchall()
     rows += cx.execute("""SELECT DISTINCT pp.person_id, NULL, NULL FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                           WHERE pe.artifact_sha256=? AND pp.status='accepted'""", (sha,)).fetchall()

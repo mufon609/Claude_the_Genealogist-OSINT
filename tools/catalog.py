@@ -71,16 +71,83 @@ def same_page(cx, apid, groups=None):
     """The record ids naming the same census page as this one, itself included."""
     return set((page_groups(cx) if groups is None else groups).get(apid) or {apid})
 
+def soundex(s):
+    """The American Soundex code of a surname, the index makers' own way of saying two spellings are one name."""
+    s = re.sub(r"[^a-z]", "", (s or "").lower())
+    if not s: return ""
+    codes = {**dict.fromkeys("bfpv", "1"), **dict.fromkeys("cgjkqsxz", "2"), **dict.fromkeys("dt", "3"), "l": "4", **dict.fromkeys("mn", "5"), "r": "6"}
+    out, last = s[0].upper(), codes.get(s[0], "")
+    for ch in s[1:]:
+        c = codes.get(ch, "")
+        if c and c != last: out += c
+        if ch not in "hw": last = c
+    return (out + "000")[:4]
+
+def edits(a, b):
+    """The edit distance between two keys."""
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1): cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+def same_surname(a, b):
+    """Whether two surname keys are one name: written the same, or a spelling variant (the same Soundex code and at most two
+    edits apart, so Ahearn and Ahern, Brant and Brandt, Kriebel and Krebel; not Brant and Grant). Returns "" when they differ,
+    "agrees" when written the same, "variant" for a spelling variant."""
+    if not a or not b: return ""
+    if a == b: return "agrees"
+    if len(a) >= 4 and len(b) >= 4 and soundex(a) == soundex(b) and edits(a, b) <= 2: return "variant"
+    return ""
+
+def name_parts(text):
+    """(the first given name's key, the keys of every later word) of a name as written, a title (Mr, Mrs, Dr) dropped; any later
+    word may be the surname (a memorial writes a married woman's birth surname inside her name)."""
+    parts = [key(x) for x in re.sub(r"^(mr|mrs|miss|ms|dr)\.?\s+", "", (text or "").strip(), flags=re.I).split() if key(x)]
+    return (parts[0], parts[1:]) if parts else ("", [])
+
+def person_named(cx, person_id, names):
+    """Whether a record that names these people, as written, names this person: one of the names carries the person's first given
+    name and a surname the tree holds for them, as written or as a spelling variant, or a wife's husband's surname."""
+    keys = [(key((g or "").split()[0]) if g else "", key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (person_id,))]
+    keys += [(g, key((sp or "").split()[-1])) for g, _ in list(keys) for sp, in cx.execute("""SELECT p.display_name FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.role='partner' AND x.person_id<>fm.person_id
+                                                                                                   JOIN person p ON p.id=x.person_id WHERE fm.person_id=? AND fm.role='partner'""", (person_id,)) if sp]
+    for n in names:
+        pg, rest = name_parts(n)
+        if pg and any(pg == g and any(same_surname(t, s) for t in rest) for g, s in keys): return True
+    return False
+
+def page_names(cx, sha):
+    """The names a record page holds, as written: the personas of its current extraction (the latest not superseded, not failed)."""
+    e = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND status<>'failed' AND superseded_by IS NULL ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
+    return [r[0] for r in cx.execute("SELECT name_text FROM persona WHERE extraction_id=?", (e[0],))] if e else []
+
+def cited_persons(cx, apid):
+    """The persons a citation sits on: the subject of every assertion carrying this record id, through the event's participant."""
+    return [r[0] for r in cx.execute("""SELECT DISTINCT CASE a.subject_kind WHEN 'person' THEN a.subject_id
+                     ELSE (SELECT ep.person_id FROM event_participant ep WHERE ep.event_id=a.subject_id AND ep.person_id IS NOT NULL LIMIT 1) END
+                     FROM assertion a WHERE json_valid(a.notes) AND json_extract(a.notes,'$.apid')=?""", (apid,)) if r[0]]
+
+def holds(cx, sha, groups=None):
+    """The record ids an archived artifact holds. A sheet image or a schedule shows the whole sheet, so it holds every citation
+    naming the sheet; an HTML record page shows one household, so it holds its own citation and those of the people it names
+    (person_named against the page's personas), never another household's on the same sheet."""
+    a = cx.execute("SELECT locator_kind, locator_value, mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    if not a or a[0] != "apid" or not a[1]: return set()
+    group = same_page(cx, a[1], groups)
+    if not (a[2] or "").startswith("text/html"): return set(group)
+    names = page_names(cx, sha)
+    return {a[1]} | {x for x in group if x != a[1] and names and any(person_named(cx, p, names) for p in cited_persons(cx, x))}
+
 def held_apids(cx, groups=None):
-    """{record id: sha256} for every citation whose record is in the archive: the id the record was archived under and every id
-    that names the same census page (the household's page is held for every member cited on it)."""
+    """{record id: sha256} for every citation whose record is in the archive: the id the record was archived under and every other
+    id the artifact holds (holds: the whole sheet for an image, the household it names for a record page), the first archived winning."""
     groups = page_groups(cx) if groups is None else groups
     out = {}
-    for v, sha in cx.execute("SELECT locator_value, sha256 FROM artifact WHERE locator_kind='apid' ORDER BY retrieved_at, sha256"):
-        for a in groups.get(v) or {v}: out.setdefault(a, sha)
+    for sha, in cx.execute("SELECT sha256 FROM artifact WHERE locator_kind='apid' ORDER BY retrieved_at, sha256"):
+        for a in holds(cx, sha, groups): out.setdefault(a, sha)
     return out
-
-HOLDERS = None                                                   # data/holders.csv, read on first use
 
 def fetch_target(apid, url=None, fields=None):
     """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave; the free
@@ -384,7 +451,7 @@ class Catalog:
         if self._groups is None: self._groups = page_groups(self.cx)
         return self._groups
     def held_apids(self):
-        """{record id: sha256} for every citation whose record is in the archive, the household page counting for every member cited on it."""
+        """{record id: sha256} for every citation whose record is in the archive: what each artifact holds (holds)."""
         if self._held is None: self._held = held_apids(self.cx, self.page_groups())
         return self._held
     def same_page(self, apid): return same_page(self.cx, apid, self.page_groups())

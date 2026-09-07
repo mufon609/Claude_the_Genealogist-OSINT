@@ -186,7 +186,11 @@ def build(cat: Catalog, pid: str):
         st_ = (m["place"]["state"] if m and m["place"] else None) or home_state
         src = VITAL.get(st_ or "", {}).get("marriage", (None, None))
         if m_country and m_country != "united states": src = (None, None); st_ = None
-        mcits = (m["citations"] if m else []) + own + rel_cits.get(f["spouse"] or "", ("", []))[1]
+        mcits, seen_apids = [], set()                                  # one citation per record id: the event's, then the person's own, then the spouse's
+        for c in (m["citations"] if m else []) + own + rel_cits.get(f["spouse"] or "", ("", []))[1]:
+            if c[1] in seen_apids: continue
+            if c[1]: seen_apids.add(c[1])
+            mcits.append(c)
         cited = any(c[0] and re.search(MATCH["marriage"], c[0]) for c in mcits)
         r = {"record": "marriage record", "instance": f["spouse"], "status": "held" if f"marriage record:{f['spouse'] or ''}" in fetched else ("cited" if cited else "missing"), "via": None,
              "settles": "date, place, both sets of parents, maiden name",

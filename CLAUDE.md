@@ -56,9 +56,9 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    design docs, ask before building it.
 7. **Data never enters git.** `archive/`, `catalog/*.db`, `derivatives/`,
    `inbox/`, `trees/*/imports`, `trees/*/exports` are ignored, and the commit hook refuses them:
-   install it once with `git config core.hooksPath tools/hooks`. A public
-   record from a public site may sit in `tests/` as a fixture whoever it
-   names; rights decide (never an Ancestry page, never a family-held file).
+   install it once with `git config core.hooksPath tools/hooks`. Any archived
+   document the owner chooses may sit in `tests/` as a fixture: these are the
+   owner's family documents in the owner's repository, and none is excluded.
 8. **No bandaids.** Fix the cause or file it in `BACKLOG.md`. No parking
    comments, no compensating checks. Comments describe current code, never
    history (see `MEMORY.md`).

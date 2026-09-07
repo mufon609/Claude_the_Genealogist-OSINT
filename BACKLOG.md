@@ -148,13 +148,10 @@ found tonight (a memorial writer numbering members from a name it did not
 define, the screen's fact decision calling a function it never imported)
 would have been caught by running each parser on one saved real page and
 each writer on a scratch catalog. Keep one saved page per parser under a
-fixtures directory that the commit guard allows (public pages only, no
-family-held file), and a script that runs every parser on its fixture, the
+fixtures directory that the commit guard allows, and a script that runs every parser on its fixture, the
 matcher on the result, and the tools on a scratch copy, so a session can say
-"green" from one command. A fixture is a public record from a public site,
-whoever it names: rights decide what stays out of git (Ancestry pages, a
-family-held file), not the presumed-living rule, which governs exports of the
-tree's conclusions.
+"green" from one command. Any archived document the owner chooses may be a
+fixture; none is excluded.
 
 ### C9. Fold the repeated assertions one decision wrote
 

@@ -13,7 +13,7 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, ulid
-from catalog import dbid_of, same_page
+from catalog import dbid_of, holds, name_parts, person_named
 from log_search import log as log_search, rendered_query
 from extract import FS_MARK, parse_memorial, parse_record, parse_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
@@ -102,18 +102,18 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
                              AND json_extract(sp.query_json,'$.url.value') LIKE ? ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, f"%/memorial/{value}/%")).fetchall()
         return [r for r in rows if (MEMORIAL_URL.search(json.loads(r["query_json"]).get("url", {}).get("value") or "") or [None, None])[1] == value]
     if kind == "ark":
-        loc = cx.execute("""SELECT a.locator_value FROM artifact_locator l JOIN artifact a ON a.sha256=l.artifact_sha256
+        loc = cx.execute("""SELECT a.sha256 FROM artifact_locator l JOIN artifact a ON a.sha256=l.artifact_sha256
                             WHERE l.kind='ark' AND l.value=? AND a.locator_kind='apid'""", (value,)).fetchone()
-        if loc:
-            ids = sorted(same_page(cx, loc[0]))
+        if loc:                                                        # archived already: the ids the artifact holds (the household it names)
+            ids = sorted(holds(cx, loc[0]))
             rows = cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                   AND sp.locator_value IN ({','.join('?'*len(ids))}) ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, *ids)).fetchall()
-            return [r for r in rows if _named_on(cx, r["person_id"], parsed)]      # the page shows one household: it holds the rows of the people it names, not every household on the sheet
+            return [r for r in rows if _named_on(cx, r["person_id"], parsed)]
         named = _page_named(parsed or {})
-        if named:
+        if named:                                                      # new to the archive: the steps citing the page it names, for the people it names
             rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                  AND sp.query_type='household' ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id,)).fetchall()
-            return [r for r in rows if _cites_page(r, named)]
+            return [r for r in rows if _cites_page(r, named) and _named_on(cx, r["person_id"], parsed)]
         return _steps_by_kind(cx, tree_id, parsed or {})
     return []
 
@@ -135,21 +135,10 @@ def _steps_by_kind(cx, tree_id, parsed):
     return out
 
 def _named_on(cx, person_id, parsed):
-    """Whether a record page names this person: the subject or a household member with the person's first given name and a
-    surname the tree holds for them, as written or as a spelling variant."""
-    from match import same_surname
-    names = [(parsed or {}).get("name") or ""] + [m.get("name") or "" for m in (parsed or {}).get("members") or []]
-    keys = [(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (person_id,))]
-    keys += [(g, name_key((sp or "").split()[-1])) for g, _ in list(keys) for sp, in cx.execute("""SELECT p.display_name FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.role='partner' AND x.person_id<>fm.person_id
-                                                                                                       JOIN person p ON p.id=x.person_id WHERE fm.person_id=? AND fm.role='partner'""", (person_id,)) if sp]   # a wife under her husband's surname
-    for n in names:
-        pg, rest = _split_name(n)
-        if pg and any(pg == g and any(same_surname(t, s) for t in rest) for g, s in keys): return True
-    return False
+    """Whether a record page names this person: its subject or a household member (catalog.person_named)."""
+    return person_named(cx, person_id, [(parsed or {}).get("name") or ""] + [m.get("name") or "" for m in (parsed or {}).get("members") or []])
 
-def _split_name(text):
-    parts = [name_key(x) for x in re.sub(r"^(mr|mrs|miss|ms|dr)\.?\s+", "", (text or "").strip(), flags=re.I).split() if name_key(x)]
-    return (parts[0], parts[1:]) if parts else ("", [])
+def _split_name(text): return name_parts(text)
 
 def _source_row(cx, sid):
     r = cx.execute("SELECT id, trust_tier, terms, cost FROM source WHERE id=?", (sid,)).fetchone() if sid else None
