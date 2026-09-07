@@ -63,7 +63,7 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    comments, no compensating checks. Comments describe current code, never
    history (see `MEMORY.md`).
 9. **Commit each finished piece of code or doc work**, directly to `main`,
-   with the tools green, without waiting to be asked. Research decisions
+   with the tools green (`python3 tools/check.py`), without waiting to be asked. Research decisions
    live in the catalog and never enter git.
 10. **Working notes are a report**, returned to the user, never committed.
 
@@ -94,6 +94,7 @@ python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> -
 python3 tools/backup.py verify                # every archived object hashed against its sha256; `bag <dir> --target <drive>` writes a BagIt bag with the catalog dumped to SQL; `check <bag>`
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
 python3 tools/initdb.py --sync-event-types   # after any change to schema/seed_event_type.sql: the new types on an existing catalog
+python3 tools/check.py                        # green in one command: every tool compiles, every parser read against its saved page on a scratch catalog
 python3 tools/tree.py show
 python3 tools/tree.py overview                # the tree as confirmed, from the home person upward, and its edge
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/

@@ -141,17 +141,15 @@ only as records under the step's log. Show a reviewed person's hints as the
 doc says: each with what agrees, what is missing and the page, for research
 when the leads run dry, never as a feed.
 
-### C8. A test harness on the saved real pages
+### C8. The decision writers on a scratch catalog, in the harness
 
-The parsers, the matcher and the decision writers have no tests; two crashes
-found tonight (a memorial writer numbering members from a name it did not
-define, the screen's fact decision calling a function it never imported)
-would have been caught by running each parser on one saved real page and
-each writer on a scratch catalog. Keep one saved page per parser under a
-fixtures directory that the commit guard allows, and a script that runs every parser on its fixture, the
-matcher on the result, and the tools on a scratch copy, so a session can say
-"green" from one command. Any archived document the owner chooses may be a
-fixture; none is excluded.
+`tools/check.py` reads every parser against its saved page. The matcher, the
+standing rule and the decision writers still have no test: a synthetic GEDCOM
+of invented people under `tests/`, ingested by the tools into the harness's
+scratch catalog, then the matcher, the rule and the writers run on the
+fixtures against it, asserting what each writes and refuses (the T4 refusal,
+the two-facts rule, the one-person gate, the sibling placement, the couple
+relation). The commit guard must allow that one `.ged` path and no other.
 
 ### C9. Fold the repeated assertions one decision wrote
 
