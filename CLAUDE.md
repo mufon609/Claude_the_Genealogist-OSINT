@@ -81,7 +81,7 @@ python3 tools/footprint.py "<person>"       # read-only Layer 0 on its own
 python3 tools/plan.py --all                 # materialize questions + steps (idempotent)
 python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --step/--outcome to log a run; --dismiss <question>
 python3 tools/attach_inbox.py               # every inbox file to the fetch steps its own identity fulfils: archived once, logged, extracted, matched
-python3 tools/memorials.py list             # the memorials waiting to be saved in the browser, one tab per page; `collect` brings the saved pages in
+python3 tools/fetches.py list               # every page waiting to be saved in the browser, at every holder, with its link and file name; `collect` brings the saved pages in
 python3 tools/cards.py "<person>"           # every Undecided proposal about the person as a decision card; --all, --json
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"   # the decision on a card, as the screen's Add / Ignore
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
@@ -129,7 +129,7 @@ decisions are made; a scratch copy is for testing code, never for decisions.
 4. Auto steps: `python3 tools/run_step.py <step id>` (or `--all --dry-run`
    first). Assisted steps carry the source's own search prefilled: open it
    in the browser, save the page by the page-saves-itself method
-   (`docs/RESEARCH-WORKFLOW.md` §4), then `python3 tools/memorials.py
+   (`docs/RESEARCH-WORKFLOW.md` §4), then `python3 tools/fetches.py
    collect` or `python3 tools/attach_inbox.py <file>`.
 5. `python3 tools/cards.py "<person>"`: every record waiting for a decision,
    one card each. Decide with `tools/conclude.py decide <id> accept|reject`.

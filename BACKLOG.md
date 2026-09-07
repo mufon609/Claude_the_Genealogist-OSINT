@@ -173,14 +173,6 @@ memorial cards and one census card cannot see at a glance which card is on
 the record their current step fetched. Group the cards by record, the
 record of the step being worked first.
 
-### C11. Every assisted fetch waiting, in one list
-
-`memorials.py list` prints the Find a Grave pages waiting, with the people
-on each. FamilySearch and enlistment fetches have no such list: the link is
-read from the screen or built by hand. One command lists every assisted step
-waiting at every holder, with the step id, the holder, the prefilled link
-and the file name to save under.
-
 ### C12. The attach says why each step is fulfilled
 
 `attach_inbox.py` names the steps a page fulfils and not the reason (the

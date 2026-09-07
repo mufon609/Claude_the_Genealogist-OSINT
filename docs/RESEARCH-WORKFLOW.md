@@ -236,10 +236,11 @@ browser is set to ask where to save each download, turn that off first or
 answer the dialog by hand; a dialog left open blocks every later browser
 call. Chrome lets a page start one download without a hand on it: a second
 page saved in the same tab lands nowhere, so each page gets its own tab,
-closed after the file arrives. `tools/memorials.py list` prints every memorial
-a planned fetch step points at, once, leads from held records first, with the
-people waiting on it; a browser session works down that list one tab per page;
-`tools/memorials.py collect` then moves every saved page from the download
+closed after the file arrives. `tools/fetches.py list` prints every page a
+planned fetch step points at, at every holder without a connector, once, leads
+from held records first, with the link to open, the people waiting on it and
+the file name to save under; a browser session works down that list one tab per
+page; `tools/fetches.py collect` then moves every saved page from the download
 folder into `inbox/` and attaches each by its own identity. Never encode a page and read it out through the model in slices.
 `tools/attach_inbox.py` then takes every file in `inbox/`: it reads the
 record's own identity from the file (the memorial id, the ark), archives it
