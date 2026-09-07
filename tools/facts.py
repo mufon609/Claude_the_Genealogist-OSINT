@@ -82,7 +82,9 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or e["held"]]
     for aid in ids:
         n += cx.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=? WHERE id=? AND status<>?", (status, by, ts, aid, status)).rowcount
-    if status == "accepted" and not ids: vouched = vouch(cx, tree_id, pid, field, ts, by); ids = list(vouched); n += len(vouched)   # a vouch counts as an assertion accepted
+    if status == "accepted" and not ids:
+        vouched = vouch(cx, tree_id, pid, field, ts, by); ids = list(vouched); n += len(vouched)   # a vouch counts as an assertion accepted
+        if not vouched: return {"error": "nothing to accept: no held record supports this fact and the tree file makes no claim of it to vouch for; fetch the cited record, or accept a record that states it"}
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "accept" if status == "accepted" else ("reject" if status == "rejected" else "update"),
                 "person", pid, dumps({"fact": field, "status": status, "assertions": n, "vouched": vouched, "note": note or None})))
