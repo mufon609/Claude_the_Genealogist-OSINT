@@ -124,7 +124,7 @@ def compare(cat, persona, cand, chosen):
     how = next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s) == "agrees"), None) \
           or next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s)), None)
     surname_ok = bool(how)
-    married = bool(ps) and not surname_ok and persona.get("spouse_surname") == ps           # a wife under her husband's surname on the record
+    married = bool(ps) and not surname_ok and (persona.get("spouse_surname") == ps or any(same_surname(ps, s) for s in cand.get("spouse_surnames") or []))   # a wife under her husband's surname: the record's spouse, or the tree's
     (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
     elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'}" + (" as a spelling variant" if how == "variant" else "") + f" (record {persona['name']}, tree {cand['name']})")
@@ -229,6 +229,7 @@ def candidate(cat, pid):
     b, d, bu = first("Birth"), first("Death"), first("Burial")
     return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "birth place": b["place"], "burial place": bu["place"], "death place": d["place"], "memorials": memorials_of(cat.cx, pid),
             "places": [e["place"]["text"] for e in ev if e.get("place") and e["place"]["text"]],
+            "spouse_surnames": [key(n.split()[-1]) for _, n in cat.family(pid)["spouses"] if n and n.split()],
             "events": {"Birth": b["event"], "Death": d["event"], "Burial": bu["event"]}}      # the events compared, for the rule's ground
 
 def persons_for(cx, sha):

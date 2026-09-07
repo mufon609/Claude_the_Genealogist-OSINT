@@ -257,7 +257,12 @@ def render(r):
     bl = r["baseline"]; out.append(f"  baseline: {bl['key_facts_accepted']} of {bl['key_facts']} key facts Accepted" + ("" if bl["complete"] else f"; undecided: {', '.join(bl['undecided'])}  -> review unlocks searches, the footprint and leads; fetching cited records is open"))
     out.append("\nFOUNDATION")
     for f in r["foundation"]:
-        v = f["value"]; v = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v
+        v = f["value"]
+        if f["field"] == "residences":                                # one stay per line, nothing cut short
+            out.append(f"  {f['field']:11} {len(v)} stay(s)")
+            for e in v: out.append(f"      {str(e['year'] or '?'):6} {(e['place'] or '?')[:64]:64} {e['basis'] or '-'}")
+            continue
+        v = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v
         out.append(f"  {f['field']:11} {str(v)[:70]:70} {f['basis'] or '-'}" + (f"  variants: {', '.join(f['variants'])}" if f.get("variants") else ""))
     out.append("\nQUESTIONS")
     for q in r["questions"] or [{"kind": "(none)"}]: out.append(f"  {q['kind']:20} {q.get('detail','')}")
