@@ -78,6 +78,8 @@ python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --ste
 python3 tools/attach_inbox.py               # every inbox file to the fetch steps its own identity fulfils: archived once, logged, extracted, matched
 python3 tools/memorials.py list             # the memorials waiting to be saved in the browser, one tab per page; `collect` brings the saved pages in
 python3 tools/cards.py "<person>"           # every Undecided proposal about the person as a decision card; --all, --json
+python3 tools/conclude.py decide <proposal id> accept|reject --note "…"   # the decision on a card, as the screen's Add / Ignore
+python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
 python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial, FamilySearch record, Ancestry index; HTML)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
@@ -90,6 +92,40 @@ python3 tools/tree.py show
 python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
 DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # scratch run: its own archive/, inbox/, derivatives/, trees/*/imports
 ```
+
+## Working a person
+
+One person, one document at a time. The live catalog is where research
+decisions are made; a scratch copy is for testing code, never for decisions.
+
+1. `python3 tools/tree.py show` and the overview (the screen, or
+   `python3 tools/checklist.py --all`) say who is confirmed. Take the person
+   at the edge of the confirmed tree: a parent or spouse the file claims
+   whose link is not yet accepted, or a confirmed person with an open
+   question. Never a person two links away from anyone confirmed.
+2. `python3 tools/checklist.py "<person>"`: the seven key facts with their
+   basis. Decide each with `tools/conclude.py fact`: accept what a held
+   record supports or what you know yourself (a vouch, recorded as your
+   word), reject what is wrong, leave the rest undecided. Searches open
+   only when every key fact is decided; fetching cited records is open now.
+3. `python3 tools/plan.py "<person>"`, then `python3 tools/log_search.py
+   --list "<person>"`: the fetch steps for records the file cites and the
+   search steps for missing rows, each with its source and mode.
+4. Auto steps: `python3 tools/run_step.py <step id>` (or `--all --dry-run`
+   first). Assisted steps carry the source's own search prefilled: open it
+   in the browser, save the page by the page-saves-itself method
+   (`docs/RESEARCH-WORKFLOW.md` §4), then `python3 tools/memorials.py
+   collect` or `python3 tools/attach_inbox.py <file>`.
+5. `python3 tools/cards.py "<person>"`: every record waiting for a decision,
+   one card each. Decide with `tools/conclude.py decide <id> accept|reject`.
+   Accepting takes everything the record states about the person; a
+   difference with the tree becomes a conflict question, never an
+   overwrite. The record's other personas come up as cards only after that.
+6. `python3 tools/checklist.py "<person>"` again: what is held, what is
+   still missing, what the plan does next. When the person's rows are held
+   or exhausted, move to the next person at the edge.
+
+Report what was decided and on what record, in words; never a score.
 
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).
 - Verify after every change: `PRAGMA integrity_check`, `foreign_key_check`,

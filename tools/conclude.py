@@ -19,13 +19,16 @@ it accepted: the link and every assertion it wrote turn rejected. The rule can a
 decision it made is examined again as the rule stands now, oldest first, on the ground that stood before it, and one it would
 no longer take is withdrawn, the record a card for the owner again.
 
-usage: tools/conclude.py reconsider [--dry-run]                                   the rule re-examines its decisions
+usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
+       tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
+       tools/conclude.py reconsider [--dry-run]                                   the rule re-examines its decisions
        tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…" [--marriage "14 AUG 1959"]
        tools/conclude.py link "<person>" --parent "<other>" [--parent "<other>"] --record <sha256> --note "…"
        tools/conclude.py divorce "<a>" "<b>" --date "BET 1950 AND 1959" --evidence <sha256>[:<persona fact id>][:<citation>] … --note "…"
        common: [--tree slug] [--db catalog/tree.db] [--by user:<you>]
 
-- decide: a person's (or the rule's) decision on a proposal, with everything that follows from it.
+- decide: a person's (or the rule's) decision on a proposal, with everything that follows from it; a command too, as is a
+  key fact's decision (tools/facts.py).
 - match_record: the matcher on an extraction, then the rule on every proposal it wrote.
 - rule_accepts: whether the rule takes a proposal, and why or why not, in words.
 - reconsider, withdraw: the rule's decisions examined again; one it would no longer take, taken back.
@@ -437,6 +440,9 @@ def reconsider(cx, tree_id, by, dry_run=False):
 def main():
     ap = argparse.ArgumentParser(description="The standing rule's decisions examined again; the owner's word on a family link or a divorce.")
     sub = ap.add_subparsers(dest="cmd", required=True)
+    dc = sub.add_parser("decide", help="the decision on a card: is this record's persona this person (or a new person)"); dc.add_argument("proposal"); dc.add_argument("verdict", choices=["accept", "reject"]); dc.add_argument("--note")
+    fc = sub.add_parser("fact", help="a key fact of a person decided: accept touches held evidence or is your own word (a vouch); reject and undecided touch every assertion behind it")
+    fc.add_argument("person"); fc.add_argument("field"); fc.add_argument("verdict", choices=["accept", "reject", "undecided"]); fc.add_argument("--note")
     r = sub.add_parser("reconsider", help="the rule re-examines every decision it made; one it would no longer take is withdrawn and the record is a card again")
     r.add_argument("--dry-run", action="store_true", help="report only")
     l = sub.add_parser("link", help="place a person in a family on your own word, on a record that stops short of naming both parties")
@@ -446,14 +452,28 @@ def main():
     d = sub.add_parser("divorce", help="a Divorce event between two people, with the evidence you name")
     d.add_argument("a"); d.add_argument("b"); d.add_argument("--date", help="GEDCOM form (BET 1950 AND 1959)")
     d.add_argument("--evidence", action="append", required=True, help="sha256[:persona fact id][:citation words]"); d.add_argument("--note", required=True)
-    for x in (r, l, d):
+    for x in (dc, fc, r, l, d):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     cx.execute("BEGIN")
     try:
-        if a.cmd == "reconsider":
+        if a.cmd == "decide":
+            res = decide(cx, tree_id, a.proposal, "accepted" if a.verdict == "accept" else "rejected", a.by, note=a.note)
+            if "error" in res: raise SystemExit(res["error"])
+            who = cx.execute("SELECT display_name FROM person WHERE id=?", (res["person"],)).fetchone()
+            print(f"{res['status']}: {res['kind'].replace('_', ' ')} {who[0] if who else ''}; {res['assertions']} assertion(s), {len(res['memberships'])} family link(s), {len(res['answered'])} question(s) answered")
+            for m in res["memberships"]: print("   ", cx.execute("SELECT display_name FROM person WHERE id=?", (m["person"],)).fetchone()[0], m["role"], "of", cx.execute("SELECT display_name FROM person WHERE id=?", (m["of"],)).fetchone()[0], "(undecided: the record states a sibling)" if m.get("undecided") else "")
+            left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')=(SELECT json_extract(payload_json,'$.artifact_sha256') FROM proposal WHERE id=?)", (tree_id, a.proposal)).fetchone()[0]
+            print(f"    {left} card(s) still waiting on this record" if left else "    nothing else waits on this record")
+        elif a.cmd == "fact":
+            from facts import decide_fact
+            pid = cat.find_person(a.person)
+            res = decide_fact(cx, tree_id, pid, a.field, {"accept": "accepted", "reject": "rejected", "undecided": "undecided"}[a.verdict], a.note, a.by)
+            if "error" in res: raise SystemExit(res["error"])
+            print(f"{a.field} {res['status']}: {res['assertions']} assertion(s) touched" + (f", {len(res['vouched'])} written on your own word" if res["vouched"] else "") + (f", {len(res['answered'])} question(s) answered" if res["answered"] else ""))
+        elif a.cmd == "reconsider":
             rows = reconsider(cx, tree_id, a.by, dry_run=a.dry_run)
             for x in rows: print(f"{'kept' if x['kept'] else ('would withdraw' if a.dry_run else 'withdrawn'):15} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
             if not rows: print("the rule has made no decision in this tree")
