@@ -13,7 +13,8 @@ fields are the citation's own details (collection, the name the citation sits
 on, the page text's parts, the memorial URL), basis citation. A citation whose
 collection has no free holder stays a fetch step with mode blocked and the
 reason in its rationale. Idempotent: questions and steps are keyed, so re-running updates what
-changed, adds what is new, drops steps no longer generated unless they were run,
+changed, adds what is new, drops steps no longer generated (one that was run but
+is not done is kept for its log as skipped, planned again if generated again),
 marks a fetch step done when an archived record holds its citation for the
 person (catalog.held_for: the step's own record id, a sheet image of the page,
 or a record page naming the person), keeps done steps, and closes questions
@@ -160,9 +161,9 @@ def plan_person(cx, tree_id, pid, by):
         qid = qid_by_key.get(st["question_key"]) if st["question_key"] else None
         cols = (st["row_key"], qid, seq, st["kind"], st["query_type"], st["query_json"], st["locator_source_id"], st["locator_kind"], st["locator_value"],
                 st["collection_id"], st["on_json"], st["sources_json"], st["mode"], st["expected"], st["rationale"])
-        if st["step_key"] in have_steps:
+        if st["step_key"] in have_steps:                                 # generated again: a step set aside as skipped is planned work once more
             cx.execute("""UPDATE search_plan SET row_key=?, question_id=?, seq=?, kind=?, query_type=?, query_json=?, locator_source_id=?, locator_kind=?, locator_value=?,
-                          collection_id=?, on_json=?, sources_json=?, mode=?, expected=?, rationale=? WHERE id=?""", cols + (have_steps[st["step_key"]],)); stats["steps_kept"] += 1
+                          collection_id=?, on_json=?, sources_json=?, mode=?, expected=?, rationale=?, status=CASE WHEN status='skipped' THEN 'planned' ELSE status END WHERE id=?""", cols + (have_steps[st["step_key"]],)); stats["steps_kept"] += 1
         else:
             cx.execute("""INSERT INTO search_plan (row_key,question_id,seq,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,collection_id,on_json,sources_json,mode,expected,rationale,
                           id,person_id,step_key,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'planned',?)""", cols + (ulid(), pid, st["step_key"], ts)); stats["steps_new"] += 1
@@ -170,9 +171,14 @@ def plan_person(cx, tree_id, pid, by):
         if (lkind == "apid" and cat.held_for(lval, pid)) or (lkind and lkind != "apid" and lval and cx.execute("""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?
                 UNION SELECT 1 FROM artifact_locator WHERE kind=? AND value=?""", (lkind, lval, lkind, lval)).fetchone()):
             cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,)); stats["steps_done_by_archive"] += 1
-    for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes, unless it was run or is done
-        if skey not in wanted_keys and not cx.execute("SELECT 1 FROM search_plan sp WHERE sp.id=? AND (sp.status='done' OR EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=sp.id))", (sid,)).fetchone():
-            cx.execute("DELETE FROM search_plan WHERE id=?", (sid,)); stats["steps_dropped"] += 1
+    for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes; done it stays; run but not done it is skipped, kept for its log
+        if skey in wanted_keys: continue
+        row = cx.execute("SELECT status, EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=search_plan.id) FROM search_plan WHERE id=?", (sid,)).fetchone()
+        if row[0] == "done": continue
+        if row[1]:
+            if row[0] != "skipped": cx.execute("UPDATE search_plan SET status='skipped' WHERE id=?", (sid,)); stats["steps_skipped"] = stats.get("steps_skipped", 0) + 1
+            continue
+        cx.execute("DELETE FROM search_plan WHERE id=?", (sid,)); stats["steps_dropped"] += 1
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "update", "search_plan", pid, dumps(stats)))
     return stats

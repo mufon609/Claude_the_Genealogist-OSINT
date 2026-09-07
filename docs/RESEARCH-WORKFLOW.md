@@ -524,7 +524,9 @@ not a question, and a step carries a question id only when it answers one.
 There is no separate review table: the baseline review is the status on the
 assertions behind each key fact. Questions and steps are keyed so
 `tools/plan.py` regenerates them idempotently, drops steps no longer generated
-unless they were run, and closes a question whose gap has gone; a question a
+(a done one stays; one that was run but is not done is kept for its log as
+`skipped`, and is planned again if it is generated again), and closes a
+question whose gap has gone; a question a
 person dismissed stays closed. `tools/log_search.py` (and the person screen)
 record every run with the fields as rendered after include and revise; a
 `found` run marks the step done, a `none` run leaves it planned and visible as
