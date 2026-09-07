@@ -45,7 +45,8 @@ def key(s): return re.sub(r"[^a-z0-9 ]", "", clean(s).lower())
 def split_gedcom_name(v):
     m = re.match(r"^(.*?)\s*/([^/]*)/\s*(.*)$", v or "")
     if m: return clean(m.group(1)), clean(m.group(2)), clean(m.group(3))
-    parts = clean(v).split(); return " ".join(parts[:-1]), (parts[-1] if parts else ""), ""
+    from catalog import split_name
+    g, s, suf = split_name(clean(v)); return g or "", s or "", suf or ""
 
 def classify(written, given, surname, suffix):
     """Return (kind, note) for a written name that differs from the canonical given/surname/suffix."""

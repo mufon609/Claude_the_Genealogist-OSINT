@@ -38,7 +38,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, parse_gedcom_date, resolve_tree, ulid
-from catalog import Catalog, tier_sql
+from catalog import Catalog, split_name, tier_sql
 from catalog import date_verdict, place_verdict
 from match import REL_OF, candidate, compare, match, personas_of
 from plan import plan_person
@@ -126,11 +126,9 @@ def create_person(cx, tree_id, persona_id, ts):
     record marks becomes the birth surname and the written surname a married name. Returns the person id."""
     q = _q(cx)
     pe = q.execute("SELECT name_text, sex, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
-    region = json.loads(pe["region_json"] or "{}"); text = (pe["name_text"] or "").strip()
-    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", text)                       # written surname first, as an index does: "Hahnle, Chris M"
-    if m: text = f"{m.group(2)} {m.group(1)}"
-    parts = text.split()
-    given, surname = (" ".join(parts[:-1]), parts[-1]) if len(parts) > 1 else (text, None)
+    region = json.loads(pe["region_json"] or "{}")
+    given, surname, suffix = split_name(pe["name_text"])                 # the right way round whichever way the record wrote it; a suffix is not a surname
+    text = " ".join(x for x in (given, surname, suffix) if x)
     pid = ulid()
     q.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tree_id, pe["sex"], text, ts, ts))
     if region.get("maiden") and surname and region["maiden"] != surname:

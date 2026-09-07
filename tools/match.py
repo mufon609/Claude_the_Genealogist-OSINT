@@ -37,7 +37,7 @@ skipped, so re-running adds nothing.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, ulid
-from catalog import COUNTRY, Catalog, date_verdict, key, place_verdict, same_page, year
+from catalog import COUNTRY, SUFFIX, Catalog, date_verdict, key, place_verdict, same_page, year
 
 MATCHER = ("rule", "matcher", "0.1.0")
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -80,6 +80,7 @@ def split_persona_name(name_text):
     if m: text = f"{m.group(2)} {m.group(1)}"
     parts = [p for p in text.replace(",", " ").split() if key(p)]
     while parts and key(parts[0]) in PREFIX: parts.pop(0)
+    while len(parts) > 1 and parts[-1].strip(".").lower() in SUFFIX: parts.pop()     # Jr, Sr, III are not a surname
     return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:] if len(key(p)) > 1])   # an initial is not a surname
 
 def compare(cat, persona, cand, chosen):

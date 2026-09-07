@@ -15,6 +15,22 @@ US_NAMES = {"united states","usa","united states of america","us","british colon
 
 def year(s): return int(s[:4]) if s and s[:4].isdigit() else None
 
+SUFFIX = {"jr", "sr", "ii", "iii", "iv", "esq"}
+
+def split_name(text):
+    """(given names, surname, suffix) from a name as written: "Frederick Micheal Ahearn Jr" is given "Frederick Micheal",
+    surname "Ahearn", suffix "Jr"; "Ahearn, Frederick M" (surname first, as an index writes it) the same way round. None for a
+    part that is not there."""
+    t = re.sub(r"[\u201c\u201d\"']", " ", text or "").strip()
+    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", t)
+    if m: t = f"{m.group(2)} {m.group(1)}"
+    parts = [p for p in t.replace(",", " ").split() if p]
+    suffix = None
+    if len(parts) > 1 and parts[-1].strip(".").lower() in SUFFIX: suffix = parts.pop()
+    if not parts: return None, None, suffix
+    if len(parts) == 1: return parts[0], None, suffix
+    return " ".join(parts[:-1]), parts[-1], suffix
+
 def holders():
     """Free holders of the Ancestry collections the tree cites (data/holders.csv): {dbid: [row, ...]}, first row preferred."""
     out = {}
@@ -84,14 +100,14 @@ def holder_search(h, fields):
     (f.collectionId, q.givenName, q.residenceDate.from/to and q.residencePlace from the citation's year and census place, q.surname).
     The National Archives 1950 site: its name search. None when the fields carry no name."""
     v = lambda k: ((fields or {}).get(k) or {}).get("value")
-    name = (v("name") or "").split()
-    if not name: return None
+    given, surname, _ = split_name(v("name"))
+    if not (given or surname): return None
     if h["HolderKind"] == "fs_collection":
-        q = [("f.collectionId", h["HolderKey"]), ("q.givenName", " ".join(name[:-1]) or name[0])]
+        q = [("f.collectionId", h["HolderKey"]), ("q.givenName", given or "")]
         if v("year") and v("census place"): q += [("q.residenceDate.from", v("year")), ("q.residenceDate.to", v("year")), ("q.residencePlace", v("census place"))]
-        q.append(("q.surname", name[-1]))
+        if surname: q.append(("q.surname", surname))
         return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
-    if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(name))], quote_via=urllib.parse.quote)
+    if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(x for x in (given, surname) if x))], quote_via=urllib.parse.quote)
     return None
 
 def findagrave_search_url(fields):
@@ -122,7 +138,8 @@ def familysearch_search_url(fields):
     if v("death_year"): q += [("q.deathLikeDate.from", str(int(v("death_year")) - tol)), ("q.deathLikeDate.to", str(int(v("death_year")) + tol))]
     if v("state"): q.append(("q.anyPlace", str(v("state")).title()))
     sp = (v("spouses") or [None])[0] if isinstance(v("spouses"), list) else v("spouse")
-    if sp and len(str(sp).split()) > 1: q += [("q.spouseGivenName", " ".join(str(sp).split()[:-1])), ("q.spouseSurname", str(sp).split()[-1])]
+    sg, ss, _ = split_name(str(sp)) if sp else (None, None, None)
+    if sg and ss: q += [("q.spouseGivenName", sg), ("q.spouseSurname", ss)]
     if v("year"):
         coll = next((h for rows in holders().values() for h in rows if h["HolderKind"] == "fs_collection" and h["HolderCollection"] == f"United States, Census, {v('year')}"), None)
         if coll: q.insert(0, ("f.collectionId", coll["HolderKey"]))

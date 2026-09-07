@@ -31,7 +31,8 @@ def requests(fields):
     the site's own search takes as a filter, so the answer is the household's schedule and its neighbours' rather than a state."""
     surname, given = value(fields, "surname"), value(fields, "given")
     if not surname and value(fields, "name"):
-        parts = str(value(fields, "name")).split(); surname, given = parts[-1], " ".join(parts[:-1]) or None
+        from catalog import split_name
+        given, surname, _ = split_name(str(value(fields, "name")))
     if not surname: return []
     county, state = place_parts(value(fields, "place") or value(fields, "census place"))
     if not state and value(fields, "state"): state = ABBR.get(str(value(fields, "state")).lower())
