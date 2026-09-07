@@ -10,8 +10,9 @@ is never created without the owner. Anything less certain than the rule below is
 
 The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7): a record of a kind that identifies a person fully, from a source
 nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with the accepted name, at least two
-accepted facts agree (birth date, death date, a burial or death place, a stated relationship to someone already matched on
-the record), each resting on a trusted source or on the owner's own word, and nothing compared disagrees. A Find a Grave
+accepted facts agree (birth date, death date, a burial or death place, a stated relationship to someone the record names who
+fits a relative the tree already links), each resting on a trusted source or on the owner's own word, and nothing compared
+disagrees; a date agreeing to the day, and a relationship the tree holds on trusted evidence, each count double. A Find a Grave
 page (T4) is never taken by the rule and never counts as the ground for one.
 The rule acts on the owner's word, is recorded as such on the proposal and in the audit log, and the owner can reject what
 it accepted: the link and every assertion it wrote turn rejected.
@@ -79,9 +80,12 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
         if f["fact_type"] in SKIP or f["kind"] not in ("event", "attribute"): continue
         if f["kind"] == "event":
             fy = (f["date_start"] or f["date_end"] or "")[:4]           # an event corresponds by type and year; an undated fact only to an undated event
+            tol = 2 if f["date_qualifier"] in ("calculated", "about", "estimated") and fy else 0   # a year worked out from an age lands on the event within two years
+            ey = lambda e: (e["date_start"] or e["date_end"] or "")[:4]
             events = [e for e in q.execute("""SELECT e.id, e.date_start, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                                               WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"]))
-                      if (e["date_start"] or e["date_end"] or "")[:4] == fy]
+                                              WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"]))
+                      if ey(e) == fy or (tol and ey(e).isdigit() and abs(int(ey(e)) - int(fy)) <= tol)]
+            if not fy and f["fact_type"] == "Residence": events = []   # a residence with no date is its own stay, never another record's
         else:                                                            # an attribute corresponds by type and value
             events = q.execute("""SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id
                                    WHERE ep.person_id=? AND e.event_type=? AND coalesce(e.description,'')=coalesce(?,'')""", (person_id, f["fact_type"], f["value_text"])).fetchall()
@@ -256,6 +260,12 @@ def rule_accepts(cx, tree_id, prop):
     if not persona: return False, "persona not found"
     chosen = {r["persona_id"]: candidate(cat, r["person_id"]) for r in q.execute("""SELECT pp.persona_id, pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                     JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=?""", (pay["extraction_id"], tree_id))}
+    fam = cat.family(pid)
+    relatives = [candidate(cat, rid) for g in ("parents", "spouses", "children") for rid, _ in fam[g]]
+    for other in personas_of(cx, pay["extraction_id"]):           # a persona the record relates to this one fits a relative the tree already links: it stands for that relative here
+        if other["id"] == persona["id"] or other["id"] in chosen: continue
+        fit = next((c for c in relatives if compare(cat, other, c, {})[0]), None)
+        if fit: chosen[other["id"]] = fit
     cand = candidate(cat, pid); fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
     if disagree: return False, "disagrees: " + "; ".join(disagree)
     if not any(a.startswith("given name agrees") for a in agree) or not any(a.startswith("surname agrees") for a in agree): return False, "the name does not agree in full"
@@ -263,9 +273,10 @@ def rule_accepts(cx, tree_id, prop):
     if not trusted_evidence(cx, tree_id, "person", [pid]): return False, "the accepted name rests only on sources anyone can edit"
     ev = cat.events(pid); points = []
     ok = lambda t: trusted_evidence(cx, tree_id, "event", [e["id"] for e in ev if e["type"] == t])
+    full = lambda t: len(((persona.get(t) or {}).get("start") or "")) == 10 and "year only" not in next((a for a in agree if a.startswith(f"{t} date agrees")), "")
     for a in agree:
-        if a.startswith("birth date agrees") and ok("Birth"): points.append("birth date")
-        if a.startswith("death date agrees") and ok("Death"): points.append("death date")
+        if a.startswith("birth date agrees") and ok("Birth"): points += ["birth date to the day", "and the day"] if full("birth") else ["birth date"]      # a date agreeing to the day counts double
+        if a.startswith("death date agrees") and ok("Death"): points += ["death date to the day", "and the day"] if full("death") else ["death date"]
         if a.startswith("death place agrees") and ok("Death"): points.append("death place")
         if a.startswith("burial place agrees") and ok("Burial"): points.append("burial place")
     fam = cat.family(pid)
@@ -278,9 +289,9 @@ def rule_accepts(cx, tree_id, prop):
         if not (oc and group and any(rid == oc["id"] for rid, _ in fam[group])): continue
         role = "child" if group == "parents" else "partner"
         rows = [dumps([fid, pid, role]) for fid, in q.execute("SELECT family_id FROM family_member WHERE person_id=? AND role=?", (pid, role))]
-        if trusted_evidence(cx, tree_id, "family_member", rows): points.append(f"{REL_OF[group]} {other_name}")
+        if trusted_evidence(cx, tree_id, "family_member", rows): points += [f"{REL_OF[group]} {other_name}", "and the day"]   # the relationship and the person it identifies: two points
     if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
-    return True, "agrees with your accepted name, " + " and ".join(points) + " from trusted sources; nothing disagrees"
+    return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees"
 
 def match_record(cx, eid, by):
     """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the

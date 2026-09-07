@@ -379,9 +379,11 @@ and nothing else.
 fully (§0's list: a census from 1850, a 1950 schedule, a certificate) and its
 source is one nobody can edit at will (T1–T3), the given name and surname agree
 with the accepted name, at least two accepted facts agree (birth date, death
-date, a death or burial place, a stated relationship to a person already
-matched on the record) and each rests on a trusted source or on the owner's
-own word, and nothing compared disagrees. Claims never count, and a fact that
+date, a death or burial place, a stated relationship to a person the record
+names who fits a relative the tree already links; a date agreeing to the day,
+and a relationship the tree holds on trusted evidence, each count double) and
+each rests on a trusted source or on the owner's own word,
+and nothing compared disagrees. Claims never count, and a fact that
 rests only on a page anyone can edit does not count either. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the
