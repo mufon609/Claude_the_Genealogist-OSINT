@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, ulid
 from catalog import dbid_of, same_page
 from log_search import log as log_search, rendered_query
-from extract import FS_MARK, parse_memorial, parse_record, parse_search
+from extract import FS_MARK, parse_memorial, parse_record, parse_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
 from conclude import match_record
 
@@ -34,6 +34,12 @@ def identity(text):
     if FS_MARK.search(text):
         p = parse_record(text)
         return ("ark", p["ark"], p) if p.get("ark") else (None, None, p)
+    if AAD_MARK.search(text) and re.search(r'<table[^>]*\bid="queryResults"', text):
+        p = parse_aad_search(text)
+        return ("aad_search", p["url"] or "aad search", p) if p["query"].get("name") else (None, None, p)
+    if AAD_MARK.search(text) and re.search(r"Display Full Records", text):
+        p = parse_aad_record(text)
+        return ("aad_record", p["rid"], p) if p.get("rid") else (None, None, p)
     return None, None, None
 
 def _int(s):
@@ -76,6 +82,21 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"E01"%'
                              ORDER BY sp.seq""", (tree_id,)).fetchall()
         return [r for r in rows if _same_search(r, (parsed or {}).get("query") or {})]
+    if kind in ("aad_search", "aad_record"):                      # the enlistment steps whose person the page's name and birth year fit
+        p = parsed or {}
+        if kind == "aad_search": name, yb = p.get("query", {}).get("name") or "", p.get("query", {}).get("birth_year")
+        else: f = dict(p.get("fields") or []); name, yb = " ".join(x for x in (f.get("NAME") or "").split("#") if x), f.get("YEAR OF BIRTH")
+        words = [name_key(x) for x in name.split() if name_key(x)]
+        if not words: return []
+        rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"F01"%' ORDER BY sp.seq""", (tree_id,)).fetchall()
+        out = []
+        for r in rows:
+            q = json.loads(r["query_json"] or "{}"); v = lambda k: (q.get(k) or {}).get("value")
+            given = name_key((v("given") or "").split()[0]) if v("given") else ""
+            if name_key(v("surname") or "") != words[0] or (given and len(words) > 1 and given != words[1]): continue
+            if yb and v("birth_year") and int(v("birth_year")) % 100 != int(yb) % 100: continue
+            out.append(r)
+        return out
     if kind == "memorial":
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch'
                              AND json_extract(sp.query_json,'$.url.value') LIKE ? ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, f"%/memorial/{value}/%")).fetchall()
@@ -136,15 +157,17 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     ts = now(); mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
     sources = json.loads(st["sources_json"] or "[]"); kind_row = _source_row(cx, sources[0] if sources else None); from_row = _source_row(cx, st["locator_source_id"]) or kind_row
     col = cx.execute("SELECT name FROM collection WHERE id=?", (st["collection_id"],)).fetchone() if st["collection_id"] else None
-    lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else (st["locator_kind"] or "file", st["locator_value"] or os.path.basename(src), col[0] if col else None))
-    holder = {"ark": "D03", "memorial": "E01", "search": "E01"}.get(kind)          # the page's own identity says where it came from, whatever holder the step pointed at
+    lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else ("url", value, "WWII Army Enlistment Records (AAD)") if kind == "aad_search"
+                            else ("url", (parsed or {}).get("url") or value, "WWII Army Enlistment Records (AAD)") if kind == "aad_record"
+                            else (st["locator_kind"] or "file", st["locator_value"] or os.path.basename(src), col[0] if col else None))
+    holder = {"ark": "D03", "memorial": "E01", "search": "E01", "aad_search": "F01", "aad_record": "F01"}.get(kind)   # the page's own identity says where it came from, whatever holder the step pointed at
     from_row = _source_row(cx, holder) or from_row
     if kind == "ark" and (parsed or {}).get("collection"):                           # the record's own collection at its holder
         own = re.sub(r"^[^•]*•\s*", "", parsed["collection"]).strip()
         row = cx.execute("SELECT id, name FROM collection WHERE source_id=? AND name=?", (holder, own)).fetchone()
         if not row: cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, holder, own, "other", own)); row = (cid, own)
         st = dict(st); st["collection_id"], cname = row[0], row[1]
-    if kind == "search":
+    if kind in ("search", "aad_search"):
         query = {k: {"value": v, "basis": "run"} for k, v in parsed["query"].items()}
         note = "; ".join(x for x in (f"{parsed['count'] if parsed['count'] is not None else len(parsed['rows'])} matching records, page {parsed['page']} of {parsed['pages']}, {len(parsed['rows'])} rows on this page", note) if x)
     with open(src, "rb") as fh: data = fh.read()
@@ -162,7 +185,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         eid, n = extract_html(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
         else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)
-        if kind == "search" and not out["proposals"] and logs:   # no candidate fits: the run found nothing for the person; the candidates stay on the artifact
+        if kind in ("search", "aad_search") and not out["proposals"] and logs:   # no candidate fits: the run found nothing for the person; the candidates stay on the artifact
             for _, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
     filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)   # the original leaves the inbox last, so a failure before this point leaves it there

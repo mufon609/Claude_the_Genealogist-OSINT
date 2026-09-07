@@ -55,6 +55,7 @@ that person's own facts. Many still *name* relatives (B1); some do not (B2).
 | Social Security application (SS-5) | B1: parents | birth, parents | 1936+ | C02 |
 | Naturalization | B1: spouse/children sometimes | birthplace, arrival, origin | 1798+ | G02 |
 | Draft card | B1: next of kin | exact birth date/place, residence, employer | WWI (men b. 1872–1900), WWII (men b. 1877–1927) | F02 |
+| WWII Army enlistment | B2 | birth year and state, residence county at enlistment, enlistment date and place, education, marital status | men b. 1895–1927 | F01 |
 | Military service record | B2 | service | only when a military event is already known | F01–F03 |
 
 Gravestones are covered by the Group A cemetery row (the same source names the

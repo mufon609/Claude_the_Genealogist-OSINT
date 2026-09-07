@@ -194,7 +194,7 @@ def search_card(cx, tree_id, sha, person_id=None):
     against the person as agrees, disagrees or absent, whether it fits, and the proposal on it if any."""
     cx.row_factory = sqlite3.Row
     a = cx.execute(f"SELECT ar.sha256, ar.locator_value, ar.retrieved_at, {tier_sql()} AS trust_tier, ar.source_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
-    e = cx.execute("""SELECT e.id, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name='findagrave-search' AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
+    e = cx.execute("""SELECT e.id, e.structured_json, x.name AS parser FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name IN ('findagrave-search','aad-search') AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
     if not a or not e: return None
     parsed = json.loads(e["structured_json"] or "{}"); cat = Catalog(cx, tree_id)
     runs = cx.execute("""SELECT l.executed_at, l.executed_by, l.outcome, l.notes, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? ORDER BY l.executed_at""", (tree_id, f'%"{sha}"%')).fetchall()
@@ -205,11 +205,11 @@ def search_card(cx, tree_id, sha, person_id=None):
     for pe in personas_of(cx, e["id"]):
         region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pe["id"],)).fetchone()["region_json"] or "{}")
         fits, agree, disagree, absent, near = compare(cat, pe, cand, {})
-        rows.append({"n": region.get("row"), "name": pe["name"], "birth": pe["birth"]["text"], "death": pe["death"]["text"], "burial": pe["burial place"], "memorial_id": region.get("memorial_id"), "url": region.get("url"),
+        rows.append({"n": region.get("row"), "name": pe["name"], "birth": pe["birth"]["text"], "death": pe["death"]["text"], "burial": pe["burial place"] or region.get("where"), "memorial_id": region.get("memorial_id") or region.get("rid"), "url": region.get("url"),
                      "fits": fits, "agrees": agree, "disagrees": disagree, "absent": absent, "proposal": persona_status(cx, tree_id, pe["id"])})
     q = parsed.get("query") or {}
     return {"kind": "search", "sha256": sha, "person": {"id": person_id, "name": pr["name"], "birth": cand["birth"]["text"], "birth_place": cand["birth"]["place"], "death": cand["death"]["text"], "death_place": cand["death"]["place"], "burial_place": cand["burial place"]},
-            "search": {"holder": "Find a Grave", "query": q, "url": a["locator_value"], "count": parsed.get("count"), "page": parsed.get("page"), "pages": parsed.get("pages"), "rows_on_page": len(rows)},
+            "search": {"holder": "Find a Grave" if e["parser"] == "findagrave-search" else "the WWII Army enlistment file (AAD)", "query": q, "url": a["locator_value"], "count": parsed.get("count"), "page": parsed.get("page"), "pages": parsed.get("pages"), "rows_on_page": len(rows)},
             "runs": [dict(r) for r in runs], "archived": os.path.relpath(object_path(sha), DATA_ROOT), "rows": rows,
             "proposed": [r for r in rows if r["fits"]], "tier": a["trust_tier"]}
 
@@ -217,17 +217,17 @@ def render_search(c):
     """The candidate card as plain text."""
     w = 10; L = lambda k, v: f"{k:<{w}}{v}"
     q = c["search"]["query"]; s = c["search"]; p = c["person"]
-    qs = " ".join(f"{k}={q[k]}" for k in ("firstname", "lastname", "birthyear", "birthyearfilter", "deathyear", "deathyearfilter", "linkedToName", "includeMaidenName", "location") if q.get(k))
-    out = [f"SEARCH {s['holder']} memorial search for {p['name']}: {qs}; {s['count'] if s['count'] is not None else s['rows_on_page']} matching records, page {s['page']} of {s['pages']}, {s['rows_on_page']} rows on this page",
+    qs = " ".join(f"{k}={q[k]}" for k in q if q.get(k) not in (None, "", "false"))
+    out = [f"SEARCH {s['holder']} search for {p['name']}: {qs}; {s['count'] if s['count'] is not None else s['rows_on_page']} matching records, page {s['page']} of {s['pages']}, {s['rows_on_page']} rows on this page",
            L("Person", f"{p['name']}  born {p['birth'] or '-'}" + (f", {p['birth_place']}" if p["birth_place"] else "") + f"; died {p['death'] or '-'}" + (f", {p['death_place']}" if p["death_place"] else "") + (f"; buried {p['burial_place']}" if p["burial_place"] else "")),
            L("Document", f"{c['archived']}  |  {s['url']}  (tier {c['tier']})")]
     for r in c["runs"]: out.append(L("Run", f"{r['executed_at']} {r['executed_by']} {r['outcome']}" + (f": {r['notes']}" if r["notes"] else "")))
     for i, r in enumerate(c["rows"]):
-        head = f"{r['n']:>2}. {r['name']}  {r['birth'] or '?'} – {r['death'] or '?'}  {r['burial'] or 'no cemetery'}  {r['url']}"
+        head = f"{r['n']:>2}. {r['name']}  {r['birth'] or '?'} – {r['death'] or '?'}  {r['burial'] or 'no place'}  {r['url']}"
         why = ("FITS: " + "; ".join(r["agrees"])) if r["fits"] else ("does not fit: " + "; ".join(r["disagrees"] or ["nothing beyond the name agrees"]) + ("; agrees: " + "; ".join(r["agrees"]) if r["agrees"] and r["disagrees"] else ""))
         if r["absent"]: why += "; absent: " + ", ".join(r["absent"])
         out.append(L("Rows" if i == 0 else "", head)); out.append(L("", "    " + why + (f"  [{r['proposal']}]" if r["proposal"] != "no proposal" else "")))
-    out.append(L("Proposed", ", ".join(f"row {r['n']} (memorial {r['memorial_id']}, {r['proposal']})" for r in c["proposed"]) if c["proposed"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
+    out.append(L("Proposed", ", ".join(f"row {r['n']} (record {r['memorial_id']}, {r['proposal']})" for r in c["proposed"]) if c["proposed"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
     return "\n".join(out)
 
 def search_cards_for(cx, tree_id, pid=None):

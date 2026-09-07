@@ -12,7 +12,7 @@ file logs no step twice. See tools/attach.py, which the person screen shares.
 """
 import argparse, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, resolve_tree
+from treelib import ROOT, inbox_dir, resolve_tree
 from attach import attach_inbox, line
 from catalog import Catalog
 
@@ -24,9 +24,12 @@ def main():
     tree_id, slug = resolve_tree(cx, a.tree)
     if a.about and not a.files: ap.error("--about names the person one file is about: name the file too")
     about = Catalog(cx, tree_id).find_person(a.about) if a.about else None
-    cx.execute("BEGIN")
-    try: results = attach_inbox(cx, tree_id, slug, a.by, a.files or None, about=about); cx.commit()
-    except Exception: cx.rollback(); raise
+    names = a.files or sorted(f for f in os.listdir(inbox_dir()) if os.path.isfile(os.path.join(inbox_dir(), f)) and not f.startswith("."))
+    results = []
+    for name in names:                                            # one file, one transaction: a failure leaves that file in the inbox and the others attached
+        cx.execute("BEGIN")
+        try: results += attach_inbox(cx, tree_id, slug, a.by, [name], about=about); cx.commit()
+        except Exception as e: cx.rollback(); results.append({"file": name, "identity": None, "steps": [], "left": f"failed: {type(e).__name__}: {e}"})
     for r in results: print(line(r))
     if not results: print("inbox empty")
 

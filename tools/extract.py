@@ -99,7 +99,8 @@ from conclude import assert_facts, link_family
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.2.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
-              "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"), None: ("rule", "extract", "0.1.0")}
+              "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
+              "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), None: ("rule", "extract", "0.1.0")}
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
@@ -316,9 +317,53 @@ def parse(text):
     if re.search(r'<body[^>]*\bid="memorial-summary"', text): return "findagrave", parse_memorial(text)
     if re.search(r'<body[^>]*\bid="memorial-list"', text): return "findagrave_search", parse_search(text)
     if FS_MARK.search(text): return "familysearch", parse_record(text)
+    if AAD_MARK.search(text) and re.search(r'<table[^>]*\bid="queryResults"', text): return "aad_search", parse_aad_search(text)
+    if AAD_MARK.search(text) and re.search(r"Display Full Records", text): return "aad_record", parse_aad_record(text)
     page = parse_page(text)
     if page["fields"] or page["household"]: return "ancestry", page
     return None, {"reason": "no parser claims this page: not a Find a Grave memorial or search results page, not a FamilySearch record page, and no table pairs a label cell with a value cell"}
+
+AAD_MARK = re.compile(r"Access to Archival Databases \(AAD\)|<title>NARA - AAD")
+AAD_RECORD = "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&tf=F&bc=,sl,fd&rid="
+
+def aad_name(text):
+    """A name as the enlistment file writes it, DAVIDSON#ROBERT#C#######, the right way round: Robert C Davidson."""
+    parts = [p for p in (text or "").split("#") if p]
+    if not parts: return text or ""
+    return " ".join(w.capitalize() for w in (parts[1:] + parts[:1]))
+
+def parse_aad_search(text):
+    """A saved AAD partial-records page of the WWII Army enlistment file: {"kind": "aad_search", "query": {name, birth_year} as the
+    page says it was searched, "url", "count", "page", "pages", "rows": [{"n", "rid", "url", "name", "serial", "state", "county",
+    "enlisted_at", "enlisted_year", "source", "birth_year"}]}: one row per record the page lists, the record's own id from its link."""
+    saved = re.search(r"<!-- saved from (\S+) -->", text[:4000])
+    q = {}
+    for m in re.finditer(r'class="criteria-field">([^<]+)</span>\s*<span class="criteria-op">[^<]*</span>\s*<span class="criteria-value">([^<]*)</span>', text):
+        key = {"NAME": "name", "YEAR OF BIRTH": "birth_year", "RESIDENCE: STATE": "state", "RESIDENCE: COUNTY": "county"}.get(m.group(1).strip(), m.group(1).strip().lower())
+        q[key] = html.unescape(m.group(2)).strip()
+    count = re.search(r"You found\s*(?:<[^>]+>\s*)*([\d,]+)\s*(?:<[^>]+>\s*)*partial records", text); count = int(count.group(1).replace(",", "")) if count else None
+    tbl = re.search(r'<table[^>]*\bid="queryResults".*?</table>', text, re.S); rows = []
+    heads = [re.sub(r"<[^>]+>", "", h).strip() for h in re.findall(r"<th[^>]*>(.*?)</th>", tbl.group(0) if tbl else "", re.S)]
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", tbl.group(0) if tbl else "", re.S):
+        rid = re.search(r"[?&;]rid=(\d+)", tr); cells = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", tr, re.S)]
+        if not rid or len(cells) != len(heads): continue
+        f = dict(zip(heads, cells)); yb = f.get("YEAR OF BIRTH") or ""
+        rows.append({"n": len(rows) + 1, "rid": rid.group(1), "url": AAD_RECORD + rid.group(1), "name": aad_name(f.get("NAME")), "serial": f.get("ARMY SERIAL NUMBER"),
+                     "state": (f.get("RESIDENCE: STATE") or "").title() or None, "county": (f.get("RESIDENCE: COUNTY") or "").title() or None,
+                     "enlisted_at": (f.get("PLACE OF ENLISTMENT") or "").title() or None, "enlisted_year": ("19" + f["DATE OF ENLISTMENT YEAR"]) if re.fullmatch(r"\d\d", f.get("DATE OF ENLISTMENT YEAR") or "") else None,
+                     "source": f.get("SOURCE OF ARMY PERSONNEL"), "birth_year": ("19" + yb) if re.fullmatch(r"\d\d", yb) and int(yb) < 40 else ("18" + yb if re.fullmatch(r"\d\d", yb) else None)})
+    page = re.search(r"[?&]pg=(\d+)", saved.group(1) if saved else ""); pages = max([1] + [int(x) for x in re.findall(r"[?&;]pg=(\d+)", text)])
+    return {"kind": "aad_search", "query": q, "url": html.unescape(saved.group(1)) if saved else None, "count": count, "page": int(page.group(1)) if page else 1, "pages": pages, "rows": rows}
+
+def parse_aad_record(text):
+    """A saved AAD full-record page: {"kind": "aad_record", "rid", "url", "fields": [[title, meaning]]}, the Meaning column being
+    the value decoded (a state name for its code), the Value column kept where there is no meaning."""
+    saved = re.search(r"<!-- saved from (\S+) -->", text[:4000]); rid = re.search(r"[?&;]rid=(\d+)", saved.group(1) if saved else text)
+    fields = []
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", text, re.S):
+        cells = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, re.S)]
+        if len(cells) == 3 and cells[0] not in ("Field Title", "") and cells[0].isupper(): fields.append([cells[0], cells[2] if cells[2] and cells[2] != cells[1] or not cells[1] else cells[1]])
+    return {"kind": "aad_record", "rid": rid.group(1) if rid else None, "url": AAD_RECORD + rid.group(1) if rid else (saved.group(1) if saved else None), "fields": fields}
 
 def parse_page(text):
     """{"title", "fields": [[label, value]], "household": [{"columns": [...], "rows": [[...]]}], "tables": raw} from the HTML."""
@@ -489,6 +534,38 @@ def write_search(w, parsed):
             w.fact(pid, "Burial", f"Plot: {r['plot']}" if r["plot"] else None, None, ", ".join(x for x in (r["cemetery"], r["place"]) if x) or None, ["cemetery", "addr-cemet"])
         w.fact(pid, "Identification Number", r["memorial_id"], labels=["Find a Grave Memorial ID"])
 
+def write_aad_search(w, parsed):
+    """One persona per row of an enlistment search: the name the right way round, the birth year, a Residence in the county and
+    state in the enlistment year, the serial number as its identity, the record's own page in region_json."""
+    for r in parsed["rows"]:
+        pid = w.persona(r["name"] or "(unnamed)", "M", "result", r["n"], {"label": "result", "rid": r["rid"], "url": r["url"], "row": r["n"],
+                                                                        "where": ", ".join(x for x in (r["county"], r["state"]) if x) + (f" ({r['enlisted_year']})" if r["enlisted_year"] else "")})
+        w.fact(pid, "Name", r["name"], labels=["NAME"])
+        if r["birth_year"]: w.fact(pid, "Birth", None, r["birth_year"], None, ["YEAR OF BIRTH"])
+        if r["county"] or r["state"]: w.fact(pid, "Residence", None, r["enlisted_year"], ", ".join(x for x in (r["county"], r["state"], "United States") if x), ["RESIDENCE: COUNTY", "RESIDENCE: STATE"])
+        if r["serial"]: w.fact(pid, "Identification Number", r["serial"], labels=["ARMY SERIAL NUMBER"])
+
+MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+
+def write_aad_record(w, parsed):
+    """The enlistee: the name the right way round; the birth year; the nativity as the birth place; a Residence in the county and
+    state on the enlistment date; the enlistment itself as Military Service at the place of enlistment; marital status, education
+    and civilian occupation as attributes as written; the serial number as the identity."""
+    f = dict(parsed["fields"]); name = aad_name(f.get("NAME")) or "(unnamed)"
+    pid = w.persona(name, "M", "enlistee", 1, {"label": "enlistee", "rid": parsed.get("rid"), "url": parsed.get("url")})
+    w.fact(pid, "Name", name, labels=["NAME"])
+    yb = f.get("YEAR OF BIRTH") or ""
+    if re.fullmatch(r"\d\d", yb): w.fact(pid, "Birth", None, ("19" if int(yb) < 40 else "18") + yb, (f.get("NATIVITY") or "").title() or None, ["YEAR OF BIRTH", "NATIVITY"])
+    d, m, y = f.get("DATE OF ENLISTMENT DAY"), f.get("DATE OF ENLISTMENT MONTH"), f.get("DATE OF ENLISTMENT YEAR")
+    when = " ".join(x for x in (d.lstrip("0") if d and d.isdigit() else None, MONTHS[int(m) - 1] if m and m.isdigit() and 1 <= int(m) <= 12 else None, "19" + y if y and re.fullmatch(r"\d\d", y) else None) if x) or None
+    place = ", ".join(x for x in ((f.get("RESIDENCE: COUNTY") or "").title() or None, (f.get("RESIDENCE: STATE") or "").title() or None, "United States") if x)
+    if f.get("RESIDENCE: STATE"): w.fact(pid, "Residence", None, when, place, ["RESIDENCE: COUNTY", "RESIDENCE: STATE", "DATE OF ENLISTMENT"])
+    if f.get("PLACE OF ENLISTMENT"): w.fact(pid, "Military Service", "enlisted, " + (f.get("SOURCE OF ARMY PERSONNEL") or "").strip(), when, (f["PLACE OF ENLISTMENT"] or "").title(), ["PLACE OF ENLISTMENT", "DATE OF ENLISTMENT"])
+    for title, ftype in (("MARITAL STATUS", "Marital Status"), ("EDUCATION", "Education"), ("CIVILIAN OCCUPATION", "Occupation"), ("RACE AND CITIZENSHIP", "Race")):
+        v = f.get(title)
+        if v and not re.search(r"undefined code|^#+$", v, re.I): w.fact(pid, ftype, v, labels=[title])
+    if f.get("ARMY SERIAL NUMBER"): w.fact(pid, "Identification Number", f["ARMY SERIAL NUMBER"], labels=["ARMY SERIAL NUMBER"])
+
 def write_record(w, parsed):
     """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a relation to the subject."""
     fields = parsed["fields"]; f = dict(fields)
@@ -603,6 +680,8 @@ def extract(cx, sha, by):
     if kind == "ancestry": full_text += "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
     elif kind == "familysearch": full_text += "".join(f"\n{m['role']}: {m['name']} {m['sex']} {m['age']} {m['birthplace']}" for m in parsed["members"])
     elif kind == "findagrave": full_text += "".join(f"\n{m['label']}: {m['name']} {m.get('birth') or ''}-{m.get('death') or ''}" for m in parsed["members"])
+    elif kind == "aad_record": full_text = "\n".join(f"{l}: {v}" for l, v in parsed["fields"])
+    elif kind == "aad_search": full_text = "\n".join(f"{r['n']}: {r['name']} b. {r['birth_year'] or '?'} {r['county'] or ''} {r['state'] or ''} enlisted {r['enlisted_year'] or '?'}" for r in parsed["rows"])
     elif kind == "findagrave_search": full_text = "\n".join(f"{r['n']}: {r['name']} {r['birth'] or ''}-{r['death'] or ''} {r['cemetery'] or ''} {r['place'] or ''} memorial {r['memorial_id']}" for r in parsed["rows"])
     elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
     else: full_text = parsed["full_text"]
@@ -617,7 +696,8 @@ def extract(cx, sha, by):
     if kind == "familysearch" and parsed.get("ark"):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
-    {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr}.get(kind, write_personas)(w, parsed)
+    {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
+     "aad_search": write_aad_search, "aad_record": write_aad_record}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))

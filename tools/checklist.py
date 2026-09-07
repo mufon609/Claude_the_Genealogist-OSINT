@@ -43,7 +43,7 @@ MATCH = {"census": lambda y: rf"^{y} United States Federal Census", "state_censu
          "directory": r"Directories", "compiled": r"Histories|History Books|Genealog|Cyclopedia|Surname|Membership",
          "death_record": r"(?<!Security )Death (Certificate|Record|Index)", "birth_record": r"Birth (Certificate|Record|Index)",
          "social_security": r"Social Security", "naturalization": r"Naturalization", "draft_ww1": r"World War I ",
-         "draft_ww2": r"World War II Draft", "draft_civil": r"Civil War Draft", "military": r"Enlistment|Army|Navy|Veterans"}
+         "draft_ww2": r"World War II Draft", "draft_civil": r"Civil War Draft", "military": r"Army|Navy|Veterans", "enlistment": r"World War II Army Enlistment"}
 
 # ---------------------------------------------------------------------------------------
 def build(cat: Catalog, pid: str):
@@ -244,6 +244,7 @@ def build(cat: Catalog, pid: str):
     if sex == "M" and b:
         if 1872 <= b <= 1900: row("B", "WWI draft card", MATCH["draft_ww1"], ["F02"], "exact birth date/place, residence, next of kin", ("subject_record", fields()))
         if 1877 <= b <= 1927: row("B", "WWII draft card", MATCH["draft_ww2"], ["F02"], "exact birth date/place, residence, employer", ("subject_record", fields()))
+        if 1895 <= b <= 1927 and sex == "M": row("B", "WWII Army enlistment", MATCH["enlistment"], ["F01"], "birth year and state, residence county at enlistment, enlistment date and place, education, marital status", ("subject_record", fields()))
         if 1818 <= b <= 1847: row("B", "Civil War draft registration", MATCH["draft_civil"], ["F03", "F02"], "age, birthplace, occupation", ("subject_record", fields()))
     if any(e["type"] in ("Military Service", "Military Draft") for e in ev): row("B", "military service record", MATCH["military"], ["F01", "F02"], "service", ("subject_record", fields()))
     return {"person": {"id": pid, "name": p["name"], "sex": sex, "span": [b, d], "notes": notes}, "baseline": baseline, "foundation": foundation,

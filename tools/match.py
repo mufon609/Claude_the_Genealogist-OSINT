@@ -101,10 +101,15 @@ def compare(cat, persona, cand, chosen):
         if v == "absent": absent.append(f"{label} date"); continue
         words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (f": {note}" if note else "") + ")"
         (agree if v == "agrees" else disagree).append(words); dated = dated or v == "agrees"
-    for label in ("burial place", "death place"):
+    for label in ("birth place", "burial place", "death place"):
         v = place_verdict(persona[label], cand[label])
         if v == "absent": absent.append(label); continue
         (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]})"); dated = dated or v == "agrees"
+    if persona.get("residence place"):                        # where the record puts the person, against every place the tree knows them at
+        known = [p for p in cand.get("places") or [] if p]
+        hit = next((p for p in known if place_verdict(persona["residence place"], p) == "agrees"), None)
+        if hit: agree.append(f"residence place agrees (record {persona['residence place']}, tree {hit})"); dated = dated or True
+        else: absent.append(f"residence: {persona['residence place']} is not a place the tree knows them at")
     same = bool(persona.get("memorial")) and persona["memorial"] in (cand.get("memorials") or set())
     if same: agree.append(f"the same memorial {persona['memorial']} is already accepted as {cand['name']}")
     rel_ok = False
@@ -117,8 +122,10 @@ def compare(cat, persona, cand, chosen):
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
         rel_ok = rel_ok or holds
-    clean = not any(d.startswith(("sex", "birth date", "death date", "burial place", "death place")) for d in disagree)
-    fits = clean and (same or (given_ok and (((surname_ok or married) and dated) or rel_ok)))
+    clean = not any(d.startswith(("sex", "birth date", "death date", "birth place", "burial place", "death place")) for d in disagree)
+    strong = any(a.startswith(("death date", "birth place", "burial place", "death place", "residence place")) for a in agree) \
+             or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
+    fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
     near = not fits and given_ok and (surname_ok or married or same) and not any(d.startswith("sex") for d in disagree)   # the same name, something else disagrees: a card, never a rule decision
     return fits, agree, disagree, absent, near
 
@@ -134,7 +141,8 @@ def personas_of(cx, eid):
         region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pid,)).fetchone()[0] or "{}")
         m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
         out.append({"id": pid, "name": name, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
-                    "burial place": place("Burial"), "death place": place("Death"), "relations": rels, "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None})
+                    "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels,
+                    "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None})
     names = {p["id"]: p["name"] for p in out}
     for p in out:                                                # a spouse relation on the record: the other's surname, for a wife written under it
         sp = next((names[r[1]] for r in p["relations"] if r[0] == "spouse" and r[1] in names), None)
@@ -182,7 +190,8 @@ def candidate(cat, pid):
         r = cat.cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
         return {**_date(r), "place": e["place"]["text"] if e["place"] else None, "event": e["id"]}
     b, d, bu = first("Birth"), first("Death"), first("Burial")
-    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "burial place": bu["place"], "death place": d["place"], "memorials": memorials_of(cat.cx, pid),
+    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "birth place": b["place"], "burial place": bu["place"], "death place": d["place"], "memorials": memorials_of(cat.cx, pid),
+            "places": [e["place"]["text"] for e in ev if e.get("place") and e["place"]["text"]],
             "events": {"Birth": b["event"], "Death": d["event"], "Burial": bu["event"]}}      # the events compared, for the rule's ground
 
 def persons_for(cx, sha):

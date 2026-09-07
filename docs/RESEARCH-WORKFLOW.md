@@ -201,7 +201,17 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 | Mode | Sources | Behaviour |
 |---|---|---|
 | auto | Chronicling America (loc.gov), the 1950 census site; FamilySearch after Innovator approval, WikiTree, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
-| assisted | Find a Grave, FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
+| assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
+
+**The enlistment file.** The WWII Army enlistment step for a man born 1895
+to 1927 carries the National Archives' own fielded search prefilled (the name
+as the file writes it, the year of birth as two digits); the site answers a
+browser only, so the results page is saved there, comes in through `inbox/`
+and becomes the candidate card on the step, every row (name, birth year,
+residence county and state, enlistment year) audited against the person; the
+full record of a row that fits is saved the same way and read as a record:
+the birth year and nativity, the residence at enlistment, the enlistment as a
+military service event, education and marital status as written.
 
 **The page saves itself.** A cited page at an assisted source is saved from
 the owner's own browser in one call and never read through the model: open
@@ -369,8 +379,10 @@ candidate the record itself points at: a person already accepted under the
 memorial the persona links (the same page is the same identity), and a person
 of the tree with the persona's surname and a birth within three years of the
 persona's, who may stand in the tree with no family link yet. The comparison
-is on name, sex, birth and death dates, burial and death place and the
-relationships the record states; a census index's estimated birth year and a
+is on name, sex, birth and death dates, birth, burial and death place, the
+residence the record gives against every place the tree knows the person at,
+and the relationships the record states; a persona fits only on more than a
+name and a year (a place, a death, a full date or a stated relationship); a census index's estimated birth year and a
 household member's age become a calculated birth year the matcher allows two
 years on. A given name agrees through its common short forms (Willie for
 William, Charley for Charles) and across a one-letter slip in a longer name; a

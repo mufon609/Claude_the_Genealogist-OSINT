@@ -128,10 +128,23 @@ def familysearch_search_url(fields):
         if coll: q.insert(0, ("f.collectionId", coll["HolderKey"]))
     return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
 
+def aad_search_url(fields):
+    """The WWII Army enlistment file's fielded search at the National Archives (AAD), as the site's own form submits it: the
+    name as the file writes it (SURNAME GIVEN), the year of birth as its two digits, fifty rows a page. The site answers a
+    person's browser only, so the page is saved there and comes in through inbox/. None without a surname."""
+    v = lambda k: ((fields or {}).get(k) or {}).get("value")
+    if not v("surname"): return None
+    name = " ".join(x for x in (str(v("surname")).upper(), (str(v("given")).split()[0].upper() if v("given") else None)) if x)
+    q = [("dt", "893"), ("sc", "24994,24995,24996,24998,24997,24993,24981,24983"), ("cat", "WR26"), ("tf", "F"), ("bc", ",sl,fd"), ("q", ""),
+         ("nfo_24995", "V,24,1900"), ("op_24995", "0"), ("txt_24995", name)]
+    if v("birth_year"): q += [("nfo_24983", "V,2,1900"), ("op_24983", "0"), ("txt_24983", f"{int(v('birth_year')) % 100:02d}")]
+    q.append(("rpp", "50"))
+    return "https://aad.archives.gov/aad/display-partial-records.jsp?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
+
 def search_target(sources, fields):
     """Where an assisted search step is run by hand: {url, holder} for a source whose own search the tool can build from the
     step's fields (Find a Grave, E01; FamilySearch, D03), else nothing."""
-    for sid, build, holder in (("E01", findagrave_search_url, "Find a Grave"), ("D03", familysearch_search_url, "FamilySearch")):
+    for sid, build, holder in (("E01", findagrave_search_url, "Find a Grave"), ("F01", aad_search_url, "National Archives AAD"), ("D03", familysearch_search_url, "FamilySearch")):
         if sid in (sources or []):
             u = build(fields)
             if u: return {"url": u, "holder": holder}
@@ -159,7 +172,8 @@ def place_verdict(record, tree):
     if not record or not tree: return "absent"
     norm = lambda s: re.sub(r"\b(county|co\.?|township|twp\.?|magisterial district \d+|district \d+)\b", " ", COUNTRY.sub("usa", s.lower()))   # a jurisdiction word is not a place part
     tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]; rlow = key(norm(record))
-    below = [p for p in tparts if p != "usa"] or tparts
+    below = [p for p in tparts if p != "usa"]
+    if not below: return "absent"                                 # a tree place that names only the country says nothing to compare
     if all(key(p) in rlow for p in below[-2:]): return "agrees"
     rparts = [p.strip() for p in norm(record).split(",") if p.strip()]
     if rparts and key(rparts[0]) in key(norm(tree)): return "agrees"

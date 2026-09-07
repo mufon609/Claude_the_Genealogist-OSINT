@@ -8,7 +8,7 @@ Find a Grave forbids automation, so a memorial is saved one page at a time in th
 method (docs/RESEARCH-WORKFLOW.md §4), one tab per page. `list` prints every memorial a planned fetch step at Find a Grave
 points at, once, with the people whose steps it fulfils: the leads from held records first (a persona accepted as a person,
 whose memorial the record links), then the file's citations. That is the list a browser session works through. `collect`
-moves every saved memorial or FamilySearch record page from the browser's download folder into inbox/ and attaches each by its own identity
+moves every saved memorial, FamilySearch record page or AAD enlistment page from the browser's download folder into inbox/ and attaches each by its own identity
 (tools/attach.py): archived once, logged found on every step that cites it, extracted, matched, the rule run.
 """
 import argparse, json, os, re, shutil, sqlite3, subprocess, sys
@@ -40,7 +40,7 @@ def collect(cx, tree_id, slug, by):
     """Every findagrave-memorial-<id>.html in the download folder: moved to inbox/, then attached. Returns the attach results."""
     names = []
     for f in sorted(os.listdir(downloads_dir())):
-        if re.fullmatch(r"(findagrave-memorial-\d+|familysearch-[a-z0-9-]+-\d+-[A-Za-z0-9_:-]+)\.html", f):
+        if re.fullmatch(r"(findagrave-memorial-\d+|familysearch-[a-z0-9-]+-\d+-[A-Za-z0-9_:-]+|aad-enlistment-[A-Za-z0-9_-]+)\.html", f):
             shutil.move(os.path.join(downloads_dir(), f), os.path.join(inbox_dir(), f)); names.append(f)
     return names, (attach_inbox(cx, tree_id, slug, by, names) if names else [])
 

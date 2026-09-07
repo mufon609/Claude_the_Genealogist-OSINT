@@ -198,7 +198,7 @@ def artifact_view(cx, tree_id, sha, pid):
         proposals.append({"id": r["id"], "kind": r["kind"], "status": r["status"], "rationale": r["rationale"], "persona_id": json.loads(r["payload_json"])["persona_id"],
                           "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"], "card": c, "card_text": render_card(c) if c else None,
                           "by_rule": (r["decided_by"] or "").startswith("rule:"), "note": r["decision_note"]})
-    sc = search_card(cx, tree_id, sha, pid or None) if any(e["extractor"] == "rule:findagrave-search@0.1.0" for e in exts) else None   # a results page shows its candidate card
+    sc = search_card(cx, tree_id, sha, pid or None) if any(e["extractor"] in ("rule:findagrave-search@0.1.0", "rule:aad-search@0.1.0") for e in exts) else None   # a results page shows its candidate card
     return {"sha256": sha, "mime": a["mime"], "tier": a["trust_tier"], "filename": a["original_filename"], "collection": col["name"] if col else None,
             "url": fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else a["locator_value"] if a["locator_kind"] == "url" else None,
             "candidates": sc, "candidates_text": render_search(sc) if sc else None, "extractions": exts, "proposals": proposals,
