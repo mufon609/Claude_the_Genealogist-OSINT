@@ -31,7 +31,7 @@ from catalog import date_verdict, place_verdict
 from match import REL_OF, candidate, compare, match, personas_of
 from plan import plan_person
 
-SKIP = ("Unknown", "Age", "Identification Number")      # about the record or the page, not facts of the person
+SKIP = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
 AUTOMATED = ("findagrave-memorial", "familysearch-record", "nara-1950-schedule")   # parsers of documents that identify a person fully (§0)
 TRUSTED = ("T1", "T2", "T3")                            # a record the rule may act on or count: not one anyone can edit (T4)
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under.

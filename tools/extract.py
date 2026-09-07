@@ -373,12 +373,12 @@ class Writer:
         self.cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
                         (ulid(), a, b, kind, as_written, dumps({"label": label}))); self.n["relations"] += 1
 
-def field_facts(fields):
+def field_facts(fields, default_etype=None):
     """Group label/value rows into facts: {fact_type: {"date": (value, label), "place": (value, label), "values": [(value, label)]}}, and the
     relatives named in fields as [(label word, name)]. A date and a place of one type are one fact; a second date or place of the same
     type gets its own slot keyed by label. "Event Date" and "Event Place" take the type named by "Event Type" (Census is a Residence)."""
     by_type, named = {}, {}
-    etype = next((EVENT_TYPES.get(v.lower().strip()) for l, v in fields if l.lower().strip() == "event type"), None)
+    etype = next((EVENT_TYPES.get(v.lower().strip()) for l, v in fields if l.lower().strip() == "event type"), None) or default_etype   # a page with no Event Type row takes its collection's kind
     for label, value in fields:
         if not value or SKIP.search(label): continue
         key = label.lower().strip()
@@ -488,7 +488,8 @@ def write_search(w, parsed):
 def write_record(w, parsed):
     """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a relation to the subject."""
     fields = parsed["fields"]; f = dict(fields)
-    by_type, named = field_facts(fields)
+    kind_word = (parsed.get("collection") or "").split("•")[0].strip().lower()                     # "Census • United States, Census, 1950"
+    by_type, named = field_facts(fields, EVENT_TYPES.get(kind_word))
     name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
     role = (f.get("Relationship to Head of Household") or "subject").lower()
     subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark")})
