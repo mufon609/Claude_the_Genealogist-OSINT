@@ -108,7 +108,7 @@ screen. Then the loop repeats.
   never a checklist: the loop starts from the people the owner accepted and
   walks outward on records. Plans exist for everyone; search steps exist only
   for reviewed people.
-- Not built yet: connectors beyond those five (FamilySearch waits on the API
+- Not built yet: connectors beyond those six (FamilySearch waits on the API
   application), exporters.
 
 ## What to look for
