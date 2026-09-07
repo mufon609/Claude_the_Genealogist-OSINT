@@ -14,10 +14,14 @@ This is a family-tree application with AI in the core, built data-first. The
 person who owns it wants a simple, solid product with no bells and whistles.
 The four ideas that everything else must serve:
 
-1. **Nothing is trusted until a person accepts it.** Every fact must trace to an
-   archived copy of the record it came from. Every human decision has exactly
-   three states: Accepted, Rejected, Undecided. There are no numeric confidence
-   scores, no percentages, no score badges anywhere a person decides.
+1. **Nothing is trusted until a person accepts it, and a person accepts
+   documents.** Every fact must trace to an archived copy of the record it came
+   from. The decision is whether a record is about this person; yes accepts
+   everything it states, a discrepancy becomes a conflict question. The owner's
+   standing rule accepts a document that agrees with facts already accepted,
+   recorded as acting on their word and reversible. Every human decision has
+   exactly three states: Accepted, Rejected, Undecided. There are no numeric
+   confidence scores, no percentages, no score badges anywhere a person decides.
 2. **The user researches people, not data types.** There is one screen: a
    person. On it, in order: what we know and have accepted (the foundation),
    which records should exist and which we hold (the checklist, household
@@ -52,8 +56,8 @@ screen. Then the loop repeats.
   (persons, families, events, assertions, tree-scoped, mutable with three-state
   status). Read `docs/DATA-ARCHITECTURE.md`.
 - Catalog: portable SQL, SQLite now, schema in `schema/catalog.sql` (0.7.1),
-  invariants in `schema/README.md`. No deployed catalog exists, so schema
-  changes rebuild from the tools rather than migrate.
+  invariants in `schema/README.md`. The live catalog holds the owner's
+  decisions, so a schema change migrates them rather than rebuilding.
 - Tools, all stdlib Python, in `tools/`: `initdb`, `tree`, `ingest_gedcom`
   (Ancestry GEDCOM 5.5.1 export → artifact, personas, persons, Undecided
   assertions), `resolve_places` (Nominatim with hierarchy verification;
@@ -78,8 +82,10 @@ screen. Then the loop repeats.
   decisions write assertion status; plan generation; logging a run; attaching a
   downloaded file from `inbox/`, which archives it, parses and matches a record
   page on arrival, and shows the proposals for the person to decide; a persona
-  match or new person accepted writes Undecided assertions and closes the
-  questions it answered.
+  match or new person accepted writes Accepted assertions for everything the
+  record states, raises a conflict where it differs from the tree, and closes
+  the questions it answered; the standing rule takes the matches it is certain
+  of and says so on the card.
 - Design docs: `docs/RESEARCH-WORKFLOW.md` (the loop and the search ladder),
   `docs/RESEARCH-CHECKLIST.md` (checklist, gaps, foundation controls, the
   screen), `docs/SOURCE-PROFILE.md` (what the seed tree holds, agent split),
@@ -88,11 +94,10 @@ screen. Then the loop repeats.
   is in `BACKLOG.md`. Accepted decisions are marked as such in the docs.
 - Seed data: one Ancestry export of 117 people (Pennsylvania Schwenkfelder and
   Mennonite lines, Massachusetts, Kentucky, Tennessee, New York; Silesian,
-  Saxon, Dutch and Irish origins). Nothing has been reviewed yet; all 1,354
-  imported assertions are Undecided. Plans have been generated for everyone:
-  195 open fact-level questions and 912 fetch steps, 472 re-targeted to a free
-  holder and 440 blocked for want of one; no search step, because search steps
-  come after a baseline is reviewed.
+  Saxon, Dutch and Irish origins). Its claims arrive Undecided and are a guide,
+  never a checklist: the loop starts from the people the owner accepted and
+  walks outward on records. Plans exist for everyone; search steps exist only
+  for reviewed people.
 - Not built yet: connectors beyond those two (FamilySearch waits on the API
   application), exporters, backups.
 

@@ -226,7 +226,7 @@ person is decidable under the same three states: the seven key facts first,
 then every other event or attribute the person has (burial, residences,
 occupation, an inscription), each with its evidence; a fact a held record
 states that the tree had no event for appears once a match is accepted, created
-from the record's fact with its Undecided assertion. Deciding a fact sets every assertion that supports it and writes an
+from the record's fact with its Accepted assertion. Deciding a fact sets every assertion that supports it and writes an
 audit row. Accept sets Accepted only on the assertions whose evidence is
 visible: the tree owner's uncited claim and citations whose record is held;
 a citation to a record not yet fetched stays Undecided until the fetch. When

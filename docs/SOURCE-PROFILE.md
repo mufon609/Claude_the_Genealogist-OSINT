@@ -1,7 +1,8 @@
 # What is in the tree, and what to borrow
 
-Measured on the Ahearn import: 117 persons, 43 families, 418 events, 1,354
-citations (all Undecided), 69 Ancestry collections. Nothing has been reviewed yet.
+Measured on the Ahearn import as a file: 117 persons, 43 families, 418 events,
+1,225 record citations, 69 Ancestry collections. The file's claims are a guide
+to where records are; they are never the work list.
 
 ## 1. Foundational facts: who has them, and how many are backed by a record
 
@@ -97,7 +98,7 @@ is in Silesian and Saxon records this tree has never touched.
 | From | Pattern | Why it fits our design |
 |---|---|---|
 | Ancestry person page | **Facts in the middle, Sources on the right, and a line drawn between each fact and the sources that support it** | it is exactly `event ← assertion ← record`; ours adds the three-state status on the line |
-| FamilySearch | **Source tagging**: attach a source, then tick which facts it supports; and the "reason this is correct" box when you change a conclusion | maps to assertion + decision note; makes Accepted a deliberate act |
+| FamilySearch | **Attach a source to a person**, and the "reason this is correct" box when you change a conclusion | the document is the decision and its facts come with it; the box is the decision note. Not borrowed: ticking facts one by one |
 | WikiTree | **Unsourced / needs-research flags** on a profile and a plain-text research-notes section | our Undecided state made visible; the research log lives with the person |
 | MyHeritage | **Consistency checker**: a list of contradictions per tree (child born before parent, five marriage dates) | our `conflict` and `duplicate_person` questions, generated not typed |
 | Gramps | **Evidence model**: citation belongs to a source, source belongs to a repository; places are a hierarchy with dated names | already in the schema; keep it visible in the UI |
@@ -126,9 +127,10 @@ suggestions as evidence, and any score badge.
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-One person. Facts on the left with the three-state decision. Sources on the
-right, tiered, each linked to the facts it supports. Questions underneath,
-each with the next concrete step. Nothing else on the first screen.
+One person. Facts on the left showing the status their documents gave them.
+Sources on the right, tiered, each linked to the facts it supports; the source
+is what is decided. Questions underneath, each with the next concrete step.
+Nothing else on the first screen.
 
 This is the same screen as `docs/RESEARCH-CHECKLIST.md` §6, which is the
 authoritative description: the facts-and-sources block is its *foundation*
@@ -141,7 +143,7 @@ its own access path, its own record shape, and its own way of naming relatives.
 
 | Agent / skill | Sources (registry IDs) | Produces | Ladder rungs |
 |---|---|---|---|
-| **Baseline reviewer** (human, with an assistant that lays facts beside sources) | the person's existing citations | Accepted/Rejected on every key fact | before anything |
+| **Owner** (deciding documents; the standing rule deciding the certain ones) | the held records | a record Accepted or Rejected as the person's, its facts with it | before anything |
 | **Footprint** | the catalog itself | for a question: ranked records already attached to relatives; duplicate check | 0 |
 | **Census** | D01–D04 | households, ages, birthplaces, co-residents → candidate parents/spouses | 1, 3 |
 | **Vital & church** | C01–C11, I01–I09 | parents' names, maiden names, exact dates; Schwenkfelder/Mennonite/Dutch/Irish registers | 1, 2 |

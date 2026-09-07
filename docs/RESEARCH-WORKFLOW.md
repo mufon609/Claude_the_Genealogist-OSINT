@@ -71,13 +71,16 @@ An imported tree is a set of **claims**, not knowledge. The Ahearn import has 23
 facts with no citation at all and 1,122 citations that point at records we do
 not hold. None of that is a baseline yet.
 
-- A human reviews each person and sets each key fact to **Accepted**,
-  **Rejected**, or leaves it **Undecided**. Key facts: name, sex, birth, death,
-  parents, spouses, children. A person is *baseline-complete* when no key fact
-  is Undecided. A person may accept a fact on their own knowledge (a vouch):
-  the fact then traces to the tree file as the archived claim, the acceptance
-  is the person's, it is Accepted like any other, and the record fetch still
-  runs.
+- A person accepts documents, not facts: the decision on a held record is
+  whether it is about this person, and every fact the record states comes with
+  it (§5–7). Key facts: name, sex, birth, death, parents, spouses, children;
+  each is **Accepted**, **Rejected** or **Undecided** according to the documents
+  behind it. A person is *baseline-complete* when no key fact is Undecided. A
+  person may accept a fact on their own knowledge (a vouch): the fact then
+  traces to the tree file as the archived claim, the acceptance is the
+  person's, it is Accepted like any other, and the record fetch still runs. The
+  standing rule (§0, §5–7) accepts on the person's behalf a document that
+  agrees with what they already accepted.
 - Only Accepted facts feed searches. An Undecided fact is a claim and is
   labelled as such in every query: every query field is `{value, basis}` with
   basis `accepted` or `claim`. A Rejected fact is left out, and a relative
@@ -100,9 +103,8 @@ Questions are always about a person. They are generated, not typed:
 | `conflict` | competing values | 5 marriage dates for David Heebner & Maria Kriebel |
 | `duplicate_person` | two persons with the same name and the same key fact | the two Thomas Ahearns, both born 2 Oct 1846 |
 | `unlinked_relative` | a person in the tree who may be the answer | a same-surname person in the same town with no link |
-| `missing_record` | a checklist row that is missing or cited-but-not-held (`docs/RESEARCH-CHECKLIST.md` §3) | Abram C. Brant: 1900 census household |
 
-42 of the 117 people are dead ends today. Ranking: home person's direct line
+42 of the 117 people in the imported file are dead ends. Ranking: home person's direct line
 first, then tractability (era and place with good record coverage in the
 registry), then how many other questions an answer would unlock. Until its subject is
 baseline-complete (no key fact Undecided) a question gets no search steps and
@@ -265,9 +267,9 @@ outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
 1880 census of Worcester Township for Brant, none found" is evidence and stays.
 
 A `missing_fact` or `unverified_claim` question is about the absence of a
-claim, so it closes as answered the moment an accepted persona match supplies
-the claim with its Undecided assertion. Whether the claim stands is the
-baseline review of that fact, tracked on the assertion, not on the question.
+claim, so it closes as answered the moment an accepted document supplies the
+claim; the document's assertion is Accepted with the document, and a value that
+differs from the tree's is a `conflict` question, not a silent change.
 
 ## 5–7. Extract, match, review
 
@@ -401,10 +403,11 @@ row is then held, and the assertion comes from extraction and review.
 
 ## Rules that hold throughout
 
-- There is no hint queue. The record citations and media references that came
-  with the Ancestry export are data (in the import's extraction JSON and on the
-  assertions) and surface only as Layer 0 footprint steps under the questions
-  of the people they support.
+- There is no hint feed on an unreviewed person. The record citations and
+  media references that came with the Ancestry export are data (in the import's
+  extraction JSON and on the assertions) and surface only as fetch steps, and
+  as Layer 0 footprint steps under the questions of the people they support.
+  Hints (§0) live on a reviewed person's screen.
 - The footprint is computed from accepted family links and citations, so it
   improves every time a review accepts something.
 - Nothing is searched for a person until that person's baseline is reviewed.

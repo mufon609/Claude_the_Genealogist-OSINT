@@ -27,8 +27,10 @@ Rules that keep the layers honest:
   (page, frame, line, bounding box) inside it.
 - Layer 2 is never edited. A correction is a new object plus a note.
 - AI output enters layer 3 as an *extraction* and layer 4 as a *proposal*. A
-  human accepts a proposal to make it a conclusion. Both carry the model name,
-  version, and prompt hash.
+  human accepts a proposal to make it a conclusion, or the human's standing
+  rule does so on their behalf when the record agrees with what they already
+  accepted, recorded as the rule. Both carry the model name, version, and
+  prompt hash.
 
 This is the GEDCOM X persona/person split and the Genealogical Proof Standard
 made mechanical. It is also what lets the AI layer be re-run: a better HTR model
@@ -53,7 +55,11 @@ accuracy figure. Trust tiers (T1-T5) remain: they classify what *kind* of
 source a record is, not how confident anyone is in it.
 
 An imported tree arrives entirely Undecided. Nothing becomes Accepted without
-a person saying so. A person may accept a fact on their own knowledge: the
+a person saying so, and what a person says yes to is a document: a record
+accepted as theirs brings every fact it states, a value that differs from the
+tree's becomes a conflict question, and a standing rule may say yes for them
+to a record that agrees with facts they already accepted, recorded as acting
+on their word and reversible (`docs/RESEARCH-WORKFLOW.md` §5–7). A person may accept a fact on their own knowledge: the
 acceptance is recorded as their own Accepted assertion on the tree file's
 persona (the archived claim), marked vouched, and the fact's citations stay
 Undecided until their records are fetched. One link is definitional rather than decided: the persona an
@@ -116,9 +122,9 @@ outside the vendor.
 3. API responses (WikiTree, loc.gov, Open Archives) as raw JSON with the request
    URL and time. Cheap, and it makes every AI step reproducible.
 4. Web pages that cannot be fetched programmatically (Find a Grave): one
-   page at a time in the owner's own browser, the rendered document captured
-   through the page's DOM as HTML, with the citation's locator and the
-   memorial URL in the manifest.
+   page at a time in the owner's own browser, the page saving its own markup
+   as a file that goes to `inbox/` (`docs/RESEARCH-WORKFLOW.md` §4), with the
+   citation's locator and the memorial URL in the manifest.
 5. Family-held material: scans at 400–600 dpi TIFF as master, JPEG derivative.
 
 ### Integrity and backup
@@ -175,8 +181,8 @@ tree/
                  was ingested), exports/ (GEDCOM 7 / Gramps XML snapshots)
   data/          source registry CSV and other reference tables
   schema/        DDL, seeds, manifest JSON Schema
-  tools/         CLI tools (initdb, tree, ingest_gedcom, resolve_places, backfill_aliases,
-                 checklist, footprint, plan, log_search)
+  tools/         CLI tools and shared modules (`README.md` lists them; `schema/README.md`
+                 says what each does)
   docs/          this file and its siblings
   app/person/    the person screen: stdlib server + one page
 ```
