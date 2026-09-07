@@ -9,7 +9,7 @@ what the page says (tests/fixtures/README.md says where each page came from). On
 reason; exit status 1 on any failure. --show prints what each extraction wrote, for writing a check; --keep leaves the
 scratch directory in place and prints its path.
 """
-import argparse, os, sqlite3, subprocess, sys, tempfile, shutil
+import argparse, json, os, sqlite3, subprocess, sys, tempfile, shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIXTURES = os.path.join(ROOT, "tests", "fixtures")
@@ -120,8 +120,36 @@ def check_fg_search(ps, fail):
     fail(fact(p, "Birth", date="19 Feb 1915") and fact(p, "Death", date="5 Apr 2004"), "the row's dates")
     fail(fact(p, "Burial", value="Plot: sect S", place="Shelby-Oakland Cemetery, Shelby, Richland County, Ohio"), "the row's cemetery and plot as the burial")
 
-# file, mime, source id, locator kind, locator value, the extractor expected, the check
+def check_wikitree(ps, fail):
+    fail(ps and ps[0]["name"].startswith("David") and "Hubner" in ps[0]["name"], f"the profile's subject David Hubner first; got {[p['name'] for p in ps[:1]]}")
+    p = ps[0]
+    fail(fact(p, "Birth", date="27 AUG 1696", place="Harpersdorf"), "birth 27 AUG 1696 at Harpersdorf, as the profile writes it")
+    fail(fact(p, "Death", date="27 DEC 1784", place="Worcester Township, Montgomery"), "death 27 DEC 1784 at Worcester Township")
+    fail(fact(p, "Name", value="David Hubner") and fact(p, "Name", value="David Heebner"), "the name at birth and the current name both as Name facts")
+    spouse = next((q for q in ps if rel(q, "spouse", 1)), None)
+    fail(spouse and spouse["name"] == "Maria Kriebel" and "Kriebel-138" in spouse["region"], "the spouse Maria Kriebel with her own profile id")
+    fail(sum(1 for q in ps if rel(q, "child", 1)) == 3, "three children on the profile")
+    fail("Hubner-223" in p["region"], "the profile id as the persona's identity")
+    fail(len(ps) > 1 and any(r for q in ps[1:] for r in q["relations"]), "the relatives on the profile as personas with their relations")
+
+def check_locgov(ps, fail):
+    fail(len(ps) >= 1 and all("davidson" in p["name"].lower() for p in ps), f"a persona per place the searched surname stands in the page's OCR text; got {[p['name'] for p in ps][:6]}")
+    fail(all(fact(p, "Death", date="Bef 1918-05-10") for p in ps), "on an obituary step, a Death before the page's date")
+    fail(all('"segment":"/service/ndnp' in p["region"] for p in ps), "the page's segment as the persona's region")
+
+def check_ia_inside(ps, fail):
+    fail(len(ps) >= 1, f"a persona per place the searched surname stands in the chosen pages' text; got {len(ps)}")
+    fail(all("heebner" in p["name"].lower() for p in ps), f"every persona named around Heebner; got {[p['name'] for p in ps][:6]}")
+    fail(all(fact(p, "Residence", date="1879-01-01") for p in ps), "a Residence on the book's date for a compiled-genealogy hit")
+    fail(all('"segment":"genealogicalreco01krie"' in p["region"] for p in ps), "the item as the persona's segment")
+
+# file, mime, source id, locator kind, locator value, the extractor expected, the check, and for a connector's response what the
+# run's log knew that its manifest does not; a fixture with a .manifest.json sidecar takes mime, source, locator and notes from
+# it, so the reading is the one made on arrival
 FIXTURE_SET = [
+    ("wikitree-profile-Hubner-223.json", None, None, None, None, "wikitree-profile", check_wikitree),
+    ("ia-search-inside-genealogicalreco01krie-heebner.json", None, None, None, None, "ia-search-inside", check_ia_inside),
+    ("locgov-ocr-sn89058321-1918-05-10-p2.json", None, None, None, None, "loc-gov-ocr", check_locgov, {"step_type": "obituary"}),   # archived before the runner noted the step's kind: the run's log said obituary
     ("findagrave-memorial-78019650.html", "text/html", "E01", "memorial_id", "78019650", "findagrave-memorial", check_memorial),
     ("familysearch-census-1940-KQX1-VT9.html", "text/html", "D03", "apid", "1,2442::26440834", "familysearch-record", check_census_1940),
     ("familysearch-census-1900-M9HX-SWP.html", "text/html", "D03", "apid", "1,7602::5537739", "familysearch-record", check_census_1900),
@@ -152,15 +180,20 @@ def main():
     from extract import extract
     cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON")
     bad = len(bad_files)
-    for name, mime, source, lkind, lvalue, extractor, check in FIXTURE_SET:
+    for name, mime, source, lkind, lvalue, extractor, check, *extra in FIXTURE_SET:
         path = os.path.join(FIXTURES, name)
         if not os.path.isfile(path): print(f"FAIL {name}: fixture missing"); bad += 1; continue
+        notes = None
+        if os.path.isfile(path[:-5] + ".manifest.json"):                       # a connector's response: its manifest is the provenance
+            with open(path[:-5] + ".manifest.json", encoding="utf-8") as fh: man = json.load(fh)
+            mime, source, lkind, lvalue, notes = man["mime"], man["source_id"], man["locator"]["kind"], man["locator"]["value"], man.get("notes") or None
+            if extra and notes: notes = json.dumps({**json.loads(notes), **extra[0]})
         src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (source,)).fetchone() or (None, None, None)
         cost = next((c for c in ("free", "paid", "member") if (src[2] or "").strip().lower().startswith(c)), "unknown")   # the registry's cost text, as the attach reads it
         with open(path, "rb") as fh: data = fh.read()
         cx.execute("BEGIN")
         sha, _ = archive_object(cx, data, mime=mime, source_id=source, collection_id=None, locator_kind=lkind, locator_value=lvalue, retrieved_by=BY,
-                                terms=src[1], cost=cost, trust_tier=src[0], original_filename=name)
+                                terms=src[1], cost=cost, trust_tier=src[0], original_filename=name, notes=notes)
         eid, n = extract(cx, sha, BY); cx.commit()
         fails = []
         fail = lambda ok, why: None if ok else fails.append(why)

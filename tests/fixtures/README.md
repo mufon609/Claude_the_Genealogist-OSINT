@@ -19,3 +19,17 @@ as it is.
 Not here yet: a WikiTree profile with its relatives, the Internet Archive's search inside an item, a loc.gov page text, and
 an Ancestry index page. The first three come from a connector's live run; the archive holds no Ancestry index page (the two
 pages archived under Ancestry record ids are FamilySearch record pages), so that parser stays unverified.
+
+## From connector runs
+
+| File | Where it came from | Parser |
+|---|---|---|
+| `wikitree-profile-Hubner-223.json` + `.manifest.json` | WikiTree's getProfile for Hubner-223 (David Hübner/Heebner, 1696–1784) with parents, spouses, children and siblings, fetched by the WikiTree connector on a scratch data root on 7 September 2026, not the live catalog; the manifest is its provenance | `rule:wikitree-profile` |
+| `ia-search-inside-genealogicalreco01krie-heebner.json` + `.manifest.json` | The Internet Archive's search inside the item genealogicalreco01krie (Genealogical record of the descendants of the Schwenkfelders, 1879) for Heebner, with the pages the connector chose in the manifest's notes, from the same scratch run | `rule:ia-search-inside` |
+| `locgov-ocr-sn89058321-1918-05-10-p2.json` + `.manifest.json` | loc.gov's page text for image 2 of The Commercial (Union City, Tennessee), 10 May 1918, a hit of Ollie Duke Davidson's obituary step run live on the catalog on 7 September 2026; the harness adds the step's kind (obituary), which the runner now writes on every response and did not then | `rule:loc-gov-ocr` |
+
+A connector's response is read with the notes its manifest carries (the item, the pages chosen, what was searched for, the
+step's kind), as the extractor reads it on arrival.
+
+Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
+("Join Ancestry"), so no page could be saved and the parser stays unverified.

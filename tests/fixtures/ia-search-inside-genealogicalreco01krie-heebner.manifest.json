@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "7dc852d965c90aaa85670d6a84ed4050c853b91ac94e3b63e8a919bcf1059b56",
+  "bytes": 47193,
+  "mime": "application/json",
+  "source_id": "L02",
+  "collection": "Internet Archive books",
+  "locator": {
+    "kind": "url",
+    "value": "https://ia601605.us.archive.org/fulltext/inside.php?item_id=genealogicalreco01krie&doc=genealogicalreco01krie&path=%2F23%2Fitems%2Fgenealogicalreco01krie&q=Heebner"
+  },
+  "retrieved_at": "2026-09-07T14:24:23Z",
+  "retrieved_by": "agent:run_step",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://ia601605.us.archive.org/fulltext/inside.php?item_id=genealogicalreco01krie&doc=genealogicalreco01krie&path=%2F23%2Fitems%2Fgenealogicalreco01krie&q=Heebner",
+    "content_type": "application/json;charset=UTF-8"
+  },
+  "rights": {
+    "terms": "PD/ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T3",
+  "pages": 1,
+  "notes": "{\"collections\":[\"library_of_congress\",\"americana\"],\"date\":\"1879-01-01\",\"dir\":\"/23/items/genealogicalreco01krie\",\"doc\":\"genealogicalreco01krie\",\"given\":\"David St Johns\",\"hit\":\"Genealogical record of the descendants of the Schwenkfelders (1879): DESCENDANTS   OF   THE\\nSCHWENKFELDERS,\\nAKBIVED  IN  PENNSYLVANIA  IN  1733,  1734,  1736,  1737.\\n3\\nFROM   THE\",\"item\":\"genealogicalreco01krie\",\"locator\":{\"kind\":\"url\",\"value\":\"https://archive.org/details/genealogicalreco01krie\"},\"page\":384,\"pages\":[45,49,77],\"q\":\"\\\"David Heebner\\\"~3\",\"server\":\"ia601605.us.archive.org\",\"surname\":\"Heebner\",\"text\":[\"DESCENDANTS   OF   THE\\nSCHWENKFELDERS,\\nAKBIVED  IN  PENNSYLVANIA  IN  1733,  1734,  1736,  1737.\\n3\\nFROM   THE\",\"benefactors,  who  strongly  advised  emi- gration to  Pennsylvania.  Some,  however,  began  to  purchase homes\",\"be  withdrawn,  two  families  emigrated  to  Pennsylvania, arriving  at  Philadelphia  on  the  18th \",\"poorer  people  when they  should  arrive  in  Pennsylvania.  And  not  content  with  all that  they  had\",\"proceeded  to  Rotterdam,  and  there  embarked for  Pennsylvania  on  an  English  ship,  the  St.  Andrew, \"],\"title\":\"Genealogical record of the descendants of the Schwenkfelders\",\"year\":1879,\"zip\":\"genealogicalreco01krie_jp2.zip\"}"
+}

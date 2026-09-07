@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "eabbb2a9fda6fa0730199d88d844e9b2c8aa517ee1697916d8f5e1e2719af06d",
+  "bytes": 29562,
+  "mime": "application/json",
+  "source_id": "B04",
+  "collection": "WikiTree profiles",
+  "locator": {
+    "kind": "url",
+    "value": "https://api.wikitree.com/api.php?action=getProfile&key=Hubner-223&fields=Id%2CName%2CFirstName%2CMiddleName%2CLastNameAtBirth%2CLastNameCurrent%2CBirthDate%2CDeathDate%2CBirthLocation%2CDeathLocation%2CGender%2CFather%2CMother%2CPrivacy%2CParents%2CSpouses%2CChildren%2CSiblings%2CBio%2CTouched&resolveRedirect=1&format=json&appId=tree-genealogy-dev"
+  },
+  "retrieved_at": "2026-09-07T14:25:12Z",
+  "retrieved_by": "agent:run_step",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://api.wikitree.com/api.php?action=getProfile&key=Hubner-223&fields=Id%2CName%2CFirstName%2CMiddleName%2CLastNameAtBirth%2CLastNameCurrent%2CBirthDate%2CDeathDate%2CBirthLocation%2CDeathLocation%2CGender%2CFather%2CMother%2CPrivacy%2CParents%2CSpouses%2CChildren%2CSiblings%2CBio%2CTouched&resolveRedirect=1&format=json&appId=tree-genealogy-dev",
+    "content_type": "application/json; charset=utf-8"
+  },
+  "rights": {
+    "terms": "CC BY-SA style; appId param encouraged",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T4",
+  "pages": 1,
+  "notes": "{\"birth\":\"1696-08-27\",\"birth_place\":\"Harpersdorf, Kraftsdorf, Greiz, Thuringia, Germany\",\"death\":\"1784-12-27\",\"death_place\":\"Worcester Township, Montgomery, Pennsylvania, United States\",\"hit\":\"David Hubner (Hubner-223) 1696-08-27–1784-12-27 Harpersdorf, Kraftsdorf, Greiz, Thuringia, Germany\",\"id\":23160888,\"locator\":{\"kind\":\"url\",\"value\":\"https://www.wikitree.com/wiki/Hubner-223\"},\"profile\":\"Hubner-223\"}"
+}

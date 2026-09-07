@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "95d26631e0fd46668b9d59da1773d0219171e83ad3208d6c3d0146acdf479623",
+  "bytes": 19758,
+  "mime": "application/json",
+  "source_id": "H01",
+  "collection": "Chronicling America (loc.gov)",
+  "locator": {
+    "kind": "url",
+    "value": "https://tile.loc.gov/text-services/word-coordinates-service?format=alto_xml&segment=%2Fservice%2Fndnp%2Ftu%2Fbatch_tu_kathy_ver01%2Fdata%2Fsn89058321%2F00415621486%2F1918051001%2F0165.xml&q=davidson+ollie&relevant_snippet=1&full_text=1"
+  },
+  "retrieved_at": "2026-09-07T16:29:06Z",
+  "retrieved_by": "agent:tree-8a for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": "Mon, 07 Sep 2026 16:26:33 GMT",
+    "final_url": "https://tile.loc.gov/text-services/word-coordinates-service?format=alto_xml&segment=%2Fservice%2Fndnp%2Ftu%2Fbatch_tu_kathy_ver01%2Fdata%2Fsn89058321%2F00415621486%2F1918051001%2F0165.xml&q=davidson+ollie&relevant_snippet=1&full_text=1",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "Public domain",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T1",
+  "pages": 1,
+  "notes": "{\"city\":\"union city\",\"date\":\"1918-05-10\",\"hit\":\"Image 2 of The commercial (Union City, Tenn.), May 10, 1918\",\"lccn\":\"sn89058321\",\"locator\":{\"kind\":\"url\",\"value\":\"http://www.loc.gov/resource/sn89058321/1918-05-10/ed-1/?sp=2\"},\"page\":\"0000000002\",\"page_id\":\"sn89058321-1918-05-10-ed-1-0165\",\"query\":\"Davidson Ollie\",\"state\":\"tennessee\",\"title\":\"Image 2 of The commercial (Union City, Tenn.), May 10, 1918\"}"
+}

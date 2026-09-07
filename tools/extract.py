@@ -659,7 +659,17 @@ def context_for(cx, sha):
     ctx = {"notes": json.loads(notes) if notes.startswith("{") else {}, "step_type": None, "query": {}}
     row = cx.execute("SELECT sp.query_type, l.query_json FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? ORDER BY l.executed_at DESC LIMIT 1", (f'%"{sha}"%',)).fetchone()
     if row: ctx["step_type"], ctx["query"] = row[0], {k: (v.get("value") if isinstance(v, dict) else v) for k, v in json.loads(row[1] or "{}").items()}
+    else: ctx["step_type"] = ctx["notes"].get("step_type")          # a response read on its own: the runner noted the step's kind on it
     return ctx
+
+def _asked(notes):
+    """What a response was searched for, from the runner's notes on the artifact, when no log row carries the query (the
+    response read on its own, as the harness reads a fixture): surname and given as the Archive connector notes them, or the
+    one query string the loc.gov connector notes, surname first."""
+    q = {k: notes[k] for k in ("surname", "given") if notes.get(k)}
+    if not q and isinstance(notes.get("query"), str) and notes["query"].split():
+        words = notes["query"].split(); q = {"surname": words[0], **({"given": " ".join(words[1:])} if len(words) > 1 else {})}
+    return q
 
 def parse_json(data, ctx):
     """A connector response's kind and parsed form: a 1950 census schedule from the National Archives site (results with
@@ -672,14 +682,14 @@ def parse_json(data, ctx):
         return "nara1950", {"kind": "nara1950", "schedule": res[0], "matched": ctx["notes"].get("matched") or [], "fields": []}
     if isinstance(d, dict) and d and all(isinstance(v, dict) and "full_text" in v for v in d.values()):
         seg, body = next(iter(d.items()))
-        return "locgov", {"kind": "locgov", "segment": seg, "full_text": body["full_text"] or "", "page": ctx["notes"], "step_type": ctx["step_type"], "query": ctx["query"], "fields": []}
+        return "locgov", {"kind": "locgov", "segment": seg, "full_text": body["full_text"] or "", "page": ctx["notes"], "step_type": ctx["step_type"], "query": ctx["query"] or _asked(ctx["notes"]), "fields": []}
     if isinstance(d, list) and d and isinstance(d[0], dict) and isinstance(d[0].get("profile"), dict) and d[0]["profile"].get("Name"):   # a WikiTree profile with its relatives
         return "wikitree", {"kind": "wikitree", "profile": d[0]["profile"], "fields": []}
     if isinstance(d, dict) and "ia" in d and "matches" in d and "q" in d:      # the Archive's search inside one item: matches with their text and page
         n = ctx["notes"]; pages = n.get("pages") or []           # the pages the runner chose and fetched images of (connectors/ia.py)
         text = "\n".join(re.sub(r"</?IA_FTS_MATCH>", "", m.get("text") or "") for m in d["matches"] or [] if any(p.get("page") in pages for p in m.get("par") or []))
         page = {"date": n.get("date") or (str(n["year"]) if n.get("year") else None), "title": n.get("title"), "item": n.get("item"), "pages": pages}
-        return "ia_inside", {"kind": "ia_inside", "segment": d["ia"], "full_text": text, "page": page, "step_type": ctx["step_type"], "query": ctx["query"], "fields": []}
+        return "ia_inside", {"kind": "ia_inside", "segment": d["ia"], "full_text": text, "page": page, "step_type": ctx["step_type"], "query": ctx["query"] or _asked(ctx["notes"]), "fields": []}
     return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text, not the Archive's search inside an item"}
 
 def write_schedule(w, parsed):

@@ -19,7 +19,7 @@ fetch (an item's metadata, then the search inside it, then its pages: connector.
 --all runs every planned step a connector can take, in plan order, keeping each connector's pace across steps.
 --dry-run prints the requests and sends nothing.
 """
-import argparse, json, os, sqlite3, sys, time, urllib.error, urllib.request
+import argparse, http.client, json, os, sqlite3, sys, time, urllib.error, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
 from catalog import Catalog
@@ -116,11 +116,11 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         while todo:                                              # a fetched response may name more to fetch (connector.follow)
             f = todo.pop(0)
             try: d2, h2 = fetch(f["url"], f["kind"], conn)
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e: errors.append(f"{f['url']}: {e}"); continue
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{f['url']}: {e}"); continue
             if hasattr(conn, "follow"):                          # first, so what the response taught (the pages chosen) is in this artifact's notes
                 try: todo += conn.follow(f, d2, h)
                 except ValueError as e: errors.append(f"{f['url']}: {e}")
-            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], **({"page_number": f["page"]} if f.get("page") else {})}))
+            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], "step_type": step["query_type"], **({"page_number": f["page"]} if f.get("page") else {})}))   # the step's kind on the response itself, so it reads the same on its own
             if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
@@ -128,7 +128,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         url = rq["url"]
         while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
             try: data, http = fetch(url, rq["kind"], conn)
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e: errors.append(f"{url}: {e}"); break
+            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); break
             keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": query})
             if url == rq["url"]:
                 try: totals.append(conn.total(data))
