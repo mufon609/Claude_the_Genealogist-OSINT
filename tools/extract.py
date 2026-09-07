@@ -206,7 +206,7 @@ def parse_memorial(text):
     title = next((text_of(n) for n in walk(root) if n["tag"] == "title"), "")
     return {"kind": "findagrave", "title": title, "fields": fields, "memorial_id": memorial_id, "members": members, "source": source, "photo_captions": captions}
 
-FS_MARK = re.compile(r'data-testid="documentInformationCitation"[^\x00]{0,400}?https://www\.familysearch\.org/ark:/61903/1:1:')
+FS_MARK = re.compile(r'data-testid="documentInformationCitation"[^\x00]{0,400}?https://(?:www\.)?familysearch\.org/ark:/61903/1:1:')
 
 def rows_of(table):
     """The table's own rows (not a nested table's), each as its cells."""
@@ -244,7 +244,8 @@ def parse_record(text):
         if n["tag"] != "table" or id(n) in seen: continue
         seen.add(id(n)); rows = rows_of(n)
         if section.startswith("Document Information"): out["document"] += label_rows(n)
-        elif section.startswith("Cite This Record") and not out["fields"]: out["fields"] = label_rows(n)
+        elif not out["fields"] and (section.startswith("Cite This Record") or not section) and label_rows(n) and not (rows and any(len(r) == 5 for r in rows)):
+            out["fields"] = label_rows(n)                                    # the record's own fields: the first label/value table, before any section heading
         elif rows and any(len(r) == 5 for r in rows):                       # household: a member row, then a row holding its details table
             member = None
             for r in rows:
@@ -628,6 +629,7 @@ def carry_links(cx, old, eid, sha, by, ts):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("what", help="artifact sha256, or a path whose bytes are archived")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument("--about", help="the person the record is about when no step or link names them, on the owner's word")
     a = ap.parse_args()
     sha = a.what if re.fullmatch(r"[0-9a-f]{64}", a.what) else sha256_file(a.what)
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
@@ -635,7 +637,12 @@ def main():
     print("extraction", eid, dumps(n))
     if "failed" in n: return
     from conclude import match_record
-    cx.execute("BEGIN"); written, taken = match_record(cx, eid, a.by); cx.commit()          # the matcher runs on every extraction as it is written, then the rule
+    about = None
+    if a.about:
+        from catalog import Catalog
+        cx.row_factory = None; tid = cx.execute("SELECT tree_id FROM person WHERE id=? OR display_name=? LIMIT 1", (a.about, a.about)).fetchone()
+        about = [Catalog(cx, tid[0]).find_person(a.about)] if tid else None
+    cx.execute("BEGIN"); written, taken = match_record(cx, eid, a.by, about=about); cx.commit()          # the matcher runs on every extraction as it is written, then the rule
     print("proposals", len(written), "accepted by rule", len(taken))
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         print(f"  {name} [{role}{', ' + sex if sex else ''}]")

@@ -14,15 +14,17 @@ import argparse, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, resolve_tree
 from attach import attach_inbox, line
+from catalog import Catalog
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("files", nargs="*"); ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
-    ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown")); ap.add_argument("--about", help="the person a record with no step is about, on the owner's word")
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
     tree_id, slug = resolve_tree(cx, a.tree)
+    about = Catalog(cx, tree_id).find_person(a.about) if a.about else None
     cx.execute("BEGIN")
-    try: results = attach_inbox(cx, tree_id, slug, a.by, a.files or None); cx.commit()
+    try: results = attach_inbox(cx, tree_id, slug, a.by, a.files or None, about=about); cx.commit()
     except Exception: cx.rollback(); raise
     for r in results: print(line(r))
     if not results: print("inbox empty")

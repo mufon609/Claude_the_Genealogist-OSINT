@@ -124,11 +124,11 @@ def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 def date_verdict(rec, tree):
     """A record date against the tree's, each {"start", "text", "qualifier"}: (verdict, note). Both full dates: compared as dates,
     a different day in the same year disagrees. Otherwise the years: a bare year against a full date agrees on the year only and
-    the note says which side gives only a year; a record date marked about, estimated or calculated agrees within two years."""
+    the note says which side gives only a year; a date marked about, estimated or calculated on either side agrees within two years."""
     rs, ts = (rec or {}).get("start"), (tree or {}).get("start")
     if not rs or not ts: return "absent", None
     if len(rs) == 10 and len(ts) == 10: return ("agrees", None) if rs == ts else ("disagrees", "same year, different day" if rs[:4] == ts[:4] else None)
-    tol = 2 if (rec or {}).get("qualifier") in ("about", "estimated", "calculated") else 0
+    tol = 2 if (rec or {}).get("qualifier") in ("about", "estimated", "calculated") or (tree or {}).get("qualifier") in ("about", "estimated", "calculated") else 0   # either side approximate: two years
     if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
     return "disagrees", None
 

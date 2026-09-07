@@ -123,7 +123,7 @@ def _source_row(cx, sid):
 def _cost(text):
     t = (text or "").strip().lower(); return next((c for c in ("free", "paid", "member") if t.startswith(c)), "unknown")
 
-def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None, value=None, parsed=None):
+def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None, value=None, parsed=None, about=None):
     """Archive one inbox file for these steps (provenance from the first: the record's kind gives the trust tier, where it was
     retrieved gives terms and cost; the locator is the step's, or the search URL for a results page), log a found run on every
     step not yet logged with it (a results page's log carries the query as run and the number of results), file the original
@@ -131,8 +131,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     to none, the candidates kept on the artifact. Returns what happened."""
     src = os.path.join(inbox_dir(), os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
-    if not steps: raise ValueError("no step to attach to")
-    st = steps[0]; ts = now(); mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
+    if not steps and not about: raise ValueError("no step to attach to")
+    st = steps[0] if steps else {"sources_json": None, "locator_source_id": None, "collection_id": None, "locator_kind": None, "locator_value": None}
+    ts = now(); mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
     sources = json.loads(st["sources_json"] or "[]"); kind_row = _source_row(cx, sources[0] if sources else None); from_row = _source_row(cx, st["locator_source_id"]) or kind_row
     col = cx.execute("SELECT name FROM collection WHERE id=?", (st["collection_id"],)).fetchone() if st["collection_id"] else None
     lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else (st["locator_kind"] or "file", st["locator_value"] or os.path.basename(src), col[0] if col else None))
@@ -160,7 +161,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         from extract import extract as extract_html
         eid, n = extract_html(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
-        else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by)
+        else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)
         if kind == "search" and not out["proposals"] and logs:   # no candidate fits: the run found nothing for the person; the candidates stay on the artifact
             for _, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
@@ -189,9 +190,11 @@ def attach_held(cx, tree_id, slug, name, about_id, by, note=None):
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
     return sha, new
 
-def attach_inbox(cx, tree_id, slug, by, names=None):
+def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
     """Every file in the inbox (or the named ones): identity from the file, the steps it fulfils, attach. A file with no
-    identity or no step stays in the inbox. Returns one result per file."""
+    identity or no step stays in the inbox, unless the owner says whom a record is about (about: person id): then a record
+    with an identity but no step is archived under its holder and put before the matcher for that person, as a search the
+    owner ran by hand. Returns one result per file."""
     names = names or sorted(f for f in os.listdir(inbox_dir()) if os.path.isfile(os.path.join(inbox_dir(), f)) and not f.startswith("."))
     results = []
     for name in names:
@@ -203,8 +206,8 @@ def attach_inbox(cx, tree_id, slug, by, names=None):
         r["identity"] = f"{kind} {value}"
         steps = steps_for(cx, tree_id, kind, value, parsed)
         r["steps"] = [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"]) for s in steps]
-        if not steps: r["left"] = "no cemetery search step in this tree has this search's fields" if kind == "search" else "no fetch step in this tree cites this record"; results.append(r); continue
-        r.update(attach(cx, tree_id, slug, name, steps, by, note=f"attached from the inbox by identity: {kind} {value}", kind=kind, value=value, parsed=parsed))
+        if not steps and not about: r["left"] = "no cemetery search step in this tree has this search's fields" if kind == "search" else "no fetch step in this tree cites this record"; results.append(r); continue
+        r.update(attach(cx, tree_id, slug, name, steps, by, note=f"attached from the inbox by identity: {kind} {value}" + (" on the owner's word about the person" if not steps else ""), kind=kind, value=value, parsed=parsed, about=about))
         results.append(r)
     return results
 
