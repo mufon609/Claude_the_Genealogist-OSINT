@@ -89,7 +89,7 @@ function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntr
  const link=x=>`<a href="/person/${x.id}">${h(x.name)}</a>`;
  const acc=KEYS.filter(k=>rv[k].status==='accepted').length;
  let html=`<h1>${h(p.name)} <span class="mut" style="font-weight:400">${p.span[0]??'?'}–${p.span[1]??'?'}</span></h1>`;
- const fl=(arr)=>arr.length?arr.map(x=>link(x)+(x.accepted===false?' <span class="pill">file\'s claim</span>':'')).join(', '):'—';
+ const fl=(arr)=>arr.length?arr.map(x=>link(x)+(x.married&&x.married.length?` <span class="mut">m. ${h(x.married.join(', '))}</span>`:'')+(x.divorced&&x.divorced.length?` <span title="divorced ${h(x.divorced.join(', '))}">💔</span> <span class="mut">divorced ${h(x.divorced.join(', ').replace(/^BET /,'between ').replace(/ AND /,' and '))}</span>`:'')+(x.accepted===false?' <span class="pill">file\'s claim</span>':'')).join(' · '):'—';
  html+=`<p class="mut">parents: ${fl(fam.parents)} · spouse: ${fl(fam.spouses)} · children: ${fl(fam.children)}${fam.siblings.length?' · siblings: '+fam.siblings.map(link).join(', '):''}</p>`;
  const bl=P.baseline;
  html+=`<p><b>${acc} of ${KEYS.length}</b> key facts accepted ${badges({...P.waiting,accepted:acc})}${bl.complete?'':` <span class="mut">— ${bl.undecided.join(', ')} still undecided; searches, the family footprint and leads open when every key fact is decided; fetching cited records is open now</span>`}${p.notes.map(n=>` <span class="pill">${h(n)}</span>`).join('')}</p>`;

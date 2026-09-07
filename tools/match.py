@@ -49,7 +49,7 @@ NICK = [{"william", "willie", "will", "bill", "billy"}, {"charles", "charley", "
         {"raymond", "ray"}, {"daniel", "dan", "danny"}, {"benjamin", "ben"}, {"samuel", "sam"}, {"elizabeth", "eliza", "lizzie", "betty", "beth", "bess", "bessie"}, {"margaret", "maggie", "peggy", "madge"},
         {"mary", "mamie", "polly", "mae", "may"}, {"catherine", "katherine", "kate", "katie", "kathryn"}, {"ann", "anna", "annie", "nancy"}, {"sarah", "sallie", "sally"}, {"jane", "jennie", "jenny"},
         {"lura", "lou", "laura"}, {"corinne", "carinne", "corrine"}, {"helen", "nellie", "ellen"}, {"susan", "susanna", "susannah", "sue", "susie"}, {"minerva", "minnie"}, {"matthew", "matt"},
-        {"patrick", "pat", "paddy"}, {"abraham", "abram", "abe"}, {"charlotte", "lottie"}, {"emily", "emma"}, {"martha", "mattie", "patsy"}, {"cassandra", "cassie"}, {"ollie", "oliver", "olive"}]
+        {"patrick", "pat", "paddy"}, {"abraham", "abram", "abe"}, {"christian", "chris", "christ", "christopher"}, {"adeline", "addie"}, {"charlotte", "lottie"}, {"emily", "emma"}, {"martha", "mattie", "patsy"}, {"cassandra", "cassie"}, {"ollie", "oliver", "olive"}]
 def same_given(a, b):
     """Two given-name keys are the same name: equal, one an initial of the other, a nickname of the other, or one letter apart when
     both are five letters or longer (a transcriber's slip)."""

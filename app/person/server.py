@@ -311,6 +311,9 @@ def person_view(cx, tree_id, pid):
                         AND (json_extract(p.payload_json,'$.person_id')=? OR (p.kind='new_person' AND json_extract(p.payload_json,'$.subject_person_id')=?)) ORDER BY p.decided_at DESC""", (tree_id, pid, pid))]
     fam = cat.family(pid)
     r["family"] = {k: [{"id": i, "name": n, "accepted": fact_status(cx, pid, k) == "accepted" if k in ("parents", "spouses", "children") else None} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
+    for sp in r["family"]["spouses"]:                                    # what the couple's family says: married when, divorced when
+        f = next((x for x in fam["families"] if x["spouse_id"] == sp["id"]), None)
+        if f: sp["married"] = [m["year"] for m in f["marriages"] if m["year"]]; sp["divorced"] = [d["date"] or str(d["year"]) for d in f["divorces"]]
     held = cat.held_apids(); cited = cat.cited()
     for row in r["checklist"]["A"] + r["checklist"]["B"]:
         for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["held"] = c["apid"] in held; c["sha256"] = held.get(c["apid"])   # a held row opens its record through the artifact

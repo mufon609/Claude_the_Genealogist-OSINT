@@ -227,6 +227,17 @@ identity, and runs the extractor and matcher once; the screen's own attach
 does the same for the step the person chose plus every other step the record
 fulfils. A file whose identity matches no step stays in the inbox.
 
+**A link on the owner's word.** When a record stops short of naming both
+parties in full (a marriage index that gives the spouse's surname by four
+letters), the owner can place a person in a family on their own word about
+that record (`conclude.link_on_word`): the membership carries one Accepted
+assertion on the artifact, vouched, with the owner's reason, and a marriage
+the record dates becomes the couple's Marriage event on the same evidence. A
+divorce is a `Divorce` event on the couple's family (`conclude.divorce`), dated
+as the records allow, with an Accepted assertion per piece of evidence the
+owner names; the couple stays a family so the children keep both parents, and
+the screen shows the pair with a broken heart and the date between them.
+
 **A family-held original.** A photograph or scan of something the family
 holds (an heirloom's label, a letter, a Bible page) has no record identity and
 no step. It is archived under the family-held source (M05, tier T3: a family

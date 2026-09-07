@@ -180,7 +180,9 @@ The flow is linear and stays on one person:
 ```
 
 Layout rules that keep it clean:
-- One person per screen. Family members are links, not panels.
+- One person per screen. Family members are links, not panels; a spouse link
+  carries the marriage year and, for a divorced couple, a broken heart with
+  the divorce date, so the pair reads as linked whatever the surnames say.
 - Three regions only: foundation (top), checklist with tasks (middle), results
   for the task you clicked (bottom or side). No tabs on the first screen.
 - Group A rows are visually first and marked as household records; Group B is

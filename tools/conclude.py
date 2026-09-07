@@ -104,10 +104,13 @@ def create_person(cx, tree_id, persona_id, ts):
     record marks becomes the birth surname and the written surname a married name. Returns the person id."""
     q = _q(cx)
     pe = q.execute("SELECT name_text, sex, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
-    region = json.loads(pe["region_json"] or "{}"); parts = (pe["name_text"] or "").split()
-    given, surname = (" ".join(parts[:-1]), parts[-1]) if len(parts) > 1 else (pe["name_text"], None)
+    region = json.loads(pe["region_json"] or "{}"); text = (pe["name_text"] or "").strip()
+    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", text)                       # written surname first, as an index does: "Hahnle, Chris M"
+    if m: text = f"{m.group(2)} {m.group(1)}"
+    parts = text.split()
+    given, surname = (" ".join(parts[:-1]), parts[-1]) if len(parts) > 1 else (text, None)
     pid = ulid()
-    q.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tree_id, pe["sex"], pe["name_text"], ts, ts))
+    q.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tree_id, pe["sex"], text, ts, ts))
     if region.get("maiden") and surname and region["maiden"] != surname:
         g = given.replace(region["maiden"], "").strip()
         q.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (ulid(), pid, g, region["maiden"], f"{region['maiden']}, {g}".lower()))
@@ -303,3 +306,53 @@ def match_record(cx, eid, by, about=None):
         ok, why = rule_accepts(cx, p["tree_id"], p)
         if ok: decide(cx, p["tree_id"], prop_id, "accepted", f"rule:agrees-with-accepted for {by}", note=why); taken.append((prop_id, name, why))
     return written, taken
+
+def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
+    """The owner places a person in a family by their own word, on a record that stops short of naming both parties in full
+    (an index that gives the spouse's surname by four letters): the membership is created in a family of the right shape and
+    carries one Accepted assertion on the artifact, vouched, with the owner's reason; a marriage the record dates becomes the
+    family's Marriage event with the same assertion. kind is 'spouse' (other is the spouse) or 'child' (other is a parent)."""
+    q = _q(cx); ts = now()
+    one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
+    if kind == "spouse":
+        fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
+                     WHERE fm.person_id=? AND fm.role='partner'""", (other, pid))
+        if fid is None: fid = new_family(cx, tree_id, other, ts)
+        rows = [(fid, pid, "partner"), (fid, other, "partner")]
+    else:
+        fid = one("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", (other,)) or new_family(cx, tree_id, other, ts)
+        rows = [(fid, pid, "child")]
+    for f, who, role in rows:
+        if not q.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (f, who, role)).fetchone():
+            q.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (f, who, role))
+        q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                     VALUES (?,?,'family_member',?,?,?,'accepted',?,?,?)""", (ulid(), tree_id, dumps([f, who, role]), sha, "the owner's word on this record", by, ts, dumps({"vouched": True, "note": note})))
+    if marriage:
+        eid = ulid()
+        q.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at) VALUES (?,?,'Marriage',?,?,?,?,?,?,?)",
+                  (eid, tree_id, marriage.get("date_text"), marriage.get("date_start"), marriage.get("date_end"), marriage.get("qualifier"), "gregorian", ts, ts))
+        q.execute("INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'family')", (ulid(), eid, fid))
+        q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                     VALUES (?,?,'event',?,?,?,?,'accepted',?,?,?)""", (ulid(), tree_id, eid, marriage.get("persona_fact_id"), sha, marriage.get("citation") or "the record's marriage entry", by, ts, dumps({"vouched": True, "note": note})))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tree_id, ts, by, "accept", "family", fid, dumps({"link": kind, "person": pid, "other": other, "record": sha, "note": note, "marriage": bool(marriage)})))
+    return fid
+
+def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
+    """The couple's family gets a Divorce event, dated as the records allow ("BET 1950 AND 1959"), with one Accepted assertion per
+    piece of evidence the owner names: (artifact sha, persona_fact id or None, citation words). A divorced couple stays a family in
+    the tree, so the children keep both parents; the event is what the screen shows between the two lines."""
+    q = _q(cx); ts = now()
+    fid = next((f for f, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
+                                          WHERE fm.person_id=? AND fm.role='partner'""", (b, a))), None)
+    if fid is None: raise ValueError("no family joins these two")
+    from treelib import parse_gedcom_date
+    d = parse_gedcom_date(date_text) if date_text else {"date_start": None, "date_end": None, "date_qualifier": None}
+    eid = ulid()
+    q.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at) VALUES (?,?,'Divorce',?,?,?,?,?,?,?)",
+              (eid, tree_id, date_text, d["date_start"], d["date_end"], d["date_qualifier"], "gregorian", ts, ts))
+    q.execute("INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'family')", (ulid(), eid, fid))
+    for sha, pf, cite in evidence:
+        q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                     VALUES (?,?,'event',?,?,?,?,'accepted',?,?,?)""", (ulid(), tree_id, eid, pf, sha, cite, by, ts, dumps({"vouched": True, "note": note})))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tree_id, ts, by, "accept", "event", eid, dumps({"divorce": [a, b], "date": date_text, "note": note})))
+    return eid
