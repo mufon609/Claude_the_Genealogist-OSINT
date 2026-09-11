@@ -474,11 +474,13 @@ records; an obituary collection, a land or public records index is a hint) and
 its source is one nobody can edit at will (T1–T3), the given name and surname
 agree with the accepted name, at least two accepted facts agree (birth date,
 death date, a death or burial place, a stated relationship to a person the
-record names who fits a relative the tree already links; a date agreeing to
-the day on a trusted statement of the day, and a relationship the tree holds
-on trusted evidence, each count double) and each rests, on the very event or
-link compared, on a trusted source or on the owner's own word, and nothing
-compared disagrees. Claims never count, and a fact that
+record names who fits a relative the tree already links, the relative's own
+persona on that same record being already accepted as them counting as such
+a fit (accepted by the owner); a date agreeing to the day on a trusted
+statement of the day, and a relationship the tree holds on trusted evidence,
+each count double) and each rests, on the very event or link compared, on a
+trusted source or on the owner's own word, and nothing compared disagrees. A
+surname agreeing only one letter apart is a card, never the rule's. Claims never count, and a fact that
 rests only on a page anyone can edit does not count either. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the

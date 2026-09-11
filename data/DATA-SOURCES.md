@@ -90,7 +90,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 | Source | Programmatic access | Verdict |
 |---|---|---|
 | FamilySearch | REST, OAuth2, free, **closed to public** — Innovator Program application required | Apply early; it is the single largest free index. Sandbox on approval. |
-| Ancestry | **None.** Internal API rewritten early 2026, partners only. ToS bans scraping. Record pages and images need a membership this account lacks. | User-exported GEDCOM is the only lawful path in; cited records are fetched from free holders (`holders.csv`). |
+| Ancestry | **Skipped.** No API, ToS bans scraping, record pages need a membership. The project's point is the records Ancestry charges for, found free. | User-exported GEDCOM is the only path in; cited records are fetched from free holders (`holders.csv`). |
 | Find a Grave | **None.** Ancestry-owned; ToS bans automation. | Store memorial IDs; user-initiated fetch only. |
 | MyHeritage Family Graph | REST JSON, free, app-key approval | Read-only. Docs are old; confirm keys still issued. |
 | WikiTree | REST JSON, free, no auth for public profiles, an appId on every request | Connector `wikitree` (B04) runs the compiled-genealogy step: searchPerson by name with the birth or death year and a two-year spread, each match's profile fetched with its relatives; T4, so every match is a card and never the rule's ground. |

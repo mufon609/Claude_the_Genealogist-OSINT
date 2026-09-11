@@ -162,13 +162,17 @@ and archives an empty answer. Give each connector its coverage years (the
 registry's coverage column) and let the runner log a step at a source outside
 them as `none` without a request.
 
-### C12. Ancestry record pages behind the membership offer
+### C12. Every Ancestry-only collection the file cites, found at a free holder
 
-The owner's account meets a "Join Ancestry" page at every record page, so the
-Ancestry parser (`rule:ancestry-index`) is unverified and blocked steps whose
-only holder is Ancestry cannot be fetched by the assisted method. When the
-owner has a membership, or one record page can be saved another way, add the
-page under `tests/fixtures/` and verify the parser on it.
+The point of the project is the records Ancestry charges for, found free.
+Ancestry itself is skipped: no membership, no parser, no fetch. For every
+collection the file cites whose only holder is Ancestry (the blocked fetch
+steps: `log_search.py --list` shows them, `fetches.py list` does not), look
+for the same records at FamilySearch first (its catalog and collections, a
+free account), then at the state archive or another free holder, and add
+the row to `data/holders.csv` with the collection's own search URL shape, so
+the step becomes an assisted fetch or a search at the free holder. Where no
+free holder exists, say so on the registry row.
 
 ---
 
