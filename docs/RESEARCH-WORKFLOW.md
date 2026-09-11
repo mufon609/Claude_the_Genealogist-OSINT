@@ -290,6 +290,22 @@ sets the run to `none`. Nothing is fetched by the audit: a candidate the owner
 accepts is fetched by the one-call method and attached like any memorial. A
 second page of results is a second run of the step, never automatic.
 
+A FamilySearch search step (a missing row at a collection FamilySearch holds:
+a census year, a state's vital records) carries the site's record search
+prefilled the same way (`catalog.familysearch_search_url`), and its results
+page, saved in the browser, comes in the same way: its identity is the
+search's own fields read from the saved page's URL (`q.givenName`, `q.surname`,
+the birth range, the collection), `tools/attach_inbox.py` attaches it to the
+search step whose fields they are (the surname, the first given name, a birth
+year inside the page's range, the census year of the collection searched), the
+extractor makes one persona per row with the record's own ark as its identity,
+the row's events (a census as a residence on its date and place) and the
+relatives it names, and the matcher audits every row as it audits a memorial
+search; the record page of a row that fits is saved by the same method. When
+a step's sources include a holder with a connector as well (the 1950 site),
+the page saved by hand and the connector's own answer are runs of the same
+step, whichever came first.
+
 A source is `auto` only when its registry row names a built connector (the
 `Connector` column of `data/data-sources.csv`): `loc_gov` on H01 (Chronicling
 America through the loc.gov JSON API), `nara_1950` on D05 (the 1950 census

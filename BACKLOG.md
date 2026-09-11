@@ -120,17 +120,6 @@ comparison the alias table's variants for the person, so the proposal names
 the person the tree already has. Build it on the first fetched page where the
 matcher misses for this reason. Nothing here changes what a person decides.
 
-### C6. A reader for the FamilySearch results page
-
-The FamilySearch search step carries the site's record search prefilled, and
-the results page saved in the browser comes in through `inbox/` with no
-parser, so nothing becomes a candidate card. Read the saved results page as
-the Find a Grave and enlistment results pages are read (`tools/extract.py`,
-`tools/attach.py` identity and steps), one persona per row with the record's
-own ark as its identity, audited on the candidate card; a row that fits is
-fetched as the record pages already are. This is the largest reach gain that
-needs no API approval.
-
 ### C7. Hints on the person page
 
 A run that found pages naming the person on the name alone (a directory

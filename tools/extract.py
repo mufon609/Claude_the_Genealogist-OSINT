@@ -7,7 +7,10 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.2.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.1.0; an
+goes to rule:familysearch-record@0.1.0; a FamilySearch search results page (rows
+carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
+one persona per row with the ark as its identity, the row's events and the
+relatives it names; an
 Ancestry index page (a table whose rows pair a label cell with a value cell,
 the shape that parser reads; unverified on a real page) goes to
 rule:ancestry-index@0.1.0. A page no parser claims gets one extraction by
@@ -100,7 +103,7 @@ from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_fil
 from conclude import assert_facts, link_family
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.2.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.1.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               None: ("rule", "extract", "0.1.0")}
@@ -315,11 +318,63 @@ def parse_search(text):
     return {"kind": "findagrave_search", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "query": query, "url": url, "count": count,
             "pages": pages, "page": int(query.get("page") or 1), "rows": rows}
 
+FS_SEARCH_MARK = re.compile(r'<tr[^>]*\bdata-testid="/ark:/61903/1:1:')
+FS_EVENTS = {"census": "Residence", "residence": "Residence", "birth": "Birth", "christening": "Christening", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
+
+def parse_fs_search(text):
+    """A FamilySearch record search results page saved in the browser: {"kind": "familysearch_search", "query": the search's own
+    fields from the saved-from URL (q.givenName, q.surname, q.birthLikeDate.from/to, q.anyPlace, f.collectionId, …), "url", "count":
+    the results the page states, "page", "pages", "rows": [{"n", "ark", "url", "name", "role", "collection", "events": [{"type",
+    "date", "place"}], "relations": {"Parents": [names], "Spouses": …, "Children": …, "Siblings": …}}]}: one row per <tr> carrying
+    a record ark as its data-testid, the name from the row's link, the role word and collection under it, each event as its
+    label, date and place, each relationship label with the names after it."""
+    saved = re.search(r"<!-- saved from (\S+) -->", text[:4000]); url = html.unescape(saved.group(1)) if saved else None
+    query = {k: v for k, v in urllib.parse.parse_qsl(urllib.parse.urlsplit(url or "").query)} if url else {}
+    count = re.search(r"Results \((\d[\d,]*)\)", text); count = int(count.group(1).replace(",", "")) if count else None
+    rows = []
+    for m in re.finditer(r'<tr[^>]*\bdata-testid="(/ark:/61903/1:1:[^"]+)"[^>]*>(.*?)</tr>', text, re.S):
+        ark, body = m.group(1).lstrip("/"), m.group(2)
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", body, re.S)
+        if len(cells) < 3: continue
+        strip = lambda s: clean(re.sub(r"<[^>]+>", " ", s))
+        a = re.search(r'<a[^>]*href="(/ark:/61903/1:1:[^"?]+)[^"]*"[^>]*>(.*?)</a>', cells[1], re.S)
+        name = strip(a.group(2)) if a else None
+        under = re.search(r"</h2>|<div[^>]*>(.*?)</div>", cells[1], re.S)
+        role_coll = re.search(r"<strong>.*?</strong>\s*<br\s*/?>\s*<div[^>]*>(.*?)</div>", cells[1], re.S)
+        role, collection = (None, None)
+        if role_coll:
+            parts = [clean(x) for x in re.split(r"<br\s*/?>", role_coll.group(1)) if clean(re.sub(r"<[^>]+>", " ", x))]
+            role, collection = (parts[0].lower() if parts else None), (parts[1] if len(parts) > 1 else None)
+        events, relations = [], {}
+        for d in re.findall(r"<div[^>]*>\s*<strong>([^<]+)</strong>(.*?)</div>", cells[2], re.S):
+            label, rest = clean(d[0]), d[1]
+            key = label.lower()
+            if key in FS_EVENTS:
+                parts = re.split(r"<br[^>]*>", rest)                     # the date's spans before the break, the place after it
+                inline = [clean(s).strip() for s in re.findall(r"<span[^>]*>(.*?)</span>", parts[0], re.S)]
+                date = next((s for s in inline if s), None) or None
+                place = strip(parts[1]).strip() if len(parts) > 1 else None
+                if date and not re.search(r"\d", date): place, date = (place or date), None   # a census with no date: what stands there is a place
+                if place and place.lower() == "other places": place = None                       # the site's word for a place it does not show, not a place
+                events.append({"type": FS_EVENTS[key], "label": label, "date": date, "place": place or None})
+            else:
+                names = [n.strip() for n in strip(rest).split(",") if n.strip()]
+                if names: relations[label] = names
+        if name: name = re.sub(r"\s+undefined$", "", name).strip() or None                 # a stray word the site's script leaves in the saved markup
+        if collection and re.search(r"census", collection, re.I):                          # a census index's birth is estimated from an age: a calculated year
+            for e in events:
+                if e["type"] == "Birth" and e["date"] and re.fullmatch(r"\d{4}", e["date"]): e["date"] = "CAL " + e["date"]
+        rows.append({"n": len(rows) + 1, "ark": ark, "url": "https://www.familysearch.org/" + ark + "?lang=en", "name": name, "role": role, "collection": collection, "events": events, "relations": relations})
+    per = len(rows) or 20; offset = int(query.get("offset") or 0)
+    page = offset // per + 1; pages = max(1, -(-count // per)) if count else 1
+    return {"kind": "familysearch_search", "title": next((clean(t) for t in re.findall(r"<title>(.*?)</title>", text, re.S)), ""), "query": query, "url": url, "count": count, "page": page, "pages": pages, "rows": rows, "fields": []}
+
 def parse(text):
     """The page's kind and its parsed form, or (None, reason) when no parser claims the page."""
     if re.search(r'<body[^>]*\bid="memorial-summary"', text): return "findagrave", parse_memorial(text)
     if re.search(r'<body[^>]*\bid="memorial-list"', text): return "findagrave_search", parse_search(text)
     if FS_MARK.search(text): return "familysearch", parse_record(text)
+    if FS_SEARCH_MARK.search(text): return "familysearch_search", parse_fs_search(text)
     if AAD_MARK.search(text) and re.search(r'<table[^>]*\bid="queryResults"', text): return "aad_search", parse_aad_search(text)
     if AAD_MARK.search(text) and re.search(r"Display Full Records", text): return "aad_record", parse_aad_record(text)
     page = parse_page(text)
@@ -548,6 +603,19 @@ def write_search(w, parsed):
             w.fact(pid, "Burial", f"Plot: {r['plot']}" if r["plot"] else None, None, ", ".join(x for x in (r["cemetery"], r["place"]) if x) or None, ["cemetery", "addr-cemet"])
         w.fact(pid, "Identification Number", r["memorial_id"], labels=["Find a Grave Memorial ID"])
 
+def write_fs_search(w, parsed):
+    """One persona per result row of a FamilySearch record search: the name as written, the role word and collection, each event
+    the row lists (a census as a Residence on its date at its place, birth, death, marriage, burial as they are), the relatives
+    named under each relationship label as one fact per label, the record's own ark as the persona's identity (Identification
+    Number, and the record URL in region_json)."""
+    for r in parsed["rows"]:
+        pid = w.persona(r["name"] or "(unnamed)", None, "result", r["n"], {"label": "result", "ark": r["ark"], "url": r["url"], "row": r["n"], "role": r["role"], "collection": r["collection"]})
+        w.fact(pid, "Name", r["name"], labels=["name"])
+        for e in r["events"]:
+            if e["date"] or e["place"]: w.fact(pid, e["type"], None, e["date"], e["place"], [e["label"].lower()])
+        for label, names in (r["relations"] or {}).items(): w.fact(pid, "Unknown", f"{label}: {', '.join(names)}", labels=[label.lower()])
+        w.fact(pid, "Identification Number", r["ark"], labels=["ark"])
+
 def wt_date(s):
     """A WikiTree date (1810-06-25, 1863-00-00, 0000-00-00) in GEDCOM form, or None."""
     m = re.fullmatch(r"(\d{4})-(\d\d)-(\d\d)", s or "")
@@ -760,6 +828,7 @@ def extract(cx, sha, by):
     elif kind == "wikitree": full_text = "\n".join(f"{k}: {v}" for k, v in parsed["profile"].items() if isinstance(v, (str, int)) and v not in ("", None))
     elif kind == "aad_search": full_text = "\n".join(f"{r['n']}: {r['name']} b. {r['birth_year'] or '?'} {r['county'] or ''} {r['state'] or ''} enlisted {r['enlisted_year'] or '?'}" for r in parsed["rows"])
     elif kind == "findagrave_search": full_text = "\n".join(f"{r['n']}: {r['name']} {r['birth'] or ''}-{r['death'] or ''} {r['cemetery'] or ''} {r['place'] or ''} memorial {r['memorial_id']}" for r in parsed["rows"])
+    elif kind == "familysearch_search": full_text = "\n".join(f"{r['n']}: {r['name']} " + "; ".join(f"{e['label']} {e['date'] or ''} {e['place'] or ''}".strip() for e in r["events"]) + " " + "; ".join(f"{k} {', '.join(v)}" for k, v in (r["relations"] or {}).items()) + f" {r['ark']}" for r in parsed["rows"])
     elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
     else: full_text = parsed["full_text"]
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
@@ -773,7 +842,7 @@ def extract(cx, sha, by):
     if kind == "familysearch" and parsed.get("ark"):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
-    {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
+    {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "familysearch_search": write_fs_search, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
      "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",

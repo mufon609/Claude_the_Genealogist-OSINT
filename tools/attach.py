@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, ulid
 from catalog import dbid_of, holds, name_parts, person_named
 from log_search import log as log_search, rendered_query
-from extract import FS_MARK, parse_memorial, parse_record, parse_search, AAD_MARK, parse_aad_search, parse_aad_record
+from extract import FS_MARK, FS_SEARCH_MARK, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
 from conclude import match_record
 
@@ -35,6 +35,9 @@ def identity(text):
     if FS_MARK.search(text):
         p = parse_record(text)
         return ("ark", p["ark"], p) if p.get("ark") else (None, None, p)
+    if FS_SEARCH_MARK.search(text):                                  # a FamilySearch results page: its identity is the search's own fields
+        p = parse_fs_search(text)
+        return ("fs_search", p["url"], p) if p["query"].get("q.surname") and p["url"] else (None, None, p)
     if AAD_MARK.search(text) and re.search(r'<table[^>]*\bid="queryResults"', text):
         p = parse_aad_search(text)
         return ("aad_search", p["url"] or "aad search", p) if p["query"].get("name") else (None, None, p)
@@ -76,6 +79,21 @@ def _same_search(step, qy):
     if name_key(v("surname")) != name_key(qy.get("lastname")) or first(v("given")) != first(qy.get("firstname")): return False
     return all(not (v(fk) and qy.get(qk)) or str(v(fk)) == str(qy[qk]) for fk, qk in (("birth_year", "birthyear"), ("death_year", "deathyear")))
 
+def _same_fs_search(cx, step, qy):
+    """A search step with FamilySearch among its sources whose foundation fields, after the person's revisions, are the results
+    page's own query: the surname, the first given name, a birth year inside the page's birth range where both have one, and for
+    a census household step the collection searched being that year's census (data/holders.csv)."""
+    f = rendered_query(step["query_json"], step["revisions_json"]); v = lambda k: (f.get(k) or {}).get("value")
+    first = lambda s: name_key(str(s).split()[0]) if s and str(s).split() else ""
+    if name_key(v("surname")) != name_key(qy.get("q.surname")) or first(v("given")) != first(qy.get("q.givenName")): return False
+    if v("birth_year") and qy.get("q.birthLikeDate.from") and qy.get("q.birthLikeDate.to"):
+        if not (int(qy["q.birthLikeDate.from"]) <= int(v("birth_year")) <= int(qy["q.birthLikeDate.to"])): return False
+    if v("year") and qy.get("f.collectionId"):
+        from catalog import holders
+        coll = next((h["HolderCollection"] for rows in holders().values() for h in rows if h.get("HolderKind") == "fs_collection" and h.get("HolderKey") == qy["f.collectionId"]), None)
+        if coll and str(v("year")) not in coll: return False
+    return True
+
 def steps_for(cx, tree_id, kind, value, parsed=None):
     """The tree's steps this identity fulfils: for a memorial or an ark, the fetch steps whose citation carries it, the citation on
     the person themselves first; for a search results page, the cemetery search steps whose fields are the search's own query."""
@@ -83,6 +101,10 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"E01"%'
                              ORDER BY sp.seq""", (tree_id,)).fetchall()
         return [r for r in rows if _same_search(r, (parsed or {}).get("query") or {})]
+    if kind == "fs_search":                                           # the search steps FamilySearch can answer whose fields are the page's own query
+        rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"D03"%'
+                             ORDER BY sp.seq""", (tree_id,)).fetchall()
+        return [r for r in rows if _same_fs_search(cx, r, (parsed or {}).get("query") or {})]
     if kind in ("aad_search", "aad_record"):                      # the enlistment steps whose person the page's name and birth year fit
         p = parsed or {}
         if kind == "aad_search": name, yb = p.get("query", {}).get("name") or "", p.get("query", {}).get("birth_year")
@@ -166,17 +188,17 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     ts = now(); mime = mimetypes.guess_type(src)[0] or "application/octet-stream"
     sources = json.loads(st["sources_json"] or "[]"); kind_row = _source_row(cx, sources[0] if sources else None); from_row = _source_row(cx, st["locator_source_id"]) or kind_row
     col = cx.execute("SELECT name FROM collection WHERE id=?", (st["collection_id"],)).fetchone() if st["collection_id"] else None
-    lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else ("url", value, "WWII Army Enlistment Records (AAD)") if kind == "aad_search"
+    lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else ("url", value, "FamilySearch record search") if kind == "fs_search" else ("url", value, "WWII Army Enlistment Records (AAD)") if kind == "aad_search"
                             else ("url", (parsed or {}).get("url") or value, "WWII Army Enlistment Records (AAD)") if kind == "aad_record"
                             else (st["locator_kind"] or "file", st["locator_value"] or os.path.basename(src), col[0] if col else None))
-    holder = {"ark": "D03", "memorial": "E01", "search": "E01", "aad_search": "F01", "aad_record": "F01"}.get(kind)   # the page's own identity says where it came from, whatever holder the step pointed at
+    holder = {"ark": "D03", "memorial": "E01", "search": "E01", "fs_search": "D03", "aad_search": "F01", "aad_record": "F01"}.get(kind)   # the page's own identity says where it came from, whatever holder the step pointed at
     from_row = _source_row(cx, holder) or from_row
     if kind == "ark" and (parsed or {}).get("collection"):                           # the record's own collection at its holder
         own = re.sub(r"^[^•]*•\s*", "", parsed["collection"]).strip()
         row = cx.execute("SELECT id, name FROM collection WHERE source_id=? AND name=?", (holder, own)).fetchone()
         if not row: cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, holder, own, "other", own)); row = (cid, own)
         st = dict(st); st["collection_id"], cname = row[0], row[1]
-    if kind in ("search", "aad_search"):
+    if kind in ("search", "aad_search", "fs_search"):
         query = {k: {"value": v, "basis": "run"} for k, v in parsed["query"].items()}
         note = "; ".join(x for x in (f"{parsed['count'] if parsed['count'] is not None else len(parsed['rows'])} matching records, page {parsed['page']} of {parsed['pages']}, {len(parsed['rows'])} rows on this page", note) if x)
     with open(src, "rb") as fh: data = fh.read()
@@ -194,7 +216,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         eid, n = extract_html(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
         else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)
-        if kind in ("search", "aad_search") and not out["proposals"] and logs:   # no candidate fits: the run found nothing for the person; the candidates stay on the artifact
+        if kind in ("search", "aad_search", "fs_search") and not out["proposals"] and logs:   # no candidate fits: the run found nothing for the person; the candidates stay on the artifact
             for _, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
     filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)   # the original leaves the inbox last, so a failure before this point leaves it there

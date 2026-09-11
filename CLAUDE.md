@@ -86,7 +86,7 @@ python3 tools/cards.py "<person>"           # every Undecided proposal about the
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"   # the decision on a card, as the screen's Add / Ignore
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
 python3 tools/conclude.py assertion <id> accept|reject|undecided --note "…"   # one statement of one record on its own; ids from the person screen's evidence rows or the assertion table
-python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial, FamilySearch record, Ancestry index; HTML)
+python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial or search, FamilySearch record or search, AAD, Ancestry index; HTML)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
 python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions; one it would no longer take is a card again; --dry-run

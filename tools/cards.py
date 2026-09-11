@@ -196,7 +196,7 @@ def search_card(cx, tree_id, sha, person_id=None):
     against the person as agrees, disagrees or absent, whether it fits, and the proposal on it if any."""
     cx.row_factory = sqlite3.Row
     a = cx.execute(f"SELECT ar.sha256, ar.locator_value, ar.retrieved_at, {tier_sql()} AS trust_tier, ar.source_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
-    e = cx.execute("""SELECT e.id, e.structured_json, x.name AS parser FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name IN ('findagrave-search','aad-search') AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
+    e = cx.execute("""SELECT e.id, e.structured_json, x.name AS parser FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name IN ('findagrave-search','aad-search','familysearch-search') AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
     if not a or not e: return None
     parsed = json.loads(e["structured_json"] or "{}"); cat = Catalog(cx, tree_id)
     runs = cx.execute("""SELECT l.executed_at, l.executed_by, l.outcome, l.notes, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? ORDER BY l.executed_at""", (tree_id, f'%"{sha}"%')).fetchall()
@@ -207,11 +207,11 @@ def search_card(cx, tree_id, sha, person_id=None):
     for pe in personas_of(cx, e["id"]):
         region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pe["id"],)).fetchone()["region_json"] or "{}")
         fits, agree, disagree, absent, near = compare(cat, pe, cand, {})
-        rows.append({"n": region.get("row"), "name": pe["name"], "birth": pe["birth"]["text"], "death": pe["death"]["text"], "burial": pe["burial place"] or region.get("where"), "memorial_id": region.get("memorial_id") or region.get("rid"), "url": region.get("url"),
+        rows.append({"n": region.get("row"), "name": pe["name"], "birth": pe["birth"]["text"], "death": pe["death"]["text"], "burial": pe["burial place"] or region.get("where") or (pe.get("places") or [None])[0], "memorial_id": region.get("memorial_id") or region.get("rid") or region.get("ark"), "url": region.get("url"),
                      "fits": fits, "agrees": agree, "disagrees": disagree, "absent": absent, "proposal": persona_status(cx, tree_id, pe["id"])})
     q = parsed.get("query") or {}
     return {"kind": "search", "sha256": sha, "person": {"id": person_id, "name": pr["name"], "birth": cand["birth"]["text"], "birth_place": cand["birth"]["place"], "death": cand["death"]["text"], "death_place": cand["death"]["place"], "burial_place": cand["burial place"]},
-            "search": {"holder": "Find a Grave" if e["parser"] == "findagrave-search" else "the WWII Army enlistment file (AAD)", "query": q, "url": a["locator_value"], "count": parsed.get("count"), "page": parsed.get("page"), "pages": parsed.get("pages"), "rows_on_page": len(rows)},
+            "search": {"holder": {"findagrave-search": "Find a Grave", "familysearch-search": "FamilySearch", "aad-search": "the WWII Army enlistment file (AAD)"}[e["parser"]], "query": q, "url": a["locator_value"], "count": parsed.get("count"), "page": parsed.get("page"), "pages": parsed.get("pages"), "rows_on_page": len(rows)},
             "runs": [dict(r) for r in runs], "archived": os.path.relpath(object_path(sha), DATA_ROOT), "rows": rows,
             "proposed": [r for r in rows if r["fits"]], "tier": a["trust_tier"]}
 

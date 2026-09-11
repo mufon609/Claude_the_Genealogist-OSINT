@@ -113,6 +113,18 @@ def check_aad_record(ps, fail):
     fail(fact(p, "Military Service", date="21 SEP 1945", place="Charleston Port Of Embarkation"), "the enlistment as a Military Service event on its day at its place")
     fail(fact(p, "Education", value="2 years of high school") and fact(p, "Marital Status", value="Married"), "education and marital status as written")
 
+def check_fs_search(ps, fail):
+    fail(len(ps) == 20, f"the page's twenty result rows, {len(ps)} written")
+    p = ps[0]
+    fail(p["name"] == "Fred M Ahearn" and p["role"] == "result" and "6XYS-NQ16" in p["region"], f"the first row as written with its ark as identity; got {p['name']} {p['region'][:80]}")
+    fail(fact(p, "Birth", date="CAL 1933", place="Pennsylvania"), "the row's birth year, a census index's estimate, as a calculated year, and its place")
+    fail(fact(p, "Unknown", value="Parents: Fred M Ahern, Helen B Ahearn") and fact(p, "Unknown", value="Siblings: Alice M Ahearn, John D Ahearn"), "the relatives named under each label")
+    fail(fact(p, "Identification Number", value="ark:/61903/1:1:6XYS-NQ16"), "the ark as the persona's identification")
+    q = ps[1]
+    fail(q["name"] == "Frederick Horn" and fact(q, "Residence", date="3 April 1950", place="Sayre, Bradford, Pennsylvania"), f"a row's census event as a Residence on its date at its place; got {q['facts']}")
+    fail(not any(p["name"].endswith("undefined") for p in ps) and not any(pl == "Other Places" for p in ps for _, _, _, pl in p["facts"]), "no stray 'undefined' in a name and no 'Other Places' as a place")
+    fail('"collection":"United States, Census, 1950"' in p["region"] and '"role":"principal"' in p["region"], "the collection and the role word on the persona")
+
 def check_fg_search(ps, fail):
     fail(len(ps) == 1 and ps[0]["name"] == "Robert Edgar Davidson", f"one result row; got {[p['name'] for p in ps]}")
     p = ps[0]
@@ -157,6 +169,7 @@ FIXTURE_SET = [
     ("nara-1950-schedule-3947385.json", "application/json", "D05", "url", "https://1950census.archives.gov/api/search?scheduleId=3947385", "nara-1950-schedule", check_schedule),
     ("aad-search-davidson-robert-15.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/display-partial-records.jsp?txt_24995=DAVIDSON%20ROBERT&txt_24983=15", "aad-search", check_aad_search),
     ("aad-enlistment-247275.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275", "aad-enlistment", check_aad_record),
+    ("familysearch-search-census-1950-ahearn-frederick-micheal.html", "text/html", "D03", "url", "https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn", "familysearch-search", check_fs_search),
     ("findagrave-search-davidson-robert-1915-2004.html", "text/html", "E01", "url", "https://www.findagrave.com/memorial/search?firstname=Robert&lastname=Davidson&birthyear=1915&deathyear=2004", "findagrave-search", check_fg_search),
 ]
 
