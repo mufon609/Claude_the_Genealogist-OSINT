@@ -174,6 +174,17 @@ the row to `data/holders.csv` with the collection's own search URL shape, so
 the step becomes an assisted fetch or a search at the free holder. Where no
 free holder exists, say so on the registry row.
 
+### C13. A cited book fetched by its title through the Archive connector
+
+The Family History Books and North America Family Histories citations name
+the book (`citation` or `book title`); their fetch steps now point at the
+Archive's title search as an assisted link. The `ia_books` connector asks the
+Archive by a surname and a state, so it has nothing to ask from such a step and
+the runner leaves it alone. Give the connector a title request (the Archive's
+advanced search by title, the item's own page and search-inside as the hits),
+so a cited book comes in on its own and the citation's page can be found
+inside it.
+
 ---
 
 ## Externally blocked

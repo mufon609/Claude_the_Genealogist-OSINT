@@ -60,11 +60,14 @@ def connector_for(cat, step):
     conns = connectors_for(cat, step); return conns[0] if conns else None
 
 def runnable(cx, cat, tree_id):
-    """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector."""
+    """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector that can ask
+    for the record from the citation's details (a book cited by title at the Archive gives the books connector nothing to ask
+    yet; that step stays a link for a hand)."""
     with_conn = [sid for sid, s in cat.sources.items() if s.get("connector")]
-    return cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
+    rows = cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
                           AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch' AND sp.locator_source_id IN ({','.join('?'*len(with_conn)) or "''"})))
                           ORDER BY p.display_name, sp.seq""", (tree_id, *with_conn)).fetchall()
+    return [r for r in rows if r["kind"] == "search" or any(c.requests(rendered_query(r["query_json"], r["revisions_json"])) for c in connectors_for(cat, r))]
 
 def household_steps(cx, tree_id, step):
     """The other fetch steps at the same holder whose citations name the same census page (year, enumeration district, census

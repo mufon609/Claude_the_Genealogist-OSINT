@@ -193,16 +193,37 @@ def fetch_target(apid, url=None, fields=None):
     if h and h["HolderKind"] != "memorial": return {"url": holder_search(h, fields) or h["URL"], "holder": h["HolderCollection"]}
     return {"url": f"https://www.ancestry.com/discoveryui-content/view/{m.group(2)}:{m.group(1)}", "holder": "Ancestry"}
 
+PLACEHOLDER = re.compile(r"\{(given|surname|name|title|year|date|place|city|url)\}")
+
 def holder_search(h, fields):
-    """The holder's own search URL from a fetch step's fields. FamilySearch: the collection search as the site itself builds it
-    (f.collectionId, q.givenName, q.residenceDate.from/to and q.residencePlace from the citation's year and census place, q.surname).
-    The National Archives 1950 site: its name search. None when the fields carry no name."""
+    """The holder's own search URL from a fetch step's fields (the citation's details, never the person's facts).
+    fs_collection: FamilySearch's collection search as the site builds it (f.collectionId, q.givenName, q.surname, and for a
+    census the year and place as q.residenceDate.from/to and q.residencePlace; the year from the collection's name when the
+    citation gives none, the place from its census place or its city and county). fs_images: no search, the collection is
+    browsed (None). url: the holder's search template in HolderKey with its placeholders filled from the citation ({given},
+    {surname}, {name}, {title} from the book title or the citation text, {year}, {date}, {place}, {city}, {url} the citation's
+    own URL), URL-encoded; None when a placeholder has no value, so the holder's own page opens instead. site: the National
+    Archives 1950 site's name search. None when the fields carry nothing to ask with."""
     v = lambda k: ((fields or {}).get(k) or {}).get("value")
     given, surname, _ = split_name(v("name"))
+    kind = h["HolderKind"]
+    if kind == "fs_images": return None
+    if kind == "url":
+        tpl = h["HolderKey"] or ""
+        if not tpl: return None
+        year = v("year") or next((m.group(1) for k in ("publication date", "date", "event date") for m in [re.search(r"\b(1[5-9]\d\d|20\d\d)\b", v(k) or "")] if m), None)
+        vals = {"given": given, "surname": surname, "name": " ".join(x for x in (given, surname) if x) or None, "title": v("book title") or v("title") or v("citation"),
+                "year": year, "date": v("publication date") or v("date"), "place": v("publication place") or v("census place") or v("place"), "city": v("city"), "url": v("url")}
+        if tpl == "{url}": return vals["url"]
+        needed = set(PLACEHOLDER.findall(tpl))
+        if any(not vals.get(k) for k in needed): return None
+        return PLACEHOLDER.sub(lambda m: urllib.parse.quote(str(vals[m.group(1)]), safe=""), tpl)
     if not (given or surname): return None
-    if h["HolderKind"] == "fs_collection":
+    if kind == "fs_collection":
         q = [("f.collectionId", h["HolderKey"]), ("q.givenName", given or "")]
-        if v("year") and v("census place"): q += [("q.residenceDate.from", v("year")), ("q.residenceDate.to", v("year")), ("q.residencePlace", v("census place"))]
+        yr = v("year") or (re.search(r"\b(1[78]\d\d|19\d\d)\b", h["HolderCollection"] or "") or [None, None])[1] if re.search(r"census", h["HolderCollection"] or "", re.I) else v("year")
+        place = v("census place") or ", ".join(x for x in (v("city"), v("county")) if x) or None
+        if yr and place: q += [("q.residenceDate.from", yr), ("q.residenceDate.to", yr), ("q.residencePlace", place)]
         if surname: q.append(("q.surname", surname))
         return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
     if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(x for x in (given, surname) if x))], quote_via=urllib.parse.quote)

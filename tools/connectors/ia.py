@@ -25,6 +25,9 @@ def phrase(fields):
     """The name searched: the first given name and the surname as a phrase with slop, so "Brant, Abram C." and "Abram C. Brant"
     both match. None without a surname."""
     surname, given = value(fields, "surname"), value(fields, "given")
+    if not surname and value(fields, "name"):                          # a fetch step carries the citation's name, not given and surname
+        from catalog import split_name
+        g, s, _ = split_name(value(fields, "name")); surname, given = s, g
     if not surname: return None
     first = (given or "").split()[0] if given else None
     return f'"{first} {surname}"~3' if first else f'"{surname}"'

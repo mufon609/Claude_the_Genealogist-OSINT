@@ -322,7 +322,24 @@ def rules():
     from catalog import same_surname
     want = {("ahearn", "ahearn"): "agrees", ("ahern", "ahearn"): "variant", ("brant", "brandt"): "variant", ("ahearu", "ahearn"): "one letter apart",
             ("grant", "brant"): "", ("bran", "brant"): "", ("kriebel", "krebel"): "variant", ("horn", "ahearn"): ""}
-    return [f"same_surname{k} gave {same_surname(*k)!r}, expected {v!r}" for k, v in want.items() if same_surname(*k) != v]
+    bad = [f"same_surname{k} gave {same_surname(*k)!r}, expected {v!r}" for k, v in want.items() if same_surname(*k) != v]
+    from catalog import holder_search
+    f = lambda **kw: {k: {"value": v, "basis": "citation"} for k, v in kw.items()}
+    cases = [
+        ({"HolderKind": "url", "HolderKey": "https://archive.org/search?query=title%3A%28%22{title}%22%29", "HolderCollection": "x"}, f(name="Abram C Brant", citation="The Genealogical Record of the Schwenkfelder Families"),
+         "https://archive.org/search?query=title%3A%28%22The%20Genealogical%20Record%20of%20the%20Schwenkfelder%20Families%22%29"),
+        ({"HolderKind": "url", "HolderKey": "https://www.legacy.com/obituaries/search?firstName={given}&lastName={surname}", "HolderCollection": "x"}, f(name="Helen Sara Brant"), "https://www.legacy.com/obituaries/search?firstName=Helen%20Sara&lastName=Brant"),
+        ({"HolderKind": "url", "HolderKey": "{url}", "HolderCollection": "x"}, f(name="Noi Davidson", url="http://www.legacy.com/obituaries/x?n=noi"), "http://www.legacy.com/obituaries/x?n=noi"),
+        ({"HolderKind": "url", "HolderKey": "https://archive.org/search?query=x+{year}", "HolderCollection": "x"}, f(name="Carol Evers"), None),
+        ({"HolderKind": "url", "HolderKey": "", "HolderCollection": "x"}, f(name="Catherine Rittenhouse"), None),
+        ({"HolderKind": "fs_images", "HolderKey": "1999196", "HolderCollection": "Pennsylvania, Probate Records, 1683-1994"}, f(name="Matthias Wool Rittenhouse"), None),
+        ({"HolderKind": "fs_collection", "HolderKey": "1937489", "HolderCollection": "New York, State Census, 1925"}, f(name="Dorothy Peters", city="Hempstead", county="Nassau"),
+         "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Dorothy&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"),
+    ]
+    for h, fields, want_url in cases:
+        got = holder_search(h, fields)
+        if got != want_url: bad.append(f"holder_search({h['HolderKind']}, {h['HolderKey'][:40]!r}) gave {got!r}, expected {want_url!r}")
+    return bad
 
 def compiles():
     """Every tool and the screen's server compile; the first thing green means."""
@@ -339,7 +356,7 @@ def main():
     bad_files = compiles()
     print("ok   every tool compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad_files += bad_rules
-    print("ok   the surname rule: as written, a spelling variant, one letter apart, and not Grant for Brant" if not bad_rules else "FAIL surname rule: " + "; ".join(bad_rules))
+    print("ok   the surname rule and the holder search: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     d, db = scratch(a.keep)
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     from treelib import archive_object
