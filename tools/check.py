@@ -223,6 +223,18 @@ def decisions(keep, show):
     fail(r.get("ok") and r["assertions"] >= 6 and not r["memberships"], f"the son's facts accepted from the record and no family link before a parent is: {r}")
     fail(fact_status(cx, who["Frederick Micheal Ahearn Jr"], "name") == "accepted" and fact_status(cx, who["Frederick Micheal Ahearn Jr"], "birth") == "accepted", "his name and birth read accepted")
     fail(fact_status(cx, who["Frederick Micheal Ahearn Jr"], "parents") == "undecided", "his parents still undecided")
+    # ---- a results page for him: the matcher's verdict on every row, checked directly on the candidate card
+    from cards import search_card
+    from treelib import archive_object
+    with open(os.path.join(FIXTURES, "familysearch-search-census-1950-ahearn-frederick-micheal.html"), "rb") as fh: data = fh.read()
+    src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id='D03'").fetchone()
+    sha_r, _ = archive_object(cx, data, mime="text/html", source_id="D03", collection_id=None, locator_kind="url", locator_value="https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn",
+                              retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0], original_filename="familysearch-search-census-1950-ahearn-frederick-micheal.html")
+    extract(cx, sha_r, BY); cx.commit()
+    sc = search_card(cx, tid, sha_r, who["Frederick Micheal Ahearn Jr"]); cx.row_factory = sqlite3.Row
+    verdicts = [(r["n"], r["name"], r["fits"]) for r in (sc or {}).get("rows", [])]; say("results page verdicts:", verdicts)
+    fail(sc and len(verdicts) == 20 and verdicts[0][1] == "Fred M Ahearn" and verdicts[0][2] and not any(f for _, _, f in verdicts[1:]), f"on the 1950 results page row 1 fits him and rows 2 to 20 do not: {verdicts}")
+    fail(sc and sc["rows"][1]["burial"] == "Sayre, Bradford, Pennsylvania, United States", f"a record row shows its residence as its place: {sc and sc['rows'][1]['burial']}")
     # ---- the mother accepted: the mother-son link
     r = decide(cx, tid, card["Helen Sara Brant"], "accepted", BY, "harness"); cx.commit(); say("mother:", r)
     fail(any(m.get("role") == "child" and m.get("person") == who["Frederick Micheal Ahearn Jr"] for m in r["memberships"]), f"accepting the mother asserts the son's child membership: {r['memberships']}")
@@ -244,9 +256,9 @@ def decisions(keep, show):
     res = attach_inbox(cx, tid, "harness", BY, ["findagrave-memorial-78019650.html"]); cx.commit(); say("attach memorial:", res)
     ps = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256", "").startswith("576c97b3")]
     persona_name = lambda p: cx.execute("SELECT name_text FROM persona WHERE id=?", (json.loads(p["payload_json"])["persona_id"],)).fetchone()[0]
-    fail(ps and all(p["kind"] == "persona_match" and name(person_of(p)) == "Abram C Brant" for p in ps), f"every card on the memorial names Abram, the person it was fetched for; the people it links wait: {[(p['kind'], name(person_of(p)) if person_of(p) else None) for p in ps]}")
-    subject = next((p for p in ps if persona_name(p) == "Abram C Brant"), None)
-    fail(subject is not None and sum(1 for p in ps if persona_name(p) == "Abram C Brant") == 1, f"the memorial's subject proposed as him once: {[persona_name(p) for p in ps]}")
+    fail(len(ps) == 1 and ps[0]["kind"] == "persona_match" and name(person_of(ps[0])) == "Abram C Brant" and persona_name(ps[0]) == "Abram C Brant",
+         f"one card on the memorial, its subject as Abram; his father of nearly the same name stays a hint, the people it links wait: {[(p['kind'], persona_name(p), name(person_of(p)) if person_of(p) else None) for p in ps]}")
+    subject = ps[0] if ps else None
     ok, why = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (subject["id"],)).fetchone()); say("rule on T4:", ok, why)
     fail(not ok and ("edit" in why.lower() or "find a grave" in why.lower()), f"the rule refuses a page anyone can edit: {why}")
     # ---- Abram accepted: his daughter and wife come up as cards, his parents and siblings as new people

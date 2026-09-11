@@ -288,6 +288,9 @@ def match(cx, eid, by, about=None):
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pr["id"])).fetchone(): continue
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
             if pr["id"] in chosen and pr["role"] == "named in the text" and pr["id"] in nearly: continue   # a name in running text on the name alone is a hint on the page, not a card
+            if pr["id"] in nearly and (any(o != pr["id"] and o not in nearly and chosen[o]["id"] == chosen[pr["id"]]["id"] for o in chosen)
+                                       or cx.execute("""SELECT 1 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pe.extraction_id=? AND pp.status='accepted' AND pp.person_id=?""", (eid, chosen[pr["id"]]["id"])).fetchone()):
+                continue                                          # another persona on this page fits, or is accepted as, that person: one decision put once; the near one stays a hint on the page
             if pr["id"] in chosen and chosen[pr["id"]]["id"] not in open_now: continue   # fits a person nothing yet attaches to this record: waits for the decision on the record's own person
             if pr["id"] not in chosen and not related_to_accepted(pr): continue        # a new person is proposed only from a record already accepted as somebody's, for those it relates to them
             if pr["id"] in chosen:

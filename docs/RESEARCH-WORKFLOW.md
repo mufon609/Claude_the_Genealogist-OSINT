@@ -429,7 +429,9 @@ wife written under her husband's surname is not a surname disagreement. A
 persona of the same name as a candidate that disagrees on something else is
 still proposed as that candidate, with the disagreement in its rationale, so
 the owner sees the likely identity and the difference together; the rule never
-takes such a proposal. One proposal per persona: `persona_match`
+takes such a proposal, and when another persona on the same page fits that
+candidate, or is already accepted as them, the near one is not proposed at
+all: one decision is put once, and the near persona stays a hint on the page. One proposal per persona: `persona_match`
 with the candidate that fits, or `new_person` when nobody does. The rationale
 is plain words, which fields agree, which disagree, which are absent; no score
 is stored or shown. A proposal carries the step's question when the step has
