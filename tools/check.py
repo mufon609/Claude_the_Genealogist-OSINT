@@ -265,7 +265,11 @@ def decisions(keep, show):
         r = decide(cx, tid, bp[0]["id"], "accepted", BY, "harness"); cx.commit(); say("birth record:", r)
         fail(r.get("ok") and cx.execute("""SELECT 1 FROM assertion a JOIN persona_fact f ON f.id=a.persona_fact_id WHERE a.status='accepted' AND a.artifact_sha256=? AND f.fact_type='Birth' AND f.date_text='22 May 1907'""", (res[0]["sha256"],)).fetchone(), "his birth on its day accepted from the record")
         after_b = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256") == res[0]["sha256"]]
-        fail(any(name(person_of(p)) == "James Joseph Ahearn" and "Father" in p["rationale"] for p in after_b if person_of(p)), f"the father the record names proposed as James Joseph Ahearn on the stated relationship once the child is accepted: {[(name(person_of(p)) if person_of(p) else None, p['kind']) for p in after_b]}")
+        fa = next((p for p in after_b if person_of(p) and name(person_of(p)) == "James Joseph Ahearn"), None)
+        fail(fa is not None and "Father" in fa["rationale"] and fa["status"] == "undecided", f"the father the record names proposed as James Joseph Ahearn on the stated relationship once the child is accepted, a card: {[(name(person_of(p)) if person_of(p) else None, p['kind'], p['status']) for p in after_b]}")
+        if fa:
+            ok_r, why_r = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (fa["id"],)).fetchone()); say("rule on one letter apart:", ok_r, why_r)
+            fail(not ok_r and "one letter apart" in why_r, f"the rule does not take a name one letter apart: {why_r}")
     # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
     r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
