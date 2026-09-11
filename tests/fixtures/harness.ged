@@ -3,7 +3,7 @@
 2 NAME Ancestry.com Member Trees
 2 VERS 2025.08
 2 _TREE Harness
-3 NOTE A small file of the owner's family, written for tools/check.py: the Ahearn household of the 1940 census of Caln Township and Helen's parents, so the matcher, the standing rule and the decision writers can be run against the saved pages under tests/fixtures/.
+3 NOTE A small file of the owner's family, written for tools/check.py: the Ahearn household of the 1940 census of Caln Township, Helen's parents, and Raymond Earl Davidson on his own, so the matcher, the standing rule and the decision writers can be run against the saved pages under tests/fixtures/.
 2 CORP Ancestry.com
 1 DATE 7 Sep 2026
 1 GEDC
@@ -123,6 +123,19 @@
 2 PLAC Massachusetts, USA
 1 DEAT
 2 DATE 1940
+0 @I8@ INDI
+1 NAME Raymond Earl /Davidson/
+2 GIVN Raymond Earl
+2 SURN Davidson
+1 SEX M
+1 BIRT
+2 DATE 12 Oct 1939
+2 PLAC Suffolk County, New York, USA
+1 DEAT
+2 DATE 27 Jan 2007
+2 PLAC New Egypt, Ocean, New Jersey, USA
+1 BURI
+2 PLAC Arneytown, Burlington, New Jersey, USA
 0 @F1@ FAM
 1 HUSB @I1@
 1 WIFE @I2@

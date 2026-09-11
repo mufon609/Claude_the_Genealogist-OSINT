@@ -5,7 +5,8 @@ usage: tools/check.py [--show] [--keep]
 
 A scratch catalog under a temporary data root, never the owner's. Every page under tests/fixtures/ is archived there and
 read by tools/extract.py as the attach would read it, and the personas, facts and relations it writes are checked against
-what the page says (tests/fixtures/README.md says where each page came from). One line per fixture, ok or FAIL with every
+what the page says (tests/fixtures/README.md says where each page came from); the connectors' requests and their reading
+of saved responses are checked with no network. One line per fixture, ok or FAIL with every
 reason; exit status 1 on any failure. --show prints what each extraction wrote, for writing a check; --keep leaves the
 scratch directory in place and prints its path.
 """
@@ -155,6 +156,19 @@ def check_locgov(ps, fail):
     fail(not any(t in ("Death", "Residence") for p in ps for t, _, _, _ in p["facts"]), "no date of life made from the page's date: running text states none")
     fail(all('"segment":"/service/ndnp' in p["region"] and '"date":"1918-05-10"' in p["region"] and "union city" in p["region"] for p in ps), "the page's segment, date and place in the persona's region")
 
+def check_va(ps, fail):
+    fail(len(ps) == 2 and [p["role"] for p in ps] == ["result", "result"], f"the page's two decedents as results; got {[(p['name'], p['role']) for p in ps]}")
+    p = ps[1] if len(ps) > 1 else ps[0]
+    fail(p["name"] == "Raymond E Davidson" and '"name_as_written":"DAVIDSON, RAYMOND E"' in p["region"], f"the name the right way round, the page's form in the region; got {p['name']} {p['region'][:80]}")
+    fail(fact(p, "Birth", date="10/12/1939") and fact(p, "Death", date="01/27/2007"), f"the dates of birth and death as the page writes them; got {p['facts']}")
+    fail(fact(p, "Burial", value="Plot: SECTION O1 SITE 2239", place="BG WILLIAM C DOYLE VET'S MEM CEM, Wrightstown, New Jersey"), f"the burial: the section and site as the plot, the cemetery at its town and state; got {fact(p, 'Burial')}")
+    fail(fact(p, "Military Service", value="MSGT US AIR FORCE, VIETNAM"), "rank, branch and war period as one Military Service attribute")
+    fail(fact(ps[0], "Burial", place="HILLCREST MEMORIAL PARK, Hermitage, Pennsylvania"), f"a private cemetery's burial at its town; got {fact(ps[0], 'Burial')}")
+
+def check_va_page1(ps, fail):
+    fail(len(ps) == 10 and all(p["role"] == "result" for p in ps), f"ten decedents on the first page, every one a result; got {len(ps)}")
+    fail(ps[0]["name"] == "Raymond Jr Davidson" and fact(ps[0], "Birth", date="12/20/1926") and fact(ps[0], "Burial", value="Plot: SECTION 404 SITE 640", place="FLORIDA NATIONAL CEMETERY, Bushnell, Florida"), f"the first decedent as written; got {ps[0]['name']} {ps[0]['facts']}")
+
 def check_ia_inside(ps, fail):
     fail(len(ps) >= 1, f"a persona per place the searched surname stands in the chosen pages' text; got {len(ps)}")
     fail(all("heebner" in p["name"].lower() for p in ps), f"every persona named around Heebner; got {[p['name'] for p in ps][:6]}")
@@ -178,6 +192,8 @@ FIXTURE_SET = [
     ("familysearch-search-census-1950-ahearn-frederick-micheal.html", "text/html", "D03", "url", "https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn", "familysearch-search", check_fs_search),
     ("familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html", "text/html", "D03", "apid", "1,5062::1903623", "familysearch-record", check_fs_birth),
     ("findagrave-search-davidson-robert-1915-2004.html", "text/html", "E01", "url", "https://www.findagrave.com/memorial/search?firstname=Robert&lastname=Davidson&birthyear=1915&deathyear=2004", "findagrave-search", check_fg_search),
+    ("va-gravesite-search-davidson-raymond-2007.html", "text/html", "E03", "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007", "va-gravesite", check_va),
+    ("va-gravesite-search-davidson-raymond-page1.html", "text/html", "E03", "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond", "va-gravesite", check_va_page1),
 ]
 
 def run(*args):
@@ -206,7 +222,7 @@ def decisions(keep, show):
     name = lambda pid: next(n for n, i in who.items() if i == pid)
     for pid in who.values(): plan_person(cx, tid, pid, BY)
     cx.commit()
-    fail(len(who) == 7, f"seven persons ingested, got {len(who)}")
+    fail(len(who) == 8, f"eight persons ingested, got {len(who)}")
     props = lambda **w: [dict(r) for r in cx.execute("SELECT * FROM proposal WHERE tree_id=? AND status=? AND kind IN ('persona_match','new_person') ORDER BY created_at, id", (tid, w.get("status", "undecided")))]
     person_of = lambda p: json.loads(p["payload_json"]).get("person_id")
     nassert = lambda: cx.execute("SELECT COUNT(*) FROM assertion WHERE tree_id=? AND status='accepted'", (tid,)).fetchone()[0]
@@ -306,6 +322,29 @@ def decisions(keep, show):
     fail(n.get("links_carried") == 4, f"four decided links carried to the new personas: {n}")
     old = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')='3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e'", (tid,)).fetchone()[0]
     fail(old == 0, f"no undecided card left on the re-read page: {old}")
+    # ---- the gravesite locator's page for Davidson, Raymond, died 2007: one card, his, among the namesakes; the rule takes it once his dates are his own word
+    from match import match
+    from facts import decide_fact
+    with open(os.path.join(FIXTURES, "va-gravesite-search-davidson-raymond-2007.html"), "rb") as fh: data = fh.read()
+    src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id='E03'").fetchone()
+    cid_v = treelib.ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid_v, "E03", "VA Nationwide Gravesite Locator", "other", "va_graves"))
+    sha_v, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=cid_v, collection_name="VA Nationwide Gravesite Locator", locator_kind="url",
+                              locator_value="https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007", retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0],
+                              original_filename="va-gravesite-search-davidson-raymond-2007.html")
+    eid_v, n = extract(cx, sha_v, BY); wrote = match(cx, eid_v, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("gravesite page:", n, wrote)
+    fail(len(wrote) == 1 and wrote[0][1] == "persona_match" and wrote[0][2] == "Raymond E Davidson" and wrote[0][3] == who["Raymond Earl Davidson"],
+         f"one card on the gravesite page, Raymond E Davidson as Raymond Earl Davidson; the namesake who died the same year another day stays a hint: {[(k, nm) for _, k, nm, _ in wrote]}")
+    vp = cx.execute("SELECT * FROM proposal WHERE id=?", (wrote[0][0],)).fetchone() if wrote else None
+    fail(vp and "though something disagrees" in vp["rationale"] and all(x in vp["rationale"].lower() for x in ("burial place disagrees", "birth date agrees", "death date agrees")),
+         f"the card says the dates agree to the day and the burial town differs (the locator's postal town against the memorial's): {vp and vp['rationale'][:300]}")
+    ok_v, why_v = rule_accepts(cx, tid, vp) if vp else (False, "no card"); say("rule on the gravesite card:", ok_v, why_v)
+    fail(not ok_v and why_v.startswith("disagrees") and "burial place" in why_v, f"a gravesite record is a kind the rule may take, and it refuses this one for the burial town, not as a hint: {why_v}")
+    with open(os.path.join(FIXTURES, "va-gravesite-search-davidson-raymond-page1.html"), "rb") as fh: data = fh.read()
+    sha_p, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=cid_v, collection_name="VA Nationwide Gravesite Locator", locator_kind="url",
+                              locator_value="https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond", retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0],
+                              original_filename="va-gravesite-search-davidson-raymond-page1.html")
+    eid_p, n = extract(cx, sha_p, BY); wrote_p = match(cx, eid_p, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("gravesite page of namesakes:", n, wrote_p)
+    fail(n.get("personas") == 10 and wrote_p == [], f"ten namesakes agreeing on the name alone make no card: {[(k, nm) for _, k, nm, _ in wrote_p]}")
     # ---- the plan is idempotent and the catalog whole
     st1 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
     st2 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
@@ -341,6 +380,48 @@ def rules():
         if got != want_url: bad.append(f"holder_search({h['HolderKind']}, {h['HolderKey'][:40]!r}) gave {got!r}, expected {want_url!r}")
     return bad
 
+def connectors_offline():
+    """The connectors' requests from a step's fields and their reading of saved responses, with no network: the Archive's
+    title search for a cited book and the VA gravesite locator's posted search."""
+    from connectors import ia, ia_books, va_graves
+    from treelib import parse_gedcom_date
+    bad = []; f = lambda **kw: {k: {"value": v, "basis": "citation"} for k, v in kw.items()}
+    say = lambda ok, why: None if ok else bad.append(why)
+    rq = ia_books.requests(f(collection="U.S., Family History Books", name="Abraham B Brant", citation="The Genealogical Record of the Schwenkfelder Families"))
+    say(rq and rq[0]["url"].startswith(ia.ADVANCED) and "title%3A%28%22The%20Genealogical%20Record%20of%20the%20Schwenkfelder%20Families%22%29" in rq[0]["url"]
+        and rq[0]["surname"] == "Brant" and str(rq[0]["given"]).startswith("Abraham"), f"a Family History Books citation asks the Archive's advanced search for its title with the citation's name: {rq}")
+    rq2 = ia_books.requests(f(collection="North America, Family Histories, 1500-2000", name="Sarah Cassel", **{"book title": "A genealogical history of the Cassel family in America : being the descendants of Julius Kassel or"}))
+    say(rq2 and rq2[0]["q"] == '"A genealogical history of the Cassel family in America"', f"a book title is asked by its main title, the subtitle and Ancestry's cut tail off: {rq2 and rq2[0]['q']}")
+    say(ia_books.requests(f(collection="U.S., Family History Books", name="Robert Powell McCrary")) == [], "a book citation naming no title asks nothing")
+    say(ia_books.requests(f(given="Abram C", surname="Brant", state="pennsylvania", birth_year=1880)) and "be-api.us.archive.org" in ia_books.requests(f(given="Abram C", surname="Brant", state="pennsylvania", birth_year=1880))[0]["url"], "a search step still asks the full-text search")
+    with open(os.path.join(FIXTURES, "ia-advancedsearch-title-schwenkfelder-families.json"), "rb") as fh: body = fh.read()
+    say(ia.total(body) == 3, f"the advanced search's total: {ia.total(body)}")
+    hs = ia_books.hits(rq[0]["url"], body, rq[0]) if rq else []
+    say([h["notes"]["item"] for h in hs] == ["genealogicalreco0000samu_a7w0", "genealogicalreco0000samu", "genealogicalreco00unse"], f"the three copies of the cited book, in the Archive's order: {[h['notes']['item'] for h in hs]}")
+    say(hs and hs[0]["fetch"] == [{"url": "https://archive.org/metadata/genealogicalreco0000samu_a7w0", "kind": "json", "then": "metadata", "record": False}] and hs[0]["locator"]["value"] == "https://archive.org/details/genealogicalreco0000samu_a7w0",
+        "a hit's first fetch is the item's metadata, the item's page its locator")
+    say(ia_books.hits(rq2[0]["url"], body, rq2[0]) == [] if rq2 else False, "a response for another title gives no hit: every naming word of the cited title must be in the item's")
+    rq = va_graves.requests(f(collection="U.S., Veterans' Gravesites, ca. 1775-2019", name="Raymond Earl Davidson"))
+    say(rq and rq[0]["url"] == va_graves.URL and rq[0]["data"]["lastName"] == "Davidson" and rq[0]["data"]["firstName"] == "Raymond" and rq[0]["data"]["middleName"] == "E" and rq[0]["data"]["middleNameOpt"] == "2"
+        and rq[0]["data"]["p_deathYY"] == "" and rq[0]["record"] is True and rq[0]["locator"] == "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&middleName=E",
+        f"a citation's name posts the locator's form, surname and first given name exact, the middle name's first letter as a beginning, the page the record: {rq}")
+    rq = va_graves.requests({"given": {"value": "Chris M", "basis": "accepted"}, "surname": {"value": "Hahnle", "basis": "accepted"}, "death_year": {"value": 1960, "basis": "accepted"}})
+    say(rq and rq[0]["data"]["p_deathYY"] == "1960" and rq[0]["data"]["firstName"] == "Chris" and rq[0]["data"]["middleName"] == "M", f"a search step's death year narrows the search: {rq}")
+    say(va_graves.requests(f(name="Noi Davidson"))[0]["data"]["middleNameOpt"] == "1", "no middle name, none asked")
+    with open(os.path.join(FIXTURES, "va-gravesite-search-davidson-raymond-page1.html"), "rb") as fh: page1 = fh.read()
+    say(va_graves.total(page1) == 22 and len(va_graves.results(page1)) == 10 and va_graves.narrow(va_graves.URL, page1) is None
+        and va_graves.next_page(va_graves.URL, page1) == "https://gravelocator.cem.va.gov/ngl/result/1lAHS2AnK4QkAoGcnXxp7TkBqZNjNMEghZnIjXo=",
+        f"a first page of ten of 22 links its next page, and 22 is within what is read: {va_graves.total(page1)}, {va_graves.next_page(va_graves.URL, page1)}")
+    say(va_graves.requests(f(collection="x")) == [], "no surname, nothing asked")
+    with open(os.path.join(FIXTURES, "va-gravesite-search-davidson-raymond-2007.html"), "rb") as fh: body = fh.read()
+    rows = va_graves.results(body)
+    say(va_graves.total(body) == 2 and len(rows) == 2 and va_graves.narrow(va_graves.URL, body) is None and va_graves.next_page(va_graves.URL, body) is None, f"two decedents found, both on the page, no next page: {va_graves.total(body)}, {len(rows)}")
+    say(rows and rows[1].get("name") == "DAVIDSON, RAYMOND E" and rows[1].get("birth") == "10/12/1939" and rows[1].get("death") == "01/27/2007" and rows[1].get("buried_at", "").startswith("SECTION O1 SITE 2239")
+        and rows[1].get("cemetery") == "BG WILLIAM C DOYLE VET'S MEM CEM" and rows[1].get("city") == "WRIGHTSTOWN" and rows[1].get("state") == "NJ", f"the second decedent as the page writes him: {rows[1:] if rows else rows}")
+    say(len(va_graves.hits(va_graves.URL, body, {"locator": "x"})) == 2 and va_graves.hits(va_graves.URL, body, {"locator": "x"})[0]["fetch"] == [], "one hit per decedent, fetching nothing: the page is the record")
+    say(parse_gedcom_date("10/12/1939")["date_start"] == "1939-10-12" and parse_gedcom_date("13/12/1939")["date_start"] is None, "a month-first date is read, an impossible one is not")
+    return bad
+
 def compiles():
     """Every tool and the screen's server compile; the first thing green means."""
     import py_compile
@@ -357,6 +438,9 @@ def main():
     print("ok   every tool compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad_files += bad_rules
     print("ok   the surname rule and the holder search: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    sys.path.insert(0, os.path.join(ROOT, "tools"))
+    bad_conn = connectors_offline(); bad_files += bad_conn
+    print("ok   connectors offline: a cited book asked by its title and its copies read from the Archive's answer; the gravesite locator's posted search and its results page read" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
     d, db = scratch(a.keep)
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     from treelib import archive_object

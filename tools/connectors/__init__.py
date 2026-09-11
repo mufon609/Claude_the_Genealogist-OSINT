@@ -6,7 +6,11 @@ The contract, and nothing else:
   RATE        {kind: requests per minute} the source documents, per request kind; the runner paces to it.
   requests(fields) -> [{"url": ..., "kind": "search", ...}]
               the requests a search step's rendered fields turn into, without sending them (--dry-run shows these); anything
-              else on the request (a year window, the words searched) comes back to hits().
+              else on the request (a year window, the words searched) comes back to hits(). Three keys the runner reads:
+              "data": {field: value} is posted to the url as a form, for a source whose search only posts; "locator" is the
+              identity the response is archived under when the url alone does not carry the query (a posted search);
+              "record": True says the response is itself the record (a results page listing what was found), read by the
+              extractor as a hit's own record would be.
   total(body) -> int or None
               how many results the source says it has for the request, from the response bytes; goes in the log note.
   hits(url, body[, request]) -> [hit]

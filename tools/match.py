@@ -37,7 +37,7 @@ skipped, so re-running adds nothing.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, ulid
-from catalog import COUNTRY, SUFFIX, Catalog, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
+from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 
 MATCHER = ("rule", "matcher", "0.1.0")
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -203,11 +203,14 @@ def candidate(cat, pid):
             "events": {"Birth": b["event"], "Death": d["event"], "Burial": bu["event"]}}      # the events compared, for the rule's ground
 
 def persons_for(cx, sha):
-    """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, a fetch step pointing at
-    its locator, or an accepted persona link on it (question and step None)."""
-    rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id, sp.on_json='[]' AS own, l.executed_at, sp.seq FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
-                          WHERE l.artifacts_json LIKE ? ORDER BY own DESC, l.executed_at, sp.seq""", (f'%"{sha}"%',)).fetchall()
-    rows = [r[:3] for r in rows]                                  # the step whose citation sits on the person themselves first, then in the order logged
+    """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, the persons the
+    logged fetch step's citation sits on (a record fetched on a relative's footprint step is that relative's own record, and
+    the file's claim that it is theirs is the question put to them), a fetch step pointing at its locator, or an accepted
+    persona link on it (question and step None)."""
+    rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id, sp.on_json='[]' AS own, l.executed_at, sp.seq, sp.locator_kind, sp.locator_value
+                          FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? ORDER BY own DESC, l.executed_at, sp.seq""", (f'%"{sha}"%',)).fetchall()
+    cited = [(who, r[1], r[2]) for r in rows if r[6] == "apid" and r[7] for who in cited_persons(cx, r[7])]   # the citation's own people, under the step that fetched it
+    rows = [r[:3] for r in rows] + cited                          # the step whose citation sits on the person themselves first, then in the order logged, then the cited
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if loc and loc[0] and loc[1]:
         values = sorted(holds(cx, sha)) if loc[0] == "apid" else [loc[1]]      # the ids the artifact holds: the household it names, or the whole sheet for an image
@@ -287,7 +290,8 @@ def match(cx, eid, by, about=None):
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pr["id"])).fetchone(): continue
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
-            if pr["id"] in chosen and pr["role"] == "named in the text" and pr["id"] in nearly: continue   # a name in running text on the name alone is a hint on the page, not a card
+            if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
+                continue                                          # a row on a results page, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card: its own record is the document
             if pr["id"] in nearly and (any(o != pr["id"] and o not in nearly and chosen[o]["id"] == chosen[pr["id"]]["id"] for o in chosen)
                                        or cx.execute("""SELECT 1 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pe.extraction_id=? AND pp.status='accepted' AND pp.person_id=?""", (eid, chosen[pr["id"]]["id"])).fetchone()):
                 continue                                          # another persona on this page fits, or is accepted as, that person: one decision put once; the near one stays a hint on the page

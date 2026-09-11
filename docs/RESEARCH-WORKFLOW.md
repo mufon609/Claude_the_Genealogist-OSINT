@@ -201,7 +201,7 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 
 | Mode | Sources | Behaviour |
 |---|---|---|
-| auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text search, WikiTree; FamilySearch after Innovator approval, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
+| auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text and title search, WikiTree, the VA gravesite locator; FamilySearch after Innovator approval, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
 | assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
 
 **Adjusting a prefilled search.** A person at the keyboard may change the
@@ -283,7 +283,9 @@ against the person and their relatives, dates compared as dates (a different
 day in the same year disagrees; a bare year against a full date agrees on the
 year only and says so), and a `persona_match` proposal only for a row that
 agrees on the surname and on at least one of birth date, death date or burial
-place with nothing disagreeing. A row that fits nobody gets no proposal; it
+place; a disagreement beside such an agreement stands in the rationale, the
+likely identity and the difference together. A row that agrees on the name
+alone, or fits nobody, gets no proposal; it
 stays a candidate on the page, and the candidate card lists every row with
 its fields as agrees, disagrees or absent and its memorial URL. No fit at all
 sets the run to `none`. Nothing is fetched by the audit: a candidate the owner
@@ -313,10 +315,16 @@ site's own name search), and on the Internet Archive's full-text search
 `ia_newspapers` on H07 (the newspaperarchive collection, an obituary step
 keeping the death year and the next), `ia_directories` on K01 (items with
 directory in the title, the person's adult years) and `ia_books` on L02
-(genealogies and histories by title, hints), and `wikitree` on B04 (the
+(genealogies and histories by title, hints; a fetch step whose citation names
+a book asks the Archive's advanced search for the title and reads the copies
+found, the search inside each for the citation's surname), `wikitree` on B04 (the
 shared tree's search by name and birth or death year, each profile fetched
 with its parents, spouses, children and siblings; a page anyone can edit, so
-always a card). `tools/run_step.py` runs an auto step at every
+always a card), and `va_graves` on E03 (the Nationwide Gravesite Locator's
+own search, posted by surname and first given name with the step's death
+year; the results page is the record: each veteran's name, dates of birth and
+death, rank, branch, war period, cemetery, section and site).
+`tools/run_step.py` runs an auto step at every
 connector its sources have, one log row per source: the connector turns the
 step's rendered fields into requests, every response is archived as it came
 with the request URL as locator, each hit's own transcription or text and
@@ -329,8 +337,12 @@ connector: the 1950 site takes the citation's surname within its enumeration
 district and answers with the household's schedule, whose every row becomes a
 persona and whose image is archived beside it; the page is logged found on
 every household member's step that cites the same year, district, place and
-page. A schedule row that fits nobody stays on the page. Every other search
-step is `assisted` or `awaiting_approval`.
+page. A schedule row that fits nobody stays on the page. The Archive takes a
+cited book's title and the gravesite locator the citation's name; a citation
+that names no book gives the Archive nothing to ask, and that step is listed
+for a hand. A connector's request may post a form, name the identity its
+response is archived under, and say the response is itself the record. Every
+other search step is `assisted` or `awaiting_approval`.
 
 Open sources with connectors are the standard path and Ancestry is the
 exception: a step runs automatically wherever a free source with a documented
@@ -436,7 +448,10 @@ still proposed as that candidate, with the disagreement in its rationale, so
 the owner sees the likely identity and the difference together; the rule never
 takes such a proposal, and when another persona on the same page fits that
 candidate, or is already accepted as them, the near one is not proposed at
-all: one decision is put once, and the near persona stays a hint on the page. One proposal per persona: `persona_match`
+all: one decision is put once, and the near persona stays a hint on the page.
+A row of a results page, a schedule row or a name in running text that agrees
+on the name alone is a hint on the page too, never a card: its own record is
+the document. One proposal per persona: `persona_match`
 with the candidate that fits, or `new_person` when nobody does. The rationale
 is plain words, which fields agree, which disagree, which are absent; no score
 is stored or shown. A proposal carries the step's question when the step has
@@ -475,7 +490,7 @@ and nothing else.
 `persona_match` on the owner's behalf when the record's collection is of a kind
 that identifies a person fully (§0's list: a census from 1850, a 1950 schedule,
 a certificate or index of birth, death or marriage, Social Security, service
-records; an obituary collection, a land or public records index is a hint) and
+records, a veteran's gravesite; an obituary collection, a land or public records index is a hint) and
 its source is one nobody can edit at will (T1–T3), the given name and surname
 agree with the accepted name, at least two accepted facts agree (birth date,
 death date, a death or burial place, a stated relationship to a person the

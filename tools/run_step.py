@@ -5,11 +5,13 @@ usage: tools/run_step.py <step id> [--dry-run] [--db catalog/tree.db] [--tree sl
        tools/run_step.py --all [--dry-run] ...
 
 A search step's fields, after the person's include and revise, become the connector's requests (tools/connectors/); a fetch
-step's are the citation's own details (the name the citation sits on, the census place, the enumeration district), and a
-page found is logged found on every household member's step that cites the same page. Every
-request goes out with treelib.USER_AGENT at the source's documented rate; every response is archived as it came, a JSON
-artifact whose locator is the request URL and whose source is the registry row; each hit's own transcription, text or
-image is fetched and archived the same way with what the response said about it in the manifest notes. One search_log
+step's are the citation's own details (the name the citation sits on, the census place, the enumeration district, a book's
+title), and a page found is logged found on every household member's step that cites the same page. Every
+request goes out with treelib.USER_AGENT at the source's documented rate, posted as a form when the connector gives it form
+data; every response is archived as it came, an artifact whose locator is the request URL (or the identity the connector
+names for a posted search) and whose source is the registry row; each hit's own transcription, text or
+image is fetched and archived the same way with what the response said about it in the manifest notes, and a search
+response the connector marks as the record itself is read as one. One search_log
 row records the exact query, the outcome (found when a hit was archived, none when the source answered with nothing,
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
@@ -19,7 +21,7 @@ fetch (an item's metadata, then the search inside it, then its pages: connector.
 --all runs every planned step a connector can take, in plan order, keeping each connector's pace across steps.
 --dry-run prints the requests and sends nothing.
 """
-import argparse, http.client, json, os, sqlite3, sys, time, urllib.error, urllib.request
+import argparse, http.client, json, os, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
 from catalog import Catalog
@@ -30,12 +32,15 @@ import connectors
 
 LAST = {}                                                        # (connector, kind) -> time of the last request, for pacing
 
-def fetch(url, kind, conn):
-    """GET with the tool's user agent, no sooner than the connector's rate for this kind of request allows."""
+def fetch(url, kind, conn, data=None):
+    """GET, or POST when form data is given, with the tool's user agent, no sooner than the connector's rate for this kind of
+    request allows."""
     wait = 60.0 / max(conn.RATE.get(kind, 60), 1); k = (conn.__name__, kind)
     if k in LAST and time.monotonic() - LAST[k] < wait: time.sleep(wait - (time.monotonic() - LAST[k]))
     LAST[k] = time.monotonic()
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json, image/jpeg, text/plain;q=0.9, */*;q=0.5"})
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json, image/jpeg, text/plain;q=0.9, */*;q=0.5"}
+    if data: headers["Content-Type"] = "application/x-www-form-urlencoded"
+    req = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode() if data else None, headers=headers)
     with urllib.request.urlopen(req, timeout=60) as r:
         return r.read(), {"status": r.status, "etag": r.headers.get("ETag"), "last_modified": r.headers.get("Last-Modified"), "final_url": r.url,
                           "content_type": r.headers.get("Content-Type")}
@@ -61,8 +66,8 @@ def connector_for(cat, step):
 
 def runnable(cx, cat, tree_id):
     """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector that can ask
-    for the record from the citation's details (a book cited by title at the Archive gives the books connector nothing to ask
-    yet; that step stays a link for a hand)."""
+    for the record from the citation's details (a book citation that names no title gives the books connector nothing to ask;
+    that step stays a link for a hand)."""
     with_conn = [sid for sid, s in cat.sources.items() if s.get("connector")]
     rows = cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
                           AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch' AND sp.locator_source_id IN ({','.join('?'*len(with_conn)) or "''"})))
@@ -102,15 +107,15 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     query = rendered_query(step["query_json"], step["revisions_json"])
     reqs = conn.requests(query)
     if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs}
-    if not reqs: return {"connector": conn.__name__.split(".")[-1], "error": "the fields give the connector nothing to ask; a surname is needed"}
+    if not reqs: return {"connector": conn.__name__.split(".")[-1], "error": "the fields give the connector nothing to ask: a surname, or for a cited book its title"}
     src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (conn.SOURCE,)).fetchone()
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")
     cid = collection_for(cx, conn); shas, records, hits, errors, totals = [], [], [], [], []
-    def keep(data, http, kind, url, notes, label=None):
+    def keep(data, http, kind, url, notes, label=None, locator=None):
         mime = (http.get("content_type") or "").split(";")[0].strip() or {"json": "application/json", "text": "text/plain", "image": "image/jpeg"}[kind]
         if kind in ("json", "search", "text") and mime.startswith("text/html"): mime = "application/json" if data[:1] in (b"{", b"[") else mime
-        sha, _ = archive_object(cx, data, mime=mime, source_id=conn.SOURCE, collection_id=cid, collection_name=conn.COLLECTION, locator_kind="url", locator_value=url,
+        sha, _ = archive_object(cx, data, mime=mime, source_id=conn.SOURCE, collection_id=cid, collection_name=conn.COLLECTION, locator_kind="url", locator_value=locator or url,
                                 retrieved_by=by, terms=terms, cost=cost, trust_tier=tier, notes=dumps(notes) if notes else (label or ""), http=http)
         if sha not in shas: shas.append(sha)
         return sha
@@ -128,17 +133,20 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
     for rq in reqs:
-        url = rq["url"]
+        url = rq["url"]; pages = 1
         while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
-            try: data, http = fetch(url, rq["kind"], conn)
+            first = url == rq["url"]                             # the request as the connector gave it; a later page is a GET of the URL the connector named
+            try: data, http = fetch(url, rq["kind"], conn, rq.get("data") if first else None)
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); break
-            keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": query})
+            sha = keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": query}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
             if url == rq["url"]:
                 try: totals.append(conn.total(data))
                 except ValueError: totals.append(None)
                 try: asked.append(conn.narrow(url, data) if hasattr(conn, "narrow") else None)
                 except ValueError: pass
             page_hits = conn.hits(url, data, rq) if conn.hits.__code__.co_argcount > 2 else conn.hits(url, data)
+            if rq.get("record") and page_hits: records.append(sha)   # the response is the record itself (a results page listing what was found); an empty answer is not a record
+            pages += 1
             try: url = conn.next_page(url, data) if hasattr(conn, "next_page") and rq["kind"] == "search" else None
             except ValueError: url = None
             for h in page_hits:

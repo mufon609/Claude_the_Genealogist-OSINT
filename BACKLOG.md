@@ -144,6 +144,19 @@ only as records under the step's log. Show a reviewed person's hints as the
 doc says: each with what agrees, what is missing and the page, for research
 when the leads run dry, never as a feed.
 
+### C8. A connector for the Pennsylvania Newspaper Archive
+
+The archive at panewsarchive.psu.edu runs Open ONI and answers a declared
+tool: a JSON page search (`/search/pages/results/?searchType=advanced&proxtext=…&date1=YYYY-MM-DD&date2=…&dateFilterType=range&format=json`,
+each item with its page id, title, date, city, county and the page's OCR
+text) and a page's text at `<page id>ocr.txt`; titles 1789–2013, few after
+the 1920s (`data/DATA-SOURCES.md` §4). Its registry row (H03) is on every
+obituary step's sources. Build the connector when an obituary step for a
+Pennsylvania death exists on a reviewed person, so it is tested on a real
+step: a hit's record is the page's OCR text, read as the loc.gov text is
+(one persona per place the surname stands, a name and nothing else), which
+needs the extractor to claim a plain-text response by the runner's notes.
+
 ### C9. Fold the repeated assertions one decision wrote
 
 Two events carry the same statement of the same record several times over
@@ -188,16 +201,17 @@ the row to `data/holders.csv` with the collection's own search URL shape, so
 the step becomes an assisted fetch or a search at the free holder. Where no
 free holder exists, say so on the registry row.
 
-### C13. A cited book fetched by its title through the Archive connector
+### C13. A connector for Open Archives, the Dutch records
 
-The Family History Books and North America Family Histories citations name
-the book (`citation` or `book title`); their fetch steps now point at the
-Archive's title search as an assisted link. The `ia_books` connector asks the
-Archive by a surname and a state, so it has nothing to ask from such a step and
-the runner leaves it alone. Give the connector a title request (the Archive's
-advanced search by title, the item's own page and search-inside as the hits),
-so a cited book comes in on its own and the citation's page can be found
-inside it.
+api.openarch.nl answers a declared tool with no key: `records/search.json`
+by name and event place (each record's person name, event type, date and
+place, source type, archive and identifier) and `records/show.json` for one
+record in A2A shape, the persons with their roles (Dopeling, Vader, Moeder)
+and the event (`data/DATA-SOURCES.md` §4). Its registry row (I07) is the
+church row's source for a Netherlands-born person. Build the connector, with
+an extractor for the A2A record (one persona per person with a relation to
+the record's subject, the event as the fact), when such a person is reviewed
+and the step exists, so it is tested on a real step.
 
 ---
 

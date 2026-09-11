@@ -46,8 +46,8 @@ from match import REL_OF, candidate, compare, match, personas_of
 from plan import plan_person
 
 SKIP = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
-AUTOMATED = ("familysearch-record", "nara-1950-schedule")               # parsers of record pages; the collection says whether the record identifies a person fully
-IDENTIFYING = re.compile(r"census|\bbirths?\b|\bdeaths?\b|\bmarriages?\b|\bvital\b|certificate|social security|numident|\bdraft\b|military|veteran|enlist|pension", re.I)   # §0's automated kinds
+AUTOMATED = ("familysearch-record", "nara-1950-schedule", "va-gravesite")   # parsers of record pages; the collection says whether the record identifies a person fully
+IDENTIFYING = re.compile(r"census|\bbirths?\b|\bdeaths?\b|\bmarriages?\b|\bvital\b|certificate|social security|numident|\bdraft\b|military|veteran|gravesite|enlist|pension", re.I)   # §0's automated kinds
 EDITABLE = re.compile(r"find a grave|billiongraves|member tree|family tree", re.I)    # a page anyone can edit, whoever indexes it
 TRUSTED = ("T1", "T2", "T3")                            # a record the rule may act on or count: not one anyone can edit (T4)
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).

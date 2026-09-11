@@ -106,6 +106,7 @@ EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("r
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
+              "va_graves": ("rule", "va-gravesite", "0.1.0"),
               None: ("rule", "extract", "0.1.0")}
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
 
@@ -381,11 +382,26 @@ def parse(text):
     if FS_SEARCH_MARK.search(text): return "familysearch_search", parse_fs_search(text)
     if AAD_MARK.search(text) and re.search(r'<table[^>]*\bid="queryResults"', text): return "aad_search", parse_aad_search(text)
     if AAD_MARK.search(text) and re.search(r"Display Full Records", text): return "aad_record", parse_aad_record(text)
+    if VA_MARK.search(text) and re.search(r"Grave Locator", text): return "va_graves", parse_va(text)
     page = parse_page(text)
     if page["fields"] or page["household"]: return "ancestry", page
     return None, {"reason": "no parser claims this page: not a Find a Grave memorial or search results page, not a FamilySearch record page, and no table pairs a label cell with a value cell"}
 
 AAD_MARK = re.compile(r"Access to Archival Databases \(AAD\)|<title>NARA - AAD")
+VA_MARK = re.compile(r'<table[^>]*\bid="searchResults"')
+
+def va_name(s):
+    """A name as the gravesite locator writes it, DAVIDSON, RAYMOND E, the right way round: Raymond E Davidson."""
+    parts = [p.strip() for p in (s or "").split(",", 1)]
+    words = parts[1].split() + parts[0].split() if len(parts) == 2 else (s or "").split()
+    return " ".join(w.capitalize() for w in words)
+
+def parse_va(text):
+    """A results page of the VA's Nationwide Gravesite Locator: {"kind": "va_graves", "url" (the saved-from comment when the page
+    was saved by hand), "count", "rows"} with the rows as connectors/va_graves.results reads the page."""
+    from connectors.va_graves import results, total
+    saved = re.search(r"<!-- saved from (\S+) -->", text[:4000])
+    return {"kind": "va_graves", "url": html.unescape(saved.group(1)) if saved else None, "count": total(text), "rows": results(text), "fields": []}
 AAD_RECORD = "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&tf=F&bc=,sl,fd&rid="
 
 def aad_name(text):
@@ -672,6 +688,24 @@ def write_aad_search(w, parsed):
 
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
+def write_va(w, parsed):
+    """One persona per decedent the gravesite locator lists: the name the right way round, the dates of birth and death as
+    written (month first), the burial in the cemetery at its town and state with the section and site as the plot, rank and
+    branch and the war period as one Military Service attribute, the row and the page in the region. A row is a result: one
+    that fits nobody stays on the page as a hint."""
+    from connectors.nara_1950 import ABBR
+    states = {v: k.title() for k, v in ABBR.items()}
+    for r in parsed["rows"]:
+        name = va_name(r.get("name")) or "(unnamed)"
+        pid = w.persona(name, None, "result", r["n"], {"label": "result", "row": r["n"], "name_as_written": r.get("name"), "url": parsed.get("url")})
+        w.fact(pid, "Name", name, labels=["Name"])
+        if r.get("birth"): w.fact(pid, "Birth", None, r["birth"], None, ["Date of Birth"])
+        if r.get("death"): w.fact(pid, "Death", None, r["death"], None, ["Date of Death"])
+        place = ", ".join(x for x in (r.get("cemetery"), (r.get("city") or "").title() or None, states.get(r.get("state")) or r.get("state")) if x) or None
+        if place or r.get("buried_at"): w.fact(pid, "Burial", f"Plot: {r['buried_at']}" if r.get("buried_at") else None, None, place, ["Cemetery", "Buried At", "Cemetery Address"])
+        service = ", ".join(x for x in (r.get("rank_branch"), r.get("war")) if x)
+        if service: w.fact(pid, "Military Service", service, labels=["Rank & Branch", "War Period"])
+
 def write_aad_record(w, parsed):
     """The enlistee: the name the right way round; the birth year; the nativity as the birth place; a Residence in the county and
     state on the enlistment date; the enlistment itself as Military Service at the place of enlistment; marital status, education
@@ -745,6 +779,13 @@ def _asked(notes):
         words = notes["query"].split(); q = {"surname": words[0], **({"given": " ".join(words[1:])} if len(words) > 1 else {})}
     return q
 
+def _searched(ctx):
+    """The surname and given name a text was searched for: the run's query when it carries a surname (a search step), else
+    what the connector noted on the response (a fetch step's fields are the citation's, a name and a book; the connector
+    split the name)."""
+    q = ctx["query"] or {}
+    return q if q.get("surname") else {**q, **_asked(ctx["notes"])}
+
 def parse_json(data, ctx):
     """A connector response's kind and parsed form: a 1950 census schedule from the National Archives site (results with
     scheduleId and names), the OCR text of a Chronicling America page from loc.gov's text service (segments with full_text),
@@ -756,14 +797,14 @@ def parse_json(data, ctx):
         return "nara1950", {"kind": "nara1950", "schedule": res[0], "matched": ctx["notes"].get("matched") or [], "fields": []}
     if isinstance(d, dict) and d and all(isinstance(v, dict) and "full_text" in v for v in d.values()):
         seg, body = next(iter(d.items()))
-        return "locgov", {"kind": "locgov", "segment": seg, "full_text": body["full_text"] or "", "page": ctx["notes"], "step_type": ctx["step_type"], "query": ctx["query"] or _asked(ctx["notes"]), "fields": []}
+        return "locgov", {"kind": "locgov", "segment": seg, "full_text": body["full_text"] or "", "page": ctx["notes"], "step_type": ctx["step_type"], "query": _searched(ctx), "fields": []}
     if isinstance(d, list) and d and isinstance(d[0], dict) and isinstance(d[0].get("profile"), dict) and d[0]["profile"].get("Name"):   # a WikiTree profile with its relatives
         return "wikitree", {"kind": "wikitree", "profile": d[0]["profile"], "fields": []}
     if isinstance(d, dict) and "ia" in d and "matches" in d and "q" in d:      # the Archive's search inside one item: matches with their text and page
         n = ctx["notes"]; pages = n.get("pages") or []           # the pages the runner chose and fetched images of (connectors/ia.py)
         text = "\n".join(re.sub(r"</?IA_FTS_MATCH>", "", m.get("text") or "") for m in d["matches"] or [] if any(p.get("page") in pages for p in m.get("par") or []))
         page = {"date": n.get("date") or (str(n["year"]) if n.get("year") else None), "title": n.get("title"), "item": n.get("item"), "pages": pages}
-        return "ia_inside", {"kind": "ia_inside", "segment": d["ia"], "full_text": text, "page": page, "step_type": ctx["step_type"], "query": ctx["query"] or _asked(ctx["notes"]), "fields": []}
+        return "ia_inside", {"kind": "ia_inside", "segment": d["ia"], "full_text": text, "page": page, "step_type": ctx["step_type"], "query": _searched(ctx), "fields": []}
     return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text, not the Archive's search inside an item"}
 
 def write_schedule(w, parsed):
@@ -832,6 +873,7 @@ def extract(cx, sha, by):
     elif kind == "wikitree": full_text = "\n".join(f"{k}: {v}" for k, v in parsed["profile"].items() if isinstance(v, (str, int)) and v not in ("", None))
     elif kind == "aad_search": full_text = "\n".join(f"{r['n']}: {r['name']} b. {r['birth_year'] or '?'} {r['county'] or ''} {r['state'] or ''} enlisted {r['enlisted_year'] or '?'}" for r in parsed["rows"])
     elif kind == "findagrave_search": full_text = "\n".join(f"{r['n']}: {r['name']} {r['birth'] or ''}-{r['death'] or ''} {r['cemetery'] or ''} {r['place'] or ''} memorial {r['memorial_id']}" for r in parsed["rows"])
+    elif kind == "va_graves": full_text = "\n".join(f"{r['n']}: {r.get('name')} {r.get('birth') or ''}-{r.get('death') or ''} {r.get('rank_branch') or ''} {r.get('war') or ''} {r.get('cemetery') or ''} {r.get('buried_at') or ''}" for r in parsed["rows"])
     elif kind == "familysearch_search": full_text = "\n".join(f"{r['n']}: {r['name']} " + "; ".join(f"{e['label']} {e['date'] or ''} {e['place'] or ''}".strip() for e in r["events"]) + " " + "; ".join(f"{k} {', '.join(v)}" for k, v in (r["relations"] or {}).items()) + f" {r['ark']}" for r in parsed["rows"])
     elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
     else: full_text = parsed["full_text"]
@@ -847,7 +889,7 @@ def extract(cx, sha, by):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
     {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "familysearch_search": write_fs_search, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
-     "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree}.get(kind, write_personas)(w, parsed)
+     "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))

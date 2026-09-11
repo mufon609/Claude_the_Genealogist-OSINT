@@ -1,0 +1,1001 @@
+
+
+
+
+
+
+
+
+		<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="National Cemetery Administration">
+    <meta name="dcterms.subject" content="National Cemetery Administration Press Room">
+    <meta name="keywords" content="cemetery, cemeteries, cemetary, burial, benefits, headstone, marker, veterans, military, national cemetery, national cemeteries, military records, medals, honor guard, grave, gravesite, memorial day, veteran gravesite locator, search veteran gravesite">
+    <meta name="dcterms.created" content="20080303">
+    <meta name="dcterms.dateAccepted" content="20160804">
+    <meta name="dcterms.type" content="National Cemetery Administration">
+    <meta http-equiv="X-UA-Compatible" content="IE=11,chrome=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	
+    <script type="text/javascript" src="/ngl/ruxitagentjs_ICA7NVfghqrux_10343260715123811.js" data-dtconfig="app=ea7c4b59f27d43eb|ssc=1|owasp=1|featureHash=ICA7NVfghqrux|rdnt=1|uxrgce=1|cuc=e0lcgmjb|mel=100000|dpvc=1|md=mdcc1=cissSecId|lastModification=1789068033576|tp=500,50,0|srbbv=2|agentUri=/ngl/ruxitagentjs_ICA7NVfghqrux_10343260715123811.js|reportUrl=/ngl/rb_65aa2f7a-2a1d-4836-9cfb-f98e8ba3af74|rid=RID_-1911554183|rpid=-529018743|domain=va.gov"></script><link href="/ngl/va_files/2012/bootstrap-5.2.2-dist/css/bootstrap.min.css" media="all" rel="stylesheet" type="text/css">     
+    
+	<link href="/ngl/va_files/2012/styles/template_styles.css" media="all" rel="stylesheet" type="text/css">
+ 	<script src="/ngl/va_files/2012/scripts/jquery-1-10-1-min.js" type="text/javascript"></script>
+ 	<script src="/ngl/va_files/2012/scripts/jquery-tools-min.js" type="text/javascript"></script>
+    <script async="" src="https://www.google-analytics.com/analytics.js"></script>
+    <script id="_fed_an_ua_tag" language="javascript" src="https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?ver=true&amp;agency=VA&amp;pua=ua-46839167-1"></script>
+
+
+        <meta name="description" content="Search for burial locations of veterans and their family members. The VA National Cemetery Administration honors the military service of our Nation's veterans.  We provide a dignified burial and lasting memorial for veterans and their eligible family members and we maintain our veterans' cemeteries as national shrines.">		
+		<title>Grave Locator - Search Result</title>
+		
+		
+		<script src='/ngl/js/nglmain.js' type='text/javascript'></script>
+	    <script type="text/javascript" language="javascript">
+		  $(document).ready(function() 
+			{	loadLinks();
+				if ($('#err-msg-conn').text().length > 0) {
+					window.location.hash = '#err-msg-conn';
+					return;
+				}
+	
+				if ($('#err-msg').text().length > 0) {
+					window.location.hash = '#err-msg';
+				} else {
+					window.location.hash = '#results-content';
+				}
+			}); 
+</script>
+
+<script type="text/javascript" language="javascript">
+
+    function externalaLinkMsg() {
+        window.alert ("You are now leaving the Department of Veterans Affairs Website.  VA does not endorse and is not responsible for the content of the linked website.");}
+    
+        
+    function externalgLinkMsg() {
+        window.alert ("You are now leaving the Department of Veterans Affairs Website.");
+    }
+    
+   
+    function loadLinks() {
+    	sessionVeteranDetails = localStorage.getItem("sessionVeteranDetails");
+		
+    	if(sessionVeteranDetails){
+
+    		if(null!==document.getElementById("pagination")){
+	    		children = document.getElementById("pagination").getElementsByTagName("a");
+	    		
+	    		for(var i = 0;i < children.length; i++){
+	    			children[i].href = children[i].href.concat("/",sessionVeteranDetails);
+	    		}
+	    	}
+    	}else{
+    	
+    		sessionVeteranDetails = JSON.stringify({"nl":"RGF2aWRzb24=","nlOpt":"MQ==","nf":"UmF5bW9uZA==","nfOpt":"MQ==","nm":"","nmOpt":"MQ==","pmb":"","pyb":"","pmd":"","pyd":"","cm":"","pn":"MQ==","nfp":"Mw==","nglUP":"MQ=="});
+    		localStorage.setItem("sessionVeteranDetails",sessionVeteranDetails);
+    		if(null!==document.getElementById("pagination")){
+	    		children = document.getElementById("pagination").getElementsByTagName("a");
+	    		
+	    		for(var i = 0;i < children.length; i++){
+	    			children[i].href = children[i].href.concat("/",sessionVeteranDetails);
+	    		}
+	    	}
+	 	}
+    };
+    
+</script>
+
+</head>
+
+
+<body>
+	
+	<div class="container-fluid" role="main">
+
+		<div  class="card-header">
+			<div class="col-sm-8">
+				<h2 id="ngloc" class="page-title ps-3 pt-2 pb-2" style="display: block;">Nationwide Gravesite Locator</h2>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-sm-12 pt-1">
+				<p><a href="/ngl" aria-label="Back to Main Search Page">Main Search Page</a> &raquo; Search Results</p>
+			</div>
+		</div>
+
+		<div class="row">
+			<div class="col-sm-12">
+		 		<p id="results-content">Displaying 1 to 10 of
+					22 decedent's name found.</p>
+			</div>
+		</div>	
+		
+			<table id="searchResults" border="0" class="table table-borderless">
+				<caption>Search result</caption>
+				<thead class="table-border-color">
+					<tr>
+						<th colspan="1" scope="col" class="col-sm-1 table-border-color results-info">Result Number</th>
+						<th colspan="1" scope="col" class="col-sm-3 table-border-color results-info">Data Description</th>
+						<th colspan="1" scope="col" class="col table-border-color results-info">Detail Information</th>
+					</tr>
+				</thead>
+
+				<tbody class="table-border-color table-header-spacing">
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="9"><div class="p-2">1</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND   JR</div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">SGT US MARINE CORPS </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">WORLD WAR II | KOREA </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">12/20/1926</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">01/07/2012</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Buried At:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">SECTION 404 SITE 640
+									<a href="/ngl/NGLMap?ID=8544547"
+										target="_blank"><img style="vertical-align: bottom; margin-bottom: 0" name="viewmap" src="/ngl/img_ngl/btnViewMap_new.gif"
+										alt="Click to view the Map Layout for FLORIDA NATIONAL CEMETERY" aria-label="Click to view the Map Layout for FLORIDA NATIONAL CEMETERY link button opens in new tab"
+									border="0"></a>
+									</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="http://www.cem.va.gov/cems/nchp/florida.asp" target="_blank">FLORIDA NATIONAL CEMETERY</a></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">FLORIDA NATIONAL CEMETERY, 6502 SW. 102ND AVE.  BUSHNELL, FL 33513<a aria-label="Directions to FLORIDA NATIONAL CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=28.607875,-82.208927">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 3527937740" 
+									arial-label="Click or press enter to place a call to telephone number  352 793 7740">(352) 793-7740</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="9"><div class="p-2">2</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND    </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">ARM3 US NAVY </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">WORLD WAR II </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">11/19/1924</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">08/04/1988</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Buried At:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">SECTION 2Y SITE 1253
+									<a href="/ngl/NGLMap?ID=1946870"
+										target="_blank"><img style="vertical-align: bottom; margin-bottom: 0" name="viewmap" src="/ngl/img_ngl/btnViewMap_new.gif"
+										alt="Click to view the Map Layout for LONG ISLAND NATIONAL CEMETERY" aria-label="Click to view the Map Layout for LONG ISLAND NATIONAL CEMETERY link button opens in new tab"
+									border="0"></a>
+									</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="http://www.cem.va.gov/cems/nchp/longisland.asp" target="_blank">LONG ISLAND NATIONAL CEMETERY</a></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">LONG ISLAND NATIONAL CEMETERY, 2040 WELLWOOD AVENUE  FARMINGDALE, NY 11735-1211<a aria-label="Directions to LONG ISLAND NATIONAL CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=40.750564,-73.401496">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 6314544949" 
+									arial-label="Click or press enter to place a call to telephone number  631 454 4949">(631) 454-4949</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="7"><div class="p-2">3</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND    </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">PO3 US NAVY </div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">07/06/1956</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">04/28/2012</div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><p style="font-size:12px;">DYNASTY GARDENS CEMETERY</p></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">DYNASTY GARDENS CEMETERY, 1585 EDWARDS STREET  DOLOMITE, AL 35061<a aria-label="Directions to DYNASTY GARDENS CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=DYNASTY GARDENS CEMETERY, 1585 EDWARDS STREET  DOLOMITE, AL 35061">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 2057449077" 
+									arial-label="Click or press enter to place a call to telephone number  205 744 9077">(205) 744-9077</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="8"><div class="p-2">4</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND    </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">PFC US ARMY </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">KOREA </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">01/21/1934</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">05/09/2001</div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><p style="font-size:12px;">BELVIDERE CEMETERY</p></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">BELVIDERE CEMETERY, 1121 NORTH MAIN STREET  BELVIDERE, IL 61008<a aria-label="Directions to BELVIDERE CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=BELVIDERE CEMETERY, 1121 NORTH MAIN STREET  BELVIDERE, IL 61008">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 8155477642" 
+									arial-label="Click or press enter to place a call to telephone number  815 547 7642">(815) 547-7642</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="8"><div class="p-2">5</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND A  </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">HA1 US NAVY </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">WORLD WAR II </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">03/26/1924</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">08/07/2000</div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><p style="font-size:12px;">GARY ROSIELLO</p></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">GARY ROSIELLO, 100 MAPLE AVE  SHREWSBURY, MA 01545<a aria-label="Directions to GARY ROSIELLO via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=GARY ROSIELLO, 100 MAPLE AVE  SHREWSBURY, MA 01545">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 5088418560" 
+									arial-label="Click or press enter to place a call to telephone number  508 841 8560">(508) 841-8560</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="8"><div class="p-2">6</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND ALLEN  </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">TSGT US AIR FORCE </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">PERSIAN GULF </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">05/11/1964</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">04/28/2007</div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><p style="font-size:12px;">HILLCREST MEMORIAL PARK</p></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">HILLCREST MEMORIAL PARK, 2619 E STATE ST  HERMITAGE, PA 16148<a aria-label="Directions to HILLCREST MEMORIAL PARK via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=HILLCREST MEMORIAL PARK, 2619 E STATE ST  HERMITAGE, PA 16148">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 7243463818" 
+									arial-label="Click or press enter to place a call to telephone number  724 346 3818">(724) 346-3818</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="8"><div class="p-2">7</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND B  </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">CPL US ARMY </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">WORLD WAR II </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">09/28/1919</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">05/06/2012</div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><p style="font-size:12px;">HILLCREST CEMETERY</p></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">HILLCREST CEMETERY, 130TH ST  FLORENCE, KS 66851<a aria-label="Directions to HILLCREST CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=HILLCREST CEMETERY, 130TH ST  FLORENCE, KS 66851">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 6203827143" 
+									arial-label="Click or press enter to place a call to telephone number  620 382 7143">(620) 382-7143</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="9"><div class="p-2">8</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND C  </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">PNA2 US NAVY </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">WORLD WAR II | KOREA </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">07/15/1927</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">06/17/1994</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Buried At:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">SECTION G SITE 4319
+									<a href="/ngl/NGLMap?ID=5163096"
+										target="_blank"><img style="vertical-align: bottom; margin-bottom: 0" name="viewmap" src="/ngl/img_ngl/btnViewMap_new.gif"
+										alt="Click to view the Map Layout for BLACK HILLS NATIONAL CEMETERY" aria-label="Click to view the Map Layout for BLACK HILLS NATIONAL CEMETERY link button opens in new tab"
+									border="0"></a>
+									</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="http://www.cem.va.gov/cems/nchp/blackhills.asp" target="_blank">BLACK HILLS NATIONAL CEMETERY</a></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">BLACK HILLS NATIONAL CEMETERY, 20901 PLEASANT VALLEY DRIVE  STURGIS, SD 57785<a aria-label="Directions to BLACK HILLS NATIONAL CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=44.370541,-103.474052">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 6053473830" 
+									arial-label="Click or press enter to place a call to telephone number  605 347 3830">(605) 347-3830</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="8"><div class="p-2">9</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND C  </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">T SGT US ARMY </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">WORLD WAR II </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">08/17/1912</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">05/30/2000</div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><p style="font-size:12px;">FAIRLAWN CEMETERY</p></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">FAIRLAWN CEMETERY, 1123 EAST 6TH AVENUE  STILLWATER, OK 74074<a aria-label="Directions to FAIRLAWN CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=FAIRLAWN CEMETERY, 1123 EAST 6TH AVENUE  STILLWATER, OK 74074">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 4053725550" 
+									arial-label="Click or press enter to place a call to telephone number  405 372 5550">(405) 372-5550</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+					
+						
+						<tr>
+							<th class="table_row_labels item-number text-center" scope="rowgroup" rowspan="8"><div class="p-2">10</div></th>
+							<th scope="row" class="m-0 p-0 colored row-header"><div class="p-2">Name:</div></th>
+							<td class="results-info m-0 p-0"><div class="p-2">DAVIDSON, RAYMOND D  </div></td>
+						</tr>
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Rank & Branch:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">A2C US AIR FORCE </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">War Period:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">KOREA </div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Birth:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">04/06/1933</div></td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Date of Death:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">07/17/2020</div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><p style="font-size:12px;">SHEFFIELD CEMETERY</p></div></td>
+							</tr>
+						
+		
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Cemetery Address:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2">SHEFFIELD CEMETERY, SHEFFIELD, PA 16347<a aria-label="Directions to SHEFFIELD CEMETERY via Google maps. Link opens in new tab outside this application"
+									target="_blank" href="http://maps.google.com/maps?q=SHEFFIELD CEMETERY, SHEFFIELD, PA 16347">&nbsp;&nbsp;<img
+									src="/ngl/img_ngl/mapIcon.png" alt="Small map image" border="0"></a></div>
+								</td>
+							</tr>
+						
+		
+						
+							<tr>
+								<th scope="row" class="p-0 m-0 row-header"><div class="p-2">Telephone:</div></th>
+								<td class="results-info m-0 p-0"><div class="p-2"><a href="tel: 8147304083" 
+									arial-label="Click or press enter to place a call to telephone number  814 730 4083">(814) 730-4083</a></div>
+								</td>
+							</tr>
+						
+		
+						
+		
+		
+						
+		
+						
+		
+						<tr tabindex="-1">
+							<td tabindex="-1" aria-label="row divider" colspan=3><hr role="presentation" class="horizontal-line" /></td>
+						</tr>
+		
+					
+				</tbody>
+			</table>
+		
+		
+		
+		
+
+		
+			
+			
+		
+
+		
+
+		
+			
+		
+
+		
+		
+
+		
+			<nav id="pagination" role="navigation"
+				aria-label="Pagination Navigation">
+				<p align="center">
+					
+					
+		     	Page: Previous&nbsp;&nbsp;|&nbsp;&nbsp;1&nbsp;&nbsp;|&nbsp;&nbsp;
+		     	
+
+					
+						
+						<!-- Encrypting the page number for url -->
+						
+						
+					
+						
+						<!-- Encrypting the page number for url -->
+						
+							<a aria-label="Go to Page 2"
+								href="/ngl/result/QebbMR2RJRKoDAGScJgzJuVqmyqAn1r2oAUD2U4=">2</a>
+	            		&nbsp;&nbsp;|&nbsp;&nbsp;
+	            	
+						
+					
+						
+						<!-- Encrypting the page number for url -->
+						
+							<a aria-label="Go to Page 3"
+								href="/ngl/result/wLzoEbpf6qwovN-nwrOWKH7s-8vYvDHZARucUGI=">3</a>
+	            		&nbsp;&nbsp;|&nbsp;&nbsp;
+	            	
+						
+					
+
+					
+						<a aria-label="Go to Next Page"
+							href="/ngl/result/1lAHS2AnK4QkAoGcnXxp7TkBqZNjNMEghZnIjXo=">Next</a>
+					
+					
+				</p>
+				<p></p>
+			</nav>
+		
+	</div>
+	<script src="/ngl/va_files/2012/bootstrap-5.2.2-dist/js/bootstrap.min.js" ></script>
+</body>
+
+

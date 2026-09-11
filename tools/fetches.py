@@ -6,7 +6,8 @@ usage: tools/fetches.py list [--json] [--tree slug] [--db catalog/tree.db]
 
 Find a Grave forbids automation and FamilySearch answers a browser only, so a cited record at such a holder is saved one page
 at a time in the owner's own browser by the page-saves-itself method (docs/RESEARCH-WORKFLOW.md §4, tools/save_page.js),
-one tab per page. `list` prints every planned fetch step whose holder has no connector, once per page, with the holder, the
+one tab per page. `list` prints every planned fetch step whose holder has no connector, or whose holder's connector has
+nothing to ask from the citation (a book cited with no title), once per page, with the holder, the
 link to open (the memorial page itself; the holder's own search prefilled from the citation's details), the people whose
 steps it fulfils, and the file name to save under (a FamilySearch page's name takes the record's own ark id from its page;
 `collect` recognises the memorial, FamilySearch and AAD names, and a page from any other holder is attached from the person
@@ -20,6 +21,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, inbox_dir, resolve_tree
 from attach import attach_inbox, line
 from catalog import Catalog, fetch_target
+from log_search import rendered_query
+import connectors
 
 MEMORIAL = re.compile(r"/memorial/(\d+)(?:/|$)")
 
@@ -38,14 +41,15 @@ def save_as(holder_id, fields, row_key, mid=None):
     return f"familysearch-{words}-{year}-<ark id>.html" if holder_id == "D03" else f"{_slug(holder_id)}-{words}-{year}-<record id>.html"
 
 def waiting(cx, tree_id):
-    """Every planned fetch step whose holder has no connector, once per page: holder, url, the people and the number of steps
-    waiting on it, whether it is a lead from a held record (locator memorial_id) or the file's citation (locator apid), and
-    the file name to save under. Steps citing one census page (the household's record ids) are one page."""
+    """Every planned fetch step whose holder has no connector, or whose connector has nothing to ask from the citation, once per
+    page: holder, url, the people and the number of steps waiting on it, whether it is a lead from a held record (locator
+    memorial_id) or the file's citation (locator apid), and the file name to save under. Steps citing one census page (the
+    household's record ids) are one page."""
     cat = Catalog(cx, tree_id); groups = cat.page_groups(); out = {}
-    for s in cx.execute("""SELECT sp.id, sp.locator_source_id, sp.locator_kind, sp.locator_value, sp.query_json, sp.row_key, p.display_name, src.name AS holder_name
-                           FROM search_plan sp JOIN person p ON p.id=sp.person_id LEFT JOIN source src ON src.id=sp.locator_source_id
-                           WHERE p.tree_id=? AND sp.kind='fetch' AND sp.mode='fetch' AND sp.status='planned' AND COALESCE(src.connector,'')=''
-                           ORDER BY sp.seq""", (tree_id,)):
+    for s in cx.execute("""SELECT sp.id, sp.locator_source_id, sp.locator_kind, sp.locator_value, sp.query_json, sp.revisions_json, sp.row_key, p.display_name,
+                           src.name AS holder_name, src.connector FROM search_plan sp JOIN person p ON p.id=sp.person_id LEFT JOIN source src ON src.id=sp.locator_source_id
+                           WHERE p.tree_id=? AND sp.kind='fetch' AND sp.mode='fetch' AND sp.status='planned' ORDER BY sp.seq""", (tree_id,)):
+        if s["connector"] and connectors.load(s["connector"]).requests(rendered_query(s["query_json"], s["revisions_json"])): continue   # the runner takes it
         fields = json.loads(s["query_json"] or "{}"); url = (fields.get("url") or {}).get("value") or ""
         hid = s["locator_source_id"]; m = MEMORIAL.search(url)
         mid = s["locator_value"] if s["locator_kind"] == "memorial_id" else (m.group(1) if m else None)

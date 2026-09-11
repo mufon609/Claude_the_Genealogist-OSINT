@@ -51,7 +51,7 @@ _QUAL = {"abt":"about","about":"about","est":"estimated","cal":"calculated",
          "bef":"before","bfr":"before","before":"before","aft":"after","after":"after"}
 
 def _ymd(s: str):
-    """'14 Mar 1852' | 'Mar 1852' | '1852' | '1701/02' -> (iso, calendar) or (None,None)."""
+    """'14 Mar 1852' | 'Mar 1852' | '1852' | '1701/02' | '10/12/1939' (month first, as US records write it) -> (iso, calendar) or (None,None)."""
     s = s.strip().rstrip(".")
     m = re.fullmatch(r"(\d{4})/(\d{2})", s)                       # dual year 1701/02
     if m:
@@ -70,6 +70,11 @@ def _ymd(s: str):
     m = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", s)
     if m:
         return s, "gregorian"
+    m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", s)
+    if m:
+        mo, d, y = (int(x) for x in m.groups())
+        if 1 <= mo <= 12 and 1 <= d <= 31:
+            return f"{y:04d}-{mo:02d}-{d:02d}", "gregorian"
     return None, None
 
 def parse_gedcom_date(text: str):

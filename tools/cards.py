@@ -163,7 +163,8 @@ def card(cx, tree_id, prop_id):
     return {"id": p["id"], "kind": p["kind"], "status": p["status"], "highlight": highlight, "person": person, "subject": subj["display_name"] if subj else None,
             "persona": {"id": pe["id"], "name": pe["name_text"], "role": pe["role_in_record"], "sex": pe["sex"]},
             "record": {"holder": holder_name, "holder_id": holder_id, "collection": own_collection or a["collection"] or ("memorial search results page" if a["locator_kind"] == "url" else None),
-                       "identity": ([f"memorial {mem}", f"on the results page {a['locator_value']}"] if pe["role_in_record"] == "result" else [f"{a['locator_kind']} {a['locator_value']}"] + own_ids), "tier": a["trust_tier"],
+                       "identity": ([x for x in (f"memorial {mem}" if mem else f"row {region['row']}" if region.get("row") else None, f"on the results page {a['locator_value']}") if x]
+                                    if pe["role_in_record"] == "result" else [f"{a['locator_kind']} {a['locator_value']}"] + own_ids), "tier": a["trust_tier"],
                        "archived": os.path.relpath(object_path(sha), DATA_ROOT), "sha256": sha, "page": page, "retrieved_at": a["retrieved_at"], "filename": a["original_filename"]},
             "fields": fields, "relationships": rels, "closes": closes, "odd": odd or ["nothing"], "rationale": p["rationale"]}
 
@@ -179,7 +180,7 @@ def render(c):
     r = c["record"]; out.append(L("Record", f"{r['holder'] or r['holder_id']}; {r['collection'] or 'collection unknown'}; {', '.join(r['identity'])}; tier {r['tier']}"))
     out.append(L("Document", f"{r['archived']}" + (f"  |  {r['page']}" if r["page"] else "")))
     for i, f in enumerate(c["fields"]):
-        out.append(L("Fields" if i == 0 else "", f"{f['field']:<14}{f['verdict']:<11}record: {f['record'] or '-'}" + (f"  |  tree: {f['tree']}" if f["tree"] else "") + (f"  [{f['note']}]" if f.get("note") else "")))
+        out.append(L("Fields" if i == 0 else "", f"{f['field']:<17}{f['verdict']:<11}record: {f['record'] or '-'}" + (f"  |  tree: {f['tree']}" if f["tree"] else "") + (f"  [{f['note']}]" if f.get("note") else "")))
     if not c["fields"]: out.append(L("Fields", "the record states nothing beyond the name"))
     for i, rl in enumerate(c["relationships"]):
         line = (f"{rl['as_written'] or rl['kind']} of {rl['other']}" if rl["direction"] == "is" else f"{rl['other']} listed under {rl['as_written'] or rl['kind']}") + f"  ({rl['other_status']})" + ("" if rl["mapped"] else "  [heading not mapped]")
