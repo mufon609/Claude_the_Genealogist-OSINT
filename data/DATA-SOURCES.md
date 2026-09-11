@@ -110,14 +110,23 @@ source and never turned into a score; the decision on a fact stays three-state.
 
 `holders.csv` maps each Ancestry collection the tree cites (by dbid) to the
 free holders of the same record set: the holder's registry row, the kind and
-key of its collection (a FamilySearch collection id, a site, a memorial URL
-from the citation itself), the collection page, and what the holder covers.
-Every FamilySearch id was checked by opening the collection page. Rows for the
-same dbid are in order of preference. A cited collection with no row here has
-no free holder yet and its fetch steps are `blocked`; the Pennsylvania death
-and birth certificates are the notable case, viewable only through Ancestry
-(free with a Pennsylvania address) since the State Archives collections left
-Power Library.
+key of its collection, the collection page, and what the holder covers. Four
+kinds: `fs_collection`, a FamilySearch indexed collection whose id is the key
+and whose own search is prefilled from the citation; `fs_images`, a
+FamilySearch images-only collection, browsed; `url`, any other holder, the key
+a search template filled from the citation's details ({given}, {surname},
+{name}, {title}, {year}, {date}, {place}, {city}, or {url} for the citation's
+own page), the holder's page opening when a detail is missing; `memorial`, the
+citation's own Find a Grave URL. Every FamilySearch id was read off the site's
+collection list with its record count (indexed) or "Browse Images"; the other
+holders' search shapes were tried in the browser. Rows for the same dbid are in
+order of preference: the Archive first for a cited book, then FamilySearch's
+Digital Library, then HathiTrust. A cited collection with no row here has no
+free holder yet and its fetch steps are `blocked`, and its registry row's notes
+say so: the Pennsylvania death and birth certificates (the State Archives'
+index pages left pa.gov), the Lancaster Mennonite and Presbyterian church
+records, the Korean and Civil War draft records, and the Colorado voter file,
+which is living-person data and is never fetched.
 
 ## 6. Deferred work
 
