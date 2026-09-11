@@ -157,19 +157,6 @@ step: a hit's record is the page's OCR text, read as the loc.gov text is
 (one persona per place the surname stands, a name and nothing else), which
 needs the extractor to claim a plain-text response by the runner's notes.
 
-### C9. Fold the repeated assertions one decision wrote
-
-Two events carry the same statement of the same record several times over
-(eight extra rows, all written by one rule decision on 7 September; the
-writers no longer repeat a statement). Keep the first row of each group and
-delete the rest, then run the checks:
-
-```
-DELETE FROM assertion WHERE id IN (SELECT a.id FROM assertion a JOIN assertion b
-  ON b.subject_kind=a.subject_kind AND b.subject_id=a.subject_id AND b.persona_fact_id=a.persona_fact_id
-  AND b.artifact_sha256=a.artifact_sha256 AND coalesce(b.notes,'')=coalesce(a.notes,'') AND b.id<a.id);
-```
-
 ### C10. Accepted links that pile up on a re-read
 
 Every re-read of a page carries the decided links to its new personas and

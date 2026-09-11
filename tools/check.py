@@ -351,6 +351,8 @@ def decisions(keep, show):
     fail(all(v["steps_new"] == 0 and v["steps_dropped"] == 0 and v["questions_new"] == 0 and v["questions_closed"] == 0 for v in st2.values()), f"a second plan run changes nothing: {[v for v in st2.values() if v['steps_new'] or v['steps_dropped'] or v['questions_new'] or v['questions_closed']]}")
     ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
     fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    repeats = cx.execute("""SELECT count(*) FROM (SELECT 1 FROM assertion WHERE persona_fact_id IS NOT NULL GROUP BY subject_kind, subject_id, persona_fact_id, artifact_sha256, coalesce(notes,'') HAVING count(*)>1)""").fetchone()[0]
+    fail(repeats == 0, f"no statement of one record is written twice on one event by the decisions above: {repeats} repeated")
     cx.close()
     if keep: print("decisions scratch kept at", d)
     else: shutil.rmtree(d, ignore_errors=True)
