@@ -162,6 +162,18 @@ advisory-scoped shell can run `git restore` and silently revert an
 uncommitted batch; a committed change is immune. A regression caught after
 the commit is a cheap follow-up — far cheaper than lost work.
 
+### Two sessions on one working tree
+
+When a director session tasks a worker session on the same clone, only the
+worker edits and commits while it works; the director reads, tasks and
+audits. Never `git add -A` on the shared tree: it stages the other session's
+half-written files (it happened, and broke the screen until the next
+commit). The worker records its catalog writes as
+`--by "agent:<session> for user:<owner>"`, stops and reports on any defect
+instead of working around it, and the director audits the commits and the
+catalog read-only at the end. A plan is put to the worker for critique before
+it becomes a task; the critique has been right every time.
+
 ### No speculative estimates — name the work, not its size
 
 Work plans, BACKLOG entries, and status reports state what needs to get

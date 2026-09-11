@@ -9,7 +9,7 @@ able to distrust every earlier conclusion.
 | `docs/DATA-ARCHITECTURE.md` | The design: four layers, content-addressed archive, trees/profiles, trust boundaries, aliases. Accepted decisions are recorded there. |
 | `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status). `data/holders.csv` maps cited Ancestry collections to their free holders. `data/DATA-SOURCES.md` has the reasoning. |
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
-| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `treelib.py`; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. |
+| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/` (snapshots, ignored). |
 | `inbox/` | Drop zone for files to ingest. |
 | `app/person/` | The person screen: stdlib server plus one page. |
