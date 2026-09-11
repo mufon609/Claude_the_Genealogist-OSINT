@@ -143,18 +143,32 @@ DELETE FROM assertion WHERE id IN (SELECT a.id FROM assertion a JOIN assertion b
   AND b.artifact_sha256=a.artifact_sha256 AND coalesce(b.notes,'')=coalesce(a.notes,'') AND b.id<a.id);
 ```
 
-### C10. Cards grouped by record
+### C10. Accepted links that pile up on a re-read
 
-`cards.py "<person>"` prints every card in one list; a person with four
-memorial cards and one census card cannot see at a glance which card is on
-the record their current step fetched. Group the cards by record, the
-record of the step being worked first.
+Every re-read of a page carries the decided links to its new personas and
+leaves the earlier personas' accepted `person_persona` rows in place, so a
+person read three times has three accepted links on one record. Evidence
+rows are immutable, so the old personas stay; the link rows are decisions and
+could be set aside (status `superseded`, or the earlier persona's link
+withdrawn) when the new one is written, so counts of accepted links on a
+record say what a person would say. Decide the shape, then apply it to the
+live catalog's re-read pages.
 
-### C12. The attach says why each step is fulfilled
+### C11. A connector's years gate its steps
 
-`attach_inbox.py` names the steps a page fulfils and not the reason (the
-citation's own record; the same sheet as the citation on Helen Sara Brant).
-One reason per step, printed and kept in the run's log note.
+Chronicling America's run ends in 1963 and the enlistment file covers men
+born 1895–1927, yet an obituary step for a death in 1995 still asks loc.gov
+and archives an empty answer. Give each connector its coverage years (the
+registry's coverage column) and let the runner log a step at a source outside
+them as `none` without a request.
+
+### C12. Ancestry record pages behind the membership offer
+
+The owner's account meets a "Join Ancestry" page at every record page, so the
+Ancestry parser (`rule:ancestry-index`) is unverified and blocked steps whose
+only holder is Ancestry cannot be fetched by the assisted method. When the
+owner has a membership, or one record page can be saved another way, add the
+page under `tests/fixtures/` and verify the parser on it.
 
 ---
 

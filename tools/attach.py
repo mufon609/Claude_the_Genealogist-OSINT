@@ -94,17 +94,21 @@ def _same_fs_search(cx, step, qy):
         if coll and str(v("year")) not in coll: return False
     return True
 
+def _why(rows, reason):
+    """The steps as plain dicts, each with the reason it is fulfilled (kept on the run's log note and printed by the inbox tool)."""
+    return [{**dict(r), "reason": reason(r) if callable(reason) else reason} for r in rows]
+
 def steps_for(cx, tree_id, kind, value, parsed=None):
     """The tree's steps this identity fulfils: for a memorial or an ark, the fetch steps whose citation carries it, the citation on
     the person themselves first; for a search results page, the cemetery search steps whose fields are the search's own query."""
     if kind == "search":
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"E01"%'
                              ORDER BY sp.seq""", (tree_id,)).fetchall()
-        return [r for r in rows if _same_search(r, (parsed or {}).get("query") or {})]
+        return _why([r for r in rows if _same_search(r, (parsed or {}).get("query") or {})], "the step's fields are this search's own")
     if kind == "fs_search":                                           # the search steps FamilySearch can answer whose fields are the page's own query
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"D03"%'
                              ORDER BY sp.seq""", (tree_id,)).fetchall()
-        return [r for r in rows if _same_fs_search(cx, r, (parsed or {}).get("query") or {})]
+        return _why([r for r in rows if _same_fs_search(cx, r, (parsed or {}).get("query") or {})], "the step's fields are this search's own")
     if kind in ("aad_search", "aad_record"):                      # the enlistment steps whose person the page's name and birth year fit
         p = parsed or {}
         if kind == "aad_search": name, yb = p.get("query", {}).get("name") or "", p.get("query", {}).get("birth_year")
@@ -119,11 +123,11 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
             if name_key(v("surname") or "") != words[0] or (given and len(words) > 1 and given != words[1]): continue
             if yb and v("birth_year") and int(v("birth_year")) % 100 != int(yb) % 100: continue
             out.append(r)
-        return out
+        return _why(out, "the page's name and year of birth are the step's")
     if kind == "memorial":
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch'
                              AND json_extract(sp.query_json,'$.url.value') LIKE ? ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, f"%/memorial/{value}/%")).fetchall()
-        return [r for r in rows if (MEMORIAL_URL.search(json.loads(r["query_json"]).get("url", {}).get("value") or "") or [None, None])[1] == value]
+        return _why([r for r in rows if (MEMORIAL_URL.search(json.loads(r["query_json"]).get("url", {}).get("value") or "") or [None, None])[1] == value], "the citation carries this memorial")
     if kind == "ark":
         loc = cx.execute("""SELECT a.sha256 FROM artifact_locator l JOIN artifact a ON a.sha256=l.artifact_sha256
                             WHERE l.kind='ark' AND l.value=? AND a.locator_kind='apid'""", (value,)).fetchone()
@@ -131,12 +135,13 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
             ids = sorted(holds(cx, loc[0]))
             rows = cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                   AND sp.locator_value IN ({','.join('?'*len(ids))}) ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, *ids)).fetchall()
-            return [r for r in rows if _named_on(cx, r["person_id"], parsed)]
+            own = cx.execute("SELECT locator_value FROM artifact WHERE sha256=?", (loc[0],)).fetchone()[0]
+            return _why([r for r in rows if _named_on(cx, r["person_id"], parsed)], lambda r: "the citation is this record's own" if r["locator_value"] == own else "the same sheet, and the page names this person")
         named = _page_named(parsed or {})
         if named:                                                      # new to the archive: the steps citing the page it names, for the people it names
             rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                  AND sp.query_type='household' ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id,)).fetchall()
-            return [r for r in rows if _cites_page(r, named) and _named_on(cx, r["person_id"], parsed)]
+            return _why([r for r in rows if _cites_page(r, named) and _named_on(cx, r["person_id"], parsed)], "the citation names this census page, and the page names this person")
         return _steps_by_kind(cx, tree_id, parsed or {})
     return []
 
@@ -165,7 +170,7 @@ def _steps_by_kind(cx, tree_id, parsed):
         if year and inst.isdigit() and abs(int(inst) - year) > 2: continue      # the row's year (birth record:1932) against the record's own: a father's birth is not his son's
         keys = {(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
         if any(g == pg and any(same_surname(t, sn) for t in rest) for g, sn in keys): out.append(r)   # as written, a spelling variant or an indexer's slip
-    return out
+    return _why(out, f"a {row} naming {parsed.get('name')}, the row's kind and the person's name" + (f", in {year}" if year else ""))
 
 def _named_on(cx, person_id, parsed):
     """Whether a record page names this person: its subject or a household member, each with the birth year its age and the
@@ -219,7 +224,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     logs = []
     for s in steps:
         if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (s["id"], f'%"{sha}"%')).fetchone(): continue
-        logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note=note, query=query or rendered_query(s["query_json"], s["revisions_json"]))))
+        logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query=query or rendered_query(s["query_json"], s["revisions_json"]))))
     out = {"sha256": sha, "new": new, "mime": mime, "logs": logs, "extraction": None, "proposals": [], "unparsed": None}
     if new and mime.startswith("text/html"):                     # a page is parsed and matched on arrival; an image waits for a transcription
         from extract import extract as extract_html
@@ -269,7 +274,7 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
         if not kind: r["left"] = "no record identity read from the file (not a Find a Grave memorial or results page, not a FamilySearch record page)"; results.append(r); continue
         r["identity"] = f"{kind} {value}"
         steps = steps_for(cx, tree_id, kind, value, parsed)
-        r["steps"] = [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"]) for s in steps]
+        r["steps"] = [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"], s.get("reason")) for s in steps]
         if not steps and not about: r["left"] = "no cemetery search step in this tree has this search's fields" if kind == "search" else "no fetch step in this tree cites this record"; results.append(r); continue
         r.update(attach(cx, tree_id, slug, name, steps, by, note=f"attached from the inbox by identity: {kind} {value}" + (" on the owner's word about the person" if not steps else ""), kind=kind, value=value, parsed=parsed, about=about))
         results.append(r)
@@ -278,6 +283,6 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
 def line(r):
     """One line per file, as the inbox tool prints it."""
     if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in the inbox: {r['left']}"
-    who = ", ".join(f"{n} ({rk.split(':')[0]})" for _, n, rk in r["steps"])
+    who = "; ".join(f"{n} ({rk.split(':')[0]}: {why or 'the step cites it'})" for _, n, rk, why in r["steps"])
     return (f"{r['file']}: {r['identity']}; {len(r['steps'])} step(s) fulfilled: {who}; artifact {r['sha256'][:12]}{'' if r['new'] else ' (already archived)'}; "
             f"{len(r['logs'])} run(s) logged{' as none' if r.get('outcome') == 'none' else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else ""))

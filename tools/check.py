@@ -258,7 +258,7 @@ def decisions(keep, show):
     # ---- the father's birth record arrives: its row from the record's event type, his name one letter apart, the parents it states
     shutil.copy(os.path.join(FIXTURES, "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"), os.path.join(treelib.inbox_dir(), "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"))
     res = attach_inbox(cx, tid, "harness", BY, ["familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"]); cx.commit(); say("attach birth record:", res)
-    fail(res and res[0].get("steps") and all(n == "Frederick Michael Ahearn" and rk.startswith("birth record") for _, n, rk in res[0]["steps"]), f"the birth record attaches to his birth record step by the record's own event type and his name one letter apart: {res and res[0].get('steps')}")
+    fail(res and res[0].get("steps") and all(n == "Frederick Michael Ahearn" and rk.startswith("birth record") and why for _, n, rk, why in res[0]["steps"]), f"the birth record attaches to his birth record step by the record's own event type and his name one letter apart: {res and res[0].get('steps')}")
     bp = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256") == (res[0].get("sha256") if res else None)]
     fail(len(bp) == 1 and name(person_of(bp[0])) == "Frederick Michael Ahearn" and "one letter apart" in bp[0]["rationale"], f"one card, his, saying the surname is one letter apart: {[(name(person_of(p)) if person_of(p) else None, p['rationale'][:160]) for p in bp]}")
     if bp:

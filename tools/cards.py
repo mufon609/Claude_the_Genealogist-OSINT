@@ -254,6 +254,28 @@ def cards_for(cx, tree_id, pid=None):
     else: rows = cx.execute("SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') ORDER BY created_at", (tree_id,)).fetchall()
     return search_cards_for(cx, tree_id, pid) + [c for c in (card(cx, tree_id, r[0]) for r in rows) if c]
 
+def grouped(cx, tree_id, cards, pid=None):
+    """The cards in groups, one per record, the record the person's steps most recently logged first (the record being worked),
+    then the others by the latest run on them, a record no step logged last; inside a group the cards as they came.
+    Returns [(sha256, one line naming the record, [cards])]."""
+    by = {}
+    for c in cards:
+        sha = c["sha256"] if c.get("kind") == "search" else c["record"]["sha256"]
+        by.setdefault(sha, []).append(c)
+    latest = {}
+    for sha in by:
+        r = cx.execute(f"""SELECT MAX(l.executed_at) FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? {'AND sp.person_id=?' if pid else ''}""",
+                       (tree_id, f'%"{sha}"%', *([pid] if pid else []))).fetchone()
+        latest[sha] = r[0] or ""
+    out = []
+    order = sorted(by, key=lambda s: latest[s], reverse=True)
+    for sha in order:
+        c = by[sha][0]
+        name = (f"{c['search']['holder']} search results page" if c.get("kind") == "search" else
+                f"{c['record']['holder']}: {c['record']['collection'] or ''}" + (f", {', '.join(c['record']['identity']) if isinstance(c['record']['identity'], list) else c['record']['identity']}" if c["record"].get("identity") else ""))
+        out.append((sha, name.strip(" :,"), by[sha]))
+    return out
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
@@ -263,6 +285,9 @@ def main():
     out = cards_for(cx, tree_id, None if a.all else cat.find_person(a.who))
     if a.json: print(json.dumps(out, ensure_ascii=False, indent=1)); return
     if not out: print("no undecided proposal" + ("" if a.all else " for this person")); return
-    print("\n\n".join(render_search(c) if c.get("kind") == "search" else render(c) for c in out))
+    blocks = []
+    for sha, name, cards in grouped(cx, tree_id, out, None if a.all else cat.find_person(a.who)):
+        blocks.append(f"== {name}  ({len(cards)} card{'s' if len(cards) > 1 else ''}; record {sha[:12]})\n\n" + "\n\n".join(render_search(c) if c.get("kind") == "search" else render(c) for c in cards))
+    print("\n\n".join(blocks))
 
 if __name__ == "__main__": main()
