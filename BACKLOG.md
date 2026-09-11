@@ -120,6 +120,20 @@ comparison the alias table's variants for the person, so the proposal names
 the person the tree already has. Build it on the first fetched page where the
 matcher misses for this reason. Nothing here changes what a person decides.
 
+### C6. A page saved from a holder without a parser reaches its step
+
+`tools/fetches.py list` prints a file name for every page it asks for, but
+`collect` moves only memorial, FamilySearch and AAD names into `inbox/`, and
+the attach reads an identity from those three page shapes alone; a surname
+file from the Alabama archives, an SAR patriot page, a VA gravesite result or
+a Legacy.com obituary saved under the name the list gave it stays in the
+download folder, and dropped in the inbox it matches no step. Let `collect`
+take every name the list printed and attach such a page to the step it was
+saved for (the holder and the citation are in the name), archived under the
+holder with the page's URL as locator, logged found, no extraction until a
+parser claims the page; the person screen's attach already does this for the
+step the person chose.
+
 ### C7. Hints on the person page
 
 A run that found pages naming the person on the name alone (a directory

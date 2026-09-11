@@ -86,7 +86,7 @@ python3 tools/cards.py "<person>"           # every Undecided proposal about the
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"   # the decision on a card, as the screen's Add / Ignore
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
 python3 tools/conclude.py assertion <id> accept|reject|undecided --note "…"   # one statement of one record on its own; ids from the person screen's evidence rows or the assertion table
-python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial or search, FamilySearch record or search, AAD, Ancestry index; HTML)
+python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial or search, FamilySearch record or search, AAD, Ancestry index; HTML) or a connector's response (JSON)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
 python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions; one it would no longer take is a card again; --dry-run
@@ -154,7 +154,8 @@ Report what was decided and on what record, in words; never a score.
 Every tool that writes takes `--by`. The owner acting is `user:<name>`; a
 session acting on the owner's behalf is `agent:<session> for user:<name>`,
 so the audit trail says who did what. A writing tool run without `--by`
-records the shell user as the owner. The read-only tools (`checklist`,
+records the shell user as the owner, except the runner and the planner, which
+record themselves (`agent:run_step`, `rule:plan@0.1.0`). The read-only tools (`checklist`,
 `cards`, `footprint`, `backup verify`) and the registry syncs take no `--by`.
 One default, the owner's to change: a search step on a person with no death
 and born within a hundred years is assisted rather than automatic, so a

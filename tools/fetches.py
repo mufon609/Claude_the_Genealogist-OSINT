@@ -8,8 +8,9 @@ Find a Grave forbids automation and FamilySearch answers a browser only, so a ci
 at a time in the owner's own browser by the page-saves-itself method (docs/RESEARCH-WORKFLOW.md §4, tools/save_page.js),
 one tab per page. `list` prints every planned fetch step whose holder has no connector, once per page, with the holder, the
 link to open (the memorial page itself; the holder's own search prefilled from the citation's details), the people whose
-steps it fulfils, and the file name to save under (the name the collect tool recognises; a FamilySearch page's name takes
-the record's own ark id from its page): the leads from held records first (a persona accepted as a person, whose memorial
+steps it fulfils, and the file name to save under (a FamilySearch page's name takes the record's own ark id from its page;
+`collect` recognises the memorial, FamilySearch and AAD names, and a page from any other holder is attached from the person
+screen on its step): the leads from held records first (a persona accepted as a person, whose memorial
 the record links), then the file's citations, the pages that settle most steps first. `collect` moves every saved page
 from the browser's download folder into inbox/ and attaches each by its own identity (tools/attach.py): archived once,
 logged found on every step that cites it, extracted, matched, the rule run.
@@ -69,7 +70,9 @@ def downloads_dir():
     except Exception: return os.path.expanduser("~/Downloads")
 
 def collect(cx, tree_id, slug, by):
-    """Every findagrave-memorial-<id>.html in the download folder: moved to inbox/, then attached. Returns the attach results."""
+    """Every page in the download folder saved under a name the list printed for a memorial, a FamilySearch record or an AAD
+    record: moved to inbox/, then attached by its own identity. A page from a holder whose pages carry no identity the attach
+    reads stays where it is and is attached from the person screen on its step. Returns the attach results."""
     names = []
     for f in sorted(os.listdir(downloads_dir())):
         if re.fullmatch(r"(findagrave-memorial-\d+|familysearch-[a-z0-9-]+-\d+-[A-Za-z0-9_:-]+|aad-enlistment-[A-Za-z0-9_-]+)\.html", f):

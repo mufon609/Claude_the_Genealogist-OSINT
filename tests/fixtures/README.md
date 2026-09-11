@@ -18,10 +18,6 @@ as it is.
 | `familysearch-search-census-1950-ahearn-frederick-micheal.html` | FamilySearch record search results, the 1950 census collection for Frederick Micheal Ahearn born 1930–1934 in Pennsylvania, 142 results, page 1 of 8, saved from the step's prefilled link | `rule:familysearch-search` | FamilySearch terms |
 | `aad-enlistment-247275.html` | The AAD enlistment record 247275, Robert C Davidson, saved in the browser | `rule:aad-enlistment` | public record, National Archives |
 
-Not here yet: a WikiTree profile with its relatives, the Internet Archive's search inside an item, a loc.gov page text, and
-an Ancestry index page. The first three come from a connector's live run; the archive holds no Ancestry index page (the two
-pages archived under Ancestry record ids are FamilySearch record pages), so that parser stays unverified.
-
 ## From connector runs
 
 | File | Where it came from | Parser |
@@ -34,7 +30,8 @@ A connector's response is read with the notes its manifest carries (the item, th
 step's kind), as the extractor reads it on arrival.
 
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
-("Join Ancestry"), so no page could be saved and the parser stays unverified.
+("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record
+ids are FamilySearch record pages.
 
 ## The harness tree
 

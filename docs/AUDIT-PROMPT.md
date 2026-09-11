@@ -72,14 +72,14 @@ screen. Then the loop repeats.
   record's facts, the standing rule and its re-examination of its own
   decisions, the owner's word on a link), `attach` / `attach_inbox` (an inbox
   file to every step its identity fulfils, archived once, extracted, matched),
-  `memorials` (the Find a Grave pages waiting to be saved in the browser, and
-  the saved ones collected), `cards` (every Undecided proposal as a decision
+  `fetches` (every page waiting to be saved in the browser at a holder
+  without a connector, and the saved ones collected), `cards` (every Undecided proposal as a decision
   card), `catalog` (shared read-only access), `treelib` (shared helpers),
   `run_step` (runs an auto search step through every connector its sources
   have under `tools/connectors/`: loc.gov for Chronicling America, the 1950
   census site, the Internet Archive's full-text search for newspapers,
-  directories and books; archives every response, logs the run, extracts and
-  matches). Parsers: the Find a Grave memorial parser and the FamilySearch
+  directories and books, WikiTree; archives every response, logs the run,
+  extracts and matches). Parsers: the Find a Grave memorial parser and the FamilySearch
   record-page parser are verified on real pages; the Ancestry index parser is
   not (Ancestry needs a membership this account lacks). Connector-response
   extractors: the 1950 schedule and the loc.gov OCR variants are verified on

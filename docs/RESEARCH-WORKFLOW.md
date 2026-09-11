@@ -201,7 +201,7 @@ Irish civil registration starts 1864, so an 1810 birth means parish registers).
 
 | Mode | Sources | Behaviour |
 |---|---|---|
-| auto | Chronicling America (loc.gov), the 1950 census site; FamilySearch after Innovator approval, WikiTree, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
+| auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text search, WikiTree; FamilySearch after Innovator approval, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
 | assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
 
 **Adjusting a prefilled search.** A person at the keyboard may change the
@@ -379,9 +379,14 @@ memorial id and URL as its identity), a FamilySearch record page to
 the page's own role word, one fact per field as written, one relation per
 stated relationship, the relatives its fields name as personas; verified on
 real pages), an Ancestry index page to `rule:ancestry-index@0.1.0` (built to
-Ancestry's page structure, not yet verified on a real page), a 1950 census
-site response to `rule:nara-1950-schedule@0.1.0` and a loc.gov OCR response
-to `rule:loc-gov-ocr@0.1.0`; a page no parser claims gets a failed extraction
+Ancestry's page structure, not yet verified on a real page), a FamilySearch search results page to
+`rule:familysearch-search@0.1.0` (one persona per row with the record's ark as
+its identity), an AAD enlistment results page to `rule:aad-search@0.1.0` and a
+full enlistment record to `rule:aad-enlistment@0.1.0`, a 1950 census
+site response to `rule:nara-1950-schedule@0.1.0`, a loc.gov OCR response
+to `rule:loc-gov-ocr@0.1.0`, the Archive's search inside an item to
+`rule:ia-search-inside@0.1.0` and a WikiTree profile with its relatives to
+`rule:wikitree-profile@0.1.0`; a page no parser claims gets a failed extraction
 by `rule:extract@0.1.0` and is reported. The raw parsed page is in
 `extraction.structured_json`. Re-running an
 extractor, at any version, supersedes its earlier extraction and rejects that
