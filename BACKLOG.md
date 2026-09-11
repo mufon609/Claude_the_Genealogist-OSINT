@@ -181,14 +181,6 @@ withdrawn) when the new one is written, so counts of accepted links on a
 record say what a person would say. Decide the shape, then apply it to the
 live catalog's re-read pages.
 
-### C11. A connector's years gate its steps
-
-Chronicling America's run ends in 1963 and the enlistment file covers men
-born 1895–1927, yet an obituary step for a death in 1995 still asks loc.gov
-and archives an empty answer. Give each connector its coverage years (the
-registry's coverage column) and let the runner log a step at a source outside
-them as `none` without a request.
-
 ### C12. Every Ancestry-only collection the file cites, found at a free holder
 
 The point of the project is the records Ancestry charges for, found free.

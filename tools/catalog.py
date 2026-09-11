@@ -342,8 +342,8 @@ class Catalog:
     def __init__(self, cx, tree_id):
         self.cx, self.tree_id = cx, tree_id
         self.q = lambda s, *a: cx.execute(s, a).fetchall()
-        self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or "", "connector": r[5] or ""}
-                        for r in self.q("SELECT id, name, access, status, cost, connector FROM source")}
+        self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or "", "connector": r[5] or "", "coverage": r[6] or ""}
+                        for r in self.q("SELECT id, name, access, status, cost, connector, coverage FROM source")}
         self.holders = holders()
         self._groups = self._held = self._holdings = None
     def disagreements(self, pid):

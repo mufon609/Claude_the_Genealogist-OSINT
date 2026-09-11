@@ -340,7 +340,9 @@ every household member's step that cites the same year, district, place and
 page. A schedule row that fits nobody stays on the page. The Archive takes a
 cited book's title and the gravesite locator the citation's name; a citation
 that names no book gives the Archive nothing to ask, and that step is listed
-for a hand. A connector's request may post a form, name the identity its
+for a hand. A source's years, from the registry's coverage column, gate its
+steps: an obituary step for a death after Chronicling America's last year is
+logged `none` at loc.gov without a request, the note saying so. A connector's request may post a form, name the identity its
 response is archived under, and say the response is itself the record. Every
 other search step is `assisted` or `awaiting_approval`.
 

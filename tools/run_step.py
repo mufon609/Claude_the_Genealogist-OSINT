@@ -17,11 +17,13 @@ error when it did not answer), how many results the source said it had, and ever
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
 a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed.
 A step whose sources have several connectors runs at each, one log row per source. A fetched response may name more to
-fetch (an item's metadata, then the search inside it, then its pages: connector.follow).
+fetch (an item's metadata, then the search inside it, then its pages: connector.follow). A source's years, from the
+registry's coverage column (1756-1963, 1780s-1990s, 1950), gate its steps: a step whose years fall wholly outside them (an
+obituary for a death after the newspapers end) is logged none without a request, the note saying so.
 --all runs every planned step a connector can take, in plan order, keeping each connector's pace across steps.
 --dry-run prints the requests and sends nothing.
 """
-import argparse, http.client, json, os, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
+import argparse, http.client, json, os, re, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
 from catalog import Catalog
@@ -31,6 +33,32 @@ from conclude import match_record
 import connectors
 
 LAST = {}                                                        # (connector, kind) -> time of the last request, for pacing
+YEARS = re.compile(r"\b(1[5-9]\d\d|20\d\d)(s)?\b")
+
+def coverage_years(text):
+    """(first year, last year) the registry's coverage text names, or None when it names no year: "US 1756-1963" is 1756 to 1963,
+    "US 1780s-1990s" 1780 to 1999 (a decade runs to its last year), "US 1950" 1950 alone, "Global" nothing."""
+    ys = [(int(y), bool(s)) for y, s in YEARS.findall(text or "")]
+    if not ys: return None
+    lo = min(y for y, _ in ys); hi, dec = max(ys, key=lambda t: t[0])
+    return lo, hi + 9 if dec else hi
+
+def step_years(query_type, fields):
+    """The years a step asks about, from its rendered fields: an obituary or probate step the death year and the year after; a
+    household step its census year; any other step the person's lifetime from the birth year (to the death year, or a hundred
+    years). None when the fields name no year, so the source's years do not gate it."""
+    v = lambda k: connectors.value(fields, k)
+    death, birth, year = v("death_year"), v("birth_year"), v("year")
+    if query_type in ("obituary", "probate") and death: return int(death), int(death) + 1
+    if query_type == "household" and str(year or "").isdigit(): return int(year), int(year)
+    if birth: return int(birth), int(death) if death else int(birth) + 100
+    return None
+
+def outside(cat, conn, query_type, fields):
+    """Why the step is not asked at this source, or None: the source's years and the step's do not overlap."""
+    src = coverage_years((cat.sources.get(conn.SOURCE) or {}).get("coverage")); st = step_years(query_type, fields)
+    if not src or not st or (st[0] <= src[1] and st[1] >= src[0]): return None
+    return f"the source covers {src[0]}-{src[1]} and the step asks about {st[0]}" + (f"-{st[1]}" if st[1] != st[0] else "") + ": not asked"
 
 def fetch(url, kind, conn, data=None):
     """GET, or POST when form data is given, with the tool's user agent, no sooner than the connector's rate for this kind of
@@ -105,9 +133,12 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     """One step at one connector: requests, responses archived, hits fetched and archived, the log row under the connector's
     source. Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
-    reqs = conn.requests(query)
-    if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs}
+    reqs = conn.requests(query); gate = outside(cat, conn, step["query_type"], query)
+    if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs, **({"outside": gate} if gate else {})}
     if not reqs: return {"connector": conn.__name__.split(".")[-1], "error": "the fields give the connector nothing to ask: a surname, or for a cited book its title"}
+    if gate:                                                     # the source's years miss the step's: a none run with the reason, no request
+        lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome="none", artifacts=None, note=gate, query=query)
+        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "none", "log": lid, "artifacts": [], "hits": [], "errors": [], "household_steps": [], "records": [], "outside": gate}
     src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (conn.SOURCE,)).fetchone()
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")

@@ -420,6 +420,18 @@ def connectors_offline():
         and rows[1].get("cemetery") == "BG WILLIAM C DOYLE VET'S MEM CEM" and rows[1].get("city") == "WRIGHTSTOWN" and rows[1].get("state") == "NJ", f"the second decedent as the page writes him: {rows[1:] if rows else rows}")
     say(len(va_graves.hits(va_graves.URL, body, {"locator": "x"})) == 2 and va_graves.hits(va_graves.URL, body, {"locator": "x"})[0]["fetch"] == [], "one hit per decedent, fetching nothing: the page is the record")
     say(parse_gedcom_date("10/12/1939")["date_start"] == "1939-10-12" and parse_gedcom_date("13/12/1939")["date_start"] is None, "a month-first date is read, an impossible one is not")
+    from run_step import coverage_years, step_years
+    want = {"US 1756-1963": (1756, 1963), "US 1780s-1990s": (1780, 1999), "US 1950": (1950, 1950), "Global": None, "US veterans": None, "PA 1789-2013, few titles after the 1920s": (1789, 2013)}
+    say(all(coverage_years(k) == v for k, v in want.items()), f"the registry's coverage years as read: {[(k, coverage_years(k)) for k in want]}")
+    q = lambda **kw: {k: {"value": v, "basis": "accepted"} for k, v in kw.items()}
+    say(step_years("obituary", q(death_year=2016, birth_year=1932)) == (2016, 2017) and step_years("household", q(year="1950", birth_year=1932)) == (1950, 1950)
+        and step_years("name", q(birth_year=1880, death_year=1961)) == (1880, 1961) and step_years("name", q(birth_year=1880)) == (1880, 1980) and step_years("subject_record", q(surname="Brant")) is None,
+        "a step's years: the death year for an obituary, the census year for a household, the lifetime otherwise, none without a year")
+    class Src: SOURCE = "H01"
+    class Cat: sources = {"H01": {"coverage": "US 1756-1963"}, "L02": {"coverage": "Global"}}
+    from run_step import outside
+    say(outside(Cat, Src, "obituary", q(death_year=2016)) is not None and outside(Cat, Src, "obituary", q(death_year=1918)) is None and outside(Cat, Src, "name", q(birth_year=1932)) is None,
+        "an obituary for a death after the newspapers end is not asked; one within them, or a lifetime overlapping them, is")
     return bad
 
 def compiles():
