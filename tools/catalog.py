@@ -93,12 +93,15 @@ def edits(a, b):
     return prev[-1]
 
 def same_surname(a, b):
-    """Whether two surname keys are one name: written the same, or a spelling variant (the same Soundex code and at most two
-    edits apart, so Ahearn and Ahern, Brant and Brandt, Kriebel and Krebel; not Brant and Grant). Returns "" when they differ,
-    "agrees" when written the same, "variant" for a spelling variant."""
+    """Whether two surname keys are one name: written the same; a spelling variant (the same Soundex code and at most two
+    edits apart, so Ahearn and Ahern, Brant and Brandt, Kriebel and Krebel); or one letter apart in a name of five letters or
+    more, whatever the Soundex, an indexer's slip (Ahearu for Ahearn), as long as the first letter stands: a substitution, a
+    missing or an extra letter, never Grant for Brant. Returns "" when they differ, "agrees" when written the same, "variant"
+    for a spelling variant, "one letter apart" for the slip."""
     if not a or not b: return ""
     if a == b: return "agrees"
     if len(a) >= 4 and len(b) >= 4 and soundex(a) == soundex(b) and edits(a, b) <= 2: return "variant"
+    if len(a) >= 5 and len(b) >= 5 and a[0] == b[0] and edits(a, b) == 1: return "one letter apart"
     return ""
 
 def name_parts(text):

@@ -144,17 +144,27 @@ ROW_OF = [(r"obituar", "obituary"), (r"death", "death record"), (r"birth", "birt
           (r"draft", "WWII draft card"), (r"naturali", "naturalization"), (r"find a grave|burial|cemetery", "cemetery / family plot")]
 
 def _steps_by_kind(cx, tree_id, parsed):
-    """A record that names no census page: the steps of the checklist row its collection is about (an obituary collection to the
-    obituary row, a death index to the death record row, the Social Security files to that row), on every person of the tree
-    whose name is the record's principal name. The record satisfies the row whatever holder the file had pointed at."""
-    coll = (parsed.get("collection") or "").lower(); row = next((r for rx, r in ROW_OF if re.search(rx, coll)), None)
+    """A record that names no census page: the steps of the checklist row its own event type is about (a birth, a death, a
+    marriage), or, when the page names none, its collection (an obituary collection to the obituary row, a death index to the
+    death record row, the Social Security files to that row), on every person of the tree whose name is the record's principal
+    name, the surname as written, a spelling variant or one letter apart, and whose row's year is the record's within two. The
+    record satisfies the row whatever holder the file had pointed at."""
+    from catalog import same_surname
+    fields = {k.lower(): v for k, v in parsed.get("fields") or []}
+    kind = (fields.get("event type") or "").lower()                        # the record's own event before its heading: FamilySearch mislabels a heading ("Death" over a birth)
+    row = next((r for rx, r in ROW_OF if re.search(rx, kind)), None) if kind else None
+    if not row:
+        coll = (parsed.get("collection") or "").lower(); row = next((r for rx, r in ROW_OF if re.search(rx, coll)), None)
     if not row: return []
     pg, rest = _split_name(parsed.get("name") or "")
     if not pg or not rest: return []
+    ym = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", fields.get("event date") or fields.get("event year") or ""); year = int(ym.group(1)) if ym else None
     out = []
     for r in cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned' AND sp.row_key LIKE ? ORDER BY sp.seq""", (tree_id, row + ":%")):
+        inst = r["row_key"].split(":", 1)[1] if ":" in r["row_key"] else ""
+        if year and inst.isdigit() and abs(int(inst) - year) > 2: continue      # the row's year (birth record:1932) against the record's own: a father's birth is not his son's
         keys = {(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
-        if any(g == pg and sn in rest for g, sn in keys): out.append(r)
+        if any(g == pg and any(same_surname(t, sn) for t in rest) for g, sn in keys): out.append(r)   # as written, a spelling variant or an indexer's slip
     return out
 
 def _named_on(cx, person_id, parsed):

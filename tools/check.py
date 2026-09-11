@@ -113,6 +113,12 @@ def check_aad_record(ps, fail):
     fail(fact(p, "Military Service", date="21 SEP 1945", place="Charleston Port Of Embarkation"), "the enlistment as a Military Service event on its day at its place")
     fail(fact(p, "Education", value="2 years of high school") and fact(p, "Marital Status", value="Married"), "education and marital status as written")
 
+def check_fs_birth(ps, fail):
+    fail([(p["name"], p["role"], p["sex"]) for p in ps] == [("Frederick Michael Ahearu", "subject", "M"), ("James J. Ahearu", "father", "M"), ("Annie E. Scauusl", "mother", "F")],
+         f"the birth record's subject and the parents its relatives table names, as written; got {[(p['name'], p['role'], p['sex']) for p in ps]}")
+    fail(fact(ps[0], "Birth", date="22 May 1907", place="Northampton, Hampshire, Massachusetts"), "the birth on its day at its place, from the fields, whatever the heading says")
+    fail(rel(ps[1], "parent", 1, "Father") and rel(ps[2], "parent", 1, "Mother"), "Father and Mother stated toward the child")
+
 def check_fs_search(ps, fail):
     fail(len(ps) == 20, f"the page's twenty result rows, {len(ps)} written")
     p = ps[0]
@@ -170,6 +176,7 @@ FIXTURE_SET = [
     ("aad-search-davidson-robert-15.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/display-partial-records.jsp?txt_24995=DAVIDSON%20ROBERT&txt_24983=15", "aad-search", check_aad_search),
     ("aad-enlistment-247275.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275", "aad-enlistment", check_aad_record),
     ("familysearch-search-census-1950-ahearn-frederick-micheal.html", "text/html", "D03", "url", "https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn", "familysearch-search", check_fs_search),
+    ("familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html", "text/html", "D03", "apid", "1,5062::1903623", "familysearch-record", check_fs_birth),
     ("findagrave-search-davidson-robert-1915-2004.html", "text/html", "E01", "url", "https://www.findagrave.com/memorial/search?firstname=Robert&lastname=Davidson&birthyear=1915&deathyear=2004", "findagrave-search", check_fg_search),
 ]
 
@@ -248,6 +255,17 @@ def decisions(keep, show):
                           JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           WHERE ep.person_id=? AND e.event_type='Birth' AND a.artifact_sha256='3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e'""", (who["Frederick Michael Ahearn"],)).fetchone()
     fail(birth and birth[0] == "22 May 1907" and birth[1] == "Pennsylvania", f"the record's birthplace accepted as what the record says, on the tree's own Birth event, whose value stays: {tuple(birth) if birth else None}")   # the conflict question itself needs the tree's place resolved, which takes the geocoder
+    # ---- the father's birth record arrives: its row from the record's event type, his name one letter apart, the parents it states
+    shutil.copy(os.path.join(FIXTURES, "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"), os.path.join(treelib.inbox_dir(), "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"))
+    res = attach_inbox(cx, tid, "harness", BY, ["familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"]); cx.commit(); say("attach birth record:", res)
+    fail(res and res[0].get("steps") and all(n == "Frederick Michael Ahearn" and rk.startswith("birth record") for _, n, rk in res[0]["steps"]), f"the birth record attaches to his birth record step by the record's own event type and his name one letter apart: {res and res[0].get('steps')}")
+    bp = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256") == (res[0].get("sha256") if res else None)]
+    fail(len(bp) == 1 and name(person_of(bp[0])) == "Frederick Michael Ahearn" and "one letter apart" in bp[0]["rationale"], f"one card, his, saying the surname is one letter apart: {[(name(person_of(p)) if person_of(p) else None, p['rationale'][:160]) for p in bp]}")
+    if bp:
+        r = decide(cx, tid, bp[0]["id"], "accepted", BY, "harness"); cx.commit(); say("birth record:", r)
+        fail(r.get("ok") and cx.execute("""SELECT 1 FROM assertion a JOIN persona_fact f ON f.id=a.persona_fact_id WHERE a.status='accepted' AND a.artifact_sha256=? AND f.fact_type='Birth' AND f.date_text='22 May 1907'""", (res[0]["sha256"],)).fetchone(), "his birth on its day accepted from the record")
+        after_b = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256") == res[0]["sha256"]]
+        fail(any(name(person_of(p)) == "James Joseph Ahearn" and "Father" in p["rationale"] for p in after_b if person_of(p)), f"the father the record names proposed as James Joseph Ahearn on the stated relationship once the child is accepted: {[(name(person_of(p)) if person_of(p) else None, p['kind']) for p in after_b]}")
     # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
     r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
@@ -295,6 +313,13 @@ def decisions(keep, show):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def rules():
+    """The name rules as the docs state them, on their own."""
+    from catalog import same_surname
+    want = {("ahearn", "ahearn"): "agrees", ("ahern", "ahearn"): "variant", ("brant", "brandt"): "variant", ("ahearu", "ahearn"): "one letter apart",
+            ("grant", "brant"): "", ("bran", "brant"): "", ("kriebel", "krebel"): "variant", ("horn", "ahearn"): ""}
+    return [f"same_surname{k} gave {same_surname(*k)!r}, expected {v!r}" for k, v in want.items() if same_surname(*k) != v]
+
 def compiles():
     """Every tool and the screen's server compile; the first thing green means."""
     import py_compile
@@ -309,6 +334,8 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--show", action="store_true"); ap.add_argument("--keep", action="store_true"); a = ap.parse_args()
     bad_files = compiles()
     print("ok   every tool compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
+    bad_rules = rules(); bad_files += bad_rules
+    print("ok   the surname rule: as written, a spelling variant, one letter apart, and not Grant for Brant" if not bad_rules else "FAIL surname rule: " + "; ".join(bad_rules))
     d, db = scratch(a.keep)
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     from treelib import archive_object

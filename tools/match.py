@@ -97,7 +97,7 @@ def compare(cat, persona, cand, chosen):
     married = bool(ps) and not surname_ok and (persona.get("spouse_surname") == ps or any(same_surname(ps, s) for s in cand.get("spouse_surnames") or []))   # a wife under her husband's surname: the record's spouse, or the tree's
     (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
-    elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'}" + (" as a spelling variant" if how == "variant" else "") + f" (record {persona['name']}, tree {cand['name']})")
+    elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'}" + {"variant": " as a spelling variant", "one letter apart": ", one letter apart"}.get(how, "") + f" (record {persona['name']}, tree {cand['name']})")
     else: absent.append("surname")
     if persona["sex"] and cand["sex"] in ("M", "F"): (agree if persona["sex"] == cand["sex"] else disagree).append(f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)")
     else: absent.append("sex")

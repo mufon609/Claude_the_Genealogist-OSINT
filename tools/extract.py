@@ -256,14 +256,18 @@ def parse_record(text):
         if section.startswith("Document Information"): out["document"] += label_rows(n)
         elif not out["fields"] and (section.startswith("Cite This Record") or not section) and label_rows(n) and not (rows and any(len(r) == 5 for r in rows)):
             out["fields"] = label_rows(n)                                    # the record's own fields: the first label/value table, before any section heading
-        elif rows and any(len(r) == 5 for r in rows):                       # household: a member row, then a row holding its details table
+        elif rows and any(len(r) >= 5 and r[0]["tag"] == "th" for r in rows):   # household or relatives: a member row, then a row holding its details table
             member = None
             for r in rows:
-                if len(r) == 5 and r[0]["tag"] == "th":
+                if len(r) >= 5 and r[0]["tag"] == "th":
                     a = next((x for x in walk(r[0]) if x["tag"] == "a"), None)
                     name = text_of(a) if a else text_of(r[0]).split("\n")[0]
                     role = text_of(r[0]).replace("\n", " ").replace(name, "", 1).strip()
-                    member = {"section": section, "name": name, "role": role, "sex": text_of(r[1]), "age": text_of(r[2]), "birthplace": text_of(r[3]),
+                    cells = r[1:]
+                    if not role and cells and re.fullmatch(r"[A-Za-z][A-Za-z ]{2,}", text_of(cells[0]).strip() or "") and text_of(cells[0]).strip().lower() not in ("male", "female"):
+                        role, cells = text_of(cells[0]).strip(), cells[1:]       # a vital record's relatives: the role word in its own cell after the name
+                    cell = lambda i: text_of(cells[i]) if i < len(cells) else ""
+                    member = {"section": section, "name": name, "role": role, "sex": cell(0), "age": cell(1), "birthplace": cell(2),
                               "url": a["attrs"].get("href") if a else None, "fields": []}
                     out["members"].append(member)
                 elif len(r) == 1 and member is not None:

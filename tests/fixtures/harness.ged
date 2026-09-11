@@ -23,6 +23,9 @@
 1 BIRT
 2 DATE 22 May 1907
 2 PLAC Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S3@
+3 PAGE Massachusetts State Archives; Boston, Massachusetts; Massachusetts Vital Records, 1840-1911
+3 _APID 1,5062::1903623
 1 DEAT
 2 DATE 19 Feb 2001
 2 PLAC Boca Raton, Palm Beach, Florida, USA
@@ -141,6 +144,13 @@
 2 DATE 2012
 2 PLAC Lehi, UT, USA
 1 _APID 1,2442::0
+0 @S3@ SOUR
+1 TITL Massachusetts, U.S., Birth Records, 1840-1915
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2013
+2 PLAC Lehi, UT, USA
+1 _APID 1,5062::0
 0 @S2@ SOUR
 1 TITL U.S., Find a Grave® Index, 1600s-Current
 1 AUTH Ancestry.com
