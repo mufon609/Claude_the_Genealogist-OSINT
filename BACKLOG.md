@@ -116,6 +116,29 @@ worked. A view changes only what is shown, never the data. The overview
 exists and carries a placeholder line for these options; the placeholder goes
 when the first view ships.
 
+### C5. A saved generic-holder page can attach to the wrong person's step
+
+`tools/fetches.py`'s name for a page at a holder with no parser
+(`h05-newspapers-com-obituary-index-s-current-<year>-<record id>.html`, an SAR
+patriot page, a Legacy.com obituary) leaves `<year>` and `<record id>` as
+literal placeholders when the citation carries no such field of its own
+(an obituary query type has no `year` field, only a full `publication date`);
+`collect`'s `named_for()` turns those placeholders into wildcards
+(`[^-]+`, `.+?`) to match whatever a person actually saved the file as, so
+every waiting page sharing the same holder and the same collection words
+(any two people's obituary citing the same Ancestry dbid, at Legacy.com,
+Google News Archive or the like) matches the same regex shape, and the file
+attaches to whichever of them `named_for` reaches first — never checked
+against which citation's own year or record the human actually typed into
+the filename. Surfaced fetching Helen Sara Brant's Boca Raton News obituary
+at the new Google News Archive holder (H08): the one file in the download
+folder attached instead to Noi Davidson's and Reiko Diane Davidson's
+Asbury Park Press steps (both citing the same dbid, the same collection
+words), reopened by hand once caught. Give the filename (or the match) a
+piece that is actually unique to the citation — the step id, or the
+citation's own record locator when it has one — so two different people's
+waiting pages at the same holder can never collide.
+
 ### C7. Hints on the person page
 
 A run that found pages naming the person on the name alone (a directory

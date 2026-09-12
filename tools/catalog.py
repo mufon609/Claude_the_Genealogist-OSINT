@@ -193,7 +193,18 @@ def fetch_target(apid, url=None, fields=None):
     if h and h["HolderKind"] != "memorial": return {"url": holder_search(h, fields) or h["URL"], "holder": h["HolderCollection"]}
     return {"url": f"https://www.ancestry.com/discoveryui-content/view/{m.group(2)}:{m.group(1)}", "holder": "Ancestry"}
 
-PLACEHOLDER = re.compile(r"\{(given|surname|name|title|year|date|place|city|url)\}")
+PLACEHOLDER = re.compile(r"\{(given|surname|name|title|year|date|mdy|place|city|url)\}")
+
+_MONTHS = {m: i for i, m in enumerate(
+    ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
+
+def _mdy(date):
+    """A citation's date ("27 Jan 1986") as Google Books' own cd_min/cd_max form ("1/27/1986"), month with no leading
+    zero, day with none either; None when the date isn't day-month-year text."""
+    m = re.search(r"\b(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})\b", date or "")
+    if not m: return None
+    mon = _MONTHS.get(m.group(2)[:3].lower())
+    return f"{mon}/{int(m.group(1))}/{m.group(3)}" if mon else None
 
 def holder_search(h, fields):
     """The holder's own search URL from a fetch step's fields (the citation's details, never the person's facts).
@@ -201,8 +212,9 @@ def holder_search(h, fields):
     census the year and place as q.residenceDate.from/to and q.residencePlace; the year from the collection's name when the
     citation gives none, the place from its census place or its city and county). fs_images: no search, the collection is
     browsed (None). url: the holder's search template in HolderKey with its placeholders filled from the citation ({given},
-    {surname}, {name}, {title} from the book title or the citation text, {year}, {date}, {place}, {city}, {url} the citation's
-    own URL), URL-encoded; None when a placeholder has no value, so the holder's own page opens instead. site: the National
+    {surname}, {name}, {title} from the book title or the citation text, {year}, {date}, {mdy} the publication date as
+    Google Books' own cd_min/cd_max take it, {place}, {city}, {url} the citation's own URL), URL-encoded; None when a
+    placeholder has no value, so the holder's own page opens instead. site: the National
     Archives 1950 site's name search. None when the fields carry nothing to ask with."""
     v = lambda k: ((fields or {}).get(k) or {}).get("value")
     given, surname, _ = split_name(v("name"))
@@ -213,7 +225,8 @@ def holder_search(h, fields):
         if not tpl: return None
         year = v("year") or next((m.group(1) for k in ("publication date", "date", "event date") for m in [re.search(r"\b(1[5-9]\d\d|20\d\d)\b", v(k) or "")] if m), None)
         vals = {"given": given, "surname": surname, "name": " ".join(x for x in (given, surname) if x) or None, "title": v("book title") or v("title") or v("citation"),
-                "year": year, "date": v("publication date") or v("date"), "place": v("publication place") or v("census place") or v("place"), "city": v("city"), "url": v("url")}
+                "year": year, "date": v("publication date") or v("date"), "mdy": _mdy(v("publication date") or v("date")),
+                "place": v("publication place") or v("census place") or v("place"), "city": v("city"), "url": v("url")}
         if tpl == "{url}": return vals["url"]
         needed = set(PLACEHOLDER.findall(tpl))
         if any(not vals.get(k) for k in needed): return None

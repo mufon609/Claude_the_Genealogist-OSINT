@@ -111,6 +111,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 | Open Archives (NL) | REST JSON, free, no key: `api.openarch.nl/1.0/records/search.json?name=&eventplace=&number_show=`, one record in A2A shape at `show.json?archive=&identifier=`; answers a declared tool (70 records for Sijtske Lieuwes in Friesland, 1721–1782) | The church row for a Netherlands-born person. No connector yet: none of them is reviewed (the backlog names the work). |
 | Gramps Web API | Self-hosted REST, AGPL-3.0 | Not the backend (`docs/DATA-ARCHITECTURE.md` §7); export to Gramps XML instead. |
 | DNA vendors | Manual raw-data download only, everywhere | Never automate; user uploads file. |
+| Google News Archive | No API; a title's issues browsed at `news.google.com/newspapers`, one date found by Google Books' own site search restricted to `books.google.com` and a date (`tbm=bks`, `tbs=cdr:1,cd_min:…,cd_max:…`); the issue read and searched by page (its own "Search in this book") in the `books.google.com/books` viewer, whose plain Next/Previous paging can skip a page its own search still finds; each page an unauthenticated, low-resolution image (~575×462px for a two-page spread) at `books.google.com/books/content` | Registry row H08, holder for dbid 61843 ahead of Legacy.com; no connector, browser-paced only: a handful of requests in quick succession (probing for a higher-resolution tile) drew a Google reCAPTCHA challenge. Per the owner (11 Sept 2026, `MEMORY.md`): a challenge at the download is a pause for the owner's hand, not a reason to treat the source as forever assisted — notify, wait, continue, never solve it in-session. Verified on the Boca Raton News, 27 Jan 1986 (Helen Sara Brant's obituary). |
 
 ## 5. Free holders of cited collections
 
@@ -121,8 +122,10 @@ kinds: `fs_collection`, a FamilySearch indexed collection whose id is the key
 and whose own search is prefilled from the citation; `fs_images`, a
 FamilySearch images-only collection, browsed; `url`, any other holder, the key
 a search template filled from the citation's details ({given}, {surname},
-{name}, {title}, {year}, {date}, {place}, {city}, or {url} for the citation's
-own page), the holder's page opening when a detail is missing; `memorial`, the
+{name}, {title}, {year}, {date}, {mdy} the publication date as Google Books'
+own `cd_min`/`cd_max` take it ("27 Jan 1986" → "1/27/1986"), {place}, {city},
+or {url} for the citation's own page), the holder's page opening when a
+detail is missing; `memorial`, the
 citation's own Find a Grave URL. Every FamilySearch id was read off the site's
 collection list with its record count (indexed) or "Browse Images"; the other
 holders' search shapes were tried in the browser. Rows for the same dbid are in
