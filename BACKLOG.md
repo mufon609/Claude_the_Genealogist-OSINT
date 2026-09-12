@@ -87,7 +87,14 @@ step: for a missing marriage row, locate the Soundex block's pages in the
 year's item from the OCR word patterns (the block headers survive), fetch
 those pages through the reader as the module already does, and read them by
 eye or by the model. The same shape serves every New York marriage the tree
-is missing.
+is missing. Probed 11 September 2026 on the 1959 item (one item, brides and
+grooms together): the search inside finds no block header (H540 matches
+nothing; the OCR carries letters and digits one by one), so the block's pages
+cannot be found by words. The codes run in order through the item, so the
+step must find the block by the page order instead: a page's code read from
+its image, the pages narrowed between two read, then the block's pages
+fetched. The one New York marriage row open on a reviewed person (Raymond
+Earl Davidson and Noi Davidson) carries no year to choose an item by.
 
 ### C2. OCR / HTR extractor for record images
 
