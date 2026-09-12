@@ -131,6 +131,9 @@ Pennsylvania death exists on a reviewed person, so it is tested on a real
 step: a hit's record is the page's OCR text, read as the loc.gov text is
 (one persona per place the surname stands, a name and nothing else), which
 needs the extractor to claim a plain-text response by the runner's notes.
+On 11 September 2026 the site served its robots page but reset the connection
+on the search path to a declared tool (urllib and curl alike); confirm it
+answers again before building, and if it keeps refusing, the step is assisted.
 
 ### C10. Accepted links that pile up on a re-read
 
@@ -170,7 +173,9 @@ and the event (`data/DATA-SOURCES.md` §4). Its registry row (I07) is the
 church row's source for a Netherlands-born person. Build the connector, with
 an extractor for the A2A record (one persona per person with a relation to
 the record's subject, the event as the fact), when such a person is reviewed
-and the step exists, so it is tested on a real step.
+and the step exists, so it is tested on a real step. On 11 September 2026 the
+endpoint did not answer a declared tool from this machine (the connection timed
+out, twice); confirm it answers before building.
 
 ---
 
