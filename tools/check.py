@@ -387,6 +387,13 @@ def decisions(keep, show):
                               original_filename="va-gravesite-search-davidson-raymond-page1.html")
     eid_p, n = extract(cx, sha_p, BY); wrote_p = match(cx, eid_p, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("gravesite page of namesakes:", n, wrote_p)
     fail(n.get("personas") == 10 and wrote_p == [], f"ten namesakes agreeing on the name alone make no card: {[(k, nm) for _, k, nm, _ in wrote_p]}")
+    # ---- a found run at a source other than a fetch step's holder leaves the step planned: the pages are held, the cited record is not
+    from log_search import log as log_run
+    ob = cx.execute("SELECT id, status FROM search_plan WHERE person_id=? AND kind='fetch' AND status='planned' LIMIT 1", (who["James Joseph Ahearn"],)).fetchone()
+    if ob:
+        log_run(cx, tid, BY, step_id=ob["id"], source_id="H07", outcome="found", artifacts=[sha_v], note="harness: another paper's page", done=False); cx.commit()
+        fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (ob["id"],)).fetchone()[0] == "planned" and cx.execute("SELECT outcome FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC LIMIT 1", (ob["id"],)).fetchone()[0] == "found",
+             "a found run at a row-source connector is logged and the fetch step stays planned")
     # ---- the plan is idempotent and the catalog whole
     st1 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
     st2 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
@@ -464,13 +471,46 @@ def connectors_offline():
         and rows[1].get("cemetery") == "BG WILLIAM C DOYLE VET'S MEM CEM" and rows[1].get("city") == "WRIGHTSTOWN" and rows[1].get("state") == "NJ", f"the second decedent as the page writes him: {rows[1:] if rows else rows}")
     say(len(va_graves.hits(va_graves.URL, body, {"locator": "x"})) == 2 and va_graves.hits(va_graves.URL, body, {"locator": "x"})[0]["fetch"] == [], "one hit per decedent, fetching nothing: the page is the record")
     say(parse_gedcom_date("10/12/1939")["date_start"] == "1939-10-12" and parse_gedcom_date("13/12/1939")["date_start"] is None, "a month-first date is read, an impossible one is not")
+    body_meta = json.dumps({"server": "ia800300.us.archive.org", "dir": "/1/items/genealogicalreco01krie", "metadata": {"identifier": "genealogicalreco01krie"}, "files": [{"name": "genealogicalreco01krie_jp2.zip"}]}).encode()
+    h = ia.hit({"identifier": "genealogicalreco01krie", "doc": "genealogicalreco01krie", "title": "x", "year": 1879, "date": None, "collections": [], "page": None, "text": []}, {"q": '"Frederick Ahearn"~3', "surname": "Ahearn", "given": "Frederick", "variants": ["Ahern", "ahearn"]}, "x")
+    inside = ia.follow(h["fetch"][0], body_meta, h)
+    say([x.get("spelling") for x in inside] == ["Ahearn", "Ahern"] and all("inside.php" in x["url"] for x in inside) and "q=Ahern" in inside[1]["url"], f"the search inside is asked once per spelling, the surname first, a repeat spelling dropped: {[(x.get('spelling'), x['url'][-40:]) for x in inside]}")
+    body_a = json.dumps({"ia": "x", "q": "Ahearn", "matches": [{"text": "Frederick Ahearn", "par": [{"page": 12}]}, {"text": "Ahearn", "par": [{"page": 40}]}]}).encode()
+    body_b = json.dumps({"ia": "x", "q": "Ahern", "matches": [{"text": "Ahern", "par": [{"page": 40}]}, {"text": "Ahern", "par": [{"page": 55}]}, {"text": "Ahern", "par": [{"page": 60}]}]}).encode()
+    imgs = ia.follow(inside[0], body_a, h) + ia.follow(inside[1], body_b, h)
+    say(h["notes"]["pages"] == [12, 40, 55] and [x["page"] for x in imgs] == [12, 40, 55] and h["notes"].get("spellings_found") == ["Ahearn", "Ahern"], f"the pages of every spelling merged, three in all, each image once, the spellings found noted: {h['notes'].get('pages')}, {[x['page'] for x in imgs]}, {h['notes'].get('spellings_found')}")
+    lent = ia.hit({"identifier": "lent", "doc": "lent", "title": "x", "year": 1900, "date": None, "collections": [], "page": None, "text": []}, {"surname": "Brant"}, "x")
+    say(ia.follow(lent["fetch"][0], json.dumps({"server": "s", "dir": "/d", "metadata": {"access-restricted-item": "true"}, "files": []}).encode(), lent) == [] and lent["notes"].get("restricted") is True, "a book the Archive lends stops at its metadata, marked restricted")
+    from run_step import outcome_of
+    say(outcome_of([{"restricted": True}], [], ["a"]) == "none" and outcome_of([{"restricted": True}, {"restricted": False}], [], ["a"]) == "found" and outcome_of([], ["x"], []) == "error" and outcome_of([], [], ["a"]) == "none",
+        "a run whose every hit is a lent book is none; one read is found; no answer at all is error")
+    from connectors import loc_gov, ia_newspapers
+    fq = f(collection="U.S., Newspapers.com Obituary Index, 1800s-current", name="Helen Sara Brant", **{"publication date": "27 Jan 1986", "publication place": "Boca Raton, Florida, USA"})
+    lg = loc_gov.requests(fq); ian = ia_newspapers.requests(fq)
+    say(lg and "q=Brant%20Helen" in lg[0]["url"] and "dates=1986%2F1986" in lg[0]["url"] and "location_state%3Aflorida" in lg[0]["url"], f"a cited obituary's fields ask loc.gov by the citation's name in the paper's year and state: {lg and lg[0]['url']}")
+    say(ian and ian[0]["years"] == [1986, 1986] and "Helen%20Brant" in ian[0]["url"] and ian[0]["surname"] == "Brant" and ian[0]["given"] == "Helen Sara", f"and the Archive's newspapers within the paper's year, the citation's name split so the search inside asks the surname alone: {ian and (ian[0]['years'], ian[0]['surname'], ian[0]['url'][-60:])}")
+    fts = json.dumps({"hits": {"total": {"value": 2}, "hits": [{"fields": {"identifier": ["st-joseph-herald-press-1967-02-11"], "meta_title": ["St Joseph Herald Press (1967-02-11)"], "meta_collection": ["newspaperarchive"], "filename": ["x_hocr_searchtext.txt.gz"]}, "highlight": {"text": ["Helen Brant"]}},
+                                                                {"fields": {"identifier": ["boca-raton-news-1986-01-27"], "meta_title": ["Boca Raton News (1986-01-27)"], "meta_collection": ["newspaperarchive"]}, "highlight": {"text": ["Helen Ahearn"]}}]}}).encode()
+    its = ia.items(fts)
+    say([(i["year"], i["date"]) for i in its] == [(1967, "1967-02-11"), (1986, "1986-01-27")], f"a newspaper issue's day read from its title when the search gives no year: {[(i['year'], i['date']) for i in its]}")
+    say([h["notes"]["item"] for h in ia_newspapers.hits(ian[0]["url"], fts, ian[0])] == ["boca-raton-news-1986-01-27"] if ian else False, "and only the issue of the paper's year is a hit")
+    from run_step import spelling_variants
+    say(spelling_variants("Ahearn", ["James J. Ahearu", "Frederick Ahern", "Helen Sara Brant Ahearn", "Alicia Ahern", "Mary Horn"]) == ["Ahearu", "Ahern"],
+        f"the surname's spellings among the aliases: a slip and a variant once each, never a married name or another surname: {spelling_variants('Ahearn', ['James J. Ahearu', 'Frederick Ahern', 'Helen Sara Brant Ahearn', 'Alicia Ahern', 'Mary Horn'])}")
+    from run_step import connectors_for
+    class Cat2: sources = {"H05": {"connector": ""}, "H01": {"connector": "loc_gov"}, "H07": {"connector": "ia_newspapers"}, "H03": {}, "L02": {"connector": "ia_books"}}
+    st = {"kind": "fetch", "locator_source_id": "H05", "sources_json": '["H01","H07","H03"]'}
+    say([c.__name__.split(".")[-1] for c in connectors_for(Cat2, st)] == ["loc_gov", "ia_newspapers"], "a fetch step at a holder without a connector runs at the connectors of its row's sources")
+    st2 = {"kind": "fetch", "locator_source_id": "L02", "sources_json": '["H07","L02"]'}
+    say([c.__name__.split(".")[-1] for c in connectors_for(Cat2, st2)] == ["ia_books", "ia_newspapers"], "a fetch step's holder comes first, once")
     from run_step import coverage_years, step_years
     want = {"US 1756-1963": (1756, 1963), "US 1780s-1990s": (1780, 1999), "US 1950": (1950, 1950), "Global": None, "US veterans": None, "PA 1789-2013, few titles after the 1920s": (1789, 2013)}
     say(all(coverage_years(k) == v for k, v in want.items()), f"the registry's coverage years as read: {[(k, coverage_years(k)) for k in want]}")
     q = lambda **kw: {k: {"value": v, "basis": "accepted"} for k, v in kw.items()}
     say(step_years("obituary", q(death_year=2016, birth_year=1932)) == (2016, 2017) and step_years("household", q(year="1950", birth_year=1932)) == (1950, 1950)
-        and step_years("name", q(birth_year=1880, death_year=1961)) == (1880, 1961) and step_years("name", q(birth_year=1880)) == (1880, 1980) and step_years("subject_record", q(surname="Brant")) is None,
-        "a step's years: the death year for an obituary, the census year for a household, the lifetime otherwise, none without a year")
+        and step_years("name", q(birth_year=1880, death_year=1961)) == (1880, 1961) and step_years("name", q(birth_year=1880)) == (1880, 1980) and step_years("subject_record", q(surname="Brant")) is None
+        and step_years("obituary", f(name="Helen Sara Brant", **{"publication date": "27 Jan 1986"})) == (1986, 1986),
+        "a step's years: the death year for an obituary, the paper's year for a cited one, the census year for a household, the lifetime otherwise, none without a year")
     class Src: SOURCE = "H01"
     class Cat: sources = {"H01": {"coverage": "US 1756-1963"}, "L02": {"coverage": "Global"}}
     from run_step import outside
@@ -496,7 +536,7 @@ def main():
     print("ok   the surname rule and the holder search: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     bad_conn = connectors_offline(); bad_files += bad_conn
-    print("ok   connectors offline: a cited book asked by its title and its copies read from the Archive's answer; the gravesite locator's posted search and its results page read" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
+    print("ok   connectors offline: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
     d, db = scratch(a.keep)
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     from treelib import archive_object

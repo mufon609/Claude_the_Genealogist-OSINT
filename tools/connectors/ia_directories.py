@@ -7,7 +7,7 @@ to eighty). Each directory kept is a hit: the page found by the search inside th
 entry's words as the record's text, the page image from the reader.
 """
 from connectors import value
-from connectors.ia import MOST_HITS, RATE, follow, fts_url, hit, items, phrase, total, within
+from connectors.ia import MOST_HITS, RATE, follow, fts_url, hit, items, name_parts, phrase, total, within
 
 SOURCE = "K01"
 COLLECTION = "Internet Archive city directories"
@@ -21,8 +21,8 @@ def years(fields):
 def requests(fields):
     p = phrase(fields); towns = value(fields, "towns") or []
     if not p or not towns: return []                                # a surname across every directory in the country is a hint feed
-    lo, hi = years(fields); named = " OR ".join(f'"{t}"' for t in towns[:6])
-    return [{"url": fts_url(f'{p} AND title:({named}) AND title:directory AND NOT collection:newspaperarchive'), "kind": "search", "q": p, "surname": value(fields, "surname"), "given": value(fields, "given"), "years": [lo, hi]}]
+    lo, hi = years(fields); named = " OR ".join(f'"{t}"' for t in towns[:6]); given, surname = name_parts(fields)
+    return [{"url": fts_url(f'{p} AND title:({named}) AND title:directory AND NOT collection:newspaperarchive'), "kind": "search", "q": p, "surname": surname, "given": given, "variants": value(fields, "surname_variants") or [], "years": [lo, hi]}]
 
 def hits(url, body, request=None):
     r = request or {}; lo, hi = r.get("years") or (None, None); out = []

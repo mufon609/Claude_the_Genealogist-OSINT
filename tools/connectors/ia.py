@@ -10,8 +10,10 @@ Advanced search:   https://archive.org/advancedsearch.php?q=title:("<words>") AN
 Item metadata:     https://archive.org/metadata/<identifier>: the server and directory the item lives on and its files.
 Search inside:     https://<server>/fulltext/inside.php?item_id=&doc=&path=&q=, the search the site's book reader makes in one
                    item: every match with its text and page. It takes plain words (a quoted phrase must be exact, a slop
-                   is read as a numeral), so it is asked for the surname alone and the matches naming the given name come
-                   first.
+                   is read as a numeral), so it is asked for the surname alone, once per spelling the alias table holds
+                   for the person (Ahearn, then Ahern), and the matches naming the given name come first. A book the
+                   Archive lends rather than serves (access-restricted-item) stops at its metadata, marked restricted: the
+                   runner logs the step none with the reason.
 Page image:        https://<server>/BookReader/BookReaderImages.php?zip=<dir>/<doc>_jp2.zip&file=<doc>_jp2/<doc>_NNNN.jp2&id=&scale=2,
                    the reader's own page image (tif items name their zip and files _tif).
 The archive states no rate limit for these; the connectors keep to a person's pace. Year filters are applied here on the
@@ -27,13 +29,19 @@ MOST_HITS = 5                                                    # items read pe
 MOST_TITLES = 3                                                  # copies of a cited book read per run: the same book is on the Archive more than once
 TITLE_STOP = {"a", "an", "the", "of", "and", "or", "in", "to", "for", "by", "with", "its", "their", "from", "on", "at", "de", "la", "le", "der", "die", "das", "und"}
 
+def name_parts(fields):
+    """(given, surname) from a step's fields: the given and surname fields of a search step, or the citation's name of a fetch
+    step split the right way round."""
+    surname, given = value(fields, "surname"), value(fields, "given")
+    if not surname and value(fields, "name"):
+        from catalog import split_name
+        g, s, _ = split_name(str(value(fields, "name"))); surname, given = s, g
+    return given, surname
+
 def phrase(fields):
     """The name searched: the first given name and the surname as a phrase with slop, so "Brant, Abram C." and "Abram C. Brant"
     both match. None without a surname."""
-    surname, given = value(fields, "surname"), value(fields, "given")
-    if not surname and value(fields, "name"):                          # a fetch step carries the citation's name, not given and surname
-        from catalog import split_name
-        g, s, _ = split_name(value(fields, "name")); surname, given = s, g
+    given, surname = name_parts(fields)
     if not surname: return None
     first = (given or "").split()[0] if given else None
     return f'"{first} {surname}"~3' if first else f'"{surname}"'
@@ -78,9 +86,12 @@ def items(body):
     for h in (json.loads(body).get("hits") or {}).get("hits") or []:
         f = h.get("fields") or {}; fn = one(f.get("filename")) or ""
         coll = f.get("meta_collection"); coll = coll if isinstance(coll, list) else ([coll] if coll else [])
-        year = one(f.get("meta_year")); pages = f.get("page_num")
+        year = one(f.get("meta_year")); pages = f.get("page_num"); date = (one(f.get("meta_date")) or "")[:10] or None
+        dated = re.search(r"\b(1[5-9]\d\d|20\d\d)-(\d\d)-(\d\d)\b", f"{one(f.get('meta_title')) or ''} {one(f.get('identifier')) or ''}")   # a newspaper issue names its day in its title and identifier and nowhere else
+        if not date and dated: date = dated.group(0)
+        if not str(year).isdigit() and date: year = date[:4]
         out.append({"identifier": one(f.get("identifier")), "doc": re.sub(r"_hocr_searchtext\.txt\.gz$", "", fn) or one(f.get("identifier")),
-                    "title": one(f.get("meta_title")), "year": int(year) if str(year).isdigit() else None, "date": (one(f.get("meta_date")) or "")[:10] or None,
+                    "title": one(f.get("meta_title")), "year": int(year) if str(year).isdigit() else None, "date": date,
                     "collections": coll, "page": one(pages[0]) if isinstance(pages, list) and pages and isinstance(pages[0], list) else one(pages),
                     "text": [re.sub(r"\{\{\{|\}\}\}", "", t) for t in (h.get("highlight") or {}).get("text") or []]})
     return out
@@ -106,13 +117,21 @@ def hit(it, request, label):
     r = request or {}
     return {"label": label, "locator": {"kind": "url", "value": f"https://archive.org/details/{it['identifier']}"},
             "notes": {"item": it["identifier"], "doc": it["doc"], "title": it["title"], "year": it["year"], "date": it["date"], "collections": it["collections"],
-                      "page": it["page"], "text": it["text"], "q": r.get("q"), "surname": r.get("surname"), "given": r.get("given")},
+                      "page": it["page"], "text": it["text"], "q": r.get("q"), "surname": r.get("surname"), "given": r.get("given"), "variants": list(r.get("variants") or [])},
             "fetch": [{"url": f"https://archive.org/metadata/{it['identifier']}", "kind": "json", "then": "metadata", "record": False}]}
 
+def spellings(n):
+    """The surname as the step gives it and each spelling the alias table holds for the person, once each."""
+    out = []
+    for s in [n.get("surname") or n.get("q") or ""] + list(n.get("variants") or []):
+        if s and s.lower() not in [x.lower() for x in out]: out.append(s)
+    return out
+
 def follow(entry, body, hit):
-    """More to fetch once a response is in: an item's metadata gives the server and directory, so the search inside the item
-    for the same words; the search inside gives the pages, so each page's image (the first three) from the reader. A book
-    the Archive lends rather than serves (access-restricted-item) stops at its metadata: the hit names it, nothing is read."""
+    """More to fetch once a response is in: an item's metadata gives the server and directory, so the search inside the item,
+    one request per spelling of the surname (spellings); each search inside gives its pages, merged across the spellings up
+    to three, so each new page's image from the reader. A book the Archive lends rather than serves (access-restricted-item)
+    stops at its metadata, marked restricted in the notes: the runner logs the step none with the reason, nothing is read."""
     then = entry.get("then"); n = hit["notes"]
     if then == "metadata":
         d = json.loads(body); server, dirn = d.get("server"), d.get("dir")
@@ -122,10 +141,13 @@ def follow(entry, body, hit):
         zipf = next((f for f in files if f.endswith("_jp2.zip")), None) or next((f for f in files if f.endswith("_tif.zip")), None)
         n["server"], n["dir"], n["zip"] = server, dirn, zipf
         n["doc"] = zipf[:-8] if zipf else n["doc"]
-        q = urllib.parse.urlencode([("item_id", n["item"]), ("doc", n["doc"]), ("path", dirn), ("q", n.get("surname") or n.get("q") or "")], quote_via=urllib.parse.quote)
-        return [{"url": f"https://{server}/fulltext/inside.php?{q}", "kind": "json", "then": "inside"}]
+        return [{"url": f"https://{server}/fulltext/inside.php?" + urllib.parse.urlencode([("item_id", n["item"]), ("doc", n["doc"]), ("path", dirn), ("q", s)], quote_via=urllib.parse.quote),
+                 "kind": "json", "then": "inside", "spelling": s} for s in spellings(n)]
     if then == "inside":
-        d = json.loads(body); n["pages"] = pages = ranked_pages(d.get("matches") or [], n.get("given"))[:3]
+        d = json.loads(body); found = ranked_pages(d.get("matches") or [], n.get("given"))
+        had = list(n.get("pages") or []); pages = [p for p in found if p not in had][:max(0, 3 - len(had))]   # the pages this spelling adds, three in all
+        n["pages"] = had + pages
+        if found: n["spellings_found"] = sorted(set((n.get("spellings_found") or []) + [entry.get("spelling") or n.get("surname") or ""]))
         if not n.get("zip"): return []
         ext = "tif" if n["zip"].endswith("_tif.zip") else "jp2"; doc = n["doc"]
         out = []

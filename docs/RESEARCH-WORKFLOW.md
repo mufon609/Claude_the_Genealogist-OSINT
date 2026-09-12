@@ -347,12 +347,19 @@ own search, posted by surname and first given name with the step's death
 year; the results page is the record: each veteran's name, dates of birth and
 death, rank, branch, war period, cemetery, section and site).
 `tools/run_step.py` runs an auto step at every
-connector its sources have, one log row per source: the connector turns the
+connector its sources have, one log row per source, and a fetch step at its
+holder's connector and at those of its row's sources too (an obituary cited at
+a closed source runs at the Archive's newspapers and at loc.gov with the
+citation's paper and date; the page saved by hand and a connector's answer are
+runs of the same step): the connector turns the
 step's rendered fields into requests, every response is archived as it came
 with the request URL as locator, each hit's own transcription or text and
 image are archived too (a hit may lead on: an Archive item's metadata names
 the server, the search inside it names the page, the reader gives the page
-image), one `search_log` row holds the exact query, the outcome and every
+image; the search inside is asked once per spelling of the surname the alias
+table holds for the person, Ahearn then Ahern, the pages merged; a book the
+Archive only lends stops at its metadata and the run is `none` with the
+reason), one `search_log` row holds the exact query, the outcome and every
 hash, and the extractor and matcher run on each hit's record.
 It runs a fetch step the same way when the citation's free holder has a
 connector: the 1950 site takes the citation's surname within its enumeration

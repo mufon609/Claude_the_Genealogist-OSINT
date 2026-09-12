@@ -813,7 +813,7 @@ def parse_json(data, ctx):
     if isinstance(d, dict) and "ia" in d and "matches" in d and "q" in d:      # the Archive's search inside one item: matches with their text and page
         n = ctx["notes"]; pages = n.get("pages") or []           # the pages the runner chose and fetched images of (connectors/ia.py)
         text = "\n".join(re.sub(r"</?IA_FTS_MATCH>", "", m.get("text") or "") for m in d["matches"] or [] if any(p.get("page") in pages for p in m.get("par") or []))
-        page = {"date": n.get("date") or (str(n["year"]) if n.get("year") else None), "title": n.get("title"), "item": n.get("item"), "pages": pages}
+        page = {"date": n.get("date") or (str(n["year"]) if n.get("year") else None), "title": n.get("title"), "item": n.get("item"), "pages": pages, "variants": n.get("variants") or []}
         return "ia_inside", {"kind": "ia_inside", "segment": d["ia"], "full_text": text, "page": page, "step_type": ctx["step_type"], "query": _searched(ctx), "fields": []}
     return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text, not the Archive's search inside an item"}
 
@@ -842,8 +842,9 @@ def write_ocr(w, parsed):
     text, q, page = parsed["full_text"], parsed["query"], parsed["page"] or {}
     surname = (q.get("surname") or "").strip()
     if not surname: return
+    spellings = [surname] + [v for v in (page.get("variants") or []) if v and v.lower() != surname.lower()]   # the surname as the step gives it and the spellings the search inside was asked
     seq, seen = 1, set()
-    for m in re.finditer(r"(?:\b[A-Z][A-Za-z.'-]*\s+){0,2}\b(?i:" + re.escape(surname) + r")\b(?:\s+[A-Z][A-Za-z.]*)?", text):   # capitalized words around the surname, the surname in any case
+    for m in re.finditer(r"(?:\b[A-Z][A-Za-z.'-]*\s+){0,2}\b(?i:" + "|".join(re.escape(s) for s in spellings) + r")\b(?:\s+[A-Z][A-Za-z.]*)?", text):   # capitalized words around the surname, any spelling, in any case
         words = re.sub(r"\s+", " ", m.group(0)).strip().split()
         cut = [i for i, w_ in enumerate(words[:-1]) if w_.strip(".").lower() in STOP]     # "RECTOR AND Davidson": what stands before a stop word is not the name
         if cut: words = words[cut[-1] + 1:]

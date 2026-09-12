@@ -37,7 +37,9 @@ def reopen(cx, tree_id, by, step_id, note):
     cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (step_id,))
     return log(cx, tree_id, by, step_id=step_id, outcome="none", note=f"reopened: {note}")
 
-def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None):
+def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None, done=True):
+    """One run of a step (or of a question with no step) into search_log; a found run marks the step done unless done is
+    False (a fetch step answered at a source other than its holder: the pages found are held, the cited record is not)."""
     ts = now()
     if step_id:
         st = cx.execute("SELECT id, question_id, query_json, sources_json, revisions_json, locator_source_id FROM search_plan WHERE id=?", (step_id,)).fetchone()
@@ -47,7 +49,7 @@ def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome
     lid = ulid()
     cx.execute("""INSERT INTO search_log (id,tree_id,plan_step_id,question_id,executed_at,executed_by,source_id,query_json,outcome,artifacts_json,notes)
                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (lid, tree_id, step_id, question_id, ts, by, source_id, dumps(query or {}), outcome, dumps(artifacts) if artifacts else None, note))
-    if step_id and outcome == "found": cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (step_id,))
+    if step_id and outcome == "found" and done: cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (step_id,))
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "insert", "search_log", lid, dumps({"step": step_id, "outcome": outcome, "artifacts": artifacts or []})))
     return lid

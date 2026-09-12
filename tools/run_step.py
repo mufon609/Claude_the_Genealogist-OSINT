@@ -16,10 +16,15 @@ row records the exact query, the outcome (found when a hit was archived, none wh
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
 a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed.
-A step whose sources have several connectors runs at each, one log row per source. A fetched response may name more to
-fetch (an item's metadata, then the search inside it, then its pages: connector.follow). A source's years, from the
-registry's coverage column (1756-1963, 1780s-1990s, 1950), gate its steps: a step whose years fall wholly outside them (an
-obituary for a death after the newspapers end) is logged none without a request, the note saying so.
+A step whose sources have several connectors runs at each, one log row per source: a search step at the connectors of its
+row's sources, a fetch step at its holder's and at those of its row's sources too (an obituary cited at a closed source runs
+at the Archive's newspapers with the citation's paper and date), the page saved by hand and a connector's answer being runs
+of the same step. A fetched response may name more to fetch (an item's metadata, then the search inside it, then its pages:
+connector.follow); the search inside a book is asked once per spelling of the surname the alias table holds for the step's
+person (surname_variants on the rendered fields, basis record), and a book the Archive only lends is a none run with the
+reason. A source's years, from the registry's coverage column (1756-1963, 1780s-1990s, 1950), gate its steps: a step whose
+years fall wholly outside them (an obituary for a death after the newspapers end, a cited obituary whose paper's date is)
+is logged none without a request, the note saying so.
 --all runs every planned step a connector can take, in plan order, keeping each connector's pace across steps.
 --dry-run prints the requests and sends nothing.
 """
@@ -44,12 +49,15 @@ def coverage_years(text):
     return lo, hi + 9 if dec else hi
 
 def step_years(query_type, fields):
-    """The years a step asks about, from its rendered fields: an obituary or probate step the death year and the year after; a
-    household step its census year; any other step the person's lifetime from the birth year (to the death year, or a hundred
-    years). None when the fields name no year, so the source's years do not gate it."""
+    """The years a step asks about, from its rendered fields: an obituary or probate step the death year and the year after, or
+    the year of the citation's publication date on a fetch step; a household step its census year; any other step the person's
+    lifetime from the birth year (to the death year, or a hundred years). None when the fields name no year, so the source's
+    years do not gate it."""
     v = lambda k: connectors.value(fields, k)
     death, birth, year = v("death_year"), v("birth_year"), v("year")
+    pub = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", str(v("publication date") or v("date") or "")) if query_type in ("obituary", "probate") else None
     if query_type in ("obituary", "probate") and death: return int(death), int(death) + 1
+    if pub: return int(pub.group(1)), int(pub.group(1))
     if query_type == "household" and str(year or "").isdigit(): return int(year), int(year)
     if birth: return int(birth), int(death) if death else int(birth) + 100
     return None
@@ -80,14 +88,36 @@ def collection_for(cx, conn):
     return cid
 
 def connectors_for(cat, step):
-    """A search step's connectors are those of its sources that have one, in the row's order; a fetch step's is its holder's
-    (the locator source). Each is a query at a different holder and gets its own log row."""
-    sids = [step["locator_source_id"]] if step["kind"] == "fetch" else json.loads(step["sources_json"] or "[]")
-    out = []
+    """A step's connectors: those of its row's sources that have one, in the row's order, and for a fetch step its holder's
+    (the locator source) first. Each is a query at a different holder and gets its own log row."""
+    sids = ([step["locator_source_id"]] if step["kind"] == "fetch" and step["locator_source_id"] else []) + json.loads(step["sources_json"] or "[]")
+    out, seen = [], set()
     for sid in sids:
         name = (cat.sources.get(sid) or {}).get("connector")
-        if name: out.append(connectors.load(name))
+        if name and name not in seen: seen.add(name); out.append(connectors.load(name))
     return out
+
+def spelling_variants(surname, aliases):
+    """The spellings of a surname among a person's aliases: an alias's last word when it is the surname as the matcher counts
+    a spelling variant (the same Soundex within two edits, or one letter apart: Ahern for Ahearn), never a married name or
+    another surname, as written, once each."""
+    from catalog import key, same_surname
+    out = []
+    for v in aliases:
+        last = (v or "").split()[-1] if (v or "").split() else ""
+        if key(last) and key(last) != key(surname) and same_surname(key(last), key(surname)) in ("variant", "one letter apart") and key(last) not in [key(x) for x in out]: out.append(last)
+    return out
+
+def variants_of(cx, person_id, surname):
+    """The spelling variants of the surname the alias table holds for the person (spelling_variants over the aliases not rejected)."""
+    return spelling_variants(surname, [v for v, in cx.execute("SELECT value FROM alias WHERE entity_kind='person' AND entity_id=? AND status<>'rejected'", (person_id,))])
+
+def outcome_of(hits, errors, shas):
+    """found when a hit gave a record; error when the source did not answer; none when it answered with nothing, or when
+    every hit is a book the Archive lends and does not serve (the note says so)."""
+    if any(not h.get("restricted") for h in hits): return "found"
+    if errors and not shas: return "error"
+    return "none"
 
 def connector_for(cat, step):
     conns = connectors_for(cat, step); return conns[0] if conns else None
@@ -96,11 +126,9 @@ def runnable(cx, cat, tree_id):
     """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector that can ask
     for the record from the citation's details (a book citation that names no title gives the books connector nothing to ask;
     that step stays a link for a hand)."""
-    with_conn = [sid for sid, s in cat.sources.items() if s.get("connector")]
-    rows = cx.execute(f"""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
-                          AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch' AND sp.locator_source_id IN ({','.join('?'*len(with_conn)) or "''"})))
-                          ORDER BY p.display_name, sp.seq""", (tree_id, *with_conn)).fetchall()
-    return [r for r in rows if r["kind"] == "search" or any(c.requests(rendered_query(r["query_json"], r["revisions_json"])) for c in connectors_for(cat, r))]
+    rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
+                         AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch')) ORDER BY p.display_name, sp.seq""", (tree_id,)).fetchall()
+    return [r for r in rows if connectors_for(cat, r) and (r["kind"] == "search" or any(c.requests(rendered_query(r["query_json"], r["revisions_json"])) for c in connectors_for(cat, r)))]
 
 def household_steps(cx, tree_id, step):
     """The other fetch steps at the same holder whose citations name the same census page (year, enumeration district, census
@@ -133,6 +161,10 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     """One step at one connector: requests, responses archived, hits fetched and archived, the log row under the connector's
     source. Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
+    from connectors.ia import name_parts
+    surname = name_parts(query)[1]
+    variants = variants_of(cx, step["person_id"], surname) if surname else []
+    if variants: query = {**query, "surname_variants": {"value": variants, "basis": "record"}}   # the spellings records gave the person, for a search that takes one word
     reqs = conn.requests(query); gate = outside(cat, conn, step["query_type"], query)
     if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs, **({"outside": gate} if gate else {})}
     if not reqs: return {"connector": conn.__name__.split(".")[-1], "error": "the fields give the connector nothing to ask: a surname, or for a cited book its title"}
@@ -159,9 +191,10 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
             if hasattr(conn, "follow"):                          # first, so what the response taught (the pages chosen) is in this artifact's notes
                 try: todo += conn.follow(f, d2, h)
                 except ValueError as e: errors.append(f"{f['url']}: {e}")
-            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], "step_type": step["query_type"], "connector": conn.__name__.split(".")[-1], **({"page_number": f["page"]} if f.get("page") else {})}))   # the step's kind and the connector on the response itself, so it reads the same on its own
+            got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], "step_type": step["query_type"], "connector": conn.__name__.split(".")[-1],
+                                                          **({"page_number": f["page"]} if f.get("page") else {}), **({"spelling": f["spelling"]} if f.get("spelling") else {})}))   # the step's kind and the connector on the response itself, so it reads the same on its own
             if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
-        hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got})
+        hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted"))})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
     for rq in reqs:
         url = rq["url"]; pages = 1
@@ -182,13 +215,14 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
             except ValueError: url = None
             for h in page_hits:
                 hits_of_page(h)
-    outcome = "found" if hits else ("error" if errors and not shas else "none")
+    outcome = outcome_of(hits, errors, shas)
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
-    note = "; ".join(x for x in [answered] + [a for a in asked if a] + [h["label"] for h in hits] + errors if x)[:1000] or None
+    note = "; ".join(x for x in [answered] + [a for a in asked if a] + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
 
-    lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query)
+    own = step["kind"] != "fetch" or conn.SOURCE == step["locator_source_id"]   # a fetch step is done by its holder's answer alone: a row-source connector's hit is another paper's page, logged and held, the cited record still to fetch
+    lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query, done=own)
     household = []
-    if step["kind"] == "fetch" and outcome == "found":              # the page is held for every household member cited on it
+    if step["kind"] == "fetch" and outcome == "found" and own:      # the page is held for every household member cited on it
         for other in household_steps(cx, tree_id, step):
             log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
                        query=rendered_query(other["query_json"], other["revisions_json"])); household.append(other["id"])

@@ -24,12 +24,18 @@ def state_of(place):
     return None
 
 def requests(fields):
+    """A search step's fields (surname, given, a death year or census year, the state), or a fetch step's (the citation's name
+    and the paper's publication date): the collection search by name within the year, in the state when one is named."""
     surname, given = value(fields, "surname"), value(fields, "given")
+    if not surname and value(fields, "name"):
+        from catalog import split_name
+        given, surname, _ = split_name(str(value(fields, "name")))
     if not surname: return []
     q = [("q", " ".join(x for x in (surname, (given or "").split()[0] if given else None) if x))]
-    year = value(fields, "death_year") or value(fields, "year")
+    pub = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", str(value(fields, "publication date") or value(fields, "date") or ""))
+    year = value(fields, "death_year") or value(fields, "year") or (pub.group(1) if pub else None)
     if year: q.append(("dates", f"{year}/{year}"))
-    st = state_of(value(fields, "place")) or (value(fields, "state") or "").lower() or None
+    st = state_of(value(fields, "place") or value(fields, "publication place")) or (value(fields, "state") or "").lower() or None
     if st: q.append(("fa", f"location_state:{st}"))
     q += [("fo", "json"), ("c", "20")]
     return [{"url": "https://www.loc.gov/collections/chronicling-america/?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote), "kind": "search"}]

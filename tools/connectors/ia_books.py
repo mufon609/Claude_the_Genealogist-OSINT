@@ -8,11 +8,13 @@ lifetime on. A fetch step whose citation names a book (the book title or the cit
 North America Family Histories citation) asks the advanced search for the title and keeps the copies whose title carries
 it; a citation naming no book asks nothing, and that step stays a link for a hand. Each book kept is a hit: the item's
 metadata, then the search inside it for the citation's surname, the pages naming the given name first, the words around
-the match as the record's text and the page image from the reader. A name in a book's text is a hint, never a card.
+the match as the record's text and the page image from the reader; the search inside is asked once per spelling of the
+surname the alias table holds for the person. A book the Archive only lends is a none run with the reason. A name in a
+book's text is a hint, never a card.
 """
 import re
 from connectors import value
-from connectors.ia import MOST_HITS, MOST_TITLES, RATE, follow, fts_url, hit, items, phrase, title_items, title_url, title_words, total, within
+from connectors.ia import MOST_HITS, MOST_TITLES, RATE, follow, fts_url, hit, items, name_parts, phrase, title_items, title_url, title_words, total, within
 
 SOURCE = "L02"
 COLLECTION = "Internet Archive books"
@@ -28,15 +30,12 @@ def requests(fields):
     if t:
         url = title_url(t)
         if not url: return []
-        surname, given = value(fields, "surname"), value(fields, "given")
-        if not surname and value(fields, "name"):
-            from catalog import split_name
-            g, s, _ = split_name(str(value(fields, "name"))); surname, given = s, g
-        return [{"url": url, "kind": "search", "by": "title", "title": t, "q": '"' + " ".join(title_words(t)) + '"', "surname": surname, "given": given}]
+        given, surname = name_parts(fields)
+        return [{"url": url, "kind": "search", "by": "title", "title": t, "q": '"' + " ".join(title_words(t)) + '"', "surname": surname, "given": given, "variants": value(fields, "surname_variants") or []}]
     p = phrase(fields); st, b = value(fields, "state"), value(fields, "birth_year")
     if not p or not st: return []
     return [{"url": fts_url(f'{p} AND "{str(st).title()}" AND title:(genealogy OR genealogical OR history OR family OR descendants OR pioneers OR ancestry) AND NOT collection:newspaperarchive'),
-             "kind": "search", "q": p, "surname": value(fields, "surname"), "given": value(fields, "given"), "years": [int(b) if b else None, None]}]
+             "kind": "search", "q": p, "surname": name_parts(fields)[1], "given": name_parts(fields)[0], "variants": value(fields, "surname_variants") or [], "years": [int(b) if b else None, None]}]
 
 def hits(url, body, request=None):
     r = request or {}

@@ -109,17 +109,6 @@ worked. A view changes only what is shown, never the data. The overview
 exists and carries a placeholder line for these options; the placeholder goes
 when the first view ships.
 
-### C5. Given-name variants from the alias table
-
-The matcher takes a wife under her husband's surname, a short form the
-common list knows (Willie, Charley), a one-letter slip, and every name a
-record gives (a WikiTree profile's name at birth and current surname). It
-still compares the first given name against the tree's exactly beyond those,
-so Annie M Lukens does not fit Anna Marie Bolton. Give the given-name
-comparison the alias table's variants for the person, so the proposal names
-the person the tree already has. Build it on the first fetched page where the
-matcher misses for this reason. Nothing here changes what a person decides.
-
 ### C6. A page saved from a holder without a parser reaches its step
 
 `tools/fetches.py list` prints a file name for every page it asks for, but
@@ -196,19 +185,6 @@ church row's source for a Netherlands-born person. Build the connector, with
 an extractor for the A2A record (one persona per person with a relation to
 the record's subject, the event as the fact), when such a person is reviewed
 and the step exists, so it is tested on a real step.
-
-### C14. A cited record's free connectors are never asked when its holder has none
-
-A fetch step runs at its holder's connector alone (`tools/run_step.py`
-`connectors_for`), so a record cited at a closed source whose first free
-holder has no connector is a hand fetch even when the row's other sources
-have one: an obituary cited at Newspapers.com points at Legacy.com, which
-holds obituaries from 1999, and the Archive's newspapers connector on the same
-row is never asked, though the citation carries the paper, the date and the
-place it would search with. Let a fetch step run at every connector among its
-holders and its row's sources, one log row each, as a search step does, with
-the citation's paper, date and place as the fields; the page saved by hand
-and a connector's answer stay runs of the same step.
 
 ---
 
