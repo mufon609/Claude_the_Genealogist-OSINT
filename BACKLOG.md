@@ -197,6 +197,19 @@ an extractor for the A2A record (one persona per person with a relation to
 the record's subject, the event as the fact), when such a person is reviewed
 and the step exists, so it is tested on a real step.
 
+### C14. A cited record's free connectors are never asked when its holder has none
+
+A fetch step runs at its holder's connector alone (`tools/run_step.py`
+`connectors_for`), so a record cited at a closed source whose first free
+holder has no connector is a hand fetch even when the row's other sources
+have one: an obituary cited at Newspapers.com points at Legacy.com, which
+holds obituaries from 1999, and the Archive's newspapers connector on the same
+row is never asked, though the citation carries the paper, the date and the
+place it would search with. Let a fetch step run at every connector among its
+holders and its row's sources, one log row each, as a search step does, with
+the citation's paper, date and place as the fields; the page saved by hand
+and a connector's answer stay runs of the same step.
+
 ---
 
 ## Externally blocked

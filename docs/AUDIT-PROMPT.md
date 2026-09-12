@@ -78,7 +78,7 @@ screen. Then the loop repeats.
   `run_step` (runs an auto search step through every connector its sources
   have under `tools/connectors/`: loc.gov for Chronicling America, the 1950
   census site, the Internet Archive's full-text search for newspapers,
-  directories and books, WikiTree; archives every response, logs the run,
+  directories and books, WikiTree, the VA gravesite locator; archives every response, logs the run,
   extracts and matches). Parsers: the Find a Grave memorial parser and the FamilySearch
   record-page parser are verified on real pages; the Ancestry index parser is
   not (Ancestry needs a membership this account lacks). Connector-response
@@ -108,7 +108,7 @@ screen. Then the loop repeats.
   never a checklist: the loop starts from the people the owner accepted and
   walks outward on records. Plans exist for everyone; search steps exist only
   for reviewed people.
-- Not built yet: connectors beyond those six (FamilySearch waits on the API
+- Not built yet: connectors beyond those seven (FamilySearch waits on the API
   application), exporters.
 
 ## What to look for
