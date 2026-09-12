@@ -3,7 +3,10 @@ and the matcher once, after the log rows exist, so the matcher sees every person
 
 One code path for tools/attach_inbox.py and the person screen's "Archive + log". The record's identity is read from the
 file itself, never from its name: a Find a Grave memorial id from the memorial's own markup (memNumberLabel), a
-FamilySearch ark from the record page's print header. The steps a record fulfils are the tree's fetch steps whose citation
+FamilySearch ark from the record page's print header. An image carries no identity in its bytes, so a gravestone
+photograph takes the one the fetch list printed in its name (findagrave-photo-<memorial id>-<photo id>.jpg): the step for
+that photograph on that memorial, archived under the gravestone row (E05) with the image's own URL as locator, logged found,
+and read afterwards by the transcription path, never parsed. The steps a record fulfils are the tree's fetch steps whose citation
 carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record ids the artifact holds
 (catalog.holds: its own and, on the same sheet, those of the people the page names) once it is in the archive, else the
 census page the record page itself names (year, enumeration district, sheet, county and state) against each step's
@@ -21,6 +24,14 @@ from match import key as name_key
 from conclude import match_record
 
 MEMORIAL_URL = re.compile(r"findagrave\.com/memorial/(\d+)(?:/|$)")
+PHOTO_NAME = re.compile(r"^findagrave-photo-(\d+)-(\d+)\.(?:jpe?g|png|webp|gif)$", re.I)
+PHOTOS, PHOTO_COLLECTION = "E05", "Find a Grave memorial photographs"
+
+def identity_of_name(name):
+    """("photo", "<memorial id>:<photo id>", None) for an image saved under the name the fetch list printed for a gravestone
+    photograph, else (None, None, None): an image carries no identity in its bytes."""
+    m = PHOTO_NAME.match(os.path.basename(name or ""))
+    return ("photo", f"{m.group(1)}:{m.group(2)}", None) if m else (None, None, None)
 
 def identity(text):
     """(kind, value, parsed) from a page's own markup: ("memorial", id, parsed memorial) for a Find a Grave memorial (body id
@@ -124,6 +135,11 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
             if yb and v("birth_year") and int(v("birth_year")) % 100 != int(yb) % 100: continue
             out.append(r)
         return _why(out, "the page's name and year of birth are the step's")
+    if kind == "photo":                                               # the step for this photograph on this memorial
+        mid, pid = value.split(":", 1)
+        rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_source_id=?
+                             AND json_extract(sp.query_json,'$.memorial.value')=? AND json_extract(sp.query_json,'$.photo.value')=? ORDER BY sp.seq""", (tree_id, PHOTOS, mid, pid)).fetchall()
+        return _why(rows, "the photograph the step asks for, by the name the fetch list gave it")
     if kind == "memorial":
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch'
                              AND json_extract(sp.query_json,'$.url.value') LIKE ? ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, f"%/memorial/{value}/%")).fetchall()
@@ -205,9 +221,15 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     col = cx.execute("SELECT name FROM collection WHERE id=?", (st["collection_id"],)).fetchone() if st["collection_id"] else None
     lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else ("url", value, "FamilySearch record search") if kind == "fs_search" else ("url", value, "WWII Army Enlistment Records (AAD)") if kind == "aad_search"
                             else ("url", (parsed or {}).get("url") or value, "WWII Army Enlistment Records (AAD)") if kind == "aad_record"
+                            else ("url", st["locator_value"], PHOTO_COLLECTION) if kind == "photo"
                             else (st["locator_kind"] or "file", st["locator_value"] or os.path.basename(src), col[0] if col else None))
-    holder = {"ark": "D03", "memorial": "E01", "search": "E01", "fs_search": "D03", "aad_search": "F01", "aad_record": "F01"}.get(kind)   # the page's own identity says where it came from, whatever holder the step pointed at
+    holder = {"ark": "D03", "memorial": "E01", "search": "E01", "fs_search": "D03", "aad_search": "F01", "aad_record": "F01", "photo": PHOTOS}.get(kind)   # the page's own identity says where it came from, whatever holder the step pointed at
     from_row = _source_row(cx, holder) or from_row
+    if kind == "photo":                                                              # the stone itself: an image under the gravestone row, tier 1
+        kind_row = from_row
+        row = cx.execute("SELECT id, name FROM collection WHERE source_id=? AND name=?", (PHOTOS, PHOTO_COLLECTION)).fetchone()
+        if not row: cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, PHOTOS, PHOTO_COLLECTION, "other", "findagrave-photo")); row = (cid, PHOTO_COLLECTION)
+        st = dict(st); st["collection_id"] = row[0]
     if kind == "ark" and (parsed or {}).get("collection"):                           # the record's own collection at its holder
         own = re.sub(r"^[^•]*•\s*", "", parsed["collection"]).strip()
         row = cx.execute("SELECT id, name FROM collection WHERE source_id=? AND name=?", (holder, own)).fetchone()
@@ -270,12 +292,12 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
         path = os.path.join(inbox_dir(), os.path.basename(name)); r = {"file": os.path.basename(name), "identity": None, "steps": [], "left": None}
         if not os.path.isfile(path): r["left"] = "not in the inbox"; results.append(r); continue
         with open(path, "rb") as fh: data = fh.read()
-        kind, value, parsed = identity(data.decode("utf-8", errors="replace")) if (mimetypes.guess_type(path)[0] or "").startswith("text/html") else (None, None, None)
-        if not kind: r["left"] = "no record identity read from the file (not a Find a Grave memorial or results page, not a FamilySearch record page)"; results.append(r); continue
+        kind, value, parsed = identity(data.decode("utf-8", errors="replace")) if (mimetypes.guess_type(path)[0] or "").startswith("text/html") else identity_of_name(name)
+        if not kind: r["left"] = "no record identity read from the file (not a Find a Grave memorial or results page, not a FamilySearch record page, not a photograph under the name the fetch list printed)"; results.append(r); continue
         r["identity"] = f"{kind} {value}"
         steps = steps_for(cx, tree_id, kind, value, parsed)
         r["steps"] = [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"], s.get("reason")) for s in steps]
-        if not steps and not about: r["left"] = "no cemetery search step in this tree has this search's fields" if kind == "search" else "no fetch step in this tree cites this record"; results.append(r); continue
+        if not steps and not about: r["left"] = "no cemetery search step in this tree has this search's fields" if kind == "search" else "no step in this tree asks for this photograph" if kind == "photo" else "no fetch step in this tree cites this record"; results.append(r); continue
         r.update(attach(cx, tree_id, slug, name, steps, by, note=f"attached from the inbox by identity: {kind} {value}" + (" on the owner's word about the person" if not steps else ""), kind=kind, value=value, parsed=parsed, about=about))
         results.append(r)
     return results

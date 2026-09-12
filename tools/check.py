@@ -49,8 +49,11 @@ def rel(p, kind, to_seq, value=None):
 
 # ---------------------------------------------------------------- the checks: one per fixture, each returns the failures it found
 
-def check_memorial(ps, fail):
+def check_memorial(ps, fail, parsed):
     fail(len(ps) == 11, f"11 personas expected, {len(ps)} written")
+    photos = parsed.get("photos") or []
+    fail(len(photos) == 4 and [p["type"] for p in photos] == ["Grave", "Family", "Family", "Family"] and photos[0]["id"] == "49839510" and photos[0]["url"] == "https://images.findagrave.com/photos/2011/281/78019650_131821819991.jpg" and photos[0]["caption"] is None and photos[1]["caption"].startswith("Undated, About 1919"),
+         f"the page's four photographs with the type the page gives each, the full-size image and the caption: {photos}")
     a = ps[0]; fail(a["name"] == "Abram C Brant" and a["role"] == "memorial", f"the memorial's subject: {a['name']} [{a['role']}]")
     fail(fact(a, "Birth", date="20 Sep 1880", place="Worcester, Montgomery County, Pennsylvania"), "birth 20 Sep 1880 at Worcester")
     fail(fact(a, "Death", date="10 Oct 1961", place="Pottstown, Montgomery County, Pennsylvania"), "death 10 Oct 1961 at Pottstown")
@@ -203,11 +206,12 @@ def run(*args):
 
 def decisions(keep, show):
     """The matcher, the standing rule and the decision writers on a scratch catalog holding tests/fixtures/harness.ged (the
-    Ahearn household of 1940 and Helen's parents), with the 1940 page and Abram C Brant's memorial arriving as they would
-    through the inbox. Returns the failures found."""
+    Ahearn household of 1940 and Helen's parents), with the 1940 page, Abram C Brant's memorial and its gravestone photograph
+    arriving as they would through the inbox. Returns the failures found."""
     d, db = scratch(keep)
     import treelib; treelib.DATA_ROOT = d
     from attach import attach_inbox
+    from catalog import tier_sql
     from conclude import decide, rule_accepts
     from extract import extract
     from facts import fact_status
@@ -289,24 +293,27 @@ def decisions(keep, show):
     # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
     r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
-    # ---- the memorial arrives: T4, a card for Abram alone; the people it links wait on his decision
+    # ---- the memorial arrives: a page anyone can edit; the rule takes its subject as Abram on the identity alone (the name, both dates to the day, the burial place, the wife and daughter it lists agree with the tree's claims), his facts stay claims, the people it links come up as cards
     shutil.copy(os.path.join(FIXTURES, "findagrave-memorial-78019650.html"), os.path.join(treelib.inbox_dir(), "findagrave-memorial-78019650.html"))
     res = attach_inbox(cx, tid, "harness", BY, ["findagrave-memorial-78019650.html"]); cx.commit(); say("attach memorial:", res)
-    ps = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256", "").startswith("576c97b3")]
-    persona_name = lambda p: cx.execute("SELECT name_text FROM persona WHERE id=?", (json.loads(p["payload_json"])["persona_id"],)).fetchone()[0]
-    fail(len(ps) == 1 and ps[0]["kind"] == "persona_match" and name(person_of(ps[0])) == "Abram C Brant" and persona_name(ps[0]) == "Abram C Brant",
-         f"one card on the memorial, its subject as Abram; his father of nearly the same name stays a hint, the people it links wait: {[(p['kind'], persona_name(p), name(person_of(p)) if person_of(p) else None) for p in ps]}")
-    subject = ps[0] if ps else None
-    ok, why = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (subject["id"],)).fetchone()); say("rule on T4:", ok, why)
-    fail(not ok and ("edit" in why.lower() or "find a grave" in why.lower()), f"the rule refuses a page anyone can edit: {why}")
-    # ---- Abram accepted: his daughter and wife come up as cards, his parents and siblings as new people
-    r = decide(cx, tid, subject["id"], "accepted", BY, "harness"); cx.commit(); say("Abram:", r)
+    sha_m = res[0].get("sha256") if res else None; taken = (res[0].get("accepted_by_rule") or []) if res else []
+    fail(len(taken) == 1 and taken[0][1] == "Abram C Brant" and "identity" in taken[0][2], f"the rule takes the memorial's subject as Abram, an identity on a page anyone can edit: {taken}")
+    fail(taken and all(w in taken[0][2] for w in ("birth date to the day", "death date to the day", "burial place", "Charlotte", "Helen")), f"its reason names the day of birth, the day of death, the burial place and the relatives listed: {taken and taken[0][2]}")
+    abram = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' AND json_extract(payload_json,'$.person_id')=?", (tid, who["Abram C Brant"])).fetchone()
+    fail(abram is not None and cx.execute("SELECT status FROM person_persona WHERE person_id=? AND persona_id=?", (who["Abram C Brant"], json.loads(abram["payload_json"])["persona_id"])).fetchone()[0] == "accepted", "the persona link accepted, decided by the rule")
+    facts_on = lambda: {r[0]: r[1] for r in cx.execute("SELECT status, COUNT(*) FROM assertion WHERE artifact_sha256=? AND subject_kind IN ('person','event') GROUP BY status", (sha_m,))}
+    fail(facts_on().get("undecided", 0) >= 4 and not facts_on().get("accepted"), f"every fact the page types is written undecided, none accepted: {facts_on()}")
+    fail(fact_status(cx, who["Abram C Brant"], "birth") == "undecided" and fact_status(cx, who["Abram C Brant"], "death") == "undecided", "his birth and death stay undecided: a page anyone can edit builds no fact")
     after = [p for p in props() if json.loads(p["payload_json"]).get("artifact_sha256", "").startswith("576c97b3")]
+    persona_name = lambda p: cx.execute("SELECT name_text FROM persona WHERE id=?", (json.loads(p["payload_json"])["persona_id"],)).fetchone()[0]
     matched = sorted(name(person_of(p)) for p in after if p["kind"] == "persona_match"); new = [p for p in after if p["kind"] == "new_person"]
     say("after Abram:", matched, [persona_name(p) for p in new])
-    fail({"Charlotte D Lukens", "Helen Sara Brant"} <= set(matched), f"his wife and daughter proposed once he is accepted: {matched}")
+    fail(matched == ["Charlotte D Lukens", "Helen Sara Brant"], f"his wife and daughter proposed once he is accepted, his father of nearly the same name a hint: {matched}")
+    for p in [p for p in after if p["kind"] == "persona_match"]:
+        ok, why = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (p["id"],)).fetchone()); say("rule on a listed relative:", name(person_of(p)), ok, why)
+        fail(not ok and "three" in why and "Abram C Brant agrees" in why, f"a relative the page lists by name and years alone is refused, the stated relation the one thing that agrees: {why}")
     fail(len(new) >= 3 and "Sarah D. Cassel Brant" in [persona_name(p) for p in new], f"his mother and siblings, not in the tree, proposed as new people: {[persona_name(p) for p in new]}")
-    # ---- a rejection writes the proposal and nothing else; a new person accepted is created with the link the record states
+    # ---- a rejection writes the proposal and nothing else; a new person accepted is created with the link the record states, accepted even from this page
     n1 = nassert(); persons1 = cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0]
     r = decide(cx, tid, new[-1]["id"], "rejected", BY, "harness"); cx.commit()
     fail(r.get("ok") and nassert() == n1 and cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0] == persons1, "rejecting a new person writes the proposal and nothing else")
@@ -316,12 +323,47 @@ def decisions(keep, show):
         made = cx.execute("SELECT p.display_name, n.given, n.surname FROM person p JOIN person_name n ON n.person_id=p.id AND n.is_primary=1 WHERE p.id=?", (r.get("person"),)).fetchone()
         say("made:", tuple(made) if made else None)
         fail(made and "Sarah" in made[0] and made[2] == "Cassel", f"the person created with the name as written and the marked maiden name as her birth surname: {tuple(made) if made else None}")
-        fail(any(m.get("role") == "child" and m.get("person") == who["Abram C Brant"] for m in r["memberships"]), f"Abram placed as the new parent's child on the record: {r['memberships']}")
-    # ---- the page read again: the decided links carry to the new personas, the old cards close as superseded
-    eid, n = extract(cx, "3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e", BY); cx.commit(); say("re-read:", n)
-    fail(n.get("links_carried") == 4, f"four decided links carried to the new personas: {n}")
-    old = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')='3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e'", (tid,)).fetchone()[0]
-    fail(old == 0, f"no undecided card left on the re-read page: {old}")
+        fail(r.get("identity") and any(m.get("role") == "child" and m.get("person") == who["Abram C Brant"] for m in r["memberships"]), f"Abram placed as the new parent's child on the record, the link accepted though the page's facts are not: {r['memberships']}")
+        fail(fact_status(cx, who["Abram C Brant"], "parents") == "accepted" and not facts_on().get("accepted"), f"his parents link reads accepted on the page, his facts still not: {facts_on()}")
+    # ---- reconsider keeps the identity and refuses the listed relatives with the reason; a decision taken back is taken again as a card
+    from conclude import reconsider, withdraw
+    rows = reconsider(cx, tid, BY, dry_run=True); say("reconsider:", [(x["kind"], x["person"], x.get("kept", x.get("taken")), x["why"][:60]) for x in rows])
+    fail(any(x["kind"] == "decision" and x["kept"] and x["person"] == "Abram C Brant" for x in rows), f"reconsider keeps Abram's identity: {[x for x in rows if x['kind'] == 'decision']}")
+    fail(rows and not any(x["taken"] for x in rows if x["kind"] == "card") and all("three" in x["why"] for x in rows if x["kind"] == "card" and x["person"] in ("Charlotte D Lukens", "Helen Sara Brant")), f"the cards it refused stay refused, each with the reason: {[x for x in rows if x['kind'] == 'card']}")
+    withdraw(cx, tid, abram["id"], BY, "harness: taken back", treelib.now()); cx.commit()
+    fail(cx.execute("SELECT status FROM proposal WHERE id=?", (abram["id"],)).fetchone()[0] == "undecided", "the card is undecided again once taken back")
+    rows = reconsider(cx, tid, BY); cx.commit(); say("reconsider after a withdrawal:", [(x["kind"], x["person"], x.get("kept", x.get("taken"))) for x in rows])
+    fail(any(x["kind"] == "card" and x["taken"] and x["person"] == "Abram C Brant" for x in rows) and (cx.execute("SELECT decided_by FROM proposal WHERE id=?", (abram["id"],)).fetchone()[0] or "").startswith("rule:"), "a card the rule would take is taken by reconsider, recorded as the rule")
+    # ---- the rule's identity taken back and given by the owner: an identity still, the facts undecided, the links standing
+    withdraw(cx, tid, abram["id"], BY, "harness: taken back", treelib.now()); cx.commit()
+    r = decide(cx, tid, abram["id"], "accepted", BY, "harness"); cx.commit(); say("given by the owner:", r)
+    fail(r.get("ok") and r.get("identity") and not facts_on().get("accepted") and fact_status(cx, who["Abram C Brant"], "parents") == "accepted", f"the owner's accept of the card is an identity too, the page's facts still undecided, the link to his mother standing: {facts_on()}")
+    # ---- the page read again: the decided links carry to the new personas, the old cards close as superseded, the page's facts stay undecided
+    eid, n = extract(cx, "576c97b3b1585aea0ac5814c8175b69c752bfa9d0cefab7d7e99f2cebaa30982", BY); cx.commit(); say("re-read:", n)
+    fail(n.get("links_carried") == 2, f"the two decided links (Abram, his mother) carried to the new personas: {n}")
+    old = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')='576c97b3b1585aea0ac5814c8175b69c752bfa9d0cefab7d7e99f2cebaa30982'", (tid,)).fetchone()[0]
+    fail(old == 0 and not facts_on().get("accepted"), f"no undecided card left on the re-read page and no fact of it accepted: {old}, {facts_on()}")
+    # ---- the gravestone photograph: the one photograph the page types Grave is a fetch step under the cemetery row; saved under the name the list prints it is archived under the gravestone row, tier 1, unparsed, and a reading by the model is a card for Abram the rule leaves to the owner
+    plan_person(cx, tid, who["Abram C Brant"], BY); cx.commit()
+    photo = cx.execute("SELECT * FROM search_plan WHERE person_id=? AND step_key LIKE 'fetch:photo:%'", (who["Abram C Brant"],)).fetchall()
+    fail(len(photo) == 1 and photo[0]["step_key"] == "fetch:photo:49839510" and photo[0]["locator_source_id"] == "E05" and photo[0]["locator_kind"] == "url" and photo[0]["locator_value"].endswith("78019650_131821819991.jpg") and photo[0]["row_key"].startswith("cemetery"),
+         f"one fetch step, for the photograph typed Grave, under the cemetery row with the image's URL as locator; the three family photographs make none: {[dict(x) for x in photo]}")
+    from fetches import waiting
+    w = next((e for e in waiting(cx, tid) if e["holder_id"] == "E05"), None)
+    fail(w and w["save_as"] == "findagrave-photo-78019650-49839510.jpg" and w["how"] == "image" and photo and w["url"] == photo[0]["locator_value"], f"the fetch list names the image and the file to save it under: {w}")
+    with open(os.path.join(treelib.inbox_dir(), "findagrave-photo-78019650-49839510.jpg"), "wb") as fh: fh.write(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9")   # the smallest of JPEG files stands in for the photograph
+    res = attach_inbox(cx, tid, "harness", BY, ["findagrave-photo-78019650-49839510.jpg"]); cx.commit(); say("attach photo:", res)
+    fail(res and res[0].get("steps") and photo and res[0]["steps"][0][0] == photo[0]["id"] and res[0]["extraction"] is None, f"the photograph attaches to its step by the name the list gave it and is not parsed: {res}")
+    art = cx.execute(f"SELECT ar.source_id, ar.mime, {tier_sql()} AS tier FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (res[0]["sha256"],)).fetchone() if res and res[0].get("sha256") else None
+    fail(art and art["source_id"] == "E05" and art["mime"] == "image/jpeg" and art["tier"] == "T1" and photo and cx.execute("SELECT status FROM search_plan WHERE id=?", (photo[0]["id"],)).fetchone()[0] == "done",
+         f"archived under the gravestone row, an image, tier 1, its step done: {dict(art) if art else None}")
+    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server; server.CFG["by"] = BY
+    r = server.transcribe(cx, res[0]["sha256"], {"name": "Abram C. Brant", "role": "named on the stone", "birth_date": "1880", "death_date": "1961"}, by="llm:harness") if res and res[0].get("sha256") else {}
+    cx.commit(); say("the stone read:", r)
+    card_p = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=?", (tid, r.get("extraction"))).fetchone() if r.get("ok") else None
+    ok_p, why_p = rule_accepts(cx, tid, card_p) if card_p else (None, "no card")
+    fail(r.get("ok") and r["proposals"] == 1 and r["accepted_by_rule"] == 0 and card_p and name(person_of(card_p)) == "Abram C Brant" and not ok_p and "hint" in why_p,
+         f"a reading of the stone by the model is one card for Abram, which the rule leaves to the owner: {r}, {why_p}")
     # ---- the gravesite locator's page for Davidson, Raymond, died 2007: one card, his, among the namesakes; the rule takes it once his dates are his own word
     from match import match
     from facts import decide_fact
@@ -459,6 +501,7 @@ def main():
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     from treelib import archive_object
     from extract import extract
+    from catalog import tier_sql
     cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON")
     bad = len(bad_files)
     for name, mime, source, lkind, lvalue, extractor, check, *extra in FIXTURE_SET:
@@ -478,7 +521,7 @@ def main():
         eid, n = extract(cx, sha, BY); cx.commit()
         fails = []
         fail = lambda ok, why: None if ok else fails.append(why)
-        ext = cx.execute("SELECT x.name, x.version, e.status FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()
+        ext = cx.execute("SELECT x.name, x.version, e.status, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()
         fail(ext[2] == "complete", f"extraction {ext[2]}: {n.get('failed', '')}")
         fail(ext[0] == extractor, f"read by {ext[0]}@{ext[1]}, expected {extractor}")
         ps = read(cx, eid) if ext[2] == "complete" else []
@@ -489,7 +532,7 @@ def main():
                 for t, v, dt, pl in p["facts"]: print(f"       {t:16} {' | '.join(x for x in (v, dt, pl) if x)}")
                 for k, v, o in p["relations"]: print(f"       -> {k} ({v}) of #{o}")
         if ext[2] == "complete" and ext[0] == extractor:
-            try: check(ps, fail)
+            try: check(ps, fail, json.loads(ext[3] or "{}")) if check.__code__.co_argcount > 2 else check(ps, fail)   # a check that reads the parsed page takes it
             except Exception as e: fails.append(f"check raised {type(e).__name__}: {e}")
         if fails: bad += 1; print(f"FAIL {name}: " + "; ".join(fails))
         else: print(f"ok   {name}: {ext[0]}@{ext[1]}, {len(ps)} persona(s)")

@@ -124,7 +124,7 @@ def card(cx, tree_id, prop_id):
             for st in cx.execute("SELECT row_key FROM search_plan WHERE person_id=? AND kind='search' AND sources_json LIKE '%\"E01\"%' ORDER BY seq", (person_id,)):
                 closes.append(f"the {st['row_key'].split(':')[0]} row for {person['name']}: memorial {mem} is fetched next by the one-call method and attached like any memorial")
         evidence = [f"{f['fact_type']} {f['date_text'] or f['value_text'] or ''}".strip() for f in facts if f["fact_type"] in ("Name", "Birth", "Death", "Burial") and (f["date_text"] or f["value_text"] or f["place"])]
-        if evidence: closes.append(("held evidence to accept on: " if pe["role_in_record"] != "result" else "the row states, as held evidence once accepted: ") + ", ".join(evidence))
+        if evidence: closes.append(("the page's statements, written undecided with the identity, never accepted: " if (a["trust_tier"] or "")[:2] == "T4" else "held evidence to accept on: " if pe["role_in_record"] != "result" else "the row states, as held evidence once accepted: ") + ", ".join(evidence))
         for q in cx.execute("SELECT kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' AND kind IN ('unverified_claim','missing_fact')", (person_id,)):
             d = json.loads(q["detail_json"] or "{}").get("detail") or ""
             if q["kind"] == "unverified_claim" and any(f["fact_type"] in d for f in facts if f["fact_type"] in ("Birth", "Death", "Burial")): closes.append(f"the question unverified_claim: {d}")

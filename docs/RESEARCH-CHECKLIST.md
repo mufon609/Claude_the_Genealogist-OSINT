@@ -61,7 +61,9 @@ that person's own facts. Many still *name* relatives (B1); some do not (B2).
 Gravestones are covered by the Group A cemetery row (the same source names the
 family plot); a memorial is about one person, so the row reads held only
 through the person's own memorial, and the relatives a memorial links are
-leads on it. Directory entries are the Group A directory row. Voter
+leads on it. A memorial accepted as the person's own gives one fetch step per
+photograph the page types Grave, under the same row: the stone itself, a
+primary source read by the transcription path into a card. Directory entries are the Group A directory row. Voter
 registration (C11) is living-person data and is never a checklist row.
 
 Every row is **gated by era, place and sex**, taken from the person's Accepted

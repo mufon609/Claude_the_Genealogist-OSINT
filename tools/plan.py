@@ -12,7 +12,9 @@ collection (data/holders.csv): the step's locator source is the holder and its
 fields are the citation's own details (collection, the name the citation sits
 on, the page text's parts, the memorial URL), basis citation. A citation whose
 collection has no free holder stays a fetch step with mode blocked and the
-reason in its rationale. Idempotent: questions and steps are keyed, so re-running updates what
+reason in its rationale. A memorial accepted as the person's own gives one
+fetch step per photograph the page types Grave (the stone itself, registry row
+E05, the image's URL as locator). Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated (one that was run but
 is not done is kept for its log as skipped, planned again if generated again),
 marks a fetch step done when an archived record holds its citation for the
@@ -32,6 +34,8 @@ from checklist import build
 
 FOOTPRINT_HOME = ("missing_parents", "identity_incomplete", "missing_spouse", "unverified_claim")
 ANCESTRY = "B02"
+PHOTOS = "E05"                                                   # the registry row gravestone photographs are archived under: an image of the stone, tier 1
+PHOTO_COLLECTION = "Find a Grave memorial photographs"
 
 def q_key(q):
     """Stable key: kind plus the other person's id when the question is about one, else kind plus detail."""
@@ -91,13 +95,35 @@ def linked_records(cx, tree_id, cat, pid, me):
                     "rationale": f"named on {subject}'s memorial with a link to their own; fetch it by the one-call method"})
     return out
 
+def gravestone_photos(cx, tree_id, cat, pid):
+    """Fetch steps for the gravestone photographs on a memorial accepted as this person's own: the page types each photograph,
+    and one typed Grave is an image of the stone itself, a primary source (registry row E05, tier 1) saved in the owner's
+    browser one at a time and read by the transcription path into a card like any other image. One step per photograph, under
+    the cemetery row, with the image's own URL as the locator and the page's words as the fields (the memorial, the photograph's
+    id, its caption and type), basis record. Nothing for a memorial only proposed, and nothing for a photograph the page types
+    otherwise (a portrait, a family photograph)."""
+    out = []; q = cx.cursor(); q.row_factory = sqlite3.Row
+    for r in q.execute("""SELECT pe.name_text, pe.region_json, e.structured_json FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN extraction e ON e.id=pe.extraction_id
+                           JOIN extractor x ON x.id=e.extractor_id WHERE pp.person_id=? AND pp.status='accepted' AND e.superseded_by IS NULL AND pe.role_in_record='memorial' AND x.name='findagrave-memorial'""", (pid,)):
+        parsed = json.loads(r["structured_json"] or "{}"); mid = str(parsed.get("memorial_id") or json.loads(r["region_json"] or "{}").get("memorial_id") or "")
+        for ph in parsed.get("photos") or []:
+            if (ph.get("type") or "").lower() != "grave" or not ph.get("url") or not ph.get("id"): continue
+            f = lambda v: {"value": v, "basis": "record"}
+            fields = {"collection": f(PHOTO_COLLECTION), "name": f(r["name_text"]), "memorial": f(mid), "photo": f(str(ph["id"])), "url": f(ph["url"]), "photo type": f(ph["type"]),
+                      **({"caption": f(ph["caption"])} if ph.get("caption") else {})}
+            out.append({"step_key": f"fetch:photo:{ph['id']}", "row_key": "cemetery / family plot:", "question_key": None, "kind": "fetch", "query_type": "subject_record", "query_json": dumps(fields),
+                        "locator_source_id": PHOTOS, "locator_kind": "url", "locator_value": ph["url"], "collection_id": None, "on_json": "[]", "sources_json": dumps([PHOTOS]), "mode": "fetch",
+                        "expected": "the stone as photographed: the names and dates cut on it, read one person at a time",
+                        "rationale": f"photograph {ph['id']} on memorial {mid}, typed Grave by the page: the stone itself is a primary source, saved in the owner's browser and read by the transcription path"})
+    return out
+
 class RegistryOutOfStep(Exception):
     """A source id the plan would write is not in the catalog's source table."""
 
 def check_registry(cx, cat, r=None):
     """Every holder in data/holders.csv and every source id the checklist emits must be a row in source, or the plan would
     write a step against a missing row and fail on a foreign key. Raises RegistryOutOfStep naming the ids and the fix."""
-    ids = {h["HolderSourceId"] for rows in cat.holders.values() for h in rows}
+    ids = {h["HolderSourceId"] for rows in cat.holders.values() for h in rows} | {PHOTOS}
     if r: ids |= {sid for grp in ("A", "B") for row in r["checklist"][grp] for sid in row.get("sources") or []}
     have = {row[0] for row in cx.execute("SELECT id FROM source")}
     missing = sorted(ids - have)
@@ -130,6 +156,7 @@ def plan_person(cx, tree_id, pid, by):
                                  "sources_json": dumps(s["sources"]), "mode": s["mode"], "expected": s["expect"], "rationale": f"{row['record']} is missing for this person"})
     for lk in linked_records(cx, tree_id, cat, pid, me):                # a held record that names this person and links their own record: a lead
         if not any(lk["locator_value"] in (json.loads(f["query_json"]).get("url") or {}).get("value", "") for f in fetches): fetches.append(lk)
+    fetches += gravestone_photos(cx, tree_id, cat, pid)                 # the stone itself, photographed on the person's own memorial
     home = next((k for k in wanted if wanted[k][0] in FOOTPRINT_HOME), None)
     have = {st["locator_value"] for st in fetches}
     for rec in r["footprint"]["records"][:12]:

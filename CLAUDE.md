@@ -41,9 +41,21 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    value becomes a conflict question, never a silent overwrite or a silent
    drop. The owner's standing rule accepts a document from a source nobody can
    edit at will that agrees with facts the owner already accepted on such
-   sources, recorded as acting on their word and reversible; a page anyone can
-   edit (Find a Grave, member trees) is always a card; anything less certain is
-   a card for the owner.
+   sources, recorded as acting on their word and reversible. A page anyone can
+   edit (Find a Grave, member trees) identifies a person but never builds
+   their facts: accepting a memorial writes the persona link and the family
+   links the page states, and every fact the page types (name, dates, places,
+   the inscription field) is written as an undecided assertion, what the page
+   says, never accepted and never ground for the rule, so a person's facts
+   come from primary documents only. The rule may take the identity on such a
+   page when the name agrees and at least three of birth date to the day,
+   death date to the day, burial place, and a stated parent or spouse who is
+   that relative in the tree agree with the tree, claimed or accepted. A
+   memorial's gravestone photographs are primary sources: each is a fetch
+   step, saved in the owner's browser one at a time, archived under the
+   registry's gravestone-photograph row (tier 1), and read by the
+   transcription path into a card like any other image. Anything less certain
+   is a card for the owner.
 4. **Trees are isolated.** No automatic reuse of evidence across trees.
 5. **One person per screen.** Foundation → checklist → tasks → results →
    review. No queue screens, no navigation by data type, no hints on a
@@ -89,7 +101,7 @@ python3 tools/conclude.py assertion <id> accept|reject|undecided --note "…"   
 python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial or search, FamilySearch record or search, AAD, the VA gravesite locator, Ancestry index; HTML) or a connector's response (JSON)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
-python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions; one it would no longer take is a card again; --dry-run
+python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions and the cards it refused; one it would no longer take is a card again, one it would now take is taken; --dry-run
 python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…"   # your own word on a family link a record stops short of; --parent, --marriage; `divorce` likewise
 python3 tools/backup.py verify                # every archived object hashed against its sha256; `bag <dir> --target <drive>` writes a BagIt bag with the catalog dumped to SQL; `check <bag>`
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
@@ -129,14 +141,17 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    search steps for missing rows, each with its source and mode.
 4. Auto steps: `python3 tools/run_step.py <step id>` (or `--all --dry-run`
    first). Assisted steps carry the source's own search prefilled: open it
-   in the browser, save the page by the page-saves-itself method
+   in the browser, save the page by the page-saves-itself method, or a
+   gravestone photograph by the image-saves-itself method
    (`docs/RESEARCH-WORKFLOW.md` §4), then `python3 tools/fetches.py
    collect` or `python3 tools/attach_inbox.py <file>`.
 5. `python3 tools/cards.py "<person>"`: every record waiting for a decision,
    one card each. Decide with `tools/conclude.py decide <id> accept|reject`.
    Accepting takes everything the record states about the person; a
    difference with the tree becomes a conflict question, never an
-   overwrite. The record's other personas come up as cards only after that.
+   overwrite; on a page anyone can edit it is an identity, the link and the
+   family links it states, its facts written undecided. The record's other
+   personas come up as cards only after that.
    A family link the record states is asserted when both people it relates
    are accepted on it, so a child's parents fact is decided by the parents'
    own cards on the same record, each their own turn.

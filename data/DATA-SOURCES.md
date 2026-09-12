@@ -78,10 +78,10 @@ source and never turned into a score; the decision on a fact stays three-state.
 
 | Tier | Meaning | Examples |
 |---|---|---|
-| T1 | Image of an original record | Death certificate, census page, parish register, will |
+| T1 | Image of an original record | Death certificate, census page, parish register, will, a gravestone photograph (E05) |
 | T2 | Official or archival index/transcription | SSDI, state death index, NARA AAD, IPUMS |
 | T3 | Published secondary: printed or curated, not editable by its readers | Obituary, published family history, DAR/SAR application, cemetery transcription |
-| T4 | Anyone can edit it | Ancestry member trees, FamilySearch Tree, Geni, WikiTree, Find a Grave, BillionGraves. A T4 record is a lead and a card, never a source the rule trusts on its own, and a person whose accepted facts rest on T4 alone is marked so |
+| T4 | Anyone can edit it | Ancestry member trees, FamilySearch Tree, Geni, WikiTree, Find a Grave, BillionGraves. A T4 page identifies a person but never builds their facts: accepting it writes the persona link and the family links it states, and its facts as undecided assertions, never accepted and never the rule's ground; the rule may take the identity when the name and three of birth day, death day, burial place, a stated parent or spouse agree with the tree; a person whose accepted facts rest on T4 alone is marked so |
 | T5 | AI-inferred (our own) | Suggested match, extracted fact from OCR — must always cite the T1–T3 it came from |
 | ref | Reference data, not evidence | Gazetteers, name dictionaries, cM tables |
 
@@ -92,6 +92,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 | FamilySearch | REST, OAuth2, free, **closed to public** — Innovator Program application required | Apply early; it is the single largest free index. Sandbox on approval. |
 | Ancestry | **Skipped.** No API, ToS bans scraping, record pages need a membership. The project's point is the records Ancestry charges for, found free. | User-exported GEDCOM is the only path in; cited records are fetched from free holders (`holders.csv`). |
 | Find a Grave | **None.** Ancestry-owned; ToS bans automation. | Store memorial IDs; user-initiated fetch only. |
+| Find a Grave photographs | None; each image saved in the owner's browser one at a time (`tools/save_image.js`) | Registry row E05 (T1): a memorial's photographs typed Grave by the page are fetch steps under the cemetery row of the person accepted as its subject, read by the transcription path into a card. |
 | MyHeritage Family Graph | REST JSON, free, app-key approval | Read-only. Docs are old; confirm keys still issued. |
 | WikiTree | REST JSON, free, no auth for public profiles, an appId on every request | Connector `wikitree` (B04) runs the compiled-genealogy step: searchPerson by name with the birth or death year and a two-year spread, each match's profile fetched with its relatives; T4, so every match is a card and never the rule's ground. |
 | HathiTrust | full-text search behind a browser challenge; the data API wants a key | The compiled-genealogy step carries the full-text search prefilled (L01); the results are read in the browser. |

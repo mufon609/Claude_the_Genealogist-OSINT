@@ -4,7 +4,7 @@
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
 
 A parser claims the page by its own marker, or the extraction fails. A Find a
-Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.2.0;
+Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.3.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
 goes to rule:familysearch-record@0.1.0; a FamilySearch search results page (rows
@@ -62,7 +62,9 @@ maiden name is italic on the page and kept inside the name), the birth and
 death years, and one relation from the member to the subject (parent, spouse,
 sibling, child) with the label as written. The member's own memorial URL is in
 its region_json. structured_json holds the fields, the members, the source
-block (created by, added, citation) and the photo captions.
+block (created by, added, citation) and the photographs: each one's id,
+full-size image URL, caption and the type the page gives it (Grave, Person,
+Family); those typed Grave become the gravestone fetch steps (tools/plan.py).
 
 A FamilySearch record page (verified on a real 1900 census page): the subject's
 name in the h1 and the collection in the h2; the "Document Information" table
@@ -102,7 +104,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 from conclude import assert_facts, link_family
 
-EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.2.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
+EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.3.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
@@ -184,7 +186,9 @@ def text_of(node):
 def by_id(root, id_): return next((n for n in walk(root) if n["attrs"].get("id") == id_), None)
 
 def parse_memorial(text):
-    """A Find a Grave memorial page: {"kind": "findagrave", "title", "fields": [[label, value]], "memorial_id", "members": [...], "source": {...}, "photo_captions": [...]}."""
+    """A Find a Grave memorial page: {"kind": "findagrave", "title", "fields": [[label, value]], "memorial_id", "members": [...], "source": {...},
+    "photos": [{"id", "url", "caption", "type", "added_by"}]}: each photograph in the page's viewer with its full-size image, its caption and
+    the type the page gives it (Grave, Person, Family)."""
     t = Tree(); t.feed(text); root = t.root
     get = lambda i: (text_of(by_id(root, i)) or None) if by_id(root, i) else None
     fields = []
@@ -213,9 +217,15 @@ def parse_memorial(text):
             if "citation" in (li["attrs"].get("class") or ""): source["citation"] = re.sub(r"^Source (Hide|Show) citation ", "", line)
             elif line.startswith("Created by"): source["created_by"] = line
             elif line.startswith("Added"): source["added"] = line
-    captions = [text_of(n).replace("\n", " ") for n in walk(root) if "photo-text" in (n["attrs"].get("class") or "") and text_of(n)]
+    photos = []
+    for n in (n for n in walk(root) if n["tag"] == "div" and "viewer-item" in (n["attrs"].get("class") or "").split() and n["attrs"].get("data-photo-id")):
+        img = next((x for x in walk(n) if x["tag"] == "img" and (x["attrs"].get("data-src") or x["attrs"].get("src"))), None)
+        body = text_of(n)
+        photos.append({"id": n["attrs"]["data-photo-id"], "url": (img["attrs"].get("data-src") or img["attrs"].get("src")) if img else None,
+                       "caption": next((text_of(x).replace("\n", " ") for x in walk(n) if "photo-text" in (x["attrs"].get("class") or "") and text_of(x)), None),
+                       "type": (re.search(r"Photo type:\s*(\w+)", body) or [None, None])[1], "added_by": (re.search(r"Added by:\s*(.+)", body) or [None, None])[1]})
     title = next((text_of(n) for n in walk(root) if n["tag"] == "title"), "")
-    return {"kind": "findagrave", "title": title, "fields": fields, "memorial_id": memorial_id, "members": members, "source": source, "photo_captions": captions}
+    return {"kind": "findagrave", "title": title, "fields": fields, "memorial_id": memorial_id, "members": members, "source": source, "photos": photos}
 
 FS_MARK = re.compile(r'data-testid="documentInformationCitation"[^\x00]{0,400}?https://(?:www\.)?familysearch\.org/ark:/61903/1:1:')
 

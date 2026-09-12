@@ -55,17 +55,25 @@ it. It may do so only for document kinds that identify a person fully, from
 sources nobody can edit at will (registry tiers T1–T3: certificates, census,
 obituaries, published works), and only counting accepted facts that themselves
 rest on such a source or on the owner's own word. A page anyone can edit (T4:
-Find a Grave, member trees) is a lead and a card, never a ground the rule
-stands on, and a person whose accepted facts rest on T4 alone is marked so on
-their card until a trusted record about them is accepted. Every other kind is
-a hint until a person reads it. The starting list, to be refined as records
-are met:
+Find a Grave, member trees) identifies a person but never builds their facts:
+accepting it, by the owner or by the rule, writes the persona link and the
+family links the page states, and every fact the page types is written as an
+undecided assertion, what the page says, never accepted and never a ground the
+rule stands on; the rule takes such an identity when the name agrees and at
+least three of birth date to the day, death date to the day, burial place, and
+a stated parent or spouse who is that relative in the tree agree with the
+tree, claimed or accepted. A person whose accepted facts rest on T4 alone is
+marked so on their card until a trusted record about them is accepted. A
+memorial's gravestone photographs are primary sources (T1): each is a fetch
+step, saved in the owner's browser one at a time and read by the transcription
+path into a card like any other image. Every other kind is a hint until a
+person reads it. The starting list, to be refined as records are met:
 
 | Document | What it gives | Standing |
 |---|---|---|
 | Federal or state census 1850 on | full names and ages; relationships from 1880 | automated |
 | Federal census 1790–1840 | the head's name, the rest counted | hint |
-| Find a Grave memorial | full name, dates, cemetery, linked family | a card, always: anyone can edit the page |
+| Find a Grave memorial | full name, dates, cemetery, linked family, gravestone photographs | the identity by the rule when the name and three of birth day, death day, burial place, a stated parent or spouse agree; its facts undecided, never accepted; each gravestone photograph a fetch step |
 | Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
 | Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
 | Church register entry | names and dates when the register keeps them | automated when dated and the parents are named; hint otherwise |
@@ -242,6 +250,20 @@ from held records first, with the link to open, the people waiting on it and
 the file name to save under; a browser session works down that list one tab per
 page; `tools/fetches.py collect` then moves every saved page from the download
 folder into `inbox/` and attaches each by its own identity. Never encode a page and read it out through the model in slices.
+
+**The image saves itself.** A gravestone photograph on a memorial accepted as
+a person's own (by the owner or by the rule) is a fetch step of its own under
+the cemetery row, one per photograph the page types Grave, with the image's
+URL as its locator and the page's words (the memorial, the photograph's id,
+its caption and type) as its fields; `tools/fetches.py list` prints it with
+the file name to save under and says it is an image. Open the image's own URL
+in a new tab and run `tools/save_image.js` in it with the name filled in: the
+tab fetches its own bytes and hands them to the browser as a download;
+`collect` moves it to `inbox/` and attaches it to its step by that name (an
+image carries no identity in its bytes), archived under the gravestone row
+(E05, tier 1) with the image's URL as locator, logged found, never parsed. It
+is read one person at a time by the transcription path, the screen's form or
+the model, into a card like any other image.
 `tools/attach_inbox.py` then takes every file in `inbox/`: it reads the
 record's own identity from the file (the memorial id, the ark), archives it
 once, logs a found run on every fetch step whose citation carries that
@@ -383,10 +405,11 @@ differs from the tree's is a `conflict` question, not a silent change.
 Fetched records go through the evidence layer (extraction → personas). A
 record page saved as HTML is parsed on arrival by `tools/extract.py`, which
 reads the page's kind from the page itself: a Find a Grave memorial goes to
-extractor `rule:findagrave-memorial@0.2.0` (the memorial's name, dates,
+extractor `rule:findagrave-memorial@0.3.0` (the memorial's name, dates,
 places, plot, inscription and biography as written and memorial id on one
 persona, one persona per family member in the page's own label word with a relation to the
-memorial's subject; verified on a real memorial), a Find a Grave search
+memorial's subject, and in the parsed page every photograph with the type the
+page gives it; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
 `rule:familysearch-record@0.1.0` (one persona per person the page names, in
@@ -475,7 +498,11 @@ on the child's membership, a spouse relation on both partners'; a sibling
 stated on the record places the person as a child of the other's accepted
 parents with an Undecided assertion (the record states the sibling, not the
 parents), and only when the other is an accepted child of one family;
-otherwise a sibling gives no membership. Where the record's date or place
+otherwise a sibling gives no membership. On a page anyone can edit (T4) the
+decision is an identity: the persona link and the family links the page states
+are Accepted as above, and every fact the page types is written as an
+Undecided assertion, what the page says, never accepted by the decision and
+never ground for the rule. Where the record's date or place
 disagrees with the event's own value, the record's statement is still accepted
 as what that record says, the event keeps its value, and the difference is a
 `conflict` question on the person, generated from the catalog
@@ -503,7 +530,11 @@ statement of the day, and a relationship the tree holds on trusted evidence,
 each count double) and each rests, on the very event or link compared, on a
 trusted source or on the owner's own word, and nothing compared disagrees. A
 surname agreeing only one letter apart is a card, never the rule's. Claims never count, and a fact that
-rests only on a page anyone can edit does not count either. The proposal records the rule as the decider with its
+rests only on a page anyone can edit does not count either. On a page anyone can edit that identifies a person (a
+memorial, a profile) the rule takes the identity alone, when the name agrees and at least three of birth date to the
+day, death date to the day, burial place, and a stated parent or spouse who is that relative in the tree agree with
+the tree, claimed or accepted; a relative the page lists by name and years alone has at most the stated relation and
+is a card for the owner. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the
 rule wrote rejected. A proposal the rule does not take is a card for the owner
@@ -513,8 +544,10 @@ decision it made, oldest first, as the rule stands now and on the ground that
 stood before it (its own assertions and those of later rule decisions do not
 count), withdraws one it would no longer take, and the record is a card for
 the owner again with the reason; accepting that card makes everything the
-decision had written stand again. Run it after any change to the rule or to a
-source's tier.
+decision had written stand again. It then examines every card still undecided
+the same way and takes one it would now take, recorded as the rule; a decision
+can open another card, so it passes again until nothing new is taken. Run it
+after any change to the rule or to a source's tier.
 
 Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of

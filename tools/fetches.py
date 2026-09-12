@@ -6,12 +6,13 @@ usage: tools/fetches.py list [--json] [--tree slug] [--db catalog/tree.db]
 
 Find a Grave forbids automation and FamilySearch answers a browser only, so a cited record at such a holder is saved one page
 at a time in the owner's own browser by the page-saves-itself method (docs/RESEARCH-WORKFLOW.md §4, tools/save_page.js),
-one tab per page. `list` prints every planned fetch step whose holder has no connector, or whose holder's connector has
+one tab per page; a gravestone photograph the same way in the image's own tab (tools/save_image.js), under the name the list
+prints. `list` prints every planned fetch step whose holder has no connector, or whose holder's connector has
 nothing to ask from the citation (a book cited with no title), once per page, with the holder, the
 link to open (the memorial page itself; the holder's own search prefilled from the citation's details), the people whose
 steps it fulfils, and the file name to save under (a FamilySearch page's name takes the record's own ark id from its page;
-`collect` recognises the memorial, FamilySearch and AAD names, and a page from any other holder is attached from the person
-screen on its step): the leads from held records first (a persona accepted as a person, whose memorial
+`collect` recognises the memorial, FamilySearch, AAD and photograph names, and a page from any other holder is attached from
+the person screen on its step): the leads from held records first (a persona accepted as a person, whose memorial
 the record links), then the file's citations, the pages that settle most steps first. `collect` moves every saved page
 from the browser's download folder into inbox/ and attaches each by its own identity (tools/attach.py): archived once,
 logged found on every step that cites it, extracted, matched, the rule run.
@@ -34,6 +35,7 @@ def save_as(holder_id, fields, row_key, mid=None):
     or the row, the ark id read off the record page (the part after ark:/61903/1:1:)."""
     if holder_id == "E01" and mid: return f"findagrave-memorial-{mid}.html"
     v = lambda k: ((fields or {}).get(k) or {}).get("value")
+    if holder_id == "E05": return f"findagrave-photo-{v('memorial')}-{v('photo')}" + (os.path.splitext((v("url") or "").split("?")[0])[1].lower() or ".jpg")
     coll = v("collection") or ""
     words = "census" if re.search(r"census", coll, re.I) else _slug(re.sub(r"[\d\u2013-]+|U\.S\.", " ", coll))[:40] or "record"
     inst = row_key.split(":", 1)[1] if ":" in row_key else ""
@@ -62,8 +64,8 @@ def waiting(cx, tree_id):
         else:
             key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
         e = out.setdefault(key, {"holder_id": hid, "holder": holder, "url": link, "lead": False, "people": [], "steps": 0, "rows": [],
-                                 "save_as": save_as(hid, fields, s["row_key"], mid)})
-        e["steps"] += 1; e["lead"] = e["lead"] or s["locator_kind"] == "memorial_id"
+                                 "save_as": save_as(hid, fields, s["row_key"], mid), "how": "image" if hid == "E05" else "page"})
+        e["steps"] += 1; e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url")
         if s["display_name"] not in e["people"]: e["people"].append(s["display_name"])
         rk = s["row_key"].split(":")[0]
         if rk not in e["rows"]: e["rows"].append(rk)
@@ -74,12 +76,12 @@ def downloads_dir():
     except Exception: return os.path.expanduser("~/Downloads")
 
 def collect(cx, tree_id, slug, by):
-    """Every page in the download folder saved under a name the list printed for a memorial, a FamilySearch record or an AAD
-    record: moved to inbox/, then attached by its own identity. A page from a holder whose pages carry no identity the attach
+    """Every page in the download folder saved under a name the list printed for a memorial, a FamilySearch record, an AAD
+    record or a gravestone photograph: moved to inbox/, then attached by its own identity (a photograph's is in its name). A page from a holder whose pages carry no identity the attach
     reads stays where it is and is attached from the person screen on its step. Returns the attach results."""
     names = []
     for f in sorted(os.listdir(downloads_dir())):
-        if re.fullmatch(r"(findagrave-memorial-\d+|familysearch-[a-z0-9-]+-\d+-[A-Za-z0-9_:-]+|aad-enlistment-[A-Za-z0-9_-]+)\.html", f):
+        if re.fullmatch(r"(findagrave-memorial-\d+|familysearch-[a-z0-9-]+-\d+-[A-Za-z0-9_:-]+|aad-enlistment-[A-Za-z0-9_-]+)\.html|findagrave-photo-\d+-\d+\.(jpe?g|png|webp|gif)", f, re.I):
             shutil.move(os.path.join(downloads_dir(), f), os.path.join(inbox_dir(), f)); names.append(f)
     return names, (attach_inbox(cx, tree_id, slug, by, names) if names else [])
 
@@ -95,7 +97,7 @@ def main():
         last = None
         for e in rows:
             if e["holder"] != last: print(f"-- {e['holder']}"); last = e["holder"]
-            print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}")
+            print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}" + ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else ""))
         print(f"{len(rows)} page(s) to fetch, one tab per page; then tools/fetches.py collect")
     else:
         cx.execute("BEGIN")

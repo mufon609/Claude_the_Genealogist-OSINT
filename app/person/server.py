@@ -187,7 +187,8 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
             if (st["locator_kind"] == "apid" and st["locator_value"] in ids) or (st["locator_kind"] != "apid" and st["locator_value"] and cx.execute("SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=?", (pe["artifact_sha256"], st["locator_kind"], st["locator_value"])).fetchone()):
                 closed.append(f"the {st['row_key'].split(':')[0]} row for {who}: held, this record")
         rs = record_says(cx, tree_id, person_id, pe["artifact_sha256"]) if person_id else []
-        if rs: made.append("accepted with the record: " + ", ".join(f["fact"] for f in rs if f["status"] == "accepted"))
+        if any(f["status"] == "accepted" and not f["link"] for f in rs): made.append("accepted with the record: " + ", ".join(f["fact"] for f in rs if f["status"] == "accepted"))
+        elif rs: made.append("an identity on a page anyone can edit; its statements written undecided, never accepted: " + ", ".join(f["fact"] for f in rs if f["status"] == "undecided" and not f["link"]))
         for f in rs:
             if f["disagrees"]: closed.append(f"conflict raised, {f['fact']}: {f['disagrees']}")
     left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') AND json_extract(payload_json,'$.artifact_sha256')=?", (tree_id, pe["artifact_sha256"])).fetchone()[0]
