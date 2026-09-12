@@ -249,7 +249,11 @@ planned fetch step points at, at every holder without a connector, once, leads
 from held records first, with the link to open, the people waiting on it and
 the file name to save under; a browser session works down that list one tab per
 page; `tools/fetches.py collect` then moves every saved page from the download
-folder into `inbox/` and attaches each by its own identity. Never encode a page and read it out through the model in slices.
+folder into `inbox/` and attaches each by its own identity, or, for a page from
+a holder whose pages carry none (an SAR patriot page, a Legacy.com obituary),
+by the name the list printed with its year and record id filled in: to the
+steps of the page it was saved for, archived under that holder with the page's
+own URL as locator, logged found, unparsed until a parser claims it. Never encode a page and read it out through the model in slices.
 
 **The image saves itself.** A gravestone photograph on a memorial accepted as
 a person's own (by the owner or by the rule) is a fetch step of its own under

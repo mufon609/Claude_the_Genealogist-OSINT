@@ -6,7 +6,10 @@ file itself, never from its name: a Find a Grave memorial id from the memorial's
 FamilySearch ark from the record page's print header. An image carries no identity in its bytes, so a gravestone
 photograph takes the one the fetch list printed in its name (findagrave-photo-<memorial id>-<photo id>.jpg): the step for
 that photograph on that memorial, archived under the gravestone row (E05) with the image's own URL as locator, logged found,
-and read afterwards by the transcription path, never parsed. The steps a record fulfils are the tree's fetch steps whose citation
+and read afterwards by the transcription path, never parsed. A page from a holder whose pages carry no identity the attach
+reads (an SAR patriot page, a Legacy.com obituary) is taken by tools/fetches.py collect under the name the list printed and
+attached here as kind "page": archived under the step's holder with the page's own URL as locator, logged found, and parsed
+only when a parser claims it. The steps a record fulfils are the tree's fetch steps whose citation
 carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record ids the artifact holds
 (catalog.holds: its own and, on the same sheet, those of the people the page names) once it is in the archive, else the
 census page the record page itself names (year, enumeration district, sheet, county and state) against each step's
@@ -222,8 +225,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     lkind, lvalue, cname = (("url", value, "Find a Grave memorial search") if kind == "search" else ("url", value, "FamilySearch record search") if kind == "fs_search" else ("url", value, "WWII Army Enlistment Records (AAD)") if kind == "aad_search"
                             else ("url", (parsed or {}).get("url") or value, "WWII Army Enlistment Records (AAD)") if kind == "aad_record"
                             else ("url", st["locator_value"], PHOTO_COLLECTION) if kind == "photo"
+                            else ("url", value, col[0] if col else None) if kind == "page"
                             else (st["locator_kind"] or "file", st["locator_value"] or os.path.basename(src), col[0] if col else None))
-    holder = {"ark": "D03", "memorial": "E01", "search": "E01", "fs_search": "D03", "aad_search": "F01", "aad_record": "F01", "photo": PHOTOS}.get(kind)   # the page's own identity says where it came from, whatever holder the step pointed at
+    holder = {"ark": "D03", "memorial": "E01", "search": "E01", "fs_search": "D03", "aad_search": "F01", "aad_record": "F01", "photo": PHOTOS, "page": st["locator_source_id"]}.get(kind)   # the page's own identity says where it came from, whatever holder the step pointed at; a page taken by name comes from the step's holder
     from_row = _source_row(cx, holder) or from_row
     if kind == "photo":                                                              # the stone itself: an image under the gravestone row, tier 1
         kind_row = from_row

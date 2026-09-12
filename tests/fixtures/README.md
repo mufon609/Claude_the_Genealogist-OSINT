@@ -41,7 +41,8 @@ ids are FamilySearch record pages.
 `harness.ged` is a small GEDCOM in Ancestry's shape, written by hand for `tools/check.py`: the Ahearn household of the
 1940 census of Caln Township (Frederick Michael Ahearn, Helen Sara Brant, Frederick Micheal Ahearn Jr, Alicia Ahern),
 Helen's parents Abram C Brant and Charlotte D Lukens, and Frederick's father James Joseph Ahearn, each with the citations
-the owner's file carries for the two pages above (the 1940 record ids, Abram's memorial), and Raymond Earl Davidson
+the owner's file carries for the two pages above (the 1940 record ids, Abram's memorial; James also cites the SAR
+applications, whose free holder has no parser), and Raymond Earl Davidson
 (1939–2007) on his own, with no citation, for the gravesite locator's page. Ingested into a scratch catalog,
 it is what the matcher, the standing rule and the decision writers are run against: the four cards the 1940 page makes,
 the rule refusing each (no accepted fact, a disagreement), the son accepted with his facts and no link, the mother's
@@ -55,4 +56,5 @@ taken back taken again as a card, the owner's own accept of it an identity too, 
 links and no fact accepted, the photograph the page types Grave as a fetch step saved under the list's name and archived
 under the gravestone row unparsed, a reading of it by the model one card for Abram the rule leaves to the owner, the
 gravesite page's one card for Raymond among its namesakes (the near ones hints) and the rule taking it once his dates are
-his own word, and the plan regenerating unchanged. It is the only `.ged` the commit guard allows.
+his own word, a page saved from the SAR database under the name the fetch list printed reaching James's step unparsed, a
+found run at a row-source connector leaving a fetch step planned, and the plan regenerating unchanged. It is the only `.ged` the commit guard allows.
