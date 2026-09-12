@@ -77,7 +77,7 @@ person reads it. The starting list, to be refined as records are met:
 | Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
 | Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
 | Church register entry | names and dates when the register keeps them | automated when dated and the parents are named; hint otherwise |
-| Obituary, newspaper hit | free text | hint until the text is read; then the named survivors decide |
+| Obituary, newspaper hit | free text | hint until the text is read (by hand or by the model); then the named survivors decide: automated for the person it names once a stated relative it names is a relative the tree already links on trusted evidence, never on dates or places alone |
 | Will, probate, land, tax, directory | names, no ages | hint |
 | Compiled genealogy, family Bible | lineage, no proof | hint, never proof |
 | A row on a search results page | name, years, place | hint; its own record is the document |
@@ -530,9 +530,17 @@ and nothing else.
 `persona_match` on the owner's behalf when the record's collection is of a kind
 that identifies a person fully (§0's list: a census from 1850, a 1950 schedule,
 a certificate or index of birth, death or marriage, Social Security, service
-records, a veteran's gravesite; an obituary collection, a land or public records index is a hint) and
-its source is one nobody can edit at will (T1–T3), the given name and surname
-agree with the accepted name, at least two accepted facts agree (birth date,
+records, a veteran's gravesite; a land or public records index is a hint), read
+by hand or by the model exactly as one a rule parsed — the rule judges the
+record's own kind, tier and agreeing facts, never who did the reading. An
+obituary or newspaper text is such a kind only once read (a bare citation is
+still a hint) and only on its own ground: one of its two points must be a
+stated relative who is that relative in the tree, on trusted evidence — no
+number of agreeing dates or places substitutes, because the named survivors
+are what identifies the person here (§0). Its source is one nobody can edit at
+will (T1–T3), the given name and surname agree with the accepted name (a wife
+under her married surname agrees too — that is how her own obituary can name
+her at all), at least two accepted facts agree (birth date,
 death date, a death or burial place, a stated relationship to a person the
 record names who fits a relative the tree already links, the relative's own
 persona on that same record being already accepted as them counting as such

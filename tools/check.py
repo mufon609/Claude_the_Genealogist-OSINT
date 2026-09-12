@@ -362,8 +362,23 @@ def decisions(keep, show):
     cx.commit(); say("the stone read:", r)
     card_p = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=?", (tid, r.get("extraction"))).fetchone() if r.get("ok") else None
     ok_p, why_p = rule_accepts(cx, tid, card_p) if card_p else (None, "no card")
-    fail(r.get("ok") and r["proposals"] == 1 and r["accepted_by_rule"] == 0 and card_p and name(person_of(card_p)) == "Abram C Brant" and not ok_p and "hint" in why_p,
-         f"a reading of the stone by the model is one card for Abram, which the rule leaves to the owner: {r}, {why_p}")
+    fail(r.get("ok") and r["proposals"] == 1 and r["accepted_by_rule"] == 0 and card_p and name(person_of(card_p)) == "Abram C Brant" and not ok_p and "not accepted" in why_p,
+         f"a reading of the stone by the model is a kind the rule may take (the gravestone's own inscription, once read), refused here for the true reason: Abram's own name is not yet accepted on the harness tree, not for who read it: {r}, {why_p}")
+    # ---- an obituary read by the model: Helen's own name is already accepted (the 1940 census), her husband Frederick Michael Ahearn already her accepted spouse; the text names him, the rule's only ground for this kind
+    from attach import _cost
+    src_o = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id='H04'").fetchone()
+    cid_o = treelib.ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)",
+                                        (cid_o, "H04", "U.S., Newspapers.com™ Obituary Index, 1800s-current", "other", "newspapers_obituary"))
+    sha_o, _ = archive_object(cx, b"harness obituary fixture: Helen Sara Brant, survived by her husband Frederick Michael Ahearn", mime="text/html", source_id="H04", collection_id=cid_o,
+                              collection_name="U.S., Newspapers.com™ Obituary Index, 1800s-current", locator_kind="url", locator_value="https://www.newspapers.com/harness-obituary",
+                              retrieved_by=BY, terms=src_o[1], cost=_cost(src_o[2]), trust_tier=src_o[0], original_filename="harness-obituary.html")
+    r_o = server.transcribe(cx, sha_o, {"name": "Helen Sara Brant", "sex": "F", "role": "deceased", "year": "1986", "age": "76"}, by="llm:harness", about=[who["Helen Sara Brant"]]); cx.commit(); say("obituary subject:", r_o)
+    r_h = server.transcribe(cx, sha_o, {"name": "Frederick Michael Ahearn", "role": "husband", "residence": "Boca Raton, Florida", "relations": [{"persona_id": r_o.get("persona"), "kind": "spouse", "text": "husband"}]}, by="llm:harness")
+    cx.commit(); say("obituary husband:", r_h)
+    card_o = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND json_extract(payload_json,'$.persona_id')=?", (tid, r_o.get("extraction"), r_o.get("persona"))).fetchone() if r_o.get("ok") else None
+    ok_o, why_o = rule_accepts(cx, tid, card_o) if card_o else (None, "no card")
+    fail(r_o.get("ok") and card_o and name(person_of(card_o)) == "Helen Sara Brant" and ok_o and "spouse Frederick Michael Ahearn" in why_o,
+         f"an obituary read by the model, naming her husband who already stands as her accepted spouse, is taken by the rule, the reason naming him: {why_o}")
     # ---- the gravesite locator's page for Davidson, Raymond, died 2007: one card, his, among the namesakes; the rule takes it once his dates are his own word
     from match import match
     from facts import decide_fact

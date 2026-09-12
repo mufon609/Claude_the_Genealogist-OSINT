@@ -52,9 +52,10 @@ from match import REL_OF, candidate, compare, match, personas_of
 from plan import plan_person
 
 SKIP = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
-AUTOMATED = ("familysearch-record", "nara-1950-schedule", "va-gravesite")   # parsers of record pages; the collection says whether the record identifies a person fully
-IDENTIFYING = re.compile(r"census|\bbirths?\b|\bdeaths?\b|\bmarriages?\b|\bvital\b|certificate|social security|numident|\bdraft\b|military|veteran|gravesite|enlist|pension", re.I)   # §0's automated kinds
-EDITABLE = re.compile(r"find a grave|billiongraves|member tree|family tree", re.I)    # a page anyone can edit, whoever indexes it
+AUTOMATED = ("familysearch-record", "nara-1950-schedule", "va-gravesite")   # a rule parser's own name, trusted for any collection it claims; a record read by hand or by the model is gated on its collection alone, never on who read it
+IDENTIFYING = re.compile(r"census|\bbirths?\b|\bdeaths?\b|\bmarriages?\b|\bvital\b|certificate|social security|numident|\bdraft\b|military|veteran|gravesite|enlist|pension|memorial photograph", re.I)   # §0's automated kinds, and a gravestone's own inscription once read
+NAMED_SURVIVORS = re.compile(r"obituary|newspaper", re.I)   # a kind that identifies a person only through who it names, once its text is read (docs/RESEARCH-WORKFLOW.md §0: "then the named survivors decide"); the rule's ground here is a stated relative, never a date or a place alone
+EDITABLE = re.compile(r"(?:find a grave|billiongraves|member tree|family tree)(?!.*photograph)", re.I)    # a page anyone can edit, whoever indexes it; not the gravestone's own photograph, which is a primary source (T1) however it is archived
 TRUSTED = ("T1", "T2", "T3")                            # a record the rule may act on or count: not one anyone can edit (T4)
 EDITABLE_IDENTIFYING = ("findagrave-memorial", "wikitree-profile")   # a page anyone can edit that identifies a person (a memorial, a profile): the rule may take the identity, never a fact; a results page's row is a hint
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).
@@ -313,24 +314,34 @@ def _stands_for(cat, persona, cand, chosen):
 
 def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a persona-match proposal, and why, in words: (True, reason) or (False, why not). A
-    record from a source nobody can edit at will (T1–T3), of a kind that identifies a person fully: the accepted name and two
-    facts resting on trusted sources or the owner's word agree, nothing disagrees. A page anyone can edit (T4) that identifies
-    a person (a memorial, a profile): the identity alone, when the name agrees and three of birth date to the day, death date
-    to the day, burial place and a stated parent or spouse who is that relative in the tree agree with the tree, claimed or
-    accepted; its facts are then written undecided (assert_facts). without: proposal ids whose assertions are not ground
-    (reconsider)."""
+    record read by hand or by the model (extractor human:<user> or llm:<model>) is judged exactly like one a rule parsed: by
+    the record's own kind and tier and by the facts that agree, never by who did the reading. A record from a source nobody
+    can edit at will (T1–T3), of a kind that identifies a person fully: the accepted name and two facts resting on trusted
+    sources or the owner's word agree, nothing disagrees. An obituary or newspaper text is such a kind only once it is read
+    (a bare citation stays a hint), and only on its own terms: at least one of the two points must be a stated relative who
+    is that relative in the tree, on trusted evidence — dates and places alone are never enough for this kind, however many
+    agree, because the named survivors are its ground (docs/RESEARCH-WORKFLOW.md §0). The name agrees in full when the record
+    writes a wife under her married surname too (a wife under her husband's surname is not a surname disagreement, so not
+    the surname's absence either), which is how her own obituary can name her at all. A page anyone can edit (T4) that
+    identifies a person (a memorial, a profile): the identity alone, when the name agrees and three of birth date to the day,
+    death date to the day, burial place and a stated parent or spouse who is that relative in the tree agree with the tree,
+    claimed or accepted; its facts are then written undecided (assert_facts). without: proposal ids whose assertions are not
+    ground (reconsider)."""
     q = _q(cx)
     pay = json.loads(prop["payload_json"]); pid, sha = pay.get("person_id"), pay["artifact_sha256"]
     if prop["kind"] != "persona_match" or not pid: return False, "a new person is the owner's decision"
-    x = q.execute(f"""SELECT x.name, c.name AS collection, {tier_sql()} AS trust_tier, s.name AS source FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
+    x = q.execute(f"""SELECT x.name, x.kind AS extractor_kind, c.name AS collection, {tier_sql()} AS trust_tier, s.name AS source FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
                      LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
     if not x: return False, "the record's extraction is gone"
     coll = x["collection"] or ""
     identity = str(x["trust_tier"] or "")[:2] not in TRUSTED             # a page anyone can edit: the identity may be taken, its facts never
+    survivors_kind = bool(NAMED_SURVIVORS.search(coll))                  # an obituary or newspaper text: identifying only once read, and only through who it names
     if identity:
         if x["name"] not in EDITABLE_IDENTIFYING: return False, f"a row on a {x['source'] or 'T4'} page anyone can edit is a hint until its own record is read: the owner decides it"
     else:
-        if x["name"] not in AUTOMATED or EDITABLE.search(coll) or not IDENTIFYING.search(coll): return False, f"a {coll or x['name']} record is a hint until a person reads it"
+        if x["extractor_kind"] == "rule" and x["name"] not in AUTOMATED: return False, f"a {coll or x['name']} record is a hint until a person reads it"
+        if EDITABLE.search(coll): return False, f"a {coll} record is a hint until a person reads it"
+        if not (IDENTIFYING.search(coll) or survivors_kind): return False, f"a {coll or x['name']} record is a hint until a person reads it, and then only for who it names"
         yr = re.search(r"\b(1[78]\d\d)\b", coll)
         if re.search("census", coll, re.I) and yr and int(yr.group(1)) < 1850: return False, "a census before 1850 names only the head"
     cat = Catalog(cx, tree_id)
@@ -346,7 +357,8 @@ def rule_accepts(cx, tree_id, prop, without=()):
         if fit: chosen[other["id"]] = fit
     cand = candidate(cat, pid); fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
     if disagree: return False, "disagrees: " + "; ".join(disagree)
-    if not any(a.startswith("given name agrees") for a in agree) or not any(a.startswith("surname agrees") for a in agree): return False, "the name does not agree in full"
+    married = any(a.startswith("surname:") and "carries her husband's surname" in a for a in absent)   # a wife under her married name: not a disagreement, and not the surname's absence either
+    if not any(a.startswith("given name agrees") for a in agree) or not (any(a.startswith("surname agrees") for a in agree) or married): return False, "the name does not agree in full"
     if any(a.startswith("surname agrees, one letter apart") for a in agree): return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"
     INV = {"child": "parent", "parent": "child", "spouse": "spouse"}
     relations = [(k, o, None, n) for k, o, _, n in persona["relations"]]      # the persona is the <kind> of the other
@@ -369,7 +381,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
         return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted"
     if cat.basis("person", pid) != "accepted": return False, "the name is not accepted yet"
     if not trusted_evidence(cx, tree_id, "person", [pid], without=without): return False, "the accepted name rests on no trusted source and not on your own word"
-    points = []
+    points, rel_points = [], []
     ok = lambda t, day=False: bool(cand["events"].get(t)) and trusted_evidence(cx, tree_id, "event", [cand["events"][t]], day=day, without=without)   # the event compared, not any of the type
     full = lambda t: len(((persona.get(t) or {}).get("start") or "")) == 10 and "year only" not in next((a for a in agree if a.startswith(f"{t} date agrees")), "")
     for a in agree:
@@ -384,8 +396,10 @@ def rule_accepts(cx, tree_id, prop, without=()):
         role = "child" if group == "parents" else "partner"; other_role = "child" if group == "children" else "partner"
         rows = [dumps([fid, pid, role]) for fid, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
                                                                 WHERE fm.person_id=? AND fm.role=?""", (oc["id"], other_role, pid, role))]   # the membership that joins these two
-        if trusted_evidence(cx, tree_id, "family_member", rows, without=without): points += [f"{REL_OF[group]} {other_name}", "and the day"]   # the relationship and the person it identifies: two points
+        if trusted_evidence(cx, tree_id, "family_member", rows, without=without):
+            pt = f"{REL_OF[group]} {other_name}"; points += [pt, "and the day"]; rel_points.append(pt)   # the relationship and the person it identifies: two points
     if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
+    if survivors_kind and not rel_points: return False, "an obituary or newspaper text is ground only through who it names: " + (", ".join(p for p in points if p != "and the day") or "the name") + " agree, but none of the accepted relatives is among the survivors it names"
     return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees"
 
 def match_record(cx, eid, by, about=None):
