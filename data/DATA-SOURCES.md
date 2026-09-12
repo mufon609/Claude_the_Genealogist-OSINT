@@ -129,11 +129,14 @@ holders' search shapes were tried in the browser. Rows for the same dbid are in
 order of preference: the Archive first for a cited book, then FamilySearch's
 Digital Library, then HathiTrust. A cited collection with no row here has no
 free holder yet and its fetch steps are `blocked`, and its registry row's notes
-say so: the Pennsylvania death and birth certificates (the State Archives'
-index pages left pa.gov), the Lancaster Mennonite and Presbyterian church
-records, the Korean and Civil War draft records, the Alabama surname files
-(not among the state archives' digital collections), and the Colorado voter
-file, which is living-person data and is never fetched.
+say so: the Pennsylvania death and birth certificates and veterans' burial
+cards (the State Archives' records are on Ancestry Pennsylvania alone), the
+Lancaster Mennonite and Presbyterian church records, the Korean and Civil War
+draft records, the Alabama surname files (not among the state archives'
+digital collections), and the Colorado voter file, which is living-person
+data and is never fetched. A county probate collection is held film by film:
+the row for the Massachusetts wills and probate points at the Franklin County
+films the tree cites, browsed through the catalog's digitized index.
 
 ## 6. Deferred work
 

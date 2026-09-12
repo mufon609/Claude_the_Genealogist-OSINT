@@ -146,23 +146,6 @@ withdrawn) when the new one is written, so counts of accepted links on a
 record say what a person would say. Decide the shape, then apply it to the
 live catalog's re-read pages.
 
-### C12. The four Ancestry-only collections not yet looked for at a free holder
-
-The point of the project is the records Ancestry charges for, found free.
-Ancestry itself is skipped: no membership, no parser, no fetch. Of the
-collections whose fetch steps are blocked, eight have a registry note saying
-no free holder is known (the Pennsylvania certificates, the Lancaster
-Mennonite and Presbyterian records, the Korean and Civil War draft records,
-the Colorado voter file, the Alabama surname files). Four have not been looked
-for yet: Massachusetts wills and probate 1635–1991 (dbid 9069), the
-Pennsylvania veterans' burial cards 1777–2012 (dbid 1967), the cemetery and
-funeral home collection (dbid 2190) and the Revolutionary War burial index
-(dbid 63156). Look for each at FamilySearch first (its catalog and
-collections, a free account, in the browser: the collection list answers a
-tool with a challenge), then at the state archive or another free holder, and
-add the row to `data/holders.csv` with the collection's own search URL shape;
-where none exists, say so on the registry row.
-
 ### C13. A connector for Open Archives, the Dutch records
 
 api.openarch.nl answers a declared tool with no key: `records/search.json`
