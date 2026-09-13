@@ -29,13 +29,16 @@ def rendered_query(query_json, revisions_json):
         out[k] = f
     return out
 
+REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
+
 def reopen(cx, tree_id, by, step_id, note):
     """A step marked done by a run that did not hold its record after all is planned again; the run's log row stays as what
-    happened and a new row says why the step reopened."""
+    happened and a new row, its note under REOPENED, says why the step reopened. From that row on, the earlier found run no
+    longer names the person as one the record was fetched for (match.persons_for reads the reopen)."""
     st = cx.execute("SELECT id, status FROM search_plan WHERE id=?", (step_id,)).fetchone()
     if not st: raise SystemExit(f"no step {step_id}")
     cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (step_id,))
-    return log(cx, tree_id, by, step_id=step_id, outcome="none", note=f"reopened: {note}")
+    return log(cx, tree_id, by, step_id=step_id, outcome="none", note=f"{REOPENED}{note}")
 
 def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None, done=True):
     """One run of a step (or of a question with no step) into search_log; a found run marks the step done unless done is

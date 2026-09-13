@@ -12,8 +12,17 @@ DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
 USER_AGENT = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"   # sent on every request the tools make
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
+_last_ulid = [0, 0]                                   # (milliseconds, random part) of the id minted last, so ids stay in order within a millisecond
+
 def ulid() -> str:
-    n = (int(time.time() * 1000) << 80) | int.from_bytes(os.urandom(10), "big")
+    """A ULID: 48 bits of milliseconds then 80 random bits, base32, so ids sort in the order they were minted. Within one
+    millisecond (or if the clock steps back) the random part counts up from the last id instead, the spec's monotonic rule,
+    so two rows written by one process in the same millisecond still compare in the order they were written."""
+    ms = int(time.time() * 1000)
+    if ms <= _last_ulid[0]: ms, rand = _last_ulid[0], _last_ulid[1] + 1
+    else: rand = int.from_bytes(os.urandom(10), "big")
+    _last_ulid[:] = [ms, rand]
+    n = (ms << 80) | rand
     out = []
     for _ in range(26):
         out.append(_B32[n & 31]); n >>= 5

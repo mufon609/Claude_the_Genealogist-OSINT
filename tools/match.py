@@ -38,6 +38,7 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
+from log_search import REOPENED
 
 MATCHER = ("rule", "matcher", "0.1.0")
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -206,9 +207,12 @@ def persons_for(cx, sha):
     """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, the persons the
     logged fetch step's citation sits on (a record fetched on a relative's footprint step is that relative's own record, and
     the file's claim that it is theirs is the question put to them), a fetch step pointing at its locator, or an accepted
-    persona link on it (question and step None)."""
+    persona link on it (question and step None). A step's log row no longer counts once a later run reopened the step
+    (log_search.reopen): the row stays as what happened, and the step's most recent word on the record governs."""
     rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id, sp.on_json='[]' AS own, l.executed_at, sp.seq, sp.locator_kind, sp.locator_value
-                          FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? ORDER BY own DESC, l.executed_at, sp.seq""", (f'%"{sha}"%',)).fetchall()
+                          FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ?
+                          AND NOT EXISTS (SELECT 1 FROM search_log r WHERE r.plan_step_id=l.plan_step_id AND r.notes LIKE ? AND r.id > l.id)
+                          ORDER BY own DESC, l.executed_at, sp.seq""", (f'%"{sha}"%', REOPENED + "%")).fetchall()
     cited = [(who, r[1], r[2]) for r in rows if r[6] == "apid" and r[7] for who in cited_persons(cx, r[7])]   # the citation's own people, under the step that fetched it
     rows = [r[:3] for r in rows] + cited                          # the step whose citation sits on the person themselves first, then in the order logged, then the cited
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()

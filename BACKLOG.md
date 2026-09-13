@@ -139,22 +139,6 @@ piece that is actually unique to the citation — the step id, or the
 citation's own record locator when it has one — so two different people's
 waiting pages at the same holder can never collide.
 
-### C6. `persons_for()` still counts a step a reopen retracted
-
-`log_search.py --reopen` logs a fresh `none` row on a step ("wrongly
-matched," say) but writes no `artifacts` on that row, and the step's
-original `found` row (the one naming the artifact) stays exactly as
-written — evidence is insert-only, so it must. `match.py`'s `persons_for()`
-reads every `search_log` row whose `artifacts_json` names the artifact,
-with no way to see that a later row reopened the step: the original
-`found` row alone still says the record was fetched for that person.
-Surfaced correcting the H08 filename collision (the entry just above):
-after Noi Davidson's and Reiko Diane Davidson's steps were reopened, the
-tombstoned artifact's `persons_for()` still names them, and a re-run of the
-matcher on that sha would propose it against them again. Give `persons_for`
-(or the reopen itself) a way to know a step's most recent outcome for an
-artifact governs, not merely that the artifact was once logged found there.
-
 ### C9. When a source answers with a challenge, notify the owner and wait
 
 The owner's decision (11 Sept 2026): a fetch from a site with no endpoint

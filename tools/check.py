@@ -474,6 +474,18 @@ def decisions(keep, show):
     art_c = cx.execute("SELECT source_id, locator_kind, locator_value, mime FROM artifact WHERE sha256=?", (got["sha256"],)).fetchone() if got and got.get("sha256") else None
     fail(art_c and art_c["source_id"] == "F04" and art_c["locator_kind"] == "url" and art_c["locator_value"] == "https://sarpatriots.sar.org/patriot/display/24680" and art_c["mime"] == "text/html", f"archived under the SAR row with the page's own URL as locator: {dict(art_c) if art_c else None}")
     fail(sar and all(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "done" for sid in sar["step_ids"]) and not os.path.exists(os.path.join(dl, fname)), "its step is done and the file has left the download folder")
+    # ---- a step reopened after a found run: the run's row stays as written, and the record no longer names the step's person as one it was fetched for
+    from log_search import reopen
+    from match import persons_for
+    named_before = {p for p, _, _ in persons_for(cx, got["sha256"])} if got and got.get("sha256") else set()
+    fail(who["James Joseph Ahearn"] in named_before, f"the page's found run names James as a person it was fetched for: {named_before}")
+    rows_before = [tuple(r) for r in cx.execute("SELECT id, outcome, artifacts_json FROM search_log WHERE plan_step_id IN (%s) ORDER BY id" % ",".join("?" * len(sar["step_ids"])), sar["step_ids"])] if sar else []
+    for sid in (sar["step_ids"] if sar else []): reopen(cx, tid, BY, sid, "harness: wrongly matched")
+    cx.commit()
+    named_after = {p for p, _, _ in persons_for(cx, got["sha256"])} if got and got.get("sha256") else set()
+    fail(sar and not named_after and all(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "planned" for sid in sar["step_ids"]), f"reopened, the steps are planned again and the record names nobody: {named_after}")
+    rows_after = [tuple(r) for r in cx.execute("SELECT id, outcome, artifacts_json FROM search_log WHERE plan_step_id IN (%s) ORDER BY id" % ",".join("?" * len(sar["step_ids"])), sar["step_ids"])] if sar else []
+    fail(rows_before and rows_after[:len(rows_before)] == rows_before and len(rows_after) == len(rows_before) + len(sar["step_ids"]) and all(r[1] == "none" for r in rows_after[len(rows_before):]), f"the found rows stay as they were, one reopen row added per step: before {rows_before}, after {rows_after}, steps {sar and sar['step_ids']}")
     # ---- a found run at a source other than a fetch step's holder leaves the step planned: the pages are held, the cited record is not
     from log_search import log as log_run
     ob = cx.execute("SELECT id, status FROM search_plan WHERE person_id=? AND kind='fetch' AND status='planned' LIMIT 1", (who["James Joseph Ahearn"],)).fetchone()
