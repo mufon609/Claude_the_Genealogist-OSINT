@@ -293,12 +293,17 @@ def audit_string(cx, tree_id, ts, by, psid, diff):
                (ulid(), tree_id, ts, by, "update", "place_string", psid, dumps(diff)))
 
 def reset_ai_resolutions(cx, tree_id, by, ts, only=None):
-    """Undo AI-made resolutions only; human resolutions (resolver 'user:...') are always kept. --only narrows the reset to
-    the place strings matching one raw value, leaving every other AI resolution, its events and its audit trail
-    untouched; the run-level 'resolve' summary rows are left standing too, since a narrowed reset leaves most of what
-    they describe still true. One audit row per string reset."""
+    """Undo AI-made resolutions only; human resolutions (resolver 'user:...') are always kept. Without --only, a plain
+    reset is scoped to strings with an actual decision to undo (Accepted or a filled place_id) — an already-Undecided,
+    AI-reviewed string is left alone, since re-querying it costs a Nominatim call for nothing already wrong. --only
+    narrows to one raw value and drops that scoping: naming a string is enough to ask for it fresh, whatever its
+    current status — the case that matters is a rule change that would now decide an already-reviewed Undecided string
+    differently. Either way, every other AI resolution, its events and its audit trail stay untouched; the run-level
+    'resolve' summary rows are left standing too, since a narrowed reset leaves most of what they describe still true.
+    One audit row per string reset."""
     only_sql = " AND raw=?" if only else ""; only_args = (only,) if only else ()
-    psids = [r[0] for r in cx.execute("SELECT id FROM place_string WHERE resolver LIKE 'ai:%' AND (status<>'undecided' OR place_id IS NOT NULL)" + only_sql, only_args).fetchall()]
+    scope = "" if only else " AND (status<>'undecided' OR place_id IS NOT NULL)"
+    psids = [r[0] for r in cx.execute("SELECT id FROM place_string WHERE resolver LIKE 'ai:%'" + scope + only_sql, only_args).fetchall()]
     if not psids: return
     qm = ",".join("?" * len(psids))
     ev_ids = [r[0] for r in cx.execute(f"""SELECT DISTINCT e.id FROM event e
