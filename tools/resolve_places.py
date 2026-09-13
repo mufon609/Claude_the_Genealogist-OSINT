@@ -267,10 +267,30 @@ def candidate_summary(c, score, checks):
             "lat": c.get("lat"), "lon": c.get("lon"), "wikidata": (c.get("extratags") or {}).get("wikidata"), "score": round(score, 2),
             "checks": checks}
 
+def place_ancestors(cx, pid):
+    """pid and every place enclosing it, walking parent_id to the root."""
+    chain, seen = [], set()
+    while pid and pid not in seen:
+        chain.append(pid); seen.add(pid)
+        r = cx.execute("SELECT parent_id FROM place WHERE id=?", (pid,)).fetchone()
+        pid = r[0] if r else None
+    return chain
+
+def most_specific_on_chain(cx, place_ids):
+    """Among distinct place_ids, the most specific one when they all lie on a single root-to-leaf chain (a state, the
+    county in it, the city in that county — facts at different levels of the same place do not disagree); None when
+    any two are on different chains (Philadelphia and Pittsburgh, both under Pennsylvania but neither enclosing the
+    other)."""
+    if len(place_ids) == 1: return place_ids[0]
+    ancestors = {pid: set(place_ancestors(cx, pid)) for pid in place_ids}
+    return next((pid for pid in place_ids if all(other in ancestors[pid] for other in place_ids)), None)
+
 def apply_to_events(cx, tree_id, actor, ts):
-    """Fill event.place_id where every supporting fact's place string resolved to the same place. Logged per event."""
+    """Fill event.place_id from its supporting facts' resolved places: facts on one chain (a state, the county in it, the
+    city in that county) do not disagree, and the event takes the most specific place on the chain (most_specific_on_chain);
+    only facts on different chains leave it unfilled. Logged per event."""
     rows = cx.execute("""
-        SELECT e.id, GROUP_CONCAT(DISTINCT ps.place_id), COUNT(DISTINCT ps.id), COUNT(DISTINCT CASE WHEN ps.status='accepted' THEN ps.id END)
+        SELECT e.id, COUNT(DISTINCT ps.id), COUNT(DISTINCT CASE WHEN ps.status='accepted' THEN ps.id END)
         FROM event e
         JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status <> 'rejected'
         JOIN persona_fact pf ON pf.id=a.persona_fact_id
@@ -278,11 +298,16 @@ def apply_to_events(cx, tree_id, actor, ts):
         WHERE e.tree_id=? AND e.place_id IS NULL
         GROUP BY e.id""", (tree_id,)).fetchall()
     n = 0
-    for eid, place_ids, n_strings, n_resolved in rows:
-        if not place_ids or "," in place_ids or n_resolved != n_strings: continue
-        cx.execute("UPDATE event SET place_id=?, updated_at=? WHERE id=?", (place_ids, ts, eid))
+    for eid, n_strings, n_resolved in rows:
+        if n_resolved != n_strings: continue
+        place_ids = [r[0] for r in cx.execute("""SELECT DISTINCT ps.place_id FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                                 JOIN place_string ps ON ps.id=pf.place_string_id
+                                                 WHERE a.subject_kind='event' AND a.subject_id=? AND a.status <> 'rejected' AND ps.place_id IS NOT NULL""", (eid,)).fetchall()]
+        chosen = most_specific_on_chain(cx, place_ids) if place_ids else None
+        if chosen is None: continue
+        cx.execute("UPDATE event SET place_id=?, updated_at=? WHERE id=?", (chosen, ts, eid))
         cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-                   (ulid(), tree_id, ts, actor, "update", "event", eid, dumps({"place_id": place_ids, "from": "accepted place_string"})))
+                   (ulid(), tree_id, ts, actor, "update", "event", eid, dumps({"place_id": chosen, "from": "accepted place_string"})))
         n += 1
     return n, len(rows) - n
 

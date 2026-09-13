@@ -262,6 +262,74 @@ def places(keep):
     if not keep: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def _chain_fixture(cx, tid, ts):
+    """A tree scratch fixture with places on one chain (United States > Pennsylvania > Philadelphia County >
+    Philadelphia) and a second city (Pittsburgh, under Allegheny County, the same state) on a different chain, and two
+    events: one with accepted facts on the Philadelphia chain (the state and the city), one split across Philadelphia
+    and Pittsburgh. Returns (ev_chain, ev_split, phila)."""
+    import treelib
+    def mkplace(name, ptype, parent=None):
+        pid = treelib.ulid()
+        cx.execute("INSERT INTO place (id,name,place_type,parent_id,updated_at) VALUES (?,?,?,?,?)", (pid, name, ptype, parent, ts))
+        return pid
+    usa = mkplace("United States", "country")
+    pa = mkplace("Pennsylvania", "state", usa)
+    phila_co = mkplace("Philadelphia County", "county", pa)
+    phila = mkplace("Philadelphia", "city", phila_co)
+    allegheny_co = mkplace("Allegheny County", "county", pa)
+    pittsburgh = mkplace("Pittsburgh", "city", allegheny_co)
+    def mk_string(raw, place_id):
+        psid = treelib.ulid()
+        cx.execute("INSERT INTO place_string (id,raw,place_id,status,resolver,resolved_at) VALUES (?,?,?,?,?,?)",
+                   (psid, raw, place_id, "accepted", "ai:nominatim-resolver@0.1.0", ts))
+        return psid
+    ps_pa, ps_phila, ps_pitt = mk_string("Pennsylvania", pa), mk_string("Philadelphia, Pennsylvania", phila), mk_string("Pittsburgh, Pennsylvania", pittsburgh)
+    ext_id = treelib.ulid()
+    cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ext_id, "human", "harness", "0.1.0", ts))
+    src = cx.execute("SELECT id, trust_tier, terms FROM source LIMIT 1").fetchone()
+    def mk_event(tag, *psids):
+        pid = treelib.ulid()
+        cx.execute("INSERT INTO person (id,tree_id,display_name,created_at,updated_at) VALUES (?,?,?,?,?)", (pid, tid, f"Chain {tag}", ts, ts))
+        eid = treelib.ulid()
+        cx.execute("INSERT INTO event (id,tree_id,event_type,created_at,updated_at) VALUES (?,?,?,?,?)", (eid, tid, "Residence", ts, ts))
+        cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,?)", (treelib.ulid(), eid, pid, "primary"))
+        sha, _ = treelib.archive_object(cx, f"chain-{tag}".encode(), mime="text/html", source_id=src[0], collection_id=None,
+                                        locator_kind="url", locator_value=f"http://example.test/{tag}", retrieved_by=BY, terms=src[2], cost="free", trust_tier=src[1])
+        xid = treelib.ulid()
+        cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,status,ran_at) VALUES (?,?,?,?,?)", (xid, sha, ext_id, "complete", ts))
+        persid = treelib.ulid()
+        cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,sequence,name_text) VALUES (?,?,?,?,?)", (persid, xid, sha, 1, f"Chain {tag}"))
+        for psid in psids:
+            pfid = treelib.ulid()
+            cx.execute("INSERT INTO persona_fact (id,persona_id,fact_type,place_string_id) VALUES (?,?,?,?)", (pfid, persid, "Residence", psid))
+            cx.execute("INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,status,asserted_by,asserted_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                       (treelib.ulid(), tid, "event", eid, pfid, sha, "accepted", BY, ts))
+        return eid
+    ev_chain = mk_event("chain", ps_pa, ps_phila)
+    ev_split = mk_event("split", ps_phila, ps_pitt)
+    cx.commit()
+    return ev_chain, ev_split, phila
+
+def chain_fill(keep):
+    """apply_to_events fills an event from facts on one chain (a state, the county in it, the city in that county) at
+    its most specific point, and leaves facts on different chains (two cities in the same state) unfilled."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from resolve_places import apply_to_events
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "chaintest", "--name", "Chain Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='chaintest'").fetchone()[0]
+    ev_chain, ev_split, phila = _chain_fixture(cx, tid, treelib.now())
+    apply_to_events(cx, tid, BY, treelib.now()); cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    fail(cx.execute("SELECT place_id FROM event WHERE id=?", (ev_chain,)).fetchone()[0] == phila,
+         f"a state and the city in it agree; the event takes the most specific, Philadelphia: {cx.execute('SELECT place_id FROM event WHERE id=?', (ev_chain,)).fetchone()}")
+    fail(cx.execute("SELECT place_id FROM event WHERE id=?", (ev_split,)).fetchone()[0] is None,
+         f"Philadelphia and Pittsburgh are different chains under the same state; the event stays unplaced: {cx.execute('SELECT place_id FROM event WHERE id=?', (ev_split,)).fetchone()}")
+    cx.close()
+    if not keep: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def decisions(keep, show):
     """The matcher, the standing rule and the decision writers on a scratch catalog holding tests/fixtures/harness.ged (the
     Ahearn household of 1940 and Helen's parents), with the 1940 page, Abram C Brant's memorial and its gravestone photograph
@@ -856,6 +924,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))
     else: print("ok   resolve_places.py: a unique full match auto-accepts; a city coterminous with its county accepts as one territory; a village nested in its much larger town stays Undecided with both offered")
+    try: fails = chain_fill(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL chain fill: " + "; ".join(fails))
+    else: print("ok   chain fill: a state and the city in it fill the event at the city; Philadelphia and Pittsburgh, different chains, leave it unplaced")
     print("green" if not bad else f"{bad} failure(s)")
     sys.exit(1 if bad else 0)
 
