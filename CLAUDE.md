@@ -186,8 +186,12 @@ file cites on them are fetched like any other.
   and the `v_unsupported_*` views. Test code changes on a scratch copy of
   the catalog, never on the real one; research decisions are made on the
   live catalog, which is the work.
-- Place resolution auto-accepts only unique full matches; everything else
-  stays Undecided. Never widen that.
+- Place resolution auto-accepts a unique full match, and also a string whose
+  verified candidates are one territory under two names (a city and the
+  county coterminous with it), tested on the geocoder's own boundaries
+  coinciding within a small tolerance. A place nested in a larger,
+  differently-sized unit of the same name (a village in its town, a city in
+  its prefecture) stays Undecided with both offered. Never widen past that.
 - External services: Nominatim public endpoint at 1 req/s with cache;
   Ancestry and Find a Grave have no API and forbid scraping — assisted
   fetch only.

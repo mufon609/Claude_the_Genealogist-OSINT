@@ -8,12 +8,16 @@ Rules
   * Nominatim (free, ODbL, 1 req/s, cached under derivatives/geocode/) is asked for
     candidates. A candidate is verified by checking that EVERY component the string
     gave appears in the candidate's address hierarchy.
-  * Auto-resolve only when exactly one candidate verifies fully. Everything else,
-    including a place and its enclosing unit of the same name verifying together
-    (a township and the borough inside it, a county and its seat), becomes a
-    `place_resolution` proposal (tree-scoped) with every verified candidate listed;
-    the owner decides between them on the person screen. Never widen auto-accept
-    past a unique full match.
+  * Auto-resolve when exactly one candidate verifies fully, and also when the
+    verified candidates are one territory under two names — a city and the county
+    coterminous with it (Philadelphia, Queens) — tested on the geocoder's own answer:
+    their boundingboxes coincide within a small tolerance (see coterminous()). Choose
+    the locality name and record "coterminous: one territory". A place genuinely
+    nested in a larger, differently-sized unit of the same name (a village in its
+    town, a city in its prefecture) fails that test and, like every other case of
+    more than one verified candidate, becomes a `place_resolution` proposal
+    (tree-scoped) with every verified candidate listed; the owner decides on the
+    person screen. Never widen auto-accept past those two cases.
   * data/place-overrides.json can reject non-places, force review, add candidate
     queries, and attach notes. It is the only hand-authored input.
   * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
@@ -211,12 +215,34 @@ def is_ancestor(a, b):
     leaf = b.get("name") or ""
     return any(norm(v) == an for v in vals if v != leaf or norm(v) != norm(leaf))
 
+COTERMINOUS_IOU = 0.9
+
+def bbox_iou(a, b):
+    """Intersection-over-union of two Nominatim boundingbox answers ([south, north, west, east], as strings): near 1.0
+    when the two answers describe the same territory, near 0 when one is a small part of a much larger other."""
+    (as_, an_, aw, ae), (bs, bn, bw, be) = (list(map(float, x)) for x in (a, b))
+    iw, ih = max(0.0, min(ae, be) - max(aw, bw)), max(0.0, min(an_, bn) - max(as_, bs))
+    inter = iw * ih
+    area_a, area_b = max(0.0, ae - aw) * max(0.0, an_ - as_), max(0.0, be - bw) * max(0.0, bn - bs)
+    union = area_a + area_b - inter
+    return inter / union if union else 0.0
+
+def coterminous(cands):
+    """Whether same-name verified candidates are one territory under two names (a city and the county coterminous with
+    it), tested on the geocoder's own answer rather than guessed from the name: every pair's boundingbox coincides
+    within a small tolerance (COTERMINOUS_IOU). A place genuinely nested in a larger unit of the same name (a village
+    in its town, a city in its prefecture) fails this every time, since the larger unit's box dwarfs the smaller's."""
+    boxes = [c.get("boundingbox") for c in cands]
+    if not all(boxes): return False
+    return all(bbox_iou(boxes[i], boxes[j]) >= COTERMINOUS_IOU for i in range(len(boxes)) for j in range(i + 1, len(boxes)))
+
 def select_best(p, full):
     """Given >1 fully-verified candidates, filter out noise (non-place candidate classes, census-only rows) to explain why
-    the string needs review, but never choose among what survives. A place and its enclosing unit of the same name
-    (a township and the borough inside it, a county and its seat) is exactly the case that stays Undecided with both
-    candidates offered: CLAUDE.md reserves any choice among multiple verified candidates for the owner, on the fact row.
-    Returns (None, reason)."""
+    the string needs review. Same-name candidates in a nested/nominal chain (§is_ancestor) auto-resolve only when their
+    boundingboxes coincide (§coterminous) — one territory under two names, a city and the county coterminous with it —
+    choosing the locality-level name and recording "coterminous: one territory". Everything else among multiple
+    verified candidates, nested same-name units included, stays Undecided for the owner on the fact row (CLAUDE.md).
+    Returns (cand, note) or (None, reason)."""
     cands = [c for _, _, c in full]
     head = p["components"][0].lower() if p["components"] else ""
     wants_feature = any(k in head for k in ("church", "cemetery", "road", "street"))
@@ -229,7 +255,11 @@ def select_best(p, full):
     if len(kept) == 1: return None, "one administrative boundary among other candidates: the owner chooses"
     names = {norm(c.get("name") or "") for c in kept}
     chain = all(is_ancestor(a, b) or is_ancestor(b, a) for i, a in enumerate(kept) for b in kept[i + 1:])
-    if len(names) == 1 and chain: return None, "same-name nested/coterminous units: the owner chooses"
+    if len(names) == 1 and chain:
+        if coterminous(kept):
+            local = [c for c in kept if c.get("addresstype") not in ("county", "state", "country")]
+            if len(local) == 1: return local[0], "coterminous: one territory"
+        return None, "same-name nested/coterminous units: the owner chooses"
     return None, f"{len(kept)} distinct candidates verify"
 
 def candidate_summary(c, score, checks):
