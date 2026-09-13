@@ -199,13 +199,34 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
     summary = "; ".join(made + closed) + (". Next: " + "; ".join(nxt) if nxt else ".")
     return {"made": made, "closed": closed, "next": nxt, "summary": summary}
 
-def decide_proposal(cx, tree_id, prop_id, status, note=None):
+def decide_proposal(cx, tree_id, prop_id, status, note=None, choice=None):
     """The person's decision on a document (conclude.decide), with the reason they give when they set one aside, answered in
-    words: what it made and closed and what the plan does next (decision_outcome)."""
-    r = decide_document(cx, tree_id, prop_id, status, CFG["by"], note=note)
-    if "error" in r: return r
+    words: what it made and closed and what the plan does next (decision_outcome); or their answer on a place string
+    (conclude.decide_place: choice names the resolver's candidate, a rejection carries the reason), answered with how many
+    facts carry the words and how many are placed now."""
+    r = decide_document(cx, tree_id, prop_id, status, CFG["by"], note=note, choice=choice)
+    if "error" in r or r.get("kind") == "place_resolution": return r
     p = cx.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
     return {**r, **decision_outcome(cx, tree_id, p, status, r["person"], r["persona"], prop_id, r["answered"], r["memberships"])}
+
+def place_strings(cx, tree_id, eid):
+    """The place strings behind an event with no resolved place, from its non-rejected assertions: each with its words and
+    status and, for one the resolver left undecided with a place_resolution proposal, the proposal's id, its candidates and
+    how many facts of the tree carry the same words, so the screen can put the question on the fact row and say how far the
+    answer reaches. A string with no proposal has its words and nothing to choose."""
+    if cx.execute("SELECT place_id FROM event WHERE id=?", (eid,)).fetchone()["place_id"]: return []
+    out = []
+    for r in cx.execute("""SELECT DISTINCT ps.id, ps.raw, ps.status FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN place_string ps ON ps.id=pf.place_string_id
+                           WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY ps.raw""", (eid,)):
+        row = {"id": r["id"], "raw": r["raw"], "status": r["status"], "proposal": None, "candidates": [], "facts": 0}
+        if r["status"] == "undecided":
+            p = cx.execute("""SELECT id, payload_json FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided'
+                              AND json_extract(payload_json,'$.place_string_id')=? ORDER BY created_at DESC LIMIT 1""", (tree_id, r["id"])).fetchone()
+            if p: row["proposal"] = p["id"]; row["candidates"] = [{"i": i, "display_name": c.get("display_name"), "type": c.get("type")} for i, c in enumerate(json.loads(p["payload_json"]).get("candidates") or [])]
+            row["facts"] = cx.execute("""SELECT COUNT(DISTINCT a.subject_id) FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                         WHERE a.tree_id=? AND a.subject_kind='event' AND pf.place_string_id=? AND a.status<>'rejected'""", (tree_id, r["id"])).fetchone()[0]
+        out.append(row)
+    return out
 
 def other_facts(cx, cat, pid):
     """Every event or attribute of the person beyond the key facts (burial, residences, occupation, an inscription, ...), each a
@@ -215,12 +236,13 @@ def other_facts(cx, cat, pid):
                            WHERE ep.person_id=? AND e.event_type NOT IN ('Birth','Death') ORDER BY e.date_start, e.event_type""", (pid,)):
         f = f"event:{e['id']}"
         out.append({"field": f, "type": e["event_type"], "date": e["date_text"], "place": cat.place(e["id"], e["place_id"])["text"] if e["place_id"] else None, "value": e["description"],
-                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f)})
+                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f), "places": place_strings(cx, cat.tree_id, e["id"])})
     return out
 
 def person_view(cx, tree_id, pid):
     cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid)
-    r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f)} for f in KEY_FACTS}
+    r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f),
+                       "places": [s for k, i in fact_subjects(cx, pid, f) if k == "event" for s in place_strings(cx, tree_id, i)]} for f in KEY_FACTS}
     r["facts"] = other_facts(cx, cat, pid)
     r["waiting"] = cat.waiting(pid)
     r["documents"] = [c for c in (decision_card(cx, tree_id, row[0]) for row in cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
@@ -289,7 +311,7 @@ class H(BaseHTTPRequestHandler):
                     try: dismiss_question(cx, tree_id, CFG["by"], mq.group(1), body.get("note")); res = {"ok": True}
                     except SystemExit as e: res = {"error": str(e)}
                 elif mt: res = transcribe(cx, mt.group(1), body)
-                elif md: res = decide_proposal(cx, tree_id, md.group(1), body.get("status"), (body.get("note") or "").strip() or None)
+                elif md: res = decide_proposal(cx, tree_id, md.group(1), body.get("status"), (body.get("note") or "").strip() or None, body.get("candidate"))
                 elif ms.group(2) == "log": res = log_step(cx, tree_id, slug, ms.group(1), body)
                 else: res = revise_step(cx, tree_id, ms.group(1), body)
                 if res.get("error"): cx.rollback(); self.send(res, code=400)

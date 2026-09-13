@@ -269,7 +269,18 @@ person is decidable under the same three states: the seven key facts first,
 then every other event or attribute the person has (burial, residences,
 occupation, an inscription), each with its evidence; a fact a held record
 states that the tree had no event for appears once a match is accepted, created
-from the record's fact with its Accepted assertion. Deciding a fact sets every assertion that supports it and writes an
+from the record's fact with its Accepted assertion. Where a fact's place is still the record's own words (a place string the
+resolver left undecided, the event with no resolved place), the fact row's
+value cell shows the words and, when the resolver wrote a `place_resolution`
+proposal for them, its candidates as a short choice and "not a place"; a string
+with no proposal shows its words and no control. The owner's answer is about
+the words: a place chosen sets the string's place, status and resolver to the
+owner and fills every event whose strings are all resolved; "not a place" sets
+the string rejected with the reason in its notes; either way the answer applies
+to every fact carrying the same words, the row says so, and the reply says how
+many facts carry them and how many are placed now. This is the only place a
+place string is decided: there is no place queue.
+Deciding a fact sets every assertion that supports it and writes an
 audit row. Accept sets Accepted only on the assertions whose evidence is
 visible: the tree owner's uncited claim and citations whose record is held;
 a citation to a record not yet fetched stays Undecided until the fetch. When

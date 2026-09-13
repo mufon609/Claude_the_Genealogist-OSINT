@@ -104,10 +104,10 @@ function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntr
  <tr><th>fact</th><th>value</th><th>from</th><th>decision</th></tr>`;
  for(const k of KEYS){const f=F[k]||{};const ev=rv[k].evidence;const st=rv[k].status;
   const seg=st===null?'<span class="mut">no claim</span>':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${k}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
-  html+=`<tr><td><b>${k}</b></td><td>${h(fmt(f.value))}${f.variants&&f.variants.length?`<div class="mut">variants: ${h(f.variants.join(', '))}</div>`:''}</td><td>${evidenceHtml(ev)}</td><td><span class="seg">${seg}</span></td></tr>`}
+  html+=`<tr><td><b>${k}</b></td><td>${h(fmt(f.value))}${f.variants&&f.variants.length?`<div class="mut">variants: ${h(f.variants.join(', '))}</div>`:''}${placesHtml(rv[k].places)}</td><td>${evidenceHtml(ev)}</td><td><span class="seg">${seg}</span></td></tr>`}
  for(const f of (P.facts||[])){const st=f.status;
   const seg=st===null?'':['accepted','rejected','undecided'].map(s=>`<button class="${st===s?'on-'+s:''}" onclick="decide('${f.field}','${s}')">${s[0].toUpperCase()+s.slice(1)}</button>`).join('');
-  html+=`<tr><td>${h(f.type.toLowerCase())}</td><td>${h([f.date,f.place,f.value].filter(Boolean).join(' · '))||'—'}</td><td>${evidenceHtml(f.evidence)}</td><td><span class="seg">${seg}</span></td></tr>`}
+  html+=`<tr><td>${h(f.type.toLowerCase())}</td><td>${h([f.date,f.place,f.value].filter(Boolean).join(' · '))||'—'}${placesHtml(f.places)}</td><td>${evidenceHtml(f.evidence)}</td><td><span class="seg">${seg}</span></td></tr>`}
  html+=`</table><div class="mut" style="margin-top:6px">A fact's status comes from the documents accepted about the person. The buttons are for your own knowledge when no record is held, and for undoing a single claim.</div></div>`;
  const plan=P.plan||{questions:[],steps:[]}; const nf=plan.steps.filter(s=>s.kind==='fetch').length, ns=plan.steps.length-nf;
  html+=`<h2>What the plan does next</h2><div class="card">`;
@@ -172,6 +172,15 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
   ${opts?`<tr><td><b>relation</b></td><td><select id="tr-${id}-rk"><option value="">—</option>${['spouse','parent','child','sibling','head','boarder','informant','other'].map(k=>`<option>${k}</option>`).join('')}</select> of <select id="tr-${id}-rp">${opts}</select> <input type="text" id="tr-${id}-rt" placeholder="as written" style="width:40%"></td></tr>`:''}
   </table><button onclick="transcribe('${a.sha256}')">Add persona</button></details>`;
  return html}
+function placesHtml(ps){return (ps||[]).filter(s=>s.status==='undecided').map(s=>{const words=`<div class="mut" style="font-size:12px">the record's words: “${h(s.raw)}”`;
+ if(!s.proposal)return words+`</div>`;
+ const opts=s.candidates.map(c=>`<option value="${c.i}">${h(c.display_name)}</option>`).join('');
+ return words+` <select id="pl-${s.proposal}" onchange="placeChoice('${s.proposal}',this)"><option value="">which place?</option>${opts}<option value="none">not a place</option></select><span id="plr-${s.proposal}"></span> <span class="mut">(the answer applies to every fact carrying these words${s.facts>1?`: ${s.facts} do`:''})</span></div>`}).join('')}
+function placeChoice(id,sel){const v=sel.value;if(v==='')return;
+ if(v==='none'){$('#plr-'+id).innerHTML=`<span class="reason"><input type="text" id="plq-${id}" placeholder="why these words are not a place"><button onclick="placeDecide('${id}','rejected',null,$('#plq-${id}').value)">Not a place</button></span>`;$('#plq-'+id).focus();return}
+ placeDecide(id,'accepted',v,null)}
+async function placeDecide(id,status,candidate,note){const r=await post('/api/proposal/'+id+'/decide',{status,candidate,note});if(r.error){fail(r.error);return}await reload();
+ if(r.summary)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">${h(r.summary)}</div>`)}
 function ignore(id){$('#ig-'+id).innerHTML=`<span class="reason"><input type="text" id="igr-${id}" placeholder="why it is set aside; kept for later searches"><button onclick="decideProposal('${id}','rejected',$('#igr-${id}').value)">Set aside</button></span>`;$('#igr-'+id).focus()}
 async function decideProposal(id,status,note){const r=await post('/api/proposal/'+id+'/decide',{status,note});if(r.error){fail(r.error);return}await reload();
  if(r.summary)$('#rc').insertAdjacentHTML('afterbegin',`<div style="color:var(--ok)">${h(r.summary)}</div>`)}

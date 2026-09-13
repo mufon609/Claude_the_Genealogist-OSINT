@@ -42,6 +42,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - reconsider, withdraw: the rule's decisions examined again; one it would no longer take, taken back; a card it would now take, taken.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that name and role on the record.
+- decide_place: the owner's answer on a place string the resolver left undecided, which real place its words mean or that they are
+  not a place, applied wherever the same words appear.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
 """
 import argparse, json, os, re, sqlite3, sys
@@ -275,9 +277,53 @@ def answer_questions(cx, tree_id, pid, prop_id, by):
             q.execute("UPDATE research_question SET closed_reason='answered', answered_by_proposal_id=? WHERE id=?", (prop_id, qid)); answered.append(qid)
     return answered
 
-def decide(cx, tree_id, prop_id, status, by, note=None):
+def decide_place(cx, tree_id, p, status, by, note, choice):
+    """The owner's answer on a place string the resolver left undecided (a place_resolution proposal): which real place its
+    words mean (accepted, with the candidate chosen from the proposal by its index), or that they are not a place (rejected,
+    the reason kept in the string's notes). The answer is about the words, so it applies to every fact carrying the same
+    string: an accepted string takes its place_id from the candidate's hierarchy (resolve_places.Store, the candidate read
+    back from the geocoder's cached answer to the proposal's own queries), its status and resolver the acting user, and the
+    resolver's apply_to_events fills every event whose strings are all resolved; a rejected string stays rejected wherever it
+    appears and no event takes it. One audit row on the string, the proposal decided. Returns what was written, or an error."""
+    from resolve_places import Store, apply_to_events, nominatim
+    q = _q(cx); pay = json.loads(p["payload_json"]); psid, raw = pay["place_string_id"], pay["raw"]; ts = now()
+    if p["status"] != "undecided": return {"error": "already decided"}
+    ps = q.execute("SELECT status, place_id FROM place_string WHERE id=?", (psid,)).fetchone()
+    if not ps: return {"error": "the place string is gone"}
+    events = [r["id"] for r in q.execute("""SELECT DISTINCT e.id FROM event e JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                             WHERE e.tree_id=? AND pf.place_string_id=? AND a.status<>'rejected'""", (tree_id, psid))]
+    leaf = place = None
+    if status == "accepted":
+        cands = pay.get("candidates") or []
+        try: cand = cands[int(choice)]
+        except (TypeError, ValueError, IndexError): return {"error": "choose one of the resolver's candidates for these words, or say they are not a place"}
+        full = next((c for qy in pay.get("queries") or [] for c in nominatim(qy) if f"{c.get('osm_type')}/{c.get('osm_id')}" == cand.get("osm")), None)
+        if full is None: return {"error": f"the geocoder's answer naming {cand.get('display_name')} is not in the cache and the geocoder did not give it again"}
+        leaf = Store(cx).hierarchy(full); place = cand.get("display_name")
+        if not q.execute("SELECT 1 FROM place_name WHERE place_id=? AND name=?", (leaf, raw)).fetchone():
+            q.execute("INSERT INTO place_name (id,place_id,name,is_primary) VALUES (?,?,?,?)", (ulid(), leaf, raw, False))
+        q.execute("UPDATE place_string SET place_id=?, status='accepted', resolver=?, resolved_at=?, notes=? WHERE id=?",
+                  (leaf, by, ts, dumps({"how": "chosen on the person screen", "match": cand, "proposal": p["id"], "note": note}), psid))
+    else:
+        q.execute("UPDATE place_string SET place_id=NULL, status='rejected', resolver=?, resolved_at=?, notes=? WHERE id=?",
+                  (by, ts, dumps({"reason": note or "not a place", "proposal": p["id"]}), psid))
+    q.execute("UPDATE proposal SET status=?, decided_by=?, decided_at=?, decision_note=? WHERE id=?", (status, by, ts, note, p["id"]))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "place_string", psid,
+               dumps({"raw": raw, "from": {"status": ps["status"], "place_id": ps["place_id"]}, "to": {"status": status, "place_id": leaf}, "place": place, "proposal": p["id"], "events": len(events), "note": note})))
+    placed = 0
+    if status == "accepted":
+        apply_to_events(cx, tree_id, by, ts)
+        placed = sum(1 for e in events if q.execute("SELECT place_id FROM event WHERE id=?", (e,)).fetchone()["place_id"])
+    n = f"{len(events)} fact{'s' if len(events) != 1 else ''} carr{'y' if len(events) != 1 else 'ies'} these words"
+    summary = (f"\u201c{raw}\u201d means {place}: {n}, {placed} now placed" + ("" if placed == len(events) else f", {len(events) - placed} waiting on another string of theirs")) if status == "accepted" \
+              else f"\u201c{raw}\u201d is not a place: {n}, none takes it"
+    return {"ok": True, "kind": "place_resolution", "status": status, "raw": raw, "place": place, "place_id": leaf, "events": len(events), "placed": placed, "summary": summary}
+
+def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     """A decision on a proposal: is this record's persona this person (persona_match), or a person the tree does not have
-    (new_person). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
+    (new_person); or, on a place_resolution proposal, the owner's answer on a place string (decide_place, choice naming the
+    candidate). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
     family links it states with persons already matched on it accepted (link_family), the plans of the person and of the
     person the record was fetched for regenerated and the questions that closes marked answered; on a page anyone can edit the
     decision is an identity: the link and the family links are accepted, the facts written undecided. Rejected: the link rejected;
@@ -286,7 +332,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None):
     written standing again. Returns what was written, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
-    if not p or p["kind"] not in ("persona_match", "new_person") or status not in ("accepted", "rejected"): return {"error": "not a persona match or new person, or bad status"}
+    if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"): return decide_place(cx, tree_id, p, status, by, note, choice)
+    if not p or p["kind"] not in ("persona_match", "new_person") or status not in ("accepted", "rejected"): return {"error": "not a persona match, new person or place resolution, or bad status"}
     pay = json.loads(p["payload_json"]); persona_id, person_id = pay["persona_id"], pay.get("person_id"); ts = now(); n = 0; members = []
     identity = editable(cx, pay["artifact_sha256"])                # a page anyone can edit: the identity and its links, never a fact
     if p["status"] != "undecided":

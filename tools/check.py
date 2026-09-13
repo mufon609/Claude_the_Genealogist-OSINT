@@ -233,6 +233,47 @@ def decisions(keep, show):
     memberships = lambda: [(name(fm["person_id"]), fm["role"], a["status"], (json.loads(a["notes"] or "{}").get("placed")))
                            for fm in cx.execute("SELECT family_id, person_id, role FROM family_member")
                            for a in cx.execute("SELECT status, notes FROM assertion WHERE subject_kind='family_member' AND subject_id=? AND artifact_sha256 NOT IN (SELECT artifact_sha256 FROM tree_import)", (treelib.dumps([fm["family_id"], fm["person_id"], fm["role"]]),))]
+    # ---- a place string the resolver left undecided is decided on the fact row (a place_resolution proposal, decided by
+    # conclude.decide): the place chosen fills every event carrying the words; "not a place" leaves them and keeps the reason
+    import hashlib
+    from resolve_places import RESOLVER, cache_dir, candidate_summary
+    from catalog import Catalog as _Cat
+    ps_of = lambda raw: cx.execute("SELECT id, status, place_id FROM place_string WHERE raw=?", (raw,)).fetchone()
+    ev_of = lambda raw: [r[0] for r in cx.execute("""SELECT DISTINCT e.id FROM event e JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                                     JOIN place_string ps ON ps.id=pf.place_string_id WHERE e.tree_id=? AND ps.raw=?""", (tid, raw))]
+    rx = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", RESOLVER).fetchone()
+    rx_id = rx[0] if rx else treelib.ulid()
+    if not rx: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (rx_id, *RESOLVER, treelib.now()))
+    def planted(raw, cands, queries):
+        """A place_resolution proposal for the string as the resolver would write it, its candidates' full geocoder answers in the cache."""
+        os.makedirs(cache_dir(), exist_ok=True)
+        for qy in queries:
+            with open(os.path.join(cache_dir(), hashlib.sha1(qy.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump({"query": qy, "fetched_at": treelib.now(), "results": cands}, fh)
+        pid_ = treelib.ulid()
+        cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
+                   (pid_, tid, "place_resolution", treelib.dumps({"raw": raw, "place_string_id": ps_of(raw)[0], "parsed": {}, "queries": queries, "candidates": [candidate_summary(c, 1.0, {}) for c in cands], "reason": "harness: the owner chooses"}), "harness: the owner chooses", rx_id, treelib.now()))
+        cx.execute("UPDATE place_string SET resolver=?, resolved_at=? WHERE id=?", (f"ai:{RESOLVER[1]}@{RESOLVER[2]}", treelib.now(), ps_of(raw)[0]))
+        return pid_
+    egypt = {"osm_type": "relation", "osm_id": 170912, "lat": "40.0676", "lon": "-74.5307", "name": "New Egypt", "display_name": "New Egypt, Plumsted Township, Ocean County, New Jersey, United States",
+             "category": "boundary", "type": "administrative", "addresstype": "village", "address": {"village": "New Egypt", "county": "Ocean County", "state": "New Jersey", "country": "United States", "country_code": "us"}, "extratags": {"wikidata": "Q1024281"}}
+    jersey = {"osm_type": "relation", "osm_id": 224951, "lat": "40.07", "lon": "-74.72", "name": "New Jersey", "display_name": "New Jersey, United States", "category": "boundary", "type": "administrative", "addresstype": "state",
+              "address": {"state": "New Jersey", "country": "United States", "country_code": "us"}, "extratags": {}}
+    prop_e = planted("New Egypt, Ocean, New Jersey, USA", [egypt], ["New Egypt, Ocean County, New Jersey, United States"]); prop_l = planted("New Jersey, USA", [jersey], ["New Jersey, United States"]); cx.commit()
+    fail(ev_of("New Egypt, Ocean, New Jersey, USA") and all(cx.execute("SELECT place_id FROM event WHERE id=?", (e,)).fetchone()[0] is None for e in ev_of("New Egypt, Ocean, New Jersey, USA")), "before the answer, the events carrying the words have no place")
+    r_pl = decide(cx, tid, prop_e, "accepted", BY, choice=0); cx.commit(); say("place accepted:", r_pl)
+    row_e = ps_of("New Egypt, Ocean, New Jersey, USA")
+    fail(r_pl.get("ok") and r_pl["kind"] == "place_resolution" and row_e[1] == "accepted" and row_e[2] and cx.execute("SELECT resolver FROM place_string WHERE id=?", (row_e[0],)).fetchone()[0] == BY,
+         f"the string is accepted with a place, the resolver the one who answered: {tuple(row_e)}, {r_pl}")
+    fail(ev_of("New Egypt, Ocean, New Jersey, USA") and all(cx.execute("SELECT place_id FROM event WHERE id=?", (e,)).fetchone()[0] == row_e[2] for e in ev_of("New Egypt, Ocean, New Jersey, USA")) and r_pl["placed"] == r_pl["events"] == len(ev_of("New Egypt, Ocean, New Jersey, USA")),
+         f"every event carrying the words takes the place, and the answer says so: {r_pl}")
+    fail(_Cat(cx, tid).place(ev_of("New Egypt, Ocean, New Jersey, USA")[0], row_e[2])["text"] == "New Egypt < Ocean County < New Jersey < United States", f"the event shows the chosen place's chain: {_Cat(cx, tid).place(ev_of('New Egypt, Ocean, New Jersey, USA')[0], row_e[2])}")
+    fail(cx.execute("SELECT status FROM proposal WHERE id=?", (prop_e,)).fetchone()[0] == "accepted" and cx.execute("SELECT 1 FROM audit_log WHERE entity_kind='place_string' AND entity_id=? AND action='accept'", (row_e[0],)).fetchone(), "the proposal is decided and the string has its audit row")
+    r_pr = decide(cx, tid, prop_l, "rejected", BY, note="harness: the words are a stand-in, not a place"); cx.commit(); say("place rejected:", r_pr)
+    row_l = ps_of("New Jersey, USA")
+    fail(r_pr.get("ok") and row_l[1] == "rejected" and row_l[2] is None and json.loads(cx.execute("SELECT notes FROM place_string WHERE id=?", (row_l[0],)).fetchone()[0])["reason"] == "harness: the words are a stand-in, not a place",
+         f"the string is rejected with the reason kept in its notes: {tuple(row_l)}")
+    fail(ev_of("New Jersey, USA") and all(cx.execute("SELECT place_id FROM event WHERE id=?", (e,)).fetchone()[0] is None for e in ev_of("New Jersey, USA")) and r_pr["placed"] == 0, f"the events carrying the rejected words are left as they were: {r_pr}")
+    fail(decide(cx, tid, prop_l, "rejected", BY).get("error") == "already decided", "a place answer is given once")
     # ---- the 1940 page arrives: four people cite it under their own record ids, each is the record's own person; the rule takes none
     shutil.copy(os.path.join(FIXTURES, "familysearch-census-1940-KQX1-VT9.html"), os.path.join(treelib.inbox_dir(), "familysearch-census-1940-KQX1-VT9.html"))
     res = attach_inbox(cx, tid, "harness", BY, ["familysearch-census-1940-KQX1-VT9.html"]); cx.commit(); say("attach 1940:", res)

@@ -23,7 +23,9 @@ from treelib import ROOT, derivatives_dir, dumps, now, resolve_tree, ulid
 
 RESOLVER = ("rule", "nominatim-resolver", "0.1.0")
 UA = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"
-CACHE = os.path.join(derivatives_dir(), "geocode", "nominatim")
+def cache_dir():
+    """Where the geocoder's answers are kept, under the data root of the run (a scratch run keeps its own)."""
+    return os.path.join(derivatives_dir(), "geocode", "nominatim")
 ENDPOINT = "https://nominatim.openstreetmap.org/search"
 
 COUNTRY_SYN = {"usa": "United States", "u.s.a.": "United States", "us": "United States", "united states": "United States",
@@ -108,9 +110,9 @@ def query_variants(p):
     return uniq
 
 def nominatim(q):
-    os.makedirs(CACHE, exist_ok=True)
+    os.makedirs(cache_dir(), exist_ok=True)
     key = hashlib.sha1(q.lower().encode()).hexdigest()
-    path = os.path.join(CACHE, key + ".json")
+    path = os.path.join(cache_dir(), key + ".json")
     if os.path.exists(path):
         with open(path, encoding="utf-8") as fh: return json.load(fh)["results"]
     url = ENDPOINT + "?" + urllib.parse.urlencode({"q": q, "format": "jsonv2", "addressdetails": 1, "extratags": 1,
