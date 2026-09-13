@@ -258,6 +258,12 @@ people's pages of one collection apart), and the saved file goes to that
 person's steps alone, archived under that holder with the page's own URL as
 locator, logged found, unparsed until a parser claims it. Never encode a page and read it out through the model in slices.
 
+**When the site blocks the fetch.** When a source answers a page save or a
+search in the owner's browser with a challenge or a sign-in, the session
+notifies the owner and waits; once the owner has passed it by hand, the session
+continues. The session never passes a challenge itself, and a challenge does
+not by itself make the source assisted-only.
+
 **The image saves itself.** A gravestone photograph on a memorial accepted as
 a person's own (by the owner or by the rule) is a fetch step of its own under
 the cemetery row, one per photograph the page types Grave, with the image's

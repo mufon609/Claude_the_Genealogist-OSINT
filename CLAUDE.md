@@ -144,7 +144,10 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    in the browser, save the page by the page-saves-itself method, or a
    gravestone photograph by the image-saves-itself method
    (`docs/RESEARCH-WORKFLOW.md` §4), then `python3 tools/fetches.py
-   collect` or `python3 tools/attach_inbox.py <file>`.
+   collect` or `python3 tools/attach_inbox.py <file>`. When the site blocks
+   a save or a search (a challenge, a sign-in), notify the owner and wait;
+   continue once they have passed it by hand. Never pass it yourself, and a
+   block does not by itself make the source assisted-only.
 5. `python3 tools/cards.py "<person>"`: every record waiting for a decision,
    one card each. Decide with `tools/conclude.py decide <id> accept|reject`.
    Accepting takes everything the record states about the person; a

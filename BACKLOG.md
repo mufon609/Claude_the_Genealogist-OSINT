@@ -130,20 +130,6 @@ the name a piece unique to the citation as well (the citation's own record
 locator when it has one, else the step's key), so one person's several pages
 of one collection are told apart too.
 
-### C9. When a source answers with a challenge, notify the owner and wait
-
-The owner's decision (11 Sept 2026): a fetch from a site with no endpoint
-is driven end to end in the owner's own browser, one page at a time, never
-a crawl; when the site answers a download with a challenge, the session
-notifies the owner and waits, and once the owner has passed it by hand the
-session continues — the session never passes a challenge itself, and a
-challenge does not by itself make the source assisted-only. Currently this
-lives only in session memory (`MEMORY.md`, `challenge-is-a-pause-not-a-stop`)
-and in the wording a brief happens to carry forward. Say it once, where
-every session driving a browser will read it — `docs/RESEARCH-WORKFLOW.md`
-§4, beside "the page saves itself" — so it does not depend on the brief
-repeating it.
-
 ### C7. Hints on the person page
 
 A run that found pages naming the person on the name alone (a directory
