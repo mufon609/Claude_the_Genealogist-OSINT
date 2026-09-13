@@ -463,14 +463,18 @@ def decisions(keep, show):
     fail(raymond_ob["sources"][:1] == ["H05"], f"a death in 2007 is in Legacy.com's 1999-on window: its row lists H05 first: {raymond_ob['sources']}")
     # ---- a page from a holder without a parser (the SAR database cited on James), saved under the name the fetch list printed, reaches its step: archived under the holder with its own URL, logged found, reported unparsed
     from fetches import collect, waiting as waiting_pages
-    sar = next((e for e in waiting_pages(cx, tid) if e["holder_id"] == "F04"), None)
-    fail(sar and sar["save_as"].startswith("f04-") and "<record id>" in sar["save_as"] and sar["how"] == "page" and "James Joseph Ahearn" in sar["people"], f"the SAR page James's citation points at is listed with a name to save under, his son's footprint step waiting on it too: {sar}")
+    f04 = [e for e in waiting_pages(cx, tid) if e["holder_id"] == "F04"]
+    sar = next((e for e in f04 if e["people"] == ["James Joseph Ahearn"]), None); son = next((e for e in f04 if e["people"] == ["Frederick Michael Ahearn"]), None)
+    fail(sar and son and len(f04) == 2 and sar["save_as"].startswith("f04-") and sar["save_as"].endswith(f"-{who['James Joseph Ahearn'][-6:]}.html") and son["save_as"].endswith(f"-{who['Frederick Michael Ahearn'][-6:]}.html")
+         and sar["save_as"][:-11] == son["save_as"][:-11] and sar["how"] == "page",
+         f"the SAR page James's citation points at is listed twice, once for James and once for his son's footprint step, each name ending in its person's six characters: {f04}")
     dl = os.path.join(d, "downloads"); os.makedirs(dl, exist_ok=True)
-    fname = sar["save_as"].replace("<year>", "1920").replace("<record id>", "24680") if sar else "x.html"
+    fname = sar["save_as"].replace("<year>", "1920") if sar else "x.html"
     with open(os.path.join(dl, fname), "w", encoding="utf-8") as fh: fh.write("<!-- saved from https://sarpatriots.sar.org/patriot/display/24680 -->\n<html><body><h1>Patriot</h1><p>AHEARN, JAMES</p></body></html>")
     names_c, res_c = collect(cx, tid, "harness", BY, folder=dl); cx.commit(); say("collect:", names_c, res_c)
     got = next((r for r in res_c if r["file"] == fname), None)
-    fail(got and not got["left"] and any(n == "James Joseph Ahearn" for _, n, _, _ in got["steps"]) and got.get("unparsed"), f"the page attaches to James's step by the list's name and is reported unparsed: {got}")
+    fail(got and not got["left"] and [n for _, n, _, _ in got["steps"]] == ["James Joseph Ahearn"] and got.get("unparsed"), f"the page attaches to James's step alone by the list's name and is reported unparsed: {got}")
+    fail(son and all(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "planned" for sid in son["step_ids"]), "his son's footprint step on the same citation, named for the son, still waits")
     art_c = cx.execute("SELECT source_id, locator_kind, locator_value, mime FROM artifact WHERE sha256=?", (got["sha256"],)).fetchone() if got and got.get("sha256") else None
     fail(art_c and art_c["source_id"] == "F04" and art_c["locator_kind"] == "url" and art_c["locator_value"] == "https://sarpatriots.sar.org/patriot/display/24680" and art_c["mime"] == "text/html", f"archived under the SAR row with the page's own URL as locator: {dict(art_c) if art_c else None}")
     fail(sar and all(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "done" for sid in sar["step_ids"]) and not os.path.exists(os.path.join(dl, fname)), "its step is done and the file has left the download folder")

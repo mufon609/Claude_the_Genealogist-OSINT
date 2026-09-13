@@ -251,9 +251,12 @@ the file name to save under; a browser session works down that list one tab per
 page; `tools/fetches.py collect` then moves every saved page from the download
 folder into `inbox/` and attaches each by its own identity, or, for a page from
 a holder whose pages carry none (an SAR patriot page, a Legacy.com obituary),
-by the name the list printed with its year and record id filled in: to the
-steps of the page it was saved for, archived under that holder with the page's
-own URL as locator, logged found, unparsed until a parser claims it. Never encode a page and read it out through the model in slices.
+by the name the list printed with its year filled in: such a page is listed
+once per person waiting on it, under a name that ends in that person's six
+characters (the citation carries no record id of the holder's to tell two
+people's pages of one collection apart), and the saved file goes to that
+person's steps alone, archived under that holder with the page's own URL as
+locator, logged found, unparsed until a parser claims it. Never encode a page and read it out through the model in slices.
 
 **The image saves itself.** A gravestone photograph on a memorial accepted as
 a person's own (by the owner or by the rule) is a fetch step of its own under

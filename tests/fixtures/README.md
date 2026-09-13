@@ -56,7 +56,8 @@ taken back taken again as a card, the owner's own accept of it an identity too, 
 links and no fact accepted, the photograph the page types Grave as a fetch step saved under the list's name and archived
 under the gravestone row unparsed, a reading of it by the model one card for Abram the rule leaves to the owner, the
 gravesite page's one card for Raymond among its namesakes (the near ones hints) and the rule taking it once his dates are
-his own word, a page saved from the SAR database under the name the fetch list printed reaching James's step unparsed, the steps it
-reached reopened so the record names nobody it was fetched for while the found rows stay, a
+his own word, the SAR page listed once for James and once for his son's footprint step, each name ending in its person's six characters,
+saved under James's name and reaching his step alone, unparsed, the son's still waiting, James's step then reopened so the
+record names nobody it was fetched for while the found row stays, a
 found run at a row-source connector leaving a fetch step planned, a planted step nothing generates dropped and named in the
 run's audit row, and the plan regenerating unchanged. It is the only `.ged` the commit guard allows.
