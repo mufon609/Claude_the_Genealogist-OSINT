@@ -67,6 +67,13 @@ GEDCOM 7 (with GEDZIP of redistributable media) and Gramps XML, both from
 the conclusions layer, honouring the living-person redaction. Ship together
 so a tree can be round-tripped and opened in Gramps desktop.
 
+The stored `artifact.redistributable` flag on artifacts archived before
+13 Sept 2026 stays as written, false, whatever the registry's terms for
+that source say now: artifact rows are insert-only, so that column is
+never revisited after the fact. Read the registry's terms at export time
+instead of trusting the stored flag on an old row — the same thing
+`tools/treelib.py`'s `archive_object` now does at archive time.
+
 ---
 
 ## C. Anytime (no dependencies)
