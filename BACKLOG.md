@@ -96,11 +96,6 @@ its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
 Earl Davidson and Noi Davidson) carries no year to choose an item by.
 
-### C2. OCR / HTR extractor for record images
-
-Turn an archived record image into personas and persona facts by machine,
-versioned by extractor, beside the person screen's transcription form.
-
 ### C3. Place-string review from the catalog
 
 The Undecided place strings and their `place_resolution` proposals have no

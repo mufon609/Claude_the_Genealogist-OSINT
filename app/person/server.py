@@ -13,7 +13,7 @@ is written to search_log with the fields as rendered. The screen runs no
 search itself: an auto step runs through its connector from tools/run_step.py,
 and a record page saved in the browser comes in through inbox/.
 """
-import argparse, glob, json, mimetypes, os, re, sqlite3, sys, threading, urllib.parse
+import argparse, glob, hashlib, json, mimetypes, os, re, sqlite3, sys, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -31,6 +31,11 @@ from overview import overview, people, person_card
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
+# The transcription form's field names, in the order the route reads them: the only prompt a model reading an image is given,
+# so their hash is the extractor's prompt_sha256 (docs/DATA-ARCHITECTURE.md §1); a changed form is a new extractor row.
+FORM_FIELDS = ("name", "role", "sex", "age", "year", "birth_date", "birth_place", "death_date", "death_place", "residence",
+               "marriage_date", "marriage_place", "as_written", "occupation", "marital_status", "relations", "line")
+FORM_SHA256 = hashlib.sha256("\n".join(FORM_FIELDS).encode()).hexdigest()
 
 def db():
     cx = sqlite3.connect(CFG["db"]); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row; return cx
@@ -131,16 +136,18 @@ def artifact_view(cx, tree_id, sha, pid):
 
 def transcribe(cx, sha, body, by=None, about=None):
     """One persona read from a held record, by the person acting (extractor human:<user>) or by a model reading the image
-    (extractor llm:<model>, docs/DATA-ARCHITECTURE.md §1): an extraction on the artifact (created on the first persona), the
-    persona in the record's own role word, its facts as written, a birth calculated from an age and the record's year, and its
-    relations to personas already on the record."""
+    (extractor llm:<model>, docs/DATA-ARCHITECTURE.md §1, the row carrying the model's id and the hash of the form it was
+    given, FORM_SHA256): an extraction on the artifact (created on the first persona), the persona in the record's own role
+    word, its facts as written, a birth calculated from an age and the record's year, and its relations to personas already on
+    the record."""
     if not cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return {"error": "not in the archive"}
     name = (body.get("name") or "").strip()
     if not name: return {"error": "a name is required"}
     ts = now(); kind, who = ((by or CFG["by"]).split(":", 1) + [None])[:2]; kind = "llm" if kind in ("llm", "model") else "human"
-    x = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version IS NULL", (kind, who)).fetchone()
+    prompt = FORM_SHA256 if kind == "llm" else None
+    x = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version IS NULL AND prompt_sha256 IS ?", (kind, who, prompt)).fetchone()
     xid = x["id"] if x else ulid()
-    if not x: cx.execute("INSERT INTO extractor (id,kind,name,created_at) VALUES (?,?,?,?)", (xid, kind, who, ts))
+    if not x: cx.execute("INSERT INTO extractor (id,kind,name,model_id,prompt_sha256,created_at) VALUES (?,?,?,?,?,?)", (xid, kind, who, who if kind == "llm" else None, prompt, ts))
     e = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND superseded_by IS NULL", (sha, xid)).fetchone()
     eid = e["id"] if e else ulid()
     if not e: cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'complete',?)", (eid, sha, xid, ts, dumps({"read": "the page image, one person per row" if kind == "llm" else "typed by hand", "year": body.get("year")})))

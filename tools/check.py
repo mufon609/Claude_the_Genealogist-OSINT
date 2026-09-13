@@ -459,6 +459,9 @@ def decisions(keep, show):
     sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server; server.CFG["by"] = BY
     r = server.transcribe(cx, res[0]["sha256"], {"name": "Abram C. Brant", "role": "named on the stone", "birth_date": "1880", "death_date": "1961"}, by="llm:harness") if res and res[0].get("sha256") else {}
     cx.commit(); say("the stone read:", r)
+    xr = cx.execute("SELECT x.kind, x.name, x.model_id, x.prompt_sha256 FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (r.get("extraction"),)).fetchone() if r.get("ok") else None
+    fail(xr and xr["kind"] == "llm" and xr["name"] == "harness" and xr["model_id"] == "harness" and xr["prompt_sha256"] == server.FORM_SHA256,
+         f"the model's extractor row carries the model named after llm: and the hash of the form's field names, the only prompt there is: {dict(xr) if xr else None}")
     card_p = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=?", (tid, r.get("extraction"))).fetchone() if r.get("ok") else None
     ok_p, why_p = rule_accepts(cx, tid, card_p) if card_p else (None, "no card")
     fail(r.get("ok") and r["proposals"] == 1 and r["accepted_by_rule"] == 0 and card_p and name(person_of(card_p)) == "Abram C Brant" and not ok_p and "not accepted" in why_p,
