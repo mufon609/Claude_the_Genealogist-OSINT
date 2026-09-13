@@ -41,6 +41,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - rule_accepts: whether the rule takes a proposal, and why or why not, in words.
 - reconsider, withdraw: the rule's decisions examined again; one it would no longer take, taken back; a card it would now take, taken.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
+- same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that name and role on the record.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
 """
 import argparse, json, os, re, sqlite3, sys
@@ -91,6 +92,15 @@ class _q:
     def __init__(self, cx): self.cx = cx
     def execute(self, sql, args=()):
         c = self.cx.cursor(); c.row_factory = sqlite3.Row; return c.execute(sql, args)
+
+def same_personas(cx, persona_id):
+    """Every persona on the same record with the same name and role as this one, across every extraction of the record, itself
+    included: a decision is about the record, whose bytes do not change between readings, so it applies to each reading's
+    persona of that name and role, and a withdrawal or a rejection resets them all. The earlier readings' links are history;
+    readers of accepted links join on current extractions only."""
+    q = _q(cx)
+    pe = q.execute("SELECT artifact_sha256, name_text, role_in_record FROM persona WHERE id=?", (persona_id,)).fetchone()
+    return [r["id"] for r in q.execute("SELECT id FROM persona WHERE artifact_sha256=? AND name_text IS ? AND role_in_record IS ?", (pe["artifact_sha256"], pe["name_text"], pe["role_in_record"]))]
 
 def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record
@@ -285,7 +295,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None):
     q.execute("UPDATE proposal SET status=?, decided_by=?, decided_at=?, decision_note=? WHERE id=?", (status, by, ts, note, prop_id))
     if p["kind"] == "new_person" and status == "accepted": person_id = create_person(cx, tree_id, persona_id, ts)
     if person_id:
-        q.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (person_id, persona_id, status, prop_id, by, ts))
+        for pe_id in same_personas(cx, persona_id):                # the decision is about the record: every reading's persona of this name and role takes it
+            q.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (person_id, pe_id, status, prop_id, by, ts))
     answered = []
     if status == "accepted":
         n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
@@ -480,7 +491,8 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
     pay = json.loads(p["payload_json"])
     n = q.execute("UPDATE assertion SET status='undecided' WHERE tree_id=? AND status='accepted' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id)).rowcount
     q.execute("UPDATE proposal SET status='undecided', decided_by=NULL, decided_at=NULL, decision_note=? WHERE id=?", (f"the rule took its decision back: {why}", prop_id))
-    q.execute("UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE persona_id=? AND person_id=?", (pay["persona_id"], pay["person_id"]))
+    ids = same_personas(cx, pay["persona_id"])                       # every reading's persona of this name and role on the record, the re-reads' included
+    q.execute(f"UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE person_id=? AND persona_id IN ({','.join('?' * len(ids))})", (pay["person_id"], *ids))
     q.execute("UPDATE research_question SET closed_reason='gap_gone', answered_by_proposal_id=NULL WHERE answered_by_proposal_id=?", (prop_id,))
     for pid in dict.fromkeys([pay.get("person_id"), pay.get("subject_person_id")]):
         if pid: plan_person(cx, tree_id, pid, by)

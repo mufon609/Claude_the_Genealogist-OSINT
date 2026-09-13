@@ -460,9 +460,10 @@ class Catalog:
         """Whether the persona accepted as this person on this artifact is the record's own subject: the persona others on
         it relate to, with no relation of its own to another persona (the deceased of an obituary, the memorial's subject,
         a record page's principal). A persona that relates to another (a survivor, a listed relative, a household member)
-        is named on the record, never its own; a record that merely names a person is a relative's record and a lead."""
-        return bool(self.q("""SELECT 1 FROM person_persona pp JOIN persona p ON p.id=pp.persona_id
-                               WHERE pp.person_id=? AND pp.status='accepted' AND p.artifact_sha256=?
+        is named on the record, never its own; a record that merely names a person is a relative's record and a lead. Only a
+        persona of a current extraction counts: a superseded reading's links are history."""
+        return bool(self.q("""SELECT 1 FROM person_persona pp JOIN persona p ON p.id=pp.persona_id JOIN extraction e ON e.id=p.extraction_id
+                               WHERE pp.person_id=? AND pp.status='accepted' AND p.artifact_sha256=? AND e.superseded_by IS NULL
                                AND NOT EXISTS (SELECT 1 FROM persona_relation pr WHERE pr.persona_id=p.id)""", person_id, sha))
     def citations(self, kind, sid, person_id=None, subject_only=False):
         """[(collection name, apid, held artifact sha or None, collection id)] for a subject; held for the person given, when

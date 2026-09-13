@@ -159,10 +159,11 @@ def personas_of(cx, eid):
 
 def memorials_of(cx, pid):
     """The Find a Grave memorial ids already accepted as this person: the id of a memorial page accepted as theirs, and the id a
-    held record links beside a persona accepted as them. A record's link to the same memorial is the same identity."""
+    held record links beside a persona accepted as them. A record's link to the same memorial is the same identity. Only the
+    personas of current extractions count: a superseded reading's links are history."""
     ids = set()
     for region, sha, role in cx.execute("""SELECT pe.region_json, pe.artifact_sha256, pe.role_in_record FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
-                                            WHERE pp.person_id=? AND pp.status='accepted'""", (pid,)):
+                                            JOIN extraction e ON e.id=pe.extraction_id WHERE pp.person_id=? AND pp.status='accepted' AND e.superseded_by IS NULL""", (pid,)):
         r = json.loads(region or "{}"); m = re.search(r"/memorial/(\d+)(?:/|$)", r.get("url") or "")
         if r.get("memorial_id"): ids.add(str(r["memorial_id"]))
         if m: ids.add(m.group(1))
@@ -184,9 +185,10 @@ def by_name_and_year(cat, cx, tree_id, persona):
     return out
 
 def by_memorial(cx, tree_id, mid):
-    """Persons of the tree already accepted under this memorial id, by memorials_of."""
+    """Persons of the tree already accepted under this memorial id, by memorials_of, on current extractions only."""
     return [pid for pid, in cx.execute("""SELECT DISTINCT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
-                                          WHERE p.tree_id=? AND pp.status='accepted' AND (json_extract(pe.region_json,'$.memorial_id')=? OR json_extract(pe.region_json,'$.url') LIKE ?
+                                          JOIN extraction e ON e.id=pe.extraction_id
+                                          WHERE p.tree_id=? AND pp.status='accepted' AND e.superseded_by IS NULL AND (json_extract(pe.region_json,'$.memorial_id')=? OR json_extract(pe.region_json,'$.url') LIKE ?
                                              OR (pe.role_in_record='memorial' AND EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=pe.artifact_sha256 AND l.kind='memorial_id' AND l.value=?)))""",
                                        (tree_id, mid, f"%/memorial/{mid}/%", mid))]
 
@@ -207,7 +209,8 @@ def persons_for(cx, sha):
     """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, the persons the
     logged fetch step's citation sits on (a record fetched on a relative's footprint step is that relative's own record, and
     the file's claim that it is theirs is the question put to them), a fetch step pointing at its locator, or an accepted
-    persona link on it (question and step None). A step's log row no longer counts once a later run reopened the step
+    persona link on it (question and step None; a superseded reading's links are history, so only a persona of a current
+    extraction counts). A step's log row no longer counts once a later run reopened the step
     (log_search.reopen): the row stays as what happened, and the step's most recent word on the record governs."""
     rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id, sp.on_json='[]' AS own, l.executed_at, sp.seq, sp.locator_kind, sp.locator_value
                           FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ?
@@ -219,8 +222,8 @@ def persons_for(cx, sha):
     if loc and loc[0] and loc[1]:
         values = sorted(holds(cx, sha)) if loc[0] == "apid" else [loc[1]]      # the ids the artifact holds: the household it names, or the whole sheet for an image
         rows += cx.execute(f"SELECT DISTINCT person_id, question_id, id FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?'*len(values))}) ORDER BY seq", (loc[0], *values)).fetchall()
-    rows += cx.execute("""SELECT DISTINCT pp.person_id, NULL, NULL FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
-                          WHERE pe.artifact_sha256=? AND pp.status='accepted'""", (sha,)).fetchall()
+    rows += cx.execute("""SELECT DISTINCT pp.person_id, NULL, NULL FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN extraction e ON e.id=pe.extraction_id
+                          WHERE pe.artifact_sha256=? AND pp.status='accepted' AND e.superseded_by IS NULL""", (sha,)).fetchall()
     seen, out = set(), []
     for r in rows:
         if r[0] not in seen: seen.add(r[0]); out.append(r)

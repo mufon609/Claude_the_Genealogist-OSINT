@@ -352,10 +352,23 @@ def decisions(keep, show):
     fail(cx.execute("SELECT status FROM proposal WHERE id=?", (abram["id"],)).fetchone()[0] == "undecided", "the card is undecided again once taken back")
     rows = reconsider(cx, tid, BY); cx.commit(); say("reconsider after a withdrawal:", [(x["kind"], x["person"], x.get("kept", x.get("taken"))) for x in rows])
     fail(any(x["kind"] == "card" and x["taken"] and x["person"] == "Abram C Brant" for x in rows) and (cx.execute("SELECT decided_by FROM proposal WHERE id=?", (abram["id"],)).fetchone()[0] or "").startswith("rule:"), "a card the rule would take is taken by reconsider, recorded as the rule")
-    # ---- the rule's identity taken back and given by the owner: an identity still, the facts undecided, the links standing
-    withdraw(cx, tid, abram["id"], BY, "harness: taken back", treelib.now()); cx.commit()
+    # ---- the page read again while the rule's decision stands: the link carries to the new persona; the decision withdrawn afterwards
+    # resets both personas (the decision is about the record, not one reading of it), and the cemetery row is not held
+    from catalog import Catalog as _Cat
+    eid_r, n_r = extract(cx, sha_m, BY); cx.commit(); say("re-read while the rule's decision stands:", n_r)
+    abram_links = lambda: [(r[0] == eid_r, r[1]) for r in cx.execute("""SELECT pe.extraction_id, pp.status FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
+                                                                          WHERE pp.person_id=? AND pe.artifact_sha256=? AND pe.name_text='Abram C Brant' AND pe.role_in_record='memorial'""", (who["Abram C Brant"], sha_m))]
+    fail(sorted(abram_links()) == [(False, "accepted"), (True, "accepted")], f"after the re-read the rule's link stands on the earlier persona and on the new one: {abram_links()}")
+    fail(_Cat(cx, tid).is_subject(sha_m, who["Abram C Brant"]), "the memorial's subject is Abram through the current reading")
+    withdraw(cx, tid, abram["id"], BY, "harness: taken back after a re-read", treelib.now()); cx.commit()
+    fail(sorted(abram_links()) == [(False, "undecided"), (True, "undecided")], f"the decision withdrawn after a re-read leaves no accepted link on either persona: {abram_links()}")
+    fail(not _Cat(cx, tid).is_subject(sha_m, who["Abram C Brant"]), "withdrawn, the memorial has no accepted subject persona for Abram")
+    cem_w = [c for c in _Cat(cx, tid).person_citations(who["Abram C Brant"], subject_only=True) if c[2]]
+    fail(not cem_w, f"withdrawn, no citation of his is held through an accepted subject persona, the earlier reading's link included: {cem_w}")
+    # ---- the rule's identity taken back and given by the owner: an identity still, the facts undecided, the links standing, every reading's persona linked
     r = decide(cx, tid, abram["id"], "accepted", BY, "harness"); cx.commit(); say("given by the owner:", r)
     fail(r.get("ok") and r.get("identity") and not facts_on().get("accepted") and fact_status(cx, who["Abram C Brant"], "parents") == "accepted", f"the owner's accept of the card is an identity too, the page's facts still undecided, the link to his mother standing: {facts_on()}")
+    fail(sorted(abram_links()) == [(False, "accepted"), (True, "accepted")], f"the owner's decision applies to every reading's persona of that name and role on the record: {abram_links()}")
     # ---- a memorial's own subject holds the cemetery row; a relative it merely lists never does, even accepted (a separate
     # fixture, so as not to disturb the re-read below): Abram's own memorial holds his cemetery row, not Helen's (her own
     # memorial is not on this tree) (docs/RESEARCH-CHECKLIST.md §3, §7)
