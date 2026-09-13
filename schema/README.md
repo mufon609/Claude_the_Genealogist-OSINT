@@ -54,7 +54,13 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   auto-reused between trees (see DATA-ARCHITECTURE.md, trust boundaries).
 - A `persona_relation` row runs from the persona whose role it is to the persona it is
   toward, as the record states it: a household member to the head (`child`, "Son"), a
-  named relative to the record's subject (`parent`, "Father's name").
+  named relative to the record's subject (`parent`, "Father's name"). A persona with no
+  outgoing `persona_relation` row is the record's own subject (`catalog.is_subject`); a
+  one-person checklist row (obituary, death/birth record, cemetery, naturalization, a
+  draft card, Social Security) reads held only through the person's own accepted
+  subject persona, never through a relation the record merely states about them
+  (`docs/RESEARCH-CHECKLIST.md` §3, §7). Household rows (census, church, passenger
+  lists) are unaffected.
 - Errors in records are never corrected in evidence and never deleted: they become
   `alias` rows (persons) or `place_string.variant_kind` (places) and stay searchable.
 - Vendor IDs go in `external_id`, never in a primary key.

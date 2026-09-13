@@ -220,6 +220,42 @@ and the step exists, so it is tested on a real step. On 11 September 2026 the
 endpoint did not answer a declared tool from this machine (the connection timed
 out, twice); confirm it answers before building.
 
+### C11. `plan.py`'s audit row counts a dropped step but does not name it
+
+`plan_person`'s per-run stats (`steps_dropped`) only carry a count, so a step
+silently deleted because the checklist no longer generates it (a row's status
+changed under it) cannot be traced back afterward: the `audit_log` entry says
+"1 dropped" and nothing else, and the step itself is gone (`DELETE FROM
+search_plan`, not a tombstone). Surfaced fixing the checklist's `held` test
+(the record's own subject, docs/RESEARCH-CHECKLIST.md §3, §7): a step for
+Frederick Micheal Ahearn Jr's obituary was dropped by an earlier, unrelated
+run once his mother's obituary wrongly held his own row, and the only way to
+reconstruct that this happened, and why, was to read the assertion trail by
+hand. Have the drop write the step's own key and rationale into the audit
+row (or a lightweight tombstone), so a wrongly dropped step is traceable
+without reconstructing it from the surrounding evidence.
+
+### C12. `match.linked()` never finds an accepted family link
+
+`linked()`'s SQL excludes an assertion whose `notes` carry neither `vouched`
+nor `uncited` (`NOT (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1
+OR json_extract(a.notes,'$.uncited')=1))`): when both keys are simply absent
+(the ordinary case — most assertions carry only `{"proposal": "..."}`),
+`json_extract` returns SQL NULL for each, the `OR` of two NULLs is NULL, `AND`
+with NULL is NULL, and `NOT NULL` is NULL, which a `WHERE` clause treats as
+false, so the row is excluded regardless of its `status` or `artifact_sha256`.
+`linked()` therefore returns `False` for two people already linked on a real,
+accepted record whenever that link's own assertions were not vouched or
+uncited — silently starving `match.match()`'s "already linked, so the
+relative is open to a card too" path (`docs/RESEARCH-WORKFLOW.md` §4).
+Surfaced building a harness check for the checklist fix above: a second
+persona on a freshly-read record, related to an already-decided one whose
+family link long predates it, got no card at all until the check was
+rewritten to re-run the matcher after deciding the first persona (working
+around the bug rather than exercising it). Rewrite the boolean so an absent
+key reads as "not vouched, not uncited" (`coalesce(json_extract(...), 0)=1`,
+or equivalent), not NULL.
+
 ---
 
 ## Externally blocked

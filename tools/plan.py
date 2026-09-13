@@ -146,7 +146,7 @@ def plan_person(cx, tree_id, pid, by):
                     own.append(fetch_step(cat, rk, s["type"], c["apid"], c["collection"], c["collection_id"], c["on"], row["settles"], where, row["sources"],
                                           c["on"][0][0] if c["on"] else me))
                 fetches += own
-                if r["baseline"]["complete"] and own and all(f["mode"] == "blocked" for f in own) and s.get("free_mode"):   # the cited record cannot be had: search the free sources as for a missing row
+                if r["baseline"]["complete"] and (not own or all(f["mode"] == "blocked" for f in own)) and s.get("free_mode"):   # nothing fetchable from the citations (none with a record id, or every one blocked): search the free sources as for a missing row
                     searches.append({"step_key": f"search:{rk}", "row_key": rk, "question_key": None, "kind": "search", "query_type": s["type"], "query_json": dumps(s["fields"]),
                                      "locator_source_id": None, "locator_kind": None, "locator_value": None, "collection_id": None, "on_json": None,
                                      "sources_json": dumps(s["sources"]), "mode": s["free_mode"], "expected": s["expect"], "rationale": f"{row['record']} is cited only at a holder this account cannot reach; searched at the free sources"})

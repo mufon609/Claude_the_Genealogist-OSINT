@@ -452,9 +452,21 @@ class Catalog:
     def basis(self, kind, sid):
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind=? AND subject_id=?", kind, sid)}
         return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "claim")
-    def citations(self, kind, sid, person_id=None):
+    def is_subject(self, sha, person_id):
+        """Whether the persona accepted as this person on this artifact is the record's own subject: the persona others on
+        it relate to, with no relation of its own to another persona (the deceased of an obituary, the memorial's subject,
+        a record page's principal). A persona that relates to another (a survivor, a listed relative, a household member)
+        is named on the record, never its own; a record that merely names a person is a relative's record and a lead."""
+        return bool(self.q("""SELECT 1 FROM person_persona pp JOIN persona p ON p.id=pp.persona_id
+                               WHERE pp.person_id=? AND pp.status='accepted' AND p.artifact_sha256=?
+                               AND NOT EXISTS (SELECT 1 FROM persona_relation pr WHERE pr.persona_id=p.id)""", person_id, sha))
+    def citations(self, kind, sid, person_id=None, subject_only=False):
         """[(collection name, apid, held artifact sha or None, collection id)] for a subject; held for the person given, when
-        one is (a page holds a citation for the people it names), else for anyone."""
+        one is (a page holds a citation for the people it names), else for anyone. subject_only restricts "held" to a
+        citation whose accepted persona for person_id is the record's own subject (is_subject), for a one-person checklist
+        row (an obituary, a death or birth record, a cemetery record, naturalization, a draft card, Social Security): a
+        record that merely names the person, without being their own, stays cited, never held. Household rows (census,
+        church, passenger lists) pass subject_only=False and keep counting every member as before."""
         out = []
         for cname, notes, sha, tier, cid in self.q(f"""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, {tier_sql()}, COALESCE(c.id, ac.id) FROM assertion a
                 LEFT JOIN collection c ON json_valid(a.notes) AND c.id=json_extract(a.notes,'$.collection_id')
@@ -463,6 +475,7 @@ class Catalog:
                 WHERE a.subject_kind=? AND a.subject_id=? AND a.status<>'rejected'""", kind, sid):
             apid = json.loads(notes).get("apid") if notes and notes.startswith("{") else None
             held = sha if sha and (tier or "")[:2] in ("T1", "T2", "T3") else (self.held_for(apid, person_id) if person_id else self.held_apids().get(apid))   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
+            if held and subject_only and not (person_id and self.is_subject(held, person_id)): held = None
             if cname or held: out.append((cname or "", apid, held, cid))
         return out
     def waiting(self, pid):
@@ -541,10 +554,10 @@ class Catalog:
             if name and name not in c["names"]: c["names"].append(name)
         self._cited = out
         return out
-    def person_citations(self, pid):
+    def person_citations(self, pid, subject_only=False):
         """All citations attached to a person: on the person row and on every event of theirs."""
-        cits = self.citations("person", pid, pid)
+        cits = self.citations("person", pid, pid, subject_only=subject_only)
         for eid, in self.q("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=?", pid):
-            cits += self.citations("event", eid, pid)
+            cits += self.citations("event", eid, pid, subject_only=subject_only)
         return cits
 

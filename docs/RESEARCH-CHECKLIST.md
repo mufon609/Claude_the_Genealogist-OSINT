@@ -85,6 +85,17 @@ household, so it holds its own citation and those of the people it names, by
 first given name, surname (as written or a spelling variant) and birth year,
 never another household's on the same sheet. A relative's held record that does
 not name the person is not their household: the row reads missing, not cited.
+
+A **one-person row** (obituary, death or birth record, cemetery, naturalization,
+a draft card, Social Security) reads held only when the person accepted on the
+record is its own subject: the persona others on it relate to, with no relation
+of its own to another persona (the deceased of an obituary, the memorial's
+subject, a record page's principal). A record that merely names the person —
+a survivor named in a parent's obituary, a relative a memorial lists — is that
+relative's record and a lead, never the named person's own, so the row stays
+missing (or cited, if the file also carries a bare claim of one) and its search
+step stands. Household rows (census, church, passenger lists) are unaffected:
+they keep counting every member as the paragraph above describes.
 Everything that is not held is a gap, and every gap has a pre-built search step:
 
 | Gap | Pre-built search |
@@ -343,6 +354,10 @@ No scores, and no count dressed as one.
 - held = the row's record is in the archive: a done step with an archived
   artifact in its `search_log`, or an artifact that holds the citation for the
   person (`catalog.held_for`: archived under the citation's record id, a sheet
-  image naming the sheet, or a record page naming the person);
+  image naming the sheet, or a record page naming the person); for a
+  one-person row this also requires the person's accepted persona on that
+  artifact to be its own subject (`catalog.is_subject`: no `persona_relation`
+  row of its own), not a relative the record merely names — a household row
+  (census, church, passenger lists) carries no such requirement;
 - results = `proposal.question_id` pointing at the question the record
   answers.

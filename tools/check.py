@@ -338,6 +338,33 @@ def decisions(keep, show):
     withdraw(cx, tid, abram["id"], BY, "harness: taken back", treelib.now()); cx.commit()
     r = decide(cx, tid, abram["id"], "accepted", BY, "harness"); cx.commit(); say("given by the owner:", r)
     fail(r.get("ok") and r.get("identity") and not facts_on().get("accepted") and fact_status(cx, who["Abram C Brant"], "parents") == "accepted", f"the owner's accept of the card is an identity too, the page's facts still undecided, the link to his mother standing: {facts_on()}")
+    # ---- a memorial's own subject holds the cemetery row; a relative it merely lists never does, even accepted (a separate
+    # fixture, so as not to disturb the re-read below): Abram's own memorial holds his cemetery row, not Helen's (her own
+    # memorial is not on this tree) (docs/RESEARCH-CHECKLIST.md §3, §7)
+    from catalog import Catalog
+    from checklist import build as build_checklist
+    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server; server.CFG["by"] = BY
+    from attach import _cost
+    src_m2 = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id='E01'").fetchone()
+    cid_m2 = treelib.ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)",
+                                         (cid_m2, "E01", "U.S., Find a Grave® Index, 1600s-Current", "other", "findagrave_subject_test"))
+    sha_m2, _ = archive_object(cx, b"harness memorial fixture: Abram C Brant, plot lists his daughter Helen Sara Brant", mime="text/html", source_id="E01", collection_id=cid_m2,
+                               collection_name="U.S., Find a Grave® Index, 1600s-Current", locator_kind="url", locator_value="https://www.findagrave.com/harness-memorial-subject-test",
+                               retrieved_by=BY, terms=src_m2[1], cost=_cost(src_m2[2]), trust_tier=src_m2[0], original_filename="harness-memorial-subject-test.html")
+    r_m2 = server.transcribe(cx, sha_m2, {"name": "Abram C. Brant", "role": "memorial"}, by="llm:harness", about=[who["Abram C Brant"]]); cx.commit()
+    r_m2h = server.transcribe(cx, sha_m2, {"name": "Helen Sara Brant", "role": "daughter", "relations": [{"persona_id": r_m2.get("persona"), "kind": "child", "text": "daughter"}]}, by="llm:harness")
+    cx.commit(); say("isolated memorial subject test:", r_m2, r_m2h)
+    card_a2 = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND json_extract(payload_json,'$.persona_id')=?",
+                          (tid, r_m2.get("extraction"), r_m2.get("persona"))).fetchone() if r_m2.get("ok") else None
+    card_h2 = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND json_extract(payload_json,'$.persona_id')=?",
+                          (tid, r_m2h.get("extraction"), r_m2h.get("persona"))).fetchone() if r_m2h.get("ok") else None
+    if card_a2: decide(cx, tid, card_a2["id"], "accepted", BY, "harness: this memorial's own subject"); cx.commit()
+    if card_h2: decide(cx, tid, card_h2["id"], "accepted", BY, "harness: the listed daughter, though the rule alone would not take her"); cx.commit()
+    cat_m2 = Catalog(cx, tid)
+    helen_cem = next(row for row in build_checklist(cat_m2, who["Helen Sara Brant"])["checklist"]["A"] if row["record"] == "cemetery / family plot")
+    abram_cem = next(row for row in build_checklist(cat_m2, who["Abram C Brant"])["checklist"]["A"] if row["record"] == "cemetery / family plot")
+    fail(abram_cem["status"] == "held", f"Abram is this memorial's own subject: his cemetery row is held by it: {abram_cem}")
+    fail(helen_cem["status"] != "held", f"Helen is only listed on Abram's memorial as his daughter, never its subject; her own memorial is not on this tree: her cemetery row stays {helen_cem['status']}, never held by his: {helen_cem}")
     # ---- the page read again: the decided links carry to the new personas, the old cards close as superseded, the page's facts stay undecided
     eid, n = extract(cx, "576c97b3b1585aea0ac5814c8175b69c752bfa9d0cefab7d7e99f2cebaa30982", BY); cx.commit(); say("re-read:", n)
     fail(n.get("links_carried") == 2, f"the two decided links (Abram, his mother) carried to the new personas: {n}")
@@ -379,6 +406,24 @@ def decisions(keep, show):
     ok_o, why_o = rule_accepts(cx, tid, card_o) if card_o else (None, "no card")
     fail(r_o.get("ok") and card_o and name(person_of(card_o)) == "Helen Sara Brant" and ok_o and "spouse Frederick Michael Ahearn" in why_o,
          f"an obituary read by the model, naming her husband who already stands as her accepted spouse, is taken by the rule, the reason naming him: {why_o}")
+    # ---- held is the record's own subject, never a relative it merely names: accepted, the obituary holds Helen's own
+    # obituary row (she is the deceased, no relation of her own to another persona); her husband's row stays as it was
+    # (missing or cited), never held by a record that only lists him as a relative (docs/RESEARCH-CHECKLIST.md §3, §7)
+    from catalog import Catalog
+    from checklist import build as build_checklist
+    from match import match
+    fh_before = next(row for row in build_checklist(Catalog(cx, tid), who["Frederick Michael Ahearn"])["checklist"]["A"] if row["record"] == "obituary")
+    decide(cx, tid, card_o["id"], "accepted", BY, "harness: the deceased's own identity"); cx.commit()
+    match(cx, r_h["extraction"], BY, about=[who["Helen Sara Brant"]]); cx.commit()   # her own identity just decided on this record: the husband is proposed against her now-open family
+    card_h = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND json_extract(payload_json,'$.persona_id')=?",
+                         (tid, r_h.get("extraction"), r_h.get("persona"))).fetchone() if r_h.get("ok") else None
+    fail(bool(card_h), "the husband's own persona match is proposed on the same record too, once she is accepted on it")
+    if card_h: decide(cx, tid, card_h["id"], "accepted", BY, "harness: the named husband, though the rule alone would not take him"); cx.commit()
+    cat_ob = Catalog(cx, tid)
+    helen_ob = next(row for row in build_checklist(cat_ob, who["Helen Sara Brant"])["checklist"]["A"] if row["record"] == "obituary")
+    husband_ob = next(row for row in build_checklist(cat_ob, who["Frederick Michael Ahearn"])["checklist"]["A"] if row["record"] == "obituary")
+    fail(helen_ob["status"] == "held", f"Helen is the obituary's own subject, the deceased: her obituary row is held by it: {helen_ob}")
+    fail(husband_ob["status"] != "held", f"her husband is named as a survivor, not the record's subject: his own obituary row ({fh_before['status']} before, {husband_ob['status']} after his card is accepted) is never held by a record that only names him: {husband_ob}")
     # ---- the gravesite locator's page for Davidson, Raymond, died 2007: one card, his, among the namesakes; the rule takes it once his dates are his own word
     from match import match
     from facts import decide_fact
@@ -402,6 +447,9 @@ def decisions(keep, show):
                               original_filename="va-gravesite-search-davidson-raymond-page1.html")
     eid_p, n = extract(cx, sha_p, BY); wrote_p = match(cx, eid_p, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("gravesite page of namesakes:", n, wrote_p)
     fail(n.get("personas") == 10 and wrote_p == [], f"ten namesakes agreeing on the name alone make no card: {[(k, nm) for _, k, nm, _ in wrote_p]}")
+    # ---- Legacy.com (H05) is a source for an obituary row on a death from 1999 on: Raymond died 2007
+    raymond_ob = next(row for row in build_checklist(Catalog(cx, tid), who["Raymond Earl Davidson"])["checklist"]["A"] if row["record"] == "obituary")
+    fail(raymond_ob["sources"][:1] == ["H05"], f"a death in 2007 is in Legacy.com's 1999-on window: its row lists H05 first: {raymond_ob['sources']}")
     # ---- a page from a holder without a parser (the SAR database cited on James), saved under the name the fetch list printed, reaches its step: archived under the holder with its own URL, logged found, reported unparsed
     from fetches import collect, waiting as waiting_pages
     sar = next((e for e in waiting_pages(cx, tid) if e["holder_id"] == "F04"), None)

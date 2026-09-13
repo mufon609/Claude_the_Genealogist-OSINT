@@ -109,15 +109,17 @@ def build(cat: Catalog, pid: str):
     if uncited: questions.append({"kind": "unverified_claim", "detail": f"{len(uncited)} event(s) with no record: " + ", ".join(f"{e['type']} {e['date_text'] or ''}".strip() for e in uncited[:6])})
 
     # ---- checklist rows
-    own = cat.person_citations(pid); fetched = cat.fetched_rows(pid)
+    own = cat.person_citations(pid); own_subject = cat.person_citations(pid, subject_only=True); fetched = cat.fetched_rows(pid)
     rel_cits = {}
     for group, rel in (("spouses", "spouse"), ("children", "child"), ("parents", "parent"), ("siblings", "sibling")):
         for rid, rname in fam[group]: rel_cits[rname] = (rel, cat.person_citations(rid))
     def status_of(pattern, household=False):
-        rx = re.compile(pattern, re.I)
-        held = next((c for c in own if c[2] and rx.search(c[0])), None)
+        # a one-person row (household=False) is held only by its own subject (docs/RESEARCH-CHECKLIST.md §3): a relative
+        # merely named on a record (a survivor, a listed relative) never holds it, so own_subject is used, not own
+        rx = re.compile(pattern, re.I); pool = own if household else own_subject
+        held = next((c for c in pool if c[2] and rx.search(c[0])), None)
         if held: return "held", None
-        if any(rx.search(c[0]) for c in own): return "cited", None
+        if any(rx.search(c[0]) for c in pool): return "cited", None
         if household:
             for rname, (rel, cits) in rel_cits.items():
                 cits = [c for c in cits if not (c[2] and c[1] and not cat.held_for(c[1], pid))]   # a held record on the relative that does not name this person is not their household
@@ -207,7 +209,9 @@ def build(cat: Catalog, pid: str):
                            "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"]), "free_mode": mode_for(r["sources"]), "expect": r["settles"]}
         A.append(r)
     dplace = F(death["place"]["text"], death["basis"]) if death and death["place"] else F(home_state, sb)
-    if known_death and known_death >= 1800: row("A", "obituary", MATCH["obituary"], ["H01", "H07", "H03", "H04"], "survivors, maiden names, places", ("obituary", fields(death_year=F(d, db), place=dplace)))
+    if known_death and known_death >= 1800:
+        row("A", "obituary", MATCH["obituary"], (["H05"] if known_death >= 1999 else []) + ["H01", "H07", "H03", "H04"], "survivors, maiden names, places",
+            ("obituary", fields(death_year=F(d, db), place=dplace)))   # Legacy.com (H05) covers US obituaries from 1999 on (data/data-sources.csv), searched first for a death in its window
     if known_death and b and known_death - b >= 21: row("A", "will / probate", MATCH["probate"], ["J03"], "heirs, spouse, children", ("probate", fields(death_year=F(d, db))))
     row("A", "cemetery / family plot", MATCH["cemetery"], ["E01", "E03"], "burial, dates, who is buried together", ("subject_record", fields(death_year=F(d, db) if known_death else None)))   # a memorial is about one person: held through the person's own, the plot's relatives are leads on it
     church_src = CHURCH.get(home_state or "", ["I03"]) if in_us or not countries else CHURCH.get(next(iter(countries), ""), [])   # no place at all: the tree's US default
