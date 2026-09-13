@@ -102,15 +102,6 @@ The Undecided place strings and their `place_resolution` proposals have no
 decision path. Decide them on the person screen as a question about the
 person whose facts use the string, never as a standalone place queue.
 
-### C4. Focus views on the tree overview
-
-When a tree overview exists, let the user hide or highlight parts of it with
-saved, hotkey-switchable views: hide the siblings they do not care about on a
-line, keep one child of a large family, dim everything outside the line being
-worked. A view changes only what is shown, never the data. The overview
-exists and carries a placeholder line for these options; the placeholder goes
-when the first view ships.
-
 ### C5. One person's two citations of one collection share a saved page's name
 
 `tools/fetches.py list` names a page at a holder whose pages carry no identity

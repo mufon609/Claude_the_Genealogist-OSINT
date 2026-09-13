@@ -55,7 +55,7 @@ function cardHtml(c){const done=c.accepted===c.key_facts&&!c.documents&&!c.confl
  const sp=(c.spouses||[]).map(x=>`${x.divorced&&x.divorced.length?'💔 ':''}${h(x.name)}${x.married&&x.married.length?' m. '+h(x.married.join(', ')):''}${x.divorced&&x.divorced.length?' · divorced '+h(x.divorced.join(', ').replace(/^BET /,'').replace(/ AND /,'–')):''}`).join(' · ');
  return `<a class="pc${done?' done':''}" href="/person/${c.id}"><b>${h(c.name)}</b><span class="yrs">${c.span[0]??'?'}–${c.span[1]??''} · ${c.accepted} of ${c.key_facts} key facts</span>${sp?`<span class="yrs">${sp}</span>`:''}<span class="w">${badges(c)}${link}${(!badges(c)&&!link&&done)?'<span class="badge">nothing waiting</span>':''}</span>${claim}</a>`}
 async function overview(){const o=await api('/api/overview');const labels=['you','parents','grandparents','great-grandparents','great-great-grandparents','5th generation back','6th generation back','7th generation back'];
- let html=`<h1>The family</h1><p class="mut">Future options (ex: hide siblings)</p>`;
+ let html=`<h1>The family</h1>`;
  if(!o.home)html+=`<p>No home person set: <code>tools/tree.py home "&lt;person&gt;"</code>.</p>`;
  o.generations.forEach((g,gi)=>{html+=`<div class="gen"><div class="gen-label">${labels[gi]||gi+' generations back'}</div>${g.map(cardHtml).join('')}</div>`});
  html+=`<p class="mut">The file names ${o.unconfirmed} more people not connected to this tree by an accepted link. They are claims, not the tree; each enters when a document you accept places them.</p>`;
