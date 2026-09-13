@@ -103,12 +103,6 @@ its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
 Earl Davidson and Noi Davidson) carries no year to choose an item by.
 
-### C3. Place-string review from the catalog
-
-The Undecided place strings and their `place_resolution` proposals have no
-decision path. Decide them on the person screen as a question about the
-person whose facts use the string, never as a standalone place queue.
-
 ### C5. One person's two citations of one collection share a saved page's name
 
 `tools/fetches.py list` names a page at a holder whose pages carry no identity
