@@ -310,6 +310,26 @@ def _chain_fixture(cx, tid, ts):
     cx.commit()
     return ev_chain, ev_split, phila
 
+def place_fallback_depth(keep):
+    """Catalog.place's fallback, among the place strings on accepted assertions, prefers the one resolved to the
+    deepest place over the alphabet — before any filler has run, an event with an accepted state and an accepted city
+    in that state already shows the city, Philadelphia, not "Pennsylvania" sorting first."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from catalog import Catalog
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "chaintest", "--name", "Chain Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='chaintest'").fetchone()[0]
+    ev_chain, ev_split, phila = _chain_fixture(cx, tid, treelib.now())
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    cat = Catalog(cx, tid)
+    shown = cat.place(ev_chain, None)
+    fail(shown and shown["text"].split(" < ")[0] == "Philadelphia",
+         f"a state and the city in it on one event show the deepest, Philadelphia, never the alphabet: {shown}")
+    cx.close()
+    if not keep: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def chain_fill(keep):
     """apply_to_events fills an event from facts on one chain (a state, the county in it, the city in that county) at
     its most specific point, and leaves facts on different chains (two cities in the same state) unfilled."""
@@ -924,6 +944,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))
     else: print("ok   resolve_places.py: a unique full match auto-accepts; a city coterminous with its county accepts as one territory; a village nested in its much larger town stays Undecided with both offered")
+    try: fails = place_fallback_depth(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL Catalog.place fallback: " + "; ".join(fails))
+    else: print("ok   Catalog.place fallback: an accepted state and an accepted city in it show the deepest, Philadelphia, never the alphabet")
     try: fails = chain_fill(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL chain fill: " + "; ".join(fails))

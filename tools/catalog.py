@@ -402,28 +402,41 @@ class Catalog:
                         "basis": self.basis("event", eid), "citations": self.citations("event", eid)})
         return out
     def place(self, eid, place_id):
-        """The event's place: the resolved place's chain when it has one, else the words of one place string behind the event, the
-        string on an accepted assertion before one on an undecided assertion before one on a rejected assertion, and among those
-        the first by its words: an event with two strings shows the one the owner's decision stands on, not whichever sorts first."""
-        if place_id:
-            chain, pid, region = [], place_id, {"country": None, "state": None}
-            while pid:
-                r = self.q("SELECT name, place_type, parent_id FROM place WHERE id=?", pid)[0]; chain.append(r[0])
-                if r[1] == "country": region["country"] = r[0].lower()
-                if r[1] == "state": region["state"] = r[0].lower()
-                pid = r[2]
-            return {"text": " < ".join(chain), "resolved": True, **region}
-        raw = self.q("""SELECT ps.raw FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN place_string ps ON ps.id=pf.place_string_id
-                        WHERE a.subject_kind='event' AND a.subject_id=?
-                        ORDER BY CASE a.status WHEN 'accepted' THEN 0 WHEN 'undecided' THEN 1 ELSE 2 END, ps.raw, ps.id LIMIT 1""", eid)
-        if not raw: return None
-        text = raw[0][0]; low = " " + text.lower().replace(",", " ") + " "
+        """The event's place: the resolved place's chain when it has one, else among the place strings behind the event —
+        the string on an accepted assertion before one on an undecided assertion before one on a rejected assertion, and
+        within a tier the one resolved to the deepest place before a shallower or unresolved one, ties by its words: an
+        event with two strings shows the one the owner's decision stands on and, when that string is itself resolved,
+        its chain — never the alphabet over a resolved chain."""
+        if place_id: return self._place_chain(place_id)
+        rows = self.q("""SELECT ps.raw, ps.place_id, a.status FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN place_string ps ON ps.id=pf.place_string_id
+                         WHERE a.subject_kind='event' AND a.subject_id=?""", eid)
+        if not rows: return None
+        tier = {"accepted": 0, "undecided": 1}
+        rows.sort(key=lambda r: (tier.get(r[2], 2), -self._place_depth(r[1]) if r[1] else 0, r[0]))
+        text, winner_place_id, _ = rows[0]
+        if winner_place_id: return self._place_chain(winner_place_id)
+        low = " " + text.lower().replace(",", " ") + " "
         toks = [t.strip().lower() for t in text.split(",") if t.strip()]
         st = next((t for t in toks if t in US_STATES), None) or next((n for n in US_STATES if f" {n} " in low), None)
         if st or any(f" {n} " in low for n in US_NAMES): country = "united states"
         else: country = next((c for c in ("ireland", "germany", "netherlands", "poland", "japan", "england", "allemagne", "silesia", "schlesien") if f" {c} " in low), None)
         country = {"allemagne": "germany", "silesia": "poland", "schlesien": "poland", "england": "united kingdom"}.get(country, country)
         return {"text": text, "resolved": False, "country": country, "state": st}
+    def _place_chain(self, place_id):
+        chain, pid, region = [], place_id, {"country": None, "state": None}
+        while pid:
+            r = self.q("SELECT name, place_type, parent_id FROM place WHERE id=?", pid)[0]; chain.append(r[0])
+            if r[1] == "country": region["country"] = r[0].lower()
+            if r[1] == "state": region["state"] = r[0].lower()
+            pid = r[2]
+        return {"text": " < ".join(chain), "resolved": True, **region}
+    def _place_depth(self, place_id):
+        d = 0
+        while place_id:
+            r = self.q("SELECT parent_id FROM place WHERE id=?", place_id)
+            place_id = r[0][0] if r else None
+            d += 1
+        return d
     KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
     def key_fact_basis(self, pid, ev=None):
         """basis per key fact: accepted | claim | rejected | None (no claim)."""
