@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Resolve raw place strings to a place hierarchy using OpenStreetMap Nominatim.
 
-usage: tools/resolve_places.py [--tree slug] [--limit N] [--dry-run] [--only "raw string"]
+usage: tools/resolve_places.py [--tree slug] [--limit N] [--dry-run] [--only "raw string"] [--reset]
 
 Rules
   * Every string is parsed into components; countries and US states are normalized.
@@ -19,7 +19,10 @@ Rules
   * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
   * Every string the resolver accepts, rejects or resets (--reset) gets one audit row
     under the person or agent who ran it (--by), the resolver's tag and the change in
-    the diff, so a reset-and-rerun can be read back afterwards.
+    the diff, so a reset-and-rerun can be read back afterwards. --reset undoes every
+    AI resolution; --reset --only "raw string" narrows it to that one string, leaving
+    every other AI resolution and its audit trail untouched, and (since the string's
+    resolver is cleared) the same run resolves it again under the current rules.
 """
 import argparse, difflib, hashlib, json, os, re, sqlite3, sys, time, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -259,14 +262,29 @@ def audit_string(cx, tree_id, ts, by, psid, diff):
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "update", "place_string", psid, dumps(diff)))
 
-def reset_ai_resolutions(cx, tree_id, by, ts):
-    """Undo AI-made resolutions only. Human resolutions (resolver 'user:...') are kept. One audit row per string reset."""
-    cx.execute("UPDATE event SET place_id=NULL WHERE tree_id=? AND id IN (SELECT entity_id FROM audit_log WHERE action='update' AND entity_kind='event' AND actor LIKE 'ai:%')", (tree_id,))
-    cx.execute("DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action IN ('update','resolve')", (tree_id,))
-    cx.execute("DELETE FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided'", (tree_id,))
-    for psid, raw, status, place_id, resolver in cx.execute("SELECT id, raw, status, place_id, resolver FROM place_string WHERE resolver LIKE 'ai:%' AND (status<>'undecided' OR place_id IS NOT NULL)").fetchall():
+def reset_ai_resolutions(cx, tree_id, by, ts, only=None):
+    """Undo AI-made resolutions only; human resolutions (resolver 'user:...') are always kept. --only narrows the reset to
+    the place strings matching one raw value, leaving every other AI resolution, its events and its audit trail
+    untouched; the run-level 'resolve' summary rows are left standing too, since a narrowed reset leaves most of what
+    they describe still true. One audit row per string reset."""
+    only_sql = " AND raw=?" if only else ""; only_args = (only,) if only else ()
+    psids = [r[0] for r in cx.execute("SELECT id FROM place_string WHERE resolver LIKE 'ai:%' AND (status<>'undecided' OR place_id IS NOT NULL)" + only_sql, only_args).fetchall()]
+    if not psids: return
+    qm = ",".join("?" * len(psids))
+    ev_ids = [r[0] for r in cx.execute(f"""SELECT DISTINCT e.id FROM event e
+        JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status<>'rejected'
+        JOIN persona_fact pf ON pf.id=a.persona_fact_id
+        WHERE e.tree_id=? AND e.place_id IS NOT NULL AND pf.place_string_id IN ({qm})""", (tree_id, *psids)).fetchall()]
+    if ev_ids:
+        eqm = ",".join("?" * len(ev_ids))
+        cx.execute(f"UPDATE event SET place_id=NULL WHERE tree_id=? AND id IN ({eqm})", (tree_id, *ev_ids))
+        cx.execute(f"DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action='update' AND entity_kind='event' AND entity_id IN ({eqm})", (tree_id, *ev_ids))
+    cx.execute(f"DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action='update' AND entity_kind='place_string' AND entity_id IN ({qm})", (tree_id, *psids))
+    if not only: cx.execute("DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action='resolve'", (tree_id,))
+    cx.execute(f"DELETE FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.place_string_id') IN ({qm})", (tree_id, *psids))
+    for psid, raw, status, place_id, resolver in cx.execute(f"SELECT id, raw, status, place_id, resolver FROM place_string WHERE id IN ({qm})", psids).fetchall():
         audit_string(cx, tree_id, ts, by, psid, {"raw": raw, "reset": True, "resolver": resolver, "from": {"status": status, "place_id": place_id}, "to": {"status": "undecided", "place_id": None}})
-    cx.execute("UPDATE place_string SET place_id=NULL, status='undecided', resolver=NULL, resolved_at=NULL, notes=NULL, variant_kind=NULL WHERE resolver LIKE 'ai:%'")
+    cx.execute(f"UPDATE place_string SET place_id=NULL, status='undecided', resolver=NULL, resolved_at=NULL, notes=NULL, variant_kind=NULL WHERE id IN ({qm})", psids)
     # orphaned places (no string, no event points at them, and no child)
     while True:
         orphans = [r[0] for r in cx.execute("""SELECT p.id FROM place p
@@ -283,7 +301,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--tree")
     ap.add_argument("--limit", type=int); ap.add_argument("--dry-run", action="store_true"); ap.add_argument("--only")
-    ap.add_argument("--reset", action="store_true", help="undo AI-made resolutions (keeps human ones) before running")
+    ap.add_argument("--reset", action="store_true", help="undo AI-made resolutions (keeps human ones) before running; combine with --only to narrow to one raw string")
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
@@ -296,7 +314,7 @@ def main():
                    (ext_id, *RESOLVER, dumps({"endpoint": ENDPOINT, "verify": "all components must match; unique full match auto-resolves"}), now()))
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
-    if a.reset: reset_ai_resolutions(cx, tree_id, a.by, ts)
+    if a.reset: reset_ai_resolutions(cx, tree_id, a.by, ts, only=a.only)
     rows = cx.execute("SELECT id, raw FROM place_string WHERE status='undecided' AND place_id IS NULL AND resolver IS NULL " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
                       (a.only,) if a.only else ()).fetchall()
     if a.limit: rows = rows[: a.limit]
