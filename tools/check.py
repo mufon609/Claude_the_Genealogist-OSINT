@@ -493,6 +493,15 @@ def decisions(keep, show):
         log_run(cx, tid, BY, step_id=ob["id"], source_id="H07", outcome="found", artifacts=[sha_v], note="harness: another paper's page", done=False); cx.commit()
         fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (ob["id"],)).fetchone()[0] == "planned" and cx.execute("SELECT outcome FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC LIMIT 1", (ob["id"],)).fetchone()[0] == "found",
              "a found run at a row-source connector is logged and the fetch step stays planned")
+    # ---- a step the generator no longer produces is dropped and named in the run's audit row, the only trace of it afterwards
+    gone = treelib.ulid()
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,expected,status,rationale,created_at)
+                  VALUES (?,?,'obituary:',999,'search:harness:gone','search','obituary','{}','["H01"]','assisted','nothing','planned','harness: a step nothing generates',?)""", (gone, who["Raymond Earl Davidson"], treelib.now()))
+    st_g = plan_person(cx, tid, who["Raymond Earl Davidson"], BY); cx.commit()
+    audit_g = cx.execute("SELECT diff_json FROM audit_log WHERE entity_kind='search_plan' AND entity_id=? ORDER BY id DESC LIMIT 1", (who["Raymond Earl Davidson"],)).fetchone()
+    named_g = json.loads(audit_g["diff_json"] if audit_g else "{}").get("dropped") or []
+    fail(st_g["steps_dropped"] == 1 and st_g["dropped"] == [{"step_key": "search:harness:gone", "row_key": "obituary:", "rationale": "harness: a step nothing generates"}] and named_g == st_g["dropped"]
+         and not cx.execute("SELECT 1 FROM search_plan WHERE id=?", (gone,)).fetchone(), f"the dropped step is gone and the audit row names it by key, row and rationale: {st_g.get('dropped')}, audit {named_g}")
     # ---- the plan is idempotent and the catalog whole
     st1 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
     st2 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()

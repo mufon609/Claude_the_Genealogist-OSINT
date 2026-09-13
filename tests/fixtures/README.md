@@ -58,4 +58,5 @@ under the gravestone row unparsed, a reading of it by the model one card for Abr
 gravesite page's one card for Raymond among its namesakes (the near ones hints) and the rule taking it once his dates are
 his own word, a page saved from the SAR database under the name the fetch list printed reaching James's step unparsed, the steps it
 reached reopened so the record names nobody it was fetched for while the found rows stay, a
-found run at a row-source connector leaving a fetch step planned, and the plan regenerating unchanged. It is the only `.ged` the commit guard allows.
+found run at a row-source connector leaving a fetch step planned, a planted step nothing generates dropped and named in the
+run's audit row, and the plan regenerating unchanged. It is the only `.ged` the commit guard allows.

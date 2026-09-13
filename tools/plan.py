@@ -16,9 +16,10 @@ reason in its rationale. A memorial accepted as the person's own gives one
 fetch step per photograph the page types Grave (the stone itself, registry row
 E05, the image's URL as locator). Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated (one that was run but
-is not done is kept for its log as skipped, planned again if generated again),
-marks a fetch step done when an archived record holds its citation for the
-person (catalog.held_for: the step's own record id, a sheet image of the page,
+is not done is kept for its log as skipped, planned again if generated again;
+one dropped is named in the run's audit row by its key, row and rationale, the
+only trace of it once the row is deleted), marks a fetch step done when an
+archived record holds its citation for the person (catalog.held_for: the step's own record id, a sheet image of the page,
 or a record page naming the person), keeps done steps, and closes questions
 whose gap has gone (closed_reason 'gap_gone'). A question a person dismissed or answered stays closed. Nothing
 here runs a search. Before writing anything the plan checks that every holder
@@ -163,7 +164,8 @@ def plan_person(cx, tree_id, pid, by):
         if not rec.get("apid") or rec["apid"] in have: continue
         fetches.append(fetch_step(cat, f"footprint:{rec['apid']}", "footprint_record", rec["apid"], rec["collection"], rec.get("collection_id"), rec["on"], rec["expect"],
                                   "already on " + ", ".join(f"{n} ({rel})" for n, rel in rec["on"]), [ANCESTRY], rec["on"][0][0] if rec["on"] else me, home))
-    stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0, "steps_dropped": 0, "steps_done_by_archive": 0}
+    stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0, "steps_dropped": 0, "steps_done_by_archive": 0,
+             "dropped": []}                                          # each step deleted below by key, row and rationale: the audit row is the only trace of it afterwards
     existing = {row[1]: row[0] for row in cx.execute("SELECT id, q_key FROM research_question WHERE subject_person_id=? AND status='open'", (pid,))}
     qid_by_key = {}
     for key, (kind, detail) in wanted.items():
@@ -200,12 +202,13 @@ def plan_person(cx, tree_id, pid, by):
             cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,)); stats["steps_done_by_archive"] += 1
     for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes; done it stays; run but not done it is skipped, kept for its log
         if skey in wanted_keys: continue
-        row = cx.execute("SELECT status, EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=search_plan.id) FROM search_plan WHERE id=?", (sid,)).fetchone()
+        row = cx.execute("SELECT status, EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=search_plan.id), row_key, rationale FROM search_plan WHERE id=?", (sid,)).fetchone()
         if row[0] == "done": continue
         if row[1]:
             if row[0] != "skipped": cx.execute("UPDATE search_plan SET status='skipped' WHERE id=?", (sid,)); stats["steps_skipped"] = stats.get("steps_skipped", 0) + 1
             continue
         cx.execute("DELETE FROM search_plan WHERE id=?", (sid,)); stats["steps_dropped"] += 1
+        stats["dropped"].append({"step_key": skey, "row_key": row[2], "rationale": row[3]})
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "update", "search_plan", pid, dumps(stats)))
     return stats

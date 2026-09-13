@@ -204,21 +204,6 @@ and the step exists, so it is tested on a real step. On 11 September 2026 the
 endpoint did not answer a declared tool from this machine (the connection timed
 out, twice); confirm it answers before building.
 
-### C11. `plan.py`'s audit row counts a dropped step but does not name it
-
-`plan_person`'s per-run stats (`steps_dropped`) only carry a count, so a step
-silently deleted because the checklist no longer generates it (a row's status
-changed under it) cannot be traced back afterward: the `audit_log` entry says
-"1 dropped" and nothing else, and the step itself is gone (`DELETE FROM
-search_plan`, not a tombstone). Surfaced fixing the checklist's `held` test
-(the record's own subject, docs/RESEARCH-CHECKLIST.md §3, §7): a step for
-Frederick Micheal Ahearn Jr's obituary was dropped by an earlier, unrelated
-run once his mother's obituary wrongly held his own row, and the only way to
-reconstruct that this happened, and why, was to read the assertion trail by
-hand. Have the drop write the step's own key and rationale into the audit
-row (or a lightweight tombstone), so a wrongly dropped step is traceable
-without reconstructing it from the surrounding evidence.
-
 ---
 
 ## Externally blocked
