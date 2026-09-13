@@ -204,6 +204,49 @@ def run(*args):
     if r.returncode: raise RuntimeError(f"{os.path.basename(args[0])} failed:\n{r.stdout}{r.stderr}")
     return r.stdout
 
+def places(keep):
+    """resolve_places.py's own accept/undecided line: a unique full match still auto-accepts; a place and its enclosing
+    unit of the same name (a city and the county named for it) verify together and stay Undecided, both offered as
+    candidates for the owner (CLAUDE.md: auto-accept only a unique full match; the wider nested/coterminous shortcut is
+    withdrawn)."""
+    import hashlib
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from resolve_places import cache_dir
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "resolvertest", "--name", "Resolver Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON")
+    unique_raw, nested_raw = "Emmaus, Lehigh, Pennsylvania", "Burlington, New Jersey"
+    for raw in (unique_raw, nested_raw): cx.execute("INSERT INTO place_string (id, raw) VALUES (?, ?)", (treelib.ulid(), raw))
+    cx.commit()
+    emmaus = {"osm_type": "node", "osm_id": 1, "lat": "40.53", "lon": "-75.49", "name": "Emmaus",
+              "display_name": "Emmaus, Lehigh County, Pennsylvania, United States", "category": "boundary", "type": "administrative",
+              "addresstype": "town", "address": {"town": "Emmaus", "county": "Lehigh County", "state": "Pennsylvania", "country": "United States", "country_code": "us"}, "extratags": {}}
+    burlington_city = {"osm_type": "relation", "osm_id": 2, "lat": "40.07", "lon": "-74.86", "name": "Burlington",
+                        "display_name": "Burlington, Burlington County, New Jersey, United States", "category": "boundary", "type": "administrative",
+                        "addresstype": "city", "address": {"city": "Burlington", "county": "Burlington County", "state": "New Jersey", "country": "United States", "country_code": "us"}, "extratags": {}}
+    burlington_county = {"osm_type": "relation", "osm_id": 3, "lat": "39.93", "lon": "-74.65", "name": "Burlington County",
+                          "display_name": "Burlington County, New Jersey, United States", "category": "boundary", "type": "administrative",
+                          "addresstype": "county", "address": {"county": "Burlington County", "state": "New Jersey", "country": "United States", "country_code": "us"}, "extratags": {}}
+    os.makedirs(cache_dir(), exist_ok=True)
+    def plant(query, cands):
+        with open(os.path.join(cache_dir(), hashlib.sha1(query.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh:
+            json.dump({"query": query, "fetched_at": treelib.now(), "results": cands}, fh)
+    plant("Emmaus, Lehigh, Pennsylvania, United States", [emmaus])
+    plant("Burlington, New Jersey, United States", [burlington_city, burlington_county])
+    run(os.path.join(ROOT, "tools", "resolve_places.py"), "--db", db, "--tree", "resolvertest", "--by", BY)
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    row = cx.execute("SELECT status, place_id FROM place_string WHERE raw=?", (unique_raw,)).fetchone()
+    fail(row and row[0] == "accepted" and row[1], f"a unique full match still auto-accepts: {tuple(row) if row else row}")
+    row2 = cx.execute("SELECT status, place_id FROM place_string WHERE raw=?", (nested_raw,)).fetchone()
+    fail(row2 and row2[0] == "undecided" and row2[1] is None, f"a place and its enclosing same-name unit stay undecided: {tuple(row2) if row2 else row2}")
+    prop = cx.execute("SELECT payload_json FROM proposal WHERE kind='place_resolution' AND payload_json LIKE ?", (f'%{nested_raw}%',)).fetchone()
+    names = {c.get("display_name") for c in json.loads(prop[0])["candidates"]} if prop else set()
+    fail(prop and burlington_city["display_name"] in names and burlington_county["display_name"] in names,
+         f"the proposal offers both the enclosed and enclosing place as candidates: {names}")
+    cx.close()
+    if not keep: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def decisions(keep, show):
     """The matcher, the standing rule and the decision writers on a scratch catalog holding tests/fixtures/harness.ged (the
     Ahearn household of 1940 and Helen's parents), with the 1940 page, Abram C Brant's memorial and its gravestone photograph
@@ -794,6 +837,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL decisions on harness.ged: " + "; ".join(fails))
     else: print("ok   decisions on harness.ged: the matcher, the rule and the writers as the docs say")
+    try: fails = places(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))
+    else: print("ok   resolve_places.py: a unique full match still auto-accepts; a place and its enclosing same-name unit stays Undecided with both offered")
     print("green" if not bad else f"{bad} failure(s)")
     sys.exit(1 if bad else 0)
 

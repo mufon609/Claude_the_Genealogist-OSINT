@@ -8,8 +8,12 @@ Rules
   * Nominatim (free, ODbL, 1 req/s, cached under derivatives/geocode/) is asked for
     candidates. A candidate is verified by checking that EVERY component the string
     gave appears in the candidate's address hierarchy.
-  * Auto-resolve only when exactly one candidate verifies fully. Everything else
-    becomes a `place_resolution` proposal (tree-scoped) with the candidates listed.
+  * Auto-resolve only when exactly one candidate verifies fully. Everything else,
+    including a place and its enclosing unit of the same name verifying together
+    (a township and the borough inside it, a county and its seat), becomes a
+    `place_resolution` proposal (tree-scoped) with every verified candidate listed;
+    the owner decides between them on the person screen. Never widen auto-accept
+    past a unique full match.
   * data/place-overrides.json can reject non-places, force review, add candidate
     queries, and attach notes. It is the only hand-authored input.
   * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
@@ -205,10 +209,11 @@ def is_ancestor(a, b):
     return any(norm(v) == an for v in vals if v != leaf or norm(v) != norm(leaf))
 
 def select_best(p, full):
-    """Given >1 fully-verified candidates, pick one only when the candidates are the same place at nested levels (a borough
-    and its township of the same name, coterminous units): the locality level when the string has more than one part, else
-    the enclosing unit. Every other choice among verified candidates is the owner's (CLAUDE.md: auto-accept only a unique
-    full match; never widen that). Returns (cand, note) or (None, reason)."""
+    """Given >1 fully-verified candidates, filter out noise (non-place candidate classes, census-only rows) to explain why
+    the string needs review, but never choose among what survives. A place and its enclosing unit of the same name
+    (a township and the borough inside it, a county and its seat) is exactly the case that stays Undecided with both
+    candidates offered: CLAUDE.md reserves any choice among multiple verified candidates for the owner, on the fact row.
+    Returns (None, reason)."""
     cands = [c for _, _, c in full]
     head = p["components"][0].lower() if p["components"] else ""
     wants_feature = any(k in head for k in ("church", "cemetery", "road", "street"))
@@ -219,17 +224,9 @@ def select_best(p, full):
     admin = [c for c in kept if c.get("category") == "boundary" and c.get("type") == "administrative"]
     if admin: kept = admin
     if len(kept) == 1: return None, "one administrative boundary among other candidates: the owner chooses"
-    # same name, nested chain?
     names = {norm(c.get("name") or "") for c in kept}
     chain = all(is_ancestor(a, b) or is_ancestor(b, a) for i, a in enumerate(kept) for b in kept[i + 1:])
-    if len(names) == 1 and chain:
-        if len(p["components"]) >= 2:
-            local = [c for c in kept if c.get("addresstype") not in ("county", "state", "country")]
-            if local: kept = local
-        if len(kept) == 1: return kept[0], "coterminous/nested units; chose locality level"
-        coarsest = max(kept, key=lambda c: sum(is_ancestor(c, o) for o in kept))
-        finer = [c.get("display_name", "").split(",")[0] for c in kept if c is not coarsest]
-        return coarsest, f"nested same-name units; chose enclosing unit (finer: {', '.join(finer)})"
+    if len(names) == 1 and chain: return None, "same-name nested/coterminous units: the owner chooses"
     return None, f"{len(kept)} distinct candidates verify"
 
 def candidate_summary(c, score, checks):
