@@ -310,7 +310,13 @@ panel also shows each record its steps archived: the file, its extractions
 with personas, facts and relations, and, when the record has no persona yet,
 a form to transcribe one person at a time (name, role, sex, age, birth, death,
 residence, a relation to a persona already on the record); the model reads an
-image the same way, as extractor `llm:<model>`. Under each
+image the same way, as extractor `llm:<model>`. A persona on the record
+with no proposal and no link is compared with the person on view (nothing is
+stored): on a person whose baseline is reviewed, when the surname and a place
+or a year agree beyond the name, the persona row carries a "hint" pill and one
+line of what agrees and what is missing, the hint of `docs/RESEARCH-WORKFLOW.md`
+§0, for when the leads run dry; a row agreeing on the name alone (a newspaper
+hit, a namesake on a results page) carries nothing. Under each
 persona sit the matcher's proposals on the record (a record cited on several
 relatives is fetched for all of them, and each proposal names the person it
 concerns), each as the decision card, with Add / Ignore on a persona match or a

@@ -10,7 +10,8 @@ with its holder, collection, own identity and trust tier; the primary document a
 what the record says field by field against the tree's claim, as agrees, disagrees or absent; the relationships the record
 states and who on it is already matched or accepted; what accepting closes, from the person's open questions when the step
 carries one and from the checklist row otherwise; anything odd. No scores. The person screen's proposal panel shows the same
-card from card() and render() here, so the two never drift. Nothing here writes.
+card from card() and render() here, so the two never drift. hints_on gives the record's hints for a person, the rows that
+overlap them without identifying them, for the same screen. Nothing here writes.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -191,6 +192,26 @@ def render(c):
     for i, x in enumerate(c["odd"]): out.append(L("Odd" if i == 0 else "", x))
     out.append(L("Matcher", c["rationale"] or ""))
     return "\n".join(out)
+
+def hints_on(cx, tree_id, sha, person_id):
+    """The hints a held record carries for a person (docs/RESEARCH-WORKFLOW.md §0): on every persona of a current extraction
+    of the record that has no proposal in this tree and no link to anyone, the matcher's comparison with the person, run once
+    on view and stored nowhere, as its agreements, disagreements and absences. A row is a hint only when the surname agrees
+    (or is the person's married name) and a place or a year agrees beyond the name, and only on a person whose baseline is
+    reviewed; a name agreeing alone (a newspaper hit, a namesake on a results page) is not. {persona id: {"hint": bool,
+    "agrees": [...], "disagrees": [...], "absent": [...]}}."""
+    cx.row_factory = sqlite3.Row
+    cat = Catalog(cx, tree_id); reviewed = cat.baseline(person_id)["complete"]; cand = match_candidate(cat, person_id)
+    out = {}
+    for e in cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL AND status<>'failed'", (sha,)).fetchall():
+        for pe in personas_of(cx, e["id"]):
+            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pe["id"])).fetchone(): continue
+            if cx.execute("SELECT 1 FROM person_persona WHERE persona_id=?", (pe["id"],)).fetchone(): continue
+            _, agree, disagree, absent, _ = compare(cat, pe, cand, {})
+            surname = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
+            beyond = any(a.startswith(("birth date agrees", "death date agrees", "birth place agrees", "burial place agrees", "death place agrees", "residence place agrees")) for a in agree)
+            out[pe["id"]] = {"hint": bool(reviewed and surname and beyond), "agrees": agree, "disagrees": disagree, "absent": absent}
+    return out
 
 def search_card(cx, tree_id, sha, person_id=None):
     """The candidate card for one search results page: the search as run, the person it was run for, every row with its fields

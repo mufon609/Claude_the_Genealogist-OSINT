@@ -24,7 +24,7 @@ from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
-from cards import card as decision_card, render as render_card, render_search, search_card, search_cards_for
+from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
 from conclude import decide as decide_document, match_record, record_says
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
 from overview import overview, people, person_card
@@ -93,12 +93,15 @@ def revise_step(cx, tree_id, step_id, body):
 
 def artifact_view(cx, tree_id, sha, pid):
     """A held record as the person screen shows it: the file, every current extraction with its personas, facts and
-    relations, how each persona stands to this person, and every proposal the matcher wrote on the record: a record cited on
-    several relatives is fetched for all of them, and each proposal names the person it concerns."""
+    relations, how each persona stands to this person, the hint a persona with no proposal and no link is for this person
+    (cards.hints_on: what agrees and what is missing, computed on view, stored nowhere, shown only on a reviewed person when a
+    place or a year agrees beyond the name), and every proposal the matcher wrote on the record: a record cited on several
+    relatives is fetched for all of them, and each proposal names the person it concerns."""
     a = cx.execute(f"SELECT ar.sha256, ar.mime, {tier_sql()} AS trust_tier, ar.locator_kind, ar.locator_value, ar.original_filename, ar.collection_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
     if not a: return None
     cited = Catalog(cx, tree_id).cited().get(a["locator_value"], {}) if a["locator_kind"] == "apid" else {}
     col = cx.execute("SELECT name FROM collection WHERE id=?", (a["collection_id"],)).fetchone() if a["collection_id"] else None
+    hints = hints_on(cx, tree_id, sha, pid) if pid else {}
     exts = []
     for e in cx.execute("""SELECT e.id, e.ran_at, x.kind, x.name, x.version FROM extraction e JOIN extractor x ON x.id=e.extractor_id
                            WHERE e.artifact_sha256=? AND e.superseded_by IS NULL ORDER BY e.ran_at""", (sha,)):
@@ -109,7 +112,8 @@ def artifact_view(cx, tree_id, sha, pid):
             rels = [{"kind": r["kind"], "text": r["value_text"], "other": r["name_text"]} for r in cx.execute(
                 "SELECT r.kind, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (p["id"],))]
             link = cx.execute("SELECT status FROM person_persona WHERE persona_id=? AND person_id=?", (p["id"], pid)).fetchone()
-            personas.append({"id": p["id"], "name": p["name_text"], "sex": p["sex"], "role": p["role_in_record"], "facts": facts, "relations": rels, "link": link["status"] if link else None})
+            personas.append({"id": p["id"], "name": p["name_text"], "sex": p["sex"], "role": p["role_in_record"], "facts": facts, "relations": rels, "link": link["status"] if link else None,
+                             "hint": hints.get(p["id"])})
         exts.append({"id": e["id"], "extractor": f"{e['kind']}:{e['name']}" + (f"@{e['version']}" if e["version"] else ""), "ran_at": e["ran_at"], "personas": personas})
     proposals = []
     for r in cx.execute("""SELECT p.id, p.kind, p.status, p.rationale, p.payload_json, p.decided_by, p.decision_note, c.display_name AS candidate FROM proposal p

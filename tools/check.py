@@ -519,6 +519,31 @@ def decisions(keep, show):
                               original_filename="va-gravesite-search-davidson-raymond-page1.html")
     eid_p, n = extract(cx, sha_p, BY); wrote_p = match(cx, eid_p, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("gravesite page of namesakes:", n, wrote_p)
     fail(n.get("personas") == 10 and wrote_p == [], f"ten namesakes agreeing on the name alone make no card: {[(k, nm) for _, k, nm, _ in wrote_p]}")
+    # ---- hints under the record (docs/RESEARCH-WORKFLOW.md §0): a persona with no proposal and no link, compared with the person on
+    # view; a newspaper hit on the surname alone is never a hint; a row agreeing on a year and a place is, once the baseline is reviewed
+    from cards import hints_on
+    with open(os.path.join(FIXTURES, "locgov-ocr-sn89058321-1918-05-10-p2.manifest.json"), encoding="utf-8") as fh: man_l = json.load(fh)
+    with open(os.path.join(FIXTURES, "locgov-ocr-sn89058321-1918-05-10-p2.json"), "rb") as fh: data = fh.read()
+    src_l = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (man_l["source_id"],)).fetchone()
+    sha_l, _ = archive_object(cx, data, mime=man_l["mime"], source_id=man_l["source_id"], collection_id=None, collection_name=man_l.get("collection"), locator_kind=man_l["locator"]["kind"], locator_value=man_l["locator"]["value"],
+                              retrieved_by=BY, terms=src_l[1], cost="free", trust_tier=src_l[0], original_filename="locgov-ocr-sn89058321-1918-05-10-p2.json", notes=json.dumps({**json.loads(man_l["notes"]), "step_type": "obituary"}))
+    eid_l, n_l = extract(cx, sha_l, BY); wrote_l = match(cx, eid_l, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("newspaper page:", n_l, wrote_l)
+    hl = hints_on(cx, tid, sha_l, who["Raymond Earl Davidson"])
+    fail(n_l.get("personas") and wrote_l == [] and len(hl) == n_l["personas"] and not any(v["hint"] for v in hl.values()), f"a newspaper hit on the surname alone makes no card and is no hint: {[(v['hint'], v['agrees']) for v in hl.values()][:3]}")
+    r_rob = server.transcribe(cx, sha_p, {"name": "Robert Davidson", "role": "listed", "birth_date": "1939", "birth_place": "Suffolk County, New York"}, by="human:harness", about=[who["Raymond Earl Davidson"]]); cx.commit()
+    fail(r_rob.get("ok") and r_rob["proposals"] == 0, f"a namesake's kin read from the page, agreeing on the surname, a year and a place but not the given name, gets no card: {r_rob}")
+    hp = hints_on(cx, tid, sha_p, who["Raymond Earl Davidson"])
+    fail(r_rob.get("persona") in hp and not hp[r_rob["persona"]]["hint"], f"before Raymond's baseline is reviewed nothing on the page is a hint: {hp.get(r_rob.get('persona'))}")
+    for f_ in ("name", "sex", "birth", "death"): decide_fact(cx, tid, who["Raymond Earl Davidson"], f_, "accepted", None, BY)   # his key facts on the owner's word: the baseline reviewed
+    cx.commit()
+    fail(Catalog(cx, tid).baseline(who["Raymond Earl Davidson"])["complete"], "Raymond's baseline is reviewed on the owner's word")
+    hp = hints_on(cx, tid, sha_p, who["Raymond Earl Davidson"]); rob = hp.get(r_rob.get("persona"))
+    fail(rob and rob["hint"] and any(a.startswith("surname agrees") for a in rob["agrees"]) and any(a.startswith("birth date agrees") for a in rob["agrees"]) and any(a.startswith("birth place agrees") for a in rob["agrees"]),
+         f"reviewed, the row agreeing on the surname, the birth year and the birth place is a hint with those words: {rob}")
+    fail(hp and all(not v["hint"] for k, v in hp.items() if k != r_rob.get("persona")), f"the namesakes agreeing on the name alone are still no hint: {[(v['hint'], v['agrees'][:2]) for k, v in hp.items() if v['hint'] and k != r_rob.get('persona')]}")
+    fail(not any(v["hint"] for v in hints_on(cx, tid, sha_l, who["Raymond Earl Davidson"]).values()), "reviewed, the surname-only newspaper hit is still no hint")
+    av = server.artifact_view(cx, tid, sha_p, who["Raymond Earl Davidson"])
+    fail(any(p.get("hint") and p["hint"]["hint"] for e in av["extractions"] for p in e["personas"] if p["id"] == r_rob.get("persona")), "the record view carries the hint on the persona row")
     # ---- Legacy.com (H05) is a source for an obituary row on a death from 1999 on: Raymond died 2007
     raymond_ob = next(row for row in build_checklist(Catalog(cx, tid), who["Raymond Earl Davidson"])["checklist"]["A"] if row["record"] == "obituary")
     fail(raymond_ob["sources"][:1] == ["H05"], f"a death in 2007 is in Legacy.com's 1999-on window: its row lists H05 first: {raymond_ob['sources']}")
