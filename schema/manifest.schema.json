@@ -50,6 +50,7 @@
       "properties": {
         "terms": { "type": "string" },
         "redistributable": { "type": "boolean" },
+        "redistributable_by": { "type": "string", "description": "ID column of data/data-sources.csv: the registry row whose terms made the object redistributable" },
         "cost": { "enum": ["free", "paid", "member", "unknown"] }
       }
     },

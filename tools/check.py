@@ -530,6 +530,11 @@ def decisions(keep, show):
     src_l = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (man_l["source_id"],)).fetchone()
     sha_l, _ = archive_object(cx, data, mime=man_l["mime"], source_id=man_l["source_id"], collection_id=None, collection_name=man_l.get("collection"), locator_kind=man_l["locator"]["kind"], locator_value=man_l["locator"]["value"],
                               retrieved_by=BY, terms=src_l[1], cost="free", trust_tier=src_l[0], original_filename="locgov-ocr-sn89058321-1918-05-10-p2.json", notes=json.dumps({**json.loads(man_l["notes"]), "step_type": "obituary"}))
+    art_l = cx.execute("SELECT redistributable, manifest_json FROM artifact WHERE sha256=?", (sha_l,)).fetchone()
+    fail(art_l and art_l["redistributable"] == 1 and json.loads(art_l["manifest_json"])["rights"]["redistributable"] is True and json.loads(art_l["manifest_json"])["rights"].get("redistributable_by") == "H01",
+         f"a loc.gov page (public domain) is redistributable and its manifest names the registry row that said so: {dict(art_l) if art_l else None}")
+    art_g = cx.execute("SELECT redistributable, manifest_json FROM artifact WHERE mime='text/x-gedcom'").fetchone()
+    fail(art_g and art_g["redistributable"] == 0 and json.loads(art_g["manifest_json"])["rights"]["redistributable"] is False, f"an Ancestry export is not: {dict(art_g) if art_g else None}")
     eid_l, n_l = extract(cx, sha_l, BY); wrote_l = match(cx, eid_l, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("newspaper page:", n_l, wrote_l)
     hl = hints_on(cx, tid, sha_l, who["Raymond Earl Davidson"])
     fail(n_l.get("personas") and wrote_l == [] and len(hl) == n_l["personas"] and not any(v["hint"] for v in hl.values()), f"a newspaper hit on the surname alone makes no card and is no hint: {[(v['hint'], v['agrees']) for v in hl.values()][:3]}")
