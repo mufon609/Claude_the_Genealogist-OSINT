@@ -528,8 +528,8 @@ def decisions(keep, show):
         made = cx.execute("SELECT p.display_name, n.given, n.surname FROM person p JOIN person_name n ON n.person_id=p.id AND n.is_primary=1 WHERE p.id=?", (r.get("person"),)).fetchone()
         say("made:", tuple(made) if made else None)
         fail(made and "Sarah" in made[0] and made[2] == "Cassel", f"the person created with the name as written and the marked maiden name as her birth surname: {tuple(made) if made else None}")
-        fail(r.get("identity") and any(m.get("role") == "child" and m.get("person") == who["Abram C Brant"] for m in r["memberships"]), f"Abram placed as the new parent's child on the record, the link accepted though the page's facts are not: {r['memberships']}")
-        fail(fact_status(cx, who["Abram C Brant"], "parents") == "accepted" and not facts_on().get("accepted"), f"his parents link reads accepted on the page, his facts still not: {facts_on()}")
+        fail(r.get("identity") and any(m.get("role") == "child" and m.get("person") == who["Abram C Brant"] and m.get("undecided") for m in r["memberships"]), f"Abram placed as the new parent's child on the record, the membership created but its assertion undecided like the page's facts: {r['memberships']}")
+        fail(fact_status(cx, who["Abram C Brant"], "parents") == "undecided" and not facts_on().get("accepted"), f"his parents link reads undecided on the page, like his facts: {facts_on()}")
     # ---- reconsider keeps the identity and refuses the listed relatives with the reason; a decision taken back is taken again as a card
     from conclude import reconsider, withdraw
     rows = reconsider(cx, tid, BY, dry_run=True); say("reconsider:", [(x["kind"], x["person"], x.get("kept", x.get("taken")), x["why"][:60]) for x in rows])
@@ -552,9 +552,9 @@ def decisions(keep, show):
     fail(not _Cat(cx, tid).is_subject(sha_m, who["Abram C Brant"]), "withdrawn, the memorial has no accepted subject persona for Abram")
     cem_w = [c for c in _Cat(cx, tid).person_citations(who["Abram C Brant"], subject_only=True) if c[2]]
     fail(not cem_w, f"withdrawn, no citation of his is held through an accepted subject persona, the earlier reading's link included: {cem_w}")
-    # ---- the rule's identity taken back and given by the owner: an identity still, the facts undecided, the links standing, every reading's persona linked
+    # ---- the rule's identity taken back and given by the owner: an identity still, the facts undecided, the link to his mother still undecided, every reading's persona linked
     r = decide(cx, tid, abram["id"], "accepted", BY, "harness"); cx.commit(); say("given by the owner:", r)
-    fail(r.get("ok") and r.get("identity") and not facts_on().get("accepted") and fact_status(cx, who["Abram C Brant"], "parents") == "accepted", f"the owner's accept of the card is an identity too, the page's facts still undecided, the link to his mother standing: {facts_on()}")
+    fail(r.get("ok") and r.get("identity") and not facts_on().get("accepted") and fact_status(cx, who["Abram C Brant"], "parents") == "undecided", f"the owner's accept of the card is an identity too, the page's facts and the link to his mother stay undecided: {facts_on()}")
     fail(sorted(abram_links()) == [(False, "accepted"), (True, "accepted")], f"the owner's decision applies to every reading's persona of that name and role on the record: {abram_links()}")
     # ---- a memorial's own subject holds the cemetery row; a relative it merely lists never does, even accepted (a separate
     # fixture, so as not to disturb the re-read below): Abram's own memorial holds his cemetery row, not Helen's (her own

@@ -4,9 +4,11 @@
 The owner decides documents, not facts: one decision per record about a person, is this them. Yes accepts everything the
 record states about the person: its facts become Accepted assertions on the person's events and attributes (created from the
 record when the tree had none), and the family links it states with people already matched on the same record are Accepted
-too. Where the record disagrees with the tree's own value the record's statement is still accepted as what that record says,
-the tree's value stays, and the difference is a conflict question the generator raises (Catalog.disagreements). A new person
-is never created without the owner. Anything less certain than the rule below is a card for the owner.
+too, unless the record is a page anyone can edit, where the memberships are created but their assertions stay Undecided, the
+way a sibling placement already is. Where the record disagrees with the tree's own value the record's statement is still
+accepted as what that record says, the tree's value stays, and the difference is a conflict question the generator raises
+(Catalog.disagreements). A new person is never created without the owner. Anything less certain than the rule below is a
+card for the owner.
 
 The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7): a record of a kind that identifies a person fully, from a source
 nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with the accepted name, at least two
@@ -19,6 +21,8 @@ written as an Undecided assertion, what the page says, never accepted and never 
 from primary documents only. The rule takes such an identity when the name agrees and at least three of birth date to the
 day, death date to the day, burial place, and a stated parent or spouse who is that relative in the tree agree with the tree,
 claimed or accepted.
+A page anyone can edit identifies a person but writes no accepted family link: the memberships it states are created where
+the tree lacks them, each with an Undecided assertion, the way a sibling placement already is.
 The rule acts on the owner's word, is recorded as such on the proposal and in the audit log, and the owner can reject what
 it accepted: the link and every assertion it wrote turn rejected. The rule can also take a decision back (reconsider): every
 decision it made is examined again as the rule stands now, oldest first, on the ground that stood before it, and one it would
@@ -180,29 +184,32 @@ def new_family(cx, tree_id, partner, ts):
 def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
     """Family links from the record's own relations, for a matched person as for a new one: where the record says this persona
     is the child, parent or spouse of a persona already accepted as a person in this tree, the membership exists (created when
-    the tree lacks it, in a family of the right shape) and carries an Accepted assertion on the artifact. A parent-child
-    relation is evidence on the child's membership; a spouse relation on both partners'. A sibling stated on the record places
-    the person as a child of the other's accepted parents with an Undecided assertion (the record states the sibling, not the
-    parents), and only when the other is an accepted child of exactly one family; otherwise a sibling gives no membership.
-    Returns the links written: person, role, the other person, the page's own word, whether the membership is new, and
-    "undecided" for a sibling placement."""
+    the tree lacks it, in a family of the right shape) and carries an Accepted assertion on the artifact, or an Undecided one
+    when the artifact is a page anyone can edit (T4): such a page identifies a person but never builds their facts, so the
+    membership is created but not accepted by the decision, the way a sibling placement already is. A parent-child relation is
+    evidence on the child's membership; a spouse relation on both partners'. A sibling stated on the record places the person
+    as a child of the other's accepted parents with an Undecided assertion regardless of tier (the record states the sibling,
+    not the parents), and only when the other is an accepted child of exactly one family; otherwise a sibling gives no
+    membership. Returns the links written: person, role, the other person, the page's own word, whether the membership is new,
+    and "undecided" for a sibling placement or a link from a page anyone can edit."""
     q = _q(cx)
     out = []
+    identity = editable(cx, sha)   # a page anyone can edit: the memberships it states stand, but their assertions do not
     def person_of(x):
         r = q.execute("SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?", (x, tree_id)).fetchone()
         return r["person_id"] if r else None
     def member(fid, who, role):
         if q.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, who, role)).fetchone(): return False
         q.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fid, who, role)); return True
-    def assert_(fid, who, role, other, as_written, new, status="accepted"):
+    def assert_(fid, who, role, other, as_written, new, status="accepted", placed=None):
         sid, cite = dumps([fid, who, role]), f"{as_written} on the record"
-        notes = {"proposal": prop_id, **({"placed": "sibling"} if status != "accepted" else {})}
+        notes = {"proposal": prop_id, **({"placed": placed} if placed else {})}
         old = q.execute("SELECT id, status FROM assertion WHERE subject_kind='family_member' AND subject_id=? AND artifact_sha256=? AND citation_text=?", (sid, sha, cite)).fetchone()
         if old and old["status"] == status: return
         if old: q.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, notes=? WHERE id=?", (status, by, ts, dumps(notes), old["id"]))
         else: q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
                             VALUES (?,?,'family_member',?,?,?,?,?,?,?,?)""", (ulid(), tree_id, sid, persona_id, sha, cite, status, by, ts, dumps(notes)))
-        out.append({"family": fid, "person": who, "role": role, "of": other, "as": as_written, "new": new, "undecided": status != "accepted"})
+        out.append({"family": fid, "person": who, "role": role, "of": other, "as": as_written, "new": new, "undecided": status != "accepted", "placed": placed})
     one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
     for r in q.execute("""SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation
                            WHERE (persona_id=? OR related_persona_id=?) AND kind IN ('child','parent','spouse','sibling')""", (persona_id, persona_id)).fetchall():
@@ -212,7 +219,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
         as_written = r["value_text"] or r["kind"]
         if r["kind"] == "sibling":
             home = sibling_home(cx, tree_id, other)
-            if home: assert_(home, pid, "child", other, f"{as_written} of {q.execute('SELECT display_name FROM person WHERE id=?', (other,)).fetchone()['display_name']}", member(home, pid, "child"), status="undecided")
+            if home: assert_(home, pid, "child", other, f"{as_written} of {q.execute('SELECT display_name FROM person WHERE id=?', (other,)).fetchone()['display_name']}", member(home, pid, "child"), status="undecided", placed="sibling")
             continue
         if r["kind"] == "spouse":
             fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
@@ -220,7 +227,8 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
             if fid is None: fid = one("""SELECT fm.family_id FROM family_member fm WHERE fm.person_id=? AND fm.role='partner'
                                          AND (SELECT COUNT(*) FROM family_member x WHERE x.family_id=fm.family_id AND x.role='partner')=1""", (other,))
             if fid is None: fid = new_family(cx, tree_id, other, ts)
-            assert_(fid, pid, "partner", other, as_written, member(fid, pid, "partner")); assert_(fid, other, "partner", pid, as_written, False)
+            status = "undecided" if identity else "accepted"
+            assert_(fid, pid, "partner", other, as_written, member(fid, pid, "partner"), status=status); assert_(fid, other, "partner", pid, as_written, False, status=status)
             continue
         child = pid if (r["kind"] == "child") == mine else other; parent = other if child == pid else pid
         fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
@@ -230,7 +238,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
                          AND (SELECT COUNT(*) FROM family_member x WHERE x.family_id=fm.family_id AND x.role='partner')<2""", (child,))
             if fid is not None: new = member(fid, parent, "partner")
             else: fid = one("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", (parent,)) or new_family(cx, tree_id, parent, ts); new = member(fid, child, "child")
-        assert_(fid, child, "child", parent, as_written, new)
+        assert_(fid, child, "child", parent, as_written, new, status="undecided" if identity else "accepted")
     return out
 
 def sibling_home(cx, tree_id, pid):
@@ -326,7 +334,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     candidate). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
     family links it states with persons already matched on it accepted (link_family), the plans of the person and of the
     person the record was fetched for regenerated and the questions that closes marked answered; on a page anyone can edit the
-    decision is an identity: the link and the family links are accepted, the facts written undecided. Rejected: the link rejected;
+    decision is an identity: the link accepted, the memberships it states created where the tree lacks them with an Undecided
+    assertion, and the facts written undecided. Rejected: the link rejected;
     for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link
     and every assertion the rule wrote turn rejected; one the rule took back (withdraw) is accepted with everything it had
     written standing again. Returns what was written, or an error."""
@@ -347,7 +356,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     answered = []
     if status == "accepted":
         n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
-                          AND json_extract(notes,'$.placed') IS NULL AND (subject_kind='family_member' OR {TRUSTED_ARTIFACT})""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; a sibling placement, and a fact an editable page states, stay undecided
+                          AND json_extract(notes,'$.placed') IS NULL AND {TRUSTED_ARTIFACT}""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; a sibling placement, and a fact or family link a page anyone can edit states, stay undecided
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts); n += m
         members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
     for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
@@ -607,12 +616,15 @@ def main():
             if "error" in res: raise SystemExit(res["error"])
             who = cx.execute("SELECT display_name FROM person WHERE id=?", (res["person"],)).fetchone()
             print(f"{res['status']}: {res['kind'].replace('_', ' ')} {who[0] if who else ''}; {res['assertions']} assertion(s), {len(res['memberships'])} family link(s), {len(res['answered'])} question(s) answered")
-            if res["status"] == "accepted" and res["identity"]: print("    an identity on a page anyone can edit: the link and the family links it states are accepted; its facts are written undecided, never accepted")
+            if res["status"] == "accepted" and res["identity"]: print("    an identity on a page anyone can edit: the link accepted; the family links and every fact it states are written undecided, never accepted")
             if res["status"] == "accepted" and res["person"]:
                 sha = cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (res["persona"],)).fetchone()[0]
                 for f in record_says(cx, tree_id, res["person"], sha): print(f"    {f['status']:9} {f['fact']}" + (f"  [conflict: {f['disagrees']}]" if f["disagrees"] else ""))
             nm = lambda i: cx.execute("SELECT display_name FROM person WHERE id=?", (i,)).fetchone()[0]
-            for m in res["memberships"]: print("   ", f"{nm(m['person'])} placed beside {nm(m['of'])} as a child of the same parents, undecided: the record states a sibling, not the parents" if m.get("undecided") else f"{nm(m['person'])} {'child' if m['role'] == 'child' else 'spouse'} of {nm(m['of'])}: " + ("a new link, on this record" if m["new"] else "this record accepted as evidence on the link"))
+            for m in res["memberships"]:
+                if m.get("placed") == "sibling": print("   ", f"{nm(m['person'])} placed beside {nm(m['of'])} as a child of the same parents, undecided: the record states a sibling, not the parents")
+                elif m.get("undecided"): print("   ", f"{nm(m['person'])} {'child' if m['role'] == 'child' else 'spouse'} of {nm(m['of'])}: a page anyone can edit states it, undecided" + ("" if m["new"] else "; this record cited as evidence on the link"))
+                else: print("   ", f"{nm(m['person'])} {'child' if m['role'] == 'child' else 'spouse'} of {nm(m['of'])}: " + ("a new link, on this record" if m["new"] else "this record accepted as evidence on the link"))
             left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')=(SELECT json_extract(payload_json,'$.artifact_sha256') FROM proposal WHERE id=?)", (tree_id, a.proposal)).fetchone()[0]
             print(f"    {left} card(s) still waiting on this record" if left else "    nothing else waits on this record")
         elif a.cmd == "fact":

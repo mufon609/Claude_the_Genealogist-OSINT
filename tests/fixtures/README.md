@@ -51,7 +51,8 @@ brother undecided and then with her parents on the owner's word (a vouch, no lin
 the day, the burial place and the relatives it lists agreeing with the tree's claims), its facts written undecided and none
 accepted, his wife and daughter refused with the reason and the new people the memorial links coming up once he is
 accepted, a rejection writing nothing else, a new person created with her marked maiden name as her birth surname and
-Abram's link to her accepted from the page, reconsider keeping the identity and refusing the listed relatives, a decision
+Abram placed as her child from the page with the membership created but its assertion undecided like the page's other
+facts, reconsider keeping the identity and refusing the listed relatives, a decision
 taken back taken again as a card, the owner's own accept of it an identity too, the page re-read carrying two decided
 links and no fact accepted, the photograph the page types Grave as a fetch step saved under the list's name and archived
 under the gravestone row unparsed, a reading of it by the model one card for Abram the rule leaves to the owner, the

@@ -81,7 +81,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 | T1 | Image of an original record | Death certificate, census page, parish register, will, a gravestone photograph (E05) |
 | T2 | Official or archival index/transcription | SSDI, state death index, NARA AAD, IPUMS |
 | T3 | Published secondary: printed or curated, not editable by its readers | Obituary, published family history, DAR/SAR application, cemetery transcription |
-| T4 | Anyone can edit it | Ancestry member trees, FamilySearch Tree, Geni, WikiTree, Find a Grave, BillionGraves. A T4 page identifies a person but never builds their facts: accepting it writes the persona link and the family links it states, and its facts as undecided assertions, never accepted and never the rule's ground; the rule may take the identity when the name and three of birth day, death day, burial place, a stated parent or spouse agree with the tree; a person whose accepted facts rest on T4 alone is marked so |
+| T4 | Anyone can edit it | Ancestry member trees, FamilySearch Tree, Geni, WikiTree, Find a Grave, BillionGraves. A T4 page identifies a person but never builds their facts: accepting it writes the persona link, and the family memberships it states are created where the tree lacks them, undecided like its facts, never accepted and never the rule's ground; the rule may take the identity when the name and three of birth day, death day, burial place, a stated parent or spouse agree with the tree; a person whose accepted facts rest on T4 alone is marked so |
 | T5 | AI-inferred (our own) | Suggested match, extracted fact from OCR — must always cite the T1–T3 it came from |
 | ref | Reference data, not evidence | Gazetteers, name dictionaries, cM tables |
 

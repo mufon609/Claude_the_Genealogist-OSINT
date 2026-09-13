@@ -43,11 +43,13 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    edit at will that agrees with facts the owner already accepted on such
    sources, recorded as acting on their word and reversible. A page anyone can
    edit (Find a Grave, member trees) identifies a person but never builds
-   their facts: accepting a memorial writes the persona link and the family
-   links the page states, and every fact the page types (name, dates, places,
-   the inscription field) is written as an undecided assertion, what the page
-   says, never accepted and never ground for the rule, so a person's facts
-   come from primary documents only. The rule may take the identity on such a
+   their facts: accepting a memorial writes the persona link, and the family
+   memberships the page states are created where the tree lacks them with an
+   undecided assertion each, the way a sibling placement already is; every
+   fact the page types (name, dates, places, the inscription field) is
+   written as an undecided assertion too, what the page says, never accepted
+   and never ground for the rule, so a person's facts come from primary
+   documents only. The rule may take the identity on such a
    page when the name agrees and at least three of birth date to the day,
    death date to the day, burial place, and a stated parent or spouse who is
    that relative in the tree agree with the tree, claimed or accepted. A
@@ -152,9 +154,10 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    one card each. Decide with `tools/conclude.py decide <id> accept|reject`.
    Accepting takes everything the record states about the person; a
    difference with the tree becomes a conflict question, never an
-   overwrite; on a page anyone can edit it is an identity, the link and the
-   family links it states, its facts written undecided. The record's other
-   personas come up as cards only after that.
+   overwrite; on a page anyone can edit it is an identity, the link; the
+   family links it states are memberships created where the tree lacks them,
+   undecided like its facts. The record's other personas come up as cards
+   only after that.
    A family link the record states is asserted when both people it relates
    are accepted on it, so a child's parents fact is decided by the parents'
    own cards on the same record, each their own turn.

@@ -56,10 +56,12 @@ sources nobody can edit at will (registry tiers T1–T3: certificates, census,
 obituaries, published works), and only counting accepted facts that themselves
 rest on such a source or on the owner's own word. A page anyone can edit (T4:
 Find a Grave, member trees) identifies a person but never builds their facts:
-accepting it, by the owner or by the rule, writes the persona link and the
-family links the page states, and every fact the page types is written as an
-undecided assertion, what the page says, never accepted and never a ground the
-rule stands on; the rule takes such an identity when the name agrees and at
+accepting it, by the owner or by the rule, writes the persona link, and the
+family memberships the page states are created where the tree lacks them
+with an undecided assertion each, the way a sibling placement already is;
+every fact the page types is written as an undecided assertion too, what the
+page says, never accepted and never a ground the rule stands on; the rule
+takes such an identity when the name agrees and at
 least three of birth date to the day, death date to the day, burial place, and
 a stated parent or spouse who is that relative in the tree agree with the
 tree, claimed or accepted. A person whose accepted facts rest on T4 alone is
@@ -73,7 +75,7 @@ person reads it. The starting list, to be refined as records are met:
 |---|---|---|
 | Federal or state census 1850 on | full names and ages; relationships from 1880 | automated |
 | Federal census 1790–1840 | the head's name, the rest counted | hint |
-| Find a Grave memorial | full name, dates, cemetery, linked family, gravestone photographs | the identity by the rule when the name and three of birth day, death day, burial place, a stated parent or spouse agree; its facts undecided, never accepted; each gravestone photograph a fetch step |
+| Find a Grave memorial | full name, dates, cemetery, linked family, gravestone photographs | the identity by the rule when the name and three of birth day, death day, burial place, a stated parent or spouse agree; the family memberships it states created where the tree lacks them, undecided like its facts; each gravestone photograph a fetch step |
 | Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
 | Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
 | Church register entry | names and dates when the register keeps them | automated when dated and the parents are named; hint otherwise |
@@ -519,10 +521,12 @@ stated on the record places the person as a child of the other's accepted
 parents with an Undecided assertion (the record states the sibling, not the
 parents), and only when the other is an accepted child of one family;
 otherwise a sibling gives no membership. On a page anyone can edit (T4) the
-decision is an identity: the persona link and the family links the page states
-are Accepted as above, and every fact the page types is written as an
-Undecided assertion, what the page says, never accepted by the decision and
-never ground for the rule. Where the record's date or place
+decision is an identity: the persona link is Accepted, and the family
+memberships the page states are created where the tree lacks them, each with
+an Undecided assertion, the way a sibling placement already is; every fact
+the page types is written as an Undecided assertion too, what the page says,
+never accepted by the decision and never ground for the rule. Where the
+record's date or place
 disagrees with the event's own value, the record's statement is still accepted
 as what that record says, the event keeps its value, and the difference is a
 `conflict` question on the person, generated from the catalog
