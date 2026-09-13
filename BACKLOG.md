@@ -235,27 +235,6 @@ hand. Have the drop write the step's own key and rationale into the audit
 row (or a lightweight tombstone), so a wrongly dropped step is traceable
 without reconstructing it from the surrounding evidence.
 
-### C12. `match.linked()` never finds an accepted family link
-
-`linked()`'s SQL excludes an assertion whose `notes` carry neither `vouched`
-nor `uncited` (`NOT (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1
-OR json_extract(a.notes,'$.uncited')=1))`): when both keys are simply absent
-(the ordinary case — most assertions carry only `{"proposal": "..."}`),
-`json_extract` returns SQL NULL for each, the `OR` of two NULLs is NULL, `AND`
-with NULL is NULL, and `NOT NULL` is NULL, which a `WHERE` clause treats as
-false, so the row is excluded regardless of its `status` or `artifact_sha256`.
-`linked()` therefore returns `False` for two people already linked on a real,
-accepted record whenever that link's own assertions were not vouched or
-uncited — silently starving `match.match()`'s "already linked, so the
-relative is open to a card too" path (`docs/RESEARCH-WORKFLOW.md` §4).
-Surfaced building a harness check for the checklist fix above: a second
-persona on a freshly-read record, related to an already-decided one whose
-family link long predates it, got no card at all until the check was
-rewritten to re-run the matcher after deciding the first persona (working
-around the bug rather than exercising it). Rewrite the boolean so an absent
-key reads as "not vouched, not uncited" (`coalesce(json_extract(...), 0)=1`,
-or equivalent), not NULL.
-
 ---
 
 ## Externally blocked

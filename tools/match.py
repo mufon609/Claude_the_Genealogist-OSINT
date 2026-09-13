@@ -228,7 +228,7 @@ def linked(cat, a, b):
     document, so a vouched relative waits like any other until the record's own person is decided."""
     on_record = lambda fid, who, role: bool(cat.q("""SELECT 1 FROM assertion a WHERE a.subject_kind='family_member' AND a.subject_id=? AND a.status='accepted'
                                                       AND a.artifact_sha256 IS NOT NULL AND a.artifact_sha256 NOT IN (SELECT artifact_sha256 FROM tree_import)
-                                                      AND NOT (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1))""", dumps([fid, who, role])))
+                                                      AND NOT (json_valid(a.notes) AND (coalesce(json_extract(a.notes,'$.vouched'),0)=1 OR coalesce(json_extract(a.notes,'$.uncited'),0)=1))""", dumps([fid, who, role])))
     for fid, ra, rb in cat.q("""SELECT fm.family_id, fm.role, x.role FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=?
                                  WHERE fm.person_id=?""", b, a):
         if on_record(fid, a, ra) and on_record(fid, b, rb): return True

@@ -271,6 +271,12 @@ def decisions(keep, show):
     r = decide(cx, tid, card["Frederick Michael Ahearn"], "accepted", BY, "harness"); cx.commit(); say("father:", r)
     fail(any(m.get("role") == "child" for m in r["memberships"]) and any(m.get("role") == "partner" or m.get("role") == "spouse" for m in r["memberships"]), f"the father's accept asserts the child link and the couple: {r['memberships']}")
     fail(fact_status(cx, who["Helen Sara Brant"], "spouses") == "accepted" and fact_status(cx, who["Frederick Michael Ahearn"], "spouses") == "accepted", "both spouses facts accepted on the couple relation")
+    # ---- the family links the page asserted stand as links on a record for the matcher: mother and son, and the couple, each membership
+    # carrying an accepted assertion on the 1940 page whose notes name neither vouched nor uncited
+    from catalog import Catalog
+    from match import linked
+    fail(linked(Catalog(cx, tid), who["Helen Sara Brant"], who["Frederick Micheal Ahearn Jr"]), "the mother and son are linked on the 1940 page once both are accepted on it and her own membership is asserted")
+    fail(linked(Catalog(cx, tid), who["Helen Sara Brant"], who["Frederick Michael Ahearn"]), "the couple is linked on the 1940 page")
     birth = cx.execute("""SELECT e.date_text, ps.raw FROM event e JOIN event_participant ep ON ep.event_id=e.id JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status='accepted'
                           JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           WHERE ep.person_id=? AND e.event_type='Birth' AND a.artifact_sha256='3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e'""", (who["Frederick Michael Ahearn"],)).fetchone()
@@ -293,6 +299,11 @@ def decisions(keep, show):
     # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
     r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
+    # ---- a link on the owner's word is a vouch, not a record: the sister placed with her parents by their word is linked to nobody for the matcher
+    from conclude import link_on_word
+    link_on_word(cx, tid, who["Alicia Ahern"], [who["Frederick Michael Ahearn"], who["Helen Sara Brant"]], "child", "3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e", BY, "harness: the owner's word"); cx.commit()
+    fail(fact_status(cx, who["Alicia Ahern"], "parents") == "accepted", "her parents read accepted on the owner's word")
+    fail(not linked(Catalog(cx, tid), who["Alicia Ahern"], who["Frederick Micheal Ahearn Jr"]) and not linked(Catalog(cx, tid), who["Alicia Ahern"], who["Helen Sara Brant"]), "a vouched link is not a link on a record: the sister is linked to neither her brother nor her mother for the matcher")
     # ---- the memorial arrives: a page anyone can edit; the rule takes its subject as Abram on the identity alone (the name, both dates to the day, the burial place, the wife and daughter it lists agree with the tree's claims), his facts stay claims, the people it links come up as cards
     shutil.copy(os.path.join(FIXTURES, "findagrave-memorial-78019650.html"), os.path.join(treelib.inbox_dir(), "findagrave-memorial-78019650.html"))
     res = attach_inbox(cx, tid, "harness", BY, ["findagrave-memorial-78019650.html"]); cx.commit(); say("attach memorial:", res)

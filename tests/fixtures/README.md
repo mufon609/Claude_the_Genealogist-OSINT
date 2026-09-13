@@ -46,8 +46,8 @@ applications, whose free holder has no parser), and Raymond Earl Davidson
 (1939–2007) on his own, with no citation, for the gravesite locator's page. Ingested into a scratch catalog,
 it is what the matcher, the standing rule and the decision writers are run against: the four cards the 1940 page makes,
 the rule refusing each (no accepted fact, a disagreement), the son accepted with his facts and no link, the mother's
-accept asserting the mother-son link, the father's the couple and his side of the link, the sister placed beside her
-brother undecided, the memorial taken by the rule as Abram's identity on a page anyone can edit (the name, both dates to
+accept asserting the mother-son link, the father's the couple and his side of the link (mother, son and the couple then linked on the record for the matcher), the sister placed beside her
+brother undecided and then with her parents on the owner's word (a vouch, no link for the matcher), the memorial taken by the rule as Abram's identity on a page anyone can edit (the name, both dates to
 the day, the burial place and the relatives it lists agreeing with the tree's claims), its facts written undecided and none
 accepted, his wife and daughter refused with the reason and the new people the memorial links coming up once he is
 accepted, a rejection writing nothing else, a new person created with her marked maiden name as her birth surname and
