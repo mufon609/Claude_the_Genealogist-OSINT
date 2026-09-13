@@ -271,6 +271,13 @@ def decisions(keep, show):
     r = decide(cx, tid, card["Frederick Michael Ahearn"], "accepted", BY, "harness"); cx.commit(); say("father:", r)
     fail(any(m.get("role") == "child" for m in r["memberships"]) and any(m.get("role") == "partner" or m.get("role") == "spouse" for m in r["memberships"]), f"the father's accept asserts the child link and the couple: {r['memberships']}")
     fail(fact_status(cx, who["Helen Sara Brant"], "spouses") == "accepted" and fact_status(cx, who["Frederick Michael Ahearn"], "spouses") == "accepted", "both spouses facts accepted on the couple relation")
+    # ---- his birth event now carries two place strings, the file's claim (undecided) and the census's (accepted): the event shows the accepted one, not whichever sorts first
+    from catalog import Catalog as _Cat
+    fb = cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type='Birth'", (who["Frederick Michael Ahearn"],)).fetchone()
+    fb_strings = {r[0]: r[1] for r in cx.execute("""SELECT ps.raw, a.status FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN place_string ps ON ps.id=pf.place_string_id
+                                                     WHERE a.subject_kind='event' AND a.subject_id=?""", (fb[0],))} if fb else {}
+    fail(fb and fb_strings.get("Pennsylvania") == "accepted" and fb_strings.get("Northampton, Hampshire, Massachusetts, USA") == "undecided" and _Cat(cx, tid).place(fb[0], None)["text"] == "Pennsylvania",
+         f"an event with an accepted and an undecided place string shows the accepted one: strings {fb_strings}, shown {_Cat(cx, tid).place(fb[0], None) if fb else None}")
     # ---- the family links the page asserted stand as links on a record for the matcher: mother and son, and the couple, each membership
     # carrying an accepted assertion on the 1940 page whose notes name neither vouched nor uncited
     from catalog import Catalog

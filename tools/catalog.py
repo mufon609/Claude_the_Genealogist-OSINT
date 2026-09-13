@@ -402,6 +402,9 @@ class Catalog:
                         "basis": self.basis("event", eid), "citations": self.citations("event", eid)})
         return out
     def place(self, eid, place_id):
+        """The event's place: the resolved place's chain when it has one, else the words of one place string behind the event, the
+        string on an accepted assertion before one on an undecided assertion before one on a rejected assertion, and among those
+        the first by its words: an event with two strings shows the one the owner's decision stands on, not whichever sorts first."""
         if place_id:
             chain, pid, region = [], place_id, {"country": None, "state": None}
             while pid:
@@ -411,7 +414,8 @@ class Catalog:
                 pid = r[2]
             return {"text": " < ".join(chain), "resolved": True, **region}
         raw = self.q("""SELECT ps.raw FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN place_string ps ON ps.id=pf.place_string_id
-                        WHERE a.subject_kind='event' AND a.subject_id=? LIMIT 1""", eid)
+                        WHERE a.subject_kind='event' AND a.subject_id=?
+                        ORDER BY CASE a.status WHEN 'accepted' THEN 0 WHEN 'undecided' THEN 1 ELSE 2 END, ps.raw, ps.id LIMIT 1""", eid)
         if not raw: return None
         text = raw[0][0]; low = " " + text.lower().replace(",", " ") + " "
         toks = [t.strip().lower() for t in text.split(",") if t.strip()]
