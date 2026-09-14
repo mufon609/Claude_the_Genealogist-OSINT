@@ -103,6 +103,49 @@ its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
 Earl Davidson and Noi Davidson) carries no year to choose an item by.
 
+### C2. A household record found through a search step marks only one member's step done
+
+A page fetched through a search step, not a cited fetch, carries no identity
+`tools/attach.py` can key against every household member's own row: a
+FamilySearch record page saved from a name search
+(`familysearch-record-1950-census-6XYS-NQ16.html`, archived with
+`locator_kind='file'`, no ark learned before archiving) is not named in any
+`search_log.artifacts_json`. Extraction and match ran directly on the file,
+and three of its personas are accepted onto their own persons: Frederick
+Micheal Ahearn Jr (son), Frederick Michael Ahearn (father), Helen Sara Brant
+(mother). Frederick Micheal Ahearn Jr's own `census household:1950` row reads
+`held` (his own step reached `done` some other way); the other two still read
+`missing`, `mode auto` (`D05`, `D03`), because `catalog.fetched_rows` marks a
+row held only through a `done` step on that person's own plan, and neither
+father's nor mother's 1950 step ever received a found log for this artifact.
+`tools/run_step.py --all` would search the NARA 1950 site again for a
+household this tree has already read. The NARA 1950 connector already logs
+found on every household member's own step from one page
+(`docs/RESEARCH-WORKFLOW.md` §4); a household record arriving through
+`tools/attach.py` instead (a saved search-results page, not a connector
+answer) needs the same reach, from the record's own accepted personas to each
+one's matching census-year step, once each is decided.
+
+### C3. `fetched_rows` marks a one-person row held without checking the record names that person
+
+A fetch step's `done` status (`catalog.fetched_rows`) marks a checklist row
+`held` once some archived artifact matches the step's own locator, with no
+check that the record actually names the row's person as its own subject —
+unlike `catalog.person_citations(subject_only=True)`, which the row's
+`cited`/`held` status already gates through `catalog.is_subject`
+(`docs/RESEARCH-CHECKLIST.md` §3, §7; `schema/README.md`). Raymond Earl
+Davidson's own GEDCOM citation of `U.S., Obituary Collection, 1930-Current`
+(apid `1,7545::147376410`) carries his wife Noi Davidson's own Legacy.com URL,
+an Ancestry-side mixup already present in the imported file; the page fetched
+under it is genuinely her obituary, and his own "obituary" row reads `held`
+because that step is `done` and is his own citation (not a relative's), with
+nothing checking that the page fetched under it is about him. His own 2007
+obituary is not held, cited, or missing on his checklist — a `held` row
+generates neither a fetch nor a search, so it is invisible. `checklist.py`'s
+`row()` (the branch reading `fetched`) needs the same `is_subject` gate
+`person_citations` already applies to a one-person row, so a fetch step's own
+artifact must be accepted as the row's own person before it satisfies the row.
+
 ### C5. One person's two citations of one collection share a saved page's name
 
 `tools/fetches.py list` names a page at a holder whose pages carry no identity
