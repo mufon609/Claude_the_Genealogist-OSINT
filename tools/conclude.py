@@ -363,7 +363,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
     if status == "accepted":                                     # the record's other personas come up next, against this person's relatives
         eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
-        match_record(cx, eid, by.split(" for ")[-1] if by.startswith("rule:") else by)
+        match_record(cx, eid, by.split(" for ", 1)[-1] if by.startswith("rule:") else by)
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
               (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "proposal", prop_id,
                dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "memberships": members, "answered": answered, "note": note})))

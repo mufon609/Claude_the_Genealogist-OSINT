@@ -746,6 +746,13 @@ def decisions(keep, show):
     named_g = json.loads(audit_g["diff_json"] if audit_g else "{}").get("dropped") or []
     fail(st_g["steps_dropped"] == 1 and st_g["dropped"] == [{"step_key": "search:harness:gone", "row_key": "obituary:", "rationale": "harness: a step nothing generates"}] and named_g == st_g["dropped"]
          and not cx.execute("SELECT 1 FROM search_plan WHERE id=?", (gone,)).fetchone(), f"the dropped step is gone and the audit row names it by key, row and rationale: {st_g.get('dropped')}, audit {named_g}")
+    # ---- a rule decision's re-run of the matcher is logged as the session that acted, not just the owner it acts on behalf of
+    session_by = "rule:agrees-with-accepted for agent:harness-session for user:owner"
+    r_sess = decide(cx, tid, vp["id"], "accepted", session_by, note="harness: session-preserving re-run") if vp else None
+    cx.commit()
+    audit_rerun = cx.execute("SELECT actor FROM audit_log WHERE entity_kind='proposal' AND entity_id=? ORDER BY id DESC LIMIT 1", (eid_v,)).fetchone() if vp else None
+    fail(r_sess and r_sess.get("ok") and audit_rerun and audit_rerun["actor"] == "agent:harness-session for user:owner",
+         f"the matcher's re-run after a rule decision is logged under the session that acted, not the owner alone: {dict(audit_rerun) if audit_rerun else None}")
     # ---- the plan is idempotent and the catalog whole
     st1 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
     st2 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
