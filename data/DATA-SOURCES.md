@@ -141,6 +141,26 @@ data and is never fetched. A county probate collection is held film by film:
 the row for the Massachusetts wills and probate points at the Franklin County
 films the tree cites, browsed through the catalog's digitized index.
 
+**New Jersey death index (dbid 61260) past 1929.** The FamilySearch row (D03)
+covers only 1901-1903 and 1916-1929 (`New Jersey, Death Index, 1901-1903;
+1916-1929`, FamilySearch 2843410). Reclaim The Records' release, on
+archive.org (collection `njdeathindex`), was checked 13 Sep 2026: 2001-2017 is
+served as two plain-text CSV files, one row per decedent (name, birth date and
+place, death date) — `newjerseydeathindex_2001-2006_data_csv` and
+`newjerseydeathindex_2006-2017_data_csv`; 1949-2000 and 1901-1903/1920-1929
+(partial) are served as scanned index pages, one item per year and surname
+range, the same shape as the New York marriage index (`BACKLOG.md` C1); the NJ
+Department of Health did not locate an index for 1904-1919 or 1930-1948, and
+neither year range is on this holder. The two years this tree currently cites
+under dbid 61260 (2015, 2016) are both in the 2006-2017 CSV, so the row added
+to `holders.csv` points at that file directly and is placed ahead of the
+FamilySearch row: `catalog.holders()` takes the first row for a dbid, with no
+year-aware routing, and no citation in this tree falls in the FamilySearch
+row's own 1901-1903/1916-1929 range. A citation in that range, or in the
+1949-2000 scanned-page range, would need the same page-locating step the
+BACKLOG's C1 describes for the New York marriage index; none exists in this
+tree yet.
+
 ## 6. Deferred work
 
 Lives in `BACKLOG.md`. Rows whose `Status` is `blocked-apply` or `todo` with a
