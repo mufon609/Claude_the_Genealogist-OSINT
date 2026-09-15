@@ -112,6 +112,17 @@ def check_census_1940_kqt1(ps, fail):
     fail(fact(son, "Birth", date="CAL 1940"), "the son's birth calculated from his age 0, as before")
     fail(fact(wife, "Birth", date="CAL 1921"), "the wife's birth calculated from her age 19, as before")
 
+def check_census_1920(ps, fail):
+    fail([(p["name"], p["role"], p["sex"]) for p in ps] == [("Alicia M Ahearn", "daughter", "F"), ("James J Ahearn", "father", "M"), ("Anna R Ahearn", "sister", "F"),
+                                                              ("Mary A Ahearn", "", "F"), ("Francis T Ahearn", "", "M"), ("Frederick M Ahearn", "", "M")],
+         f"the household in the page's own role words, a blank relationship cell read as blank rather than shifting sex, age and birthplace one column; got {[(p['name'], p['role'], p['sex']) for p in ps]}")
+    subj, father, sister, mother, francis, frederick = ps
+    fail(fact(subj, "Birth", date="CAL 1911", place="Massachusetts"), "the principal's birth calculated from her age 9 on the 1920 record")
+    fail(fact(mother, "Birth", date="CAL 1870", place="Massachusetts"), "the mother's row, its own relationship cell blank: her age (50 years) and birthplace (Massachusetts) still land in Birth, not in Age and Birth as Sex and Age")
+    fail(fact(francis, "Birth", date="CAL 1905", place="Massachusetts") and fact(frederick, "Birth", date="CAL 1908", place="Massachusetts"), "the same for the two sons whose relationship cell is blank")
+    fail(rel(father, "parent", 1, "Father") and rel(sister, "sibling", 1, "Sister"), "Father and Sister stated toward the principal")
+    fail(rel(mother, "other", 1) and rel(francis, "other", 1) and rel(frederick, "other", 1), "a member with a blank relationship word relates as other, not skipped")
+
 def check_schedule(ps, fail):
     fail(len(ps) == 30, f"30 rows of the schedule, {len(ps)} written")
     fail(ps[0]["name"] == "Dauck Thomas E." and ps[0]["role"] == "listed", f"the first row as transcribed; got {ps[0]['name']} [{ps[0]['role']}]")
@@ -224,6 +235,7 @@ FIXTURE_SET = [
     ("familysearch-census-1950-6X5P-KT7T.html", "text/html", "D03", "file", "familysearch-census-1950-6X5P-KT7T.html", "familysearch-record", check_census_1950_fs),
     ("familysearch-ohio-death-index-VKBL-4FN.html", "text/html", "D03", "apid", "1,5763::7380252", "familysearch-record", check_ohio_death_index),
     ("familysearch-census-1940-KQT1-2MF.html", "text/html", "D03", "apid", "1,2442::8362985", "familysearch-record", check_census_1940_kqt1),
+    ("familysearch-census-1920-MXBF-NHK.html", "text/html", "D03", "apid", "1,6061::114041063", "familysearch-record", check_census_1920),
     ("nara-1950-schedule-3947385.json", "application/json", "D05", "url", "https://1950census.archives.gov/api/search?scheduleId=3947385", "nara-1950-schedule", check_schedule),
     ("aad-search-davidson-robert-15.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/display-partial-records.jsp?txt_24995=DAVIDSON%20ROBERT&txt_24983=15", "aad-search", check_aad_search),
     ("aad-enlistment-247275.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275", "aad-enlistment", check_aad_record),

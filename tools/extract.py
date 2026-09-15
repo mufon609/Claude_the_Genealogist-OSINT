@@ -289,8 +289,8 @@ def parse_record(text):
                     name = text_of(a) if a else text_of(r[0]).split("\n")[0]
                     role = text_of(r[0]).replace("\n", " ").replace(name, "", 1).strip()
                     cells = r[1:]
-                    if not role and cells and re.fullmatch(r"[A-Za-z][A-Za-z ]{2,}", text_of(cells[0]).strip() or "") and text_of(cells[0]).strip().lower() not in ("male", "female"):
-                        role, cells = text_of(cells[0]).strip(), cells[1:]       # a vital record's relatives: the role word in its own cell after the name
+                    if not role and len(cells) >= 5:
+                        role, cells = text_of(cells[0]).strip(), cells[1:]       # a relationship column of its own, after the name: sex, age and birthplace are the three cells after it, whatever it says, blank included
                     cell = lambda i: text_of(cells[i]) if i < len(cells) else ""
                     member = {"section": section, "name": name, "role": role, "sex": cell(0), "age": cell(1), "birthplace": cell(2),
                               "url": a["attrs"].get("href") if a else None, "fields": []}
