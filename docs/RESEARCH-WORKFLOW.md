@@ -466,7 +466,11 @@ earlier extraction had decided carries its decision to the new persona of the
 same name and role on the same page (the decision was about the record, whose
 bytes have not changed), an accepted one asserting the new facts the record
 gives and nothing it already asserted, and the matcher proposes the rest
-again. A record image gets no
+again. The matcher is versioned the same way (`rule:matcher@0.2.0`, raised
+with any change to what fits): `tools/conclude.py reconsider` runs it again on
+every current extraction whose undecided proposals an older matcher wrote,
+rejecting those with the note `superseded` and proposing the personas again as
+the matcher stands. A record image gets no
 automatic extraction: it is read one person per row through the screen's
 transcription path. The model reads it by default (extractor `llm:<model>`,
 layer 3 like any extraction, `docs/DATA-ARCHITECTURE.md` §1), each persona in
@@ -617,10 +621,11 @@ decision it made, oldest first, as the rule stands now and on the ground that
 stood before it (its own assertions and those of later rule decisions do not
 count), withdraws one it would no longer take, and the record is a card for
 the owner again with the reason; accepting that card makes everything the
-decision had written stand again. It then examines every card still undecided
+decision had written stand again. It then proposes again the cards an older
+matcher wrote, and examines every card still undecided
 the same way and takes one it would now take, recorded as the rule; a decision
 can open another card, so it passes again until nothing new is taken. Run it
-after any change to the rule or to a source's tier.
+after any change to the rule, to the matcher or to a source's tier.
 
 Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of

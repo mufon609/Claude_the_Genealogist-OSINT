@@ -27,7 +27,9 @@ The rule acts on the owner's word, is recorded as such on the proposal and in th
 it accepted: the link and every assertion it wrote turn rejected. The rule can also take a decision back (reconsider): every
 decision it made is examined again as the rule stands now, oldest first, on the ground that stood before it, and one it would
 no longer take is withdrawn, the record a card for the owner again; then every card still undecided is examined the same
-way, and one the rule would now take is taken.
+way, and one the rule would now take is taken. Between the two, every current extraction whose undecided cards an older
+matcher wrote (the matcher is versioned, match.MATCHER) is matched again: those cards close as superseded and the personas are
+proposed again by the matcher as it stands.
 
 usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
        tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
@@ -56,7 +58,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, source_tier, split_name, tier_sql
 from catalog import date_verdict, place_verdict
-from match import REL_OF, candidate, compare, match, personas_of
+from match import MATCHER, REL_OF, candidate, compare, match, personas_of
 from plan import plan_person
 from backfill_aliases import classify, clean, key
 
@@ -411,8 +413,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
     for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
-    if status == "accepted":                                     # the record's other personas come up next, against this person's relatives
+    if status == "accepted":                                     # the record's other personas come up next, against this person's relatives, on the current reading of the record
         eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
+        while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]): eid = later
         match_record(cx, eid, by.split(" for ", 1)[-1] if by.startswith("rule:") else by)
     closed_rows = close_result_rows(cx, tree_id, person_id, by, ts) if status == "accepted" and person_id else []
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
@@ -748,17 +751,52 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
               (ulid(), tree_id, ts, by, "update", "proposal", prop_id, dumps({"withdrawn": why, "persona": pay["persona_id"], "person": pay["person_id"], "assertions": n})))
     return n
 
+def repropose(cx, tree_id, by, ts, dry_run=False):
+    """Every current extraction whose undecided cards an older matcher wrote is matched again: those cards close rejected with
+    the note superseded, as a re-read closes the cards of the reading it supersedes, and the matcher as it stands now proposes
+    the same personas again, the rule taking what it takes (match_record). A card the owner or the rule already decided is
+    untouched. Returns (rows for the cards superseded, kind rematch, and the cards the rule took on the re-run, kind card)."""
+    q = _q(cx); out = []; taken_rows = []
+    current = q.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", MATCHER).fetchone()
+    stale = [r["id"] for r in q.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND id IS NOT ?", (MATCHER[0], MATCHER[1], current["id"] if current else None))]
+    if not stale: return out, taken_rows
+    marks = ",".join("?" * len(stale))
+    name = lambda pay: (q.execute("SELECT display_name FROM person WHERE id=?", (pay.get("person_id"),)).fetchone() or {"display_name": "(a new person)"})["display_name"]
+    persona = lambda pay: q.execute("SELECT name_text FROM persona WHERE id=?", (pay["persona_id"],)).fetchone()["name_text"]
+    eids = [r["id"] for r in q.execute(f"""SELECT DISTINCT e.id FROM proposal p JOIN extraction e ON e.id=json_extract(p.payload_json,'$.extraction_id')
+                                            WHERE p.tree_id=? AND p.status='undecided' AND p.kind IN ('persona_match','new_person') AND p.generated_by IN ({marks}) AND e.superseded_by IS NULL
+                                            ORDER BY e.ran_at, e.id""", (tree_id, *stale))]
+    for eid in eids:
+        old = q.execute(f"""SELECT p.id, p.payload_json, x.version FROM proposal p JOIN extractor x ON x.id=p.generated_by
+                             WHERE p.tree_id=? AND p.status='undecided' AND p.kind IN ('persona_match','new_person') AND p.generated_by IN ({marks})
+                             AND json_extract(p.payload_json,'$.extraction_id')=? ORDER BY p.created_at, p.id""", (tree_id, *stale, eid)).fetchall()
+        for p in old:
+            pay = json.loads(p["payload_json"])
+            out.append({"proposal": p["id"], "person": name(pay), "persona": persona(pay), "kind": "rematch", "taken": True, "why": f"the matcher at {p['version']} wrote it; superseded, proposed again at {MATCHER[2]}"})
+            if dry_run: continue
+            q.execute("UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note='superseded' WHERE id=?", (by, ts, p["id"]))
+            q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                      (ulid(), tree_id, ts, by, "reject", "proposal", p["id"], dumps({"closed": "superseded", "matcher": p["version"], "now": MATCHER[2], "extraction": eid})))
+        if dry_run: continue
+        written, taken = match_record(cx, eid, by)
+        for prop_id, pname, why in taken:
+            pay = json.loads(q.execute("SELECT payload_json FROM proposal WHERE id=?", (prop_id,)).fetchone()["payload_json"])
+            taken_rows.append({"proposal": prop_id, "person": name(pay), "persona": pname, "kind": "card", "taken": True, "why": why})
+    return out, taken_rows
+
 def reconsider(cx, tree_id, by, dry_run=False):
     """Every decision the rule made, oldest first, examined again as the rule stands now, on the ground that stood before it:
     the assertions of that decision, of every rule decision after it and of every decision already withdrawn do not count, so
     each rests only on the owner's decisions and on earlier rule decisions that survived. One the rule would no longer take is
-    withdrawn. Then every persona-match card still undecided, oldest first, examined as the rule stands now: one it would now
+    withdrawn. Then every current extraction whose undecided cards an older matcher wrote is matched again (repropose): those
+    cards close as superseded and the matcher as it stands now proposes the personas again. Then every persona-match card
+    still undecided, oldest first, examined as the rule stands now: one it would now
     take is taken, recorded as the rule; a decision can open another card, so the pass repeats until nothing new is taken.
     Last, every results-page row still undecided whose person is already accepted directly on the row's own record closes
     rejected (close_result_rows): a row can outlive the record it summarizes when the record was accepted before the row's
     own card was ever written, so this is swept on every run, not only at accept-time.
-    Returns one row per decision, per card and per closed row: proposal, person, persona, kind (decision, card or row), kept
-    or taken, why."""
+    Returns one row per decision, per card superseded, per card and per closed row: proposal, person, persona, kind (decision,
+    rematch, card or row), kept or taken, why."""
     q = _q(cx); ts = now(); out = []; gone = []
     rows = q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' ORDER BY decided_at, id", (tree_id,)).fetchall()
     ids = [r["id"] for r in rows]
@@ -771,7 +809,9 @@ def reconsider(cx, tree_id, by, dry_run=False):
             gone.append(p["id"])
             if not dry_run: withdraw(cx, tree_id, p["id"], by, why, ts)
         out.append({"proposal": p["id"], "person": name(pay), "persona": persona(pay), "kind": "decision", "kept": ok, "why": why})
-    cards = {}                                                       # proposal id -> the row of its latest examination
+    rematched, retaken = repropose(cx, tree_id, by, ts, dry_run=dry_run)
+    out += rematched
+    cards = {r["proposal"]: r for r in retaken}                      # proposal id -> the row of its latest examination; the re-run's own decisions first
     taken = True
     while taken:
         taken = False
@@ -868,10 +908,12 @@ def main():
             rows = reconsider(cx, tree_id, a.by, dry_run=a.dry_run)
             for x in rows:
                 verdict = ("kept" if x["kept"] else "would withdraw" if a.dry_run else "withdrawn") if x["kind"] == "decision" \
-                          else ("would close" if a.dry_run else "closed") if x["kind"] == "row" else ("would take" if x["taken"] and a.dry_run else "taken" if x["taken"] else "refused")
-                print(f"{verdict:15} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
+                          else ("would close" if a.dry_run else "closed") if x["kind"] == "row" else ("would propose again" if a.dry_run else "proposed again") if x["kind"] == "rematch" \
+                          else ("would take" if x["taken"] and a.dry_run else "taken" if x["taken"] else "refused")
+                print(f"{verdict:19} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
             if not rows: print("the rule has made no decision in this tree, and no card waits")
-            else: print(f"{sum(1 for x in rows if x['kind'] == 'decision')} decision(s) examined, {sum(1 for x in rows if x['kind'] == 'card' and x['taken'])} card(s) {'it would take' if a.dry_run else 'taken'}, "
+            else: print(f"{sum(1 for x in rows if x['kind'] == 'decision')} decision(s) examined, {sum(1 for x in rows if x['kind'] == 'rematch')} older card(s) {'it would propose again' if a.dry_run else 'proposed again'}, "
+                        f"{sum(1 for x in rows if x['kind'] == 'card' and x['taken'])} card(s) {'it would take' if a.dry_run else 'taken'}, "
                         f"{sum(1 for x in rows if x['kind'] == 'card' and not x['taken'])} refused, {sum(1 for x in rows if x['kind'] == 'row')} results row(s) {'it would close' if a.dry_run else 'closed'}")
         elif a.cmd == "link":
             pid = cat.find_person(a.person)

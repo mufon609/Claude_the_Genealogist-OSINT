@@ -450,6 +450,28 @@ def fitting_check(keep):
     if "Alice Fitting" in by_name:
         rat = cx.execute("SELECT rationale FROM proposal WHERE id=?", (by_name["Alice Fitting"][0],)).fetchone()[0]
         fail("iven name disagrees" in rat, f"the given name disagreement is named in the card's rationale, never hidden; got {rat}")
+    # ---- the matcher is versioned: cards an older matcher wrote are superseded by reconsider and proposed again as the matcher stands
+    from conclude import reconsider
+    from match import MATCHER
+    older = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (older, MATCHER[0], MATCHER[1], "0.0.1", ts))
+    old_ids = [prop for prop, _, _, _ in written]
+    cx.execute(f"UPDATE proposal SET generated_by=? WHERE id IN ({','.join('?' * len(old_ids))})", (older, *old_ids)); cx.commit()
+    rows = reconsider(cx, tid, BY, dry_run=True)
+    fail(sorted(x["proposal"] for x in rows if x["kind"] == "rematch") == sorted(old_ids) and all(cx.execute("SELECT status FROM proposal WHERE id=?", (i,)).fetchone()[0] == "undecided" for i in old_ids),
+         f"a dry run names every older card as one it would propose again and writes nothing: {[(x['kind'], x['persona']) for x in rows]}")
+    rows = reconsider(cx, tid, BY); cx.commit()
+    closed = {i: tuple(cx.execute("SELECT status, decision_note FROM proposal WHERE id=?", (i,)).fetchone()) for i in old_ids}
+    fail(all(v == ("rejected", "superseded") for v in closed.values()), f"every older card closes rejected, superseded: {closed}")
+    again = {name: (kind, person_id) for prop, kind, name, person_id in written}
+    now_ = {}
+    for prop, kind, name, person_id in written:
+        pe = cx.execute("SELECT json_extract(payload_json,'$.persona_id') FROM proposal WHERE id=?", (prop,)).fetchone()[0]
+        new = cx.execute("""SELECT p.kind, json_extract(p.payload_json,'$.person_id'), x.version FROM proposal p JOIN extractor x ON x.id=p.generated_by
+                            WHERE p.tree_id=? AND json_extract(p.payload_json,'$.persona_id')=? AND p.id<>?""", (tid, pe, prop)).fetchall()
+        now_[name] = [(k, pid_, v) for k, pid_, v in new]
+    fail(all(now_.get(name) == [(kind, person_id, MATCHER[2])] for name, (kind, person_id) in again.items()),
+         f"each persona is proposed again once, by the matcher as it stands, to the same person as before: {now_}")
+    fail(sorted(x["proposal"] for x in rows if x["kind"] == "rematch") == sorted(old_ids), f"the run reports each older card as proposed again: {[(x['kind'], x['persona']) for x in rows]}")
     cx.close()
     if not keep: shutil.rmtree(d, ignore_errors=True)
     return fails
@@ -1544,7 +1566,7 @@ def main():
     try: fails = fitting_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL fitting check: " + "; ".join(fails))
-    else: print("ok   fitting check: an existing person before a new one, on the surname and the stated relationship, or the surname alone with no family link yet; the given name plays no part in it")
+    else: print("ok   fitting check: an existing person before a new one, on the surname and the stated relationship, or the surname alone with no family link yet; the given name plays no part in it; cards an older matcher wrote are superseded by reconsider and proposed again")
     try: fails = key_fact_event_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL key fact event choice: " + "; ".join(fails))

@@ -46,7 +46,10 @@ one. A row of a search results page (role result) that fits nobody gets no
 proposal: it stays a candidate on the page, and the candidate card says why it
 does not fit. The rationale says in plain words which fields agree, which disagree, which
 are absent. Nothing numeric is stored. A persona that already has a proposal is
-skipped, so re-running adds nothing.
+skipped, so re-running adds nothing; a proposal closed as superseded (a re-read's,
+or an older matcher's, tools/conclude.py reconsider) is not one, so that persona
+is proposed again. The matcher is versioned like an extractor (MATCHER); every
+proposal carries the version that wrote it in generated_by.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -54,7 +57,7 @@ from treelib import ROOT, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.1.0")
+MATCHER = ("rule", "matcher", "0.2.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
 
 PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt", "cpl", "pfc", "cmdr", "adm"}
@@ -276,8 +279,9 @@ def match(cx, eid, by, about=None):
     to the same accepted person (by_name_and_year); a persona the record relates to an accepted person and that fits nobody,
     by the fitting check either, is proposed as a new person. about: person ids the owner says the record concerns, when no
     step or link names them (a family-held file)."""
-    ext = cx.execute("SELECT artifact_sha256 FROM extraction WHERE id=?", (eid,)).fetchone()
+    ext = cx.execute("SELECT artifact_sha256, superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()
     if not ext: raise SystemExit(f"no extraction {eid}")
+    if ext[1]: return []                                        # a superseded reading's personas are history: only the current reading is proposed
     sha = ext[0]; ts = now()
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", MATCHER).fetchone()
     mid = row[0] if row else ulid()
@@ -325,7 +329,7 @@ def match(cx, eid, by, about=None):
                 elif close: chosen[pr["id"]] = close[0]; nearly[pr["id"]] = close[0]
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)
         for pr in personas:
-            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pr["id"])).fetchone(): continue
+            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')", (tree_id, pr["id"])).fetchone(): continue   # proposed already, unless that proposal was superseded
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
             if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
                 continue                                          # a row on a results page, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card: its own record is the document
