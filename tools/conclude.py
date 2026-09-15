@@ -380,12 +380,51 @@ def _stands_for(cat, persona, cand, chosen):
     surname = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
     return given and surname and not disagree
 
+FIELD_EVENT = {"birth date": ("Birth", "date", "birth"), "death date": ("Death", "date", "death"), "birth place": ("Birth", "place", "birth place"),
+               "burial place": ("Burial", "place", "burial place"), "death place": ("Death", "place", "death place")}
+
+def _grounded(cx, eid, kind, value):
+    """Whether an Accepted assertion on this event itself disagrees with value ({start,text,qualifier} for a date, a raw
+    string for a place): only such a value vetoes the rule (docs/RESEARCH-WORKFLOW.md §0); a disagreement with a bare claim
+    does not, and decide() raises it as a conflict question once the record is taken on its other points. A vouch (the
+    owner's own word, accepted with no persona_fact of its own: facts.vouch) accepts the event's own date as it stands, so
+    it grounds a date comparison against the event's own fields; it carries no place, so it never grounds one."""
+    q = _q(cx)
+    rows = q.execute("""SELECT a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.place_string_id, ps.raw
+                         FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                         WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", (eid,))
+    if kind == "date":
+        ev = q.execute("SELECT date_text, date_start, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
+        for r in rows:
+            if r["persona_fact_id"] is None: d = {"start": ev["date_start"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]}
+            elif r["date_start"] or r["date_end"]: d = {"start": r["date_start"] or r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]}
+            else: continue
+            if date_verdict(value, d)[0] == "disagrees": return True
+        return False
+    return any(place_verdict(value, r["raw"])[0] == "disagrees" for r in rows if r["persona_fact_id"] is not None and r["raw"])
+
+def split_disagree(cx, cand, persona, disagree):
+    """Partition compare()'s disagreements into those grounded in an Accepted assertion on the very event or link compared
+    (a veto) and those against a bare claim (named in the decision note instead, never a veto): a birth or death date or
+    place is checked against the event's own Accepted assertions, not the tree's displayed value, which may itself be an
+    unaccepted claim; every other kind of disagreement (name, sex, relationship) still vetoes as before."""
+    vetoes, claims = [], []
+    for d in disagree:
+        field = next((f for f in FIELD_EVENT if d.startswith(f)), None)
+        eid = cand["events"].get(FIELD_EVENT[field][0]) if field else None
+        if field and eid and not _grounded(cx, eid, FIELD_EVENT[field][1], persona[FIELD_EVENT[field][2]]): claims.append(d)
+        else: vetoes.append(d)
+    return vetoes, claims
+
 def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a persona-match proposal, and why, in words: (True, reason) or (False, why not). A
     record read by hand or by the model (extractor human:<user> or llm:<model>) is judged exactly like one a rule parsed: by
     the record's own kind and tier and by the facts that agree, never by who did the reading. A record from a source nobody
     can edit at will (T1–T3), of a kind that identifies a person fully: the accepted name and two facts resting on trusted
-    sources or the owner's word agree, nothing disagrees. An obituary or newspaper text is such a kind only once it is read
+    sources or the owner's word agree, and no birth or death date or place disagrees against the event's own Accepted
+    assertion (a disagreement with a bare claim is not a veto: it is named in the reason and the record is still taken,
+    decide() raising the difference as a conflict question); every other disagreement still vetoes. An obituary or
+    newspaper text is such a kind only once it is read
     (a bare citation stays a hint), and only on its own terms: at least one of the two points must be a stated relative who
     is that relative in the tree, on trusted evidence — dates and places alone are never enough for this kind, however many
     agree, because the named survivors are its ground (docs/RESEARCH-WORKFLOW.md §0). The name agrees in full when the record
@@ -424,7 +463,9 @@ def rule_accepts(cx, tree_id, prop, without=()):
         fit = next((c for c in relatives if (_stands_for(cat, other, c, {}) if identity else compare(cat, other, c, {})[0])), None)
         if fit: chosen[other["id"]] = fit
     cand = candidate(cat, pid); fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
-    if disagree: return False, "disagrees: " + "; ".join(disagree)
+    vetoes, claims = split_disagree(cx, cand, persona, disagree)
+    if vetoes: return False, "disagrees: " + "; ".join(vetoes)
+    claim_note = (" (disagrees with the tree's own claim, not yet accepted: " + "; ".join(claims) + ")") if claims else ""
     married = any(a.startswith("surname:") and "carries her husband's surname" in a for a in absent)   # a wife under her married name: not a disagreement, and not the surname's absence either
     if not any(a.startswith("given name agrees") for a in agree) or not (any(a.startswith("surname agrees") for a in agree) or married): return False, "the name does not agree in full"
     if any(a.startswith("surname agrees, one letter apart") for a in agree): return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"
@@ -446,7 +487,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
             if j and j[1]["id"] not in named: named.add(j[1]["id"]); points.append(f"{REL_OF[j[0]]} {other_name}")
         if len(points) < 3: return False, ("a page anyone can edit identifies a person only when the name and three of birth date to the day, death date to the day, burial place "
                                            "and a stated parent or spouse agree: here " + (", ".join(points) + (" agree" if len(points) > 1 else " agrees") if points else "the name alone agrees"))
-        return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted"
+        return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted" + claim_note
     if cat.basis("person", pid) != "accepted": return False, "the name is not accepted yet"
     if not trusted_evidence(cx, tree_id, "person", [pid], without=without): return False, "the accepted name rests on no trusted source and not on your own word"
     points, rel_points = [], []
@@ -468,7 +509,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
             pt = f"{REL_OF[group]} {other_name}"; points += [pt, "and the day"]; rel_points.append(pt)   # the relationship and the person it identifies: two points
     if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
     if survivors_kind and not rel_points: return False, "an obituary or newspaper text is ground only through who it names: " + (", ".join(p for p in points if p != "and the day") or "the name") + " agree, but none of the accepted relatives is among the survivors it names"
-    return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees"
+    return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees against an accepted value" + claim_note
 
 def match_record(cx, eid, by, about=None):
     """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the

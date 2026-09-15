@@ -511,7 +511,7 @@ def decisions(keep, show):
     say("rule:", reasons)
     fail(all(not ok for ok, _ in reasons.values()), "the rule takes nothing on a tree with no accepted fact")
     fail("not accepted" in reasons["Frederick Micheal Ahearn Jr"][1].lower(), f"the rule stands on accepted facts only, and the son has none: {reasons['Frederick Micheal Ahearn Jr'][1]}")
-    fail("disagree" in reasons["Frederick Michael Ahearn"][1].lower(), f"a disagreement refuses the father: {reasons['Frederick Michael Ahearn'][1]}")
+    fail(reasons["Frederick Michael Ahearn"][1] == "the name is not accepted yet", f"his disagreement rests on no accepted assertion yet either, so it is not a veto; the name is what refuses him here: {reasons['Frederick Michael Ahearn'][1]}")
     card = {name(person_of(p)): p["id"] for p in ps}
     # ---- the son accepted: his facts, no family link yet
     n0 = nassert(); r = decide(cx, tid, card["Frederick Micheal Ahearn Jr"], "accepted", BY, "harness"); cx.commit(); say("son:", r)
@@ -748,7 +748,7 @@ def decisions(keep, show):
     fail(vp and "though something disagrees" in vp["rationale"] and all(x in vp["rationale"].lower() for x in ("burial place disagrees", "birth date agrees", "death date agrees")),
          f"the card says the dates agree to the day and the burial town differs (the locator's postal town against the memorial's): {vp and vp['rationale'][:300]}")
     ok_v, why_v = rule_accepts(cx, tid, vp) if vp else (False, "no card"); say("rule on the gravesite card:", ok_v, why_v)
-    fail(not ok_v and why_v.startswith("disagrees") and "burial place" in why_v, f"a gravesite record is a kind the rule may take, and it refuses this one for the burial town, not as a hint: {why_v}")
+    fail(not ok_v and why_v == "the name is not accepted yet", f"the burial town disagrees with a bare claim, no veto yet; Raymond's own name is not accepted yet either, and that refuses it: {why_v}")
     with open(os.path.join(FIXTURES, "va-gravesite-search-davidson-raymond-page1.html"), "rb") as fh: data = fh.read()
     sha_p, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=cid_v, collection_name="VA Nationwide Gravesite Locator", locator_kind="url",
                               locator_value="https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond", retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0],
@@ -778,6 +778,9 @@ def decisions(keep, show):
     for f_ in ("name", "sex", "birth", "death"): decide_fact(cx, tid, who["Raymond Earl Davidson"], f_, "accepted", None, BY)   # his key facts on the owner's word: the baseline reviewed
     cx.commit()
     fail(Catalog(cx, tid).baseline(who["Raymond Earl Davidson"])["complete"], "Raymond's baseline is reviewed on the owner's word")
+    ok_v2, why_v2 = rule_accepts(cx, tid, vp) if vp else (False, "no card")
+    fail(ok_v2 and "disagrees with the tree's own claim, not yet accepted" in why_v2 and "burial place" in why_v2,
+         f"his name now his own word, the gravesite card is taken: the burial town still disagrees, but only with a bare claim, so it is named, not a veto: {why_v2}")
     hp = hints_on(cx, tid, sha_p, who["Raymond Earl Davidson"]); rob = hp.get(r_rob.get("persona"))
     fail(rob and rob["hint"] and any(a.startswith("surname agrees") for a in rob["agrees"]) and any(a.startswith("birth date agrees") for a in rob["agrees"]) and any(a.startswith("birth place agrees") for a in rob["agrees"]),
          f"reviewed, the row agreeing on the surname, the birth year and the birth place is a hint with those words: {rob}")
