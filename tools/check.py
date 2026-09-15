@@ -476,6 +476,85 @@ def fitting_check(keep):
     if not keep: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def relationship_point_check(keep):
+    """A stated relationship counts toward the rule's two points from whichever side of the persona_relation row carries
+    it, and the trusted evidence it rests on is read from either person's own family_member membership, not only the
+    candidate's: a mother's own card states "parent" of her son directly, and a wife's own card is named "spouse" of her
+    husband on the record, but what makes the family link trustworthy may sit on the other side's own membership (the
+    son's own accepted child row, the husband's own accepted partner row) when the candidate's own side is still a claim
+    from the import. Two isolated families, met nowhere else, so this touches nobody's else's footprint."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, dumps, now as tnow, ulid as tulid
+    from match import match as run_match
+    from conclude import rule_accepts
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "reltest", "--name", "Relationship Point Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='reltest'").fetchone()[0]
+    ts = tnow()
+    def mkperson(name, sex):
+        pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, sex, name, ts, ts))
+        given, surname = name.rsplit(" ", 1)
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, given, surname, f"{surname}, {given}".lower()))
+        return pid
+    src = cx.execute("SELECT trust_tier, terms FROM source WHERE id='D03'").fetchone()
+    cid = tulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, "D03", "United States Census, 1900", "other", "relationship_point_test"))
+    sha, _ = archive_object(cx, b"relationship-point-harness", mime="text/html", source_id="D03", collection_id=cid,
+                             collection_name="United States Census, 1900", locator_kind="url", locator_value="http://example.test/relationship-point",
+                             retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0], original_filename="relationship-point-harness.html")
+    def trust(kind, sid):                    # an accepted assertion on the owner's own word: trusted regardless of tier, like a vouch or a record already fetched
+        cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,artifact_sha256,status,asserted_by,asserted_at,notes)
+                      VALUES (?,?,?,?,?,'accepted',?,?,?)""", (tulid(), tid, kind, sid, sha, BY, ts, dumps({"vouched": True})))
+    # ---- a mother, her own name already accepted and trusted, stated "parent" of her son on the record; the family's own
+    # membership rows are both still claims from the import, but the son's own child row is independently trusted (as if
+    # from an earlier record), the mother's own partner row is not
+    mother = mkperson("Ellen Point Ahearn", "F"); son = mkperson("Simon Point Ahearn", "M")
+    fam1 = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam1, tid, ts, ts))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fam1, mother))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'child')", (fam1, son))
+    trust("person", mother); trust("family_member", dumps([fam1, son, "child"]))
+    # ---- a wife, her own name already accepted and trusted, stated "spouse" of her husband on the record; her own partner
+    # row is a claim, his is independently trusted
+    wife = mkperson("Norah Point Ahearn", "F"); husband = mkperson("Peter Point Ahearn", "M")
+    fam2 = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam2, tid, ts, ts))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fam2, wife))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fam2, husband))
+    trust("person", wife); trust("family_member", dumps([fam2, husband, "partner"]))
+    cx.commit()
+    extractor_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (extractor_id, "human", "harness", "0.1.0", ts))
+    xid = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,status,ran_at) VALUES (?,?,?,?,?)", (xid, sha, extractor_id, "complete", ts))
+    def mkpersona(name, sex, role, seq):
+        pid = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)", (pid, xid, sha, name, sex, role, seq, "{}"))
+        return pid
+    pr_son = mkpersona("Simon Point Ahearn", "M", "son", 1)
+    pr_mother = mkpersona("Ellen Point Ahearn", "F", "mother", 2)
+    pr_husband = mkpersona("Peter Point Ahearn", "M", "husband", 3)
+    pr_wife = mkpersona("Norah Point Ahearn", "F", "wife", 4)
+    cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)", (tulid(), pr_mother, pr_son, "parent", "Mother", "{}"))
+    cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)", (tulid(), pr_wife, pr_husband, "spouse", "Wife", "{}"))
+    # the son and the husband are already accepted on this very record, as they would be if their own cards were decided first
+    cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,'accepted',?,?)", (son, pr_son, BY, ts))
+    cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,'accepted',?,?)", (husband, pr_husband, BY, ts))
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    written = run_match(cx, xid, BY); cx.commit(); say = print if keep else (lambda *a: None)
+    by_name = {name: prop for prop, kind, name, person_id in written if kind == "persona_match"}
+    fail("Ellen Point Ahearn" in by_name and "Norah Point Ahearn" in by_name, f"the mother's and the wife's own cards are proposed, their sons/husbands already accepted on the record: {written}")
+    if "Ellen Point Ahearn" in by_name:
+        prop_m = cx.execute("SELECT * FROM proposal WHERE id=?", (by_name["Ellen Point Ahearn"],)).fetchone()
+        ok_m, why_m = rule_accepts(cx, tid, prop_m)
+        fail(ok_m and "child Simon Point Ahearn" in why_m, f"the mother's card is taken: her son's own trusted child membership grounds the stated relationship, read from his side, not from her own untrusted partner row: {ok_m}, {why_m}")
+    if "Norah Point Ahearn" in by_name:
+        prop_w = cx.execute("SELECT * FROM proposal WHERE id=?", (by_name["Norah Point Ahearn"],)).fetchone()
+        ok_w, why_w = rule_accepts(cx, tid, prop_w)
+        fail(ok_w and "spouse Peter Point Ahearn" in why_w, f"the wife's card is taken: her husband's own trusted partner membership grounds the stated relationship, read from his side, not from her own untrusted partner row: {ok_w}, {why_w}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("relationship_point scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def key_fact_event_check(keep):
     """A person with two Death events, one carrying only a rejected assertion (a time-of-death misread as a date)
     beside one carrying an accepted date: the discredited event shows nowhere as the key fact's value, and the
@@ -1627,6 +1706,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL fitting check: " + "; ".join(fails))
     else: print("ok   fitting check: an existing person before a new one, on the surname and the stated relationship, or the surname alone with no family link yet; the given name plays no part in it; cards an older matcher wrote are superseded by reconsider and proposed again")
+    try: fails = relationship_point_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL relationship point: " + "; ".join(fails))
+    else: print("ok   relationship point: a stated relationship's trusted evidence is read from either persona's own family_member membership")
     try: fails = key_fact_event_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL key fact event choice: " + "; ".join(fails))
