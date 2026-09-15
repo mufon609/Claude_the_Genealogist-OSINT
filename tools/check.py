@@ -361,6 +361,56 @@ def place_fallback_depth(keep):
     if not keep: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def key_fact_event_check(keep):
+    """A person with two Death events, one carrying only a rejected assertion (a time-of-death misread as a date)
+    beside one carrying an accepted date: the discredited event shows nowhere as the key fact's value, and the
+    supported one is picked whatever order the events sort in. A second person with only the discredited event
+    shows no death at all, not the rejected date."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, now as tnow, ulid as tulid
+    from catalog import Catalog
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "eventtest", "--name", "Event Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='eventtest'").fetchone()[0]
+    ts = tnow()
+    ext_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ext_id, "human", "harness", "0.1.0", ts))
+    src = cx.execute("SELECT id, trust_tier, terms FROM source LIMIT 1").fetchone()
+    def record(tag):
+        sha, _ = archive_object(cx, f"event-harness-{tag}".encode(), mime="text/html", source_id=src[0], collection_id=None,
+                                 locator_kind="url", locator_value=f"http://example.test/event-{tag}", retrieved_by=BY, terms=src[2], cost="free", trust_tier=src[1])
+        xid = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,status,ran_at) VALUES (?,?,?,?,?)", (xid, sha, ext_id, "complete", ts))
+        persid = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,sequence,name_text) VALUES (?,?,?,?,?)", (persid, xid, sha, 1, tag))
+        return sha, persid
+    def mkevent(pid, date_text, date_start, status, persid, sha):
+        eid = tulid()
+        cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,calendar,created_at,updated_at) VALUES (?,?,'Death',?,?,?,?,?)", (eid, tid, date_text, date_start, "gregorian", ts, ts))
+        cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (tulid(), eid, pid, ))
+        pfid = tulid(); cx.execute("INSERT INTO persona_fact (id,persona_id,fact_type,date_text,date_start) VALUES (?,?,'Death',?,?)", (pfid, persid, date_text, date_start))
+        cx.execute("INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,status,asserted_by,asserted_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                   (tulid(), tid, "event", eid, pfid, sha, status, BY, ts))
+        return eid
+    def mkperson(name):
+        pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "M", name, ts, ts)); return pid
+    beside = mkperson("Beside Both")
+    sha_bad, persid_bad = record("bad"); ev_bad = mkevent(beside, "09:50 PM", None, "rejected", persid_bad, sha_bad)
+    sha_good, persid_good = record("good"); ev_good = mkevent(beside, "5 April 2004", "2004-04-05", "accepted", persid_good, sha_good)
+    alone = mkperson("Discredited Alone")
+    sha_lone, persid_lone = record("lone"); mkevent(alone, "09:50 PM", None, "rejected", persid_lone, sha_lone)
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    cat = Catalog(cx, tid)
+    ev = cat.events(beside)
+    picked = cat.canonical_event(ev, "Death")
+    fail(picked and picked["id"] == ev_good, f"the accepted, dated event is picked over the rejected, dateless duplicate: got {picked}")
+    kb = cat.key_fact_basis(beside, ev)
+    fail(kb["death"] == "accepted", f"the key fact's basis is the accepted event's, not None from the discredited one outranking it: {kb['death']}")
+    kb_alone = cat.key_fact_basis(alone)
+    fail(kb_alone["death"] is None, f"a person with only the discredited event shows no death at all, not its rejected date: {kb_alone['death']}")
+    cx.close()
+    if not keep: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def chain_fill(keep):
     """apply_to_events fills an event from facts on one chain (a state, the county in it, the city in that county) at
     its most specific point, and leaves facts on different chains (two cities in the same state) unfilled."""
@@ -1258,6 +1308,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL chain fill: " + "; ".join(fails))
     else: print("ok   chain fill: a state and the city in it fill the event at the city; Philadelphia and Pittsburgh, different chains, leave it unplaced")
+    try: fails = key_fact_event_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL key fact event choice: " + "; ".join(fails))
+    else: print("ok   key fact event choice: a rejected-only duplicate shows nowhere; the accepted, dated event wins beside it, and alone leaves the key fact with no value")
     print("green" if not bad else f"{bad} failure(s)")
     sys.exit(1 if bad else 0)
 

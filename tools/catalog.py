@@ -463,13 +463,28 @@ class Catalog:
             place_id = r[0][0] if r else None
             d += 1
         return d
+    def _event_ground(self, eid):
+        """(accepted, non-rejected) assertion counts on this event: how much of the record actually stands behind it."""
+        st = [r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind='event' AND subject_id=?", eid)]
+        return sum(s == "accepted" for s in st), sum(s != "rejected" for s in st)
+    def canonical_event(self, ev, etype):
+        """Among a person's events of one type, the one with the strongest ground. An event whose every assertion is
+        rejected is discredited and shows nowhere as the value: it is never picked, even as the sole
+        event of the type. Among the rest, an event with an accepted assertion beats one with none, more accepted
+        assertions beat fewer, and a further tie (an accepted date on one duplicate beside an accepted place on
+        another) breaks on total ground — every non-rejected assertion — so the more corroborated record wins."""
+        cands = [e for e in ev if e["type"] == etype and e["basis"] != "rejected"]
+        if not cands: return None
+        scored = [(e, self._event_ground(e["id"])) for e in cands]
+        scored.sort(key=lambda x: (x[0]["basis"] == "accepted", x[1][0], x[1][1]), reverse=True)
+        return scored[0][0]
     KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
     def key_fact_basis(self, pid, ev=None):
         """basis per key fact: accepted | claim | rejected | None (no claim)."""
         ev = self.events(pid) if ev is None else ev
         out = {"name": self.basis("person", pid), "sex": self.basis("person", pid)}
         for f in ("birth", "death"):
-            e = next((e for e in ev if e["type"] == f.title()), None); out[f] = e["basis"] if e else None
+            e = self.canonical_event(ev, f.title()); out[f] = e["basis"] if e else None
         for f in ("parents", "spouses", "children"): out[f] = self.link_basis(pid, f)
         return out
     def baseline(self, pid, ev=None):

@@ -50,7 +50,7 @@ def build(cat: Catalog, pid: str):
     p = cat.person(pid); ev = cat.events(pid); fam = cat.family(pid)
     given, surname = (p["names"][0][0], p["names"][0][1]) if p["names"] else (None, None)
     first = lambda t: next((e for e in ev if e["type"] == t), None)
-    birth, death, burial = first("Birth"), first("Death"), first("Burial")
+    birth, death, burial = cat.canonical_event(ev, "Birth"), cat.canonical_event(ev, "Death"), first("Burial")
     dated = [e["year"] for e in ev if e["year"]]
     b = birth["year"] if birth and birth["year"] else None
     d = (death["year"] if death and death["year"] else None) or (burial["year"] if burial and burial["year"] else None)
