@@ -26,7 +26,7 @@ def person_card(cx, cat, pid):
 
 def people(cx, tree_id, q=""):
     cat = Catalog(cx, tree_id)
-    return [person_card(cx, cat, pid) for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name", (tree_id, f"%{q}%"))]
+    return [person_card(cx, cat, pid) for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL AND display_name LIKE ? ORDER BY display_name", (tree_id, f"%{q}%"))]
 
 from conclude import trusted_evidence
 

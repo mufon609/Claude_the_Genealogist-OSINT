@@ -380,12 +380,13 @@ class Catalog:
     def find_person(self, key):
         """A person by id, by the last six characters of the id in brackets or alone ("Noi Davidson [MEXW2C]", "MEXW2C"), by exact
         display name, or by a substring of the name. Several matches stop the tool and list them with their six characters, so a
-        decision never lands on whichever sorts first."""
+        decision never lands on whichever sorts first. A person merged into another (`person.merged_into`) does not match:
+        the merge moved everything about them onto the person they duplicate."""
         m = re.search(r"\[([A-Z0-9]{6})\]\s*$", key or "") or re.fullmatch(r"[A-Z0-9]{6}", (key or "").strip())
-        if m: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND id LIKE ?", self.tree_id, "%" + (m.group(1) if m.groups() else m.group(0)))
+        if m: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into IS NULL AND id LIKE ?", self.tree_id, "%" + (m.group(1) if m.groups() else m.group(0)))
         else:
-            r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?) ORDER BY display_name", self.tree_id, key, key)
-            if not r: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND display_name LIKE ? ORDER BY display_name LIMIT 8", self.tree_id, f"%{key}%")
+            r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into IS NULL AND (id=? OR display_name=?) ORDER BY display_name", self.tree_id, key, key)
+            if not r: r = self.q("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into IS NULL AND display_name LIKE ? ORDER BY display_name LIMIT 8", self.tree_id, f"%{key}%")
         if not r: sys.exit(f"no person matching {key!r}")
         if len(r) > 1: sys.exit(f"{len(r)} people match {key!r}: " + ", ".join(f"{n} [{i[-6:]}]" for i, n in r) + "; name one by its six characters")
         return r[0][0]

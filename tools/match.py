@@ -179,7 +179,7 @@ def by_name_and_year(cat, cx, tree_id, persona):
     if not rest or not by or not by[:4].isdigit(): return []
     y = int(by[:4]); out = []
     for pid, in cx.execute("""SELECT DISTINCT p.id FROM person p JOIN person_name n ON n.person_id=p.id JOIN event_participant ep ON ep.person_id=p.id
-                              JOIN event e ON e.id=ep.event_id AND e.event_type='Birth' WHERE p.tree_id=? AND e.date_start IS NOT NULL
+                              JOIN event e ON e.id=ep.event_id AND e.event_type='Birth' WHERE p.tree_id=? AND p.merged_into IS NULL AND e.date_start IS NOT NULL
                               AND CAST(substr(e.date_start,1,4) AS INTEGER) BETWEEN ? AND ?""", (tree_id, y - 3, y + 3)):
         if any(s in rest for _, s in name_keys(cat, pid) if s): out.append(pid)
     return out

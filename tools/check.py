@@ -766,6 +766,83 @@ def decisions(keep, show):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def merge_check(keep):
+    """tools/conclude.py merge on a scratch tree: two persons of one identity, one holding the accepted persona link an
+    assertion rests on, one plan step colliding with a step the kept person's own plan already has (the kept one carrying a
+    run) and one with no collision (carrying its own run), and one open question. After merge: the evidence sits on the kept
+    person, the collision keeps the step with runs and drops the other, the step with no collision moves whole with its run,
+    the duplicate's own row stays but disappears from find_person, the plain person listing (checklist/plan --all,
+    overview.people) and the matcher's name-and-year candidates."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, now as tnow, ulid as tulid, dumps as tdumps
+    from conclude import merge
+    from catalog import Catalog
+    from match import by_name_and_year
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "mergetest", "--name", "Merge Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='mergetest'").fetchone()[0]
+    ts = tnow()
+    kept, dup = tulid(), tulid()
+    for pid in (kept, dup):
+        cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "F", "Jane Doe", ts, ts))
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, "Jane", "Doe", "doe, jane"))
+        eid = tulid()
+        cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,calendar,created_at,updated_at) VALUES (?,?,'Birth','1930','1930',?,?,?)", (eid, tid, "gregorian", ts, ts))
+        cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (tulid(), eid, pid))
+    ext_id = cx.execute("SELECT id FROM extractor WHERE kind='human' AND name='manual'").fetchone()[0]
+    sha, _ = archive_object(cx, b"harness merge fixture", mime="text/html", source_id="B02", collection_id=None, locator_kind="url",
+                             locator_value="https://example.invalid/harness-merge", retrieved_by=BY, terms="public-domain", cost="free",
+                             trust_tier="T2", original_filename="harness-merge-fixture.html")
+    exid = tulid()
+    cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')", (exid, sha, ext_id, ts))
+    persona_id = tulid()
+    cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,sequence) VALUES (?,?,?,?,?,1)", (persona_id, exid, sha, "Jane Doe", "F"))
+    cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,?,?,?)", (dup, persona_id, "accepted", BY, ts))
+    cx.execute("INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_id,artifact_sha256,citation_text,status,asserted_by,asserted_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+               (tulid(), tid, "person", dup, persona_id, sha, "harness merge fixture", "accepted", BY, ts))
+    def step(pid, row_key, status):
+        sid = tulid()
+        cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                      VALUES (?,?,?,1,?,'search','obituary',?,?,'assisted',?,?)""", (sid, pid, row_key, f"search:{row_key}", tdumps({}), tdumps(["B02"]), status, ts))
+        return sid
+    kept_step = step(kept, "obituary:", "done")
+    cx.execute("INSERT INTO search_log (id,tree_id,plan_step_id,executed_at,executed_by,query_json,outcome) VALUES (?,?,?,?,?,?,'found')", (tulid(), tid, kept_step, ts, BY, tdumps({})))
+    dup_colliding_step = step(dup, "obituary:", "planned")
+    dup_new_step = step(dup, "cemetery / family plot:", "done")
+    cx.execute("INSERT INTO search_log (id,tree_id,plan_step_id,executed_at,executed_by,query_json,outcome) VALUES (?,?,?,?,?,?,'found')", (tulid(), tid, dup_new_step, ts, BY, tdumps({})))
+    q_id = tulid()
+    cx.execute("INSERT INTO research_question (id,tree_id,subject_person_id,kind,q_key,status,created_at) VALUES (?,?,?,'missing_parents','missing_parents:','open',?)", (q_id, tid, dup, ts))
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    cat = Catalog(cx, tid)
+    res = merge(cx, tid, dup, kept, BY, "harness: same identity"); cx.commit()
+    fail(res["persona_links"] == 1 and res["assertions"] == 1, f"the persona link and the assertion move: {res}")
+    fail(res["plan_steps_moved"] == 1 and res["plan_steps_dropped"] == 1, f"the new step moves, the colliding one is dropped since the kept person's own already carries a run: {res}")
+    fail(res["questions_moved"] == 1, f"the open question moves: {res}")
+    fail(cx.execute("SELECT status FROM person_persona WHERE person_id=? AND persona_id=?", (kept, persona_id)).fetchone()[0] == "accepted", "the persona link now reads accepted on the kept person")
+    fail(cx.execute("SELECT subject_id FROM assertion WHERE persona_id=?", (persona_id,)).fetchone()[0] == kept, "the assertion's subject is now the kept person")
+    fail(cx.execute("SELECT merged_into FROM person WHERE id=?", (dup,)).fetchone()[0] == kept, "the duplicate's own row carries where it went")
+    fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (kept_step,)).fetchone()[0] == "done", "the colliding step keeps the kept person's own, which carries the run")
+    fail(cx.execute("SELECT 1 FROM search_plan WHERE id=?", (dup_colliding_step,)).fetchone() is None, "the duplicate's colliding, unrun step is dropped")
+    fail(tuple(cx.execute("SELECT person_id, status FROM search_plan WHERE id=?", (dup_new_step,)).fetchone()) == (kept, "done"), "the duplicate's own step, with no collision, moves whole, its run travelling with it")
+    fail(cx.execute("SELECT subject_person_id FROM research_question WHERE id=?", (q_id,)).fetchone()[0] == kept, "the open question moves to the kept person")
+    prop = cx.execute("SELECT kind, status, decided_by, decision_note FROM proposal WHERE id=?", (res["proposal"],)).fetchone()
+    fail(tuple(prop) == ("duplicate_person", "accepted", BY, "harness: same identity"), f"one duplicate_person proposal, decided accepted, the note kept: {tuple(prop)}")
+    fail(cx.execute("SELECT 1 FROM audit_log WHERE entity_kind='person' AND entity_id=? AND action='update'", (dup,)).fetchone(), "an audit row names the merge")
+    fail(cx.execute("SELECT 1 FROM person WHERE id=?", (dup,)).fetchone(), "the duplicate's own row stays")
+    fail(cat.find_person("Jane Doe") == kept, "find_person now resolves the once-ambiguous name to the kept person alone")
+    listed = [r[0] for r in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL", (tid,))]
+    fail(dup not in listed and kept in listed, "the duplicate is out of the plain person listing checklist/plan --all use")
+    candidates = by_name_and_year(cat, cx, tid, {"name": "Jane Doe", "birth": {"start": "1930"}})
+    fail(dup not in candidates and kept in candidates, f"the matcher's name-and-year candidates carry the kept person, never the merged-away duplicate: {candidates}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("merge scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def rules():
     """The name rules as the docs state them, on their own."""
     from catalog import same_surname
@@ -947,6 +1024,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL decisions on harness.ged: " + "; ".join(fails))
     else: print("ok   decisions on harness.ged: the matcher, the rule and the writers as the docs say")
+    try: fails = merge_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL conclude.py merge: " + "; ".join(fails))
+    else: print("ok   conclude.py merge: evidence and open work move to the kept person, a step collision keeps the one with runs, the duplicate's row stays out of every listing")
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))

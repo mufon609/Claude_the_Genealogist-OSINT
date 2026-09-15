@@ -37,6 +37,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
        tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…" [--marriage "14 AUG 1959"]
        tools/conclude.py link "<person>" --parent "<other>" [--parent "<other>"] --record <sha256> --note "…"
        tools/conclude.py divorce "<a>" "<b>" --date "BET 1950 AND 1959" --evidence <sha256>[:<persona fact id>][:<citation>] … --note "…"
+       tools/conclude.py merge "<duplicate>" --into "<person>" --note "…"          close a duplicate_person question: the duplicate's row stays, out of every listing
        common: [--tree slug] [--db catalog/tree.db] [--by user:<you>]
 
 - decide: a person's (or the rule's) decision on a proposal, with everything that follows from it; a command too, as is a
@@ -536,6 +537,73 @@ def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tree_id, ts, by, "accept", "event", eid, dumps({"divorce": [a, b], "date": date_text, "note": note})))
     return eid
 
+def merge(cx, tree_id, dup_id, kept_id, by, note):
+    """Close a duplicate_person question (RESEARCH-WORKFLOW §2; the worked example's "merging the two Thomas entries closes
+    the question"): the duplicate's persona links, assertions, event and family memberships, plan steps, search log rows and
+    open questions move onto the person it duplicates, `person.merged_into` is set so the duplicate's own row stays for the
+    audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records the
+    decision with the owner's note. A moved step the kept person's plan already has by step_key keeps whichever of the two
+    carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
+    onto the survivor rather than lost. Returns what moved."""
+    q = _q(cx)
+    dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
+    kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
+    if not dup or not kept: raise ValueError("no such person in this tree")
+    if dup["tree_id"] != tree_id or kept["tree_id"] != tree_id: raise ValueError("both persons must be in this tree")
+    if dup_id == kept_id: raise ValueError("a person cannot be merged into themself")
+    if dup["merged_into"]: raise ValueError(f"{dup['display_name']} is already merged into another person")
+    if kept["merged_into"]: raise ValueError(f"{kept['display_name']} is itself merged into another person")
+    ts = now()
+    moved = {"persona_links": 0, "assertions": 0, "event_participants": 0, "family_memberships": 0,
+             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0}
+
+    for persona_id, in q.execute("SELECT persona_id FROM person_persona WHERE person_id=?", (dup_id,)).fetchall():
+        if q.execute("SELECT 1 FROM person_persona WHERE person_id=? AND persona_id=?", (kept_id, persona_id)).fetchone(): continue
+        q.execute("UPDATE person_persona SET person_id=? WHERE person_id=? AND persona_id=?", (kept_id, dup_id, persona_id))
+        moved["persona_links"] += 1
+
+    for ep_id, eid, role, fam in q.execute("SELECT id, event_id, role, family_id FROM event_participant WHERE person_id=?", (dup_id,)).fetchall():
+        if q.execute("SELECT 1 FROM event_participant WHERE event_id=? AND role=? AND person_id=? AND family_id IS ?", (eid, role, kept_id, fam)).fetchone(): continue
+        q.execute("UPDATE event_participant SET person_id=? WHERE id=?", (kept_id, ep_id))
+        moved["event_participants"] += 1
+
+    for fid, role in q.execute("SELECT family_id, role FROM family_member WHERE person_id=?", (dup_id,)).fetchall():
+        if q.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, kept_id, role)).fetchone(): continue
+        q.execute("UPDATE family_member SET person_id=? WHERE family_id=? AND person_id=? AND role=?", (kept_id, fid, dup_id, role))
+        q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='family_member' AND subject_id=?", (dumps([fid, kept_id, role]), dumps([fid, dup_id, role])))
+        moved["family_memberships"] += 1
+
+    moved["assertions"] = q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='person' AND subject_id=?", (kept_id, dup_id)).rowcount
+
+    for step in q.execute("SELECT * FROM search_plan WHERE person_id=?", (dup_id,)).fetchall():
+        existing = q.execute("SELECT id FROM search_plan WHERE person_id=? AND step_key=?", (kept_id, step["step_key"])).fetchone()
+        if not existing:
+            q.execute("UPDATE search_plan SET person_id=? WHERE id=?", (kept_id, step["id"])); moved["plan_steps_moved"] += 1
+            continue
+        dup_has_runs = q.execute("SELECT 1 FROM search_log WHERE plan_step_id=?", (step["id"],)).fetchone()
+        kept_has_runs = q.execute("SELECT 1 FROM search_log WHERE plan_step_id=?", (existing["id"],)).fetchone()
+        if dup_has_runs and not kept_has_runs:
+            q.execute("DELETE FROM search_plan WHERE id=?", (existing["id"],))
+            q.execute("UPDATE search_plan SET person_id=? WHERE id=?", (kept_id, step["id"])); moved["plan_steps_moved"] += 1
+        else:
+            moved["log_rows_repointed"] += q.execute("UPDATE search_log SET plan_step_id=? WHERE plan_step_id=?", (existing["id"], step["id"])).rowcount
+            q.execute("DELETE FROM search_plan WHERE id=?", (step["id"],)); moved["plan_steps_dropped"] += 1
+
+    for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=?", (dup_id,)).fetchall():
+        if q.execute("SELECT 1 FROM research_question WHERE subject_person_id=? AND q_key=?", (kept_id, question["q_key"])).fetchone():
+            moved["questions_dropped"] += 1; continue
+        q.execute("UPDATE research_question SET subject_person_id=? WHERE id=?", (kept_id, question["id"])); moved["questions_moved"] += 1
+
+    q.execute("UPDATE person SET merged_into=?, updated_at=? WHERE id=?", (kept_id, ts, dup_id))
+    human = q.execute("SELECT id FROM extractor WHERE kind='human' AND name='manual'").fetchone()[0]
+    prop_id = ulid()
+    q.execute("""INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status,decided_by,decided_at,decision_note)
+                 VALUES (?,?,?,?,?,?,?,'accepted',?,?,?)""",
+              (prop_id, tree_id, "duplicate_person", dumps({"duplicate_person_id": dup_id, "kept_person_id": kept_id, "moved": moved}), note, human, ts, by, ts, note))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "update", "person", dup_id, dumps({"merged_into": kept_id, "proposal": prop_id, "note": note, **moved})))
+    return {"proposal": prop_id, "duplicate": dup_id, "kept": kept_id, **moved}
+
 def withdraw(cx, tree_id, prop_id, by, why, ts):
     """The rule takes back a decision it would no longer make: the proposal and the persona link return to Undecided, every
     assertion the decision wrote returns to Undecided (an Accept later makes them Accepted again), the questions the decision
@@ -604,7 +672,9 @@ def main():
     d = sub.add_parser("divorce", help="a Divorce event between two people, with the evidence you name")
     d.add_argument("a"); d.add_argument("b"); d.add_argument("--date", help="GEDCOM form (BET 1950 AND 1959)")
     d.add_argument("--evidence", action="append", required=True, help="sha256[:persona fact id][:citation words]"); d.add_argument("--note", required=True)
-    for x in (dc, fc, ac, ls, r, l, d):
+    mg = sub.add_parser("merge", help="close a duplicate_person question: move the duplicate's evidence links onto the person it duplicates")
+    mg.add_argument("duplicate"); mg.add_argument("--into", dest="kept", required=True); mg.add_argument("--note", required=True, help="why these are the same person, kept on the proposal")
+    for x in (dc, fc, ac, ls, r, l, d, mg):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
@@ -672,12 +742,19 @@ def main():
             if a.spouse: fid = link_on_word(cx, tree_id, pid, cat.find_person(a.spouse), "spouse", a.record, a.by, a.note, marriage=marriage)
             else: fid = link_on_word(cx, tree_id, pid, [cat.find_person(x) for x in a.parent], "child", a.record, a.by, a.note)
             print(f"family {fid}: {a.person} placed on your word; the record {a.record[:12]} carries the assertion")
-        else:
+        elif a.cmd == "divorce":
             ev = []
             for e in a.evidence:
                 parts = e.split(":", 2); ev.append((parts[0], parts[1] or None if len(parts) > 1 else None, parts[2] if len(parts) > 2 else "the record's own words"))
             eid = divorce(cx, tree_id, cat.find_person(a.a), cat.find_person(a.b), a.date, ev, a.by, a.note)
             print(f"divorce event {eid} between {a.a} and {a.b}")
+        else:
+            res = merge(cx, tree_id, cat.find_person(a.duplicate), cat.find_person(a.kept), a.by, a.note)
+            print(f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s), {res['assertions']} assertion(s), "
+                  f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s), "
+                  f"{res['plan_steps_moved']} plan step(s) moved ({res['plan_steps_dropped']} dropped as already on the kept person's plan, "
+                  f"{res['log_rows_repointed']} log row(s) repointed onto it), {res['questions_moved']} question(s) moved "
+                  f"({res['questions_dropped']} already open on the kept person); proposal {res['proposal']}")
         cx.commit()
     except Exception:
         cx.rollback(); raise

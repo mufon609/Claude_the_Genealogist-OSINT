@@ -218,7 +218,7 @@ def main():
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="rule:plan@0.1.0")
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
-    pids = [r[0] for r in cx.execute("SELECT id FROM person WHERE tree_id=? ORDER BY display_name", (tree_id,))] if a.all else [cat.find_person(a.who or sys.exit("give a person or --all"))]
+    pids = [r[0] for r in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL ORDER BY display_name", (tree_id,))] if a.all else [cat.find_person(a.who or sys.exit("give a person or --all"))]
     total = {}
     for pid in pids:
         cx.execute("BEGIN")

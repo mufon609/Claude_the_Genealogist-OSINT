@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.7.1
+-- tree catalog schema  v0.7.2
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -302,10 +302,12 @@ CREATE TABLE person (
   display_name    TEXT,                 -- cached from primary person_name
   living_override TEXT CHECK (living_override IN ('living','deceased') OR living_override IS NULL),
   private         BOOLEAN NOT NULL DEFAULT FALSE,
+  merged_into     TEXT REFERENCES person(id),   -- set by tools/conclude.py merge; the row stays for the audit trail, out of every listing, overview, plan and matcher run
   created_at      TEXT NOT NULL,
   updated_at      TEXT NOT NULL,
   notes           TEXT
 );
+CREATE INDEX ix_person_merged_into ON person(merged_into) WHERE merged_into IS NOT NULL;
 
 CREATE TABLE person_name (
   id          TEXT PRIMARY KEY,

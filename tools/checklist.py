@@ -305,7 +305,7 @@ def main():
     cx = sqlite3.connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if a.all:
         rows = []
-        for pid, name in cat.q("SELECT id, display_name FROM person WHERE tree_id=? ORDER BY display_name", tree_id):
+        for pid, name in cat.q("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into IS NULL ORDER BY display_name", tree_id):
             r = build(cat, pid); A = r["checklist"]["A"]; B = r["checklist"]["B"]
             gaps = lambda rows: sum(1 for x in rows if x["status"] == "missing"); cited = lambda rows: sum(1 for x in rows if x["status"] == "cited")
             rows.append({"id": pid, "person": name, "decided": 7 - len(r["baseline"]["undecided"]) if r["baseline"].get("undecided") is not None else None, "baseline_complete": r["baseline"]["complete"],

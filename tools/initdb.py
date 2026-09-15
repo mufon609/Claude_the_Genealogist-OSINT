@@ -4,19 +4,42 @@
 usage: tools/initdb.py [--db catalog/tree.db] [--force]
        tools/initdb.py --sync-sources [--db catalog/tree.db]
        tools/initdb.py --sync-event-types [--db catalog/tree.db]
+       tools/initdb.py --migrate [--db catalog/tree.db]
 
 Applies schema/catalog.sql, schema/seed_event_type.sql, schema/sqlite_extras.sql,
 then seeds `source` from data/data-sources.csv, a `human` extractor, and the
 local storage target. --sync-sources rewrites an existing catalog's source rows
-from the CSV (the registry is reference data) and touches nothing else. Stdlib only.
+from the CSV (the registry is reference data) and touches nothing else. --migrate
+brings an existing catalog's own structure up to schema/catalog.sql's current
+version, one column or index at a time, without touching a decision; each schema
+version this catalog lacks runs once and is recorded in schema_migration. Stdlib only.
 """
 import argparse, csv, datetime as dt, os, sqlite3, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_dir
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCHEMA_VERSION = "0.7.1"
+SCHEMA_VERSION = "0.7.2"
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+# One entry per schema version added after the catalog's first release: (version, note, statements).
+# Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
+MIGRATIONS = [
+    ("0.7.2", "person.merged_into: tools/conclude.py merge points a duplicate at the person it duplicates",
+     ["ALTER TABLE person ADD COLUMN merged_into TEXT REFERENCES person(id)",
+      "CREATE INDEX ix_person_merged_into ON person(merged_into) WHERE merged_into IS NOT NULL"]),
+]
+
+def migrate(cx: sqlite3.Connection) -> list:
+    """Every migration this catalog's schema_migration lacks, applied in order. Returns the versions applied."""
+    have = {v for v, in cx.execute("SELECT version FROM schema_migration")}
+    applied = []
+    for version, note, statements in MIGRATIONS:
+        if version in have: continue
+        for stmt in statements: cx.execute(stmt)
+        cx.execute("INSERT INTO schema_migration (version, applied_at, notes) VALUES (?,?,?)", (version, now(), note))
+        applied.append(version)
+    return applied
 
 def ulid() -> str:
     """Crockford-base32 ULID: 48-bit ms timestamp + 80 random bits."""
@@ -59,6 +82,7 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="overwrite an existing db")
     ap.add_argument("--sync-sources", action="store_true", help="bring an existing catalog's source rows up to data/data-sources.csv; nothing else changes")
     ap.add_argument("--sync-event-types", action="store_true", help="add the event types schema/seed_event_type.sql has that an existing catalog lacks; nothing else changes")
+    ap.add_argument("--migrate", action="store_true", help="bring an existing catalog's structure up to schema/catalog.sql's current version; nothing decided changes")
     a = ap.parse_args()
 
     if a.sync_sources:
@@ -69,6 +93,10 @@ def main() -> int:
         before = cx.execute("SELECT COUNT(*) FROM event_type").fetchone()[0]
         cx.executescript(read("schema/seed_event_type.sql").replace("INSERT INTO event_type", "INSERT OR IGNORE INTO event_type")); cx.commit()
         print(f"{a.db}: {cx.execute('SELECT COUNT(*) FROM event_type').fetchone()[0] - before} event type(s) added"); return 0
+    if a.migrate:
+        cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+        applied = migrate(cx); cx.commit()
+        print(f"{a.db}: schema {', '.join(applied) if applied else 'already current'}"); return 0
     if os.path.exists(a.db):
         if not a.force:
             print(f"refusing to overwrite {a.db} (use --force)", file=sys.stderr); return 2
