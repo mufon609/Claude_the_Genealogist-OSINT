@@ -902,10 +902,19 @@ def rules():
     if "nj-death-index" not in AUTOMATED: bad.append("conclude.AUTOMATED does not name nj-death-index: a death index would stay a hint until a person reads it")
     from catalog import place_verdict
     township = "Mount Holly Township < Burlington County < New Jersey < United States"
+    franklin_ky = "Franklin < Simpson County < Kentucky < United States"
     pv_cases = [
         (("NJ", township), ("agrees", "the record gives only New Jersey")),                    # a state code against a township in the state: agrees, coarser, and says so
         (("NJ", "New Jersey < United States"), ("agrees", None)),                              # a state against itself: agrees outright, nothing coarser to say
         (("Newark", township), ("disagrees", None)),                                            # two different towns: still disagrees
+        (("Kent", franklin_ky), ("disagrees", None)),                                           # "Kent" is not Kentucky: no whole part matches
+        (("Frank", franklin_ky), ("disagrees", None)),                                          # "Frank" is not Franklin
+        (("Franklin, Tennessee", franklin_ky), ("disagrees", None)),                            # the town's name alone does not carry the wrong state
+        (("KY", franklin_ky), ("agrees", "the record gives only Kentucky")),                    # a state code, expanded, still agrees, coarser
+        (("Simpson County, Kentucky", franklin_ky), ("agrees", "the record gives only Simpson")), # county and state agree, coarser than the town
+        (("Simpson", franklin_ky), ("agrees", "the record gives only Simpson")),                # the county alone still agrees
+        (("Methacton Mennonite Cemetery, Norristown, Montgomery County, Pennsylvania, USA", "Norristown < Montgomery < Pennsylvania < United States"),
+         ("agrees", None)),                                                                     # a cemetery named ahead of the town is not a place part; the jurisdictions still match in full
     ]
     for (record, tree), want in pv_cases:
         got = place_verdict(record, tree)
