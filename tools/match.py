@@ -34,7 +34,9 @@ or birth surname agrees and whose birth year agrees where both have one, or
 who already stands in the same stated relationship to the same candidate the
 record's other persona was accepted as, is proposed with the disagreement in
 the rationale; a given name that disagrees is not what refuses this, only the
-surname or the relationship. One proposal per persona: kind
+surname or the relationship; and a candidate of the same name comes before one
+the fitting check reaches on the surname or the relationship alone, so a
+brother named Joe is put to the tree's Joe, not to the first sibling met. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
 two fit, the other named in the rationale), or new_person when nobody fits,
 outright or by the fitting check. The
@@ -61,7 +63,7 @@ NICK = [{"william", "willie", "will", "bill", "billy"}, {"charles", "charley", "
         {"raymond", "ray"}, {"daniel", "dan", "danny"}, {"benjamin", "ben"}, {"samuel", "sam"}, {"elizabeth", "eliza", "lizzie", "betty", "beth", "bess", "bessie"}, {"margaret", "maggie", "peggy", "madge"},
         {"mary", "mamie", "polly", "mae", "may"}, {"catherine", "katherine", "kate", "katie", "kathryn"}, {"ann", "anna", "annie", "nancy"}, {"sarah", "sallie", "sally"}, {"jane", "jennie", "jenny"},
         {"lura", "lou", "laura"}, {"corinne", "carinne", "corrine"}, {"helen", "nellie", "ellen"}, {"susan", "susanna", "susannah", "sue", "susie"}, {"minerva", "minnie"}, {"matthew", "matt"},
-        {"patrick", "pat", "paddy"}, {"abraham", "abram", "abe"}, {"christian", "chris", "christ", "christopher"}, {"adeline", "addie"}, {"charlotte", "lottie"}, {"emily", "emma"}, {"martha", "mattie", "patsy"}, {"cassandra", "cassie"}, {"ollie", "oliver", "olive"}]
+        {"patrick", "pat", "paddy"}, {"abraham", "abram", "abe"}, {"christian", "chris", "christ", "christopher"}, {"adeline", "addie"}, {"charlotte", "lottie"}, {"emily", "emma"}, {"martha", "mattie", "patsy"}, {"cassandra", "cassie"}, {"ollie", "oli", "oliver", "olive"}]
 def same_given(a, b):
     """Two given-name keys are the same name: equal, one an initial of the other, a nickname of the other, or one letter apart when
     both are five letters or longer (a transcriber's slip)."""
@@ -145,8 +147,9 @@ def compare(cat, persona, cand, chosen):
              or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
     both_dates = any(d.startswith("birth date disagrees") for d in disagree) and any(d.startswith("death date disagrees") for d in disagree)   # disagreeing on both is not a likely identity either
-    has_relation = any(chosen.get(o) for _, o, _, _ in persona["relations"])   # the persona relates to a persona already resolved on this record, whatever the candidate's own family says
-    fitting = clean and (surname_ok or married) and has_relation   # the fitting check's relationship route (docs/RESEARCH-WORKFLOW.md §5-7): a given name disagreeing does not refuse it, only the surname or the relationship would
+    has_relation = any(chosen.get(o) for _, o, _, _ in persona["relations"])   # the persona relates to a persona already resolved on this record
+    unlinked = not any(cat.family(cand["id"])[g] for g in ("parents", "spouses", "children", "siblings"))   # a person of the tree with no family link yet
+    fitting = clean and (surname_ok or married) and has_relation and (rel_ok or unlinked)   # the fitting check (docs/RESEARCH-WORKFLOW.md §5-7): the same stated relationship to the same accepted person, or the surname on a person with no family link yet; a given name disagreeing does not refuse it
     near = not fits and not any(d.startswith("sex") for d in disagree) and not both_dates and ((given_ok and (surname_ok or married or same)) or fitting)   # the same name, something else disagrees, or the fitting check's relationship route: a card, never a rule decision
     return fits, agree, disagree, absent, near
 
@@ -187,16 +190,17 @@ def memorials_of(cx, pid):
 
 def by_name_and_year(cat, cx, tree_id, persona):
     """Persons of the tree whose surname or birth surname is the persona's, whose birth year lies within three years of the
-    persona's where the persona gives one (the fitting check, docs/RESEARCH-WORKFLOW.md §5-7): a household or obituary record
-    names people the tree may hold without a family link yet (a sibling added from a memorial, a survivor an obituary names
-    with no age), and those belong among the candidates on their own evidence; without a birth year on the persona the
-    surname is the whole of it, and the record's other signals carry the actual decision."""
+    persona's where the persona gives one, and who stand in the tree with no family link yet (the fitting check,
+    docs/RESEARCH-WORKFLOW.md §5-7): a household or obituary record names people the tree may hold without a family link yet
+    (a sibling added from a memorial, a survivor an obituary names with no age), and those belong among the candidates on
+    their own evidence; a person already placed in a family is reached through that family or not at all. Without a birth
+    year on the persona the surname is the whole of it, and the record's other signals carry the actual decision."""
     given, rest = split_persona_name(persona["name"])
     if not rest: return []
     by = (persona["birth"] or {}).get("start")
     y = int(by[:4]) if by and by[:4].isdigit() else None
     out = []
-    for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL", (tree_id,)):
+    for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL AND NOT EXISTS (SELECT 1 FROM family_member fm WHERE fm.person_id=person.id)", (tree_id,)):
         if not any(s in rest for _, s in name_keys(cat, pid) if s): continue
         if y is not None:
             years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
@@ -308,13 +312,14 @@ def match(cx, eid, by, about=None):
             f"""SELECT 1 FROM persona_relation r WHERE r.related_persona_id=? AND r.persona_id IN ({','.join('?' * len(accepted_personas)) or "''"})""", (pr["id"], *accepted_personas)).fetchone())
         chosen = {}                                             # persona id -> candidate, settled in passes so relationships can be checked
         nearly = {}                                             # persona id -> candidate of the same name with a disagreement: proposed, never taken
+        rank = lambda agree: (any(a.startswith("given name agrees") for a in agree), len(agree))   # among near candidates the same name comes before the fitting check's surname or relationship alone, then more agreements
         for _ in range(2):
             for pr in personas:
                 best = None; close = None
                 for c in cands:
                     fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
                     if fits and (best is None or len(agree) > len(best[1])): best = (c, agree, disagree, absent)
-                    if near and (close is None or len(agree) > len(close[1])): close = (c, agree, disagree, absent)
+                    if near and (close is None or rank(agree) > rank(close[1])): close = (c, agree, disagree, absent)
                 if best: chosen[pr["id"]] = best[0]; nearly.pop(pr["id"], None)
                 elif close: chosen[pr["id"]] = close[0]; nearly[pr["id"]] = close[0]
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)

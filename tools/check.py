@@ -385,11 +385,14 @@ def fitting_check(keep):
     name disagrees still matches the existing sister, found through the family link, on the surname and the stated
     relationship; a father named by garbled initials still matches the existing father the same way; a brother with no
     family link yet at all still matches the existing person of the same name, found by the surname alone once nothing
-    else is there to narrow it. Three shapes, one record, one already-accepted subject."""
+    else is there to narrow it, before a linked brother of another given name met first; a brother under a short form of his
+    given name (Oli for Ollie) matches the unlinked person of that name; a person already placed in a family is not reached
+    by the surname alone. Five shapes, one record, one already-accepted subject."""
     d, db = scratch(keep)
     import treelib; treelib.DATA_ROOT = d
     from treelib import archive_object, now as tnow, ulid as tulid
     from match import match
+    from catalog import Catalog
     run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "fittest", "--name", "Fitting Test")
     cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
     tid = cx.execute("SELECT id FROM tree WHERE slug='fittest'").fetchone()[0]
@@ -404,8 +407,13 @@ def fitting_check(keep):
     sib = mkperson("Alicia Fitting", "F")
     par = mkperson("John Young Fitting", "M")
     bro = mkperson("Joe Fitting", "M")                             # no family link at all: found only by the surname
+    will = mkperson("William Fitting", "M")                        # a linked brother of another given name, met before Joe through the family
+    olli = mkperson("Ollie Duke Fitting", "M")                     # no family link; the record writes him Oli
+    dan = mkperson("Dan Fitting", "M")                             # linked elsewhere: not reached by the surname alone
     fam = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam, tid, ts, ts))
-    for pid, role in ((par, "partner"), (subject, "child"), (sib, "child")): cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fam, pid, role))
+    for pid, role in ((par, "partner"), (subject, "child"), (sib, "child"), (will, "child")): cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fam, pid, role))
+    fam2 = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam2, tid, ts, ts))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fam2, dan, "partner"))
     sha, _ = archive_object(cx, b"fitting-check-harness", mime="text/html", source_id=src[0], collection_id=None, locator_kind="url",
                              locator_value="http://example.test/fitting-check", retrieved_by=BY, terms=src[2], cost="free", trust_tier=src[1])
     extractor_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (extractor_id, "human", "harness", "0.1.0", ts))
@@ -418,7 +426,10 @@ def fitting_check(keep):
     pr_sib = mkpersona("Alice Fitting", "F", "sister", 2)           # given name disagrees; the surname and the sibling link agree
     pr_par = mkpersona("Y J Fitting", "M", "father", 3)             # given name disagrees outright; the surname and the parent link agree
     pr_bro = mkpersona("Joe Fitting", "M", "brother", 4)            # the same name; no family link at all yet
+    pr_oli = mkpersona("Oli Duke Fitting", "M", "brother", 5)       # a short form of the given name; no family link yet
+    pr_will = mkpersona("William Fitting", "M", "brother", 6)       # the linked brother himself
     relate(pr_sib, pr_subject, "sibling", "Sister"); relate(pr_par, pr_subject, "parent", "Father"); relate(pr_bro, pr_subject, "sibling", "Brother")
+    relate(pr_oli, pr_subject, "sibling", "Brother"); relate(pr_will, pr_subject, "sibling", "Brother")
     cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,?,?,?)", (subject, pr_subject, "accepted", BY, ts))
     cx.commit()
     fails = []; fail = lambda ok, why: None if ok else fails.append(why)
@@ -429,7 +440,13 @@ def fitting_check(keep):
     fail(by_name.get("Y J Fitting", (None, None))[1] == "persona_match" and by_name["Y J Fitting"][2] == par,
          f"a father named by garbled initials fits the existing father through the family link and the surname, not a new person; got {by_name.get('Y J Fitting')}")
     fail(by_name.get("Joe Fitting", (None, None))[1] == "persona_match" and by_name["Joe Fitting"][2] == bro,
-         f"a brother with no family link yet still fits the existing person of the same name, found by the surname alone; got {by_name.get('Joe Fitting')}")
+         f"a brother with no family link yet still fits the existing person of the same name, found by the surname alone, before the linked brother of another name met first; got {by_name.get('Joe Fitting')}")
+    fail(by_name.get("Oli Duke Fitting", (None, None))[1] == "persona_match" and by_name["Oli Duke Fitting"][2] == olli,
+         f"a brother under a short form of his given name fits the unlinked person of that name; got {by_name.get('Oli Duke Fitting')}")
+    fail(by_name.get("William Fitting", (None, None))[1] == "persona_match" and by_name["William Fitting"][2] == will, f"the linked brother fits himself; got {by_name.get('William Fitting')}")
+    from match import by_name_and_year
+    reach = by_name_and_year(Catalog(cx, tid), cx, tid, {"name": "Dan Fitting", "birth": None})
+    fail(dan not in reach and bro in reach, f"the surname alone reaches only a person with no family link yet: {reach}")
     if "Alice Fitting" in by_name:
         rat = cx.execute("SELECT rationale FROM proposal WHERE id=?", (by_name["Alice Fitting"][0],)).fetchone()[0]
         fail("iven name disagrees" in rat, f"the given name disagreement is named in the card's rationale, never hidden; got {rat}")
