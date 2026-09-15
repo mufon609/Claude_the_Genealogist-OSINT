@@ -193,6 +193,22 @@ the name a piece unique to the citation as well (the citation's own record
 locator when it has one, else the step's key), so one person's several pages
 of one collection are told apart too.
 
+### C6. The harness names the owner's family
+
+`tools/check.py` checks each fixture by a dedicated function
+(`check_census_1940`, `check_memorial`, `check_fs_numident`, …) whose
+assertions spell out that record's own personas, facts and relations in
+Python lines, and `decisions()` walks the Ahearn and Davidson households by
+name throughout. A second family's documents cannot be dropped in beside
+these without editing the harness itself, and several tool docstrings
+(`tools/extract.py`, `tools/match.py`) use the family's own names as their
+worked examples. Keep each fixture's expected personas, facts and relations
+as data beside the fixture (a JSON sidecar, on the fixture's own naming
+pattern) with a generic comparison the harness runs over every fixture the
+same way, `check.py` reading the data rather than asserting it inline; make
+the docstring examples neutral (a placeholder household) so a tool's own
+documentation does not depend on whose tree this is.
+
 ### C7. Hints on the person page
 
 A run that found pages naming the person on the name alone (a directory
