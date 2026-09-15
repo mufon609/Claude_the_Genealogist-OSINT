@@ -921,6 +921,45 @@ def carry_links_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def attach_collection_check(keep):
+    """The attach fallback that matches a page to a step by the row's kind and the person's name (tools/attach.py
+    _steps_by_kind) must also require the page's own collection to be the citation's own holder collection
+    (data/holders.csv): two citations of one row at the same holder (the Kentucky and Ohio death indexes, both
+    FamilySearch, D03) are not each other's record, and a page of neither citation's collection matches nothing."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps
+    from attach import _steps_by_kind
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "colltest", "--name", "Collision Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='colltest'").fetchone()[0]
+    ts = tnow(); pid = tulid()
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "M", "John Test", ts, ts))
+    cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, "John", "Test", "test, john"))
+    def step(apid, source_id):
+        sid = tulid()
+        cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,sources_json,mode,status,created_at)
+                      VALUES (?,?,?,1,?,'fetch','subject_record',?,?,'apid',?,?,'fetch','planned',?)""",
+                   (sid, pid, "death record:1946", f"fetch:{apid}", tdumps({}), source_id, apid, tdumps([source_id]), ts))
+        return sid
+    ky_step = step("1,3077::111", "D03")            # Kentucky, U.S., Death Index, 1911-2000
+    oh_step = step("1,5763::222", "D03")             # Ohio, U.S., Death Records, 1908-1932, 1938-2022; same holder, a different collection
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    ky_parsed = {"fields": [("Event Type", "Death"), ("Event Date", "1946")], "collection": "Vital • Kentucky, Vital Record Indexes, 1911-1999", "name": "John Test"}
+    got = [g["id"] for g in _steps_by_kind(cx, tid, ky_parsed)]
+    fail(got == [ky_step], f"a Kentucky death index page matches only the Kentucky citation's step, never the Ohio one at the same holder: {got}")
+    oh_parsed = {**ky_parsed, "collection": "Vital • Ohio, Deaths, 1908-1953"}
+    got = [g["id"] for g in _steps_by_kind(cx, tid, oh_parsed)]
+    fail(got == [oh_step], f"an Ohio death index page matches only the Ohio citation's step: {got}")
+    other_parsed = {**ky_parsed, "collection": "Vital • Some Other State, Deaths"}
+    got = [g["id"] for g in _steps_by_kind(cx, tid, other_parsed)]
+    fail(got == [], f"a page of a collection neither citation names matches nothing: {got}")
+    cx.close()
+    if keep: print("attach collection scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def rules():
     """The name rules as the docs state them, on their own."""
     from catalog import same_surname
@@ -1185,6 +1224,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL carry_links: " + "; ".join(fails))
     else: print("ok   carry_links: a withdrawn rule decision (undecided again) does not carry to a re-read; the matcher proposes the persona again")
+    try: fails = attach_collection_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL attach _steps_by_kind collision: " + "; ".join(fails))
+    else: print("ok   attach _steps_by_kind: a page matches only the citation of its own holder collection, never another citation of the same row at the same holder")
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))

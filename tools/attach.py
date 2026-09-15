@@ -20,7 +20,7 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, ulid
-from catalog import dbid_of, holds, name_parts, person_named
+from catalog import dbid_of, holders, holds, name_parts, person_named
 from log_search import log as log_search, rendered_query
 from extract import FS_MARK, FS_SEARCH_MARK, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
@@ -167,12 +167,28 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
 ROW_OF = [(r"obituar", "obituary"), (r"death", "death record"), (r"birth", "birth record"), (r"marriage", "marriage record"), (r"social security|numident", "Social Security (SSDI / SS-5)"),
           (r"draft", "WWII draft card"), (r"naturali", "naturalization"), (r"find a grave|burial|cemetery", "cemetery / family plot")]
 
+def _record_collection(parsed):
+    """The record page's own collection, its FamilySearch section prefix stripped ("Vital • Kentucky, Vital Record Indexes,
+    1911-1999" -> "Kentucky, Vital Record Indexes, 1911-1999"), for matching against data/holders.csv's HolderCollection."""
+    return re.sub(r"^[^•]*•\s*", "", parsed.get("collection") or "").strip()
+
+def _matches_collection(r, coll):
+    """Whether this fetch step's own citation is of the record page's own collection, at the holder it was fetched from
+    (data/holders.csv): a page fetched at a holder belongs to the citation whose holder collection it came from, never to
+    another citation of the same row that merely shares the same holder (the Kentucky and Ohio death indexes are both at
+    FamilySearch, D03, but are not each other's record). A step with no citation of its own (a search step) or a page with
+    no collection field has nothing to check and matches as before."""
+    if not r["locator_value"] or not coll: return True
+    dbid = dbid_of(r["locator_value"])
+    return any(h["HolderSourceId"] == r["locator_source_id"] and h["HolderCollection"] == coll for h in (holders().get(dbid) or []))
+
 def _steps_by_kind(cx, tree_id, parsed):
     """A record that names no census page: the steps of the checklist row its own event type is about (a birth, a death, a
     marriage), or, when the page names none, its collection (an obituary collection to the obituary row, a death index to the
     death record row, the Social Security files to that row), on every person of the tree whose name is the record's principal
-    name, the surname as written, a spelling variant or one letter apart, and whose row's year is the record's within two. The
-    record satisfies the row whatever holder the file had pointed at."""
+    name, the surname as written, a spelling variant or one letter apart, whose row's year is the record's within two, and
+    whose own citation is of the collection this page came from (data/holders.csv). The record satisfies the row whatever
+    holder the file had pointed at, so long as the holder's collection agrees."""
     from catalog import same_surname
     fields = {k.lower(): v for k, v in parsed.get("fields") or []}
     kind = (fields.get("event type") or "").lower()                        # the record's own event before its heading: FamilySearch mislabels a heading ("Death" over a birth)
@@ -183,10 +199,12 @@ def _steps_by_kind(cx, tree_id, parsed):
     pg, rest = _split_name(parsed.get("name") or "")
     if not pg or not rest: return []
     ym = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", fields.get("event date") or fields.get("event year") or ""); year = int(ym.group(1)) if ym else None
+    record_coll = _record_collection(parsed)
     out = []
     for r in cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned' AND sp.row_key LIKE ? ORDER BY sp.seq""", (tree_id, row + ":%")):
         inst = r["row_key"].split(":", 1)[1] if ":" in r["row_key"] else ""
         if year and inst.isdigit() and abs(int(inst) - year) > 2: continue      # the row's year (birth record:1932) against the record's own: a father's birth is not his son's
+        if not _matches_collection(r, record_coll): continue
         keys = {(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
         if any(g == pg and any(same_surname(t, sn) for t in rest) for g, sn in keys): out.append(r)   # as written, a spelling variant or an indexer's slip
     return _why(out, f"a {row} naming {parsed.get('name')}, the row's kind and the person's name" + (f", in {year}" if year else ""))
