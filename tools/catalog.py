@@ -391,7 +391,8 @@ class Catalog:
         out = []
         for e in self.q("""SELECT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
                            WHERE ep.person_id=? ORDER BY e.event_type, e.date_start""", pid):
-            tree_place = self.place(e[0], e[5])["text"] if e[5] else None
+            place_now = self.place(e[0], e[5])
+            tree_place = place_now["text"] if place_now else None
             for f in self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value
                                FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                                JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
