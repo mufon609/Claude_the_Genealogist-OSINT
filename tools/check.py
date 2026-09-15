@@ -678,6 +678,15 @@ def decisions(keep, show):
     fail(card_a and card_a["status"] == "accepted" and (card_a["decided_by"] or "").startswith("rule:") and "claimed relationship" in card_a["decision_note"] and "Robert Michael Ahearn" in card_a["decision_note"],
          f"the rule's own reason names the claimed relationship: {card_a and dict(card_a)}")
     fail(fact_status(cx, who["Grace Mary Ahearn"], "name") == "accepted", "the record's own Name fact documents her, accepted with everything else it states")
+    # ---- reconsider judges that decision by the route it stands on: without its own name assertion her name is a claim again,
+    # and the stated relationship still holds, so the decision is kept, no withdraw row written
+    from conclude import reconsider as _reconsider
+    rows_g = _reconsider(cx, tid, BY); cx.commit()
+    g_row = next((x for x in rows_g if x["kind"] == "decision" and x["proposal"] == card_a["id"]), None) if card_a else None
+    fail(g_row is not None and g_row["kept"] and "claimed relationship" in g_row["why"], f"reconsider keeps Grace's claimed-relationship decision, by the route it was taken: {g_row}")
+    fail(not cx.execute("SELECT 1 FROM audit_log WHERE entity_kind='proposal' AND entity_id=? AND json_extract(diff_json,'$.withdrawn') IS NOT NULL", (card_a["id"],)).fetchone() if card_a else False,
+         "no withdraw row on her decision")
+    fail(card_a and cx.execute("SELECT status, decided_by FROM proposal WHERE id=?", (card_a["id"],)).fetchone()[0] == "accepted", "her decision still stands after reconsider")
     # ---- a results-page row outlives its own record: once Robert is accepted directly on a record his own ark points at, an
     # undecided results-page row (role result) naming him, written under that same ark, closes rejected, "the record itself is
     # accepted" (docs/RESEARCH-WORKFLOW.md: a results row is a hint, its own record the document). Robert and Grace stay
