@@ -352,6 +352,10 @@ relationships it states and how each persona on the record stands (accepted
 as, proposed as, a new person, no proposal); what accepting closes, from the
 step's question when it has one and from the checklist row otherwise; anything
 odd. The same card, with the same parts, when the owner decides on a source.
+An accepted variant of a name — a transposition, an indexer's slip, a
+married name — gets the same shape narrowed to the name alone: the record's
+words, then the canonical value, then the kind and the reason
+(`docs/DATA-ARCHITECTURE.md` §8); it never edits the record.
 No scores, and no count dressed as one.
 
 ## 7. What this maps to in the schema
