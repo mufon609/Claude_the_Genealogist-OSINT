@@ -41,7 +41,13 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    value becomes a conflict question, never a silent overwrite or a silent
    drop. The owner's standing rule accepts a document from a source nobody can
    edit at will that agrees with facts the owner already accepted on such
-   sources, recorded as acting on their word and reversible. A page anyone can
+   sources, recorded as acting on their word and reversible; a disagreement
+   with a value the owner has not accepted does not stop it — the record is
+   still taken and the difference is the same conflict question. A relative
+   such a record names in a stated relationship to someone it has just
+   accepted is taken the same way when the name and a shared birth year
+   agree, and is created as a new person when nobody in the tree fits them.
+   A page anyone can
    edit (Find a Grave, member trees) identifies a person but never builds
    their facts: accepting a memorial writes the persona link, and the family
    memberships the page states are created where the tree lacks them with an
@@ -156,7 +162,12 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    difference with the tree becomes a conflict question, never an
    overwrite; on a page anyone can edit it is an identity, the link; the
    family links it states are memberships created where the tree lacks them,
-   undecided like its facts. The record's other personas come up as cards
+   undecided like its facts. A relative the record names in a stated
+   relationship to the person just accepted is taken the same way by the
+   standing rule when the name and a shared birth year agree, or created as
+   a new person when nobody in the tree fits them; a difference with the
+   tree is the same conflict question, marked the same way whichever
+   relative it is on. The record's other personas come up as cards
    only after that.
    A family link the record states is asserted when both people it relates
    are accepted on it, so a child's parents fact is decided by the parents'
