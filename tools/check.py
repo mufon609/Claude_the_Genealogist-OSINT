@@ -985,6 +985,60 @@ def connectors_offline():
     from run_step import outside
     say(outside(Cat, Src, "obituary", q(death_year=2016)) is not None and outside(Cat, Src, "obituary", q(death_year=1918)) is None and outside(Cat, Src, "name", q(birth_year=1932)) is None,
         "an obituary for a death after the newspapers end is not asked; one within them, or a lifetime overlapping them, is")
+    from connectors import nj_death_index as nj
+    whole = ("FNAME,LNAME,MIDDLE_NAME,STATE_FILE_NUMBER,BIRTH_YEAR,BIRTH_MONTH,BIRTH_DAY,BIRTH_CITY,BIRTH_STATE,BIRTH_COUNTRY,DEATH_YEAR,DEATH_MONTH,DEATH_DAY,DEATH_STATE\r\n"
+             "fred,ahearn,,20160057427,1907,5,22,,Massachusetts,United States,2016,3,4,NJ\r\n"
+             "noi,davidson,,20150044120,1949,1,12,Morioka,,Japan,2015,6,9,NJ\r\n"
+             "alice,ahearn,m,20160012345,1935,,,,,United States,2016,8,1,NJ\r\n"
+             "john,smith,,20140099999,1930,7,4,,New Jersey,United States,2014,2,14,NJ\r\n").encode()
+    rq = nj.requests(f(name="Frederick Micheal Ahearn Jr"))
+    say(rq and rq[0]["url"] == nj.CSV_URL and rq[0]["kind"] == "text" and rq[0]["surname"] == "Ahearn" and rq[0]["record"] is False, f"the whole file is asked once, the step's own surname split from its citation's name, not itself the record: {rq}")
+    say(nj.requests(f(collection="x")) == [], "no name on the step, nothing asked")
+    rq0 = rq[0]; rq0["archived_sha"] = "parentsha000000000000000000000000000000000000000000000000000"
+    hs = nj.hits(nj.CSV_URL, whole, rq0)
+    say(len(hs) == 1 and hs[0]["notes"]["rows"] == 2 and hs[0]["locator"]["value"] == f"{nj.CSV_URL}#surname=Ahearn", f"one hit, the two Ahearn rows out of the four, the file's own URL with the surname as its own locator: {hs}")
+    fetch0 = hs[0]["fetch"][0]
+    say(fetch0["derived_from"] == rq0["archived_sha"] and fetch0["record"] is True and "bytes" in fetch0, f"the derivative carries its parent's sha and is itself the record, computed, not fetched: {fetch0}")
+    deriv_text = fetch0["bytes"].decode()
+    say(deriv_text.splitlines()[0] == whole.decode().splitlines()[0] and len(deriv_text.splitlines()) == 3 and "davidson" not in deriv_text.lower(), f"the derivative carries the header and only the Ahearn rows, nobody else's: {deriv_text}")
+    say(nj.hits(nj.CSV_URL, whole, {"surname": "Nobody", "archived_sha": rq0["archived_sha"]}) == [], "a surname the file carries no row under gives no hit")
+    d, db = scratch(False)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object as ao, ulid as tulid, now as tnow
+    from extract import extract as ext_fn
+    cx2 = sqlite3.connect(db); cx2.execute("PRAGMA foreign_keys=ON"); cx2.row_factory = sqlite3.Row
+    parent_sha, _ = ao(cx2, whole, mime="text/csv", source_id="C09", collection_id=None, locator_kind="url", locator_value=nj.CSV_URL, retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", original_filename="nj-death-index-whole.csv")
+    _, n_whole = ext_fn(cx2, parent_sha, BY)
+    say(n_whole.get("failed") and "whole file" in n_whole["failed"], f"the whole file, read on its own, is refused: more than one surname: {n_whole}")
+    d_sha, is_new = ao(cx2, fetch0["bytes"], mime="text/plain", source_id="C09", collection_id=None, locator_kind="url", locator_value=hs[0]["locator"]["value"], retrieved_by=BY, terms="public-domain", cost="free",
+                       trust_tier="T2", original_filename=None, notes=json.dumps({**hs[0]["notes"], "hit": hs[0]["label"], "locator": hs[0]["locator"]}), derived_from=parent_sha)
+    say(is_new and cx2.execute("SELECT derived_from FROM artifact WHERE sha256=?", (d_sha,)).fetchone()[0] == parent_sha, "the derivative's own row names its parent")
+    eid, n = ext_fn(cx2, d_sha, BY)
+    say(n.get("personas") == 2 and not n.get("failed"), f"one persona per Ahearn row: {n}")
+    ps = [dict(r) for r in cx2.execute("SELECT id, name_text, sequence FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,))]
+    fred = next((p for p in ps if p["name_text"] == "fred ahearn"), None)
+    say(fred is not None, f"the first row's name as written: {[p['name_text'] for p in ps]}")
+    if fred:
+        facts = {(t, v, dt, pl) for t, v, dt, pl in cx2.execute("SELECT fact_type, value_text, date_text, ps.raw FROM persona_fact pf LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE persona_id=?", (fred["id"],))}
+        say(("Birth", None, "1907-05-22", "Massachusetts, United States") in facts, f"birth date and place as the row's own columns give them: {facts}")
+        say(("Death", None, "2016-03-04", "NJ") in facts, f"death date and state as written: {facts}")
+        say(any(t == "Unknown" and v == "State File Number: 20160057427" for t, v, _, _ in facts), f"the state file number under its own label: {facts}")
+    alice = next((p for p in ps if p["name_text"] == "alice ahearn"), None)
+    if alice:
+        afacts = {(t, dt) for t, v, dt, pl in cx2.execute("SELECT fact_type, value_text, date_text, place_string_id FROM persona_fact WHERE persona_id=?", (alice["id"],))}
+        say(("Birth", "1935") in afacts, f"a birth with no month or day carries the year alone: {afacts}")
+    same_sha, same_new = ao(cx2, fetch0["bytes"], mime="text/plain", source_id="C09", collection_id=None, locator_kind="url", locator_value=hs[0]["locator"]["value"], retrieved_by=BY, terms="public-domain", cost="free",
+                            trust_tier="T2", derived_from=parent_sha)
+    say(same_sha == d_sha and not same_new, "re-deriving the same surname's rows from the same parent lands on the same artifact, archived once")
+    other = ("FNAME,LNAME,MIDDLE_NAME,STATE_FILE_NUMBER,BIRTH_YEAR,BIRTH_MONTH,BIRTH_DAY,BIRTH_CITY,BIRTH_STATE,BIRTH_COUNTRY,DEATH_YEAR,DEATH_MONTH,DEATH_DAY,DEATH_STATE\r\n"
+             "john,smith,,20140099999,1930,7,4,,New Jersey,United States,2014,2,14,NJ\r\n").encode()
+    other_sha, _ = ao(cx2, other, mime="text/plain", source_id="C09", collection_id=None, locator_kind="url", locator_value=f"{nj.CSV_URL}#surname=Smith", retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", derived_from=parent_sha)
+    eid2, n2 = ext_fn(cx2, other_sha, BY)
+    say(n2.get("personas") == 1 and eid2 != eid, f"a different surname's derivative, a different artifact, its own extraction: {n2}")
+    say(cx2.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()[0] is None, "extracting another surname's derivative never supersedes this one's own extraction")
+    ok2 = cx2.execute("PRAGMA integrity_check").fetchone()[0]; fk2 = cx2.execute("PRAGMA foreign_key_check").fetchall()
+    say(ok2 == "ok" and not fk2, f"scratch catalog: integrity {ok2}, foreign keys {len(fk2)}")
+    cx2.close(); shutil.rmtree(d, ignore_errors=True)
     return bad
 
 def compiles():

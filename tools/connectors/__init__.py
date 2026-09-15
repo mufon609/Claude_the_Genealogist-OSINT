@@ -18,7 +18,11 @@ The contract, and nothing else:
               {"label": text for the log, "locator": {"kind", "value"}, "notes": {... what the response said about the record ...},
                "fetch": [{"url", "kind": "json" | "text" | "image"}]}: the record's own transcription, text or image to archive.
               A fetch with "record": False is archived but not read as a record (an item's metadata). A fetch may carry
-              "then": a name for follow().
+              "then": a name for follow(). A fetch computed locally from a response already in hand (a surname's own rows out
+              of a whole downloaded file) carries "bytes": the content itself, so the runner archives it without a request of
+              its own, and "derived_from": the sha256 of the artifact it was computed from (request["archived_sha"] carries the
+              current top-level request's own sha256 once archived, for hits() to read); when the request has one, the request
+              dict passed to hits() carries it too.
   Optional:
   next_page(url, body) -> url or None    the next page of the same search while the source's total stays small.
   narrow(url, body) -> text or None      what the step needs when the source answers with too many results.

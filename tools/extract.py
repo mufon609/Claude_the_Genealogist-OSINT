@@ -100,8 +100,13 @@ Connector responses (JSON, archived by tools/run_step.py) have their own extract
                                  the page's date, title and place in the region, and no fact beyond the name: running text
                                  states no date of the person's life. The runner's notes on the response supply the surname,
                                  the step's kind and the connector.
+  rule:nj-death-index@0.1.0      a derived CSV text/plain response (tools/connectors/nj_death_index.py), claimed by its own
+                                 header row (FNAME,LNAME,MIDDLE_NAME,STATE_FILE_NUMBER,...): one persona per row, named as
+                                 written, with a Birth (year/month/day and city/state/country as given) and a Death (year/
+                                 month/day and state) and the state file number as an Unknown fact under its own label; the
+                                 whole derivative's rows in structured_json.
 """
-import argparse, html, json, os, re, sqlite3, sys, urllib.parse
+import argparse, csv, html, io, json, os, re, sqlite3, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
@@ -111,8 +116,9 @@ EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("r
               "familysearch": ("rule", "familysearch-record", "0.1.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
-              "va_graves": ("rule", "va-gravesite", "0.1.0"),
+              "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
               None: ("rule", "extract", "0.1.0")}
+NJ_DEATH_FIELDS = ["FNAME", "LNAME", "MIDDLE_NAME", "STATE_FILE_NUMBER", "BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY", "DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"]
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial", "naturalization": "Naturalization"}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
@@ -828,6 +834,43 @@ def parse_json(data, ctx):
         return "ia_inside", {"kind": "ia_inside", "segment": d["ia"], "full_text": text, "page": page, "step_type": ctx["step_type"], "query": _searched(ctx), "fields": []}
     return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text, not the Archive's search inside an item"}
 
+def parse_csv(data, ctx):
+    """A connector's own derived CSV text (tools/connectors/nj_death_index.py), claimed by its header row and by carrying one
+    surname's rows alone (the whole file this derives from shares the header but not that): the New Jersey death index's rows
+    under one surname. Else (None, reason)."""
+    try: text = data.decode("utf-8")
+    except UnicodeDecodeError as e: return None, {"reason": f"not decodable text: {e}"}
+    first = text.splitlines()[0].strip() if text.splitlines() else ""
+    if first == ",".join(NJ_DEATH_FIELDS):
+        rows = list(csv.DictReader(io.StringIO(text)))
+        surnames = {(r.get("LNAME") or "").strip().lower() for r in rows}
+        if rows and len(surnames) == 1:
+            return "nj_death_index", {"kind": "nj_death_index", "rows": rows, "surname": ctx["notes"].get("surname") or rows[0].get("LNAME"), "fields": []}
+        return None, {"reason": f"the New Jersey death index's own header, but {len(surnames)} surname(s): the whole file, not one surname's derivative"}
+    return None, {"reason": "no extractor claims this text: not a derivative this codebase writes"}
+
+def nj_date(row, prefix):
+    """A New Jersey death index row's date, from its own YEAR/MONTH/DAY columns: the ISO form parse_gedcom_date reads
+    directly, the year alone when the month or day is blank (the file leaves both blank on some birth rows)."""
+    y, m, d = (row.get(f"{prefix}_YEAR") or "").strip(), (row.get(f"{prefix}_MONTH") or "").strip(), (row.get(f"{prefix}_DAY") or "").strip()
+    if not y: return None
+    if m and d:
+        try: return f"{int(y):04d}-{int(m):02d}-{int(d):02d}"
+        except ValueError: return y
+    return y
+
+def write_nj_death(w, parsed):
+    """One persona per row of the New Jersey death index derivative, named as written, with a Birth (date and place from the
+    city/state/country columns, as given) and a Death (date and state) and the state file number under its own label."""
+    for seq, r in enumerate(parsed["rows"], 1):
+        name = " ".join(x for x in (r.get("FNAME"), r.get("MIDDLE_NAME"), r.get("LNAME")) if (x or "").strip()).strip()
+        pid = w.persona(name, None, "listed", seq, {"label": "nj_death_index", "state_file_number": r.get("STATE_FILE_NUMBER")})
+        w.fact(pid, "Name", name, labels=["FNAME", "LNAME"])
+        bplace = ", ".join(x for x in (r.get("BIRTH_CITY"), r.get("BIRTH_STATE"), r.get("BIRTH_COUNTRY")) if (x or "").strip())
+        w.fact(pid, "Birth", None, nj_date(r, "BIRTH"), bplace or None, labels=["BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY"])
+        w.fact(pid, "Death", None, nj_date(r, "DEATH"), r.get("DEATH_STATE") or None, labels=["DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"])
+        if (r.get("STATE_FILE_NUMBER") or "").strip(): w.fact(pid, "Unknown", f"State File Number: {r['STATE_FILE_NUMBER']}", labels=["STATE_FILE_NUMBER"])
+
 def write_schedule(w, parsed):
     """One persona per transcribed row the search matched (every row when nothing was matched): the name as transcribed, a
     Residence in the schedule's county and state in 1950, the enumeration district and row under their own labels."""
@@ -876,6 +919,7 @@ def extract(cx, sha, by):
     with open(object_path(sha), "rb") as fh: data = fh.read()
     if mime.startswith("text/html"): kind, parsed = parse(data.decode("utf-8", errors="replace"))
     elif mime.startswith("application/json") or data[:1] in (b"{", b"["): kind, parsed = parse_json(data, context_for(cx, sha))
+    elif mime.startswith("text/plain") or mime.startswith("text/csv"): kind, parsed = parse_csv(data, context_for(cx, sha))
     else: kind, parsed = None, {"reason": f"not a record page or a connector response: {mime}"}
     extractor = EXTRACTORS[kind]; ts = now()
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", extractor).fetchone()
@@ -898,6 +942,7 @@ def extract(cx, sha, by):
     elif kind == "va_graves": full_text = "\n".join(f"{r['n']}: {r.get('name')} {r.get('birth') or ''}-{r.get('death') or ''} {r.get('rank_branch') or ''} {r.get('war') or ''} {r.get('cemetery') or ''} {r.get('buried_at') or ''}" for r in parsed["rows"])
     elif kind == "familysearch_search": full_text = "\n".join(f"{r['n']}: {r['name']} " + "; ".join(f"{e['label']} {e['date'] or ''} {e['place'] or ''}".strip() for e in r["events"]) + " " + "; ".join(f"{k} {', '.join(v)}" for k, v in (r["relations"] or {}).items()) + f" {r['ark']}" for r in parsed["rows"])
     elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
+    elif kind == "nj_death_index": full_text = "\n".join(f"{r.get('FNAME')} {r.get('LNAME')} b.{r.get('BIRTH_YEAR') or '?'} d.{r.get('DEATH_YEAR') or '?'} #{r.get('STATE_FILE_NUMBER')}" for r in parsed["rows"])
     else: full_text = parsed["full_text"]
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
                (eid, sha, ext_id, ts, full_text, dumps(parsed)))
@@ -911,7 +956,7 @@ def extract(cx, sha, by):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
     {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "familysearch_search": write_fs_search, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
-     "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va}.get(kind, write_personas)(w, parsed)
+     "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va, "nj_death_index": write_nj_death}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))

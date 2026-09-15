@@ -176,25 +176,28 @@ def redistributable(terms):
     return bool(re.search(r"\bpublic domain\b|\bPD\b|\bpublic record\b", t, re.I) or t.lower() == "public")
 
 def archive_object(cx, data: bytes, *, mime, source_id, collection_id, locator_kind, locator_value, retrieved_by, terms, cost, trust_tier,
-                   original_filename=None, notes=None, http=None, collection_name=None, pages=1):
+                   original_filename=None, notes=None, http=None, collection_name=None, pages=1, derived_from=None):
     """Put bytes in the archive: the object, its manifest, the artifact row and its local copy. Bytes already archived are left as
     they are (artifact rows are insert-only). The redistributable flag comes from the source row's terms (redistributable), and
-    the manifest names the row that said so. Returns (sha256, True when the object is new)."""
+    the manifest names the row that said so. derived_from is the sha256 of the artifact these bytes were computed from (a
+    surname's own rows out of a whole downloaded file): the derivative gets its own row and its own extraction, never the
+    parent's, so re-deriving the same rows from the same parent reuses the same bytes and the same row, and a different
+    surname's rows never supersede this one's. Returns (sha256, True when the object is new)."""
     sha = hashlib.sha256(data).hexdigest(); ts = now()
     if cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return sha, False
     redist = redistributable(terms)
     manifest = {"schema_version": "0.1.0", "sha256": sha, "bytes": len(data), "mime": mime, "source_id": source_id, "collection": collection_name,
                 "locator": {"kind": locator_kind, "value": locator_value}, "retrieved_at": ts, "retrieved_by": retrieved_by, "http": http,
                 "rights": {"terms": terms or "unknown", "redistributable": redist, "cost": cost or "unknown", **({"redistributable_by": source_id} if redist else {})}, "trust_tier": trust_tier,
-                "original_filename": original_filename, "pages": pages, "notes": notes or ""}
+                "original_filename": original_filename, "pages": pages, "derived_from": derived_from, "notes": notes or ""}
     manifest = {k: v for k, v in manifest.items() if v is not None}
     dst, man = object_path(sha), manifest_path(sha)
     os.makedirs(os.path.dirname(dst), exist_ok=True); os.makedirs(os.path.dirname(man), exist_ok=True)
     with open(dst, "wb") as fh: fh.write(data)
     with open(man, "w", encoding="utf-8") as fh: json.dump(manifest, fh, ensure_ascii=False, indent=2)
-    cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,manifest_json,created_at)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, len(data), mime, source_id, collection_id, locator_kind, locator_value, ts, retrieved_by,
-                                                                  manifest["rights"]["terms"], redist, manifest["rights"]["cost"], trust_tier, original_filename, pages, dumps(manifest), ts))
+    cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,derived_from,manifest_json,created_at)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, len(data), mime, source_id, collection_id, locator_kind, locator_value, ts, retrieved_by,
+                                                                  manifest["rights"]["terms"], redist, manifest["rights"]["cost"], trust_tier, original_filename, pages, derived_from, dumps(manifest), ts))
     cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)", (sha, "local", ts, ts, True))
     return sha, True
 

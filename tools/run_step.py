@@ -175,24 +175,28 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")
     cid = collection_for(cx, conn); shas, records, hits, errors, totals = [], [], [], [], []
-    def keep(data, http, kind, url, notes, label=None, locator=None):
+    def keep(data, http, kind, url, notes, label=None, locator=None, derived_from=None):
         mime = (http.get("content_type") or "").split(";")[0].strip() or {"json": "application/json", "text": "text/plain", "image": "image/jpeg"}[kind]
         if kind in ("json", "search", "text") and mime.startswith("text/html"): mime = "application/json" if data[:1] in (b"{", b"[") else mime
         sha, _ = archive_object(cx, data, mime=mime, source_id=conn.SOURCE, collection_id=cid, collection_name=conn.COLLECTION, locator_kind="url", locator_value=locator or url,
-                                retrieved_by=by, terms=terms, cost=cost, trust_tier=tier, notes=dumps(notes) if notes else (label or ""), http=http)
+                                retrieved_by=by, terms=terms, cost=cost, trust_tier=tier, notes=dumps(notes) if notes else (label or ""), http=http, derived_from=derived_from)
         if sha not in shas: shas.append(sha)
         return sha
     def hits_of_page(h):
         got, todo = [], list(h["fetch"])
         while todo:                                              # a fetched response may name more to fetch (connector.follow)
             f = todo.pop(0)
-            try: d2, h2 = fetch(f["url"], f["kind"], conn)
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{f['url']}: {e}"); continue
+            if "bytes" in f:                                     # computed locally from a response already in hand, not a request of its own
+                d2, h2 = f["bytes"], {"status": None, "etag": None, "last_modified": None, "final_url": f.get("url"), "content_type": None}
+            else:
+                try: d2, h2 = fetch(f["url"], f["kind"], conn)
+                except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{f['url']}: {e}"); continue
             if hasattr(conn, "follow"):                          # first, so what the response taught (the pages chosen) is in this artifact's notes
                 try: todo += conn.follow(f, d2, h)
                 except ValueError as e: errors.append(f"{f['url']}: {e}")
             got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], "step_type": step["query_type"], "connector": conn.__name__.split(".")[-1],
-                                                          **({"page_number": f["page"]} if f.get("page") else {}), **({"spelling": f["spelling"]} if f.get("spelling") else {})}))   # the step's kind and the connector on the response itself, so it reads the same on its own
+                                                          **({"page_number": f["page"]} if f.get("page") else {}), **({"spelling": f["spelling"]} if f.get("spelling") else {})},
+                            derived_from=f.get("derived_from")))   # the step's kind and the connector on the response itself, so it reads the same on its own
             if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted"))})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
@@ -203,6 +207,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
             try: data, http = fetch(url, rq["kind"], conn, rq.get("data") if first else None)
             except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); break
             sha = keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": query}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
+            rq["archived_sha"] = sha                              # this request's own bytes, for hits() to derive from (connectors/__init__.py)
             if url == rq["url"]:
                 try: totals.append(conn.total(data))
                 except ValueError: totals.append(None)
