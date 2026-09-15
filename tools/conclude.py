@@ -481,7 +481,9 @@ def claimed_relation_match(fam, relations, accepted_on_record):
 def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a persona-match proposal, and why, in words: (True, reason) or (False, why not). A
     record read by hand or by the model (extractor human:<user> or llm:<model>) is judged exactly like one a rule parsed: by
-    the record's own kind and tier and by the facts that agree, never by who did the reading. A record from a source nobody
+    the record's own kind and tier and by the facts that agree, never by who did the reading. The kind is the collection as the
+    current reading names it (a parsed page's own heading), the artifact row's collection only when the reading gives none:
+    artifact rows are written once, and an older parser's title stays on them. A record from a source nobody
     can edit at will (T1–T3), of a kind that identifies a person fully: the accepted name and two facts resting on trusted
     sources or the owner's word agree, and no birth or death date or place disagrees against the event's own Accepted
     assertion (a disagreement with a bare claim is not a veto: it is named in the reason and the record is still taken,
@@ -504,10 +506,11 @@ def rule_accepts(cx, tree_id, prop, without=()):
     q = _q(cx)
     pay = json.loads(prop["payload_json"]); pid, sha = pay.get("person_id"), pay["artifact_sha256"]
     if prop["kind"] != "persona_match" or not pid: return False, "a new person is the owner's decision"
-    x = q.execute(f"""SELECT x.name, x.kind AS extractor_kind, c.name AS collection, {tier_sql()} AS trust_tier, s.name AS source FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
+    x = q.execute(f"""SELECT x.name, x.kind AS extractor_kind, CASE WHEN json_valid(e.structured_json) THEN json_extract(e.structured_json,'$.collection') END AS read_collection, c.name AS collection, {tier_sql()} AS trust_tier, s.name AS source
+                     FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
                      LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
     if not x: return False, "the record's extraction is gone"
-    coll = x["collection"] or ""
+    coll = x["read_collection"] or x["collection"] or ""             # the collection as the current reading names it (the page's own heading); the artifact row, written once at archive time, only when the reading gives none
     identity = str(x["trust_tier"] or "")[:2] not in TRUSTED             # a page anyone can edit: the identity may be taken, its facts never
     survivors_kind = bool(NAMED_SURVIVORS.search(coll))                  # an obituary or newspaper text: identifying only once read, and only through who it names
     if identity:

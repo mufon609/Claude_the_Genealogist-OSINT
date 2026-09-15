@@ -1049,6 +1049,23 @@ def decisions(keep, show):
     audit_rerun = cx.execute("SELECT actor FROM audit_log WHERE entity_kind='proposal' AND entity_id=? ORDER BY id DESC LIMIT 1", (eid_v,)).fetchone() if vp else None
     fail(r_sess and r_sess.get("ok") and audit_rerun and audit_rerun["actor"] == "agent:harness-session for user:owner",
          f"the matcher's re-run after a rule decision is logged under the session that acted, not the owner alone: {dict(audit_rerun) if audit_rerun else None}")
+    # ---- the rule reads a record's collection from its current reading, the artifact row only as a fallback: a page archived
+    # under the old parser's leading "Mentioned in the Record of …" banner as its collection, read now with the page's own h2,
+    # is judged by that h2 (a death record, an identifying kind), never left a hint on the archive row's stale title
+    with open(os.path.join(FIXTURES, "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html"), "rb") as fh: data = fh.read()
+    cid_k = treelib.ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid_k, "D03", "Mentioned in the Record of Ollie Duke Davidson (Lena Howard Bell's Son)", "other", "harness_mentioned_in"))
+    sha_k, _ = archive_object(cx, data, mime="text/html", source_id="D03", collection_id=cid_k, collection_name="Mentioned in the Record of Ollie Duke Davidson (Lena Howard Bell's Son)", locator_kind="file",
+                              locator_value="familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html", retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0],
+                              original_filename="familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html")
+    eid_k, _ = extract(cx, sha_k, BY); cx.commit()
+    pe_k = cx.execute("SELECT id FROM persona WHERE extraction_id=? AND name_text='Ollie Duke Davidson'", (eid_k,)).fetchone()
+    prop_k = treelib.ulid()
+    cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
+               (prop_k, tid, "persona_match", treelib.dumps({"persona_id": pe_k[0] if pe_k else None, "person_id": who["Raymond Earl Davidson"], "extraction_id": eid_k, "artifact_sha256": sha_k}), "harness: the rule's collection read", rx_id, treelib.now()))
+    cx.commit()
+    ok_k, why_k = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (prop_k,)).fetchone()); say("rule on the mentioned-in page:", ok_k, why_k)
+    fail(pe_k is not None and "hint until a person reads it" not in why_k and "Mentioned in the Record" not in why_k,
+         f"the rule judges the page by the collection its current reading gives (Kentucky, Deaths), not the archive row's banner title: {why_k}")
     # ---- the plan is idempotent and the catalog whole
     st1 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
     st2 = {k: v for k, v in [(pid, plan_person(cx, tid, pid, BY)) for pid in who.values()]}; cx.commit()
