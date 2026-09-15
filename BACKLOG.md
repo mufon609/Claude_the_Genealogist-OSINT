@@ -55,7 +55,15 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
-No items.
+### A1. The turn runner
+
+Three tools the loop (`docs/RESEARCH-WORKFLOW.md` §8) needs and does not yet
+have: a turn runner driving one person's plan end to end (fetches, assisted
+saves, auto searches, the standing rule's decisions, the people it creates,
+the plan regenerated); a queue reading the edge of the confirmed tree from
+`tools/tree.py overview`, the home person's line first, then everyone a
+record names after; and a way to resume a turn a challenge paused. Blocking
+nothing yet.
 
 ---
 
