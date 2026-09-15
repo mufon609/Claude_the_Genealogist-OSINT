@@ -756,11 +756,20 @@ def write_aad_record(w, parsed):
         if v and not re.search(r"undefined code|^#+$", v, re.I): w.fact(pid, ftype, v, labels=[title])
     if f.get("ARMY SERIAL NUMBER"): w.fact(pid, "Identification Number", f["ARMY SERIAL NUMBER"], labels=["ARMY SERIAL NUMBER"])
 
+def calc_census_birth(by_type, is_census):
+    """A census record's own Birth Date, when it is a bare year, is the index's own estimate from the age on the census
+    date, never a birth as written: qualifier calculated, like the age-derived one, so the matcher allows two years."""
+    slot = by_type.get("Birth")
+    if is_census and slot and slot.get("date") and re.fullmatch(r"\d{4}", slot["date"][0] or ""):
+        slot["date"] = (f"CAL {slot['date'][0]}", slot["date"][1])
+
 def write_record(w, parsed):
     """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a relation to the subject."""
     fields = parsed["fields"]; f = dict(fields)
     kind_word = (parsed.get("collection") or "").split("•")[0].strip().lower()                     # "Census • United States, Census, 1950"
+    is_census = kind_word == "census"
     by_type, named = field_facts(fields, EVENT_TYPES.get(kind_word))
+    calc_census_birth(by_type, is_census)
     name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
     role = (f.get("Relationship to Head of Household") or "subject").lower()
     subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark")})
@@ -779,6 +788,7 @@ def write_record(w, parsed):
     for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], seq0):   # a surname alone or UNKNOWN names nobody
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)
+        calc_census_birth(mb, is_census)
         age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
         if year and age and not (mb.get("Birth") or {}).get("date"):     # a household member's birth year, calculated from the age on the census date
             mb.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
