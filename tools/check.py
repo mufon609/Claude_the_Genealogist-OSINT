@@ -554,7 +554,7 @@ def decisions(keep, show):
     import treelib; treelib.DATA_ROOT = d
     from attach import attach_inbox
     from catalog import tier_sql
-    from conclude import decide, rule_accepts
+    from conclude import decide, reconsider, rule_accepts, withdraw
     from extract import extract
     from facts import fact_status
     from plan import plan_person
@@ -697,6 +697,15 @@ def decisions(keep, show):
         if fa:
             ok_r, why_r = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (fa["id"],)).fetchone()); say("rule on one letter apart:", ok_r, why_r)
             fail(not ok_r and "one letter apart" in why_r, f"the rule does not take a name one letter apart: {why_r}")
+        # the mother the record names, in a stated relationship to the child accepted on it, fits nobody in this tree: the rule
+        # creates her under the name as the index writes it (docs/RESEARCH-WORKFLOW.md §5–7), her link to the child accepted
+        ma = cx.execute("""SELECT p.* FROM proposal p JOIN persona pe ON pe.id=json_extract(p.payload_json,'$.persona_id')
+                           WHERE p.tree_id=? AND json_extract(p.payload_json,'$.artifact_sha256')=? AND pe.name_text='Annie E. Scauusl'""", (tid, res[0]["sha256"])).fetchone()
+        annie = json.loads(ma["payload_json"]).get("person_id") if ma else None
+        fail(ma is not None and ma["kind"] == "new_person" and ma["status"] == "accepted" and (ma["decided_by"] or "").startswith("rule:creates-named-relative") and annie
+             and cx.execute("SELECT display_name FROM person WHERE id=?", (annie,)).fetchone()[0] == "Annie E. Scauusl" and fact_status(cx, who["Frederick Michael Ahearn"], "parents") == "accepted",
+             f"the mother on a T2 birth record, nobody fitting her, is created by the rule and the child's parents link accepted on it: {ma and dict(ma)}")
+        if annie: who["Annie E. Scauusl"] = annie
     # ---- a claimed relationship on the same record: a 1920 census names Robert Michael Ahearn and, beside him, his daughter
     # Grace; neither of their own names is accepted yet. The rule takes neither alone, but once Robert's own card is decided,
     # Grace's stated relationship to him, now accepted on this very record, joins the parent-child link the tree already
@@ -725,6 +734,39 @@ def decisions(keep, show):
     fail(card_a and card_a["status"] == "accepted" and (card_a["decided_by"] or "").startswith("rule:") and "claimed relationship" in card_a["decision_note"] and "Robert Michael Ahearn" in card_a["decision_note"],
          f"the rule's own reason names the claimed relationship: {card_a and dict(card_a)}")
     fail(fact_status(cx, who["Grace Mary Ahearn"], "name") == "accepted", "the record's own Name fact documents her, accepted with everything else it states")
+    # ---- the rule creates a person (docs/RESEARCH-WORKFLOW.md §5–7): a son the same census names beside Robert, accepted on it,
+    # whom nobody in the tree fits, is created by the rule with the record's facts and the child link accepted, and enters the
+    # plan; an "other relative" on the same page, nobody in the tree either, is a card for the owner with the reason
+    persons_c = cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0]
+    r_w = server.transcribe(cx, sha_c, {"name": "Walter Ahearn", "sex": "M", "role": "son", "age": "3", "year": "1920",
+                                        "relations": [{"persona_id": r_j["persona"], "kind": "child", "text": "Son"}]}, by="human:harness")
+    cx.commit(); say("1920 census, Walter:", r_w)
+    card_w = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tid, r_w.get("persona"))).fetchone()
+    fail(r_w.get("ok") and r_w["accepted_by_rule"] == 1 and card_w and card_w["kind"] == "new_person" and card_w["status"] == "accepted" and (card_w["decided_by"] or "").startswith("rule:creates-named-relative")
+         and "Son of Robert Michael Ahearn" in (card_w["decision_note"] or ""),
+         f"a son nobody fits, named beside Robert on a T2 census, is created by the rule, recorded as the rule with its reason: {r_w}, {card_w and dict(card_w)}")
+    walter = json.loads(card_w["payload_json"]).get("person_id") if card_w else None
+    made_w = cx.execute("SELECT display_name FROM person WHERE id=? AND tree_id=?", (walter, tid)).fetchone() if walter else None
+    fail(made_w and made_w[0] == "Walter Ahearn" and cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0] == persons_c + 1, f"one person created, the proposal remembering him: {made_w and tuple(made_w)}")
+    if walter: who["Walter Ahearn"] = walter
+    fail(walter and fact_status(cx, walter, "name") == "accepted" and fact_status(cx, walter, "birth") == "accepted" and fact_status(cx, walter, "parents") == "accepted",
+         f"his name, birth and parents link accepted from the record: {walter and [fact_status(cx, walter, f) for f in ('name', 'birth', 'parents')]}")
+    fail(walter and cx.execute("SELECT COUNT(*) FROM search_plan WHERE person_id=?", (walter,)).fetchone()[0] > 0, "the created person enters the plan")
+    r_x = server.transcribe(cx, sha_c, {"name": "Patrick Ahearn", "sex": "M", "role": "other relative", "age": "60", "year": "1920",
+                                        "relations": [{"persona_id": r_j["persona"], "kind": "other", "text": "Other Relative"}]}, by="human:harness")
+    cx.commit(); say("1920 census, Patrick:", r_x)
+    card_x = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tid, r_x.get("persona"))).fetchone()
+    ok_x, why_x = rule_accepts(cx, tid, card_x) if card_x else (None, "no card")
+    fail(r_x.get("ok") and r_x["accepted_by_rule"] == 0 and card_x and card_x["kind"] == "new_person" and card_x["status"] == "undecided" and not ok_x and "Other Relative" in why_x and "not a family relationship" in why_x,
+         f"an \"other relative\" is a card for the owner, the reason naming the word the record uses: {r_x}, {why_x}")
+    fail(cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0] == persons_c + 1, "nobody created for him")
+    # ---- the rule's creation taken back and taken again links the same person, never a second one
+    withdraw(cx, tid, card_w["id"], BY, "harness: taken back", treelib.now()); cx.commit()
+    fail(cx.execute("SELECT status FROM person_persona WHERE person_id=? AND persona_id=?", (walter, r_w["persona"])).fetchone()[0] == "undecided", "withdrawn, his link is undecided; the person row stays")
+    rows_w = reconsider(cx, tid, BY); cx.commit()
+    fail(any(x["kind"] == "card" and x["taken"] and x["proposal"] == card_w["id"] for x in rows_w) and cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0] == persons_c + 1
+         and cx.execute("SELECT status FROM person_persona WHERE person_id=? AND persona_id=?", (walter, r_w["persona"])).fetchone()[0] == "accepted",
+         f"reconsider takes the card again and links the same person, no second Walter: {[x for x in rows_w if x['proposal'] == card_w['id']]}")
     # ---- reconsider judges that decision by the route it stands on: without its own name assertion her name is a claim again,
     # and the stated relationship still holds, so the decision is kept, no withdraw row written
     from conclude import reconsider as _reconsider
@@ -1023,9 +1065,9 @@ def decisions(keep, show):
     from fetches import collect, waiting as waiting_pages
     f04 = [e for e in waiting_pages(cx, tid) if e["holder_id"] == "F04"]
     sar = next((e for e in f04 if e["people"] == ["James Joseph Ahearn"]), None); son = next((e for e in f04 if e["people"] == ["Frederick Michael Ahearn"]), None)
-    fail(sar and son and len(f04) == 2 and sar["save_as"].startswith("f04-") and sar["save_as"].endswith(f"-{who['James Joseph Ahearn'][-6:]}.html") and son["save_as"].endswith(f"-{who['Frederick Michael Ahearn'][-6:]}.html")
+    fail(sar and son and sar["save_as"].startswith("f04-") and sar["save_as"].endswith(f"-{who['James Joseph Ahearn'][-6:]}.html") and son["save_as"].endswith(f"-{who['Frederick Michael Ahearn'][-6:]}.html")
          and sar["save_as"][:-11] == son["save_as"][:-11] and sar["how"] == "page",
-         f"the SAR page James's citation points at is listed twice, once for James and once for his son's footprint step, each name ending in its person's six characters: {f04}")
+         f"the SAR page James's citation points at is listed once for James and once for his son's footprint step, each name ending in its person's six characters: {f04}")
     dl = os.path.join(d, "downloads"); os.makedirs(dl, exist_ok=True)
     fname = sar["save_as"].replace("<year>", "1920") if sar else "x.html"
     with open(os.path.join(dl, fname), "w", encoding="utf-8") as fh: fh.write("<!-- saved from https://sarpatriots.sar.org/patriot/display/24680 -->\n<html><body><h1>Patriot</h1><p>AHEARN, JAMES</p></body></html>")

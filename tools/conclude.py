@@ -7,8 +7,9 @@ record when the tree had none), and the family links it states with people alrea
 too, unless the record is a page anyone can edit, where the memberships are created but their assertions stay Undecided, the
 way a sibling placement already is. Where the record disagrees with the tree's own value the record's statement is still
 accepted as what that record says, the tree's value stays, and the difference is a conflict question the generator raises
-(Catalog.disagreements). A new person is never created without the owner. Anything less certain than the rule below is a
-card for the owner.
+(Catalog.disagreements). A new person is created by the owner, or by the rule when a trusted record (T1–T2, or an obituary
+once read) names them with a name in a stated family relationship to a person accepted on that record and nobody in the tree
+fits after the fitting check (rule_creates). Anything less certain than the rule below is a card for the owner.
 
 The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7): a record of a kind that identifies a person fully, from a source
 nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with the accepted name, at least two
@@ -58,7 +59,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, source_tier, split_name, tier_sql
 from catalog import date_verdict, place_verdict
-from match import MATCHER, REL_OF, candidate, compare, match, personas_of
+from match import MATCHER, REL_OF, candidate, compare, match, personas_of, split_persona_name
 from plan import plan_person
 from backfill_aliases import classify, clean, key
 
@@ -69,6 +70,8 @@ NAMED_SURVIVORS = re.compile(r"obituary|newspaper", re.I)   # a kind that identi
 EDITABLE = re.compile(r"(?:find a grave|billiongraves|member tree|family tree)(?!.*photograph)", re.I)    # a page anyone can edit, whoever indexes it; not the gravestone's own photograph, which is a primary source (T1) however it is archived
 TRUSTED = ("T1", "T2", "T3")                            # a record the rule may act on or count: not one anyone can edit (T4)
 EDITABLE_IDENTIFYING = ("findagrave-memorial", "wikitree-profile")   # a page anyone can edit that identifies a person (a memorial, a profile): the rule may take the identity, never a fact; a results page's row is a hint
+FAMILY_WORD = re.compile(r"\bhalf\b|grand(?:son|daughter|child)|in-law", re.I)   # a stated family relationship the record files under 'other': a half sibling, a grandchild, an in-law; never "other relative" or a blank
+RULE_ACTOR = {"persona_match": "rule:agrees-with-accepted", "new_person": "rule:creates-named-relative"}   # the rule as the decider, by what it did
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).
 
 def trusted_evidence(cx, tree_id, kind, ids, day=False, without=()):
@@ -400,7 +403,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         if not (p["status"] == "accepted" and status == "rejected" and (p["decided_by"] or "").startswith("rule:")): return {"error": "already decided"}
         n = q.execute("UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=? WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (by, ts, tree_id, prop_id)).rowcount
     q.execute("UPDATE proposal SET status=?, decided_by=?, decided_at=?, decision_note=? WHERE id=?", (status, by, ts, note, prop_id))
-    if p["kind"] == "new_person" and status == "accepted": person_id = create_person(cx, tree_id, persona_id, ts)
+    if p["kind"] == "new_person" and status == "accepted" and not person_id:   # created once; a decision the rule took back and that is taken again links the same person
+        person_id = create_person(cx, tree_id, persona_id, ts)
+        q.execute("UPDATE proposal SET payload_json=json_set(payload_json,'$.person_id',?) WHERE id=?", (person_id, prop_id))
     if person_id:
         for pe_id in same_personas(cx, persona_id):                # the decision is about the record: every reading's persona of this name and role takes it
             q.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (person_id, pe_id, status, prop_id, by, ts))
@@ -508,7 +513,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
     that route, as it was taken, not as an accepted name resting on no trusted source."""
     q = _q(cx)
     pay = json.loads(prop["payload_json"]); pid, sha = pay.get("person_id"), pay["artifact_sha256"]
-    if prop["kind"] != "persona_match" or not pid: return False, "a new person is the owner's decision"
+    if prop["kind"] not in ("persona_match", "new_person") or (prop["kind"] == "persona_match" and not pid): return False, "not a card the rule decides"
     x = q.execute(f"""SELECT x.name, x.kind AS extractor_kind, CASE WHEN json_valid(e.structured_json) THEN json_extract(e.structured_json,'$.collection') END AS read_collection, c.name AS collection, {tier_sql()} AS trust_tier, s.name AS source
                      FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
                      LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
@@ -531,6 +536,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
     chosen = {r["persona_id"]: candidate(cat, r["person_id"]) for r in q.execute(f"""SELECT pp.persona_id, pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                     JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=? {skip}""", (pay["extraction_id"], tree_id, *without))}
     accepted_on_record = dict(chosen)                             # persona id -> candidate, genuinely decided on this record; the fitting loop below only guesses at a fit
+    if prop["kind"] == "new_person": return rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record)
     fam = cat.family(pid)
     relatives = [candidate(cat, rid) for g in ("parents", "spouses", "children") for rid, _ in fam[g]]
     for other in personas_of(cx, pay["extraction_id"]):           # a persona the record relates to this one fits a relative the tree already links: it stands for that relative here
@@ -590,6 +596,31 @@ def rule_accepts(cx, tree_id, prop, without=()):
     if survivors_kind and not rel_points: return False, "an obituary or newspaper text is ground only through who it names: " + (", ".join(p for p in points if p != "and the day") or "the name") + " agree, but none of the accepted relatives is among the survivors it names"
     return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees against an accepted value" + claim_note
 
+def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record):
+    """Whether the rule creates the person a new_person card proposes, and why, in words (docs/RESEARCH-WORKFLOW.md §5–7): a
+    trusted record (T1–T2, or an obituary once read) names them, with a name, in a stated family relationship (child, parent,
+    spouse, sibling, half sibling, grandchild, in-law; never "other relative" or a blank) to a person accepted on the same
+    record, and nobody in the tree fits after the fitting check — the matcher's own word, so a card an older matcher wrote is
+    left for reconsider to propose again. A page anyone can edit names a person but never creates one: the owner does."""
+    q = _q(cx)
+    if identity: return False, "a page anyone can edit names a person but never creates one: the owner decides"
+    tier = str(x["trust_tier"] or "")[:2]
+    if tier not in ("T1", "T2") and not (survivors_kind and tier == "T3"): return False, f"a {tier or 'untiered'} record creates nobody: only a T1 or T2 record, or an obituary once read, and the owner otherwise"
+    given, rest = split_persona_name(persona["name"])
+    if not given or not rest or persona["name"] == "(unnamed)": return False, "the record gives no full name to create a person under"
+    if prop["status"] == "undecided":
+        v = q.execute("SELECT version FROM extractor WHERE id=?", (prop["generated_by"],)).fetchone()
+        if not v or v["version"] != MATCHER[2]: return False, f"the matcher at {v['version'] if v else '?'} found nobody fitting; the matcher now at {MATCHER[2]} has not looked: reconsider proposes it again"
+    stated = [(r["kind"], r["value_text"], r["persona_id"] if r["persona_id"] != persona["id"] else r["related_persona_id"])
+              for r in q.execute("SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation WHERE persona_id=? OR related_persona_id=?", (persona["id"], persona["id"]))]
+    named = [(kind, word, other) for kind, word, other in stated if other in accepted_on_record and (kind in ("child", "parent", "spouse", "sibling") or (kind == "other" and FAMILY_WORD.search(word or "")))]
+    if not named:
+        others = [word or kind for kind, word, other in stated if other in accepted_on_record]
+        return False, ("the record relates them to a person accepted on it only as " + ", ".join(others) + ": not a family relationship the rule creates a person on") if others \
+               else "the record states no family relationship between them and a person accepted on it"
+    kind, word, other = named[0]
+    return True, f"{word or kind} of {accepted_on_record[other]['name']}, accepted on this record, whom nobody in the tree fits after the fitting check: created as a person with the record's facts"
+
 def match_record(cx, eid, by, about=None):
     """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the
     owner's behalf, recorded as the rule. Returns (proposals written, proposals the rule accepted with the reason)."""
@@ -598,7 +629,7 @@ def match_record(cx, eid, by, about=None):
     for prop_id, kind, name, person_id in written:
         p = q.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
         ok, why = rule_accepts(cx, p["tree_id"], p)
-        if ok: decide(cx, p["tree_id"], prop_id, "accepted", f"rule:agrees-with-accepted for {by}", note=why); taken.append((prop_id, name, why))
+        if ok: decide(cx, p["tree_id"], prop_id, "accepted", f"{RULE_ACTOR[p['kind']]} for {by}", note=why); taken.append((prop_id, name, why))
     return written, taken
 
 def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
@@ -800,7 +831,7 @@ def reconsider(cx, tree_id, by, dry_run=False):
     q = _q(cx); ts = now(); out = []; gone = []
     rows = q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' ORDER BY decided_at, id", (tree_id,)).fetchall()
     ids = [r["id"] for r in rows]
-    name = lambda pay: (q.execute("SELECT display_name FROM person WHERE id=?", (pay["person_id"],)).fetchone() or {"display_name": "?"})["display_name"]
+    name = lambda pay: (q.execute("SELECT display_name FROM person WHERE id=?", (pay.get("person_id"),)).fetchone() or {"display_name": "(a new person)"})["display_name"]
     persona = lambda pay: q.execute("SELECT name_text FROM persona WHERE id=?", (pay["persona_id"],)).fetchone()["name_text"]
     for i, p in enumerate(rows):
         pay = json.loads(p["payload_json"])
@@ -815,10 +846,10 @@ def reconsider(cx, tree_id, by, dry_run=False):
     taken = True
     while taken:
         taken = False
-        for p in q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='undecided' AND kind='persona_match' ORDER BY created_at, id", (tree_id,)).fetchall():
+        for p in q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') ORDER BY created_at, id", (tree_id,)).fetchall():
             if p["id"] in cards and cards[p["id"]]["taken"]: continue
             pay = json.loads(p["payload_json"]); ok, why = rule_accepts(cx, tree_id, p)
-            if ok and not dry_run: decide(cx, tree_id, p["id"], "accepted", f"rule:agrees-with-accepted for {by}", note=why); taken = True
+            if ok and not dry_run: decide(cx, tree_id, p["id"], "accepted", f"{RULE_ACTOR[p['kind']]} for {by}", note=why); taken = True
             cards[p["id"]] = {"proposal": p["id"], "person": name(pay), "persona": persona(pay), "kind": "card", "taken": ok, "why": why}
     rows_out = []; seen = set()
     for p in q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='undecided' AND kind='persona_match'", (tree_id,)).fetchall():
