@@ -416,6 +416,18 @@ def split_disagree(cx, cand, persona, disagree):
         else: vetoes.append(d)
     return vetoes, claims
 
+def claimed_relation_match(fam, relations, accepted_on_record):
+    """Whether the persona's stated relationship names a persona already accepted on this very record as a person the tree
+    links to the candidate by that relation, claimed or accepted (docs/RESEARCH-WORKFLOW.md §5-7): (group, other candidate,
+    other name) when so, else None. accepted_on_record: persona id -> candidate, from person_persona rows already decided
+    accepted on this extraction — not the fitting check's own guesses."""
+    for kind, other_pid, _, other_name in relations:
+        other_cand = accepted_on_record.get(other_pid)
+        if not other_cand: continue
+        group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
+        if group and any(rid == other_cand["id"] for rid, _ in fam[group]): return group, other_cand, other_name
+    return None
+
 def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a persona-match proposal, and why, in words: (True, reason) or (False, why not). A
     record read by hand or by the model (extractor human:<user> or llm:<model>) is judged exactly like one a rule parsed: by
@@ -432,8 +444,12 @@ def rule_accepts(cx, tree_id, prop, without=()):
     the surname's absence either), which is how her own obituary can name her at all. A page anyone can edit (T4) that
     identifies a person (a memorial, a profile): the identity alone, when the name agrees and three of birth date to the day,
     death date to the day, burial place and a stated parent or spouse who is that relative in the tree agree with the tree,
-    claimed or accepted; its facts are then written undecided (assert_facts). without: proposal ids whose assertions are not
-    ground (reconsider)."""
+    claimed or accepted; its facts are then written undecided (assert_facts). A persona whose stated relationship is to a
+    persona already accepted on this same record as a person the tree links to the candidate by that relation, claimed or
+    accepted, is taken the same way though the candidate's own name is not yet accepted, once the given name and surname
+    agree with the candidate's name (claimed or accepted) and a birth year agrees where both have one (claimed_relation_match):
+    the record's own Name fact then documents the name, accepted with everything else the record states. without: proposal
+    ids whose assertions are not ground (reconsider)."""
     q = _q(cx)
     pay = json.loads(prop["payload_json"]); pid, sha = pay.get("person_id"), pay["artifact_sha256"]
     if prop["kind"] != "persona_match" or not pid: return False, "a new person is the owner's decision"
@@ -456,6 +472,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
     if not persona: return False, "persona not found"
     chosen = {r["persona_id"]: candidate(cat, r["person_id"]) for r in q.execute("""SELECT pp.persona_id, pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                     JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=?""", (pay["extraction_id"], tree_id))}
+    accepted_on_record = dict(chosen)                             # persona id -> candidate, genuinely decided on this record; the fitting loop below only guesses at a fit
     fam = cat.family(pid)
     relatives = [candidate(cat, rid) for g in ("parents", "spouses", "children") for rid, _ in fam[g]]
     for other in personas_of(cx, pay["extraction_id"]):           # a persona the record relates to this one fits a relative the tree already links: it stands for that relative here
@@ -488,7 +505,12 @@ def rule_accepts(cx, tree_id, prop, without=()):
         if len(points) < 3: return False, ("a page anyone can edit identifies a person only when the name and three of birth date to the day, death date to the day, burial place "
                                            "and a stated parent or spouse agree: here " + (", ".join(points) + (" agree" if len(points) > 1 else " agrees") if points else "the name alone agrees"))
         return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted" + claim_note
-    if cat.basis("person", pid) != "accepted": return False, "the name is not accepted yet"
+    if cat.basis("person", pid) != "accepted":
+        rel = claimed_relation_match(fam, relations, accepted_on_record)
+        if not rel: return False, "the name is not accepted yet"
+        if any(d.startswith("birth date disagrees") for d in disagree): return False, "the name is not accepted yet, and the birth year disagrees with the claimed relative's record"
+        group, other_cand, other_name = rel
+        return True, f"a claimed relationship: {REL_OF[group]} {other_name}, already accepted on this record, and your tree already links them so, claimed or accepted; the name and birth year agree, so the record's own name fact documents it" + claim_note
     if not trusted_evidence(cx, tree_id, "person", [pid], without=without): return False, "the accepted name rests on no trusted source and not on your own word"
     points, rel_points = [], []
     ok = lambda t, day=False: bool(cand["events"].get(t)) and trusted_evidence(cx, tree_id, "event", [cand["events"][t]], day=day, without=without)   # the event compared, not any of the type

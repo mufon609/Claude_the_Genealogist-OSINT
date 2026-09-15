@@ -453,7 +453,7 @@ def decisions(keep, show):
     name = lambda pid: next(n for n, i in who.items() if i == pid)
     for pid in who.values(): plan_person(cx, tid, pid, BY)
     cx.commit()
-    fail(len(who) == 8, f"eight persons ingested, got {len(who)}")
+    fail(len(who) == 10, f"ten persons ingested, got {len(who)}")
     props = lambda **w: [dict(r) for r in cx.execute("SELECT * FROM proposal WHERE tree_id=? AND status=? AND kind IN ('persona_match','new_person') ORDER BY created_at, id", (tid, w.get("status", "undecided")))]
     person_of = lambda p: json.loads(p["payload_json"]).get("person_id")
     nassert = lambda: cx.execute("SELECT COUNT(*) FROM assertion WHERE tree_id=? AND status='accepted'", (tid,)).fetchone()[0]
@@ -571,6 +571,34 @@ def decisions(keep, show):
         if fa:
             ok_r, why_r = rule_accepts(cx, tid, cx.execute("SELECT * FROM proposal WHERE id=?", (fa["id"],)).fetchone()); say("rule on one letter apart:", ok_r, why_r)
             fail(not ok_r and "one letter apart" in why_r, f"the rule does not take a name one letter apart: {why_r}")
+    # ---- a claimed relationship on the same record: a 1920 census names Robert Michael Ahearn and, beside him, his daughter
+    # Grace; neither of their own names is accepted yet. The rule takes neither alone, but once Robert's own card is decided,
+    # Grace's stated relationship to him, now accepted on this very record, joins the parent-child link the tree already
+    # claims (unaccepted), and her name and (absent) birth year agree with the candidate's: the rule takes her too, the
+    # record's own Name fact documenting hers (docs/RESEARCH-WORKFLOW.md §5-7). Robert and Grace are their own isolated
+    # family, met nowhere else in this fixture, so this does not touch anyone else's footprint or steps.
+    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server; server.CFG["by"] = BY
+    from treelib import archive_object as _ao
+    src_c = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id='D03'").fetchone()
+    cid_c = treelib.ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid_c, "D03", "United States Census, 1920", "other", "harness_1920_census"))
+    sha_c, _ = _ao(cx, b"harness 1920 census fixture: Robert Michael Ahearn household", mime="text/html", source_id="D03", collection_id=cid_c,
+                   collection_name="United States Census, 1920", locator_kind="url", locator_value="https://www.familysearch.org/harness-1920-census",
+                   retrieved_by=BY, terms=src_c[1], cost="free", trust_tier=src_c[0], original_filename="harness-1920-census.html")
+    r_j = server.transcribe(cx, sha_c, {"name": "Robert Michael Ahearn", "sex": "M", "role": "head", "age": "47", "year": "1920"}, by="human:harness", about=[who["Robert Michael Ahearn"]])
+    cx.commit(); say("1920 census, Robert:", r_j)
+    fail(r_j.get("ok") and r_j["accepted_by_rule"] == 0, f"Robert's own name is not accepted yet and nobody on this record grounds him yet, so the rule leaves him a card: {r_j}")
+    card_j = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND json_extract(payload_json,'$.persona_id')=?", (tid, r_j.get("extraction"), r_j.get("persona"))).fetchone()
+    fail(card_j and name(person_of(card_j)) == "Robert Michael Ahearn", f"one card, his, on the census: {card_j and dict(card_j)}")
+    decide(cx, tid, card_j["id"], "accepted", BY, "harness: the census's own head"); cx.commit()
+    r_a = server.transcribe(cx, sha_c, {"name": "Grace Ahearn", "sex": "F", "role": "daughter", "age": "5", "year": "1920",
+                                        "relations": [{"persona_id": r_j["persona"], "kind": "child", "text": "Daughter"}]}, by="human:harness")
+    cx.commit(); say("1920 census, Grace:", r_a)
+    fail(r_a.get("ok") and r_a["accepted_by_rule"] == 1,
+         f"Grace's own name is not accepted either, but her stated relationship names Robert, now accepted on this record, and the tree already claims her his daughter; her name and (absent) birth year agree, so the rule takes her once he is: {r_a}")
+    card_a = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tid, r_a.get("persona"))).fetchone()
+    fail(card_a and card_a["status"] == "accepted" and (card_a["decided_by"] or "").startswith("rule:") and "claimed relationship" in card_a["decision_note"] and "Robert Michael Ahearn" in card_a["decision_note"],
+         f"the rule's own reason names the claimed relationship: {card_a and dict(card_a)}")
+    fail(fact_status(cx, who["Grace Mary Ahearn"], "name") == "accepted", "the record's own Name fact documents her, accepted with everything else it states")
     # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
     r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")

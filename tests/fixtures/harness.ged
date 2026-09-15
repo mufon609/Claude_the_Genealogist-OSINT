@@ -126,6 +126,18 @@
 3 _APID 1,2204::13579
 1 DEAT
 2 DATE 1940
+0 @I9@ INDI
+1 NAME Robert Michael /Ahearn/
+2 GIVN Robert Michael
+2 SURN Ahearn
+1 SEX M
+1 FAMS @F4@
+0 @I10@ INDI
+1 NAME Grace Mary /Ahearn/
+2 GIVN Grace Mary
+2 SURN Ahearn
+1 SEX F
+1 FAMC @F4@
 0 @I8@ INDI
 1 NAME Raymond Earl /Davidson/
 2 GIVN Raymond Earl
@@ -153,6 +165,9 @@
 0 @F3@ FAM
 1 HUSB @I7@
 1 CHIL @I1@
+0 @F4@ FAM
+1 HUSB @I9@
+1 CHIL @I10@
 0 @S1@ SOUR
 1 TITL 1940 United States Federal Census
 1 AUTH Ancestry.com
