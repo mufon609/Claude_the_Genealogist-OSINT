@@ -606,6 +606,44 @@ def decisions(keep, show):
     fail(card_a and card_a["status"] == "accepted" and (card_a["decided_by"] or "").startswith("rule:") and "claimed relationship" in card_a["decision_note"] and "Robert Michael Ahearn" in card_a["decision_note"],
          f"the rule's own reason names the claimed relationship: {card_a and dict(card_a)}")
     fail(fact_status(cx, who["Grace Mary Ahearn"], "name") == "accepted", "the record's own Name fact documents her, accepted with everything else it states")
+    # ---- a results-page row outlives its own record: once Robert is accepted directly on a record his own ark points at, an
+    # undecided results-page row (role result) naming him, written under that same ark, closes rejected, "the record itself is
+    # accepted" (docs/RESEARCH-WORKFLOW.md: a results row is a hint, its own record the document). Robert and Grace stay
+    # isolated, so this does not touch anyone else.
+    from conclude import close_result_rows
+    cid_c2 = treelib.ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid_c2, "D03", "United States, Census, 1930", "other", "harness_1930_census"))
+    sha_full2, _ = _ao(cx, b"harness 1930 census fixture: Robert Michael Ahearn, full record", mime="text/html", source_id="D03", collection_id=cid_c2,
+                       collection_name="United States, Census, 1930", locator_kind="ark", locator_value="ark:/harness/robert-1930",
+                       retrieved_by=BY, terms=src_c[1], cost="free", trust_tier=src_c[0], original_filename="harness-1930-census-full.html")
+    r_full2 = server.transcribe(cx, sha_full2, {"name": "Robert Michael Ahearn", "sex": "M", "role": "subject", "death_date": "1935"}, by="human:harness", about=[who["Robert Michael Ahearn"]])
+    cx.commit(); say("1930 census, Robert, full record:", r_full2)
+    card_full2 = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tid, r_full2.get("persona"))).fetchone()
+    fail(card_full2 is not None and card_full2["status"] == "undecided", f"a card for him on the full record: {card_full2 and dict(card_full2)}")
+    decide(cx, tid, card_full2["id"], "accepted", BY, "harness: the full record, fetched directly"); cx.commit()
+    cx.execute("INSERT INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha_full2, "ark", "ark:/harness/robert-1930"))
+    sha_row2, _ = _ao(cx, b"harness 1930 census fixture: Robert Michael Ahearn, results page", mime="text/html", source_id="D03", collection_id=cid_c2,
+                      collection_name="United States, Census, 1930", locator_kind="url", locator_value="https://www.familysearch.org/harness-1930-results",
+                      retrieved_by=BY, terms=src_c[1], cost="free", trust_tier=src_c[0], original_filename="harness-1930-census-results.html")
+    from extract import Writer                       # persona rows are immutable (CLAUDE.md): the row's own ark must be in its region_json from the start, not patched in after
+    from conclude import match_record
+    xid2 = cx.execute("SELECT id FROM extractor WHERE kind='human' AND name='harness' AND version IS NULL AND prompt_sha256 IS NULL").fetchone()
+    xid2 = xid2[0] if xid2 else treelib.ulid()
+    if not cx.execute("SELECT 1 FROM extractor WHERE id=?", (xid2,)).fetchone():
+        cx.execute("INSERT INTO extractor (id,kind,name,model_id,prompt_sha256,created_at) VALUES (?,?,?,?,?,?)", (xid2, "human", "harness", None, None, treelib.now()))
+    eid_row2 = treelib.ulid()
+    cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'complete',?)", (eid_row2, sha_row2, xid2, treelib.now(), treelib.dumps({"read": "typed by hand"})))
+    w2 = Writer(cx, sha_row2, eid_row2)
+    pid_row2 = w2.persona("Robert Michael Ahearn", "M", "result", 1, {"ark": "ark:/harness/robert-1930", "label": "result", "row": 1})
+    w2.fact(pid_row2, "Name", "Robert Michael Ahearn", labels=["name"]); w2.fact(pid_row2, "Sex", "M", labels=["sex"]); w2.fact(pid_row2, "Death", date="1935", labels=["death_date"])
+    cx.commit()
+    written_row2, _ = match_record(cx, eid_row2, BY, about=[who["Robert Michael Ahearn"]]); cx.commit()
+    say("1930 census, Robert, results row:", written_row2)
+    card_row2 = next((p for p in props() if p["id"] in [w[0] for w in written_row2]), None)
+    fail(card_row2 is not None and card_row2["status"] == "undecided", f"the row's own card, written only now (he was accepted on the full record first), starts undecided: {card_row2 and dict(card_row2)}")
+    closed2 = close_result_rows(cx, tid, who["Robert Michael Ahearn"], BY, treelib.now())
+    fail(card_row2 and closed2 == [(card_row2["id"], "Robert Michael Ahearn")], f"the sweep names the row's own card: {closed2}")
+    after2 = cx.execute("SELECT status, decision_note FROM proposal WHERE id=?", (card_row2["id"],)).fetchone() if card_row2 else None
+    fail(after2 and tuple(after2) == ("rejected", "the record itself is accepted"), f"the row's card closes rejected with the record's own reason: {after2 and dict(after2)}")
     # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
     r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
