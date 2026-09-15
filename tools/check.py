@@ -508,9 +508,15 @@ def decisions(keep, show):
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
     # ---- a link on the owner's word is a vouch, not a record: the sister placed with her parents by their word is linked to nobody for the matcher
     from conclude import link_on_word
-    link_on_word(cx, tid, who["Alicia Ahern"], [who["Frederick Michael Ahearn"], who["Helen Sara Brant"]], "child", "3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e", BY, "harness: the owner's word"); cx.commit()
+    alicia_fid = link_on_word(cx, tid, who["Alicia Ahern"], [who["Frederick Michael Ahearn"], who["Helen Sara Brant"]], "child", "3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e", BY, "harness: the owner's word"); cx.commit()
     fail(fact_status(cx, who["Alicia Ahern"], "parents") == "accepted", "her parents read accepted on the owner's word")
     fail(not linked(Catalog(cx, tid), who["Alicia Ahern"], who["Frederick Micheal Ahearn Jr"]) and not linked(Catalog(cx, tid), who["Alicia Ahern"], who["Helen Sara Brant"]), "a vouched link is not a link on a record: the sister is linked to neither her brother nor her mother for the matcher")
+    # ---- a vouch carries no proposal key in its notes, so it must still count as trusted ground when reconsider excludes other
+    # decisions' assertions (without non-empty): an absent key is not one of the excluded proposals
+    from conclude import trusted_evidence
+    vouch_ids = [treelib.dumps([alicia_fid, who["Alicia Ahern"], "child"])]
+    fail(trusted_evidence(cx, tid, "family_member", vouch_ids), "the vouch counts as ground with nothing excluded")
+    fail(trusted_evidence(cx, tid, "family_member", vouch_ids, without=("some-other-proposal-id",)), "the vouch still counts as ground when an unrelated proposal's assertions are excluded (reconsider's `without`): it has no proposal key to match")
     # ---- the memorial arrives: a page anyone can edit; the rule takes its subject as Abram on the identity alone (the name, both dates to the day, the burial place, the wife and daughter it lists agree with the tree's claims), his facts stay claims, the people it links come up as cards
     shutil.copy(os.path.join(FIXTURES, "findagrave-memorial-78019650.html"), os.path.join(treelib.inbox_dir(), "findagrave-memorial-78019650.html"))
     res = attach_inbox(cx, tid, "harness", BY, ["findagrave-memorial-78019650.html"]); cx.commit(); say("attach memorial:", res)

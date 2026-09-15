@@ -75,7 +75,7 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, without=()):
     date (its persona fact's; the event's own for a vouch with no fact). without: proposal ids whose assertions do not count
     (a rule decision under reconsideration and every rule decision after it)."""
     q = _q(cx)
-    skip = f"AND NOT (json_valid(a.notes) AND json_extract(a.notes,'$.proposal') IN ({','.join('?' * len(without))}))" if without else ""
+    skip = f"AND NOT (json_valid(a.notes) AND coalesce(json_extract(a.notes,'$.proposal'),'') IN ({','.join('?' * len(without))}))" if without else ""
     full = "AND length(coalesce(pf.date_start, CASE WHEN pf.id IS NULL THEN ev.date_start END)) = 10" if day else ""
     for sid in ids:
         if q.execute(f"""SELECT 1 FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
