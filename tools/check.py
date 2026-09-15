@@ -129,6 +129,11 @@ def check_fs_naturalization(ps, fail):
     fail(fact(ps[0], "Naturalization", date="11 Dec 1967", place="Tacoma, Pierce, Washington"), "Event Type Naturalization: Event Date and Event Place become one Naturalization fact, not Unknown")
     fail(fact(ps[0], "Unknown", value="Event Place (Original): Tacoma, Washington"), "the place as written stays an Unknown fact beside the standardized one")
 
+def check_fs_numident(ps, fail):
+    fail(len(ps) == 3 and [(p["name"], p["role"]) for p in ps] == [("Raymond Earl Davidson", "subject"), ("Robert Davidson", ""), ("Ruth Peters", "")],
+         f"the subject and the two names the record's own Parents and Siblings table gives, with no role word of their own; got {[(p['name'], p['role']) for p in ps]}")
+    fail(rel(ps[1], "parent", 1) and rel(ps[2], "parent", 1), "both read as parent relations toward the subject though the table gives no role word: a NUMIDENT record's own Parents and Siblings table names only the parents")
+
 def check_fs_search(ps, fail):
     fail(len(ps) == 20, f"the page's twenty result rows, {len(ps)} written")
     p = ps[0]
@@ -201,6 +206,7 @@ FIXTURE_SET = [
     ("familysearch-search-census-1950-ahearn-frederick-micheal.html", "text/html", "D03", "url", "https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn", "familysearch-search", check_fs_search),
     ("familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html", "text/html", "D03", "apid", "1,5062::1903623", "familysearch-record", check_fs_birth),
     ("familysearch-washington-petitions-for-naturalization-1967-6ZR5-N8ML.html", "text/html", "D03", "apid", "1,2531::258719", "familysearch-record", check_fs_naturalization),
+    ("familysearch-social-security-numident-1956-6KML-FS23.html", "text/html", "D03", "apid", "1,60901::26617542", "familysearch-record", check_fs_numident),
     ("findagrave-search-davidson-robert-1915-2004.html", "text/html", "E01", "url", "https://www.findagrave.com/memorial/search?firstname=Robert&lastname=Davidson&birthyear=1915&deathyear=2004", "findagrave-search", check_fg_search),
     ("va-gravesite-search-davidson-raymond-2007.html", "text/html", "E03", "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007", "va-gravesite", check_va),
     ("va-gravesite-search-davidson-raymond-page1.html", "text/html", "E03", "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond", "va-gravesite", check_va_page1),

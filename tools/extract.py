@@ -80,7 +80,10 @@ household tables ("Parents and Siblings", "Extended Family") give one persona
 per member: the name, the page's own role word (Father, Sister, Maternal
 Grandmother), sex, age and birthplace from the row, the member's own details
 table as its facts, its record ark in region_json, and one relation from the
-member to the subject with the role word as written. The page's own ark, from
+member to the subject with the role word as written (relation_kind); a NUMIDENT
+record's own Parents and Siblings table carries no role word at all, and its
+two rows are read as parent relations, that collection's application naming
+only the parents there. The page's own ark, from
 the print header, is written to artifact_locator as kind ark.
 
 Connector responses (JSON, archived by tools/run_step.py) have their own extractors, claimed by the response's shape:
@@ -484,6 +487,14 @@ def household_kind(word):
         if re.search(rx, w): return kind
     return "other"
 
+def relation_kind(role, section, collection):
+    """The relation a member row states toward the record's subject: the row's own role word (household_kind), or, on a
+    United States Social Security Numerical Identification Files (NUMIDENT) record's own "Parents and Siblings" table,
+    'parent': that collection's application names only the two parents there, never an actual sibling, despite the label,
+    and the row carries no role word of its own to read. Every other collection keeps household_kind's own reading."""
+    if not role and "numident" in (collection or "").lower() and (section or "").endswith("Parents and Siblings"): return "parent"
+    return household_kind(role)
+
 class Writer:
     def __init__(self, cx, sha, extraction_id):
         self.cx, self.sha, self.eid, self.n = cx, sha, extraction_id, {"personas": 0, "facts": 0, "relations": 0, "place_strings": 0}
@@ -763,7 +774,7 @@ def write_record(w, parsed):
             mb.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
         pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url")})
         write_facts(w, pid, mb)
-        w.relation(pid, subject, household_kind(m["role"]), m["role"], m["section"])
+        w.relation(pid, subject, relation_kind(m["role"], m["section"], parsed.get("collection")), m["role"], m["section"])
         members_written.append((pid, m["role"].lower(), m["section"]))
     parents = [(pid, role, sec) for pid, role, sec in members_written if role in ("father", "mother")]
     if len(parents) == 2 and parents[0][1] != parents[1][1]:      # a census household lists the subject's father and mother together: the household's couple
