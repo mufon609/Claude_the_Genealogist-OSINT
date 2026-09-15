@@ -78,6 +78,7 @@ person reads it. The starting list, to be refined as records are met:
 | Find a Grave memorial | full name, dates, cemetery, linked family, gravestone photographs | the identity by the rule when the name and three of birth day, death day, burial place, a stated parent or spouse agree; the family memberships it states created where the tree lacks them, undecided like its facts; each gravestone photograph a fetch step |
 | Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
 | Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
+| Naturalization petition, declaration or index | full name, birth date and place, residence, spouse | automated |
 | Church register entry | names and dates when the register keeps them | automated when dated and the parents are named; hint otherwise |
 | Obituary, newspaper hit | free text | hint until the text is read (by hand or by the model); then the named survivors decide: automated for the person it names once a stated relative it names is a relative the tree already links on trusted evidence, never on dates or places alone |
 | Will, probate, land, tax, directory | names, no ages | hint |
