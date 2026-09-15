@@ -651,7 +651,15 @@ def decisions(keep, show):
     birth = cx.execute("""SELECT e.date_text, ps.raw FROM event e JOIN event_participant ep ON ep.event_id=e.id JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status='accepted'
                           JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           WHERE ep.person_id=? AND e.event_type='Birth' AND a.artifact_sha256='3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e'""", (who["Frederick Michael Ahearn"],)).fetchone()
-    fail(birth and birth[0] == "22 May 1907" and birth[1] == "Pennsylvania", f"the record's birthplace accepted as what the record says, on the tree's own Birth event, whose value stays: {tuple(birth) if birth else None}")   # the conflict question itself needs the tree's place resolved, which takes the geocoder
+    fail(birth and birth[0] == "22 May 1907" and birth[1] == "Pennsylvania", f"the record's birthplace accepted as what the record says, on the tree's own Birth event, whose value stays: {tuple(birth) if birth else None}")
+    # ---- the event has no resolved place, so the shown place falls back to the accepted record's own string; the conflict is
+    # raised all the same, the accepted statement against the file's undecided claim on the same event, and opens as a question
+    dis = Catalog(cx, tid).disagreements(who["Frederick Michael Ahearn"]); say("disagreements:", dis)
+    fail(any(d.startswith("birth place:") and "against the file" in d and "Pennsylvania against Northampton, Hampshire, Massachusetts, USA" in d for d in dis),
+         f"the accepted birthplace is compared with the file's own claim on the event, not only with the shown value, which is itself the record's string here: {dis}")
+    plan_person(cx, tid, who["Frederick Michael Ahearn"], BY); cx.commit()
+    fail(cx.execute("SELECT 1 FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open' AND detail_json LIKE '%Pennsylvania against Northampton%'", (who["Frederick Michael Ahearn"],)).fetchone() is not None,
+         "the difference opens as a conflict question on the person")
     # ---- the father's birth record arrives: its row from the record's event type, his name one letter apart, the parents it states
     shutil.copy(os.path.join(FIXTURES, "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"), os.path.join(treelib.inbox_dir(), "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"))
     res = attach_inbox(cx, tid, "harness", BY, ["familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"]); cx.commit(); say("attach birth record:", res)

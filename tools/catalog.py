@@ -386,24 +386,36 @@ class Catalog:
         self.holders = holders()
         self._groups = self._held = self._holdings = None
     def disagreements(self, pid):
-        """Where an accepted record says something else than the tree's event: for each event of the person, every Accepted
-        assertion whose persona fact disagrees with the event's own date (compared as dates) or place, as one line naming both
-        values and the record. The tree's value is never changed by a record; the difference is a conflict question."""
+        """Where an accepted record says something else than the tree's event or than another statement on it: for each event
+        of the person, every Accepted assertion whose persona fact disagrees with the event's own date (compared as dates) or
+        with the event's shown place, and every Accepted assertion whose fact disagrees with any other statement on the event
+        that is not rejected, undecided claims included (the file's own claim, a page anyone can edit), as one line naming
+        both values and the records. The tree's value is never changed by a record; the difference is a conflict question,
+        and the shown value stays what Catalog.place chooses."""
         out = []
         for e in self.q("""SELECT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
                            WHERE ep.person_id=? ORDER BY e.event_type, e.date_start""", pid):
             place_now = self.place(e[0], e[5])
             tree_place = place_now["text"] if place_now else None
-            for f in self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value
-                               FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
-                               JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
-                               WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", e[0]):
-                dv, _ = date_verdict({"start": f[1], "text": f[0], "qualifier": f[2]}, {"start": e[3], "text": e[2], "qualifier": e[4]})
+            rows = self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value, a.status, a.id
+                             FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                             JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
+                             WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", e[0])
+            label = lambda f: f[4] + (f" ({f[5]})" if f[5] else "")
+            short = lambda f: "the file" if f[4] == f[5] else f[4]        # the record by its collection alone; the tree's own import by its role
+            date_of = lambda f: {"start": f[1], "text": f[0], "qualifier": f[2]}
+            kind = e[1].lower()
+            for f in rows:
+                if f[6] != "accepted": continue
+                dv, _ = date_verdict(date_of(f), {"start": e[3], "text": e[2], "qualifier": e[4]})
                 pv, _ = place_verdict(f[3], tree_place)
-                rec = f[4] + (f" ({f[5]})" if f[5] else "")
-                if dv == "disagrees": out.append(f"{e[1].lower()} date: the tree says {e[2]}, {rec} says {f[0]}")
-                if pv == "disagrees": out.append(f"{e[1].lower()} place: the tree says {tree_place}, {rec} says {f[3]}")
-        return out
+                if dv == "disagrees": out.append(f"{kind} date: the tree says {e[2]}, {label(f)} says {f[0]}")
+                if pv == "disagrees": out.append(f"{kind} place: the tree says {tree_place}, {label(f)} says {f[3]}")
+                for o in rows:                                       # against every other statement on the event, undecided claims included
+                    if o[7] == f[7] or (o[6] == "accepted" and o[7] < f[7]): continue   # two accepted statements are compared once
+                    if date_verdict(date_of(f), date_of(o))[0] == "disagrees": out.append(f"{kind} date: {short(f)} against {short(o)}: {f[0]} against {o[0]}")
+                    if place_verdict(f[3], o[3])[0] == "disagrees": out.append(f"{kind} place: {short(f)} against {short(o)}: {f[3]} against {o[3]}")
+        return list(dict.fromkeys(out))
     def find_person(self, key):
         """A person by id, by the last six characters of the id in brackets or alone ("Noi Davidson [MEXW2C]", "MEXW2C"), by exact
         display name, or by a substring of the name. Several matches stop the tool and list them with their six characters, so a
