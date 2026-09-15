@@ -380,6 +380,63 @@ def place_fallback_depth(keep):
     if not keep: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def fitting_check(keep):
+    """The fitting check (docs/RESEARCH-WORKFLOW.md §5-7), run before match.py offers a new person: a sister whose given
+    name disagrees still matches the existing sister, found through the family link, on the surname and the stated
+    relationship; a father named by garbled initials still matches the existing father the same way; a brother with no
+    family link yet at all still matches the existing person of the same name, found by the surname alone once nothing
+    else is there to narrow it. Three shapes, one record, one already-accepted subject."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, now as tnow, ulid as tulid
+    from match import match
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "fittest", "--name", "Fitting Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='fittest'").fetchone()[0]
+    ts = tnow()
+    src = cx.execute("SELECT id, trust_tier, terms FROM source LIMIT 1").fetchone()
+    def mkperson(name, sex):
+        pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, sex, name, ts, ts))
+        given, surname = name.rsplit(" ", 1)
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, given, surname, f"{surname}, {given}".lower()))
+        return pid
+    subject = mkperson("Robert Fitting", "M")
+    sib = mkperson("Alicia Fitting", "F")
+    par = mkperson("John Young Fitting", "M")
+    bro = mkperson("Joe Fitting", "M")                             # no family link at all: found only by the surname
+    fam = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam, tid, ts, ts))
+    for pid, role in ((par, "partner"), (subject, "child"), (sib, "child")): cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fam, pid, role))
+    sha, _ = archive_object(cx, b"fitting-check-harness", mime="text/html", source_id=src[0], collection_id=None, locator_kind="url",
+                             locator_value="http://example.test/fitting-check", retrieved_by=BY, terms=src[2], cost="free", trust_tier=src[1])
+    extractor_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (extractor_id, "human", "harness", "0.1.0", ts))
+    xid = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,status,ran_at) VALUES (?,?,?,?,?)", (xid, sha, extractor_id, "complete", ts))
+    def mkpersona(name, sex, role, seq):
+        pid = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)", (pid, xid, sha, name, sex, role, seq, "{}"))
+        return pid
+    def relate(pid, other, kind, as_written): cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)", (tulid(), pid, other, kind, as_written, "{}"))
+    pr_subject = mkpersona("Robert Fitting", "M", "subject", 1)
+    pr_sib = mkpersona("Alice Fitting", "F", "sister", 2)           # given name disagrees; the surname and the sibling link agree
+    pr_par = mkpersona("Y J Fitting", "M", "father", 3)             # given name disagrees outright; the surname and the parent link agree
+    pr_bro = mkpersona("Joe Fitting", "M", "brother", 4)            # the same name; no family link at all yet
+    relate(pr_sib, pr_subject, "sibling", "Sister"); relate(pr_par, pr_subject, "parent", "Father"); relate(pr_bro, pr_subject, "sibling", "Brother")
+    cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,?,?,?)", (subject, pr_subject, "accepted", BY, ts))
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    written = match(cx, xid, BY); cx.commit()
+    by_name = {name: (prop, kind, person_id) for prop, kind, name, person_id in written}
+    fail(by_name.get("Alice Fitting", (None, None))[1] == "persona_match" and by_name["Alice Fitting"][2] == sib,
+         f"a sister whose given name disagrees fits the existing sister through the family link and the surname, not a new person; got {by_name.get('Alice Fitting')}")
+    fail(by_name.get("Y J Fitting", (None, None))[1] == "persona_match" and by_name["Y J Fitting"][2] == par,
+         f"a father named by garbled initials fits the existing father through the family link and the surname, not a new person; got {by_name.get('Y J Fitting')}")
+    fail(by_name.get("Joe Fitting", (None, None))[1] == "persona_match" and by_name["Joe Fitting"][2] == bro,
+         f"a brother with no family link yet still fits the existing person of the same name, found by the surname alone; got {by_name.get('Joe Fitting')}")
+    if "Alice Fitting" in by_name:
+        rat = cx.execute("SELECT rationale FROM proposal WHERE id=?", (by_name["Alice Fitting"][0],)).fetchone()[0]
+        fail("iven name disagrees" in rat, f"the given name disagreement is named in the card's rationale, never hidden; got {rat}")
+    cx.close()
+    if not keep: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def key_fact_event_check(keep):
     """A person with two Death events, one carrying only a rejected assertion (a time-of-death misread as a date)
     beside one carrying an accepted date: the discredited event shows nowhere as the key fact's value, and the
@@ -1409,6 +1466,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL chain fill: " + "; ".join(fails))
     else: print("ok   chain fill: a state and the city in it fill the event at the city; Philadelphia and Pittsburgh, different chains, leave it unplaced")
+    try: fails = fitting_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL fitting check: " + "; ".join(fails))
+    else: print("ok   fitting check: an existing person before a new one, on the surname and the stated relationship, or the surname alone with no family link yet; the given name plays no part in it")
     try: fails = key_fact_event_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL key fact event choice: " + "; ".join(fails))

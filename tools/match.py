@@ -27,9 +27,17 @@ birth surname inside her name). A persona fits a candidate when the given name a
 disagrees, and either the surname and at least one of the dates or places
 agree, or a stated relationship agrees; a persona whose own memorial link is a
 memorial already accepted as a person fits that person outright, and that
-person joins the candidates whether or not they are a relative in the tree. One proposal per persona: kind
+person joins the candidates whether or not they are a relative in the tree.
+Nobody fitting outright, the fitting check (docs/RESEARCH-WORKFLOW.md §5-7)
+still proposes an existing person before a new one: a candidate whose surname
+or birth surname agrees and whose birth year agrees where both have one, or
+who already stands in the same stated relationship to the same candidate the
+record's other persona was accepted as, is proposed with the disagreement in
+the rationale; a given name that disagrees is not what refuses this, only the
+surname or the relationship. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
-two fit, the other named in the rationale), or new_person when nobody fits. The
+two fit, the other named in the rationale), or new_person when nobody fits,
+outright or by the fitting check. The
 proposal carries the question of the step the candidate came from, when it has
 one. A row of a search results page (role result) that fits nobody gets no
 proposal: it stays a candidate on the page, and the candidate card says why it
@@ -137,7 +145,9 @@ def compare(cat, persona, cand, chosen):
              or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
     both_dates = any(d.startswith("birth date disagrees") for d in disagree) and any(d.startswith("death date disagrees") for d in disagree)   # disagreeing on both is not a likely identity either
-    near = not fits and given_ok and (surname_ok or married or same) and not any(d.startswith("sex") for d in disagree) and not both_dates   # the same name, something else disagrees: a card, never a rule decision
+    has_relation = any(chosen.get(o) for _, o, _, _ in persona["relations"])   # the persona relates to a persona already resolved on this record, whatever the candidate's own family says
+    fitting = clean and (surname_ok or married) and has_relation   # the fitting check's relationship route (docs/RESEARCH-WORKFLOW.md §5-7): a given name disagreeing does not refuse it, only the surname or the relationship would
+    near = not fits and not any(d.startswith("sex") for d in disagree) and not both_dates and ((given_ok and (surname_ok or married or same)) or fitting)   # the same name, something else disagrees, or the fitting check's relationship route: a card, never a rule decision
     return fits, agree, disagree, absent, near
 
 def _date(row):
@@ -176,16 +186,23 @@ def memorials_of(cx, pid):
     return ids
 
 def by_name_and_year(cat, cx, tree_id, persona):
-    """Persons of the tree whose surname is the persona's and whose birth year lies within three years of the persona's, when the
-    persona has both: a household record names people the tree may hold without a family link yet (a sibling added from a
-    memorial), and those belong among the candidates on their own evidence."""
-    given, rest = split_persona_name(persona["name"]); by = (persona["birth"] or {}).get("start")
-    if not rest or not by or not by[:4].isdigit(): return []
-    y = int(by[:4]); out = []
-    for pid, in cx.execute("""SELECT DISTINCT p.id FROM person p JOIN person_name n ON n.person_id=p.id JOIN event_participant ep ON ep.person_id=p.id
-                              JOIN event e ON e.id=ep.event_id AND e.event_type='Birth' WHERE p.tree_id=? AND p.merged_into IS NULL AND e.date_start IS NOT NULL
-                              AND CAST(substr(e.date_start,1,4) AS INTEGER) BETWEEN ? AND ?""", (tree_id, y - 3, y + 3)):
-        if any(s in rest for _, s in name_keys(cat, pid) if s): out.append(pid)
+    """Persons of the tree whose surname or birth surname is the persona's, whose birth year lies within three years of the
+    persona's where the persona gives one (the fitting check, docs/RESEARCH-WORKFLOW.md §5-7): a household or obituary record
+    names people the tree may hold without a family link yet (a sibling added from a memorial, a survivor an obituary names
+    with no age), and those belong among the candidates on their own evidence; without a birth year on the persona the
+    surname is the whole of it, and the record's other signals carry the actual decision."""
+    given, rest = split_persona_name(persona["name"])
+    if not rest: return []
+    by = (persona["birth"] or {}).get("start")
+    y = int(by[:4]) if by and by[:4].isdigit() else None
+    out = []
+    for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL", (tree_id,)):
+        if not any(s in rest for _, s in name_keys(cat, pid) if s): continue
+        if y is not None:
+            years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                     WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]
+            if years and not any(abs(cy - y) <= 3 for cy in years): continue
+        out.append(pid)
     return out
 
 def by_memorial(cx, tree_id, mid):
@@ -249,8 +266,11 @@ def match(cx, eid, by, about=None):
     """One person at a time: a record proposes first the persona that may be the person it was fetched for (or a person already
     attached to them by a record accepted earlier, or already accepted under the same memorial); the record's other personas wait. Once a
     person is accepted on the record, its other personas are proposed against that person's relatives as the catalog knows
-    them, claims included, and a persona the record relates to an accepted person and that fits nobody is proposed as a new
-    person. about: person ids the owner says the record concerns, when no step or link names them (a family-held file)."""
+    them, claims included, and against a person of the tree with no family link yet who fits the fitting check: the same
+    surname or birth surname and a birth year within three years where the persona gives one, or the same stated relationship
+    to the same accepted person (by_name_and_year); a persona the record relates to an accepted person and that fits nobody,
+    by the fitting check either, is proposed as a new person. about: person ids the owner says the record concerns, when no
+    step or link names them (a family-held file)."""
     ext = cx.execute("SELECT artifact_sha256 FROM extraction WHERE id=?", (eid,)).fetchone()
     if not ext: raise SystemExit(f"no extraction {eid}")
     sha = ext[0]; ts = now()
