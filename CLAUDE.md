@@ -45,8 +45,9 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    with a value the owner has not accepted does not stop it — the record is
    still taken and the difference is the same conflict question. A relative
    such a record names in a stated relationship to someone it has just
-   accepted is taken the same way when the name and a shared birth year
-   agree, and is created as a new person when nobody in the tree fits them.
+   accepted is taken the same way when the name agrees and a birth year
+   agrees where both have one, and is created as a new person when nobody
+   in the tree fits them.
    A page anyone can
    edit (Find a Grave, member trees) identifies a person but never builds
    their facts: accepting a memorial writes the persona link, and the family
@@ -164,8 +165,9 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    family links it states are memberships created where the tree lacks them,
    undecided like its facts. A relative the record names in a stated
    relationship to the person just accepted is taken the same way by the
-   standing rule when the name and a shared birth year agree, or created as
-   a new person when nobody in the tree fits them; a difference with the
+   standing rule when the name agrees and a birth year agrees where both
+   have one, or created as a new person when nobody in the tree fits them;
+   a difference with the
    tree is the same conflict question, marked the same way whichever
    relative it is on. The record's other personas come up as cards
    only after that.
