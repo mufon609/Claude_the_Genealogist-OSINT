@@ -1271,6 +1271,9 @@ def rules():
         (("Simpson", franklin_ky), ("agrees", "the record gives only Simpson")),                # the county alone still agrees
         (("Methacton Mennonite Cemetery, Norristown, Montgomery County, Pennsylvania, USA", "Norristown < Montgomery < Pennsylvania < United States"),
          ("agrees", None)),                                                                     # a cemetery named ahead of the town is not a place part; the jurisdictions still match in full
+        (("Vickers Hospital, Franklin, Simpson, Ky.", "Franklin, Simpson, Kentucky, United States"), ("agrees", None)),   # a building ahead of the town on a record that names no country, against a string that does: the country is not a part to count
+        (("Franklin, Simpson, Kentucky, United States", "Franklin, Simpson, Ky."), ("agrees", None)),                     # and the other way round
+        (("United States", franklin_ky), ("absent", None)),                                     # a record that names only the country says nothing to compare
     ]
     for (record, tree), want in pv_cases:
         got = place_verdict(record, tree)
