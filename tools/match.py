@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Match the personas of an extraction against the tree and write proposals.
 
-usage: tools/match.py <extraction id> [--db catalog/tree.db] [--by user:<you>]
+usage: tools/match.py <extraction id> [--about "<person>"] [--db catalog/tree.db] [--by user:<you>]
 
 The record was fetched for one or more persons: those whose step logged the
 artifact, those whose fetch step points at a record id the artifact holds
@@ -351,8 +351,15 @@ def match(cx, eid, by, about=None):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("extraction"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument("--about", help="the person the record is about on the owner's word, when no step or link names them: a fetch step on their plan, done with a found run naming the record")
     a = ap.parse_args(); cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
-    cx.execute("BEGIN"); written = match(cx, a.extraction, a.by); cx.commit()
+    about = None; cx.execute("BEGIN")
+    if a.about:                                                 # the owner's word: a fetch step on their plan, done with a found run naming the record, so every later reading finds them
+        from attach import on_word
+        from treelib import resolve_tree
+        tree_id, _ = resolve_tree(cx, None); about = [Catalog(cx, tree_id).find_person(a.about)]
+        on_word(cx, tree_id, about[0], cx.execute("SELECT artifact_sha256 FROM extraction WHERE id=?", (a.extraction,)).fetchone()[0], a.by)
+    written = match(cx, a.extraction, a.by, about=about); cx.commit()
     for prop, kind, name, person_id in written:
         print(f"{prop}  {kind:14} {name}"); print("   ", cx.execute("SELECT rationale FROM proposal WHERE id=?", (prop,)).fetchone()[0])
     if not written: print("no new proposals")

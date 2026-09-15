@@ -1016,7 +1016,11 @@ def main():
         from catalog import Catalog
         cx.row_factory = None; tid = cx.execute("SELECT tree_id FROM person WHERE id=? OR display_name=? LIMIT 1", (a.about, a.about)).fetchone()
         about = [Catalog(cx, tid[0]).find_person(a.about)] if tid else None
-    cx.execute("BEGIN"); written, taken = match_record(cx, eid, a.by, about=about); cx.commit()          # the matcher runs on every extraction as it is written, then the rule
+    cx.execute("BEGIN")
+    if about:                                                       # the owner's word: a fetch step on their plan, done with a found run naming the record, so every later reading finds them
+        from attach import on_word
+        on_word(cx, tid[0], about[0], sha, a.by)
+    written, taken = match_record(cx, eid, a.by, about=about); cx.commit()          # the matcher runs on every extraction as it is written, then the rule
     print("proposals", len(written), "accepted by rule", len(taken))
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         print(f"  {name} [{role}{', ' + sex if sex else ''}]")

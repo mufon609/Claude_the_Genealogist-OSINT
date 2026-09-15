@@ -919,6 +919,23 @@ def decisions(keep, show):
                               original_filename="va-gravesite-search-davidson-raymond-page1.html")
     eid_p, n = extract(cx, sha_p, BY); wrote_p = match(cx, eid_p, BY, about=[who["Raymond Earl Davidson"]]); cx.commit(); say("gravesite page of namesakes:", n, wrote_p)
     fail(n.get("personas") == 10 and wrote_p == [], f"ten namesakes agreeing on the name alone make no card: {[(k, nm) for _, k, nm, _ in wrote_p]}")
+    # ---- a record attached on the owner's word, with no step citing it: a fetch step on the person's plan, done with a found run
+    # naming the record, so a re-read and a later matcher run still find them (the plan regenerated keeps a done step)
+    shutil.copy(os.path.join(FIXTURES, "familysearch-social-security-numident-1956-6KML-FS23.html"), os.path.join(treelib.inbox_dir(), "familysearch-social-security-numident-1956-6KML-FS23.html"))
+    res_w = attach_inbox(cx, tid, "harness", BY, ["familysearch-social-security-numident-1956-6KML-FS23.html"], about=who["Raymond Earl Davidson"]); cx.commit(); say("attach on the owner's word:", res_w)
+    sha_w = res_w[0].get("sha256") if res_w else None
+    step_w = cx.execute("SELECT * FROM search_plan WHERE person_id=? AND locator_kind='ark' AND locator_value='ark:/61903/1:1:6KML-FS23'", (who["Raymond Earl Davidson"],)).fetchone()
+    fail(res_w and not res_w[0]["left"] and res_w[0]["steps"] == [] and step_w is not None and step_w["kind"] == "fetch" and step_w["status"] == "done" and step_w["row_key"] == "Social Security (SSDI / SS-5):" and "owner's word" in step_w["rationale"],
+         f"no step cited the record; one is written on his plan, a fetch done under the Social Security row, on the owner's word: {res_w and res_w[0]}, {step_w and dict(step_w)}")
+    log_w = cx.execute("SELECT outcome, artifacts_json FROM search_log WHERE plan_step_id=?", (step_w["id"],)).fetchone() if step_w else None
+    fail(log_w and log_w["outcome"] == "found" and sha_w in (log_w["artifacts_json"] or ""), f"the step's found run names the record: {log_w and tuple(log_w)}")
+    his = lambda wrote: [p for p in wrote if p[1] == "persona_match" and p[2] == "Raymond Earl Davidson" and p[3] == who["Raymond Earl Davidson"]]
+    fail(res_w and len(his(res_w[0]["proposals"])) == 1, f"a card on arrival for the record's subject, his: {res_w and res_w[0]['proposals']}")
+    plan_person(cx, tid, who["Raymond Earl Davidson"], BY); cx.commit()
+    fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (step_w["id"],)).fetchone()[0] == "done" if step_w else False, "the plan regenerated keeps the done step")
+    eid_w2, _ = extract(cx, sha_w, BY); wrote_w2, taken_w2 = match_record(cx, eid_w2, BY); cx.commit(); say("re-read on the owner's word:", wrote_w2, taken_w2)
+    fail(len(his(wrote_w2)) == 1, f"the re-read proposes him again, through the step: {wrote_w2}")
+    fail(tuple(cx.execute("SELECT status, decision_note FROM proposal WHERE id=?", (his(res_w[0]["proposals"])[0][0],)).fetchone()) == ("rejected", "superseded") if res_w and his(res_w[0]["proposals"]) else False, "the first reading's card closed as superseded")
     # ---- hints under the record (docs/RESEARCH-WORKFLOW.md §0): a persona with no proposal and no link, compared with the person on
     # view; a newspaper hit on the surname alone is never a hint; a row agreeing on a year and a place is, once the baseline is reviewed
     from cards import hints_on

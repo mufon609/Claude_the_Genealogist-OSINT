@@ -220,6 +220,57 @@ def _named_on(cx, person_id, parsed):
 
 def _split_name(text): return name_parts(text)
 
+def _row_of(parsed):
+    """(checklist row, year) a record page is about, from its own event type (the principal's, else the one type its members
+    carry), else its collection (ROW_OF); (None, year) when neither names a row."""
+    lower = lambda fields: {k.lower(): v for k, v in fields or []}
+    each = [lower(parsed.get("fields"))] + [lower(m.get("fields")) for m in parsed.get("members") or []]
+    types = [f.get("event type").lower() for f in each if f.get("event type")]
+    kind = types[0] if types and len(set(types)) == 1 else ""
+    row = next((r for rx, r in ROW_OF if re.search(rx, kind)), None) if kind else None
+    if not row: row = next((r for rx, r in ROW_OF if re.search(rx, (parsed.get("collection") or "").lower())), None)
+    ym = next((m for m in (re.search(r"\b(1[5-9]\d\d|20\d\d)\b", f.get("event date") or f.get("event year") or "") for f in each) if m), None)
+    return row, int(ym.group(1)) if ym else None
+
+def on_word(cx, tree_id, pid, sha, by, note=None, parsed=None):
+    """A record the owner says is about a person, with no step citing it: a fetch step on the person's plan, done with a found
+    run naming the record, so the record is fetched for them from then on (match.persons_for reads the log) and every re-read
+    and matcher run finds them. The step's locator is the record's own identity (its ark, its memorial id, else the artifact's
+    locator), its row the checklist row the record's own event or collection is about — the person's own row of that kind
+    within two years of the record's year, else the row at the record's year — and its fields the record's collection and
+    URL as the record gives them, the name the owner's. A step of the same key already on the plan is logged, not written
+    again; a run already naming the record is not logged again. parsed: the page as read on arrival, before its extraction
+    exists; else the current extraction's own reading. Returns (step id, log id or None when the run was logged before)."""
+    ts = now(); q = cx.cursor(); q.row_factory = sqlite3.Row
+    ar = q.execute("SELECT sha256, source_id, collection_id, locator_kind, locator_value, (SELECT name FROM collection WHERE id=collection_id) AS collection FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    if not ar: raise ValueError(f"not in the archive: {sha[:12]}")
+    ident = q.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=? AND kind IN ('ark','memorial_id') ORDER BY kind", (sha,)).fetchone()
+    lkind, lvalue = (ident["kind"], ident["value"]) if ident else (ar["locator_kind"] or "file", ar["locator_value"] or sha)
+    key = f"fetch:{'memorial' if lkind == 'memorial_id' else lkind}:{lvalue}"
+    if parsed is None:
+        ext = q.execute("SELECT structured_json FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL AND status='complete' ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
+        parsed = json.loads(ext["structured_json"] or "{}") if ext else {}
+    row, year = _row_of(parsed)
+    if row:
+        own = [r[0] for r in q.execute("SELECT DISTINCT row_key FROM search_plan WHERE person_id=? AND row_key LIKE ?", (pid, row + ":%"))]
+        near = [k for k in own if year and k.split(":", 1)[1].isdigit() and abs(int(k.split(":", 1)[1]) - year) <= 2] or (own if len(own) == 1 and not year else [])
+        row_key = near[0] if near else f"{row}:{year or ''}"
+    else: row_key = f"{lkind}:"
+    who = q.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()["display_name"]
+    coll = _record_collection(parsed) or ar["collection"] or ""
+    url = {"ark": f"https://www.familysearch.org/{lvalue}", "memorial_id": f"https://www.findagrave.com/memorial/{lvalue}/", "url": lvalue}.get(lkind)
+    fields = {"collection": {"value": coll, "basis": "record"}, "name": {"value": who, "basis": "owner"}, **({"url": {"value": url, "basis": "record"}} if url else {})}
+    st = q.execute("SELECT id FROM search_plan WHERE person_id=? AND step_key=?", (pid, key)).fetchone()
+    if st: sid = st["id"]
+    else:
+        sid = ulid(); seq = (q.execute("SELECT coalesce(max(seq),0) FROM search_plan WHERE person_id=?", (pid,)).fetchone()[0] or 0) + 1
+        q.execute("""INSERT INTO search_plan (id,person_id,row_key,question_id,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,collection_id,on_json,sources_json,mode,expected,status,rationale,created_at)
+                     VALUES (?,?,?,NULL,?,?,'fetch','subject_record',?,?,?,?,?,'[]',?,'fetch',?,'planned',?,?)""",
+                  (sid, pid, row_key, seq, key, dumps(fields), ar["source_id"], lkind, lvalue, ar["collection_id"], dumps([ar["source_id"]] if ar["source_id"] else []),
+                   "the record the owner named as this person's, read for what it says about them", f"attached on the owner's word as {who}'s: no step of the plan cited it", ts))
+    if q.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (sid, f'%"{sha}"%')).fetchone(): return sid, None
+    return sid, log_search(cx, tree_id, by, step_id=sid, outcome="found", artifacts=[sha], note="; ".join(x for x in (f"on the owner's word about {who}", note) if x), query=fields)
+
 def _source_row(cx, sid):
     r = cx.execute("SELECT id, trust_tier, terms, cost FROM source WHERE id=?", (sid,)).fetchone() if sid else None
     return dict(r) if r else {}
@@ -265,7 +316,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
                               locator_kind=lkind, locator_value=lvalue, retrieved_by=by, terms=from_row.get("terms"),
                               cost=_cost(from_row.get("cost")), trust_tier=kind_row.get("trust_tier") or from_row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
     if kind == "memorial": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "memorial_id", value))   # the page's own identity, however it was cited
+    if kind == "ark": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", value))
     logs = []
+    if not steps and about: logs.append(on_word(cx, tree_id, about, sha, by, note=note, parsed=parsed or {}))   # the owner's word: a fetch step on their plan, done with the found run, so the record is fetched for them from now on
     for s in steps:
         if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (s["id"], f'%"{sha}"%')).fetchone(): continue
         logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query=query or rendered_query(s["query_json"], s["revisions_json"]))))
@@ -306,8 +359,8 @@ def attach_held(cx, tree_id, slug, name, about_id, by, note=None):
 def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
     """Every file in the inbox (or the named ones): identity from the file, the steps it fulfils, attach. A file with no
     identity or no step stays in the inbox, unless the owner says whom a record is about (about: person id): then a record
-    with an identity but no step is archived under its holder and put before the matcher for that person, as a search the
-    owner ran by hand. Returns one result per file."""
+    with an identity but no step is archived under its holder, given a fetch step on that person's plan done with the found
+    run (on_word), and put before the matcher for them. Returns one result per file."""
     names = names or sorted(f for f in os.listdir(inbox_dir()) if os.path.isfile(os.path.join(inbox_dir(), f)) and not f.startswith("."))
     results = []
     for name in names:
