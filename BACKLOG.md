@@ -80,6 +80,19 @@ instead of trusting the stored flag on an old row — the same thing
 
 No upstream blockers; safe to pick up in any session. Default-focus tier.
 
+### C4. A person's baseline picks an arbitrary event when two exist of one type
+
+`Catalog.events` orders a person's events `ORDER BY e.date_start`, and
+`Catalog.key_fact_basis` takes the first Birth or Death event of the wanted
+type from that list. A person with two events of the same type (a
+discredited one whose date assertion was rejected, kept alongside a fully
+supported one) ties on `date_start`: SQLite sorts a NULL `date_start` first,
+so an event with no usable date can outrank one with a real, accepted date,
+and the checklist's key-fact display and baseline show the wrong one. Pick
+the event with the strongest ground (an accepted date or place over none,
+more accepted assertions) when more than one event of a type exists on a
+person, or decide when two events of one type should merge into one.
+
 ### C1. The New York State marriage index as a source
 
 Reclaim the Records put the state marriage index 1881–1967 on the Internet
