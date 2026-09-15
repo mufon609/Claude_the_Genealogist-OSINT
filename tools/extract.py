@@ -141,6 +141,7 @@ HOUSEHOLD_KINDS = [(r"grand|in.law|aunt|uncle|niece|nephew|cousin|step", "other"
                    (r"son|daughter|child", "child"), (r"father|mother|parent", "parent"), (r"brother|sister", "sibling"), (r"boarder|lodger|servant|roomer", "boarder")]
 SKIP = re.compile(r"source|citation|page|line|sheet|enumeration|district|roll|film|series|ward|township|county|state|record type|record number|title|url|household members|save|print"
                   r"|household identifier|affiliate|digital folder|image number|indexing batch|event type", re.I)
+TIME_ONLY = re.compile(r"\d{1,2}:\d{2}\s*[APap][Mm]")   # a clock time, never a date, however an "Event Date" field labels it
 
 class Page(HTMLParser):
     """Collects every table as rows of cell texts (with th flagged), nested tables included, in document order."""
@@ -539,6 +540,9 @@ def field_facts(fields, default_etype=None):
         key = label.lower().strip()
         if key == "event place (original)" and not has_place: key = "event place"      # the place as written, when the page gives no standardized one
         is_event = etype and key in ("event date", "event place")
+        if is_event and key == "event date" and TIME_ONLY.fullmatch(value.strip()):    # a time of day is a fact of its own kind, never a date
+            by_type.setdefault("Unknown", {"date": None, "place": None, "values": []})["values"].append((value, f"{etype} Time"))
+            continue
         if is_event: label = f"{etype} {key.split()[1].title()}"; key = label.lower()
         rel = re.fullmatch(r"(father|mother|spouse|husband|wife|informant|child)(?:'s)?(?: name)?", key)
         if rel: named[rel.group(1)] = value; continue

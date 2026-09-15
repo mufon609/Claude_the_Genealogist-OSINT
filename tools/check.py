@@ -96,6 +96,14 @@ def check_census_1950_fs(ps, fail):
     fail(fact(ps[0], "Residence", date="11 April 1950", place="Lindenhurst, Babylon, Suffolk, New York"), "the residence on the census day as written")
     fail(rel(ps[1], "other", 1), "a member with no role word relates as other")
 
+def check_ohio_death_index(ps, fail):
+    p = ps[0]
+    fail(p["name"] == "Robert Edgar Davidson" and p["role"] == "subject", f"the record's subject: {p['name']} [{p['role']}]")
+    fail(not fact(p, "Death", date="09:50 PM"), "the time of death the page mislabels Event Date is never read as the Death date")
+    fail(fact(p, "Unknown", value="Death Time: 09:50 PM"), "the time of death is written as a fact of its own kind, under its own label")
+    fail(fact(p, "Death", place="United States"), "the Death event still carries the record's own place")
+    fail(fact(p, "Birth", date="19 Feb 1915"), "the birth as written, unaffected")
+
 def check_schedule(ps, fail):
     fail(len(ps) == 30, f"30 rows of the schedule, {len(ps)} written")
     fail(ps[0]["name"] == "Dauck Thomas E." and ps[0]["role"] == "listed", f"the first row as transcribed; got {ps[0]['name']} [{ps[0]['role']}]")
@@ -200,6 +208,7 @@ FIXTURE_SET = [
     ("familysearch-census-1940-KQX1-VT9.html", "text/html", "D03", "apid", "1,2442::26440834", "familysearch-record", check_census_1940),
     ("familysearch-census-1900-M9HX-SWP.html", "text/html", "D03", "apid", "1,7602::5537739", "familysearch-record", check_census_1900),
     ("familysearch-census-1950-6X5P-KT7T.html", "text/html", "D03", "file", "familysearch-census-1950-6X5P-KT7T.html", "familysearch-record", check_census_1950_fs),
+    ("familysearch-ohio-death-index-VKBL-4FN.html", "text/html", "D03", "apid", "1,5763::7380252", "familysearch-record", check_ohio_death_index),
     ("nara-1950-schedule-3947385.json", "application/json", "D05", "url", "https://1950census.archives.gov/api/search?scheduleId=3947385", "nara-1950-schedule", check_schedule),
     ("aad-search-davidson-robert-15.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/display-partial-records.jsp?txt_24995=DAVIDSON%20ROBERT&txt_24983=15", "aad-search", check_aad_search),
     ("aad-enlistment-247275.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275", "aad-enlistment", check_aad_record),
