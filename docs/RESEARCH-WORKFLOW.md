@@ -50,11 +50,14 @@ whose baseline is reviewed, never as a feed.
 
 **Which documents the rule may accept on its own.** The standing rule (§5–7)
 accepts a document as the person's when it agrees with what the person already
-accepted and nothing disagrees, and everything the document states comes with
-it. It may do so only for document kinds that identify a person fully, from
-sources nobody can edit at will (registry tiers T1–T3: certificates, census,
-obituaries, published works), and only counting accepted facts that themselves
-rest on such a source or on the owner's own word. A page anyone can edit (T4:
+accepted, and everything the document states comes with it; a disagreement
+with a value that rests on no accepted assertion is not a veto — the record
+is still taken on its points, and the difference becomes a conflict question,
+never a silent overwrite. It may do so only for document kinds that identify
+a person fully, from sources nobody can edit at will (registry tiers T1–T3:
+certificates, census, obituaries, published works), and only counting
+accepted facts that themselves rest on such a source or on the owner's own
+word. A page anyone can edit (T4:
 Find a Grave, member trees) identifies a person but never builds their facts:
 accepting it, by the owner or by the rule, writes the persona link, and the
 family memberships the page states are created where the tree lacks them
@@ -207,6 +210,14 @@ baseline is reviewed because the review needs them.
 Record type → era → place → source (layer 2) is a lookup, not a guess. The
 registry's coverage column drives it (MA deaths 1841–1915 are free and indexed;
 Irish civil registration starts 1864, so an 1810 birth means parish registers).
+
+A search step's place field carries every accurate description of the place
+it stands for, not the tree's canonical name alone: the names valid at the
+record's own date and the as-written strings first, every other name only
+once those return nothing, because a collection is found under the place's
+modern name and the record inside it under the name its own day used. A
+revision tries the most likely combinations first and widens to every
+combination only once those are not getting hits.
 
 ## 4. Search: execute and log every step, including failures
 
@@ -456,13 +467,17 @@ same name and role on the same page (the decision was about the record, whose
 bytes have not changed), an accepted one asserting the new facts the record
 gives and nothing it already asserted, and the matcher proposes the rest
 again. A record image gets no
-automatic extraction: it is read one person per row, by the person acting
-through the screen's transcription form (extractor `human:<user>`) or by the
-model reading the image (extractor `llm:<model>`, layer 3 like any extraction,
-`docs/DATA-ARCHITECTURE.md` §1), each persona in the record's own role word
-with its facts as written, a birth calculated from an age and the record's year
-(qualifier `calculated`, so the matcher allows two years), and its relation to
-the head. What the reading proposes is decided like any record. That is the
+automatic extraction: it is read one person per row through the screen's
+transcription path. The model reads it by default (extractor `llm:<model>`,
+layer 3 like any extraction, `docs/DATA-ARCHITECTURE.md` §1), each persona in
+the record's own role word with its facts as written, a birth calculated from
+an age and the record's year (qualifier `calculated`, so the matcher allows
+two years), and its relation to the head; a person reads it (extractor
+`human:<user>`) only on serious doubt, stated as the reason. An index page
+whose own name is a slip — an indexer's transposition or misreading, not a
+fresh fact — goes through the same path to the same default. What the
+reading proposes is decided like any record, the rule taking it exactly as
+it takes a parsed record, never by who did the reading. That is the
 path for every image until an OCR or HTR extractor exists.
 
 `tools/match.py` runs on every extraction as it is written, one person at a
@@ -501,6 +516,8 @@ the owner sees the likely identity and the difference together; the rule never
 takes such a proposal, and when another persona on the same page fits that
 candidate, or is already accepted as them, the near one is not proposed at
 all: one decision is put once, and the near persona stays a hint on the page.
+A persona of the same name that disagrees on both its dates is not a likely
+identity either: it stays a hint on the page, never a card.
 A row of a results page, a schedule row or a name in running text that agrees
 on the name alone is a hint on the page too, never a card: its own record is
 the document. One proposal per persona: `persona_match`
@@ -550,7 +567,20 @@ that identifies a person fully (§0's list: a census from 1850, a 1950 schedule,
 a certificate or index of birth, death or marriage, Social Security, service
 records, a veteran's gravesite; a land or public records index is a hint), read
 by hand or by the model exactly as one a rule parsed — the rule judges the
-record's own kind, tier and agreeing facts, never who did the reading. An
+record's own kind, tier and agreeing facts, never who did the reading. A
+persona whose stated relationship (child, parent, spouse, sibling) is to a
+persona accepted on the same record as a person the tree links to a
+candidate by that relation, claimed or accepted, is taken the same way when
+the persona's given name and surname agree with the candidate's name,
+claimed or accepted, and a birth year agrees where both have one; the
+record's own name fact then documents the name. A persona such a trusted
+record (T1–T2, or an obituary once read) names in a stated relationship to a
+person accepted on it, who fits nobody in the tree after the fitting check,
+is created by the rule as a person with the record's facts and the family
+link accepted, and enters the queue. The fitting check, run before any
+creation: a person of the tree with the same surname or birth surname and a
+birth year within the matcher's window, or the same stated relationship to
+the same accepted person, fits and is proposed instead of a new one. An
 obituary or newspaper text is such a kind only once read (a bare citation is
 still a hint) and only on its own ground: one of its two points must be a
 stated relative who is that relative in the tree, on trusted evidence — no
@@ -565,7 +595,9 @@ persona on that same record being already accepted as them counting as such
 a fit (accepted by the owner); a date agreeing to the day on a trusted
 statement of the day, and a relationship the tree holds on trusted evidence,
 each count double) and each rests, on the very event or link compared, on a
-trusted source or on the owner's own word, and nothing compared disagrees. A
+trusted source or on the owner's own word, and nothing among them disagrees;
+a disagreement with a value that rests on no accepted assertion is not a
+veto here either, and becomes the same conflict question. A
 surname agreeing only one letter apart is a card, never the rule's. Claims never count, and a fact that
 rests only on a page anyone can edit does not count either. On a page anyone can edit that identifies a person (a
 memorial, a profile) the rule takes the identity alone, when the name agrees and at least three of birth date to the
@@ -575,7 +607,9 @@ is a card for the owner. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the
 rule wrote rejected. A proposal the rule does not take is a card for the owner
-with the reason it was not taken. The rule never creates a person. The rule
+with the reason it was not taken. The rule creates a person only as above,
+through the fitting check; every other `new_person` proposal is a card for
+the owner. The rule
 can take a decision back: `tools/conclude.py reconsider` examines every
 decision it made, oldest first, as the rule stands now and on the ground that
 stood before it (its own assertions and those of later rule decisions do not
@@ -592,6 +626,25 @@ kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the
 evidence; a `conflict` closes only when a person dismisses it. Accepting grows
 the baseline, which generates new questions.
+
+## 8. The loop
+
+A turn is one person's plan run end to end: the cited fetches at holders with
+connectors, the assisted saves made through the owner's own browser session,
+the auto searches, the standing rule's decisions on what comes back, the
+people it creates, and the plan regenerated at the end. The queue a turn
+draws from is the edge of the confirmed tree, in the overview's own order
+(`tools/tree.py overview`): the home person's line first, then everyone a
+record names after. The living default (`docs/DATA-ARCHITECTURE.md` §7)
+stands unchanged inside a turn. A challenge at a holder pauses the turn for
+the owner's hand and resumes once they have passed it (§4); it does not stop
+the turn, and it does not by itself make the source assisted-only. What a
+turn leaves for the owner are the conflict questions it raised and the cards
+the rule did not take.
+
+The tools this needs — a turn runner driving one person's plan to the end, a
+queue reading the overview's edge, and a way to resume a turn a challenge
+paused — do not exist yet; `BACKLOG.md` §A carries the one entry.
 
 ## Worked example: Thomas Ahearn (1846–1902)
 
