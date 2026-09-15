@@ -342,25 +342,30 @@ def place_verdict(record, tree):
     chain — 'Town < County < State < Country' — matched whole after normalisation (a jurisdiction word stripped, a
     two-letter US state code expanded to its name, with or without a period), never as a substring of another word: 'Kent'
     is not Kentucky and 'Frank' is not Franklin. The country is not a part to count on either side. A record with more
-    parts below the country than the tree's own chain (a cemetery or building named ahead of its town) is read from the
-    state backward, so a leading name that is not a jurisdiction is never compared. A
+    parts below the country than the tree's own chain is read from the state backward, so what it names ahead of the
+    tree's own finest part (the town when the tree holds only the state; a cemetery or building ahead of its town) is
+    never compared: as a full date against a bare year agrees on the year, a finer record agrees on the level the tree
+    states, and the note says the record is finer and names those leading parts. A
     coarser record (the state alone, or the county and state) still agrees, on the finest part it states, and the note
     names that part; a full match down to the tree's own finest part carries no note. A part that is a real place but is
-    not in the tree's chain (a same-named town in another state) disagrees. absent when either side has none."""
+    not in the tree's chain (a same-named town in another state, a county alone against a tree that holds only the state)
+    disagrees. absent when either side has none."""
     if not record or not tree: return "absent", None
     norm = lambda s: re.sub(r"\b(county|co\.?|township|twp\.?|magisterial district \d+|district \d+)\b", " ", COUNTRY.sub("usa", s.lower()))   # a jurisdiction word is not a place part
     expand = lambda p: US_STATE.get(p, p)                             # a two-letter US state code stands for the state it abbreviates
-    parts = lambda s: [expand(p.strip().rstrip(".").strip()) for p in re.split(r"<|,", norm(s)) if p.strip(" .")]   # "Ky." is the code with a period
-    tparts = parts(tree)
+    part = lambda p: expand(norm(p).strip().rstrip(".").strip())      # one piece normalised; "Ky." is the code with a period
+    parts = lambda s: [(part(p), p.strip(" .")) for p in re.split(r"<|,", s) if part(p)]   # (normalised, as written)
+    tparts = [p for p, _ in parts(tree)]
     below = [p for p in tparts if p != "usa"]
     if not below: return "absent", None                             # a tree place that names only the country says nothing to compare
-    rparts = [p for p in parts(record) if p != "usa"]                 # the country is not a part to count on either side
+    rparts = [(p, w) for p, w in parts(record) if p != "usa"]         # the country is not a part to count on either side
     if not rparts: return "absent", None
-    if len(rparts) > len(below): rparts = rparts[-len(below):]       # a name ahead of the jurisdictions (a cemetery, a building) is not a place part
+    finer = rparts[:-len(below)] if len(rparts) > len(below) else []  # what the record names ahead of the tree's own finest part: a finer place, or a cemetery or building ahead of its town; not compared
+    rparts = [p for p, _ in rparts[len(finer):]]
     tkeys = {key(p) for p in tparts}
     if not all(key(p) in tkeys for p in rparts): return "disagrees", None
     finest = rparts[0]                                                # the record's first-named jurisdiction is its finest
-    if key(finest) == key(below[0]): return "agrees", None
+    if key(finest) == key(below[0]): return ("agrees", "the record is finer: " + ", ".join(w for _, w in finer)) if finer else ("agrees", None)
     name = next((p for p in below if key(p) == key(finest)), finest)
     return "agrees", f"the record gives only {name.title()}"
 

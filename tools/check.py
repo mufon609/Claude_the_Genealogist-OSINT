@@ -1295,10 +1295,14 @@ def rules():
         (("Simpson County, Kentucky", franklin_ky), ("agrees", "the record gives only Simpson")), # county and state agree, coarser than the town
         (("Simpson", franklin_ky), ("agrees", "the record gives only Simpson")),                # the county alone still agrees
         (("Methacton Mennonite Cemetery, Norristown, Montgomery County, Pennsylvania, USA", "Norristown < Montgomery < Pennsylvania < United States"),
-         ("agrees", None)),                                                                     # a cemetery named ahead of the town is not a place part; the jurisdictions still match in full
-        (("Vickers Hospital, Franklin, Simpson, Ky.", "Franklin, Simpson, Kentucky, United States"), ("agrees", None)),   # a building ahead of the town on a record that names no country, against a string that does: the country is not a part to count
+         ("agrees", "the record is finer: Methacton Mennonite Cemetery")),                      # a cemetery named ahead of the town is not compared; the jurisdictions match in full, and the note names what the record adds
+        (("Vickers Hospital, Franklin, Simpson, Ky.", "Franklin, Simpson, Kentucky, United States"), ("agrees", "the record is finer: Vickers Hospital")),   # a building ahead of the town on a record that names no country, against a string that does: the country is not a part to count
         (("Franklin, Simpson, Kentucky, United States", "Franklin, Simpson, Ky."), ("agrees", None)),                     # and the other way round
         (("United States", franklin_ky), ("absent", None)),                                     # a record that names only the country says nothing to compare
+        (("Simpson County, Kentucky", "Kentucky < United States"), ("agrees", "the record is finer: Simpson County")),   # a finer record against a tree that holds only the state: agrees on the state, the note says the record is finer, in the record's own words
+        (("Franklin, Simpson, Ky.", "Simpson County < Kentucky < United States"), ("agrees", "the record is finer: Franklin")),   # the town ahead of the county the tree holds: agrees on the county
+        (("Simpson County", "Kentucky < United States"), ("disagrees", None)),                  # a county alone, naming no state, against a tree that holds only the state: no level in common on the strings
+        (("Franklin, Simpson, Kentucky", "Simpson County < Tennessee < United States"), ("disagrees", None)),   # finer, but under another state: disagrees
     ]
     for (record, tree), want in pv_cases:
         got = place_verdict(record, tree)
@@ -1461,7 +1465,7 @@ def main():
     bad_files = compiles()
     print("ok   every tool compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad_files += bad_rules
-    print("ok   the surname rule, the holder search, the rule's automated kinds and place_verdict's coarser agreement: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page; nj-death-index is automated; a state code or an ancestor place agrees on the level it states" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    print("ok   the surname rule, the holder search, the rule's automated kinds and place_verdict's coarser and finer agreement: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page; nj-death-index is automated; a state code or an ancestor place agrees on the level it states, a finer place on the level the tree states and says so" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     bad_conn = connectors_offline(); bad_files += bad_conn
     print("ok   connectors offline: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))

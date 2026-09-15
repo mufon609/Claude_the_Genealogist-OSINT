@@ -17,8 +17,9 @@ date (a different day in the same year disagrees); a bare year against a full
 date agrees on the year only and says so; a record date marked about, estimated
 or calculated agrees within two years. A place agrees the same way on the part it states: a record place that names
 the tree's own place, or an ancestor of it in the resolved hierarchy (the county, or the state alone, spelled out or
-as its two-letter US code), agrees on the level it names and says so; a place neither the tree's own nor an ancestor
-of it disagrees. A prefix (Dr, Maj), a nickname in quotes
+as its two-letter US code), agrees on the level it names and says so; a record place inside the tree's own (the town
+ahead of the state the tree holds) agrees on the level the tree states and says the record is finer; a place neither
+the tree's own, nor an ancestor of it, nor inside it disagrees. A prefix (Dr, Maj), a nickname in quotes
 and an extra middle name are not disagreements; a name written surname first
 (Davidson, Robert E.) is read as such and an initial is never a surname; the
 surname agrees when any token of the record's name after the given name is a
