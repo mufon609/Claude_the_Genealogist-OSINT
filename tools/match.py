@@ -136,7 +136,8 @@ def compare(cat, persona, cand, chosen):
     strong = any(a.startswith(("death date", "birth place", "burial place", "death place", "residence place")) for a in agree) \
              or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
-    near = not fits and given_ok and (surname_ok or married or same) and not any(d.startswith("sex") for d in disagree)   # the same name, something else disagrees: a card, never a rule decision
+    both_dates = any(d.startswith("birth date disagrees") for d in disagree) and any(d.startswith("death date disagrees") for d in disagree)   # disagreeing on both is not a likely identity either
+    near = not fits and given_ok and (surname_ok or married or same) and not any(d.startswith("sex") for d in disagree) and not both_dates   # the same name, something else disagrees: a card, never a rule decision
     return fits, agree, disagree, absent, near
 
 def _date(row):

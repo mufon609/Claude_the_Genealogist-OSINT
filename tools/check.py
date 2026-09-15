@@ -460,7 +460,7 @@ def decisions(keep, show):
     name = lambda pid: next(n for n, i in who.items() if i == pid)
     for pid in who.values(): plan_person(cx, tid, pid, BY)
     cx.commit()
-    fail(len(who) == 10, f"ten persons ingested, got {len(who)}")
+    fail(len(who) == 11, f"eleven persons ingested, got {len(who)}")
     props = lambda **w: [dict(r) for r in cx.execute("SELECT * FROM proposal WHERE tree_id=? AND status=? AND kind IN ('persona_match','new_person') ORDER BY created_at, id", (tid, w.get("status", "undecided")))]
     person_of = lambda p: json.loads(p["payload_json"]).get("person_id")
     nassert = lambda: cx.execute("SELECT COUNT(*) FROM assertion WHERE tree_id=? AND status='accepted'", (tid,)).fetchone()[0]
@@ -644,6 +644,16 @@ def decisions(keep, show):
     fail(card_row2 and closed2 == [(card_row2["id"], "Robert Michael Ahearn")], f"the sweep names the row's own card: {closed2}")
     after2 = cx.execute("SELECT status, decision_note FROM proposal WHERE id=?", (card_row2["id"],)).fetchone() if card_row2 else None
     fail(after2 and tuple(after2) == ("rejected", "the record itself is accepted"), f"the row's card closes rejected with the record's own reason: {after2 and dict(after2)}")
+    # ---- a same-name persona disagreeing on both its dates is not a likely identity either: it stays a hint, never a card
+    # (docs/RESEARCH-WORKFLOW.md §5-7), checked directly on compare() as the results-page verdicts above are
+    from match import candidate as _candidate, compare as _compare
+    persona_e = {"name": "Ellen Louise Ahearn", "names": ["Ellen Louise Ahearn"], "sex": "F", "role": "profile", "relations": [],
+                 "birth": {"text": "1850", "start": "1850", "qualifier": "exact"}, "death": {"text": "1900", "start": "1900", "qualifier": "exact"},
+                 "birth place": None, "burial place": None, "death place": None, "residence place": None, "memorial": None}
+    cand_e = _candidate(Catalog(cx, tid), who["Ellen Louise Ahearn"])
+    fits_e, agree_e, disagree_e, absent_e, near_e = _compare(Catalog(cx, tid), persona_e, cand_e, {})
+    fail(not fits_e and not near_e and sum(d.startswith(("birth date disagrees", "death date disagrees")) for d in disagree_e) == 2,
+         f"the same name, but both dates disagree: no fit, and not near either, so the matcher would write no card for it: fits={fits_e} near={near_e} disagree={disagree_e}")
     # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
     r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
     fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")

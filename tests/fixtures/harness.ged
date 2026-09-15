@@ -153,6 +153,15 @@
 2 PLAC New Egypt, Ocean, New Jersey, USA
 1 BURI
 2 PLAC Arneytown, Burlington, New Jersey, USA
+0 @I11@ INDI
+1 NAME Ellen Louise /Ahearn/
+2 GIVN Ellen Louise
+2 SURN Ahearn
+1 SEX F
+1 BIRT
+2 DATE 1873
+1 DEAT
+2 DATE 1940
 0 @F1@ FAM
 1 HUSB @I1@
 1 WIFE @I2@
