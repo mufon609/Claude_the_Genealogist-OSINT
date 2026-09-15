@@ -544,7 +544,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records the
     decision with the owner's note. A moved step the kept person's plan already has by step_key keeps whichever of the two
     carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
-    onto the survivor rather than lost. Returns what moved."""
+    onto the survivor rather than lost. A dropped step or question is named in the audit row by its key, row (a step's) and
+    rationale, and why it was dropped, the way plan.py's own audit row names what it drops. Returns what moved."""
     q = _q(cx)
     dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
     kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
@@ -555,7 +556,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     if kept["merged_into"]: raise ValueError(f"{kept['display_name']} is itself merged into another person")
     ts = now()
     moved = {"persona_links": 0, "assertions": 0, "event_participants": 0, "family_memberships": 0,
-             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0}
+             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0,
+             "dropped_steps": [], "dropped_questions": []}   # each drop named by its key, row and rationale, the way plan.py's own audit row does: the audit row is the only trace of it afterwards
 
     for persona_id, in q.execute("SELECT persona_id FROM person_persona WHERE person_id=?", (dup_id,)).fetchall():
         if q.execute("SELECT 1 FROM person_persona WHERE person_id=? AND persona_id=?", (kept_id, persona_id)).fetchone(): continue
@@ -588,10 +590,15 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         else:
             moved["log_rows_repointed"] += q.execute("UPDATE search_log SET plan_step_id=? WHERE plan_step_id=?", (existing["id"], step["id"])).rowcount
             q.execute("DELETE FROM search_plan WHERE id=?", (step["id"],)); moved["plan_steps_dropped"] += 1
+            moved["dropped_steps"].append({"step_key": step["step_key"], "row_key": step["row_key"], "rationale": step["rationale"],
+                                           "reason": "the kept person's own step of this key carries search_log runs already"})
 
     for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=?", (dup_id,)).fetchall():
         if q.execute("SELECT 1 FROM research_question WHERE subject_person_id=? AND q_key=?", (kept_id, question["q_key"])).fetchone():
-            moved["questions_dropped"] += 1; continue
+            moved["questions_dropped"] += 1
+            moved["dropped_questions"].append({"q_key": question["q_key"], "kind": question["kind"],
+                                               "reason": "the kept person already has an open question of this key"})
+            continue
         q.execute("UPDATE research_question SET subject_person_id=? WHERE id=?", (kept_id, question["id"])); moved["questions_moved"] += 1
 
     q.execute("UPDATE person SET merged_into=?, updated_at=? WHERE id=?", (kept_id, ts, dup_id))
