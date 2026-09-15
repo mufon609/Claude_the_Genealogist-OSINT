@@ -67,7 +67,10 @@ full-size image URL, caption and the type the page gives it (Grave, Person,
 Family); those typed Grave become the gravestone fetch steps (tools/plan.py).
 
 A FamilySearch record page (verified on a real 1900 census page): the subject's
-name in the h1 and the collection in the h2; the "Document Information" table
+name in the h1 and the collection in the h2; a citation fetched on a relative
+of the record's own subject carries a leading h2 of its own ("Mentioned in the
+Record of Ollie Duke Davidson (Lena Howard Bell's Son)"), never taken as the
+collection, whose own h2 follows it. The "Document Information" table
 (digital folder, microfilm, image number, batch) kept in structured_json; the
 subject's details table under "Cite This Record" as the fields, labelled as the
 page labels them (Name, Sex, Age, Birth Date, Birthplace, Marital Status, Race,
@@ -263,7 +266,8 @@ def parse_record(text):
     t = Tree(); t.feed(text); root = t.root
     main = next((n for n in walk(root) if n["tag"] == "main"), root)
     head = lambda tag: next((text_of(n) for n in walk(main) if n["tag"] == tag), None)
-    out = {"kind": "familysearch", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "name": head("h1"), "collection": head("h2"),
+    collection = next((text_of(n) for n in walk(main) if n["tag"] == "h2" and not text_of(n).startswith("Mentioned in the Record of")), None)   # a citation fetched on a relative names the record's own subject in a leading h2 of its own; the collection is the h2 after it
+    out = {"kind": "familysearch", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "name": head("h1"), "collection": collection,
            "ark": None, "citation": None, "document": [], "fields": [], "members": []}
     m = next((re.search(r"ark:/61903/1:1:[A-Z0-9-]+", text_of(n)) for n in walk(root) if n["tag"] == "h3" and "ark:/61903/1:1:" in text_of(n)), None)
     if m: out["ark"] = m.group(0)
