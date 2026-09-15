@@ -154,7 +154,12 @@ def card(cx, tree_id, prop_id):
     if person and any(f["field"] == "Sex" and f["verdict"] == "absent" for f in fields) and not person["claim"]["sex"]: odd.append("the tree has no sex for this person")
     for f in fields:                                              # a place that is only a country agrees with any place in it; say so
         if f["field"].endswith(" place") and f["verdict"] == "agrees" and f["record"] and len([p for p in f["record"].split(",") if p.strip()]) == 1 and COUNTRY.fullmatch(f["record"].strip()): odd.append(f"{f['field']} on the record is only a country ({f['record']})")
-    if a["mime"] and not a["mime"].startswith("text/html"): odd.append(f"the record is {a['mime']}, transcribed by hand")
+    ext = cx.execute("SELECT ex.kind FROM extraction e JOIN extractor ex ON ex.id=e.extractor_id WHERE e.id=?", (pe["extraction_id"],)).fetchone()
+    if ext and ext["kind"] == "human": odd.append(f"the record is {a['mime']}, read by hand")
+    elif ext and ext["kind"] == "llm": odd.append(f"the record is {a['mime']}, read by the model")
+    elif a["mime"] and not a["mime"].startswith("text/html"):
+        deriv = cx.execute("SELECT derived_from FROM artifact WHERE sha256=?", (sha,)).fetchone()
+        odd.append(f"the record is {a['mime']}, " + ("a derivative computed from an archived response" if deriv and deriv[0] else "a connector's answer"))
     # ---- highlight
     links = [f"{REL_WORD.get(r['kind'], r['kind'])} of {r['other']} ({r['other_status']})" for r in rels if r["direction"] == "is"] or \
             [f"{r['other']} as {r['as_written'].lower()} ({r['other_status']})" for r in rels if r["direction"] == "has"]
