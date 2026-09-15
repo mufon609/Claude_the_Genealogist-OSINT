@@ -271,7 +271,7 @@ def record_says(cx, tree_id, pid, sha):
                 dv, _ = date_verdict({"start": a["date_start"], "text": a["date_text"], "qualifier": a["date_qualifier"]}, {"start": ev["date_start"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]})
                 tp = cat.place(ev["id"], ev["place_id"])["text"] if ev["place_id"] else None
                 if dv == "disagrees": item["disagrees"] = f"date: the tree says {ev['date_text']}"
-                elif place_verdict(a["raw"], tp) == "disagrees": item["disagrees"] = f"place: the tree says {tp}"
+                elif place_verdict(a["raw"], tp)[0] == "disagrees": item["disagrees"] = f"place: the tree says {tp}"
         out.append(item)
     return out
 

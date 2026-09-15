@@ -324,19 +324,40 @@ def date_verdict(rec, tree):
     if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
     return "disagrees", None
 
+US_STATE = {   # a record place written as the bare two-letter code stands for the state it abbreviates
+    "al": "alabama", "ak": "alaska", "az": "arizona", "ar": "arkansas", "ca": "california", "co": "colorado",
+    "ct": "connecticut", "de": "delaware", "fl": "florida", "ga": "georgia", "hi": "hawaii", "id": "idaho",
+    "il": "illinois", "in": "indiana", "ia": "iowa", "ks": "kansas", "ky": "kentucky", "la": "louisiana",
+    "me": "maine", "md": "maryland", "ma": "massachusetts", "mi": "michigan", "mn": "minnesota",
+    "ms": "mississippi", "mo": "missouri", "mt": "montana", "ne": "nebraska", "nv": "nevada",
+    "nh": "new hampshire", "nj": "new jersey", "nm": "new mexico", "ny": "new york", "nc": "north carolina",
+    "nd": "north dakota", "oh": "ohio", "ok": "oklahoma", "or": "oregon", "pa": "pennsylvania",
+    "ri": "rhode island", "sc": "south carolina", "sd": "south dakota", "tn": "tennessee", "tx": "texas",
+    "ut": "utah", "vt": "vermont", "va": "virginia", "wa": "washington", "wv": "west virginia",
+    "wi": "wisconsin", "wy": "wyoming",
+}
+
 def place_verdict(record, tree):
-    """agrees when the tree's place (its last two named parts below the country, e.g. town and county) is found in the record's
-    place text, or the record's first part in the tree's; the tree's own resolved chain reads 'Town < County < State < Country'
-    and the country's spellings are one. absent when either side has none."""
-    if not record or not tree: return "absent"
+    """(verdict, note): agrees when the tree's place (its last two named parts below the country, e.g. town and county) is
+    found in the record's place text, or the record's own place — spelled out, or a US state's two-letter code expanded to
+    its name — names an ancestor of the tree's place in the resolved hierarchy (the state alone, or the county and state);
+    the tree's own resolved chain reads 'Town < County < State < Country' and the country's spellings are one. A coarser
+    record agrees on the level it states and the note says which place that is (as a bare year against a full date agrees
+    on the year only and says so). absent when either side has none; a place neither inside nor containing the other still
+    disagrees."""
+    if not record or not tree: return "absent", None
     norm = lambda s: re.sub(r"\b(county|co\.?|township|twp\.?|magisterial district \d+|district \d+)\b", " ", COUNTRY.sub("usa", s.lower()))   # a jurisdiction word is not a place part
-    tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]; rlow = key(norm(record))
+    tparts = [p.strip() for p in re.split(r"<|,", norm(tree)) if p.strip()]
     below = [p for p in tparts if p != "usa"]
-    if not below: return "absent"                                 # a tree place that names only the country says nothing to compare
-    if all(key(p) in rlow for p in below[-2:]): return "agrees"
-    rparts = [p.strip() for p in norm(record).split(",") if p.strip()]
-    if rparts and key(rparts[0]) in key(norm(tree)): return "agrees"
-    return "disagrees"
+    if not below: return "absent", None                             # a tree place that names only the country says nothing to compare
+    rec = norm(record).strip(); rec = US_STATE.get(rec, rec)
+    rlow = key(rec)
+    if all(key(p) in rlow for p in below[-2:]): return "agrees", None
+    rparts = [p.strip() for p in rec.split(",") if p.strip()]
+    if rparts and key(rparts[0]) in key(norm(tree)):
+        j = next((i for i, p in enumerate(below) if key(rparts[0]) in key(p) or key(p) in key(rparts[0])), None)
+        return "agrees", (f"the record gives only {below[j].title()}" if j is not None and len(rparts) < len(below) else None)
+    return "disagrees", None
 
 
 def tier_sql(ar="ar", s="s"):
@@ -372,7 +393,7 @@ class Catalog:
                                JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                                WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", e[0]):
                 dv, _ = date_verdict({"start": f[1], "text": f[0], "qualifier": f[2]}, {"start": e[3], "text": e[2], "qualifier": e[4]})
-                pv = place_verdict(f[3], tree_place)
+                pv, _ = place_verdict(f[3], tree_place)
                 rec = f[4] + (f" ({f[5]})" if f[5] else "")
                 if dv == "disagrees": out.append(f"{e[1].lower()} date: the tree says {e[2]}, {rec} says {f[0]}")
                 if pv == "disagrees": out.append(f"{e[1].lower()} place: the tree says {tree_place}, {rec} says {f[3]}")

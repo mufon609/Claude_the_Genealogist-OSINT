@@ -900,6 +900,16 @@ def rules():
         if got != want_url: bad.append(f"holder_search({h['HolderKind']}, {h['HolderKey'][:40]!r}) gave {got!r}, expected {want_url!r}")
     from conclude import AUTOMATED
     if "nj-death-index" not in AUTOMATED: bad.append("conclude.AUTOMATED does not name nj-death-index: a death index would stay a hint until a person reads it")
+    from catalog import place_verdict
+    township = "Mount Holly Township < Burlington County < New Jersey < United States"
+    pv_cases = [
+        (("NJ", township), ("agrees", "the record gives only New Jersey")),                    # a state code against a township in the state: agrees, coarser, and says so
+        (("NJ", "New Jersey < United States"), ("agrees", None)),                              # a state against itself: agrees outright, nothing coarser to say
+        (("Newark", township), ("disagrees", None)),                                            # two different towns: still disagrees
+    ]
+    for (record, tree), want in pv_cases:
+        got = place_verdict(record, tree)
+        if got != want: bad.append(f"place_verdict({record!r}, {tree!r}) gave {got!r}, expected {want!r}")
     return bad
 
 def connectors_offline():
@@ -1058,7 +1068,7 @@ def main():
     bad_files = compiles()
     print("ok   every tool compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad_files += bad_rules
-    print("ok   the surname rule, the holder search and the rule's automated kinds: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page; nj-death-index is automated" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    print("ok   the surname rule, the holder search, the rule's automated kinds and place_verdict's coarser agreement: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page; nj-death-index is automated; a state code or an ancestor place agrees on the level it states" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     sys.path.insert(0, os.path.join(ROOT, "tools"))
     bad_conn = connectors_offline(); bad_files += bad_conn
     print("ok   connectors offline: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))

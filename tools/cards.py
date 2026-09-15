@@ -90,7 +90,8 @@ def card(cx, tree_id, prop_id):
             if not f and not c: continue
             v, note = date_verdict({"start": f["date_start"] or f["date_end"], "qualifier": f["date_qualifier"]} if f else None, {"start": c["start"]} if c else None)
             fields.append({"field": f"{t} date", "record": f["date_text"] if f else None, "tree": c["date"] if c else None, "verdict": v, "note": note})
-            fields.append({"field": f"{t} place", "record": f["place"] if f else None, "tree": c["place"] if c else None, "verdict": _place_verdict(f["place"] if f else None, c["place"] if c else None)})
+            pv, pnote = _place_verdict(f["place"] if f else None, c["place"] if c else None)
+            fields.append({"field": f"{t} place", "record": f["place"] if f else None, "tree": c["place"] if c else None, "verdict": pv, "note": pnote})
             if f and f["value_text"]: fields.append({"field": t, "record": f["value_text"], "tree": None, "verdict": "absent"})
         for f in facts:
             if f["fact_type"] in ("Name", "Sex", "Birth", "Death", "Burial", "Identification Number"): continue

@@ -15,7 +15,10 @@ each candidate on name, sex, birth and death dates, burial and death place, and
 stated relationships. Dates are compared as dates when both sides carry a full
 date (a different day in the same year disagrees); a bare year against a full
 date agrees on the year only and says so; a record date marked about, estimated
-or calculated agrees within two years. A prefix (Dr, Maj), a nickname in quotes
+or calculated agrees within two years. A place agrees the same way on the part it states: a record place that names
+the tree's own place, or an ancestor of it in the resolved hierarchy (the county, or the state alone, spelled out or
+as its two-letter US code), agrees on the level it names and says so; a place neither the tree's own nor an ancestor
+of it disagrees. A prefix (Dr, Maj), a nickname in quotes
 and an extra middle name are not disagreements; a name written surname first
 (Davidson, Robert E.) is read as such and an initial is never a surname; the
 surname agrees when any token of the record's name after the given name is a
@@ -109,12 +112,12 @@ def compare(cat, persona, cand, chosen):
         words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (f": {note}" if note else "") + ")"
         (agree if v == "agrees" else disagree).append(words); dated = dated or v == "agrees"
     for label in ("birth place", "burial place", "death place"):
-        v = place_verdict(persona[label], cand[label])
+        v, note = place_verdict(persona[label], cand[label])
         if v == "absent": absent.append(label); continue
-        (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]})"); dated = dated or v == "agrees"
+        (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]}" + (f": {note}" if note else "") + ")"); dated = dated or v == "agrees"
     if persona.get("residence place"):                        # where the record puts the person, against every place the tree knows them at
         known = [p for p in cand.get("places") or [] if p]
-        hit = next((p for p in known if place_verdict(persona["residence place"], p) == "agrees"), None)
+        hit = next((p for p in known if place_verdict(persona["residence place"], p)[0] == "agrees"), None)
         if hit: agree.append(f"residence place agrees (record {persona['residence place']}, tree {hit})"); dated = dated or True
         else: absent.append(f"residence: {persona['residence place']} is not a place the tree knows them at")
     same = bool(persona.get("memorial")) and persona["memorial"] in (cand.get("memorials") or set())

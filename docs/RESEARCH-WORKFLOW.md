@@ -486,7 +486,11 @@ residence the record gives against every place the tree knows the person at,
 and the relationships the record states; a persona fits only on more than a
 name and a year (a place, a death, a full date or a stated relationship); a census index's estimated birth year and a
 household member's age become a calculated birth year the matcher allows two
-years on. A surname agrees as written or as a spelling variant, the same
+years on. As a bare year against a full date agrees on the year only and says so (§4), a place agrees on the part it
+states even when it is coarser than the tree's own: a record place that names the tree's own place, or an ancestor of it
+in the resolved hierarchy (the county, or the state alone, spelled out or as its two-letter US code), agrees on the level
+it names and the rationale says which place that is; a place that is neither the tree's place nor an ancestor of it still
+disagrees. A surname agrees as written or as a spelling variant, the same
 Soundex code within two edits (Ahearn and Ahern, Brant and Brandt), said so
 in the rationale. A given name agrees through its common short forms (Willie for
 William, Charley for Charles) and across a one-letter slip in a longer name; a
