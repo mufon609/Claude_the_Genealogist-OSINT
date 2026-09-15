@@ -314,6 +314,12 @@ East/West Norriton 1909; Montgomery Co. formed 1784) · `jurisdiction_error`
 belong in `place_name` with dates. Everything else is an error or variant and
 is attached to the canonical entity as an alias, never promoted to a name.
 
+A place's dated names are proposed the way a place itself is: the resolver
+reads them off the gazetteer's own merger and rename records, and the owner
+accepts one once on a fact row, the same click that accepts a place now.
+Matching reads `place_name` too, so a record's place agrees with the tree's
+when both resolve to one place or one is a dated name of the other.
+
 ### Schema
 
 ```
@@ -351,3 +357,9 @@ edits the canonical value.
 - **Conflicts are not aliases.** A different birth date is a competing
   assertion, kept with its own three-state status and shown as disputed; it is never
   merged into an alias list.
+
+An accepted variant of a name — a transposition, an indexer's slip, a married
+name — is not written as a competing name: it is an alias of its own kind,
+carrying the record's words exactly as written. The card that decides it is
+the record's words, then the canonical value, then the kind and the reason
+(`docs/RESEARCH-CHECKLIST.md` §6b); deciding it never edits the record.
