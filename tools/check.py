@@ -537,6 +537,9 @@ def decisions(keep, show):
     fail(r.get("ok") and r["assertions"] >= 6 and not r["memberships"], f"the son's facts accepted from the record and no family link before a parent is: {r}")
     fail(fact_status(cx, who["Frederick Micheal Ahearn Jr"], "name") == "accepted" and fact_status(cx, who["Frederick Micheal Ahearn Jr"], "birth") == "accepted", "his name and birth read accepted")
     fail(fact_status(cx, who["Frederick Micheal Ahearn Jr"], "parents") == "undecided", "his parents still undecided")
+    # ---- the record's own name ("Frederick Ahern") differs from the person's ("Frederick Micheal Ahearn Jr"): an accepted alias at once, not left for a later backfill
+    alias_row = cx.execute("SELECT value, kind, status FROM alias WHERE entity_kind='person' AND entity_id=?", (who["Frederick Micheal Ahearn Jr"],)).fetchone()
+    fail(r.get("alias") and alias_row and tuple(alias_row) == ("Frederick Ahern", "typo", "accepted"), f"the record's own words, the alias kind the surname difference is, accepted with the decision; got {tuple(alias_row) if alias_row else None}")
     # ---- a results page for him: the matcher's verdict on every row, checked directly on the candidate card
     from cards import search_card
     from treelib import archive_object

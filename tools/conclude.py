@@ -58,6 +58,7 @@ from catalog import Catalog, source_tier, split_name, tier_sql
 from catalog import date_verdict, place_verdict
 from match import REL_OF, candidate, compare, match, personas_of
 from plan import plan_person
+from backfill_aliases import classify, clean, key
 
 SKIP = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
 AUTOMATED = ("familysearch-record", "nara-1950-schedule", "va-gravesite", "nj-death-index")   # a rule parser's own name, trusted for any collection it claims; a record read by hand or by the model is gated on its collection alone, never on who read it
@@ -158,6 +159,28 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
             events = [{"id": eid}]
         for e in events: assert_("event", e["id"], f)
     return n, sha
+
+def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
+    """The persona's own Name fact, when its words differ from the person's canonical name and are not already one of the
+    person's own name rows (a birth or married name create_person already split out), becomes an alias at once: accepted,
+    of the kind the difference is (backfill_aliases.classify), the record's words as written. Returns the alias id, or None
+    when there is nothing to write."""
+    q = _q(cx)
+    fact = q.execute("SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL LIMIT 1", (persona_id,)).fetchone()
+    if not fact or not fact["value_text"]: return None
+    name = q.execute("SELECT given, surname, suffix FROM person_name WHERE person_id=? AND is_primary", (person_id,)).fetchone()
+    if not name: return None
+    canon = " ".join(x for x in (name["given"], name["surname"], name["suffix"]) if x)
+    value = clean(fact["value_text"])
+    if not value or key(value) == key(canon): return None
+    if any(key(value) == key(" ".join(x for x in r if x))
+           for r in q.execute("SELECT given, surname, suffix FROM person_name WHERE person_id=?", (person_id,))): return None
+    if q.execute("SELECT 1 FROM alias WHERE entity_kind='person' AND entity_id=? AND value=?", (person_id, value)).fetchone(): return None
+    kind, note = classify(fact["value_text"], name["given"], name["surname"], name["suffix"])
+    aid = ulid()
+    cx.execute("""INSERT INTO alias (id,tree_id,entity_kind,entity_id,value,kind,status,source_persona_fact_id,source_artifact_sha256,added_by,added_at,notes)
+                  VALUES (?,?,?,?,?,?,'accepted',?,?,?,?,?)""", (aid, tree_id, "person", person_id, value, kind, fact["id"], sha, by, ts, dumps({"proposal": prop_id, "note": note})))
+    return aid
 
 def create_person(cx, tree_id, persona_id, ts):
     """A person in this tree from a persona: the name as written split into given names and a surname; a maiden name the
@@ -369,7 +392,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"): return decide_place(cx, tree_id, p, status, by, note, choice)
     if not p or p["kind"] not in ("persona_match", "new_person") or status not in ("accepted", "rejected"): return {"error": "not a persona match, new person or place resolution, or bad status"}
-    pay = json.loads(p["payload_json"]); persona_id, person_id = pay["persona_id"], pay.get("person_id"); ts = now(); n = 0; members = []
+    pay = json.loads(p["payload_json"]); persona_id, person_id = pay["persona_id"], pay.get("person_id"); ts = now(); n = 0; members = []; alias_id = None
     identity = editable(cx, pay["artifact_sha256"])                # a page anyone can edit: the identity and its links, never a fact
     if p["status"] != "undecided":
         if not (p["status"] == "accepted" and status == "rejected" and (p["decided_by"] or "").startswith("rule:")): return {"error": "already decided"}
@@ -384,6 +407,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
                           AND json_extract(notes,'$.placed') IS NULL AND {TRUSTED_ARTIFACT}""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; a sibling placement, and a fact or family link a page anyone can edit states, stay undecided
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts); n += m
+        alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
         members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
     for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
@@ -393,8 +417,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     closed_rows = close_result_rows(cx, tree_id, person_id, by, ts) if status == "accepted" and person_id else []
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
               (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "proposal", prop_id,
-               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "memberships": members, "answered": answered, "closed_rows": closed_rows, "note": note})))
-    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "memberships": members, "answered": answered, "closed_rows": closed_rows, "note": note}
+               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "note": note})))
+    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "note": note}
 
 def _stands_for(cat, persona, cand, chosen):
     """Whether a persona on a page anyone can edit stands for a person of the tree as the relative the identity rule may count:
