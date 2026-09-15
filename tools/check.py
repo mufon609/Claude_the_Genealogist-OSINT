@@ -873,6 +873,54 @@ def merge_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def carry_links_check(keep):
+    """A rule decision later withdrawn (tools/conclude.py withdraw) leaves the persona link Undecided, a card again: only a
+    decided link (accepted or rejected) carries to a re-read (tools/extract.py carry_links), so the new persona gets no
+    person_persona row of its own and the matcher proposes it again."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, now as tnow, ulid as tulid
+    from extract import extract
+    from match import match as run_match
+    from conclude import decide, withdraw
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "carrytest", "--name", "Carry Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='carrytest'").fetchone()[0]
+    ts = tnow(); pid = tulid()
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "M", "Test Subject", ts, ts))
+    cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, "Test", "Subject", "subject, test"))
+    beid = tulid()
+    cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_qualifier,calendar,created_at,updated_at) VALUES (?,?,'Birth','3 Mar 1900','1900-03-03','exact','gregorian',?,?)", (beid, tid, ts, ts))
+    cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (tulid(), beid, pid))
+    cx.commit()
+    html = b"<html><body><table><tr><th>Name</th><td>Test Subject</td></tr><tr><th>Birth Date</th><td>3 Mar 1900</td></tr></table></body></html>"
+    cx.execute("BEGIN")
+    sha, _ = archive_object(cx, html, mime="text/html", source_id="D03", collection_id=None, locator_kind="url", locator_value="https://example.invalid/carry-harness",
+                            retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", original_filename="carry-harness.html")
+    eid1, n1 = extract(cx, sha, BY); cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    written1 = run_match(cx, eid1, BY, about=[pid]); cx.commit()
+    fail(len(written1) == 1 and written1[0][1] == "persona_match", f"one persona_match proposal on the first read: {written1}")
+    if written1:
+        prop1 = written1[0][0]
+        r = decide(cx, tid, prop1, "accepted", "rule:harness@0.1.0", note="harness: simulating the standing rule"); cx.commit()
+        fail(r.get("ok"), f"the simulated rule decision accepts: {r}")
+        withdraw(cx, tid, prop1, "rule:harness@0.1.0", "harness: reconsidered", tnow()); cx.commit()
+        persona1 = json.loads(cx.execute("SELECT payload_json FROM proposal WHERE id=?", (prop1,)).fetchone()[0])["persona_id"]
+        fail(cx.execute("SELECT status FROM person_persona WHERE person_id=? AND persona_id=?", (pid, persona1)).fetchone()[0] == "undecided", "withdrawn: the link reads undecided again, a card for the owner")
+        eid2, n2 = extract(cx, sha, BY); cx.commit()
+        fail(n2.get("links_carried", 0) == 0, f"an undecided link is not a decision: it must not carry to the re-read: {n2}")
+        persona2 = cx.execute("SELECT id FROM persona WHERE extraction_id=?", (eid2,)).fetchone()[0]
+        fail(cx.execute("SELECT 1 FROM person_persona WHERE persona_id=?", (persona2,)).fetchone() is None, "the new persona carries no person_persona row at all")
+        written2 = run_match(cx, eid2, BY, about=[pid]); cx.commit()
+        fail(len(written2) == 1 and written2[0][1] == "persona_match" and written2[0][2] == "Test Subject", f"the matcher proposes the persona again on the re-read: {written2}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("carry_links scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def rules():
     """The name rules as the docs state them, on their own."""
     from catalog import same_surname
@@ -1133,6 +1181,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL conclude.py merge: " + "; ".join(fails))
     else: print("ok   conclude.py merge: evidence and open work move to the kept person, a step collision keeps the one with runs, the duplicate's row stays out of every listing")
+    try: fails = carry_links_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL carry_links: " + "; ".join(fails))
+    else: print("ok   carry_links: a withdrawn rule decision (undecided again) does not carry to a re-read; the matcher proposes the persona again")
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))

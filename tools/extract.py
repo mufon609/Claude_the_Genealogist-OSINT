@@ -964,11 +964,13 @@ def extract(cx, sha, by):
 
 def carry_links(cx, old, eid, sha, by, ts):
     """A decided person-persona link on a superseded extraction moves to the new persona of the same name and role; an accepted
-    one asserts the new facts and links onto the person as the decision did. Returns how many links were carried."""
+    one asserts the new facts and links onto the person as the decision did. An undecided link is not a decision, so it does
+    not carry: the matcher proposes that persona again. Returns how many links were carried."""
     n = 0
     for o in old:
         for pp in cx.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at, pe.name_text, pe.role_in_record, p.tree_id
-                                FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id WHERE pe.extraction_id=?""", (o,)).fetchall():
+                                FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
+                                WHERE pe.extraction_id=? AND pp.status IN ('accepted','rejected')""", (o,)).fetchall():
             new = cx.execute("SELECT id FROM persona WHERE extraction_id=? AND name_text=? AND role_in_record=?", (eid, pp[5], pp[6])).fetchone()
             if not new: continue
             cx.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (pp[0], new[0], pp[1], pp[2], pp[3], pp[4])); n += 1
