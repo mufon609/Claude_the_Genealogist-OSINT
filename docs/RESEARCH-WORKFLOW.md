@@ -579,7 +579,14 @@ persona accepted on the same record as a person the tree links to a
 candidate by that relation, claimed or accepted, is taken the same way when
 the persona's given name and surname agree with the candidate's name,
 claimed or accepted, and a birth year agrees where both have one; the
-record's own name fact then documents the name. A persona such a trusted
+record's own name fact then documents the name. A persona stated as a sibling
+of a person accepted on the record fits a candidate who is a child of that
+person's parents in the tree, claimed or accepted, or who has no parents in
+the tree at all and whose surname agrees (nothing holds the sibling, nothing
+contradicts it), and is taken the same way; accepting places the candidate as
+a child of those parents with an undecided assertion, as a sibling placement
+is. A sibling the tree holds counts as a relationship point like a parent or
+a spouse, on the evidence of the child membership beside the other's. A persona such a trusted
 record (T1–T2, or an obituary once read) names in a stated relationship to a
 person accepted on it, who fits nobody in the tree after the fitting check,
 is created by the rule as a person with the record's facts and the family

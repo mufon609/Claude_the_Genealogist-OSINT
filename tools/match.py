@@ -35,7 +35,8 @@ or birth surname agrees and whose birth year agrees where both have one, or
 who already stands in the same stated relationship to the same candidate the
 record's other persona was accepted as, is proposed with the disagreement in
 the rationale; a given name that disagrees is not what refuses this, only the
-surname or the relationship; and a candidate of the same name comes before one
+surname or the relationship (a stated sibling is neither held nor contradicted
+by a candidate with no parents in the tree); and a candidate of the same name comes before one
 the fitting check reaches on the surname or the relationship alone, so a
 brother named Joe is put to the tree's Joe, not to the first sibling met. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
@@ -143,6 +144,8 @@ def compare(cat, persona, cand, chosen):
         fam = cat.family(cand["id"]); group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
         if group is None: absent.append(f"relationship to {other_name} ({as_written}): the record's heading is not one the matcher maps to a family link"); continue
         holds = any(rid == other_cand["id"] for rid, _ in fam[group])
+        if not holds and kind == "sibling" and not fam["parents"]:     # a sibling is held through the parents: a candidate with none in the tree neither holds nor contradicts it
+            absent.append(f"relationship to {other_name} ({as_written}): {cand['name']} has no parents in the tree to hold or contradict a sibling"); continue
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
         rel_ok = rel_ok or holds

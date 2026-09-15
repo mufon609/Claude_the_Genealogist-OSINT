@@ -767,6 +767,19 @@ def decisions(keep, show):
     fail(any(x["kind"] == "card" and x["taken"] and x["proposal"] == card_w["id"] for x in rows_w) and cx.execute("SELECT COUNT(*) FROM person WHERE tree_id=?", (tid,)).fetchone()[0] == persons_c + 1
          and cx.execute("SELECT status FROM person_persona WHERE person_id=? AND persona_id=?", (walter, r_w["persona"])).fetchone()[0] == "accepted",
          f"reconsider takes the card again and links the same person, no second Walter: {[x for x in rows_w if x['proposal'] == card_w['id']]}")
+    # ---- a stated sibling of a person accepted on the record, fitting a person of the tree with no parents in it (the fitting
+    # check reaches her by the surname and the birth year): nothing holds the sibling and nothing contradicts it, so the rule
+    # takes her on the sibling route; Robert has no accepted parents, so the placement has no family to go in and none is written
+    r_e = server.transcribe(cx, sha_c, {"name": "Ellen Ahearn", "sex": "F", "role": "sister", "age": "47", "year": "1920",
+                                        "relations": [{"persona_id": r_j["persona"], "kind": "sibling", "text": "Sister"}]}, by="human:harness")
+    cx.commit(); say("1920 census, Ellen:", r_e)
+    card_e = cx.execute("SELECT * FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tid, r_e.get("persona"))).fetchone()
+    fail(r_e.get("ok") and r_e["accepted_by_rule"] == 1 and card_e and card_e["kind"] == "persona_match" and person_of(card_e) == who["Ellen Louise Ahearn"] and card_e["status"] == "accepted"
+         and (card_e["decided_by"] or "").startswith("rule:") and "a stated sibling" in (card_e["decision_note"] or "") and "holds no parents" in (card_e["decision_note"] or ""),
+         f"a sister nobody in the tree holds is put to the unlinked Ellen Louise Ahearn and taken by the rule on the sibling route, the reason saying the tree holds no parents to contradict it: {r_e}, {card_e and dict(card_e)}")
+    fail("has no parents in the tree to hold or contradict a sibling" in (card_e["rationale"] if card_e else ""), f"the card's rationale reads the sibling as absent, not a disagreement: {card_e and card_e['rationale'][:300]}")
+    fail(fact_status(cx, who["Ellen Louise Ahearn"], "name") == "accepted" and not cx.execute("SELECT 1 FROM family_member WHERE person_id=?", (who["Ellen Louise Ahearn"],)).fetchone(),
+         "her name documented by the record; no membership written, Robert being an accepted child of no family")
     # ---- reconsider judges that decision by the route it stands on: without its own name assertion her name is a claim again,
     # and the stated relationship still holds, so the decision is kept, no withdraw row written
     from conclude import reconsider as _reconsider
@@ -776,6 +789,12 @@ def decisions(keep, show):
     fail(not cx.execute("SELECT 1 FROM audit_log WHERE entity_kind='proposal' AND entity_id=? AND json_extract(diff_json,'$.withdrawn') IS NOT NULL", (card_a["id"],)).fetchone() if card_a else False,
          "no withdraw row on her decision")
     fail(card_a and cx.execute("SELECT status, decided_by FROM proposal WHERE id=?", (card_a["id"],)).fetchone()[0] == "accepted", "her decision still stands after reconsider")
+    # ---- the same pass takes the sister on the 1940 census: her brother is accepted on it, the file claims her a child of the
+    # same parents, her name and birth year agree, so the sibling route takes her and places her beside him with an undecided
+    # assertion (the record states the sibling, not the parents)
+    a_row = cx.execute("SELECT status, decided_by, decision_note FROM proposal WHERE id=?", (card["Alicia Ahern"],)).fetchone()
+    fail(a_row["status"] == "accepted" and (a_row["decided_by"] or "").startswith("rule:") and "sibling Frederick Ahern" in (a_row["decision_note"] or ""), f"reconsider takes the sister's card on the claimed sibling relationship: {dict(a_row)}")
+    fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
     # ---- a results-page row outlives its own record: once Robert is accepted directly on a record his own ark points at, an
     # undecided results-page row (role result) naming him, written under that same ark, closes rejected, "the record itself is
     # accepted" (docs/RESEARCH-WORKFLOW.md: a results row is a hint, its own record the document). Robert and Grace stay
@@ -824,9 +843,8 @@ def decisions(keep, show):
     fits_e, agree_e, disagree_e, absent_e, near_e = _compare(Catalog(cx, tid), persona_e, cand_e, {})
     fail(not fits_e and not near_e and sum(d.startswith(("birth date disagrees", "death date disagrees")) for d in disagree_e) == 2,
          f"the same name, but both dates disagree: no fit, and not near either, so the matcher would write no card for it: fits={fits_e} near={near_e} disagree={disagree_e}")
-    # ---- the sister accepted: placed beside her brother with an undecided assertion, the record states the sibling, not the parents
-    r = decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness"); cx.commit(); say("sister:", r, memberships())
-    fail(any(n == "Alicia Ahern" and role == "child" and st == "undecided" and placed == "sibling" for n, role, st, placed in memberships()), f"the sister's membership carries an undecided sibling placement: {memberships()}")
+    # ---- the sister's card, taken by the rule above, is decided once: a second decision is refused
+    fail(decide(cx, tid, card["Alicia Ahern"], "accepted", BY, "harness").get("error") == "already decided", "the rule's decision on the sister stands; the owner's Add is not a second decision")
     # ---- a link on the owner's word is a vouch, not a record: the sister placed with her parents by their word is linked to nobody for the matcher
     from conclude import link_on_word
     alicia_fid = link_on_word(cx, tid, who["Alicia Ahern"], [who["Frederick Michael Ahearn"], who["Helen Sara Brant"]], "child", "3a1a54eb4b02209c0cc43714a6c8595f40c44de4cfad5ee19d73c2a6d68e6b8e", BY, "harness: the owner's word"); cx.commit()

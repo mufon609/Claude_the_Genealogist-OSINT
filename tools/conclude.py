@@ -508,7 +508,12 @@ def rule_accepts(cx, tree_id, prop, without=()):
     persona already accepted on this same record as a person the tree links to the candidate by that relation, claimed or
     accepted, is taken the same way though the candidate's own name is not yet accepted, once the given name and surname
     agree with the candidate's name (claimed or accepted) and a birth year agrees where both have one (claimed_relation_match):
-    the record's own Name fact then documents the name, accepted with everything else the record states. without: proposal
+    the record's own Name fact then documents the name, accepted with everything else the record states. A persona stated as
+    a sibling of a person accepted on the record is taken so when the candidate is a child of that person's parents in the
+    tree, claimed or accepted, or has no parents in the tree at all (nothing holds the sibling, nothing contradicts it) and the
+    name agrees; accepting places them as a child of those parents with an undecided assertion (link_family). A sibling the
+    tree holds counts as a relationship point like a parent or a spouse, on the trusted evidence of the child membership
+    beside the other's. without: proposal
     ids whose assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by
     that route, as it was taken, not as an accepted name resting on no trusted source."""
     q = _q(cx)
@@ -550,13 +555,13 @@ def rule_accepts(cx, tree_id, prop, without=()):
     married = any(a.startswith("surname:") and "carries her husband's surname" in a for a in absent)   # a wife under her married name: not a disagreement, and not the surname's absence either
     if not any(a.startswith("given name agrees") for a in agree) or not (any(a.startswith("surname agrees") for a in agree) or married): return False, "the name does not agree in full"
     if any(a.startswith("surname agrees, one letter apart") for a in agree): return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"
-    INV = {"child": "parent", "parent": "child", "spouse": "spouse"}
+    INV = {"child": "parent", "parent": "child", "spouse": "spouse", "sibling": "sibling"}
     relations = [(k, o, None, n) for k, o, _, n in persona["relations"]]      # the persona is the <kind> of the other
     relations += [(INV[r[0]], r[1], None, r[2]) for r in q.execute("""SELECT r.kind, r.persona_id, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.persona_id
-                                                                         WHERE r.related_persona_id=? AND r.kind IN ('child','parent','spouse')""", (persona["id"],))]   # the other is the <kind> of the persona
+                                                                         WHERE r.related_persona_id=? AND r.kind IN ('child','parent','spouse','sibling')""", (persona["id"],))]   # the other is the <kind> of the persona
     def joined(kind, other_pid):
         """The relative a stated relation names, when the tree links the two so, claimed or accepted: (group, candidate) or None."""
-        oc = chosen.get(other_pid); group = {"child": "parents", "parent": "children", "spouse": "spouses"}.get(kind)
+        oc = chosen.get(other_pid); group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
         return (group, oc) if oc and group and any(rid == oc["id"] for rid, _ in fam[group]) else None
     if identity:
         day = lambda t: any(a.startswith(f"{t} date agrees") and "year only" not in a for a in agree)   # both sides a full date, the same day
@@ -564,15 +569,17 @@ def rule_accepts(cx, tree_id, prop, without=()):
         if any(a.startswith("burial place agrees") for a in agree): points.append("burial place")
         named = set()
         for kind, other_pid, _, other_name in relations:
-            j = joined(kind, other_pid)
+            j = joined(kind, other_pid) if kind != "sibling" else None     # a stated parent or spouse counts here, never a sibling
             if j and j[1]["id"] not in named: named.add(j[1]["id"]); points.append(f"{REL_OF[j[0]]} {other_name}")
         if len(points) < 3: return False, ("a page anyone can edit identifies a person only when the name and three of birth date to the day, death date to the day, burial place "
                                            "and a stated parent or spouse agree: here " + (", ".join(points) + (" agree" if len(points) > 1 else " agrees") if points else "the name alone agrees"))
         return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted" + claim_note
     if cat.basis("person", pid) != "accepted" or not trusted_evidence(cx, tree_id, "person", [pid], without=without):   # the name is a claim, or accepted on nothing the rule may count here: the route through a stated relationship
         rel = claimed_relation_match(fam, relations, accepted_on_record)
-        if not rel: return False, "the name is not accepted yet" if cat.basis("person", pid) != "accepted" else "the accepted name rests on no trusted source and not on your own word"
+        unplaced = None if rel or fam["parents"] else next(((accepted_on_record[o], n) for k, o, _, n in relations if k == "sibling" and o in accepted_on_record), None)   # a stated sibling of someone accepted here, and the tree holds no parents to contradict it
+        if not rel and not unplaced: return False, "the name is not accepted yet" if cat.basis("person", pid) != "accepted" else "the accepted name rests on no trusted source and not on your own word"
         if any(d.startswith("birth date disagrees") for d in disagree): return False, "the name is not accepted yet, and the birth year disagrees with the claimed relative's record"
+        if unplaced: return True, f"a stated sibling: sibling {unplaced[1]}, already accepted on this record, and your tree holds no parents for {cand['name']}, so nothing contradicts it; the name and birth year agree, so the record's own name fact documents it, and they are placed beside {unplaced[1]} as a child of the same parents, undecided, where the tree holds those" + claim_note
         group, other_cand, other_name = rel
         return True, f"a claimed relationship: {REL_OF[group]} {other_name}, already accepted on this record, and your tree already links them so, claimed or accepted; the name and birth year agree, so the record's own name fact documents it" + claim_note
     points, rel_points = [], []
@@ -587,9 +594,9 @@ def rule_accepts(cx, tree_id, prop, without=()):
         j = joined(kind, other_pid)
         if not j: continue
         group, oc = j
-        role = "child" if group == "parents" else "partner"; other_role = "child" if group == "children" else "partner"
+        role = "child" if group in ("parents", "siblings") else "partner"; other_role = "child" if group in ("children", "siblings") else "partner"
         rows = [dumps([fid, pid, role]) for fid, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
-                                                                WHERE fm.person_id=? AND fm.role=?""", (oc["id"], other_role, pid, role))]   # the membership that joins these two
+                                                                WHERE fm.person_id=? AND fm.role=?""", (oc["id"], other_role, pid, role))]   # the membership that joins these two: the child's under the parent, a partner's beside the other, a sibling's child row beside the other's
         if trusted_evidence(cx, tree_id, "family_member", rows, without=without):
             pt = f"{REL_OF[group]} {other_name}"; points += [pt, "and the day"]; rel_points.append(pt)   # the relationship and the person it identifies: two points
     if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
