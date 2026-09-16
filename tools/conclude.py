@@ -60,7 +60,7 @@ from treelib import ROOT, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, source_tier, split_name, tier_sql
 from catalog import date_verdict, place_verdict, same_surname
 from catalog import key as surname_key
-from match import MATCHER, REL_OF, candidate, compare, match, personas_of, split_persona_name
+from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, match, personas_of, split_persona_name
 from plan import plan_person
 from backfill_aliases import classify, clean, key
 
@@ -167,11 +167,28 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
         for e in events: assert_("event", e["id"], f)
     return n, sha
 
+def shown_married(cx, tree_id, person_id, sha, written, canon_surname):
+    """Whether the record shows this person married under `written`'s own surname: a wife under her husband's surname (the
+    tree's own recorded spouse, claimed or accepted), a daughter or sister under her husband's, named beside a son-in-law
+    or brother-in-law of that surname on the same record, or written "Mrs."."""
+    if re.match(r"^\s*mrs\.?\b", written or "", re.I): return True
+    rest = split_persona_name(written)[1]
+    if not rest: return False
+    ws = rest[-1]
+    if ws == surname_key(canon_surname or ""): return False
+    q = _q(cx)
+    spouses = [surname_key(n.split()[-1]) for _, n in Catalog(cx, tree_id).family(person_id)["spouses"] if n and n.split()]
+    if any(same_surname(ws, s) for s in spouses): return True
+    eid = q.execute("SELECT extraction_id FROM persona WHERE artifact_sha256=? LIMIT 1", (sha,)).fetchone()
+    if not eid: return False
+    in_laws = [name for role, name in q.execute("SELECT role_in_record, name_text FROM persona WHERE extraction_id=?", (eid["extraction_id"],)) if MARRIED_IN_LAW.search(role or "")]
+    return any(same_surname(ws, s) for name in in_laws for s in [split_persona_name(name)[1]] if s for s in [s[-1]])
+
 def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     """The persona's own Name fact, when its words differ from the person's canonical name and are not already one of the
     person's own name rows (a birth or married name create_person already split out), becomes an alias at once: accepted,
-    of the kind the difference is (backfill_aliases.classify), the record's words as written. Returns the alias id, or None
-    when there is nothing to write."""
+    of the kind the difference is (backfill_aliases.classify, married_name when the record shows the person married under
+    it: shown_married), the record's words as written. Returns the alias id, or None when there is nothing to write."""
     q = _q(cx)
     fact = q.execute("SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL LIMIT 1", (persona_id,)).fetchone()
     if not fact or not fact["value_text"]: return None
@@ -183,7 +200,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     if any(key(value) == key(" ".join(x for x in r if x))
            for r in q.execute("SELECT given, surname, suffix FROM person_name WHERE person_id=?", (person_id,))): return None
     if q.execute("SELECT 1 FROM alias WHERE entity_kind='person' AND entity_id=? AND value=?", (person_id, value)).fetchone(): return None
-    kind, note = classify(fact["value_text"], name["given"], name["surname"], name["suffix"])
+    kind, note = classify(fact["value_text"], name["given"], name["surname"], name["suffix"], married=shown_married(cx, tree_id, person_id, sha, fact["value_text"], name["surname"]))
     aid = ulid()
     cx.execute("""INSERT INTO alias (id,tree_id,entity_kind,entity_id,value,kind,status,source_persona_fact_id,source_artifact_sha256,added_by,added_at,notes)
                   VALUES (?,?,?,?,?,?,'accepted',?,?,?,?,?)""", (aid, tree_id, "person", person_id, value, kind, fact["id"], sha, by, ts, dumps({"proposal": prop_id, "note": note})))

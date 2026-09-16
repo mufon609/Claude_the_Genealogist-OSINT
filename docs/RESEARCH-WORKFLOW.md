@@ -515,7 +515,10 @@ ancestor of it, nor inside it still disagrees. A surname agrees as written or as
 Soundex code within two edits (Ahearn and Ahern, Brant and Brandt), said so
 in the rationale. A given name agrees through its common short forms (Willie for
 William, Charley for Charles) and across a one-letter slip in a longer name; a
-wife written under her husband's surname is not a surname disagreement. A
+wife written under her husband's surname is not a surname disagreement, nor is
+any woman's the record otherwise shows married: a daughter or sister carrying
+another surname beside a son-in-law or brother-in-law of that surname on the
+same record, or written "Mrs." A
 persona of the same name as a candidate that disagrees on something else is
 still proposed as that candidate, with the disagreement in its rationale, so
 the owner sees the likely identity and the difference together; the rule never

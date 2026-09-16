@@ -59,6 +59,7 @@ from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, date_verdict, edits
 from log_search import REOPENED
 
 MATCHER = ("rule", "matcher", "0.2.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
 
 PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt", "cpl", "pfc", "cmdr", "adm"}
@@ -113,7 +114,8 @@ def compare(cat, persona, cand, chosen):
     how = next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s) == "agrees"), None) \
           or next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s)), None)
     surname_ok = bool(how)
-    married = bool(ps) and not surname_ok and (persona.get("spouse_surname") == ps or any(same_surname(ps, s) for s in cand.get("spouse_surnames") or []))   # a wife under her husband's surname: the record's spouse, or the tree's
+    married = bool(ps) and not surname_ok and (persona.get("spouse_surname") == ps or any(same_surname(ps, s) for s in cand.get("spouse_surnames") or [])
+                                                or any(same_surname(ps, s) for s in persona.get("in_law_surnames") or []) or persona.get("shown_mrs"))   # a wife under her husband's surname (the record's spouse or the tree's), or any woman shown married: a daughter or sister beside a son- or brother-in-law of that surname, or written "Mrs."
     (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
     if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
     elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'}" + {"variant": " as a spelling variant", "one letter apart": ", one letter apart"}.get(how, "") + f" (record {persona['name']}, tree {cand['name']})")
@@ -176,9 +178,12 @@ def personas_of(cx, eid):
                     "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels,
                     "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None})
     names = {p["id"]: p["name"] for p in out}
+    in_law_surnames = [rest[-1] for p in out if MARRIED_IN_LAW.search(p["role"] or "") for rest in [split_persona_name(p["name"])[1]] if rest]
     for p in out:                                                # a spouse relation on the record: the other's surname, for a wife written under it
         sp = next((names[r[1]] for r in p["relations"] if r[0] == "spouse" and r[1] in names), None)
         p["spouse_surname"] = split_persona_name(sp)[1][-1] if sp and split_persona_name(sp)[1] else None
+        p["in_law_surnames"] = in_law_surnames                    # a daughter or sister under her own husband's surname, a son-in-law or brother-in-law of it named beside her
+        p["shown_mrs"] = bool(re.match(r"^\s*mrs\.?\b", p["name"] or "", re.I))
     return out
 
 def memorials_of(cx, pid):

@@ -622,6 +622,70 @@ def in_law_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def married_surname_check(keep):
+    """A woman the record shows married is not a surname disagreement, a daughter or sister as much as a wife
+    (docs/RESEARCH-WORKFLOW.md §5-7): a daughter carries her own husband's surname, a son-in-law of it named beside her on
+    the same record; a sister is written "Mrs." with no other evidence at all. Accepting either writes the record's own
+    words as a married_name alias, not left unclassified. One isolated family, met nowhere else."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, now as tnow, ulid as tulid
+    from match import match as run_match
+    from conclude import decide
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "marriedtest", "--name", "Married Surname Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='marriedtest'").fetchone()[0]
+    ts = tnow()
+    def mkperson(name, sex):
+        pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, sex, name, ts, ts))
+        given, surname = name.rsplit(" ", 1)
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, given, surname, f"{surname}, {given}".lower()))
+        return pid
+    y = mkperson("Robert Wed Ahearn", "M"); daughter = mkperson("Carol Wed Ahearn", "F"); sister = mkperson("Jane Wed Ahearn", "F")
+    fam = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam, tid, ts, ts))
+    for who, role in ((y, "partner"), (daughter, "child")): cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fam, who, role))
+    fam2 = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam2, tid, ts, ts))
+    for who, role in ((y, "child"), (sister, "child")): cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fam2, who, role))
+    cx.commit()
+    src = cx.execute("SELECT trust_tier, terms FROM source WHERE id='D03'").fetchone()
+    cid = tulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, "D03", "United States Census, 1900", "other", "married_surname_test"))
+    sha, _ = archive_object(cx, b"married-surname-harness", mime="text/html", source_id="D03", collection_id=cid, collection_name="United States Census, 1900",
+                             locator_kind="url", locator_value="http://example.test/married-surname", retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0], original_filename="married-surname-harness.html")
+    extractor_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (extractor_id, "human", "harness", "0.1.0", ts))
+    xid = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,status,ran_at) VALUES (?,?,?,?,?)", (xid, sha, extractor_id, "complete", ts))
+    def mkpersona(name, sex, role, seq):
+        pid = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)", (pid, xid, sha, name, sex, role, seq, "{}"))
+        cx.execute("INSERT INTO persona_fact (id,persona_id,fact_type,value_text) VALUES (?,?,'Name',?)", (tulid(), pid, name))
+        return pid
+    pr_y = mkpersona("Robert Wed Ahearn", "M", "head", 1)
+    pr_daughter = mkpersona("Carol Wed Miller", "F", "daughter", 2)        # her own husband's surname on the record
+    pr_sil = mkpersona("Henry Miller", "M", "son-in-law", 3)               # named beside her: the same surname
+    pr_sister = mkpersona("Mrs. Jane Wed Cassel", "F", "sister", 4)        # written "Mrs.", nothing else to go on
+    for pr in (pr_daughter, pr_sil, pr_sister):
+        cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
+                   (tulid(), pr, pr_y, {"daughter": "child", "son-in-law": "other", "sister": "sibling"}[cx.execute("SELECT role_in_record FROM persona WHERE id=?", (pr,)).fetchone()[0]],
+                    cx.execute("SELECT role_in_record FROM persona WHERE id=?", (pr,)).fetchone()[0].title(), "{}"))
+    cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,'accepted',?,?)", (y, pr_y, BY, ts))
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    written = run_match(cx, xid, BY); cx.commit()
+    by_name = {name: (prop, kind, person_id) for prop, kind, name, person_id in written}
+    fail(by_name.get("Carol Wed Miller", (None, None, None))[1] == "persona_match" and by_name["Carol Wed Miller"][2] == daughter,
+         f"the daughter under her own husband's surname, a son-in-law of it named beside her, still fits the existing daughter, not a new person: {written}")
+    fail(by_name.get("Mrs. Jane Wed Cassel", (None, None, None))[1] == "persona_match" and by_name["Mrs. Jane Wed Cassel"][2] == sister,
+         f"the sister written \"Mrs.\" still fits the existing sister with no other evidence at all: {written}")
+    for label, pid in (("Carol Wed Miller", daughter), ("Mrs. Jane Wed Cassel", sister)):
+        if label not in by_name: continue
+        r = decide(cx, tid, by_name[label][0], "accepted", BY, "harness"); cx.commit()
+        aliases = [(a[0], a[1]) for a in cx.execute("SELECT kind, value FROM alias WHERE entity_kind='person' AND entity_id=?", (pid,))]
+        fail(any(k == "married_name" for k, _ in aliases), f"the record's own words for {label} are recorded as a married_name alias, not left unclassified: {aliases}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("married_surname scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def key_fact_event_check(keep):
     """A person with two Death events, one carrying only a rejected assertion (a time-of-death misread as a date)
     beside one carrying an accepted date: the discredited event shows nowhere as the key fact's value, and the
@@ -1781,6 +1845,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL in-law: " + "; ".join(fails))
     else: print("ok   in-law: an in-law resolves to a real link through the relative it names, told apart by surname, or is not created")
+    try: fails = married_surname_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL married surname: " + "; ".join(fails))
+    else: print("ok   married surname: a daughter or sister the record shows married under another surname is not a disagreement, and the record's words become a married_name alias")
     try: fails = key_fact_event_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL key fact event choice: " + "; ".join(fails))

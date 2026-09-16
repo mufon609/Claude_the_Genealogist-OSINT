@@ -48,14 +48,18 @@ def split_gedcom_name(v):
     from catalog import split_name
     g, s, suf = split_name(clean(v)); return g or "", s or "", suf or ""
 
-def classify(written, given, surname, suffix):
-    """Return (kind, note) for a written name that differs from the canonical given/surname/suffix."""
+def classify(written, given, surname, suffix, married=False):
+    """Return (kind, note) for a written name that differs from the canonical given/surname/suffix. married says the record
+    shows this person married under the written surname (match.compare's own ground, or conclude.shown_married's a wife
+    under her husband's, a daughter or sister under hers, named beside a son- or brother-in-law of it, or written "Mrs."):
+    classified married_name ahead of any surname heuristic below, since the difference is not an indexer's slip."""
     wg, ws, wx = split_gedcom_name(written)
     g, s, x = clean(given), clean(surname), clean(suffix)
     if key(wg) == key(g) and key(ws) == key(s):
         if wx and re.search(r"\d|^[A-Z]{2,}\d*$", wx): return "context_glue", f"trailing token '{wx}' looks like a code, not a suffix"
         return "detail", f"suffix differs: '{wx}' vs '{x}'"
     if key(ws) != key(s) and ws and s:
+        if married: return "married_name", f"surname {ws} vs {s}: the record shows her married"
         if soundex(ws) == soundex(s) and lev(key(ws), key(s)) > 2: return "phonetic", f"surname {ws} ~ {s} (same Soundex)"
         if lev(key(ws), key(s)) <= 2: return "typo", f"surname {ws} vs {s}"
         if key(s) in key(ws) or key(ws) in key(s): return "detail", f"surname {ws} contains/contained in {s}"
