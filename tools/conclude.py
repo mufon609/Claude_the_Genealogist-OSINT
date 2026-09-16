@@ -58,7 +58,8 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, source_tier, split_name, tier_sql
-from catalog import date_verdict, place_verdict
+from catalog import date_verdict, place_verdict, same_surname
+from catalog import key as surname_key
 from match import MATCHER, REL_OF, candidate, compare, match, personas_of, split_persona_name
 from plan import plan_person
 from backfill_aliases import classify, clean, key
@@ -71,6 +72,7 @@ EDITABLE = re.compile(r"(?:find a grave|billiongraves|member tree|family tree)(?
 TRUSTED = ("T1", "T2", "T3")                            # a record the rule may act on or count: not one anyone can edit (T4)
 EDITABLE_IDENTIFYING = ("findagrave-memorial", "wikitree-profile")   # a page anyone can edit that identifies a person (a memorial, a profile): the rule may take the identity, never a fact; a results page's row is a hint
 FAMILY_WORD = re.compile(r"\bhalf\b|grand(?:son|daughter|child)|in-law", re.I)   # a stated family relationship the record files under 'other': a half sibling, a grandchild, an in-law; never "other relative" or a blank
+IN_LAW = {"mother-in-law": "parent", "father-in-law": "parent", "son-in-law": "spouse", "daughter-in-law": "spouse", "brother-in-law": "sibling", "sister-in-law": "sibling"}   # the kind an in-law's own word resolves toward, once the relative it is in-law to is found (resolve_in_law)
 RULE_ACTOR = {"persona_match": "rule:agrees-with-accepted", "new_person": "rule:creates-named-relative"}   # the rule as the decider, by what it did
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).
 
@@ -210,6 +212,38 @@ def new_family(cx, tree_id, partner, ts):
     fid = ulid(); q.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fid, tree_id, ts, ts))
     q.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid, partner)); return fid
 
+def resolve_in_law(cx, tree_id, y_pid, resolved_kind, x_surname):
+    """The real family link an in-law's stated tie to the record's already-accepted Y resolves to (CLAUDE.md hard rule on
+    in-laws): a parent of Y's spouse for a mother- or father-in-law, the spouse of a child of Y's for a son- or
+    daughter-in-law, a sibling of Y's spouse or the spouse of a sibling of Y's for a brother- or sister-in-law, the spouse
+    or the child (or the sibling) being one the tree already links to Y, claimed or accepted, so the same record's own
+    persona need not itself be decided first. The one candidate resolves outright when Y has only the one; more than one is
+    told apart by the in-law's own surname, and left ambiguous still, or with none, the link does not resolve. A candidate
+    reached through only one uncertain step (Y's one spouse, in turn that spouse's siblings) is never widened to a guess
+    among several: each step disambiguates on its own before the next is taken. Returns (kind to write, target person id) or
+    None."""
+    cat = Catalog(cx, tree_id)
+    def name_keys_(pid):
+        return {(surname_key(g), surname_key(s)) for g, s, *_ in cat.person(pid)["names"]} | {(surname_key(a.split()[0]), surname_key(a.split()[-1])) for a in cat.person(pid)["aliases"] if len(a.split()) > 1}
+    def choose(pool):
+        pool = list(dict.fromkeys(pool))
+        if len(pool) == 1: return pool[0]
+        matching = [c for c in pool if any(surname_key(x_surname) == s and s for _, s in name_keys_(c))]
+        return matching[0] if len(matching) == 1 else None
+    of = lambda pid, group: choose(oid for oid, _ in cat.family(pid)[group])
+    if resolved_kind == "parent":
+        spouse = of(y_pid, "spouses"); return ("parent", spouse) if spouse else None
+    if resolved_kind == "spouse":
+        child = of(y_pid, "children"); return ("spouse", child) if child else None
+    if resolved_kind == "sibling":
+        spouse = of(y_pid, "spouses")
+        sib = of(spouse, "siblings") if spouse else None
+        if sib: return ("sibling", sib)
+        sib = of(y_pid, "siblings")
+        partner = of(sib, "spouses") if sib else None
+        if partner: return ("spouse", partner)
+    return None
+
 def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
     """Family links from the record's own relations, for a matched person as for a new one: where the record says this persona
     is the child, parent or spouse of a persona already accepted as a person in this tree, the membership exists (created when
@@ -219,8 +253,12 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
     evidence on the child's membership; a spouse relation on both partners'. A sibling stated on the record places the person
     as a child of the other's accepted parents with an Undecided assertion regardless of tier (the record states the sibling,
     not the parents), and only when the other is an accepted child of exactly one family; otherwise a sibling gives no
-    membership. Returns the links written: person, role, the other person, the page's own word, whether the membership is new,
-    and "undecided" for a sibling placement or a link from a page anyone can edit."""
+    membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law) is resolved through
+    the relative it names (resolve_in_law) to the child, parent or spouse link it actually gives, written and evidenced the
+    same way as a link the record states outright; a resolution that lands on a sibling goes through the sibling rule above,
+    Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. Returns the
+    links written: person, role, the other person, the page's own word, whether the membership is new, and "undecided" for a
+    sibling placement or a link from a page anyone can edit."""
     q = _q(cx)
     out = []
     identity = editable(cx, sha)   # a page anyone can edit: the memberships it states stand, but their assertions do not
@@ -240,17 +278,31 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
                             VALUES (?,?,'family_member',?,?,?,?,?,?,?,?)""", (ulid(), tree_id, sid, persona_id, sha, cite, status, by, ts, dumps(notes)))
         out.append({"family": fid, "person": who, "role": role, "of": other, "as": as_written, "new": new, "undecided": status != "accepted", "placed": placed})
     one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
-    for r in q.execute("""SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation
-                           WHERE (persona_id=? OR related_persona_id=?) AND kind IN ('child','parent','spouse','sibling')""", (persona_id, persona_id)).fetchall():
+    x_surname = q.execute("SELECT name_text FROM persona WHERE id=?", (persona_id,)).fetchone()["name_text"]
+    x_surname = (split_persona_name(x_surname)[1] or [""])[-1]
+    rows = list(q.execute("""SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation
+                             WHERE (persona_id=? OR related_persona_id=?) AND kind IN ('child','parent','spouse','sibling','other')""", (persona_id, persona_id)).fetchall())
+    for r in rows:
         mine = r["persona_id"] == persona_id                                   # (X, kind, Y) reads: X is the <kind> of Y
-        other = person_of(r["related_persona_id"] if mine else r["persona_id"])
+        y_persona = r["related_persona_id"] if mine else r["persona_id"]
+        kind, as_written = r["kind"], r["value_text"] or r["kind"]
+        other = None
+        if kind == "other":
+            resolved = IN_LAW.get((r["value_text"] or "").strip().lower())
+            if not resolved: continue                                          # a half sibling, a grandchild, "other relative": not one of the six the rule resolves
+            y_pid = person_of(y_persona)
+            if not y_pid: continue
+            got = resolve_in_law(cx, tree_id, y_pid, resolved, x_surname)
+            if not got: continue                                              # the relative it is in-law to does not resolve to one person: no link, the created person's card stands as is
+            kind, other = got; mine = True                                    # resolve_in_law always reads "X is <kind> of other", whichever side the record's own row sat on
+        else:
+            other = person_of(y_persona)
         if not other or other == pid: continue
-        as_written = r["value_text"] or r["kind"]
-        if r["kind"] == "sibling":
+        if kind == "sibling":
             home = sibling_home(cx, tree_id, other)
             if home: assert_(home, pid, "child", other, f"{as_written} of {q.execute('SELECT display_name FROM person WHERE id=?', (other,)).fetchone()['display_name']}", member(home, pid, "child"), status="undecided", placed="sibling")
             continue
-        if r["kind"] == "spouse":
+        if kind == "spouse":
             fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
                          WHERE fm.person_id=? AND fm.role='partner'""", (other, pid))
             if fid is None: fid = one("""SELECT fm.family_id FROM family_member fm WHERE fm.person_id=? AND fm.role='partner'
@@ -259,7 +311,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
             status = "undecided" if identity else "accepted"
             assert_(fid, pid, "partner", other, as_written, member(fid, pid, "partner"), status=status); assert_(fid, other, "partner", pid, as_written, False, status=status)
             continue
-        child = pid if (r["kind"] == "child") == mine else other; parent = other if child == pid else pid
+        child = pid if (kind == "child") == mine else other; parent = other if child == pid else pid
         fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
                      WHERE fm.person_id=? AND fm.role='child'""", (parent, child)); new = False
         if fid is None:
@@ -621,10 +673,16 @@ def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_rec
         if not v or v["version"] != MATCHER[2]: return False, f"the matcher at {v['version'] if v else '?'} found nobody fitting; the matcher now at {MATCHER[2]} has not looked: reconsider proposes it again"
     stated = [(r["kind"], r["value_text"], r["persona_id"] if r["persona_id"] != persona["id"] else r["related_persona_id"])
               for r in q.execute("SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation WHERE persona_id=? OR related_persona_id=?", (persona["id"], persona["id"]))]
-    named = [(kind, word, other) for kind, word, other in stated if other in accepted_on_record and (kind in ("child", "parent", "spouse", "sibling") or (kind == "other" and FAMILY_WORD.search(word or "")))]
+    def resolves(word, other):
+        in_law = IN_LAW.get((word or "").strip().lower())
+        if not in_law: return True                                            # a half sibling, a grandchild: not an in-law, no link to resolve first
+        x_surname = (split_persona_name(persona["name"])[1] or [""])[-1]
+        return bool(resolve_in_law(cx, prop["tree_id"], accepted_on_record[other]["id"], in_law, x_surname))
+    named = [(kind, word, other) for kind, word, other in stated
+             if other in accepted_on_record and (kind in ("child", "parent", "spouse", "sibling") or (kind == "other" and FAMILY_WORD.search(word or "") and resolves(word, other)))]
     if not named:
         others = [word or kind for kind, word, other in stated if other in accepted_on_record]
-        return False, ("the record relates them to a person accepted on it only as " + ", ".join(others) + ": not a family relationship the rule creates a person on") if others \
+        return False, ("the record relates them to a person accepted on it only as " + ", ".join(others) + ": not a family relationship the rule creates a person on, or an in-law tie that does not resolve to one person") if others \
                else "the record states no family relationship between them and a person accepted on it"
     kind, word, other = named[0]
     return True, f"{word or kind} of {accepted_on_record[other]['name']}, accepted on this record, whom nobody in the tree fits after the fitting check: created as a person with the record's facts"
