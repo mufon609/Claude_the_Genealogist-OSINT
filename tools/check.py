@@ -1573,7 +1573,7 @@ def rules():
         if got != want_url: bad.append(f"holder_search({h['HolderKind']}, {h['HolderKey'][:40]!r}) gave {got!r}, expected {want_url!r}")
     from conclude import AUTOMATED
     if "nj-death-index" not in AUTOMATED: bad.append("conclude.AUTOMATED does not name nj-death-index: a death index would stay a hint until a person reads it")
-    from catalog import place_verdict
+    from catalog import collection_state, place_verdict
     township = "Mount Holly Township < Burlington County < New Jersey < United States"
     franklin_ky = "Franklin < Simpson County < Kentucky < United States"
     pv_cases = [
@@ -1599,6 +1599,19 @@ def rules():
     for (record, tree), want in pv_cases:
         got = place_verdict(record, tree)
         if got != want: bad.append(f"place_verdict({record!r}, {tree!r}) gave {got!r}, expected {want!r}")
+    rs_cases = [                                                                                # a bare county takes the record's own event place's state, supplied by the caller (match.personas_of, from the collection's own name)
+        (("Simpson County", "Kentucky < United States", "Kentucky"),
+         ("agrees", "the record is finer: Simpson County; supplying Kentucky, the record's own event place, for the bare county")),
+        (("Simpson County", "Simpson County < Kentucky < United States", "Kentucky"), ("agrees", None)),   # the tree already holds the county: no need to fall back to the supplied state, so no note about it
+        (("Simpson County", "Tennessee < United States", "Kentucky"), ("disagrees", None)),      # a wrong state supplied does not paper over a real disagreement
+    ]
+    for (record, tree, record_state), want in rs_cases:
+        got = place_verdict(record, tree, record_state=record_state)
+        if got != want: bad.append(f"place_verdict({record!r}, {tree!r}, record_state={record_state!r}) gave {got!r}, expected {want!r}")
+    cs_cases = [("Kentucky, U.S., Death Index, 1911-2000", "Kentucky"), ("United States Census, 1900", None), ("", None)]
+    for name, want in cs_cases:
+        got = collection_state(name)
+        if got != want: bad.append(f"collection_state({name!r}) gave {got!r}, expected {want!r}")
     return bad
 
 def connectors_offline():

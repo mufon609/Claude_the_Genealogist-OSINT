@@ -19,7 +19,9 @@ or calculated agrees within two years. A place agrees the same way on the part i
 the tree's own place, or an ancestor of it in the resolved hierarchy (the county, or the state alone, spelled out or
 as its two-letter US code), agrees on the level it names and says so; a record place inside the tree's own (the town
 ahead of the state the tree holds) agrees on the level the tree states and says the record is finer; a place neither
-the tree's own, nor an ancestor of it, nor inside it disagrees. A prefix (Dr, Maj), a nickname in quotes
+the tree's own, nor an ancestor of it, nor inside it disagrees — unless the record names a county alone, which then
+takes the state of the record's own collection (catalog.collection_state) for the comparison, the note saying so; the
+place string itself is never touched. A prefix (Dr, Maj), a nickname in quotes
 and an extra middle name are not disagreements; a name written surname first
 (Davidson, Robert E.) is read as such and an initial is never a surname; the
 surname agrees when any token of the record's name after the given name is a
@@ -55,7 +57,7 @@ proposal carries the version that wrote it in generated_by.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, ulid
-from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
+from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
 MATCHER = ("rule", "matcher", "0.2.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
@@ -129,7 +131,7 @@ def compare(cat, persona, cand, chosen):
         words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (f": {note}" if note else "") + ")"
         (agree if v == "agrees" else disagree).append(words); dated = dated or v == "agrees"
     for label in ("birth place", "burial place", "death place"):
-        v, note = place_verdict(persona[label], cand[label])
+        v, note = place_verdict(persona[label], cand[label], record_state=persona.get("record_state"))
         if v == "absent": absent.append(label); continue
         (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]}" + (f": {note}" if note else "") + ")"); dated = dated or v == "agrees"
     if persona.get("residence place"):                        # where the record puts the person, against every place the tree knows them at
@@ -167,6 +169,8 @@ def _date(row):
 
 def personas_of(cx, eid):
     out = []
+    coll = cx.execute("SELECT c.name FROM extraction e JOIN artifact ar ON ar.sha256=e.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?", (eid,)).fetchone()
+    record_state = collection_state(coll[0] if coll else None)   # the record's own event place for a bare county (catalog.place_verdict), from the collection's own name
     for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         fact = lambda t: cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND (date_start IS NOT NULL OR date_end IS NOT NULL)", (pid, t)).fetchone()
         names = [name] + [v for v, in cx.execute("SELECT value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL AND value_text<>?", (pid, name))]
@@ -176,7 +180,7 @@ def personas_of(cx, eid):
         m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
         out.append({"id": pid, "name": name, "names": names, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
                     "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels,
-                    "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None})
+                    "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None, "record_state": record_state})
     names = {p["id"]: p["name"] for p in out}
     in_law_surnames = [rest[-1] for p in out if MARRIED_IN_LAW.search(p["role"] or "") for rest in [split_persona_name(p["name"])[1]] if rest]
     for p in out:                                                # a spouse relation on the record: the other's surname, for a wife written under it
