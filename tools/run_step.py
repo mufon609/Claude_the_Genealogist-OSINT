@@ -255,20 +255,30 @@ def main():
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
-    if a.all: steps = runnable(cx, cat, tree_id)
-    else:
-        if not a.step: sys.exit("give a step id or --all")
-        st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (a.step, tree_id)).fetchone()
-        if not st: sys.exit(f"no step {a.step} in tree {slug}")
-        if connector_for(cat, st) is None or st["status"] != "planned": sys.exit(f"step {a.step} is {st['kind']}/{st['mode']}/{st['status']}: no connector runs it")
-        steps = [st]
-    for st in steps:
-        who = cx.execute("SELECT display_name FROM person WHERE id=?", (st["person_id"],)).fetchone()[0]
-        if a.dry_run: print(who, st["id"], st["row_key"], dumps(run(cx, cat, tree_id, st, a.by, dry_run=True))); continue
-        cx.execute("BEGIN")
-        try: res = run(cx, cat, tree_id, st, a.by); cx.commit()
-        except Exception: cx.rollback(); raise
-        print(who, st["id"], st["row_key"])
-        for r in res: print("  ", dumps(r))
+    if a.all:
+        ran = set()                                          # a rule accept during one step regenerates the plan (docs/RESEARCH-WORKFLOW.md §5-7)
+        while True:                                           # and can drop a step still to run, or open a new one; read fresh before each run, as tools/turn.py does
+            todo = [st for st in runnable(cx, cat, tree_id) if st["id"] not in ran]
+            if not todo: break
+            st = todo[0]; ran.add(st["id"])
+            who = cx.execute("SELECT display_name FROM person WHERE id=?", (st["person_id"],)).fetchone()[0]
+            if a.dry_run: print(who, st["id"], st["row_key"], dumps(run(cx, cat, tree_id, st, a.by, dry_run=True))); continue
+            cx.execute("BEGIN")
+            try: res = run(cx, cat, tree_id, st, a.by); cx.commit()
+            except (Exception, SystemExit): cx.rollback(); raise
+            print(who, st["id"], st["row_key"])
+            for r in res: print("  ", dumps(r))
+        return
+    if not a.step: sys.exit("give a step id or --all")
+    st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (a.step, tree_id)).fetchone()
+    if not st: sys.exit(f"no step {a.step} in tree {slug}")
+    if connector_for(cat, st) is None or st["status"] != "planned": sys.exit(f"step {a.step} is {st['kind']}/{st['mode']}/{st['status']}: no connector runs it")
+    who = cx.execute("SELECT display_name FROM person WHERE id=?", (st["person_id"],)).fetchone()[0]
+    if a.dry_run: print(who, st["id"], st["row_key"], dumps(run(cx, cat, tree_id, st, a.by, dry_run=True))); return
+    cx.execute("BEGIN")
+    try: res = run(cx, cat, tree_id, st, a.by); cx.commit()
+    except (Exception, SystemExit): cx.rollback(); raise
+    print(who, st["id"], st["row_key"])
+    for r in res: print("  ", dumps(r))
 
 if __name__ == "__main__": main()

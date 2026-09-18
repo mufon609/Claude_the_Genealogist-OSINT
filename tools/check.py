@@ -1732,6 +1732,70 @@ def attach_none_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def run_step_all_check(keep):
+    """tools/run_step.py --all reads runnable steps fresh before each run, as tools/turn.py has since re-reading a person's
+    own plan before each connector run: a step's own run can regenerate the plan in the same request and drop a later step
+    already queued, or open a new one, and a stale id must never be run. A SystemExit escaping a step's own run (the shape
+    of log_search.py's own guard when a step id no longer exists) must roll that step's transaction back and re-raise, not
+    crash the loop with an open transaction."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import now as tnow, ulid as tulid
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "allrun", "--name", "All Run Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='allrun'").fetchone()[0]
+    ts = tnow(); pid = tulid()
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "M", "Al Test", ts, ts))
+    def step(key, seq, row_key=None):
+        sid = tulid()
+        cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                      VALUES (?,?,?,?,?,'search','name','{}','["H01"]','auto','planned',?)""", (sid, pid, row_key or f"footprint:{key}", seq, key, ts))
+        return sid
+    keep_step, drop_step = step("keep", 1), step("drop", 2)
+    cx.commit()
+    import run_step
+    orig_run, orig_connectors_for = run_step.run, run_step.connectors_for
+    run_step.connectors_for = lambda cat, st: [True]              # every planned search step runnable here, no real connector needed
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    try:
+        calls, new_sid = [], []
+        def fake_run(cx_, cat_, tree_id_, st_, by_, dry_run=False):
+            calls.append(st_["id"])
+            if st_["id"] == keep_step:                            # this step's own run regenerates the plan: drops "drop", opens "new"
+                cx_.execute("DELETE FROM search_plan WHERE id=?", (drop_step,))
+                sid = tulid(); new_sid.append(sid)
+                cx_.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                              VALUES (?,?,'footprint:new',3,'new','search','name','{}','["H01"]','auto','planned',?)""", (sid, pid, tnow()))
+            return []
+        run_step.run = fake_run
+        old_argv = sys.argv; sys.argv = ["run_step.py", "--all", "--db", db, "--tree", "allrun", "--by", BY]
+        import io, contextlib
+        with contextlib.redirect_stdout(io.StringIO()): run_step.main()
+        sys.argv = old_argv
+        fail(calls == [keep_step] + new_sid, f"the step read before the regeneration runs, the one it dropped never does, the one it opened still gets its own turn: {calls}, new {new_sid}")
+        fail(not cx.execute("SELECT 1 FROM search_plan WHERE id=?", (drop_step,)).fetchone(), "the dropped step is really gone")
+        # ---- a step whose own run raises SystemExit (log_search.py's guard on a step id no longer there): the transaction rolls back, the exception still propagates
+        cx.execute("DELETE FROM search_plan WHERE person_id=?", (pid,))   # fake_run never marks a step done, so nothing from the first scenario is planned to steal boom_step's own turn
+        boom_step = step("boom", 1); cx.commit()
+        def boom_run(cx_, cat_, tree_id_, st_, by_, dry_run=False):
+            cx_.execute("UPDATE search_plan SET status='done' WHERE id=?", (st_["id"],))   # a write inside the same transaction, that must not survive
+            raise SystemExit("no step " + st_["id"])
+        run_step.run = boom_run
+        sys.argv = ["run_step.py", "--all", "--db", db, "--tree", "allrun", "--by", BY]
+        raised = False
+        try:
+            with contextlib.redirect_stdout(io.StringIO()): run_step.main()
+        except SystemExit: raised = True
+        finally: sys.argv = old_argv
+        fail(raised, "a SystemExit from a step's own run still stops the run: it is not silently swallowed")
+        fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (boom_step,)).fetchone()[0] == "planned", "its write does not survive: the transaction rolled back before the exception was re-raised")
+    finally:
+        run_step.run, run_step.connectors_for = orig_run, orig_connectors_for
+    cx.close()
+    if keep: print("run_step --all scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def rules():
     """The name rules as the docs state them, on their own."""
     from catalog import same_surname
@@ -2037,6 +2101,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL attach none run: " + "; ".join(fails))
     else: print("ok   attach none run: a results page saved under the fetch list's own name, its rows fitting nobody, sets the run to none like any other results page")
+    try: fails = run_step_all_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL run_step.py --all: " + "; ".join(fails))
+    else: print("ok   run_step.py --all: runnable steps read fresh before each run, so a step a run's own regeneration drops is never run and one it opens still gets its turn; a SystemExit from a step's own run rolls that step's transaction back and still propagates")
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))
