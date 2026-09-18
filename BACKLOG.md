@@ -134,6 +134,23 @@ found on every household member's own step from one page
 answer) needs the same reach, from the record's own accepted personas to each
 one's matching census-year step, once each is decided.
 
+### C4. A record page saved for a church-register fetch step attaches to nothing
+
+`tools/fetches.py list` sends a church-register citation (Ancestry's
+Pennsylvania and New Jersey Church and Town Records, dbid 2451, cited on
+seven people for Helen Sara Brant's 1909 birth) to its free holder's
+collection (`data/holders.csv`: FamilySearch, Pennsylvania Births and
+Christenings, 1709-1950), and the record page saved there
+(`familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html`)
+comes back "no fetch step in this tree cites this record": `tools/attach.py`'s
+`_steps_by_kind` reads the page's own event type (Birth) into the birth
+record row and has no row for a church register, so the seven `church
+register` steps citing the page's own collection at its own holder are never
+reached. The fallback should reach every planned fetch step whose citation's
+holder collection is the page's (`_matches_collection`) and whose name is the
+page's principal, whatever checklist row the citation sits under, the row's
+kind narrowing only when the citation's collection is unknown.
+
 ### C5. One person's two citations of one collection share a saved page's name
 
 `tools/fetches.py list` names a page at a holder whose pages carry no identity
