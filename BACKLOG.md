@@ -134,31 +134,6 @@ found on every household member's own step from one page
 answer) needs the same reach, from the record's own accepted personas to each
 one's matching census-year step, once each is decided.
 
-### C4. A results page saved for a fetch step's own search at the holder attaches to nothing
-
-`tools/attach.py`'s `steps_for` matches a FamilySearch results page (kind
-`fs_search`) only against `search_plan` rows of kind `search` whose sources
-include D03 (`_same_fs_search`), and a Find a Grave results page (kind
-`search`) only against rows whose sources include E01 (`_same_search`). A
-**fetch** step's own citation searched by hand at the free holder, because
-the citation carries no record id of the holder's to open directly (Lena
-Howard Bell's [P1P2YM] two Kentucky death fetch steps, cited at Ancestry
-dbids 1222 and 3077, searched at FamilySearch under her married name after
-the maiden-name search found nothing), produces the same shape of results
-page and matches no step at all:
-`familysearch-kentucky-death-index-1918-results-P1P2YM.html` and
-`familysearch-kentucky-death-records-1918-results-P1P2YM.html` in `inbox/`
-are left "no fetch step in this tree cites this record." `docs/RESEARCH-WORKFLOW.md`
-§4 says every execution is a research log row with the artifacts it
-produced, but a fetch step's own search leaves neither unless a person
-attaches it by hand, step by step, outside `tools/fetches.py collect`.
-`steps_for`'s `search`/`fs_search` branches need the same reach into
-`kind='fetch'` steps whose sources include the holder, matched on the
-citation's own name and collection (`data/holders.csv`) the way
-`_steps_by_kind` matches an individual record page to a row, so the results
-page is archived as that run's artifact on the fetch step's log, `none`
-when no row on the page fits and the citation's card otherwise.
-
 ### C5. One person's two citations of one collection share a saved page's name
 
 `tools/fetches.py list` names a page at a holder whose pages carry no identity

@@ -13,13 +13,18 @@ only when a parser claims it. The steps a record fulfils are the tree's fetch st
 carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record ids the artifact holds
 (catalog.holds: its own and, on the same sheet, those of the people the page names) once it is in the archive, else the
 census page the record page itself names (year, enumeration district, sheet, county and state) against each step's
-citation details, for the people the page names by name and birth year. A file
+citation details, for the people the page names by name and birth year. A results page (told from a record page by the
+parser that claims it, never by its file name) fulfils the search steps whose fields are the search's own, and the fetch
+steps whose citation was searched for by hand at that holder because it carries no record id of the holder's: the
+citation's collection has the page's collection as a holder (data/holders.csv) and the name the citation sits on is the
+name searched. Such a page is the run's own artifact: a found run when a row fits someone, a none run when none does, the
+query as run on the log; the same search saved again with the same rows is left in the inbox as a repeat. A file
 whose identity matches no step is not archived by the inbox tool; the screen still attaches it to the step the person
 chose. Archived bytes are linked, not copied, and a step already logged with the same artifact is not logged again.
 """
 import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import archive_object, dumps, imports_dir, inbox_dir, now, ulid
+from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import dbid_of, holders, holds, name_parts, person_named
 from log_search import log as log_search, rendered_query
 from extract import FS_MARK, FS_SEARCH_MARK, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
@@ -112,17 +117,43 @@ def _why(rows, reason):
     """The steps as plain dicts, each with the reason it is fulfilled (kept on the run's log note and printed by the inbox tool)."""
     return [{**dict(r), "reason": reason(r) if callable(reason) else reason} for r in rows]
 
+def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=None):
+    """The fetch steps a results page at a holder was saved for: the citation carries no record id of the holder's to open
+    directly, so the holder's own collection search was run by hand on the citation's own details, and the page is that
+    search's answer. A step fits when its citation's collection has this holder's collection as a holder (data/holders.csv:
+    the citation's dbid, the holder, and the holder's own key where the page names one, a FamilySearch f.collectionId) and
+    the name the citation sits on is the name searched (the first given name and the surname). Planned or done: a step
+    found at another holder since still ran this search."""
+    pg, sn = name_key((given or "").split()[0]) if (given or "").split() else "", name_key(surname)
+    if not sn: return []
+    dbids = {d for d, rows in holders().items() for h in rows if h["HolderSourceId"] == holder_id and (holder_key is None or h["HolderKey"] == holder_key)}
+    if not dbids: return []
+    out = []
+    for r in cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
+                           AND sp.status IN ('planned','done') ORDER BY sp.seq""", (tree_id,)):
+        if dbid_of(r["locator_value"]) not in dbids: continue
+        q = json.loads(r["query_json"] or "{}")
+        if MEMORIAL_URL.search((q.get("url") or {}).get("value") or ""): continue            # a memorial cited by its own URL is fetched as itself, never searched for
+        cg, rest = _split_name((q.get("name") or {}).get("value") or "")     # the first given name's key and every later word's: the surname is the last
+        if not rest or (cg and pg and cg != pg) or rest[-1] != sn: continue
+        out.append(r)
+    return _why(out, "the citation's own search at the holder: its name and collection")
+
 def steps_for(cx, tree_id, kind, value, parsed=None):
     """The tree's steps this identity fulfils: for a memorial or an ark, the fetch steps whose citation carries it, the citation on
-    the person themselves first; for a search results page, the cemetery search steps whose fields are the search's own query."""
+    the person themselves first; for a search results page, the search steps whose fields are the search's own query, and the
+    fetch steps whose citation was searched for by hand at that holder (_fetch_steps_searched)."""
     if kind == "search":
+        qy = (parsed or {}).get("query") or {}
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"E01"%'
                              ORDER BY sp.seq""", (tree_id,)).fetchall()
-        return _why([r for r in rows if _same_search(r, (parsed or {}).get("query") or {})], "the step's fields are this search's own")
+        return _why([r for r in rows if _same_search(r, qy)], "the step's fields are this search's own") + _fetch_steps_searched(cx, tree_id, "E01", qy.get("firstname"), qy.get("lastname"))
     if kind == "fs_search":                                           # the search steps FamilySearch can answer whose fields are the page's own query
+        qy = (parsed or {}).get("query") or {}
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"D03"%'
                              ORDER BY sp.seq""", (tree_id,)).fetchall()
-        return _why([r for r in rows if _same_fs_search(cx, r, (parsed or {}).get("query") or {})], "the step's fields are this search's own")
+        return _why([r for r in rows if _same_fs_search(cx, r, qy)], "the step's fields are this search's own") + \
+               (_fetch_steps_searched(cx, tree_id, "D03", qy.get("q.givenName"), qy.get("q.surname"), qy["f.collectionId"]) if qy.get("f.collectionId") else [])
     if kind in ("aad_search", "aad_record"):                      # the enlistment steps whose person the page's name and birth year fit
         p = parsed or {}
         if kind == "aad_search": name, yb = p.get("query", {}).get("name") or "", p.get("query", {}).get("birth_year")
@@ -219,6 +250,25 @@ def _named_on(cx, person_id, parsed):
     return person_named(cx, person_id, people)
 
 def _split_name(text): return name_parts(text)
+
+def _rows_of(kind, parsed):
+    """A results page's rows by the record ids they carry (an ark, a memorial id, an AAD record id), in order."""
+    return [r.get("ark") or r.get("memorial_id") or r.get("rid") or r.get("url") for r in (parsed or {}).get("rows") or []]
+
+def _repeat_save(cx, step_id, kind, parsed):
+    """Whether this results page is the same search saved again: an artifact already logged on the step carries the same search
+    URL as locator and, read again with the same parser, lists the same rows. The page adds nothing to the record of that run;
+    a later run of the same search that answers with other rows is a new run."""
+    parse = {"search": parse_search, "fs_search": parse_fs_search, "aad_search": parse_aad_search}[kind]
+    for arts, in cx.execute("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL", (step_id,)):
+        for sha in json.loads(arts or "[]"):
+            loc = cx.execute("SELECT locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
+            if not loc or loc[0] != parsed.get("url"): continue
+            try:
+                with open(object_path(sha), "rb") as fh: earlier = parse(fh.read().decode("utf-8", errors="replace"))
+            except (OSError, ValueError): continue
+            if _rows_of(kind, earlier) == _rows_of(kind, parsed) and earlier.get("count") == parsed.get("count"): return True
+    return False
 
 def _row_of(parsed):
     """(checklist row, year) a record page is about, from its own event type (the principal's, else the one type its members
@@ -318,6 +368,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     if kind == "memorial": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "memorial_id", value))   # the page's own identity, however it was cited
     if kind == "ark": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", value))
     logs = []
+    was = {s["id"]: cx.execute("SELECT status FROM search_plan WHERE id=?", (s["id"],)).fetchone()[0] for s in steps}   # each step's status before this page's run marks it done
     if not steps and about: logs.append(on_word(cx, tree_id, about, sha, by, note=note, parsed=parsed or {}))   # the owner's word: a fetch step on their plan, done with the found run, so the record is fetched for them from now on
     for s in steps:
         if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (s["id"], f'%"{sha}"%')).fetchone(): continue
@@ -331,7 +382,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         is_results_page = cx.execute("""SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
                                         WHERE e.id=? AND x.name IN ('familysearch-search','findagrave-search','aad-search','va-gravesite')""", (eid,)).fetchone()
         if is_results_page and not out["proposals"] and logs:   # a results page whose own rows fit nobody: the run found nothing for the person, the candidates stay on the artifact
-            for _, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
+            for sid, lid in logs:                                # and a none run holds no record: the step stands as it stood before, planned or done by an earlier run
+                cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
+                if sid in was: cx.execute("UPDATE search_plan SET status=? WHERE id=?", (was[sid], sid))
             out["outcome"] = "none"
     filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)   # the original leaves the inbox last, so a failure before this point leaves it there
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
@@ -373,8 +426,12 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
         if not kind: r["left"] = "no record identity read from the file (not a Find a Grave memorial or results page, not a FamilySearch record page, not a photograph under the name the fetch list printed)"; results.append(r); continue
         r["identity"] = f"{kind} {value}"
         steps = steps_for(cx, tree_id, kind, value, parsed)
+        if kind in ("search", "fs_search", "aad_search") and steps:  # the same search saved again adds nothing to a step that already holds its answer
+            fresh = [s for s in steps if not _repeat_save(cx, s["id"], kind, parsed)]
+            if not fresh: r["left"] = "the same search, with the same rows, is already logged on every step it fits: a repeat save"; results.append(r); continue
+            steps = fresh
         r["steps"] = [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"], s.get("reason")) for s in steps]
-        if not steps and not about: r["left"] = "no cemetery search step in this tree has this search's fields" if kind == "search" else "no step in this tree asks for this photograph" if kind == "photo" else "no fetch step in this tree cites this record"; results.append(r); continue
+        if not steps and not about: r["left"] = "no search step in this tree has this search's fields, and no fetch step's citation was searched for by this name at this holder" if kind in ("search", "fs_search") else "no step in this tree asks for this photograph" if kind == "photo" else "no fetch step in this tree cites this record"; results.append(r); continue
         r.update(attach(cx, tree_id, slug, name, steps, by, note=f"attached from the inbox by identity: {kind} {value}" + (" on the owner's word about the person" if not steps else ""), kind=kind, value=value, parsed=parsed, about=about))
         results.append(r)
     return results

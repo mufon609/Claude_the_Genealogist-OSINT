@@ -179,6 +179,15 @@ def check_fs_search(ps, fail):
     fail(not any(p["name"].endswith("undefined") for p in ps) and not any(pl == "Other Places" for p in ps for _, _, _, pl in p["facts"]), "no stray 'undefined' in a name and no 'Other Places' as a place")
     fail('"collection":"United States, Census, 1950"' in p["region"] and '"role":"principal"' in p["region"], "the collection and the role word on the persona")
 
+def check_fs_search_ky(ps, fail):
+    fail(len(ps) == 20, f"the page's twenty result rows, {len(ps)} written")
+    p = ps[0]
+    fail(p["name"] == "Lena Howard Bell" and "NSGC-PXX" in p["region"] and '"role":"mother"' in p["region"] and '"collection":"Kentucky, Deaths, 1911-1967"' in p["region"],
+         f"the first row: the searched name itself, as a mother on another's death record, with its ark and collection; got {p['name']} {p['region'][:120]}")
+    fail(not any(t in ("Birth", "Death", "Burial") for t, _, _, _ in p["facts"]), f"that row carries no event of its own: nothing to compare; got {p['facts']}")
+    q = ps[7]
+    fail(q["name"] == "Lena W. Bell" and fact(q, "Death", date="9 June 1941", place="Lexington, Fayette, Kentucky") and fact(q, "Birth", date="1884"), f"a row's death on its date at its place and its birth year as the row gives it; got {q['name']} {q['facts']}")
+
 def check_fg_search(ps, fail):
     fail(len(ps) == 1 and ps[0]["name"] == "Robert Edgar Davidson", f"one result row; got {[p['name'] for p in ps]}")
     p = ps[0]
@@ -240,6 +249,7 @@ FIXTURE_SET = [
     ("aad-search-davidson-robert-15.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/display-partial-records.jsp?txt_24995=DAVIDSON%20ROBERT&txt_24983=15", "aad-search", check_aad_search),
     ("aad-enlistment-247275.html", "text/html", "F01", "url", "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275", "aad-enlistment", check_aad_record),
     ("familysearch-search-census-1950-ahearn-frederick-micheal.html", "text/html", "D03", "url", "https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn", "familysearch-search", check_fs_search),
+    ("familysearch-search-kentucky-deaths-bell-lena-howard.html", "text/html", "D03", "url", "https://www.familysearch.org/en/search/record/results?f.collectionId=1417491&q.givenName=Lena%20Howard&q.surname=Bell", "familysearch-search", check_fs_search_ky),
     ("familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html", "text/html", "D03", "apid", "1,5062::1903623", "familysearch-record", check_fs_birth),
     ("familysearch-washington-petitions-for-naturalization-1967-6ZR5-N8ML.html", "text/html", "D03", "apid", "1,2531::258719", "familysearch-record", check_fs_naturalization),
     ("familysearch-social-security-numident-1956-6KML-FS23.html", "text/html", "D03", "apid", "1,60901::26617542", "familysearch-record", check_fs_numident),
@@ -1733,6 +1743,76 @@ def attach_none_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def results_for_fetch_check(keep):
+    """A results page saved for a fetch step's own search at the holder (the citation carries no record id of the holder's
+    to open): tools/attach.py tells it from a record page by the parser that claims it, never the file name, and attaches
+    it to the fetch steps whose citation's collection has the page's collection as a holder (data/holders.csv) and whose
+    name is the name searched, as the run's own artifact with the query as run: none when no row fits the person, found
+    when one does. The Kentucky death-records search for Lena Howard Bell names her once, as a mother with no dates, so
+    nothing fits, the run is none and the twenty rows stay on the artifact; the same page saved again is a repeat and stays
+    in the inbox. On a second scratch where the tree's Lena Bell was born 1884, the row Lena W. Bell, born 1884 and died
+    1941, fits on the surname and birth year: a card, a found run, the step done."""
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps
+    fname = "familysearch-kentucky-death-records-1918-results-P1P2YM.html"
+    url = "https://www.familysearch.org/en/search/record/results?f.collectionId=1417491&q.givenName=Lena%20Howard&q.surname=Bell"
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    def build(birth_year):
+        d, db = scratch(keep)
+        import treelib; treelib.DATA_ROOT = d
+        from attach import attach_inbox
+        run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "resultstest", "--name", "Results Test")
+        cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+        tid = cx.execute("SELECT id FROM tree WHERE slug='resultstest'").fetchone()[0]
+        ts = tnow(); pid = tulid()
+        cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "F", "Lena Howard Bell", ts, ts))
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, "Lena Howard", "Bell", "bell, lena howard"))
+        if birth_year:
+            eid = tulid(); cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,created_at,updated_at) VALUES (?,?,'Birth',?,?,?,?)", (eid, tid, str(birth_year), str(birth_year), ts, ts))
+            cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (tulid(), eid, pid))
+        sid = tulid()                                     # the citation at Ancestry's Kentucky death records (dbid 1222), fetched at FamilySearch by its own search
+        cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,sources_json,mode,status,created_at)
+                      VALUES (?,?,'death record:1918',1,'fetch:1,1222::1373711','fetch','subject_record',?,'D03','apid','1,1222::1373711','["C03"]','fetch','planned',?)""",
+                   (sid, pid, tdumps({"name": {"value": "Lena Howard Bell", "basis": "citation"}, "collection": {"value": "Kentucky, U.S., Death Records, 1852-1965", "basis": "citation"}}), ts))
+        cx.commit()
+        os.makedirs(treelib.inbox_dir(), exist_ok=True)
+        shutil.copy(os.path.join(FIXTURES, "familysearch-search-kentucky-deaths-bell-lena-howard.html"), os.path.join(treelib.inbox_dir(), fname))
+        cx.execute("BEGIN"); res = attach_inbox(cx, tid, "resultstest", BY); cx.commit()
+        return d, db, cx, tid, pid, sid, res, treelib.inbox_dir(), attach_inbox
+    d, db, cx, tid, pid, sid, res, inbox, attach_inbox = build(None)
+    r = res[0] if res else {}
+    fail(len(res) == 1 and (r.get("identity") or "").startswith("fs_search ") and not r.get("left"), f"the page is read as a FamilySearch results page by its own markup and attached: {res}")
+    fail([x[0] for x in r.get("steps") or []] == [sid] and "citation's own search" in ((r.get("steps") or [[None] * 4])[0][3] or ""), f"it fulfils the fetch step whose citation was searched for by this name in this collection: {r.get('steps')}")
+    fail(r.get("proposals") == [] and r.get("outcome") == "none", f"the page names her only as a mother with no dates, so no row fits and the run is none: {r.get('proposals')}, {r.get('outcome')}")
+    log = cx.execute("SELECT outcome, notes, query_json, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY id DESC LIMIT 1", (sid,)).fetchone()
+    fail(log and log["outcome"] == "none" and "no candidate fits" in (log["notes"] or "") and "529 matching records" in (log["notes"] or "") and json.loads(log["query_json"]).get("q.surname", {}).get("value") == "Bell" and r.get("sha256") in (log["artifacts_json"] or ""),
+         f"the step's log row: none, the reason and the count in its note, the query as run, the page as its artifact: {log and tuple(log)}")
+    art = cx.execute("SELECT source_id, locator_kind, locator_value FROM artifact WHERE sha256=?", (r.get("sha256"),)).fetchone()
+    fail(art and art["source_id"] == "D03" and art["locator_kind"] == "url" and art["locator_value"] == url, f"archived under FamilySearch with the search URL as locator: {art and tuple(art)}")
+    fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "planned", "a none run leaves the step planned")
+    fail(cx.execute("SELECT COUNT(*) FROM persona WHERE artifact_sha256=?", (r.get("sha256"),)).fetchone()[0] == 20, "the twenty rows stay on the artifact as candidates")
+    fail(not os.path.exists(os.path.join(inbox, fname)), "the page leaves the inbox, filed under the tree")
+    again = "familysearch-kentucky-death-records-1918-results-again-P1P2YM.html"                # the same search saved once more: the same rows, other bytes
+    with open(os.path.join(FIXTURES, "familysearch-search-kentucky-deaths-bell-lena-howard.html"), "rb") as fh: data = fh.read()
+    with open(os.path.join(inbox, again), "wb") as fh: fh.write(data + b"\n")
+    cx.execute("BEGIN"); res2 = attach_inbox(cx, tid, "resultstest", BY); cx.commit()
+    fail(len(res2) == 1 and "repeat" in (res2[0].get("left") or ""), f"the same search saved again, with the same rows, is a repeat and is left in the inbox: {res2}")
+    fail(os.path.exists(os.path.join(inbox, again)) and cx.execute("SELECT COUNT(*) FROM search_log WHERE plan_step_id=?", (sid,)).fetchone()[0] == 1, "the repeat stays in the inbox and logs no second run")
+    cx.close()
+    if keep: print("results-for-fetch scratch (none) kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    d, db, cx, tid, pid, sid, res, inbox, attach_inbox = build(1884)
+    r = res[0] if res else {}
+    fail(len(res) == 1 and not r.get("left") and r.get("outcome") != "none" and len(r.get("proposals") or []) >= 1, f"with a birth year of 1884 in the tree, the row Lena W. Bell (born 1884) fits and the run is found: {res}")
+    props = [json.loads(pj) for pj, in cx.execute("SELECT payload_json FROM proposal WHERE tree_id=? AND kind='persona_match'", (tid,))]
+    fail(any(p.get("person_id") == pid for p in props), f"the card is a persona match for Lena Howard Bell herself: {props}")
+    fail(all(cx.execute("SELECT status FROM proposal WHERE tree_id=?", (tid,)).fetchone()[0] == "undecided" for _ in [0]), "the rule takes nothing on a tree with no accepted fact: the card is the owner's")
+    log = cx.execute("SELECT outcome FROM search_log WHERE plan_step_id=? ORDER BY id DESC LIMIT 1", (sid,)).fetchone()
+    fail(log and log["outcome"] == "found" and cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "done", f"a found run, the step done: {log and tuple(log)}")
+    cx.close()
+    if keep: print("results-for-fetch scratch (found) kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def run_step_all_check(keep):
     """tools/run_step.py --all reads runnable steps fresh before each run, as tools/turn.py has since re-reading a person's
     own plan before each connector run: a step's own run can regenerate the plan in the same request and drop a later step
@@ -2230,6 +2310,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL attach none run: " + "; ".join(fails))
     else: print("ok   attach none run: a results page saved under the fetch list's own name, its rows fitting nobody, sets the run to none like any other results page")
+    try: fails = results_for_fetch_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL attach results page for a fetch step: " + "; ".join(fails))
+    else: print("ok   attach results page for a fetch step: a results page told by its parser goes to the fetch steps whose citation was searched for by that name in that collection, a none run when no row fits and found when one does, a repeat save left in the inbox")
     try: fails = run_step_all_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL run_step.py --all: " + "; ".join(fails))
