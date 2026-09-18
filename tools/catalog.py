@@ -409,34 +409,94 @@ class Catalog:
         self._groups = self._held = self._holdings = None
     def disagreements(self, pid):
         """Where an accepted record says something else than the tree's event or than another statement on it: for each event
-        of the person, every Accepted assertion whose persona fact disagrees with the event's own date (compared as dates) or
-        with the event's shown place, and every Accepted assertion whose fact disagrees with any other statement on the event
-        that is not rejected, undecided claims included (the file's own claim, a page anyone can edit), as one line naming
-        both values and the records. The tree's value is never changed by a record; the difference is a conflict question,
-        and the shown value stays what Catalog.place chooses."""
+        of the person and each of date and place, one line per differing value, naming every statement on each side and the
+        tree's own value. Every Accepted assertion is compared against the event's own date (as dates) or shown place, and
+        against every other statement on the event that is not rejected (undecided claims included: the file's own claim, a
+        page anyone can edit); place is compared with Catalog.place_verdict, so a coarser or finer record, or one naming a
+        dated former name, agrees rather than disagreeing. A record cited under two collection names but one locator (the same
+        certificate indexed twice) is one statement, not two. Statements whose values agree with each other (transitively,
+        among only those already found disagreeing with something) are grouped as one side, so six comparisons that all turn
+        on the same 11th-against-10th read as one question, not six. The tree's value is never changed by a record; the
+        difference is a conflict question, and the shown value stays what Catalog.place chooses."""
         out = []
         for e in self.q("""SELECT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
                            WHERE ep.person_id=? ORDER BY e.event_type, e.date_start""", pid):
             place_now = self.place(e[0], e[5])
             tree_place = place_now["text"] if place_now else None
-            rows = self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value, a.status, a.id
+            kind = e[1].lower()
+            rows = self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)),
+                                    ar.locator_value, a.status, a.id, ar.locator_kind
                              FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                              JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                              WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", e[0])
-            label = lambda f: f[4] + (f" ({f[5]})" if f[5] else "")
-            short = lambda f: "the file" if f[4] == f[5] else f[4]        # the record by its collection alone; the tree's own import by its role
-            date_of = lambda f: {"start": f[1], "text": f[0], "qualifier": f[2]}
-            kind = e[1].lower()
+            groups, order = {}, []                            # one group per record identity (its locator), whatever collection name cites it
             for f in rows:
-                if f[6] != "accepted": continue
-                dv, _ = date_verdict(date_of(f), {"start": e[3], "text": e[2], "qualifier": e[4]})
-                pv, _ = place_verdict(f[3], tree_place)
-                if dv == "disagrees": out.append(f"{kind} date: the tree says {e[2]}, {label(f)} says {f[0]}")
-                if pv == "disagrees": out.append(f"{kind} place: the tree says {tree_place}, {label(f)} says {f[3]}")
-                for o in rows:                                       # against every other statement on the event, undecided claims included
-                    if o[7] == f[7] or (o[6] == "accepted" and o[7] < f[7]): continue   # two accepted statements are compared once
-                    if date_verdict(date_of(f), date_of(o))[0] == "disagrees": out.append(f"{kind} date: {short(f)} against {short(o)}: {f[0]} against {o[0]}")
-                    if place_verdict(f[3], o[3])[0] == "disagrees": out.append(f"{kind} place: {short(f)} against {short(o)}: {f[3]} against {o[3]}")
+                gk = f[5] or f[7]
+                if gk not in groups:
+                    groups[gk] = {"collections": [], "locator": f[5], "is_file": f[8] == "file", "status": "undecided", "date": None, "place": None, "state": None}
+                    order.append(gk)
+                g = groups[gk]
+                if f[4] and f[4] not in g["collections"]: g["collections"].append(f[4])
+                if (f[0] is not None or f[1] is not None) and len(f[1] or "") > len(g["date"][1] if g["date"] else ""): g["date"] = (f[0], f[1], f[2])  # the same record's own most specific date wins (a full date over a bare year)
+                if f[3] is not None and g["place"] is None: g["place"] = f[3]
+                g["state"] = g["state"] or collection_state(f[4])
+                if f[6] == "accepted": g["status"] = "accepted"
+            def label(gk):
+                g = groups[gk]
+                if g["is_file"]: return "the file"
+                name = " / ".join(g["collections"]) if g["collections"] else (g["locator"] or "record")
+                return f"{name} ({g['locator']})" if g["locator"] else name
+            for axis in ("date", "place"):
+                value_of = (lambda gk: ({"start": groups[gk]["date"][1], "text": groups[gk]["date"][0], "qualifier": groups[gk]["date"][2]} if groups[gk]["date"] else None)) if axis == "date" \
+                            else (lambda gk: groups[gk]["place"])
+                text_of = (lambda gk: groups[gk]["date"][0]) if axis == "date" else (lambda gk: groups[gk]["place"])
+                tree_val = {"start": e[3], "text": e[2], "qualifier": e[4]} if axis == "date" else tree_place
+                tree_text = e[2] if axis == "date" else tree_place
+                def cmp(av, asa, bv, bsa):
+                    if axis == "date": return date_verdict(av, bv)
+                    v, note = place_verdict(av, bv, record_state=asa)
+                    if v == "disagrees" and bsa:
+                        v2, note2 = place_verdict(bv, av, record_state=bsa)
+                        if v2 == "agrees": return v2, note2
+                    return v, note
+                accepted = [gk for gk in order if groups[gk]["status"] == "accepted" and value_of(gk) is not None]
+                pairs = []                                    # ("tree", key) or (key, key): a genuine disagreement found, before grouping
+                for gk in accepted:
+                    v, _ = cmp(value_of(gk), groups[gk]["state"], tree_val, None)
+                    if v == "disagrees": pairs.append(("tree", gk))
+                    for ok in order:
+                        if ok == gk or value_of(ok) is None: continue
+                        if ok in accepted and order.index(ok) < order.index(gk): continue   # two accepted statements compared once
+                        v2, _ = cmp(value_of(gk), groups[gk]["state"], value_of(ok), groups[ok]["state"])
+                        if v2 == "disagrees": pairs.append((gk, ok))
+                if not pairs: continue
+                nodes = list(dict.fromkeys(n for p in pairs for n in p))
+                parent = {n: n for n in nodes}
+                def find(x):
+                    while parent[x] != x: x = parent[x]
+                    return x
+                for i, a in enumerate(nodes):                  # group by mutual agreement, among only the statements already in some disagreement
+                    av, asa = (tree_val, None) if a == "tree" else (value_of(a), groups[a]["state"])
+                    for b in nodes[i + 1:]:
+                        bv, bsa = (tree_val, None) if b == "tree" else (value_of(b), groups[b]["state"])
+                        if cmp(av, asa, bv, bsa)[0] == "agrees":
+                            ra, rb = find(a), find(b)
+                            if ra != rb: parent[ra] = rb
+                seen = set()
+                for a, b in pairs:
+                    ra, rb = find(a), find(b)
+                    if ra != rb: seen.add(frozenset((ra, rb)))
+                for pr in seen:
+                    ra, rb = tuple(pr)
+                    sides = ([n for n in nodes if find(n) == ra], [n for n in nodes if find(n) == rb])
+                    priority = lambda ms: -1 if "tree" in ms else min(nodes.index(n) for n in ms)   # the tree first, else whichever statement was found first
+                    members = sides if priority(sides[0]) <= priority(sides[1]) else sides[::-1]
+                    def side(ms):
+                        labels = list(dict.fromkeys(label(n) for n in ms if n != "tree"))
+                        return ("the tree" + (", " + ", ".join(labels) if labels else "")) if "tree" in ms else " and ".join(labels)
+                    def value(ms):
+                        return tree_text if "tree" in ms else text_of(ms[0])
+                    out.append(f"{kind} {axis}: {side(members[0])} against {side(members[1])}: {value(members[0])} against {value(members[1])}")
         return list(dict.fromkeys(out))
     def find_person(self, key):
         """A person by id, by the last six characters of the id in brackets or alone ("Noi Davidson [MEXW2C]", "MEXW2C"), by exact
