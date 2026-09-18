@@ -17,11 +17,13 @@ conflict already waits on (overview's own filter), so nobody surfaces two links 
 An open question names the next person only when a turn can still act on them: no plan has been made for them
 yet (a turn's own first move), or their plan still has a step a turn can advance. A step is that when a connector
 can run it and it has no run since the plan last wrote its fields (tools/run_step.py's own runnable steps), or when
-it is fetched by hand, carries a link the fetch list prints (tools/fetches.py list) and has no such run either. A person already planned
+it is fetched by hand, carries a link the fetch list prints (tools/fetches.py list), a file name the list can print whole
+(fetches.unnamed: a name still wanting a year the citation does not carry is one no save can be made under) and has no
+such run either. A person already planned
 with no such step, whose open question is now only the owner's (a card to decide, a conflict, a baseline nobody has
 vouched or decided, an assisted search with no link to open, an auto step run on these fields already, a fetch
-logged blocked) is passed over: named, with why, but never named next, since running a turn on them would do
-nothing.
+logged blocked, a fetch whose page the list cannot name) is passed over: named, with why, but never named next, since
+running a turn on them would do nothing.
 Without --all, prints the first person found and stops (queue.py --all lists the rest).
 """
 import argparse, os, sqlite3, sys
@@ -32,27 +34,35 @@ from overview import overview
 import run_step, fetches
 
 def advanceable(cx, cat, tree_id):
-    """The people with a step a turn can advance: one the runner takes now (run_step.runnable: a connector can run it and it
-    has no run since the plan last wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to
-    open, and this person's own step in the entry with no run on unchanged fields either)."""
+    """(the people with a step a turn can advance, {person id: [why a page of theirs cannot be fetched]}). A step a turn can
+    advance is one the runner takes now (run_step.runnable: a connector can run it and it has no run since the plan last
+    wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to open, a file name the list
+    prints whole, and this person's own step in the entry with no run on unchanged fields either). An open entry the list
+    cannot name (fetches.unnamed) advances nobody: its reason is kept, per person, for the pass-over line."""
     people = {r["person_id"] for r in run_step.runnable(cx, cat, tree_id)}
     owner = dict(cx.execute("SELECT sp.id, sp.person_id FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=?", (tree_id,)).fetchall())
-    people |= {owner[sid] for e in fetches.openable(cx, tree_id) for sid in e["open_step_ids"] if sid in owner}
-    return people
+    unnamed = {}
+    for e in fetches.openable(cx, tree_id):
+        for sid in e["open_step_ids"]:
+            if sid not in owner: continue
+            if e["unnamed"]: unnamed.setdefault(owner[sid], []).append(e["unnamed"])
+            else: people.add(owner[sid])
+    return people, unnamed
 
 def edge(cx, tree_id):
     """([{id, name, reason}], [{id, name, reason}]): the queue a turn can act on, in order, then everyone passed over
     (named once each, first reason it surfaces under). A person with no plan yet is always actionable (a turn's own
     first move makes one); one already planned is actionable only while a step of theirs is one a turn can advance
-    (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next."""
+    (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next, a page of
+    theirs the list cannot name said so in the reason."""
     cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out, passed = [], []; seen = set()
-    can = advanceable(cx, cat, tree_id)
+    can, unnamed = advanceable(cx, cat, tree_id)
     def add(pid, name, reason):
         if pid in seen: return
         seen.add(pid)
         planned_before = cat.q("SELECT 1 FROM search_plan WHERE person_id=? LIMIT 1", pid)
         if planned_before and pid not in can:
-            passed.append({"id": pid, "name": name, "reason": f"nothing left for a turn to run or fetch: {reason}"})
+            passed.append({"id": pid, "name": name, "reason": "; ".join([f"nothing left for a turn to run or fetch: {reason}"] + unnamed.get(pid, []))})
         else:
             out.append({"id": pid, "name": name, "reason": reason})
     for gen in ov["generations"]:

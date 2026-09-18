@@ -2126,6 +2126,66 @@ def queue_pass_over_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def unnamed_fetch_check(keep):
+    """A fetch step whose page the list cannot name is not a turn's work (tools/fetches.py unnamed, tools/queue.py,
+    tools/turn.py). Two parents the file claims for the home person, each with one fetch step at a holder with no connector
+    whose pages carry no identity the attach reads (the New York State marriage index on the Internet Archive, C08): one
+    cited with no year on a row with no instance, so the name the list prints still wants a year ("...-<year>-<six>.html")
+    and no save can be made under it; the other on a dated row, named whole. The queue passes the first over, the reason
+    naming the file, and names the second. A turn on the first pauses on nothing (no state kept), prints the page as
+    passed over with the reason and runs to its report; a turn on the second pauses on its page as before."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "unnamedtest", "--name", "Unnamed Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='unnamedtest'").fetchone()[0]
+    ts = tnow(); home_id, undated_id, dated_id = tulid(), tulid(), tulid()
+    for pid, sex, name in ((home_id, "F", "Home Person"), (undated_id, "M", "Undated Parent"), (dated_id, "F", "Dated Parent")):
+        cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, sex, name, ts, ts))
+    cx.execute("UPDATE tree SET home_person_id=? WHERE id=?", (home_id, tid))
+    fid = tulid(); cx.execute("INSERT INTO family (id,tree_id,rel_type,created_at,updated_at) VALUES (?,?,'unknown',?,?)", (fid, tid, ts, ts))
+    for pid, role in ((undated_id, "partner"), (dated_id, "partner"), (home_id, "child")):
+        cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fid, pid, role))
+    url = "https://archive.org/search?query=%22New+York+State+Marriage+Index%22"
+    fields = lambda u: tdumps({"url": {"value": u, "basis": "owner"}, "collection": {"value": "New York State, Marriage Index, 1881-1967", "basis": "owner"},
+                               "name": {"value": "Home Person", "basis": "owner"}})   # basis owner: the planner keeps a step the owner's word wrote
+    undated_step, dated_step = tulid(), tulid()
+    for sid, pid, row_key, u in ((undated_step, undated_id, "footprint:", url), (dated_step, dated_id, "marriage record:1930", url + "+1930")):   # the dated citation opens the year's own item
+        cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,sources_json,mode,status,rationale,created_at)
+                      VALUES (?,?,?,1,?,'fetch','subject_record',?,'C08','url',?,'["C08"]','fetch','planned','harness: a page at a holder whose pages carry no identity',?)""",
+                   (sid, pid, row_key, "word:" + row_key, fields(u), u, ts))
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    import fetches as fetches_mod, turn
+    entries = {e["people"][0]: e for e in fetches_mod.openable(cx, tid)}
+    u, n = entries.get("Undated Parent"), entries.get("Dated Parent")
+    fail(u is not None and u["unnamed"] and "<year>" in u["save_as"] and u["save_as"] in u["unnamed"], f"the undated citation's entry is one the list cannot name, the reason naming the file: {u}")
+    fail(n is not None and not n["unnamed"] and "-1930-" in n["save_as"], f"the dated row's entry is named whole, its year filled in: {n}")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tree_queue3", os.path.join(ROOT, "tools", "queue.py"))
+    tree_queue = importlib.util.module_from_spec(spec); spec.loader.exec_module(tree_queue)
+    out, passed = tree_queue.edge(cx, tid)
+    fail(any(e["id"] == dated_id for e in out), f"the parent whose page the list names is named next: {out}")
+    fail(not any(e["id"] == undated_id for e in out) and any(e["id"] == undated_id and "cannot name" in e["reason"] and "<year>" in e["reason"] for e in passed),
+         f"the parent whose page the list cannot name is passed over, the reason naming the file: {passed}")
+    import io, contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf): turn.start(cx, tid, "unnamedtest", undated_id, BY, db)
+    fail(turn.load_state(db) is None, "a turn on the undated parent pauses on nothing: no state kept")
+    fail("passed over:" in buf.getvalue() and "cannot name" in buf.getvalue() and "plan:" in buf.getvalue(), f"the turn prints the page as passed over with the reason and runs to its report: {buf.getvalue()[:400]}")
+    fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (undated_step,)).fetchone()[0] == "planned", "the step stays planned: passed over, not run, not logged")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf): turn.start(cx, tid, "unnamedtest", dated_id, BY, db)
+    st = turn.load_state(db)
+    fail(st is not None and st["person_id"] == dated_id and not st.get("unnamed"), f"a turn on the dated parent pauses on her page as before, nothing passed over: {st}")
+    fail("save as" in buf.getvalue() and "-1930-" in buf.getvalue() and "passed over" not in buf.getvalue(), f"the pause prints her page with its whole name: {buf.getvalue()[:400]}")
+    turn.clear_state(db)
+    cx.close()
+    if keep: print("unnamed fetch scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def fetched_rows_subject_check(keep):
     """Catalog.fetched_rows must hold a one-person row only through a record whose accepted persona for that
     person is the record's own subject (is_subject), the same gate person_citations(subject_only=True) already applies --
@@ -2509,6 +2569,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL queue.py pass-over: " + "; ".join(fails))
     else: print("ok   queue.py pass-over: a person already planned with nothing left for a turn to run, whose open question is the owner's alone, is passed over and never named next")
+    try: fails = unnamed_fetch_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL fetch step the list cannot name: " + "; ".join(fails))
+    else: print("ok   fetch step the list cannot name: a save name still wanting a year the citation does not carry is passed over with the reason by the queue and by turn.py, never paused on")
     try: fails = fetched_rows_subject_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL Catalog.fetched_rows subject gate: " + "; ".join(fails))

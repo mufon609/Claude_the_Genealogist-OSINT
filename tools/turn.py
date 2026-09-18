@@ -13,7 +13,9 @@ line below, the turn's state (which person, which tree) kept beside the
 database as `<db>.turn-state.json` (on the pattern of `catalog/.active-tree`; nothing here is catalog data, so
 nothing is written to the catalog by pausing), and the process exits for the owner's browser session. A
 challenge at a holder pauses the same way (docs/RESEARCH-WORKFLOW.md §4): it does not stop the turn, and passing
-it is the owner's own hand.
+it is the owner's own hand. A page of theirs the list cannot name (`fetches.unnamed`: the save name still wants a year
+the citation does not carry, so no save can be made) is not the turn's work: it is printed as passed over with that
+reason, in the pause and in the report, and the turn neither pauses on it nor waits for it.
 
 `--resume` picks up the paused turn: `tools/fetches.py collect` moves what was saved into the inbox and attaches
 it by identity, `tools/attach_inbox.py` takes whatever collect's own naming left behind, `tools/conclude.py
@@ -40,14 +42,14 @@ RUNNER, PLANNER = "agent:run_step", "rule:plan@0.1.0"
 
 def state_path(db_path): return db_path + ".turn-state.json"
 
-def save_state(db_path, tree_id, slug, pid, name, before_ids, held, decided):
+def save_state(db_path, tree_id, slug, pid, name, before_ids, held, decided, unnamed=()):
     """Kept beside the database, not in the catalog: which person, who existed before the turn started (so a person a
-    connector step created before the pause is still reported as created once the turn is resumed), and the held/decided
+    connector step created before the pause is still reported as created once the turn is resumed), the held/decided
     lines the connector steps already earned before the pause, so the final report covers the whole turn, not just what
-    --resume itself does."""
+    --resume itself does, and the pages passed over as ones the list cannot name, reported again on resume."""
     with open(state_path(db_path), "w", encoding="utf-8") as fh:
         json.dump({"tree_id": tree_id, "tree": slug, "person_id": pid, "person": name, "started_at": now(),
-                   "before_ids": before_ids, "held": held, "decided": decided}, fh)
+                   "before_ids": before_ids, "held": held, "decided": decided, "unnamed": [dict(e) for e in unnamed]}, fh)
 
 def load_state(db_path):
     try:
@@ -66,13 +68,19 @@ def connector_steps(cx, cat, tree_id, pid):
     return [r for r in run_step.runnable(cx, cat, tree_id) if r["person_id"] == pid]
 
 def waiting_for(cx, tree_id, pid):
-    """tools/fetches.py's own openable list (a link to open, steps with no run since the plan last wrote their fields),
-    narrowed to the entries where one of this person's own steps is still unrun (a shared census page naming relatives is
-    still this person's page). An entry with no link, or already saved or logged on this person's step with unchanged
-    fields, is not one the turn pauses on, whatever other people's steps on the same page still wait."""
+    """(the pages the turn pauses on, the pages it passes over): tools/fetches.py's own openable list (a link to open, steps
+    with no run since the plan last wrote their fields), narrowed to the entries where one of this person's own steps is
+    still unrun (a shared census page naming relatives is still this person's page). An entry with no link, or already saved
+    or logged on this person's step with unchanged fields, is not one the turn pauses on, whatever other people's steps on
+    the same page still wait; one the list cannot name (fetches.unnamed) is passed over with its reason."""
     entries = fetches.openable(cx, tree_id)
     mine = {sid for sid, in cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))}
-    return [e for e in entries if mine & set(e["open_step_ids"])]
+    entries = [e for e in entries if mine & set(e["open_step_ids"])]
+    return [e for e in entries if not e["unnamed"]], [e for e in entries if e["unnamed"]]
+
+def passed_lines(unnamed):
+    """The pages of this turn the list cannot name, one line each with the reason: not the turn's work."""
+    return [f"  {e['url']}  {', '.join(e['people'])}: {e['unnamed']}" for e in unnamed]
 
 def run_connectors(cx, cat, tree_id, pid):
     """Every step this person's own plan can run at a connector, one commit per step, as tools/run_step.py --all does.
@@ -160,7 +168,7 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon, watch):
 
 def pid_name(cx, pid): return cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0]
 
-def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=()):
+def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=(), unnamed=()):
     cat = Catalog(cx, tree_id)
     after_ids = person_ids(cx, tree_id)
     created = [(i, n) for i, n in after_ids.items() if i not in before_ids]
@@ -176,6 +184,7 @@ def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left
     watch = {pid_name(cx, pid)} | {n for _, n in created}
     ll = left_lines(cx, cat, pid, collect_results, left_results, recon, watch)
     out += ll or ["  nothing outstanding on this person"]
+    if unnamed: out += ["", "passed over:"] + passed_lines(unnamed)
     if waits: out += ["", f"still to fetch by hand (nothing saved for {len(waits)} page(s) yet): run tools/fetches.py list"]
     out += ["", f"plan: {dumps(plan_stats)}"]
     return "\n".join(out)
@@ -187,17 +196,18 @@ def start(cx, tree_id, slug, pid, by, db):
     except Exception: cx.rollback(); raise
     cat = Catalog(cx, tree_id)
     conn_runs = run_connectors(cx, cat, tree_id, pid)
-    waits = waiting_for(cx, tree_id, pid)
+    waits, unnamed = waiting_for(cx, tree_id, pid)
     if waits:
         held, decided = held_lines(conn_runs, [], []), decided_lines(conn_runs, [], [], [])
-        save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided)
+        save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided, unnamed)
         lines = [f"-- {e['holder']}\n{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  save as {e['save_as']}" +
                  ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else "") for e in waits]
         print(f"turn: {pid_name(cx, pid)}\n" + "\n".join(lines) + f"\n\n{len(waits)} page(s) to fetch, one tab per page; save these, then run tools/turn.py --resume")
+        if unnamed: print("\npassed over:\n" + "\n".join(passed_lines(unnamed)))
         if held or decided: print("\n(so far this turn -- held:\n" + "\n".join(held or ["  nothing yet"]) + "\ndecided:\n" + "\n".join(decided or ["  nothing yet"]) + ")")
         return
     names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
-    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats))
+    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats, unnamed=unnamed))
 
 def resume(cx, tree_id, slug, by, db):
     st = load_state(db)
@@ -205,7 +215,7 @@ def resume(cx, tree_id, slug, by, db):
     pid = st["person_id"]; before = st.get("before_ids") or person_ids(cx, tree_id)
     names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
     clear_state(db)
-    print(report(cx, tree_id, pid, before, [], [], collect_results, left_results, recon, final_stats, pre_held=st.get("held") or (), pre_decided=st.get("decided") or ()))
+    print(report(cx, tree_id, pid, before, [], [], collect_results, left_results, recon, final_stats, pre_held=st.get("held") or (), pre_decided=st.get("decided") or (), unnamed=st.get("unnamed") or ()))
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--resume", action="store_true")

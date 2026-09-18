@@ -49,6 +49,15 @@ def save_as(holder_id, fields, row_key, mid=None, six=None):
     year = v("year") or (inst if inst.isdigit() else None) or "<year>"
     return f"familysearch-{words}-{year}-<ark id>.html" if holder_id == "D03" else f"{_slug(holder_id)}-{words}-{year}-{six}.html"
 
+def unnamed(holder_id, name):
+    """Why the list cannot name a page's file, or None when it can. A page at a holder whose pages carry no identity the attach
+    reads is attached by its name alone (named_for), so the list must print that name whole: a <year> left in it means the
+    citation carries no year and the row no instance, and no file can be saved under it. A memorial, a FamilySearch page or a
+    photograph is attached by the identity in the file itself, and the placeholders in its name (the ark, the year of the
+    record) are read off the page, so they are not this."""
+    if holder_id in ("E01", "D03", "E05") or "<year>" not in name: return None
+    return f"the list cannot name the file: {name} wants a year the citation does not carry"
+
 def waiting(cx, tree_id):
     """Every planned fetch step whose holder has no connector, or whose connector has nothing to ask from the citation, once per
     page: holder, url, the people and the number of steps waiting on it, whether it is a lead from a held record (locator
@@ -72,8 +81,9 @@ def waiting(cx, tree_id):
             t = fetch_target(s["locator_value"], url, fields); link = t["url"]; holder = f"{s['holder_name']}: {t['holder']}" if t["holder"] else s["holder_name"]
         else:
             key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
+        name = save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:])
         e = out.setdefault(key, {"holder_id": hid, "holder": holder, "url": link, "lead": False, "people": [], "steps": 0, "step_ids": [], "rows": [],
-                                 "save_as": save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:]), "how": "image" if hid == "E05" else "page"})
+                                 "save_as": name, "unnamed": unnamed(hid, name), "how": "image" if hid == "E05" else "page"})
         e["steps"] += 1; e["step_ids"].append(s["id"]); e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url")
         if s["display_name"] not in e["people"]: e["people"].append(s["display_name"])
         rk = s["row_key"].split(":")[0]
@@ -85,7 +95,8 @@ def openable(cx, tree_id):
     step_ids with no run since the plan last wrote their fields (log_search.ran_unchanged); an entry with none is left out. A
     page saved once and logged (found, none, blocked) on a step's unchanged fields is listed by `list` as still waiting, but
     that step does not send anyone to it again until the plan changes it; a page seven people's steps share is open for the
-    people whose own step is still unrun."""
+    people whose own step is still unrun. An entry the list cannot name (unnamed set) is returned with its reason: nobody can
+    be sent to it, and the queue and the turn pass its steps over saying why."""
     out = []
     for e in waiting(cx, tree_id):
         if not e["url"]: continue
@@ -148,7 +159,7 @@ def main():
         last = None
         for e in rows:
             if e["holder"] != last: print(f"-- {e['holder']}"); last = e["holder"]
-            print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}" + ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else ""))
+            print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}" + ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else "") + (f"  ({e['unnamed']})" if e["unnamed"] else ""))
         print(f"{len(rows)} page(s) to fetch, one tab per page; then tools/fetches.py collect")
     else:
         cx.execute("BEGIN")
