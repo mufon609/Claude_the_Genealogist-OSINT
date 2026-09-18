@@ -1923,6 +1923,69 @@ def attach_none_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def run_none_check(keep):
+    """docs/RESEARCH-WORKFLOW.md §4: 'No fit at all sets the run to none.' A connector's run whose records are results
+    listings (extract.RESULTS_LISTINGS) is found only when a row fits a person: the New Jersey death index connector, its
+    download faked, answers a death record search on a surname whose rows fit nobody in the tree with a none run, the reason
+    in the note, the rows kept on the artifact and the step planned as before; the same connector on a person born 1901,
+    whose row carries that year, with a card, a found run and the step done."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    import run_step
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps
+    from catalog import Catalog
+    from connectors import nj_death_index
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "runnone", "--name", "Run None Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='runnone'").fetchone()[0]
+    ts = tnow(); steps = {}
+    for given, surname, birth in (("Jane", "Quorum", None), ("Zelda", "Fitwell", 1901)):
+        pid = tulid()
+        cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "F", f"{given} {surname}", ts, ts))
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, given, surname, f"{surname.lower()}, {given.lower()}"))
+        query = {"given": {"value": given, "basis": "accepted"}, "surname": {"value": surname, "basis": "accepted"}}
+        if birth:
+            eid = tulid(); cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,created_at,updated_at) VALUES (?,?,'Birth',?,?,?,?)", (eid, tid, str(birth), str(birth), ts, ts))
+            cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (tulid(), eid, pid))
+            query["birth_year"] = {"value": str(birth), "basis": "claim"}
+        sid = tulid()
+        cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                      VALUES (?,?,'death record:',1,'search:death record','search','subject_record',?,'["C09"]','auto','planned',?)""", (sid, pid, tdumps(query), ts))
+        steps[surname] = (pid, sid)
+    cx.commit()
+    body = ",".join(nj_death_index.FIELDS).encode() + b"\nZelda,Quorum,,1,1930,1,2,Newark,NJ,USA,2010,3,4,NJ\nZelda,Fitwell,,2,1901,5,6,Newark,NJ,USA,1990,7,8,NJ\n"
+    def fake_fetch(url, kind, c, data=None):
+        return body, {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": "text/csv"}
+    orig_fetch = run_step.fetch; run_step.fetch = fake_fetch
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    try:
+        cat = Catalog(cx, tid)
+        for surname in ("Quorum", "Fitwell"):
+            step = cx.execute("SELECT * FROM search_plan WHERE id=?", (steps[surname][1],)).fetchone()
+            fail(step["status"] == "planned" and [c.__name__.split(".")[-1] for c in run_step.connectors_for(cat, step)] == ["nj_death_index"], f"the death record search step on {surname} runs at the death index")
+            cx.execute("BEGIN"); res = run_step.run(cx, cat, tid, step, BY); cx.commit()
+            r = res[0] if res else {}
+            log = cx.execute("SELECT outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY id DESC LIMIT 1", (step["id"],)).fetchone()
+            status = cx.execute("SELECT status FROM search_plan WHERE id=?", (step["id"],)).fetchone()[0]
+            personas = cx.execute("SELECT COUNT(*) FROM persona pe JOIN extraction e ON e.id=pe.extraction_id WHERE e.id=?", ((r.get("extracted") or [{}])[0].get("extraction"),)).fetchone()[0]
+            if surname == "Quorum":
+                fail(r.get("outcome") == "none" and log and log["outcome"] == "none" and (log["notes"] or "").startswith("no candidate fits; 1 row(s) under Quorum"),
+                     f"the one Quorum row (born 1930) fits nobody: the run is none, the reason first in its note: {r.get('outcome')}, {log and tuple(log)}")
+                fail(status == "planned", f"a none run leaves the step planned: {status}")
+                fail(personas == 1 and (r.get("extracted") or [{}])[0].get("proposals") == 0, f"the row stays on the artifact as a candidate, no card: {personas} persona(s), {r.get('extracted')}")
+                fail(bool(log and log["artifacts_json"] and len(json.loads(log["artifacts_json"])) == 2), f"the run keeps the whole file and the surname's derivative as its artifacts: {log and log['artifacts_json']}")
+            else:
+                fail(r.get("outcome") == "found" and log and log["outcome"] == "found" and (log["notes"] or "").startswith("1 row(s) under Fitwell"),
+                     f"the Fitwell row, born 1901 like the tree's Zelda Fitwell, fits: a found run: {r.get('outcome')}, {log and tuple(log)}")
+                fail(status == "done", f"a found run marks the step done: {status}")
+                fail((r.get("extracted") or [{}])[0].get("proposals") == 1, f"one card, the persona match for her: {r.get('extracted')}")
+    finally:
+        run_step.fetch = orig_fetch
+    cx.close()
+    if keep: print("run none scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def results_for_fetch_check(keep):
     """A results page saved for a fetch step's own search at the holder (the citation carries no record id of the holder's
     to open): tools/attach.py tells it from a record page by the parser that claims it, never the file name, and attaches
@@ -2557,6 +2620,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL attach none run: " + "; ".join(fails))
     else: print("ok   attach none run: a results page saved under the fetch list's own name, its rows fitting nobody, sets the run to none like any other results page")
+    try: fails = run_none_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL run_step none run: " + "; ".join(fails))
+    else: print("ok   run_step none run: a connector's results listing whose rows fit nobody is a none run with the reason, the rows kept as candidates and the step planned; a row that fits is a card and a found run")
     try: fails = results_for_fetch_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL attach results page for a fetch step: " + "; ".join(fails))

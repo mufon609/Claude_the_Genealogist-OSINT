@@ -121,6 +121,7 @@ EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("r
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
               None: ("rule", "extract", "0.1.0")}
+RESULTS_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search", "va-gravesite", "nj-death-index")   # the extractors that read a results listing, one persona per row: a row's own record is the document (docs/RESEARCH-WORKFLOW.md §0), so a listing on which no row fits anyone is a none run (§4), its rows kept on the artifact as candidates
 NJ_DEATH_FIELDS = ["FNAME", "LNAME", "MIDDLE_NAME", "STATE_FILE_NUMBER", "BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY", "DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"]
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial", "naturalization": "Naturalization"}
 

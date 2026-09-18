@@ -15,7 +15,11 @@ response the connector marks as the record itself is read as one. One search_log
 row records the exact query, the outcome (found when a hit was archived, none when the source answered with nothing,
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
-a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed.
+a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed. A run whose records
+are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
+index's rows under a surname) is found only when a row fits a person, as docs/RESEARCH-WORKFLOW.md §4 has it for a
+results page saved by hand: when no row of any listing fits anyone, the run is set to none with the reason in its note,
+the rows stay on the artifact as candidates, and the step stands as it stood before the run.
 A step whose sources have several connectors runs at each, one log row per source: a search step at the connectors of its
 row's sources, a fetch step at its holder's and at those of its row's sources too (an obituary cited at a closed source runs
 at the Archive's newspapers with the citation's paper and date), the page saved by hand and a connector's answer being runs
@@ -35,7 +39,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
 from catalog import Catalog
 from log_search import log as log_search, ran_unchanged, rendered_query
-from extract import extract
+from extract import extract, RESULTS_LISTINGS
 from conclude import match_record
 import connectors
 
@@ -124,6 +128,19 @@ def outcome_of(hits, errors, shas):
     if errors and not shas: return "error"
     return "none"
 
+def listing(cx, eid):
+    """Whether an extraction read a results listing (extract.RESULTS_LISTINGS), one persona per row."""
+    return bool(cx.execute(f"SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=? AND x.name IN ({','.join('?' * len(RESULTS_LISTINGS))})", (eid, *RESULTS_LISTINGS)).fetchone())
+
+def fits(cx, tree_id, eid, written):
+    """Whether a record read fits anyone in the tree: the matcher proposed a persona of it now, or a persona of it already
+    carries a card or a link in this tree (a link carried across a re-reading of the same record proposes nothing new and
+    fits still)."""
+    if written: return True
+    return bool(cx.execute("""SELECT 1 FROM persona pe WHERE pe.extraction_id=? AND (
+                                EXISTS (SELECT 1 FROM proposal pr WHERE pr.tree_id=? AND json_extract(pr.payload_json,'$.persona_id')=pe.id AND NOT (pr.status='rejected' AND pr.decision_note='superseded'))
+                                OR EXISTS (SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=pe.id AND p.tree_id=?))""", (eid, tree_id, tree_id)).fetchone())
+
 def connector_for(cat, step):
     conns = connectors_for(cat, step); return conns[0] if conns else None
 
@@ -162,12 +179,17 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
     for conn in conns:
         r = run_connector(cx, cat, tree_id, step, conn, by, dry_run)
         if dry_run or "error" in r: out.append(r); continue
-        extracted = []
+        extracted, read = [], []                                 # read: (a results listing, fits someone) per record read
         for sha in r.pop("records"):                             # a hit's own record; the search response is the query's evidence, not a record
             eid, n = extract(cx, sha, by)
             if "failed" in n: extracted.append({"sha256": sha, "unparsed": n["failed"]}); continue
             props, taken = match_record(cx, eid, by)
             extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
+            read.append((listing(cx, eid), fits(cx, tree_id, eid, props)))
+        if r["outcome"] == "found" and read and all(l for l, _ in read) and not any(f for _, f in read):
+            note = "no candidate fits; " + (cx.execute("SELECT notes FROM search_log WHERE id=?", (r["log"],)).fetchone()[0] or "")
+            cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (note.rstrip("; "), r["log"]))   # a none run holds no record: the step stands as it stood before the run
+            cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "none"
         out.append({**r, "extracted": extracted})
     return out
 

@@ -406,12 +406,12 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query={**fields, **(query or {})})))
     out = {"sha256": sha, "new": new, "mime": mime, "logs": logs, "extraction": None, "proposals": [], "unparsed": None}
     if new and mime.startswith("text/html"):                     # a page is parsed and matched on arrival; an image waits for a transcription
-        from extract import extract as extract_html
+        from extract import extract as extract_html, RESULTS_LISTINGS
         eid, n = extract_html(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
         else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)
-        is_results_page = cx.execute("""SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
-                                        WHERE e.id=? AND x.name IN ('familysearch-search','findagrave-search','aad-search','va-gravesite')""", (eid,)).fetchone()
+        is_results_page = cx.execute(f"""SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
+                                        WHERE e.id=? AND x.name IN ({','.join('?' * len(RESULTS_LISTINGS))})""", (eid, *RESULTS_LISTINGS)).fetchone()
         if is_results_page and not out["proposals"] and logs:   # a results page whose own rows fit nobody: the run found nothing for the person, the candidates stay on the artifact
             for sid, lid in logs:                                # and a none run holds no record: the step stands as it stood before, planned or done by an earlier run
                 cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
