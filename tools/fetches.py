@@ -81,14 +81,17 @@ def waiting(cx, tree_id):
     return sorted(out.values(), key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
 
 def openable(cx, tree_id):
-    """The waiting pages a turn can send someone to: entries with a link to open whose steps include one with no run since the
-    plan last wrote its fields (log_search.ran_unchanged). A page saved once and logged (found, none, blocked) on unchanged
-    fields is listed by `list` as still waiting, but is not opened again until the plan changes the step."""
+    """The waiting pages a turn can send someone to: entries with a link to open, each with open_step_ids, the steps among its
+    step_ids with no run since the plan last wrote their fields (log_search.ran_unchanged); an entry with none is left out. A
+    page saved once and logged (found, none, blocked) on a step's unchanged fields is listed by `list` as still waiting, but
+    that step does not send anyone to it again until the plan changes it; a page seven people's steps share is open for the
+    people whose own step is still unrun."""
     out = []
     for e in waiting(cx, tree_id):
         if not e["url"]: continue
         steps = [cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone() for sid in e["step_ids"]]
-        if any(not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"])) for st in steps if st): out.append(e)
+        open_ids = [st["id"] for st in steps if st and not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"]))]
+        if open_ids: out.append({**e, "open_step_ids": open_ids})
     return out
 
 def downloads_dir():

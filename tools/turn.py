@@ -66,12 +66,13 @@ def connector_steps(cx, cat, tree_id, pid):
     return [r for r in run_step.runnable(cx, cat, tree_id) if r["person_id"] == pid]
 
 def waiting_for(cx, tree_id, pid):
-    """tools/fetches.py's own openable list (a link to open, a step with no run since the plan last wrote its fields),
-    narrowed to the entries that touch this person's plan (a shared census page naming relatives is still this person's
-    page). An entry with no link, or already saved or logged on unchanged fields, is not one the turn pauses on."""
+    """tools/fetches.py's own openable list (a link to open, steps with no run since the plan last wrote their fields),
+    narrowed to the entries where one of this person's own steps is still unrun (a shared census page naming relatives is
+    still this person's page). An entry with no link, or already saved or logged on this person's step with unchanged
+    fields, is not one the turn pauses on, whatever other people's steps on the same page still wait."""
     entries = fetches.openable(cx, tree_id)
     mine = {sid for sid, in cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))}
-    return [e for e in entries if mine & set(e["step_ids"])]
+    return [e for e in entries if mine & set(e["open_step_ids"])]
 
 def run_connectors(cx, cat, tree_id, pid):
     """Every step this person's own plan can run at a connector, one commit per step, as tools/run_step.py --all does.

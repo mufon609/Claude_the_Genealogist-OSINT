@@ -34,10 +34,10 @@ import run_step, fetches
 def advanceable(cx, cat, tree_id):
     """The people with a step a turn can advance: one the runner takes now (run_step.runnable: a connector can run it and it
     has no run since the plan last wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to
-    open, and no run on unchanged fields either)."""
+    open, and this person's own step in the entry with no run on unchanged fields either)."""
     people = {r["person_id"] for r in run_step.runnable(cx, cat, tree_id)}
     owner = dict(cx.execute("SELECT sp.id, sp.person_id FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=?", (tree_id,)).fetchall())
-    people |= {owner[sid] for e in fetches.openable(cx, tree_id) for sid in e["step_ids"] if sid in owner}
+    people |= {owner[sid] for e in fetches.openable(cx, tree_id) for sid in e["open_step_ids"] if sid in owner}
     return people
 
 def edge(cx, tree_id):
