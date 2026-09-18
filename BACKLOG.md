@@ -344,6 +344,18 @@ run. Let an error run leave the step runnable (`ran_unchanged` looks past it,
 the way it looks past a reopen's own row), and have the turn's report name the
 source that did not answer, so the next turn asks it again.
 
+### C17. A runner that takes turns from the queue in sequence
+
+`tools/queue.py` names the next person and `tools/turn.py` runs one
+person's turn, pausing for the browser saves; nothing yet runs turn after
+turn. Build the runner `docs/RESEARCH-WORKFLOW.md` §8 describes: it asks
+the queue, runs the turn, hands the pause's list to the browser session,
+resumes, reports the turn's two lines, and goes on until the queue names
+nobody, a challenge stops it, or a set number of turns is done; a person
+the queue names twice running with nothing new held is passed over. This
+runner, in a session with the owner's browser, is the loop run without a
+hand on it.
+
 ---
 
 ## Externally blocked
