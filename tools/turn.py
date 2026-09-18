@@ -129,7 +129,11 @@ def decided_lines(conn_runs, collect_results, left_results, recon):
         elif row["kind"] == "row": out.append(f"  reconsider: closed a results-page row for {row['person']} ({row['persona']}), the record itself is accepted")
     return out
 
-def left_lines(cx, cat, pid, collect_results, left_results, recon):
+def left_lines(cx, cat, pid, collect_results, left_results, recon, watch):
+    """What the turn leaves for the owner (docs/RESEARCH-WORKFLOW.md §8): this person's own open work, any file the
+    browser session brought back that fulfilled no step, and reconsider's own cards named for this turn (this person or
+    someone it created). Reconsider examines the whole tree, not one person's turn, so a card naming somebody else is
+    counted, not listed: that count was already there, or wasn't, before this turn ran."""
     w = cat.waiting(pid); bl = cat.baseline(pid)
     out = []
     if not bl["complete"]: out.append(f"  {pid_name(cx, pid)}: {len(bl['undecided'])} key fact(s) still undecided: {', '.join(bl['undecided'])}")
@@ -138,8 +142,12 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon):
     if w["needs_hand"]: out.append(f"  {pid_name(cx, pid)}: {w['needs_hand']} step(s) still need a hand (assisted, not yet run)")
     for r in collect_results + left_results:
         if r.get("left"): out.append("  " + line(r))
+    here, elsewhere = 0, 0
     for row in recon:
-        if row["kind"] == "card" and not row["taken"]: out.append(f"  reconsider: a card for {row['person']} / {row['persona']}, the rule does not take it: {row['why']}")
+        if row["kind"] != "card" or row["taken"]: continue
+        if row["person"] in watch: out.append(f"  reconsider: a card for {row['person']} / {row['persona']}, the rule does not take it: {row['why']}"); here += 1
+        else: elsewhere += 1
+    if elsewhere: out.append(f"  {elsewhere} card(s) elsewhere in the tree the rule still does not take, unrelated to this turn (tools/cards.py \"<person>\")")
     return out
 
 def pid_name(cx, pid): return cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0]
@@ -157,7 +165,8 @@ def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left
     out += ["", "created:"]
     out += [f"  {n} [{i[-6:]}]" for i, n in created] or ["  nobody"]
     out += ["", "left:"]
-    ll = left_lines(cx, cat, pid, collect_results, left_results, recon)
+    watch = {pid_name(cx, pid)} | {n for _, n in created}
+    ll = left_lines(cx, cat, pid, collect_results, left_results, recon, watch)
     out += ll or ["  nothing outstanding on this person"]
     if waits: out += ["", f"still to fetch by hand (nothing saved for {len(waits)} page(s) yet): run tools/fetches.py list"]
     out += ["", f"plan: {dumps(plan_stats)}"]
