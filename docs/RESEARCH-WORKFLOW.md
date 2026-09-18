@@ -308,6 +308,15 @@ divorce is a `Divorce` event on the couple's family (`conclude.divorce`), dated
 as the records allow, with an Accepted assertion per piece of evidence the
 owner names; the couple stays a family so the children keep both parents, and
 the screen shows the pair with a broken heart and the date between them.
+A record the owner cites on their own word, with nothing in the file and
+nothing archived yet (a census schedule they have seen: the place, the
+enumeration district, the sheet), is a fetch step on the person's plan
+carrying those details as the owner gives them (`tools/cite.py`,
+`attach.cite_on_word`), each field on the owner's word and the holder as
+its locator: the runner asks the holder's connector for it exactly as for
+a record the file cites, what comes back is fetched for that person and
+read by the extractor, the matcher and the standing rule like any other
+record, and the planner never drops the step.
 
 **A family-held original.** A photograph or scan of something the family
 holds (an heirloom's label, a letter, a Bible page) has no record identity and
