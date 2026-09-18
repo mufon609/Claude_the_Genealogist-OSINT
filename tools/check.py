@@ -1692,6 +1692,46 @@ def attach_collection_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def attach_none_check(keep):
+    """docs/RESEARCH-WORKFLOW.md §4: 'No fit at all sets the run to none.' A results page saved for a fetch step's own search
+    (its citation has no record id at the holder, so tools/fetches.py collect attaches the page by the name the list printed,
+    kind="page", not by the page's own search identity) must set the run to none the same way a page attached by that
+    identity already does, whichever step the page's rows fit nobody on."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps, inbox_dir
+    from attach import attach
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "nonetest", "--name", "None Run Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='nonetest'").fetchone()[0]
+    ts = tnow(); pid = tulid()
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "F", "Jane Test", ts, ts))
+    cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, "Jane", "Test", "test, jane"))
+    sid = tulid()                                     # a marriage record fetch step: the citation carries no ark to open directly, so it is searched at the holder by hand
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,sources_json,mode,status,created_at)
+                  VALUES (?,?,'marriage record:1950',1,'fetch:1,999::123','fetch','subject_record',?,'D03','apid','1,999::123','["D03"]','fetch','planned',?)""",
+               (sid, pid, tdumps({}), ts))
+    cx.commit()
+    fname = "familysearch-marriage-index-results-nonetest.html"
+    with open(os.path.join(inbox_dir(), fname), "w", encoding="utf-8") as fh:
+        fh.write('<!-- saved from https://www.familysearch.org/en/search/record/results?q.givenName=Zelda&q.surname=Quorum&f.collectionId=9999999 -->\n'
+                  '<html><body><table><tr data-testid="/ark:/61903/1:1:ZZZZ-9999"><td>1</td>'
+                  '<td><a href="/ark:/61903/1:1:ZZZZ-9999?lang=en">Zelda Quorum</a></td><td></td></tr></table></body></html>')
+    step = cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone()
+    cx.execute("BEGIN")
+    res = attach(cx, tid, "nonetest", fname, [step], BY, note="saved in the browser under the fetch list's name at FamilySearch record collections",
+                 kind="page", value="https://www.familysearch.org/en/search/record/results?q.givenName=Zelda&q.surname=Quorum")
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    fail(res["proposals"] == [], f"the page's one row (Zelda Quorum) fits nobody in this tree: {res['proposals']}")
+    fail(res.get("outcome") == "none", f"no candidate fits, so the run the page was saved for is none, not found: {res}")
+    log = cx.execute("SELECT outcome, notes FROM search_log WHERE plan_step_id=? ORDER BY id DESC LIMIT 1", (sid,)).fetchone()
+    fail(log and log["outcome"] == "none" and "no candidate fits" in (log["notes"] or ""), f"the step's own log row reads none, the reason in its note: {log and tuple(log)}")
+    cx.close()
+    if keep: print("attach none scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def rules():
     """The name rules as the docs state them, on their own."""
     from catalog import same_surname
@@ -1993,6 +2033,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL attach _steps_by_kind collision: " + "; ".join(fails))
     else: print("ok   attach _steps_by_kind: a page matches only the citation of its own holder collection, never another citation of the same row at the same holder")
+    try: fails = attach_none_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL attach none run: " + "; ".join(fails))
+    else: print("ok   attach none run: a results page saved under the fetch list's own name, its rows fitting nobody, sets the run to none like any other results page")
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))

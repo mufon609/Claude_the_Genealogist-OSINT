@@ -328,7 +328,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         eid, n = extract_html(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
         else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)
-        if kind in ("search", "aad_search", "fs_search") and not out["proposals"] and logs:   # no candidate fits: the run found nothing for the person; the candidates stay on the artifact
+        is_results_page = cx.execute("""SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
+                                        WHERE e.id=? AND x.name IN ('familysearch-search','findagrave-search','aad-search','va-gravesite')""", (eid,)).fetchone()
+        if is_results_page and not out["proposals"] and logs:   # a results page whose own rows fit nobody: the run found nothing for the person, the candidates stay on the artifact
             for _, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
     filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)   # the original leaves the inbox last, so a failure before this point leaves it there
