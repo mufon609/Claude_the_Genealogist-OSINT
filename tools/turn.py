@@ -39,9 +39,14 @@ RUNNER, PLANNER = "agent:run_step", "rule:plan@0.1.0"
 
 def state_path(db_path): return db_path + ".turn-state.json"
 
-def save_state(db_path, tree_id, slug, pid, name):
+def save_state(db_path, tree_id, slug, pid, name, before_ids, held, decided):
+    """Kept beside the database, not in the catalog: which person, who existed before the turn started (so a person a
+    connector step created before the pause is still reported as created once the turn is resumed), and the held/decided
+    lines the connector steps already earned before the pause, so the final report covers the whole turn, not just what
+    --resume itself does."""
     with open(state_path(db_path), "w", encoding="utf-8") as fh:
-        json.dump({"tree_id": tree_id, "tree": slug, "person_id": pid, "person": name, "started_at": now()}, fh)
+        json.dump({"tree_id": tree_id, "tree": slug, "person_id": pid, "person": name, "started_at": now(),
+                   "before_ids": before_ids, "held": held, "decided": decided}, fh)
 
 def load_state(db_path):
     try:
@@ -152,15 +157,15 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon, watch):
 
 def pid_name(cx, pid): return cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0]
 
-def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats):
+def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=()):
     cat = Catalog(cx, tree_id)
     after_ids = person_ids(cx, tree_id)
     created = [(i, n) for i, n in after_ids.items() if i not in before_ids]
     out = [f"turn: {pid_name(cx, pid)}", "", "held:"]
-    hl = held_lines(conn_runs, collect_results, left_results)
+    hl = list(pre_held) + held_lines(conn_runs, collect_results, left_results)
     out += hl or ["  nothing new archived"]
     out += ["", "decided:"]
-    dl = decided_lines(conn_runs, collect_results, left_results, recon)
+    dl = list(pre_decided) + decided_lines(conn_runs, collect_results, left_results, recon)
     out += dl or ["  nothing for the rule to take"]
     out += ["", "created:"]
     out += [f"  {n} [{i[-6:]}]" for i, n in created] or ["  nobody"]
@@ -181,10 +186,12 @@ def start(cx, tree_id, slug, pid, by, db):
     conn_runs = run_connectors(cx, cat, tree_id, pid)
     waits = waiting_for(cx, tree_id, pid)
     if waits:
-        save_state(db, tree_id, slug, pid, pid_name(cx, pid))
+        held, decided = held_lines(conn_runs, [], []), decided_lines(conn_runs, [], [], [])
+        save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided)
         lines = [f"-- {e['holder']}\n{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  save as {e['save_as']}" +
                  ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else "") for e in waits]
         print(f"turn: {pid_name(cx, pid)}\n" + "\n".join(lines) + f"\n\n{len(waits)} page(s) to fetch, one tab per page; save these, then run tools/turn.py --resume")
+        if held or decided: print("\n(so far this turn -- held:\n" + "\n".join(held or ["  nothing yet"]) + "\ndecided:\n" + "\n".join(decided or ["  nothing yet"]) + ")")
         return
     names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
     print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats))
@@ -192,11 +199,10 @@ def start(cx, tree_id, slug, pid, by, db):
 def resume(cx, tree_id, slug, by, db):
     st = load_state(db)
     if not st or st["tree_id"] != tree_id: sys.exit("no paused turn on this tree: tools/turn.py \"<person>\"")
-    pid = st["person_id"]
-    before = person_ids(cx, tree_id)
+    pid = st["person_id"]; before = st.get("before_ids") or person_ids(cx, tree_id)
     names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
     clear_state(db)
-    print(report(cx, tree_id, pid, before, [], [], collect_results, left_results, recon, final_stats))
+    print(report(cx, tree_id, pid, before, [], [], collect_results, left_results, recon, final_stats, pre_held=st.get("held") or (), pre_decided=st.get("decided") or ()))
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--resume", action="store_true")
