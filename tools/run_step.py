@@ -217,9 +217,9 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
             url = rq["url"]; pages = 1
             while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
                 first = url == rq["url"]                             # the request as the connector gave it; a later page is a GET of the URL the connector named
-                try: data, http = fetch(url, rq["kind"], conn, rq.get("data") if first else None)
+                try: data, meta = fetch(url, rq["kind"], conn, rq.get("data") if first else None)
                 except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); break
-                sha = keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": q}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
+                sha = keep(data, meta, rq["kind"], url, {"request": rq["kind"], "query": q}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
                 rq["archived_sha"] = sha                              # this request's own bytes, for hits() to derive from (connectors/__init__.py)
                 if url == rq["url"]:
                     try: totals.append(conn.total(data))

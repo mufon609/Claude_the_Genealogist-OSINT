@@ -26,7 +26,11 @@ RATE = {"text": 6}                                                # a 69 MB file
 FIELDS = ["FNAME", "LNAME", "MIDDLE_NAME", "STATE_FILE_NUMBER", "BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY", "DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"]
 
 def requests(fields):
-    """The whole file, once, when the step's fields name a surname (the citation's own name, or a search step's)."""
+    """The whole file, once, when the step's fields name a surname (the citation's own name, or a search step's). C09
+    also holds the state's marriage and birth indexes (data/holders.csv), so a citation naming one of those (its own
+    "collection" field says which) asks nothing here: this file is the death index alone."""
+    coll = (value(fields, "collection") or "").lower()
+    if coll and "death" not in coll: return []
     given, surname = name_parts(fields)
     if not surname: return []
     return [{"url": CSV_URL, "kind": "text", "record": False, "surname": surname, "given": given}]
