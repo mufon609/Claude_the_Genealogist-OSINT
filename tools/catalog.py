@@ -721,13 +721,22 @@ class Catalog:
         return fam
     def fetched_rows(self, pid):
         """Checklist row keys (record:instance) with a done step whose record is held: an archived artifact in its log, or an
-        artifact at the step's locator (for a record id, one that holds it for this person). {row key: whether a held
-        record is on the person themselves (a step with on_json []) rather than on a relative}."""
+        artifact at the step's locator (for a record id, one that holds it for this person). {row key: whether a held record
+        is on the person themselves (a step with on_json []) and is that record's own subject there (is_subject), not merely
+        named on a record that is someone else's -- the same gate a one-person row's own citations already pass
+        (person_citations subject_only=True). A household row is held by any of them regardless: the key's presence, not
+        this value, is what a household row's own status_of check reads."""
         out = {}
         for sid, rk, lkind, lval, on in self.q("SELECT id, row_key, locator_kind, locator_value, on_json FROM search_plan WHERE person_id=? AND status='done'", pid):
-            held = (bool(self.q("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]'", sid))
-                    or (lkind == "apid" and bool(self.held_for(lval, pid))) or bool(lkind and lval and self.q("SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval)))
-            if held: out[rk] = out.get(rk, False) or (on or "[]") == "[]"
+            shas = {s for js, in self.q("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]'", sid) for s in json.loads(js)}
+            if not shas and lkind == "apid" and lval:
+                h = self.held_for(lval, pid)
+                if h: shas.add(h)
+            if not shas and lkind and lval:
+                shas |= {s for s, in self.q("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval)}
+            if not shas: continue
+            on_person = (on or "[]") == "[]"
+            out[rk] = out.get(rk, False) or (on_person and any(self.is_subject(s, pid) for s in shas))
         return out
     def page_groups(self):
         if self._groups is None: self._groups = page_groups(self.cx)

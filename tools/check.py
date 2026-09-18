@@ -1837,6 +1837,65 @@ def queue_pass_over_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def fetched_rows_subject_check(keep):
+    """Catalog.fetched_rows must hold a one-person row only through a record whose accepted persona for that
+    person is the record's own subject (is_subject), the same gate person_citations(subject_only=True) already applies --
+    not merely a done step whose citation sits on the person (on_json []) with some artifact found under it, whoever the
+    record turns out to be about (Raymond Earl Davidson's own obituary citation, an Ancestry-side mixup, held his wife's
+    obituary instead; his own row read held all the same before this fix)."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps, archive_object
+    from catalog import Catalog
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "fetchtest", "--name", "Fetched Rows Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='fetchtest'").fetchone()[0]
+    ts = tnow(); ex_id = tulid()
+    cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ex_id, "rule", "harness", "0.1.0", ts))
+    def record(pid, name, subject_role, related_persona=None):
+        """An archived page with one persona in the given role, an accepted link from pid to it (related_persona: another
+        persona on the page this one has an outgoing relation to, as a survivor names the deceased); a done fetch step on
+        pid citing it, on_json [] (the citation sits on pid), logged found."""
+        cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "F", name, ts, ts))
+        sha, _ = archive_object(cx, f"<html>{name}</html>".encode(), mime="text/html", source_id="H05", collection_id=None, locator_kind="url",
+                                locator_value=f"https://example/{pid}", retrieved_by=BY, terms=None, cost="free", trust_tier="T2", original_filename=f"{pid}.html")
+        eid = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')", (eid, sha, ex_id, ts))
+        pe_id = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,role_in_record,sequence) VALUES (?,?,?,?,?,1)", (pe_id, eid, sha, name, subject_role))
+        if related_persona: cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind) VALUES (?,?,?,?)", (tulid(), pe_id, related_persona, "survivor"))
+        cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,'accepted',?,?)", (pid, pe_id, BY, ts))
+        sid = tulid()
+        cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,on_json,created_at)
+                      VALUES (?,?,'obituary:',1,?,'fetch','subject_record','{}','["H05"]','fetch','done','[]',?)""", (sid, pid, f"fetch:{pid}", ts))
+        cx.execute("INSERT INTO search_log (id,tree_id,plan_step_id,executed_at,executed_by,query_json,outcome,artifacts_json) VALUES (?,?,?,?,?,?,?,?)",
+                   (tulid(), tid, sid, ts, BY, "{}", "found", tdumps([sha])))
+        return pe_id
+    subject_id = tulid(); record(subject_id, "True Subject", "deceased")   # her own obituary, unrelated to the mixed-up person below
+    named_id = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (named_id, tid, "M", "Named Relative", ts, ts))
+    cx.commit()
+    # a second page: Named Relative's own step holds a record whose accepted persona for them is a survivor of someone else, not their own
+    other_subject = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (other_subject, tid, "M", "Someone Else", ts, ts))
+    sha2, _ = archive_object(cx, b"<html>mixup</html>", mime="text/html", source_id="H05", collection_id=None, locator_kind="url", locator_value="https://example/mixup",
+                             retrieved_by=BY, terms=None, cost="free", trust_tier="T2", original_filename="mixup.html")
+    eid2 = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')", (eid2, sha2, ex_id, ts))
+    deceased_pe = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,role_in_record,sequence) VALUES (?,?,?,?,?,1)", (deceased_pe, eid2, sha2, "Someone Else", "deceased"))
+    survivor_pe = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,role_in_record,sequence) VALUES (?,?,?,?,?,2)", (survivor_pe, eid2, sha2, "Named Relative", "survivor"))
+    cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind) VALUES (?,?,?,?)", (tulid(), survivor_pe, deceased_pe, "survivor"))
+    cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,'accepted',?,?)", (named_id, survivor_pe, BY, ts))
+    sid2 = tulid()
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,on_json,created_at)
+                  VALUES (?,?,'obituary:',2,?,'fetch','subject_record','{}','["H05"]','fetch','done','[]',?)""", (sid2, named_id, "fetch:mixup", ts))
+    cx.execute("INSERT INTO search_log (id,tree_id,plan_step_id,executed_at,executed_by,query_json,outcome,artifacts_json) VALUES (?,?,?,?,?,?,?,?)",
+               (tulid(), tid, sid2, ts, BY, "{}", "found", tdumps([sha2])))
+    cx.commit()
+    cat = Catalog(cx, tid)
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    fail(cat.fetched_rows(subject_id).get("obituary:") is True, f"a person accepted as a record's own subject (no outgoing relation): held: {cat.fetched_rows(subject_id)}")
+    fail(cat.fetched_rows(named_id).get("obituary:") is not True, f"a person accepted only as a survivor named on someone else's record (an outgoing relation to the deceased): not held, the mixed-up citation John Y Davidson's own Social Security row would once have read: {cat.fetched_rows(named_id)}")
+    cx.close()
+    if keep: print("fetched_rows subject scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def rules():
     """The name rules as the docs state them, on their own."""
     from catalog import same_surname
@@ -2150,6 +2209,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL queue.py pass-over: " + "; ".join(fails))
     else: print("ok   queue.py pass-over: a person already planned with nothing left for a turn to run, whose open question is the owner's alone, is passed over and never named next")
+    try: fails = fetched_rows_subject_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL Catalog.fetched_rows subject gate: " + "; ".join(fails))
+    else: print("ok   Catalog.fetched_rows subject gate: a one-person row is held only through a record whose accepted persona for that person is the record's own subject, not merely named on it")
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))

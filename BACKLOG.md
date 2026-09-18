@@ -134,26 +134,6 @@ found on every household member's own step from one page
 answer) needs the same reach, from the record's own accepted personas to each
 one's matching census-year step, once each is decided.
 
-### C3. `fetched_rows` marks a one-person row held without checking the record names that person
-
-A fetch step's `done` status (`catalog.fetched_rows`) marks a checklist row
-`held` once some archived artifact matches the step's own locator, with no
-check that the record actually names the row's person as its own subject —
-unlike `catalog.person_citations(subject_only=True)`, which the row's
-`cited`/`held` status already gates through `catalog.is_subject`
-(`docs/RESEARCH-CHECKLIST.md` §3, §7; `schema/README.md`). Raymond Earl
-Davidson's own GEDCOM citation of `U.S., Obituary Collection, 1930-Current`
-(apid `1,7545::147376410`) carries his wife Noi Davidson's own Legacy.com URL,
-an Ancestry-side mixup already present in the imported file; the page fetched
-under it is genuinely her obituary, and his own "obituary" row reads `held`
-because that step is `done` and is his own citation (not a relative's), with
-nothing checking that the page fetched under it is about him. His own 2007
-obituary is not held, cited, or missing on his checklist — a `held` row
-generates neither a fetch nor a search, so it is invisible. `checklist.py`'s
-`row()` (the branch reading `fetched`) needs the same `is_subject` gate
-`person_citations` already applies to a one-person row, so a fetch step's own
-artifact must be accepted as the row's own person before it satisfies the row.
-
 ### C4. A results page saved for a fetch step's own search at the holder attaches to nothing
 
 `tools/attach.py`'s `steps_for` matches a FamilySearch results page (kind
