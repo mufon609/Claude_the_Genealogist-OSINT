@@ -67,9 +67,16 @@ def waiting_for(cx, tree_id, pid):
     return [e for e in entries if mine & set(e["step_ids"])]
 
 def run_connectors(cx, cat, tree_id, pid):
-    """Every runnable step at this person's own connectors, one commit per step as tools/run_step.py --all does."""
-    out = []
-    for st in connector_steps(cx, cat, tree_id, pid):
+    """Every step this person's own plan can run at a connector, one commit per step, as tools/run_step.py --all does.
+    An earlier step's own accept regenerates the plan in the same request (docs/RESEARCH-WORKFLOW.md §5-7) and can drop
+    a later step already queued here, or add one; steps are read fresh before each run rather than as one snapshot, so a
+    step gone by the time its turn comes is skipped, never run against a row that no longer exists, and a step the
+    regeneration newly opens still gets its turn."""
+    out = []; ran = set()
+    while True:
+        todo = [st for st in connector_steps(cx, cat, tree_id, pid) if st["id"] not in ran]
+        if not todo: break
+        st = todo[0]; ran.add(st["id"])
         cx.execute("BEGIN")
         try: res = run_step.run(cx, cat, tree_id, st, RUNNER); cx.commit()
         except Exception: cx.rollback(); raise
