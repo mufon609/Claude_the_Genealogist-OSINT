@@ -134,6 +134,24 @@ found on every household member's own step from one page
 answer) needs the same reach, from the record's own accepted personas to each
 one's matching census-year step, once each is decided.
 
+### C3. A search step its connectors cannot ask is runnable forever
+
+`tools/run_step.py`'s `runnable` leaves out a fetch step whose connectors have
+no request to make from the citation, but keeps an auto search step in the same
+state: Carol Evers's compiled-genealogy step carries a given name, a surname
+and a spouse, and both its connectors want more (`wikitree` a birth or death
+year, `ia_books` a state), so `run` answers "the fields give the connector
+nothing to ask: a surname, or for a cited book its title" and logs nothing.
+With no run on the step's fields, `ran_unchanged` is false, the step is
+runnable again, `tools/queue.py` names her next on it, and a turn on her runs
+the same two empty asks and does nothing. Do what the doc already does for a
+source whose years miss the step's (`docs/RESEARCH-WORKFLOW.md` §4): log the
+run `none` without a request, the note saying which field the connector
+wanted, so the step is asked again only when the plan writes new fields; then
+the queue passes the person over with that reason. Harness: a search step on a
+person with a name and nothing else, run once, logged none at each connector
+with the missing field named, not runnable after, the person passed over.
+
 ### C4. A record page saved for a church-register fetch step attaches to nothing
 
 `tools/fetches.py list` sends a church-register citation (Ancestry's
