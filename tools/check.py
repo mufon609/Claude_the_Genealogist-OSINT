@@ -2295,6 +2295,13 @@ def connectors_offline():
     say([c.__name__.split(".")[-1] for c in connectors_for(Cat2, st)] == ["loc_gov", "ia_newspapers"], "a fetch step at a holder without a connector runs at the connectors of its row's sources")
     st2 = {"kind": "fetch", "locator_source_id": "L02", "sources_json": '["H07","L02"]'}
     say([c.__name__.split(".")[-1] for c in connectors_for(Cat2, st2)] == ["ia_books", "ia_newspapers"], "a fetch step's holder comes first, once")
+    class Cat3: sources = {"C09": {"connector": "nj_death_index"}, "C08": {"connector": ""}}
+    st3 = {"kind": "search", "row_key": "marriage record:Raymond Earl Davidson", "locator_source_id": None, "sources_json": '["C08","C09"]'}
+    st4 = {"kind": "search", "row_key": "death record:", "locator_source_id": None, "sources_json": '["C08","C09"]'}
+    say(connectors_for(Cat3, st3) == [] and [c.__name__.split(".")[-1] for c in connectors_for(Cat3, st4)] == ["nj_death_index"],
+        f"a search step is asked at a connector only on a row it answers: the New Jersey death index reads the death row, never a marriage search: {connectors_for(Cat3, st3)}, {connectors_for(Cat3, st4)}")
+    from connectors import answers
+    say(answers("nj_death_index", "death record:") and not answers("nj_death_index", "birth record") and answers("loc_gov", "marriage record:"), "connectors.answers: a connector without ROWS answers every row")
     from run_step import coverage_years, step_years
     want = {"US 1756-1963": (1756, 1963), "US 1780s-1990s": (1780, 1999), "US 1950": (1950, 1950), "Global": None, "US veterans": None, "PA 1789-2013, few titles after the 1920s": (1789, 2013)}
     say(all(coverage_years(k) == v for k, v in want.items()), f"the registry's coverage years as read: {[(k, coverage_years(k)) for k in want]}")

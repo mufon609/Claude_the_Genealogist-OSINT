@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, resolve_tree
 from catalog import Catalog, US_STATES, US_NAMES, year
 from footprint import footprint
+from connectors import answers
 
 # statewide civil registration windows (year from) and the registry row that covers them
 VITAL = {"pennsylvania": {"birth": (1906, "C03"), "death": (1906, "C03"), "marriage": (1885, "C03")},
@@ -134,11 +135,12 @@ def build(cat: Catalog, pid: str):
                 if any(rx.search(c[0]) for c in cits): return "cited", rname
         return "missing", None
     DEPENDS = {"D03": "B01"}                      # FamilySearch collections need the API approval tracked on B01
-    def mode_for(ids):
-        """One mode for a search step: auto only when a source has a built connector (registry column), awaiting_approval
-        when every source waits on an application (its status or its gate's is blocked-apply), else assisted."""
+    def mode_for(ids, record):
+        """One mode for a search step: auto only when a source has a built connector (registry column) that answers this row
+        (connectors.answers), awaiting_approval when every source waits on an application (its status or its gate's is
+        blocked-apply), else assisted."""
         srcs = [cat.sources.get(sid, {}) for sid in ids]
-        if any(s.get("connector") for s in srcs): return "assisted" if living else "auto"
+        if any(s.get("connector") and answers(s["connector"], record) for s in srcs): return "assisted" if living else "auto"
         waits = lambda sid, s: s.get("status") == "blocked-apply" or cat.sources.get(DEPENDS.get(sid, ""), {}).get("status") == "blocked-apply"
         if ids and all(waits(sid, s) for sid, s in zip(ids, srcs)): return "awaiting_approval"
         return "assisted"
@@ -164,7 +166,7 @@ def build(cat: Catalog, pid: str):
              "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None),
              "citations": cited_on(pattern, household) if st in ("cited", "held") and pattern != "no-match" else []}
         if query and (st == "cited" or (st == "missing" and reviewed)):
-            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": "fetch" if st == "cited" else mode_for(sources), "free_mode": mode_for(sources), "expect": settles}
+            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": "fetch" if st == "cited" else mode_for(sources, record), "free_mode": mode_for(sources, record), "expect": settles}
         (A if group == "A" else B).append(r)
     nb = cat.basis("person", pid)
     fnd = {"given": F(given, nb), "surname": F(surname, nb), "sex": F(sex, nb), "variants": F(foundation[0]["variants"], "claim"),
@@ -213,7 +215,7 @@ def build(cat: Catalog, pid: str):
         if r["status"] == "cited" or (r["status"] == "missing" and reviewed):
             mb = m["basis"] if m else "claim"
             r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, mb if m and m["place"] else sb)),
-                           "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"]), "free_mode": mode_for(r["sources"]), "expect": r["settles"]}
+                           "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"], r["record"]), "free_mode": mode_for(r["sources"], r["record"]), "expect": r["settles"]}
         A.append(r)
     dplace = PLACES(death["place"], death["basis"], year=d) if death and death["place"] else F(home_state, sb)
     if known_death and known_death >= 1800:

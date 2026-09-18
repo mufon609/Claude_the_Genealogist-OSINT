@@ -21,6 +21,7 @@ from connectors.ia import name_parts
 
 SOURCE = "C09"
 COLLECTION = "New Jersey, U.S., Death Index, 1848-1878, 1901-2017"
+ROWS = ("death record",)                                          # C09 is on the birth and marriage rows too; this file answers only the death row
 CSV_URL = "https://archive.org/download/newjerseydeathindex_2006-2017_data_csv/Reclaim_The_Records_-_New_Jersey_Death_Index_-_2006-2017.csv"
 RATE = {"text": 6}                                                # a 69 MB file; a person's pace asks it no more often than this
 FIELDS = ["FNAME", "LNAME", "MIDDLE_NAME", "STATE_FILE_NUMBER", "BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY", "DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"]

@@ -24,6 +24,10 @@ The contract, and nothing else:
               current top-level request's own sha256 once archived, for hits() to read); when the request has one, the request
               dict passed to hits() carries it too.
   Optional:
+  ROWS        the checklist rows (the record part of a step's row_key: "death record") the connector answers a search step
+              for, when its source's row covers more kinds than the connector reads (a vital-records row whose connector
+              reads the death index alone); without it the connector answers every search step its source is on. A fetch
+              step is gated by its citation's own collection in requests() instead.
   next_page(url, body) -> url or None    the next page of the same search while the source's total stays small.
   narrow(url, body) -> text or None      what the step needs when the source answers with too many results.
   follow(fetch, body, hit) -> [fetch]    more to fetch once a response is in (an item's metadata names the server its pages
@@ -37,6 +41,12 @@ import importlib
 def load(name):
     """The connector module named in the registry's Connector column."""
     return importlib.import_module(f"connectors.{name}")
+
+def answers(name, record):
+    """Whether the connector named answers a search step on this checklist row: every row unless the connector declares ROWS,
+    then only those. record: the row's record name, or a row_key ("death record:" and "death record" alike)."""
+    rows = getattr(load(name), "ROWS", None)
+    return not rows or (record or "").split(":", 1)[0].strip().lower() in {r.lower() for r in rows}
 
 def value(fields, key):
     v = (fields or {}).get(key)

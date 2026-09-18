@@ -91,12 +91,15 @@ def collection_for(cx, conn):
 
 def connectors_for(cat, step):
     """A step's connectors: those of its row's sources that have one, in the row's order, and for a fetch step its holder's
-    (the locator source) first. Each is a query at a different holder and gets its own log row."""
+    (the locator source) first. Each is a query at a different holder and gets its own log row. A search step carries no
+    citation collection, so a connector that reads one kind of its source's row (connectors.answers) is asked only on that row."""
     sids = ([step["locator_source_id"]] if step["kind"] == "fetch" and step["locator_source_id"] else []) + json.loads(step["sources_json"] or "[]")
     out, seen = [], set()
     for sid in sids:
         name = (cat.sources.get(sid) or {}).get("connector")
-        if name and name not in seen: seen.add(name); out.append(connectors.load(name))
+        if not name or name in seen: continue
+        if step["kind"] == "search" and not connectors.answers(name, step["row_key"]): continue
+        seen.add(name); out.append(connectors.load(name))
     return out
 
 def spelling_variants(surname, aliases):
