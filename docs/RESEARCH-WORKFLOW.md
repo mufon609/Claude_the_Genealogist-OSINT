@@ -617,7 +617,12 @@ trusted source or on the owner's own word, and nothing among them disagrees;
 a disagreement with a value that rests on no accepted assertion is not a
 veto here either, and becomes the same conflict question. A
 surname agreeing only one letter apart is a card, never the rule's. Claims never count, and a fact that
-rests only on a page anyone can edit does not count either. On a page anyone can edit that identifies a person (a
+rests only on a page anyone can edit does not count either. The one exception, on the owner's word: a stated
+relationship to a relative the tree links by a claim alone counts one point, never double, when that relative's own
+persona on the record fits them on more than a name (a name and an age, a name and a place), so a confirmed child in
+the claimed parents' census household is taken on name, birth year and the stated parent, and the parents then
+follow through the claimed route above; an obituary's named survivor is still one the tree holds on trusted
+evidence. On a page anyone can edit that identifies a person (a
 memorial, a profile) the rule takes the identity alone, when the name agrees and at least three of birth date to the
 day, death date to the day, burial place, and a stated parent or spouse who is that relative in the tree agree with
 the tree, claimed or accepted; a relative the page lists by name and years alone has at most the stated relation and

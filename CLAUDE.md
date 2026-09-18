@@ -41,7 +41,9 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    value becomes a conflict question, never a silent overwrite or a silent
    drop. The owner's standing rule accepts a document from a source nobody can
    edit at will that agrees with facts the owner already accepted on such
-   sources, recorded as acting on their word and reversible; a disagreement
+   sources, recorded as acting on their word and reversible; a stated
+   relationship to a relative the file only claims counts one point when
+   that relative's own persona on the record fits on more than a name; a disagreement
    with a value the owner has not accepted does not stop it — the record is
    still taken and the difference is the same conflict question. A relative
    such a record names in a stated relationship to someone it has just

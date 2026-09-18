@@ -582,7 +582,11 @@ def rule_accepts(cx, tree_id, prop, without=()):
     tree, claimed or accepted, or has no parents in the tree at all (nothing holds the sibling, nothing contradicts it) and the
     name agrees; accepting places them as a child of those parents with an undecided assertion (link_family). A sibling the
     tree holds counts as a relationship point like a parent or a spouse, on the trusted evidence of the child membership
-    beside the other's. A persona the record relates to the one under decision stands for the relative it fits, and its stated
+    beside the other's. A stated relationship to a relative the tree links by a claim alone counts one point, never double, when
+    that relative's own persona on the record fits them on more than a name (a date or a place agreeing beside it) or is already
+    accepted on the record as them (the owner's ruling written beside "claims never count" in docs/RESEARCH-WORKFLOW.md §5-7);
+    it is not an obituary's ground, whose named survivor must be held on trusted evidence.
+    A persona the record relates to the one under decision stands for the relative it fits, and its stated
     relationship to that persona, read from either side of the row, is one of the things it fits on (a husband named with an
     age beside his wife fits the tree's husband by that relation); a relative counts once, however many rows relate the two.
     without: proposal
@@ -680,6 +684,8 @@ def rule_accepts(cx, tree_id, prop, without=()):
                 for who, r in ((pid, role), (oc["id"], other_role))]   # the membership that joins these two, read from either side: the child's under the parent, a partner's beside the other, a sibling's child row beside the other's
         if trusted_evidence(cx, tree_id, "family_member", rows, without=without):
             pt = f"{REL_OF[group]} {other_name}"; points += [pt, "and the day"]; rel_points.append(pt)   # the relationship and the person it identifies: two points
+        elif other_pid in accepted_on_record or (other_pid in fitted and any(a.startswith(("birth date agrees", "death date agrees")) or " place agrees" in a for a in fitted[other_pid][0])):
+            points.append(f"{REL_OF[group]} {other_name} (a link the file claims, the relative's own persona here fitting on more than a name)")   # one point, never double, and not an obituary's ground
     if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
     if survivors_kind and not rel_points: return False, "an obituary or newspaper text is ground only through who it names: " + (", ".join(p for p in points if p != "and the day") or "the name") + " agree, but none of the accepted relatives is among the survivors it names"
     return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees against an accepted value" + claim_note

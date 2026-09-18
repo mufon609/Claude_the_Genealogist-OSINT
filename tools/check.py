@@ -711,6 +711,68 @@ def spouse_relation_fit_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def claimed_parent_point_check(keep):
+    """The owner's ruling beside "claims never count" (docs/RESEARCH-WORKFLOW.md §5-7): a stated relationship to a relative the
+    tree links by a claim alone counts one point when that relative's own persona on the record fits them on more than a name.
+    A confirmed child (name and birth on the owner's word) in the claimed parents' census household is taken on name, birth
+    year and the stated parent, whose persona fits the claimed father on his name and age; the parents then follow through the
+    claimed route, the father as parent of the child just accepted, the mother as his spouse."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, dumps, now as tnow, ulid as tulid
+    from conclude import match_record
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "claimedpt", "--name", "Claimed Parent Point Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='claimedpt'").fetchone()[0]
+    ts = tnow()
+    src = cx.execute("SELECT trust_tier, terms FROM source WHERE id='D03'").fetchone()
+    cid = tulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, "D03", "United States Census, 1940", "other", "claimed_parent_point_test"))
+    sha, _ = archive_object(cx, b"claimed-parent-point-harness", mime="text/html", source_id="D03", collection_id=cid,
+                            collection_name="United States Census, 1940", locator_kind="url", locator_value="http://example.test/claimed-parent-point",
+                            retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0], original_filename="claimed-parent-point-harness.html")
+    def mkperson(name, sex, birth):
+        pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, sex, name, ts, ts))
+        given, surname = name.rsplit(" ", 1)
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, given, surname, f"{surname}, {given}".lower()))
+        eid = tulid(); cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,calendar,created_at,updated_at) VALUES (?,?,'Birth',?,?,?,?,?)", (eid, tid, birth[0], birth[1], "gregorian", ts, ts))
+        cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (tulid(), eid, pid))
+        return pid, eid
+    def vouch(kind, sid):
+        cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,artifact_sha256,status,asserted_by,asserted_at,notes)
+                      VALUES (?,?,?,?,?,'accepted',?,?,?)""", (tulid(), tid, kind, sid, sha, BY, ts, dumps({"vouched": True})))
+    father, _ = mkperson("John Claim Evers", "M", ("1913", "1913")); mother, _ = mkperson("Dolores Claim Ruiz", "F", ("1915", "1915"))   # claimed: nothing accepted on them
+    child, c_birth = mkperson("Carol Claim Evers", "F", ("3 Mar 1938", "1938-03-03")); vouch("person", child); vouch("event", c_birth)    # confirmed on the owner's word
+    fam = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam, tid, ts, ts))
+    for who, role in ((father, "partner"), (mother, "partner"), (child, "child")):
+        cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fam, who, role))   # the file's claim: no assertion at all
+    extractor_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (extractor_id, "rule", "familysearch-record", "0.1.0-claimed", ts))
+    xid = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,status,ran_at,structured_json) VALUES (?,?,?,?,?,?)", (xid, sha, extractor_id, "complete", ts, dumps({"collection": "United States Census, 1940"})))
+    def mkpersona(name, sex, role, seq, year):
+        pid = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)", (pid, xid, sha, name, sex, role, seq, "{}"))
+        cx.execute("INSERT INTO persona_fact (id,persona_id,fact_type,value_text) VALUES (?,?,'Name',?)", (tulid(), pid, name))
+        cx.execute("INSERT INTO persona_fact (id,persona_id,fact_type,date_text,date_start,date_qualifier) VALUES (?,?,'Birth',?,?,'calculated')", (tulid(), pid, f"CAL {year}", str(year)))
+        return pid
+    pr_head = mkpersona("John Evers", "M", "head", 1, 1913); pr_wife = mkpersona("Dolores Evers", "F", "wife", 2, 1915); pr_child = mkpersona("Carol Evers", "F", "daughter", 3, 1938)
+    cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)", (tulid(), pr_child, pr_head, "child", "Daughter", "{}"))
+    cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)", (tulid(), pr_wife, pr_head, "spouse", "Wife", "{}"))
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    written, taken = match_record(cx, xid, BY, about=[child]); cx.commit()
+    fail(any(name == "Carol Evers" for _, name, _ in taken), f"the confirmed daughter is taken by the rule: {taken}")
+    why = next((w for _, name, w in taken if name == "Carol Evers"), "")
+    fail("birth date and parent John Evers (a link the file claims" in why and "and the day" not in why, f"her reason names the birth year and the stated parent as one point on the claimed link: {why}")
+    links = {r[0]: r[1] for r in cx.execute("""SELECT p.display_name, pp.status FROM person_persona pp JOIN person p ON p.id=pp.person_id JOIN persona pe ON pe.id=pp.persona_id WHERE pe.extraction_id=?""", (xid,))}
+    fail(links.get("John Claim Evers") == "accepted" and links.get("Dolores Claim Ruiz") == "accepted", f"the claimed parents follow through the claimed route once the daughter is accepted: {links}")
+    notes = {r[0]: r[1] for r in cx.execute("""SELECT json_extract(payload_json,'$.person_id'), decision_note FROM proposal WHERE tree_id=? AND status='accepted'""", (tid,))}
+    fail("a claimed relationship: child Carol Evers" in (notes.get(father) or ""), f"the father is taken as the parent of the daughter accepted on the record: {notes.get(father)}")
+    fail("a claimed relationship: spouse John Evers" in (notes.get(mother) or ""), f"the mother is taken as the spouse of the father accepted on the record: {notes.get(mother)}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("claimed_parent_point scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def in_law_check(keep):
     """An in-law resolves to the real link it names (CLAUDE.md: an in-law resolves to a real link or is not created): a
     father-in-law of the record's already-accepted Y is a parent of Y's one spouse in the tree; a son-in-law is the spouse
@@ -2433,6 +2495,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL spouse relation fit: " + "; ".join(fails))
     else: print("ok   spouse relation fit: a related persona fits the relative it stands for by the stated relationship itself, from either side of the row; both spouses on a marriage index are taken, the relative counted once")
+    try: fails = claimed_parent_point_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL claimed parent point: " + "; ".join(fails))
+    else: print("ok   claimed parent point: a confirmed child in the claimed parents' census household is taken on name, birth year and the stated parent, one point on the claimed link, and the parents follow through the claimed route")
     try: fails = in_law_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL in-law: " + "; ".join(fails))
