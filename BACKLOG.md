@@ -53,17 +53,7 @@ blocked" at the foot of this file.
 
 ## A. Priority sequence
 
-Items with ordering or coupling constraints.
-
-### A1. The turn runner
-
-Three tools the loop (`docs/RESEARCH-WORKFLOW.md` §8) needs and does not yet
-have: a turn runner driving one person's plan end to end (fetches, assisted
-saves, auto searches, the standing rule's decisions, the people it creates,
-the plan regenerated); a queue reading the edge of the confirmed tree from
-`tools/tree.py overview`, the home person's line first, then everyone a
-record names after; and a way to resume a turn a challenge paused. Blocking
-nothing yet.
+Items with ordering or coupling constraints. None open.
 
 ---
 
@@ -121,13 +111,14 @@ FamilySearch record page saved from a name search
 `search_log.artifacts_json`. Extraction and match ran directly on the file,
 and three of its personas are accepted onto their own persons: Frederick
 Micheal Ahearn Jr (son), Frederick Michael Ahearn (father), Helen Sara Brant
-(mother). Frederick Micheal Ahearn Jr's own `census household:1950` row reads
-`held` (his own step reached `done` some other way); the other two still read
-`missing`, `mode auto` (`D05`, `D03`), because `catalog.fetched_rows` marks a
-row held only through a `done` step on that person's own plan, and neither
-father's nor mother's 1950 step ever received a found log for this artifact.
-`tools/run_step.py --all` would search the NARA 1950 site again for a
-household this tree has already read. The NARA 1950 connector already logs
+(mother). Frederick Micheal Ahearn Jr's and Helen Sara Brant's own `census
+household:1950` rows read `held` (each of their steps carries a found log, hers
+from a results page saved by hand); the father's still reads `missing`, `mode
+auto` (`D05`, `D03`), because `catalog.fetched_rows` marks a row held only
+through a `done` step on that person's own plan, and his 1950 step never
+received a found log for this artifact. `tools/run_step.py` searched the NARA
+1950 site again for a household this tree has already read and logged none
+(too many results to read). The NARA 1950 connector already logs
 found on every household member's own step from one page
 (`docs/RESEARCH-WORKFLOW.md` §4); a household record arriving through
 `tools/attach.py` instead (a saved search-results page, not a connector
@@ -225,17 +216,6 @@ On 11 September 2026 the site served its robots page but reset the connection
 on the search path to a declared tool (urllib and curl alike); confirm it
 answers again before building, and if it keeps refusing, the step is assisted.
 
-### C10. Accepted links that pile up on a re-read
-
-Every re-read of a page carries the decided links to its new personas and
-leaves the earlier personas' accepted `person_persona` rows in place, so a
-person read three times has three accepted links on one record. Evidence
-rows are immutable, so the old personas stay; the link rows are decisions and
-could be set aside (status `superseded`, or the earlier persona's link
-withdrawn) when the new one is written, so counts of accepted links on a
-record say what a person would say. Decide the shape, then apply it to the
-live catalog's re-read pages.
-
 ### C9. A question's key collides when two questions share a long prefix
 
 `tools/plan.py`'s `q_key()` truncates a question's detail to 120 characters
@@ -251,6 +231,52 @@ other on the next run. Key on a hash of the full detail (or the full detail
 itself, if the column allows it) instead of a truncated prefix, so two
 questions that happen to start alike stay two rows.
 
+### C10. Accepted links that pile up on a re-read
+
+Every re-read of a page carries the decided links to its new personas and
+leaves the earlier personas' accepted `person_persona` rows in place, so a
+person read three times has three accepted links on one record. Evidence
+rows are immutable, so the old personas stay; the link rows are decisions and
+could be set aside (status `superseded`, or the earlier persona's link
+withdrawn) when the new one is written, so counts of accepted links on a
+record say what a person would say. Decide the shape, then apply it to the
+live catalog's re-read pages.
+
+### C11. A place written one letter apart disagrees
+
+Frederick Michael Ahearn's card on his WWII draft registration card
+(FamilySearch, ark `Q2SN-6M4R`, cited by the file) agrees on the name and the
+birth day and disagrees on the birth place: the record writes "North Hampton,
+Massachusetts", the tree has Northampton, Hampshire County, resolved and
+accepted. `tools/match.py`'s `place_verdict` counts two places the same when
+both resolve to one place or one is a dated name of the other
+(`docs/DATA-ARCHITECTURE.md` §8), and "North Hampton, Massachusetts" is an
+unresolved string, so the disagreement stands and the rule leaves the record
+a card. A surname has a rule (as written or a spelling variant,
+`docs/RESEARCH-WORKFLOW.md` §5–7); a place has none, and §8's `typo` and
+`transcription` kinds are classified only once a string is resolved. Decide
+the rule in the docs: whether a string one letter (a space) apart from a
+resolved place's name, in the same state and county where the string gives
+them, agrees as a spelling variant, and whether the resolver offers the
+resolved place as such a string's candidate on the same ground; then the
+matcher applies it. Until then such a record is a card.
+
+### C12. A fetch step's place field carries the citation's one string
+
+`tools/plan.py`'s `citation_fields` writes a fetch step's place as the
+citation's own text under the citation's label (`census place`: "Caln,
+Chester, Pennsylvania"), one string, basis `citation`; a search step's
+`place` is every accurate name of the place (`checklist.PLACES`: the name
+valid at the record's date, as written, current, every other dated name,
+`docs/RESEARCH-WORKFLOW.md` §3), and `run_step.run_connector` tries them one
+at a time under `place` alone. A fetch step is asked under the one spelling,
+and the prefilled FamilySearch search on the fetch list carries the same one.
+Give a fetch step's place the same list, the citation's own string first,
+under the field the citation labels it, and have the runner's name-by-name
+try read `census place` as it reads `place`. Harness: a fetch step whose
+citation's place has a dated name, the connector asked once per name until a
+hit.
+
 ### C13. A connector for Open Archives, the Dutch records
 
 api.openarch.nl answers a declared tool with no key: `records/search.json`
@@ -264,6 +290,59 @@ the record's subject, the event as the fact), when such a person is reviewed
 and the step exists, so it is tested on a real step. On 11 September 2026 the
 endpoint did not answer a declared tool from this machine (the connection timed
 out, twice); confirm it answers before building.
+
+### C14. A memorial's listed relatives are counted as documents waiting
+
+Over a hundred undecided cards propose a persona a Find a Grave memorial
+lists as a relative of its subject (siblings most, then parents, children,
+spouses and half siblings; persona matches and new people both), on confirmed
+people and on the file's others alike: John Y Davidson, Robert Edgar Davidson
+and Lena Howard Bell carry several each. `Catalog.waiting` counts every
+undecided persona match or new person as a document to decide, so
+`tools/tree.py overview` and `tools/queue.py` show them as documents waiting
+and name the person next on them. The rule can never take such a card: a
+listed relative carries a name, years and a link to their own memorial, never
+the three to-the-day agreements the identity rule wants
+(`docs/RESEARCH-WORKFLOW.md` §0), and accepting one by hand writes an identity
+link and nothing more, since a page anyone can edit builds no facts. The
+owner's word is that a memorial's family connections are leads to look over,
+not facts. Make each one a lead: a fetch step for the relative's own memorial
+under that relative's cemetery row, the card coming from that page once it is
+fetched; and count them apart from documents to decide on the overview and in
+the queue, so nobody is named next on cards nobody can take.
+
+### C15. A record whose two personas each wait on the other
+
+Carol Evers's card on the 1950 schedule the owner cited on their own word
+(`tools/cite.py`: the Evers household at East Northport, the page read by the
+model) proposes Evers, Carol Ann, daughter, as her on the name and sex alone;
+her only stated relationship is to Evers, John, the head, who is nobody in
+the tree. The rule does not take her: no accepted fact of hers agrees, and a
+stated relationship counts a point only when the relative's persona fits
+someone in the tree (`CLAUDE.md` rule 3). John Evers gets no card: a persona
+is proposed as a new person only through a stated relationship to a persona
+already accepted on the record, and none is. Each waits on the other, and the
+record stays the owner's click though the owner's own citation says whose
+household it is. Decide what seats the first persona on a record fetched on
+the owner's word: the owner's citation as the ground that persona lacks (a
+vouch, recorded as their word), the household then read outward from her
+through its stated relationships as any accepted record is; or the card stays
+the owner's.
+
+### C16. An error run closes a step the doc says a pause reopens
+
+`log_search.ran_unchanged` reads the step's latest run whatever its outcome,
+so a run logged `error` on the step's current fields (`tools/run_step.py`'s
+`outcome_of`: the source did not answer, a timeout, a challenge, a reset
+connection) makes the step not runnable until the plan changes them;
+`tools/queue.py` then passes the person over as an auto step run on these
+fields already, and no turn asks the source again. `docs/RESEARCH-WORKFLOW.md`
+§0 closes a lead only when it is run found or none, and §8 has a challenge
+pause the turn for the owner's hand and resume; `tools/turn.py` pauses only on
+the fetch list (the owner's browser), and a connector's challenge is an error
+run. Let an error run leave the step runnable (`ran_unchanged` looks past it,
+the way it looks past a reopen's own row), and have the turn's report name the
+source that did not answer, so the next turn asks it again.
 
 ---
 
