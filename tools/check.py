@@ -1799,10 +1799,13 @@ def run_step_all_check(keep):
 
 def queue_pass_over_check(keep):
     """tools/queue.py's edge() names the next person a turn can act on, passing over one whose only open work is the
-    owner's alone: already planned, with no step left that runs at a connector or needs a hand. The home person, fully
-    planned with nothing left to run, a document still undecided: passed over. Her own unconfirmed parent, with a
-    runnable auto search step still planned: still named next, not passed over, though his link is the very same
-    shape of open question (a claim not yet accepted)."""
+    owner's alone: already planned, with no step left a turn can advance. The home person, fully planned with nothing
+    left to run, a document still undecided: passed over. Her own unconfirmed parent, with a runnable auto search step
+    still planned: still named next, not passed over, though his link is the very same shape of open question (a claim
+    not yet accepted). Then the test itself: once that step is logged none on the very fields it carries, the parent is
+    passed over (the same query again is not a turn's work); once the plan writes new fields, named again. A second
+    parent whose only step is an assisted search with no link to open is passed over from the start. A spouse whose
+    only step is a memorial page on the fetch list, with a link: named; logged none on unchanged fields: passed over."""
     d, db = scratch(keep)
     import treelib; treelib.DATA_ROOT = d
     from treelib import now as tnow, ulid as tulid, dumps as tdumps
@@ -1818,8 +1821,22 @@ def queue_pass_over_check(keep):
     cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'child')", (fid, home_id))
     cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
                   VALUES (?,?,'obituary:1950',1,'fetch:done','fetch','subject_record','{}','[]','fetch','done',?)""", (tulid(), home_id, ts))   # the home person's own plan: run out, nothing left planned
+    parent_step = tulid()
     cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
-                  VALUES (?,?,'footprint:',1,'search:parent','search','name','{}','[]','auto','planned',?)""", (tulid(), parent_id, ts))   # the parent's own plan: an auto step still to run
+                  VALUES (?,?,'footprint:',1,'search:parent','search','name','{}','["H01"]','auto','planned',?)""", (parent_step, parent_id, ts))   # the parent's own plan: an auto step still to run, at a source with a connector
+    other_id, spouse_id = tulid(), tulid()
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (other_id, tid, "F", "Assisted Parent", ts, ts))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid, other_id))
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                  VALUES (?,?,'will / probate:',1,'search:probate','search','probate','{}','["J03"]','assisted','planned',?)""", (tulid(), other_id, ts))   # an assisted search with no link the fetch list prints
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (spouse_id, tid, "M", "Spouse By Hand", ts, ts))
+    fid2 = tulid(); cx.execute("INSERT INTO family (id,tree_id,rel_type,created_at,updated_at) VALUES (?,?,'unknown',?,?)", (fid2, tid, ts, ts))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid2, home_id))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid2, spouse_id))
+    spouse_step = tulid()
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,sources_json,mode,status,created_at)
+                  VALUES (?,?,'cemetery / family plot:',1,'fetch:memorial','fetch','subject_record',?,'E01','memorial_id','123','["E01"]','fetch','planned',?)""",
+               (spouse_step, spouse_id, tdumps({"url": {"value": "https://www.findagrave.com/memorial/123/spouse-by-hand", "basis": "citation"}}), ts))   # a memorial page on the fetch list, with its link
     ex_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ex_id, "rule", "harness", "0.1.0", ts))
     cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,generated_by,created_at,status) VALUES (?,?,'persona_match',?,?,?,'undecided')",
                (tulid(), tid, tdumps({"person_id": home_id}), ex_id, ts))   # a document still waiting on the home person, her own open question
@@ -1832,6 +1849,18 @@ def queue_pass_over_check(keep):
     fail(any(e["id"] == parent_id for e in out), f"the parent, with a runnable step still planned, is still named next: {out}")
     fail(not any(e["id"] == home_id for e in out), f"the home person is never named next once nothing is left for a turn to run: {out}")
     fail(any(e["id"] == home_id for e in passed), f"the home person is passed over instead, her open document the reason: {passed}")
+    fail(any(e["id"] == other_id for e in passed) and not any(e["id"] == other_id for e in out), f"a parent whose only step is an assisted search with no link to open is passed over: {passed}")
+    fail(any(e["id"] == spouse_id for e in out), f"a spouse whose memorial page is on the fetch list with a link is named: {out}")
+    from log_search import log as log_search
+    log_search(cx, tid, BY, step_id=parent_step, source_id="H01", outcome="none", note="harness: run on these very fields"); cx.commit()
+    out, passed = tree_queue.edge(cx, tid)
+    fail(any(e["id"] == parent_id for e in passed) and not any(e["id"] == parent_id for e in out), f"the parent's step, run none on the fields it still carries, is not a turn's work: passed over: {passed}")
+    cx.execute("UPDATE search_plan SET query_json=? WHERE id=?", (tdumps({"surname": {"value": "Parent", "basis": "claim"}}), parent_step)); cx.commit()   # the plan wrote new fields
+    out, passed = tree_queue.edge(cx, tid)
+    fail(any(e["id"] == parent_id for e in out), f"once the plan changes the step's fields, the parent is named again: {out}")
+    log_search(cx, tid, BY, step_id=spouse_step, source_id="E01", outcome="none", note="harness: the page saved, no fit"); cx.commit()
+    out, passed = tree_queue.edge(cx, tid)
+    fail(any(e["id"] == spouse_id for e in passed) and not any(e["id"] == spouse_id for e in out), f"the spouse's page, logged on unchanged fields, is not opened again: passed over: {passed}")
     cx.close()
     if keep: print("queue pass-over scratch kept at", d)
     else: shutil.rmtree(d, ignore_errors=True)

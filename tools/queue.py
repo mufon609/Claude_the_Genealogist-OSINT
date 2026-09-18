@@ -15,10 +15,13 @@ come after the confirmed line, in tools/tree.py overview's own "others" order, a
 conflict already waits on (overview's own filter), so nobody surfaces two links from anyone confirmed.
 
 An open question names the next person only when a turn can still act on them: no plan has been made for them
-yet (a turn's own first move), or their plan still has a step that runs at a connector or needs a hand. A person
-already planned with every step run or held, whose open question is now only the owner's (a card to decide, a
-conflict, a baseline nobody has vouched or decided) is passed over: named, with why, but never named next, since
-running a turn on them would do nothing.
+yet (a turn's own first move), or their plan still has a step a turn can advance. A step is that when a connector
+can run it and it has no run since the plan last wrote its fields (tools/run_step.py's own runnable steps), or when
+it is fetched by hand, carries a link the fetch list prints (tools/fetches.py list) and has no such run either. A person already planned
+with no such step, whose open question is now only the owner's (a card to decide, a conflict, a baseline nobody has
+vouched or decided, an assisted search with no link to open, an auto step run on these fields already, a fetch
+logged blocked) is passed over: named, with why, but never named next, since running a turn on them would do
+nothing.
 Without --all, prints the first person found and stops (queue.py --all lists the rest).
 """
 import argparse, os, sqlite3, sys
@@ -26,20 +29,29 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, resolve_tree
 from catalog import Catalog
 from overview import overview
+import run_step, fetches
+
+def advanceable(cx, cat, tree_id):
+    """The people with a step a turn can advance: one the runner takes now (run_step.runnable: a connector can run it and it
+    has no run since the plan last wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to
+    open, and no run on unchanged fields either)."""
+    people = {r["person_id"] for r in run_step.runnable(cx, cat, tree_id)}
+    owner = dict(cx.execute("SELECT sp.id, sp.person_id FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=?", (tree_id,)).fetchall())
+    people |= {owner[sid] for e in fetches.openable(cx, tree_id) for sid in e["step_ids"] if sid in owner}
+    return people
 
 def edge(cx, tree_id):
     """([{id, name, reason}], [{id, name, reason}]): the queue a turn can act on, in order, then everyone passed over
     (named once each, first reason it surfaces under). A person with no plan yet is always actionable (a turn's own
-    first move makes one); one already planned is actionable only while a step of theirs still runs at a connector
-    or needs a hand (Catalog.waiting's runs_next, needs_hand) -- otherwise their open question is the owner's alone
-    and they are passed over, not named next."""
+    first move makes one); one already planned is actionable only while a step of theirs is one a turn can advance
+    (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next."""
     cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out, passed = [], []; seen = set()
+    can = advanceable(cx, cat, tree_id)
     def add(pid, name, reason):
         if pid in seen: return
         seen.add(pid)
         planned_before = cat.q("SELECT 1 FROM search_plan WHERE person_id=? LIMIT 1", pid)
-        w = cat.waiting(pid)
-        if planned_before and not (w["runs_next"] or w["needs_hand"]):
+        if planned_before and pid not in can:
             passed.append({"id": pid, "name": name, "reason": f"nothing left for a turn to run or fetch: {reason}"})
         else:
             out.append({"id": pid, "name": name, "reason": reason})
@@ -69,7 +81,7 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--all", action="store_true"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); tree_id, slug = resolve_tree(cx, a.tree)
+    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row; tree_id, slug = resolve_tree(cx, a.tree)
     q, passed = edge(cx, tree_id)
     if a.json: print(dumps({"next": q if a.all else q[:1], "passed_over": passed})); return
     for e in passed: print(f"passed over: {e['name']} [{e['id'][-6:]}]  {e['reason']}")

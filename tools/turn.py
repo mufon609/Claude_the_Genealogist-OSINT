@@ -5,10 +5,11 @@ usage: tools/turn.py "<person>" [--tree slug] [--db catalog/tree.db] [--by agent
        tools/turn.py --resume [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
 
 docs/RESEARCH-WORKFLOW.md §8: a turn is one person's plan run end to end. `tools/plan.py` first (self-recording,
-`rule:plan@0.1.0`), then every step a connector can run (`tools/run_step.py`'s own runnable steps narrowed to this
-person, self-recording as `agent:run_step`, one commit per step as the runner does). What is left after that is
-the person's own fetch list at holders with no connector (`tools/fetches.py list`, narrowed to steps on this
-person's plan): printed with the pause line below, the turn's state (which person, which tree) kept beside the
+`rule:plan@0.1.0`), then every step a connector can run that has no run since the plan last wrote its fields
+(`tools/run_step.py`'s own runnable steps narrowed to this person, self-recording as `agent:run_step`, one commit per
+step as the runner does). What is left after that is the person's own fetch list at holders with no connector
+(`tools/fetches.py list`, narrowed to steps on this person's plan that carry a link to open): printed with the pause
+line below, the turn's state (which person, which tree) kept beside the
 database as `<db>.turn-state.json` (on the pattern of `catalog/.active-tree`; nothing here is catalog data, so
 nothing is written to the catalog by pausing), and the process exits for the owner's browser session. A
 challenge at a holder pauses the same way (docs/RESEARCH-WORKFLOW.md §4): it does not stop the turn, and passing
@@ -65,9 +66,10 @@ def connector_steps(cx, cat, tree_id, pid):
     return [r for r in run_step.runnable(cx, cat, tree_id) if r["person_id"] == pid]
 
 def waiting_for(cx, tree_id, pid):
-    """tools/fetches.py's own waiting list, narrowed to the entries that touch this person's plan (a shared census page
-    naming relatives is still this person's page)."""
-    entries = fetches.waiting(cx, tree_id)
+    """tools/fetches.py's own openable list (a link to open, a step with no run since the plan last wrote its fields),
+    narrowed to the entries that touch this person's plan (a shared census page naming relatives is still this person's
+    page). An entry with no link, or already saved or logged on unchanged fields, is not one the turn pauses on."""
+    entries = fetches.openable(cx, tree_id)
     mine = {sid for sid, in cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))}
     return [e for e in entries if mine & set(e["step_ids"])]
 

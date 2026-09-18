@@ -31,6 +31,28 @@ def rendered_query(query_json, revisions_json):
 
 REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
 
+def same_fields(rendered, ran):
+    """Whether a run's fields as logged are the step's rendered fields now, value for value: the same query again. The runner's
+    own addition (surname_variants, the alias table's spellings) is not the step's; a place field tried name by name is the
+    same when the names tried are the step's own names; a field the step has dropped or added since is a change."""
+    for k, f in rendered.items():
+        r = ran.get(k)
+        if r is None: return False
+        if not isinstance(r, dict): r = {"value": r}
+        if k == "place" and r.get("tried"):
+            names = f["value"] if isinstance(f["value"], list) else [f["value"]]
+            if list(r["tried"]) != list(names): return False
+        elif r.get("value") != f["value"]: return False
+    return all(k in rendered for k in ran if k != "surname_variants")
+
+def ran_unchanged(cx, step, rendered):
+    """Whether the step's latest run (a reopen's own row is bookkeeping, not a run) asked these very fields: nothing has
+    changed on the step since, so running it again would be the same query blind."""
+    for q, note in cx.execute("SELECT query_json, notes FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
+        if (note or "").startswith(REOPENED): continue
+        return same_fields(rendered, json.loads(q or "{}"))
+    return False
+
 def reopen(cx, tree_id, by, step_id, note):
     """A step marked done by a run that did not hold its record after all is planned again; the run's log row stays as what
     happened and a new row, its note under REOPENED, says why the step reopened. From that row on, the earlier found run no

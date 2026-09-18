@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, inbox_dir, resolve_tree
 from attach import attach, attach_inbox, line
 from catalog import Catalog, fetch_target
-from log_search import rendered_query
+from log_search import ran_unchanged, rendered_query
 import connectors
 
 MEMORIAL = re.compile(r"/memorial/(\d+)(?:/|$)")
@@ -79,6 +79,17 @@ def waiting(cx, tree_id):
         rk = s["row_key"].split(":")[0]
         if rk not in e["rows"]: e["rows"].append(rk)
     return sorted(out.values(), key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
+
+def openable(cx, tree_id):
+    """The waiting pages a turn can send someone to: entries with a link to open whose steps include one with no run since the
+    plan last wrote its fields (log_search.ran_unchanged). A page saved once and logged (found, none, blocked) on unchanged
+    fields is listed by `list` as still waiting, but is not opened again until the plan changes the step."""
+    out = []
+    for e in waiting(cx, tree_id):
+        if not e["url"]: continue
+        steps = [cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone() for sid in e["step_ids"]]
+        if any(not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"])) for st in steps if st): out.append(e)
+    return out
 
 def downloads_dir():
     try: return subprocess.run(["xdg-user-dir", "DOWNLOAD"], capture_output=True, text=True, timeout=5).stdout.strip() or os.path.expanduser("~/Downloads")

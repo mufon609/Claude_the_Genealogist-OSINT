@@ -25,14 +25,16 @@ person (surname_variants on the rendered fields, basis record), and a book the A
 reason. A source's years, from the registry's coverage column (1756-1963, 1780s-1990s, 1950), gate its steps: a step whose
 years fall wholly outside them (an obituary for a death after the newspapers end, a cited obituary whose paper's date is)
 is logged none without a request, the note saying so.
---all runs every planned step a connector can take, in plan order, keeping each connector's pace across steps.
+--all runs every planned step a connector can take and that has no run since the plan last wrote its fields, in plan order,
+keeping each connector's pace across steps; a step already run on the same fields is run again by its id, or once the plan
+changes them.
 --dry-run prints the requests and sends nothing.
 """
 import argparse, http.client, json, os, re, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
 from catalog import Catalog
-from log_search import log as log_search, rendered_query
+from log_search import log as log_search, ran_unchanged, rendered_query
 from extract import extract
 from conclude import match_record
 import connectors
@@ -125,10 +127,19 @@ def connector_for(cat, step):
 def runnable(cx, cat, tree_id):
     """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector that can ask
     for the record from the citation's details (a book citation that names no title gives the books connector nothing to ask;
-    that step stays a link for a hand)."""
+    that step stays a link for a hand); each only while it has no run since the plan last wrote its fields (ran_unchanged):
+    a step run once on these fields is asked again only when the plan changes them, or by its id."""
     rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
                          AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch')) ORDER BY p.display_name, sp.seq""", (tree_id,)).fetchall()
-    return [r for r in rows if connectors_for(cat, r) and (r["kind"] == "search" or any(c.requests(rendered_query(r["query_json"], r["revisions_json"])) for c in connectors_for(cat, r)))]
+    out = []
+    for r in rows:
+        conns = connectors_for(cat, r)
+        if not conns: continue
+        q = rendered_query(r["query_json"], r["revisions_json"])
+        if r["kind"] == "fetch" and not any(c.requests(q) for c in conns): continue
+        if ran_unchanged(cx, r, q): continue
+        out.append(r)
+    return out
 
 def household_steps(cx, tree_id, step):
     """The other fetch steps at the same holder whose citations name the same census page (year, enumeration district, census
