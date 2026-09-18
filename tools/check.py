@@ -1438,6 +1438,85 @@ def decisions(keep, show):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def turn_check(keep):
+    """tools/queue.py and tools/turn.py on tests/fixtures/harness.ged. The queue names James Joseph Ahearn first: the home
+    person's own parent, the file's claim, not yet accepted. Charlotte D Lukens's six vouchable key facts (name, sex,
+    birth, death, spouses, children; she has no parents claimed) are accepted so her plan opens searches, then a turn on
+    her: plan, every step a connector can run (the network faked to answer nothing, so each logs 'error' and the turn
+    keeps going, never stopping on a source that did not answer), the assisted fetch list she still has, the turn's own
+    state kept beside the database (nothing written to the catalog by pausing), no state once nothing is left to fetch.
+    Then a page dropped into the inbox as a save would leave it, and --resume: fetches.py collect, attach_inbox.py,
+    reconsider, the plan regenerated, the state file cleared, and the file's identity read even though it answers no
+    step of hers (an unrelated fixture), reported as left in the inbox."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tree_queue", os.path.join(ROOT, "tools", "queue.py"))
+    tree_queue = importlib.util.module_from_spec(spec); spec.loader.exec_module(tree_queue)   # not "import queue": that shadows the stdlib module
+    import turn, run_step, fetches as fetches_mod
+    from facts import decide_fact
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "harness", "--name", "Harness")
+    run(os.path.join(ROOT, "tools", "ingest_gedcom.py"), os.path.join(FIXTURES, "harness.ged"), "--keep", "--db", db, "--tree", "harness", "--by", BY)
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "home", "Frederick Michael Ahearn", "--tree", "harness")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='harness'").fetchone()[0]
+    slug = "harness"
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    say = (lambda *a: print("    ", *a)) if keep else (lambda *a: None)
+
+    q = tree_queue.edge(cx, tid)
+    fail(bool(q) and q[0]["name"] == "James Joseph Ahearn" and "parent" in q[0]["reason"] and "not yet accepted" in q[0]["reason"],
+         f"the queue names the home person's own unconfirmed parent first: {q[:1]}")
+
+    pid = cx.execute("SELECT id FROM person WHERE tree_id=? AND display_name='Charlotte D Lukens'", (tid,)).fetchone()[0]
+    for field in ("name", "sex", "birth", "death", "spouses", "children"):
+        res = decide_fact(cx, tid, pid, field, "accepted", "harness: vouch, to open her searches", BY); cx.commit()
+        fail(res.get("ok"), f"{field} accepted on Charlotte D Lukens's own word: {res}")
+
+    before_people = turn.person_ids(cx, tid)
+    # a fake in place of run_step.run itself, on the pattern of check.py's own fake connectors elsewhere: turn.py's own
+    # orchestration (iterate the person's runnable steps, run each, commit) is what this check is about, not run_step.py's
+    # network layer, which tools/check.py already checks on its own (rules(), connectors_offline(), decisions()).
+    real_run = run_step.run; seen_steps = []
+    def fake_run(cx_, cat_, tree_id_, step_, by_, dry_run=False):
+        seen_steps.append(step_["id"])
+        from log_search import log as log_search
+        lid = log_search(cx_, tree_id_, by_, step_id=step_["id"], source_id=None, outcome="none", artifacts=None, note="harness: faked, no network", query=json.loads(step_["query_json"] or "{}"))
+        return [{"connector": "fake", "query": {}, "outcome": "none", "log": lid, "artifacts": [], "hits": [], "errors": [], "household_steps": [], "extracted": []}]
+    run_step.run = fake_run
+    try:
+        turn.start(cx, tid, slug, pid, BY, db)
+    finally:
+        run_step.run = real_run
+    steps = cx.execute("SELECT id FROM search_plan WHERE person_id=? AND kind='search' AND mode='auto'", (pid,)).fetchall()
+    fail(len(steps) >= 1, "the plan opens at least one auto search step once her baseline is reviewed")
+    fail(len(seen_steps) >= 1 and len(seen_steps) == len(set(seen_steps)), f"turn.py ran every one of her runnable steps once each, one commit apiece: {seen_steps}")
+    logged = cx.execute("""SELECT COUNT(*) FROM search_log l WHERE l.plan_step_id IN ({}) AND l.outcome='none'""".format(",".join("?" * len(seen_steps))), seen_steps).fetchone()[0] if seen_steps else 0
+    fail(logged == len(seen_steps), "each run it took is logged, exactly as run_step.run reports it")
+    st = turn.load_state(db)
+    fail(st is not None and st["person_id"] == pid, f"the turn paused on her assisted fetch list with its own state kept beside the database: {st}")
+    fail(not cx.execute("SELECT 1 FROM search_plan WHERE person_id=? AND kind='fetch' AND mode='fetch' AND status='planned'", (pid,)).fetchall() == [], "she still has an assisted fetch step waiting, or there was nothing to pause on")
+
+    import shutil as _sh
+    os.makedirs(treelib.inbox_dir(), exist_ok=True)
+    _sh.copy(os.path.join(FIXTURES, "familysearch-census-1940-KQX1-VT9.html"), os.path.join(treelib.inbox_dir(), "familysearch-census-1940-KQX1-VT9.html"))
+    turn.resume(cx, tid, slug, BY, db)
+    fail(turn.load_state(db) is None, "the state file is cleared once a turn is resumed")
+    left_row = cx.execute("SELECT 1 FROM artifact_locator WHERE kind='ark' AND value='ark:/61903/1:1:KQX1-VT9'").fetchone()
+    fail(left_row is None, "an unrelated fixture, saved by hand into the inbox, is read for its identity and left there: it fulfils none of her steps")
+    fail(os.path.isfile(os.path.join(treelib.inbox_dir(), "familysearch-census-1940-KQX1-VT9.html")), "the unmatched file stays in the inbox, not filed under the tree")
+
+    after_people = turn.person_ids(cx, tid)
+    fail(after_people.keys() >= before_people.keys(), "a turn creates people through the existing tools only; none vanish")
+    st2 = {k: v for k, v in [(p, __import__("plan").plan_person(cx, tid, p, BY)) for p in (pid,)]}; cx.commit()
+    fail(all(v["steps_new"] == 0 and v["steps_dropped"] == 0 for v in st2.values()), f"the plan turn.py itself regenerated is already settled, idempotent: {st2}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("turn scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def merge_check(keep):
     """tools/conclude.py merge on a scratch tree: two persons of one identity, one holding the accepted persona link an
     assertion rests on, one plan step colliding with a step the kept person's own plan already has (the kept one carrying a
@@ -1898,6 +1977,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL decisions on harness.ged: " + "; ".join(fails))
     else: print("ok   decisions on harness.ged: the matcher, the rule and the writers as the docs say")
+    try: fails = turn_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL turn.py / queue.py on harness.ged: " + "; ".join(fails))
+    else: print("ok   turn.py / queue.py on harness.ged: the queue names the edge, a turn runs its connector steps, pauses on its assisted list, resumes, reconsiders and reports")
     try: fails = merge_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL conclude.py merge: " + "; ".join(fails))

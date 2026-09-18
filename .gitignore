@@ -3,6 +3,7 @@ catalog/*.db
 catalog/*.db-wal
 catalog/*.db-shm
 catalog/.active-tree
+catalog/*.turn-state.json
 derivatives/
 inbox/*
 !inbox/.gitkeep
