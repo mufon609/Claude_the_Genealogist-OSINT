@@ -1464,9 +1464,10 @@ def turn_check(keep):
     fails = []; fail = lambda ok, why: None if ok else fails.append(why)
     say = (lambda *a: print("    ", *a)) if keep else (lambda *a: None)
 
-    q = tree_queue.edge(cx, tid)
+    q, passed_over = tree_queue.edge(cx, tid)
     fail(bool(q) and q[0]["name"] == "James Joseph Ahearn" and "parent" in q[0]["reason"] and "not yet accepted" in q[0]["reason"],
          f"the queue names the home person's own unconfirmed parent first: {q[:1]}")
+    fail(passed_over == [], f"nobody has been planned yet, so nobody is passed over as settled but for the owner alone: {passed_over}")
 
     pid = cx.execute("SELECT id FROM person WHERE tree_id=? AND display_name='Charlotte D Lukens'", (tid,)).fetchone()[0]
     for field in ("name", "sex", "birth", "death", "spouses", "children"):
@@ -1796,6 +1797,46 @@ def run_step_all_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def queue_pass_over_check(keep):
+    """tools/queue.py's edge() names the next person a turn can act on, passing over one whose only open work is the
+    owner's alone: already planned, with no step left that runs at a connector or needs a hand. The home person, fully
+    planned with nothing left to run, a document still undecided: passed over. Her own unconfirmed parent, with a
+    runnable auto search step still planned: still named next, not passed over, though his link is the very same
+    shape of open question (a claim not yet accepted)."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "queuetest", "--name", "Queue Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='queuetest'").fetchone()[0]
+    ts = tnow(); home_id, parent_id = tulid(), tulid()
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (home_id, tid, "F", "Home Person", ts, ts))
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (parent_id, tid, "M", "Unconfirmed Parent", ts, ts))
+    cx.execute("UPDATE tree SET home_person_id=? WHERE id=?", (home_id, tid))
+    fid = tulid(); cx.execute("INSERT INTO family (id,tree_id,rel_type,created_at,updated_at) VALUES (?,?,'unknown',?,?)", (fid, tid, ts, ts))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid, parent_id))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'child')", (fid, home_id))
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                  VALUES (?,?,'obituary:1950',1,'fetch:done','fetch','subject_record','{}','[]','fetch','done',?)""", (tulid(), home_id, ts))   # the home person's own plan: run out, nothing left planned
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                  VALUES (?,?,'footprint:',1,'search:parent','search','name','{}','[]','auto','planned',?)""", (tulid(), parent_id, ts))   # the parent's own plan: an auto step still to run
+    ex_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (ex_id, "rule", "harness", "0.1.0", ts))
+    cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,generated_by,created_at,status) VALUES (?,?,'persona_match',?,?,?,'undecided')",
+               (tulid(), tid, tdumps({"person_id": home_id}), ex_id, ts))   # a document still waiting on the home person, her own open question
+    cx.commit()
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tree_queue2", os.path.join(ROOT, "tools", "queue.py"))
+    tree_queue = importlib.util.module_from_spec(spec); spec.loader.exec_module(tree_queue)
+    out, passed = tree_queue.edge(cx, tid)
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    fail(any(e["id"] == parent_id for e in out), f"the parent, with a runnable step still planned, is still named next: {out}")
+    fail(not any(e["id"] == home_id for e in out), f"the home person is never named next once nothing is left for a turn to run: {out}")
+    fail(any(e["id"] == home_id for e in passed), f"the home person is passed over instead, her open document the reason: {passed}")
+    cx.close()
+    if keep: print("queue pass-over scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def rules():
     """The name rules as the docs state them, on their own."""
     from catalog import same_surname
@@ -2105,6 +2146,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL run_step.py --all: " + "; ".join(fails))
     else: print("ok   run_step.py --all: runnable steps read fresh before each run, so a step a run's own regeneration drops is never run and one it opens still gets its turn; a SystemExit from a step's own run rolls that step's transaction back and still propagates")
+    try: fails = queue_pass_over_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL queue.py pass-over: " + "; ".join(fails))
+    else: print("ok   queue.py pass-over: a person already planned with nothing left for a turn to run, whose open question is the owner's alone, is passed over and never named next")
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))

@@ -13,6 +13,12 @@ decided, a conflict is open, or a key fact is still undecided (an open question)
 settled and the walk moves on to the next. The file's other people (not reached by an accepted parents link)
 come after the confirmed line, in tools/tree.py overview's own "others" order, and only the ones a document or a
 conflict already waits on (overview's own filter), so nobody surfaces two links from anyone confirmed.
+
+An open question names the next person only when a turn can still act on them: no plan has been made for them
+yet (a turn's own first move), or their plan still has a step that runs at a connector or needs a hand. A person
+already planned with every step run or held, whose open question is now only the owner's (a card to decide, a
+conflict, a baseline nobody has vouched or decided) is passed over: named, with why, but never named next, since
+running a turn on them would do nothing.
 Without --all, prints the first person found and stops (queue.py --all lists the rest).
 """
 import argparse, os, sqlite3, sys
@@ -22,11 +28,21 @@ from catalog import Catalog
 from overview import overview
 
 def edge(cx, tree_id):
-    """The queue, in order: [{id, name, reason}], each person named once (first reason it surfaces under)."""
-    cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out = []; seen = set()
+    """([{id, name, reason}], [{id, name, reason}]): the queue a turn can act on, in order, then everyone passed over
+    (named once each, first reason it surfaces under). A person with no plan yet is always actionable (a turn's own
+    first move makes one); one already planned is actionable only while a step of theirs still runs at a connector
+    or needs a hand (Catalog.waiting's runs_next, needs_hand) -- otherwise their open question is the owner's alone
+    and they are passed over, not named next."""
+    cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out, passed = [], []; seen = set()
     def add(pid, name, reason):
         if pid in seen: return
-        seen.add(pid); out.append({"id": pid, "name": name, "reason": reason})
+        seen.add(pid)
+        planned_before = cat.q("SELECT 1 FROM search_plan WHERE person_id=? LIMIT 1", pid)
+        w = cat.waiting(pid)
+        if planned_before and not (w["runs_next"] or w["needs_hand"]):
+            passed.append({"id": pid, "name": name, "reason": f"nothing left for a turn to run or fetch: {reason}"})
+        else:
+            out.append({"id": pid, "name": name, "reason": reason})
     for gen in ov["generations"]:
         for c in gen:
             pid = c["id"]; fam = cat.family(pid)
@@ -47,15 +63,16 @@ def edge(cx, tree_id):
                 add(pid, c["name"], "confirmed, with an open question: " + ", ".join(why))
     for c in ov["others"]:
         add(c["id"], c["name"], "named in the file, no accepted link to anyone confirmed yet, with a document or a conflict waiting")
-    return out
+    return out, passed
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--all", action="store_true"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); tree_id, slug = resolve_tree(cx, a.tree)
-    q = edge(cx, tree_id)
-    if a.json: print(dumps(q if a.all else q[:1])); return
+    q, passed = edge(cx, tree_id)
+    if a.json: print(dumps({"next": q if a.all else q[:1], "passed_over": passed})); return
+    for e in passed: print(f"passed over: {e['name']} [{e['id'][-6:]}]  {e['reason']}")
     if not q: print("nothing at the edge: every confirmed person is settled, and the file names nobody else waiting"); return
     if a.all:
         for e in q: print(f"{e['name']} [{e['id'][-6:]}]  {e['reason']}")
