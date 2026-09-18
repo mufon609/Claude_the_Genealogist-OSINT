@@ -202,8 +202,9 @@ def plan_person(cx, tree_id, pid, by):
             cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,)); stats["steps_done_by_archive"] += 1
     for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes; done it stays; run but not done it is skipped, kept for its log
         if skey in wanted_keys: continue
-        row = cx.execute("SELECT status, EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=search_plan.id), row_key, rationale FROM search_plan WHERE id=?", (sid,)).fetchone()
+        row = cx.execute("SELECT status, EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=search_plan.id), row_key, rationale, query_json FROM search_plan WHERE id=?", (sid,)).fetchone()
         if row[0] == "done": continue
+        if any((f or {}).get("basis") == "owner" for f in json.loads(row[4] or "{}").values()): continue   # a step the owner's word wrote (attach.on_word, attach.cite_on_word) is theirs, never the generator's to drop
         if row[1]:
             if row[0] != "skipped": cx.execute("UPDATE search_plan SET status='skipped' WHERE id=?", (sid,)); stats["steps_skipped"] = stats.get("steps_skipped", 0) + 1
             continue

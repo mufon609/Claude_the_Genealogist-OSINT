@@ -773,6 +773,45 @@ def claimed_parent_point_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def cite_on_word_check(keep):
+    """A record the owner cites on their own word (attach.cite_on_word, tools/cite.py): a fetch step on the person's plan with
+    the citation's own details, basis owner, the holder as its locator source; the planner keeps it through a regeneration
+    though it generates no such step; the 1950 connector turns its fields into the district search; the same citation is one
+    step, not two; a citation without a surname or a name is refused."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import now as tnow, ulid as tulid
+    from attach import cite_on_word
+    from plan import plan_person
+    from run_step import connectors_for, rendered_query
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "citeword", "--name", "Cite On Word Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='citeword'").fetchone()[0]; ts = tnow()
+    pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, "F", "Carol Word Evers", ts, ts))
+    cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, "Carol Word", "Evers", "evers, carol word"))
+    cx.commit()
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    fields = {"surname": "Evers", "census place": "East Northport, Suffolk County, New York", "enumeration district": "52-133A", "page": "5", "year": "1950"}
+    sid = cite_on_word(cx, tid, pid, "census household:1950", "D05", fields, BY, note="the owner's own image of the schedule"); cx.commit()
+    st = cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone()
+    fail(st and st["kind"] == "fetch" and st["mode"] == "fetch" and st["query_type"] == "household" and st["locator_source_id"] == "D05" and json.loads(st["sources_json"]) == ["D05"]
+         and all(f["basis"] == "owner" for f in json.loads(st["query_json"]).values()), f"the step as written: {dict(st) if st else None}")
+    fail(cite_on_word(cx, tid, pid, "census household:1950", "D05", fields, BY) == sid, "the same citation is one step")
+    try: cite_on_word(cx, tid, pid, "death record:", "C09", {"year": "1986"}, BY); fail(False, "a citation with no name is refused")
+    except ValueError: pass
+    from catalog import Catalog
+    cat = Catalog(cx, tid); conns = connectors_for(cat, st)
+    reqs = conns[0].requests(rendered_query(st["query_json"], st["revisions_json"])) if conns else []
+    fail(conns and conns[0].__name__.endswith("nara_1950") and reqs and reqs[0]["url"].endswith("name=Evers&state=NY&county=Suffolk&ed=52-133A&page=1"), f"the holder's connector asks the district for the surname: {[r['url'] for r in reqs]}")
+    cx.execute("BEGIN"); plan_person(cx, tid, pid, BY); cx.commit()
+    fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "planned", "the planner keeps a step the owner's word wrote, though it generates none")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("cite_on_word scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def in_law_check(keep):
     """An in-law resolves to the real link it names (CLAUDE.md: an in-law resolves to a real link or is not created): a
     father-in-law of the record's already-accepted Y is a parent of Y's one spouse in the tree; a son-in-law is the spouse
@@ -2506,6 +2545,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL claimed parent point: " + "; ".join(fails))
     else: print("ok   claimed parent point: a confirmed child in the claimed parents' census household is taken on name, birth year and the stated parent, one point on the claimed link, and the parents follow through the claimed route")
+    try: fails = cite_on_word_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL cite on word: " + "; ".join(fails))
+    else: print("ok   cite on word: a record the owner cites on their own word is a fetch step with the citation's details, kept by the planner, asked at the holder's connector by the district search")
     try: fails = in_law_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL in-law: " + "; ".join(fails))

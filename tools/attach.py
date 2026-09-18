@@ -321,6 +321,36 @@ def on_word(cx, tree_id, pid, sha, by, note=None, parsed=None):
     if q.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (sid, f'%"{sha}"%')).fetchone(): return sid, None
     return sid, log_search(cx, tree_id, by, step_id=sid, outcome="found", artifacts=[sha], note="; ".join(x for x in (f"on the owner's word about {who}", note) if x), query=fields)
 
+def cite_on_word(cx, tree_id, pid, row_key, holder, fields, by, note=None, query_type=None):
+    """A record the owner says exists about a person, at a holder, with no citation in the file and nothing archived yet: a
+    fetch step on the person's plan carrying the citation's own details as the owner gives them (each field basis 'owner';
+    for a census household the surname, the census place, the enumeration district and the sheet as 'page'), the holder as
+    its locator source and its one source, so the runner asks the holder's connector for it like any cited fetch, and the
+    record it brings back is fetched for this person (match.persons_for reads the log). The step carries no record locator
+    until the run archives one. A step of the same key already on the plan is returned, not written again; the planner never
+    drops a step the owner's word wrote (plan.plan_person). Returns the step id."""
+    ts = now(); q = cx.cursor(); q.row_factory = sqlite3.Row
+    who = q.execute("SELECT display_name FROM person WHERE id=? AND tree_id=?", (pid, tree_id)).fetchone()
+    if not who: raise ValueError("no such person in this tree")
+    src = q.execute("SELECT id, name FROM source WHERE id=?", (holder,)).fetchone()
+    if not src: raise ValueError(f"no source {holder} in the registry")
+    clean = {k.strip().lower(): str(v).strip() for k, v in (fields or {}).items() if str(v).strip()}
+    if not (clean.get("surname") or clean.get("name")): raise ValueError("the citation needs a surname or a name to ask the holder for")
+    record = row_key.split(":", 1)[0].strip()
+    qt = query_type or ("household" if record.startswith("census household") else "subject_record")
+    key = "word:" + row_key + ":" + holder + ":" + "|".join(f"{k}={clean[k]}" for k in sorted(clean))
+    st = q.execute("SELECT id FROM search_plan WHERE person_id=? AND step_key=?", (pid, key)).fetchone()
+    if st: return st["id"]
+    sid = ulid(); seq = (q.execute("SELECT coalesce(max(seq),0) FROM search_plan WHERE person_id=?", (pid,)).fetchone()[0] or 0) + 1
+    fields_json = dumps({k: {"value": v, "basis": "owner"} for k, v in clean.items()})
+    q.execute("""INSERT INTO search_plan (id,person_id,row_key,question_id,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,collection_id,on_json,sources_json,mode,expected,status,rationale,created_at)
+                 VALUES (?,?,?,NULL,?,?,'fetch',?,?,?,NULL,NULL,NULL,'[]',?,'fetch',?,'planned',?,?)""",
+              (sid, pid, row_key, seq, key, qt, fields_json, holder, dumps([holder]), f"the record the owner cites about {who['display_name']}, read for what it says about them",
+               f"cited on the owner's word about {who['display_name']}: no citation in the file; fetch the record at {src['name']}", ts))
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+               (ulid(), tree_id, ts, by, "insert", "search_plan", sid, dumps({"on_word": True, "person": pid, "row_key": row_key, "holder": holder, "fields": clean, "note": note})))
+    return sid
+
 def _source_row(cx, sid):
     r = cx.execute("SELECT id, trust_tier, terms, cost FROM source WHERE id=?", (sid,)).fetchone() if sid else None
     return dict(r) if r else {}
