@@ -675,9 +675,32 @@ the turn, and it does not by itself make the source assisted-only. What a
 turn leaves for the owner are the conflict questions it raised and the cards
 the rule did not take.
 
-The tools this needs — a turn runner driving one person's plan to the end, a
-queue reading the overview's edge, and a way to resume a turn a challenge
-paused — do not exist yet; `BACKLOG.md` §A carries the one entry.
+`tools/queue.py` names the next person. It walks the overview's own order,
+the home person's line first, generation by generation, and at each confirmed
+card takes a parent or spouse the file names whose link is not yet accepted
+before the card's own person, then that person when a document waits, a
+conflict is open or a key fact is undecided and a turn can still act on them:
+a step a connector can run with no run since the plan last wrote its fields,
+or a page the fetch list can name. A person whose open question is now the
+owner's alone (a card to decide, a conflict, an assisted search with no link
+to open) is passed over with the reason; `--all` lists everyone.
+
+`tools/turn.py "<person>"` runs the turn: `tools/plan.py` first, then every
+step a connector can run on this person's plan, one commit each as
+`tools/run_step.py --all` does, the standing rule deciding what comes back and
+creating the people a record names; then this person's own pages at holders
+without a connector (`tools/fetches.py list`, narrowed to their unrun steps)
+are printed with the file name to save under, and the turn pauses for the
+owner's browser session, its state kept beside the catalog. A page the list
+cannot name is passed over with the reason, never paused on.
+`tools/turn.py --resume` picks the paused turn up: `tools/fetches.py collect`,
+`tools/attach_inbox.py` on whatever collect's naming left behind,
+`tools/conclude.py reconsider`, and the plan regenerated; a turn with nothing
+to fetch runs the same tail in the same call. The turn writes nothing of its
+own: every catalog write is one of those tools' under its own name. Its
+report says what was held, what the rule decided, who was created and what is
+left for the owner, in words. A record the owner cites on their own word
+(`tools/cite.py`) is a fetch step on the plan a turn runs like any other.
 
 ## Worked example: Thomas Ahearn (1846–1902)
 
