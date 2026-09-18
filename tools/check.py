@@ -632,6 +632,85 @@ def relationship_point_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def spouse_relation_fit_check(keep):
+    """A persona the record relates to the one under decision fits the relative it stands for by that stated relationship
+    itself (docs/RESEARCH-WORKFLOW.md §5-7: a persona fits on more than a name and a year, a stated relationship among those),
+    read from either side of the persona_relation row, so a marriage index carrying both spouses with names, ages and the
+    spouse relation is taken for both when the tree links them on trusted evidence; the relative counts once. A record whose
+    other party carries another name fits no relative, and the card stays on the name and birth year alone."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import archive_object, dumps, now as tnow, ulid as tulid
+    from match import match as run_match
+    from conclude import rule_accepts
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "spousefit", "--name", "Spouse Relation Fit Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='spousefit'").fetchone()[0]
+    ts = tnow()
+    src = cx.execute("SELECT trust_tier, terms FROM source WHERE id='D03'").fetchone()
+    cid = tulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, "D03", "Pennsylvania, County Marriages, 1775-1991", "other", "spouse_fit_test"))
+    def record(tag):
+        sha, _ = archive_object(cx, f"spouse-fit-harness-{tag}".encode(), mime="text/html", source_id="D03", collection_id=cid,
+                                collection_name="Pennsylvania, County Marriages, 1775-1991", locator_kind="url", locator_value=f"http://example.test/spouse-fit-{tag}",
+                                retrieved_by=BY, terms=src[1], cost="free", trust_tier=src[0], original_filename=f"spouse-fit-{tag}.html")
+        return sha
+    def mkperson(name, sex, birth):
+        pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, sex, name, ts, ts))
+        given, surname = name.rsplit(" ", 1)
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, given, surname, f"{surname}, {given}".lower()))
+        eid = tulid(); cx.execute("INSERT INTO event (id,tree_id,event_type,date_text,date_start,calendar,created_at,updated_at) VALUES (?,?,'Birth',?,?,?,?,?)", (eid, tid, birth[0], birth[1], "gregorian", ts, ts))
+        cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (tulid(), eid, pid))
+        return pid, eid
+    def trust(kind, sid, sha):                    # an accepted assertion on the owner's own word: a vouch
+        cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,artifact_sha256,status,asserted_by,asserted_at,notes)
+                      VALUES (?,?,?,?,?,'accepted',?,?,?)""", (tulid(), tid, kind, sid, sha, BY, ts, dumps({"vouched": True})))
+    def couple(tag, husband_name, wife_name, record_husband):
+        sha = record(tag)
+        husband, h_birth = mkperson(husband_name, "M", ("22 May 1907", "1907-05-22")); wife, w_birth = mkperson(wife_name, "F", ("11 Jul 1909", "1909-07-11"))
+        fam = tulid(); cx.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fam, tid, ts, ts))
+        for who in (husband, wife):
+            cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fam, who))
+            trust("person", who, sha); trust("family_member", dumps([fam, who, "partner"]), sha)   # the names and the spouse link on trusted evidence
+        trust("event", h_birth, sha); trust("event", w_birth, sha)
+        extractor_id = tulid(); cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (extractor_id, "rule", "familysearch-record", f"0.1.0-{tag}", ts))
+        xid = tulid(); cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,status,ran_at,structured_json) VALUES (?,?,?,?,?,?)", (xid, sha, extractor_id, "complete", ts, dumps({"collection": "Pennsylvania, County Marriages, 1775-1991"})))
+        def mkpersona(name, sex, role, seq, year):
+            pid = tulid(); cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)", (pid, xid, sha, name, sex, role, seq, "{}"))
+            cx.execute("INSERT INTO persona_fact (id,persona_id,fact_type,value_text) VALUES (?,?,'Name',?)", (tulid(), pid, name))
+            cx.execute("INSERT INTO persona_fact (id,persona_id,fact_type,date_text,date_start,date_qualifier) VALUES (?,?,'Birth',?,?,'calculated')", (tulid(), pid, f"CAL {year}", str(year)))
+            return pid
+        pr_wife = mkpersona(wife_name.split()[0] + " S. Brant", "F", "subject", 1, 1909)      # the index writes her with an initial
+        pr_husband = mkpersona(record_husband, "M", "husband", 2, 1907)
+        cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)", (tulid(), pr_husband, pr_wife, "spouse", "Husband", "{}"))   # stated from the husband's side only
+        cx.commit()
+        return xid, husband, wife
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    # ---- the record names both spouses as the tree has them: both taken, the relationship point counted once each
+    xid, husband, wife = couple("both", "Peter Fit Ahearn", "Nora Fit Brant", "Peter F. Ahearn")
+    written = run_match(cx, xid, BY, about=[wife, husband]); cx.commit()
+    by_name = {name: prop for prop, kind, name, person_id in written if kind == "persona_match"}
+    fail({"Nora S. Brant", "Peter F. Ahearn"} <= set(by_name), f"both spouses proposed: {written}")
+    for name, other in (("Nora S. Brant", "Peter F. Ahearn"), ("Peter F. Ahearn", "Nora S. Brant")):
+        if name not in by_name: continue
+        prop = cx.execute("SELECT * FROM proposal WHERE id=?", (by_name[name],)).fetchone()
+        ok, why = rule_accepts(cx, tid, prop)
+        fail(ok and f"spouse {other}" in why and why.count("spouse") == 1, f"{name}'s card is taken on the birth year and the spouse the record states, the other party fitting the tree's spouse by that very relation, counted once: {ok}, {why}")
+    # ---- the record's other party carries another name: fits no relative, so the card stays on the name and birth year alone
+    xid2, husband2, wife2 = couple("other", "Simon Fit Ahearn", "Ellen Fit Brant", "Walter Q. Kennedy")
+    written2 = run_match(cx, xid2, BY, about=[wife2]); cx.commit()
+    by_name2 = {name: prop for prop, kind, name, person_id in written2 if kind == "persona_match"}
+    if "Ellen S. Brant" in by_name2:
+        prop = cx.execute("SELECT * FROM proposal WHERE id=?", (by_name2["Ellen S. Brant"],)).fetchone()
+        ok, why = rule_accepts(cx, tid, prop)
+        fail(not ok and "birth date only" in why, f"a spouse of another name fits nobody, so the card is refused on the name and birth year alone: {ok}, {why}")
+    else: fail(False, f"the wife's card is proposed: {written2}")
+    ok = cx.execute("PRAGMA integrity_check").fetchone()[0]; fk = cx.execute("PRAGMA foreign_key_check").fetchall()
+    fail(ok == "ok" and not fk, f"scratch catalog: integrity {ok}, foreign keys {len(fk)}")
+    cx.close()
+    if keep: print("spouse_relation_fit scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def in_law_check(keep):
     """An in-law resolves to the real link it names (CLAUDE.md: an in-law resolves to a real link or is not created): a
     father-in-law of the record's already-accepted Y is a parent of Y's one spouse in the tree; a son-in-law is the spouse
@@ -2350,6 +2429,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL relationship point: " + "; ".join(fails))
     else: print("ok   relationship point: a stated relationship's trusted evidence is read from either persona's own family_member membership")
+    try: fails = spouse_relation_fit_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL spouse relation fit: " + "; ".join(fails))
+    else: print("ok   spouse relation fit: a related persona fits the relative it stands for by the stated relationship itself, from either side of the row; both spouses on a marriage index are taken, the relative counted once")
     try: fails = in_law_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL in-law: " + "; ".join(fails))

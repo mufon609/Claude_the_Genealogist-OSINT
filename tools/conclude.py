@@ -582,7 +582,10 @@ def rule_accepts(cx, tree_id, prop, without=()):
     tree, claimed or accepted, or has no parents in the tree at all (nothing holds the sibling, nothing contradicts it) and the
     name agrees; accepting places them as a child of those parents with an undecided assertion (link_family). A sibling the
     tree holds counts as a relationship point like a parent or a spouse, on the trusted evidence of the child membership
-    beside the other's. without: proposal
+    beside the other's. A persona the record relates to the one under decision stands for the relative it fits, and its stated
+    relationship to that persona, read from either side of the row, is one of the things it fits on (a husband named with an
+    age beside his wife fits the tree's husband by that relation); a relative counts once, however many rows relate the two.
+    without: proposal
     ids whose assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by
     that route, as it was taken, not as an accepted name resting on no trusted source."""
     q = _q(cx)
@@ -611,23 +614,30 @@ def rule_accepts(cx, tree_id, prop, without=()):
                     JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=? {skip}""", (pay["extraction_id"], tree_id, *without))}
     accepted_on_record = dict(chosen)                             # persona id -> candidate, genuinely decided on this record; the fitting loop below only guesses at a fit
     if prop["kind"] == "new_person": return rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record)
-    fam = cat.family(pid)
+    fam = cat.family(pid); cand = candidate(cat, pid)
     relatives = [candidate(cat, rid) for g in ("parents", "spouses", "children") for rid, _ in fam[g]]
+    INV = {"child": "parent", "parent": "child", "spouse": "spouse", "sibling": "sibling"}
+    def both_ways(p):
+        """A persona's stated relationships read from either side of the persona_relation row: its own (the persona is the <kind>
+        of the other) and the inverse of every row naming it (the other is the <kind> of the persona)."""
+        rows = [(k, o, None, n) for k, o, _, n in p["relations"]]
+        return rows + [(INV[r[0]], r[1], None, r[2]) for r in q.execute("""SELECT r.kind, r.persona_id, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.persona_id
+                                                                          WHERE r.related_persona_id=? AND r.kind IN ('child','parent','spouse','sibling')""", (p["id"],))]
+    fitted = {}                                                    # other persona id -> (agree, disagree) against the relative it stands for, for the relationship point below
     for other in personas_of(cx, pay["extraction_id"]):           # a persona the record relates to this one fits a relative the tree already links: it stands for that relative here
         if other["id"] == persona["id"] or other["id"] in chosen: continue
-        fit = next((c for c in relatives if (_stands_for(cat, other, c, {}) if identity else compare(cat, other, c, {})[0])), None)
-        if fit: chosen[other["id"]] = fit
-    cand = candidate(cat, pid); fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
+        as_related = {**other, "relations": both_ways(other)}    # its relation to the persona under decision, stated from either side, is one of the things it fits on (docs/RESEARCH-WORKFLOW.md §5-7)
+        for c in relatives:
+            fits, agree, disagree, absent, near = compare(cat, as_related, c, {persona["id"]: cand})
+            if fits or (identity and _stands_for(cat, as_related, c, {persona["id"]: cand})): chosen[other["id"]] = c; fitted[other["id"]] = (agree, disagree); break
+    fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
     vetoes, claims = split_disagree(cx, cand, persona, disagree)
     if vetoes: return False, "disagrees: " + "; ".join(vetoes)
     claim_note = (" (disagrees with the tree's own claim, not yet accepted: " + "; ".join(claims) + ")") if claims else ""
     married = any(a.startswith("surname:") and "carries her husband's surname" in a for a in absent)   # a wife under her married name: not a disagreement, and not the surname's absence either
     if not any(a.startswith("given name agrees") for a in agree) or not (any(a.startswith("surname agrees") for a in agree) or married): return False, "the name does not agree in full"
     if any(a.startswith("surname agrees, one letter apart") for a in agree): return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"
-    INV = {"child": "parent", "parent": "child", "spouse": "spouse", "sibling": "sibling"}
-    relations = [(k, o, None, n) for k, o, _, n in persona["relations"]]      # the persona is the <kind> of the other
-    relations += [(INV[r[0]], r[1], None, r[2]) for r in q.execute("""SELECT r.kind, r.persona_id, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.persona_id
-                                                                         WHERE r.related_persona_id=? AND r.kind IN ('child','parent','spouse','sibling')""", (persona["id"],))]   # the other is the <kind> of the persona
+    relations = both_ways(persona)
     def joined(kind, other_pid):
         """The relative a stated relation names, when the tree links the two so, claimed or accepted: (group, candidate) or None."""
         oc = chosen.get(other_pid); group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
@@ -659,10 +669,11 @@ def rule_accepts(cx, tree_id, prop, without=()):
         if a.startswith("death date agrees") and ok("Death"): points += ["death date to the day", "and the day"] if full("death") and ok("Death", day=True) else ["death date"]
         if a.startswith("death place agrees") and ok("Death"): points.append("death place")
         if a.startswith("burial place agrees") and ok("Burial"): points.append("burial place")
+    named = set()                                                  # a relative counts once, however many rows of the record relate the two
     for kind, other_pid, _, other_name in relations:
         j = joined(kind, other_pid)
-        if not j: continue
-        group, oc = j
+        if not j or j[1]["id"] in named: continue
+        group, oc = j; named.add(oc["id"])
         role = "child" if group in ("parents", "siblings") else "partner"; other_role = "child" if group in ("children", "siblings") else "partner"
         rows = [dumps([fid, who, r]) for fid, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
                                                                 WHERE fm.person_id=? AND fm.role=?""", (oc["id"], other_role, pid, role))
