@@ -32,9 +32,10 @@ def rendered_query(query_json, revisions_json):
 REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
 
 def same_fields(rendered, ran):
-    """Whether a run's fields as logged are the step's rendered fields now, value for value: the same query again. The runner's
-    own addition (surname_variants, the alias table's spellings) is not the step's; a place field tried name by name is the
-    same when the names tried are the step's own names; a field the step has dropped or added since is a change."""
+    """Whether a run's fields as logged are the step's rendered fields now, value for value: the same query again. What the run
+    added beside the step's fields is not the step's (surname_variants, the alias table's spellings, basis record; a results
+    page's fields as searched, basis run); a place field tried name by name is the same when the names tried are the step's
+    own names; a field the step has dropped or added since is a change."""
     for k, f in rendered.items():
         r = ran.get(k)
         if r is None: return False
@@ -43,7 +44,7 @@ def same_fields(rendered, ran):
             names = f["value"] if isinstance(f["value"], list) else [f["value"]]
             if list(r["tried"]) != list(names): return False
         elif r.get("value") != f["value"]: return False
-    return all(k in rendered for k in ran if k != "surname_variants")
+    return all(k in rendered for k, v in ran.items() if not (isinstance(v, dict) and v.get("basis") in ("run", "record")))
 
 def ran_unchanged(cx, step, rendered):
     """Whether the step's latest run (a reopen's own row is bookkeeping, not a run) asked these very fields: nothing has

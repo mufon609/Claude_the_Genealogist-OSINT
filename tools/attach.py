@@ -372,7 +372,8 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     if not steps and about: logs.append(on_word(cx, tree_id, about, sha, by, note=note, parsed=parsed or {}))   # the owner's word: a fetch step on their plan, done with the found run, so the record is fetched for them from now on
     for s in steps:
         if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (s["id"], f'%"{sha}"%')).fetchone(): continue
-        logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query=query or rendered_query(s["query_json"], s["revisions_json"]))))
+        fields = rendered_query(s["query_json"], s["revisions_json"])   # the step's own fields, and for a results page the fields as searched beside them (basis run)
+        logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query={**fields, **(query or {})})))
     out = {"sha256": sha, "new": new, "mime": mime, "logs": logs, "extraction": None, "proposals": [], "unparsed": None}
     if new and mime.startswith("text/html"):                     # a page is parsed and matched on arrival; an image waits for a transcription
         from extract import extract as extract_html
