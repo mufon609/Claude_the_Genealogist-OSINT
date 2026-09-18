@@ -20,7 +20,9 @@ the tree's own place, or an ancestor of it in the resolved hierarchy (the county
 as its two-letter US code), agrees on the level it names and says so; a record place inside the tree's own (the town
 ahead of the state the tree holds) agrees on the level the tree states and says the record is finer; a place neither
 the tree's own, nor an ancestor of it, nor inside it disagrees — unless the record names a county alone, which then
-takes the state of the record's own collection (catalog.collection_state) for the comparison, the note saying so; the
+takes the state of the record's own collection (catalog.collection_state) for the comparison, the note saying so; or
+unless the record names a dated former name of the tree's own place (catalog.dated_names, from tools/resolve_places.py's
+own Wikidata reading), which then agrees on that name, the note naming the period it held it; the
 place string itself is never touched. A prefix (Dr, Maj), a nickname in quotes
 and an extra middle name are not disagreements; a name written surname first
 (Davidson, Robert E.) is read as such and an initial is never a surname; the
@@ -131,7 +133,7 @@ def compare(cat, persona, cand, chosen):
         words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (f": {note}" if note else "") + ")"
         (agree if v == "agrees" else disagree).append(words); dated = dated or v == "agrees"
     for label in ("birth place", "burial place", "death place"):
-        v, note = place_verdict(persona[label], cand[label], record_state=persona.get("record_state"))
+        v, note = place_verdict(persona[label], cand[label], record_state=persona.get("record_state"), dated_names=cat.dated_names(cand.get(f"{label}_id")))
         if v == "absent": absent.append(label); continue
         (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]}" + (f": {note}" if note else "") + ")"); dated = dated or v == "agrees"
     if persona.get("residence place"):                        # where the record puts the person, against every place the tree knows them at
@@ -237,11 +239,12 @@ def candidate(cat, pid):
     p = cat.person(pid); ev = cat.events(pid)
     def first(t):
         e = next((e for e in ev if e["type"] == t and (e["year"] or e["place"])), None)
-        if not e: return {"text": None, "start": None, "qualifier": None, "place": None, "event": None}
+        if not e: return {"text": None, "start": None, "qualifier": None, "place": None, "place_id": None, "event": None}
         r = cat.cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
-        return {**_date(r), "place": e["place"]["text"] if e["place"] else None, "event": e["id"]}
+        return {**_date(r), "place": e["place"]["text"] if e["place"] else None, "place_id": (e["place"] or {}).get("place_id"), "event": e["id"]}
     b, d, bu = first("Birth"), first("Death"), first("Burial")
-    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "birth place": b["place"], "burial place": bu["place"], "death place": d["place"], "memorials": memorials_of(cat.cx, pid),
+    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "birth place": b["place"], "burial place": bu["place"], "death place": d["place"],
+            "birth place_id": b["place_id"], "burial place_id": bu["place_id"], "death place_id": d["place_id"], "memorials": memorials_of(cat.cx, pid),
             "places": [e["place"]["text"] for e in ev if e.get("place") and e["place"]["text"]],
             "spouse_surnames": [key(n.split()[-1]) for _, n in cat.family(pid)["spouses"] if n and n.split()],
             "events": {"Birth": b["event"], "Death": d["event"], "Burial": bu["event"]}}      # the events compared, for the rule's ground

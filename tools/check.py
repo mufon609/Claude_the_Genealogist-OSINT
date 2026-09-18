@@ -263,11 +263,12 @@ def places(keep):
     import hashlib
     d, db = scratch(keep)
     import treelib; treelib.DATA_ROOT = d
-    from resolve_places import cache_dir
+    from resolve_places import cache_dir, wikidata_cache_dir
     run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "resolvertest", "--name", "Resolver Test")
     cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON")
     unique_raw, cotermin_raw, nested_raw = "Emmaus, Lehigh, Pennsylvania", "Philadelphia, Pennsylvania", "Hempstead, Nassau, New York"
-    for raw in (unique_raw, cotermin_raw, nested_raw): cx.execute("INSERT INTO place_string (id, raw) VALUES (?, ?)", (treelib.ulid(), raw))
+    morioka_raw, tonan_raw = "Morioka, Japan", "Ogau Tonan, Iwate Shiwa, Japan"
+    for raw in (unique_raw, cotermin_raw, nested_raw, morioka_raw, tonan_raw): cx.execute("INSERT INTO place_string (id, raw) VALUES (?, ?)", (treelib.ulid(), raw))
     cx.commit()
     emmaus = {"osm_type": "node", "osm_id": 1, "lat": "40.53", "lon": "-75.49", "name": "Emmaus",
               "display_name": "Emmaus, Lehigh County, Pennsylvania, United States", "category": "boundary", "type": "administrative",
@@ -292,9 +293,18 @@ def places(keep):
     def plant(query, cands):
         with open(os.path.join(cache_dir(), hashlib.sha1(query.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh:
             json.dump({"query": query, "fetched_at": treelib.now(), "results": cands}, fh)
+    morioka = {"osm_type": "relation", "osm_id": 10, "lat": "39.7", "lon": "141.15", "name": "Morioka",
+               "display_name": "Morioka, Iwate, Japan", "category": "boundary", "type": "administrative", "addresstype": "city",
+               "address": {"city": "Morioka", "state": "Iwate", "country": "Japan", "country_code": "jp"}, "extratags": {"wikidata": "Q200077"}}
     plant("Emmaus, Lehigh, Pennsylvania, United States", [emmaus])
     plant("Philadelphia, Pennsylvania, United States", [phila_city, phila_county])
     plant("Hempstead, Nassau, New York, United States", [hemp_town, hemp_village])
+    plant("Morioka, Japan", [morioka])
+    plant("Ogau Tonan, Iwate Shiwa, Japan", [])                       # no geocoder candidates: falls to the dated-name check
+    plant("Ogau Tonan, Japan", [])
+    os.makedirs(wikidata_cache_dir(), exist_ok=True)                  # the Wikidata answers, so the run never hits the network
+    for qid in ("Q200077", "Q11643491"):
+        shutil.copy(os.path.join(ROOT, "tests", "fixtures", f"wikidata-{qid}-{'morioka' if qid == 'Q200077' else 'tonan'}.json"), os.path.join(wikidata_cache_dir(), qid + ".json"))
     run(os.path.join(ROOT, "tools", "resolve_places.py"), "--db", db, "--tree", "resolvertest", "--by", BY)
     fails = []; fail = lambda ok, why: None if ok else fails.append(why)
     row = cx.execute("SELECT status, place_id FROM place_string WHERE raw=?", (unique_raw,)).fetchone()
@@ -308,6 +318,17 @@ def places(keep):
     names = {c.get("display_name") for c in json.loads(prop[0])["candidates"]} if prop else set()
     fail(prop and hemp_town["display_name"] in names and hemp_village["display_name"] in names,
          f"the proposal offers both the village and the town as candidates: {names}")
+    morioka_row = cx.execute("SELECT id, wikidata_id FROM place WHERE name='Morioka'").fetchone()
+    fail(morioka_row and morioka_row[1] == "Q200077", f"Morioka resolves with its wikidata_id carried onto the place: {morioka_row}")
+    dated_row = cx.execute("SELECT valid_from, valid_to FROM place_name WHERE place_id=? AND name='Tonan'", (morioka_row[0] if morioka_row else None,)).fetchone()
+    fail(dated_row == ("1955-04-01", "1992-04-01"), f"Tonan is written as a dated former name of Morioka, from Wikidata's own P571/P576: {dated_row}")
+    tonan_row = cx.execute("SELECT status, place_id FROM place_string WHERE raw=?", (tonan_raw,)).fetchone()
+    fail(tonan_row and tonan_row[0] == "undecided" and tonan_row[1] is None, f"a dated former name is offered, never auto-resolved: {tonan_row}")
+    tonan_prop = cx.execute("SELECT payload_json FROM proposal WHERE kind='place_resolution' AND payload_json LIKE ?", (f'%{tonan_raw}%',)).fetchone()
+    tonan_cands = json.loads(tonan_prop[0])["candidates"] if tonan_prop else []
+    fail(len(tonan_cands) == 1 and tonan_cands[0]["kind"] == "jurisdiction_change" and tonan_cands[0]["name"] == "Tonan" and tonan_cands[0]["place_id"] == morioka_row[0]
+         and tonan_cands[0]["valid_from"] == "1955-04-01" and tonan_cands[0]["valid_to"] == "1992-04-01" and tonan_cands[0]["leading"] == "Ogau",
+         f"the string's own card offers Tonan as a dated candidate of Morioka, the leading word left as the finer, unverified part: {tonan_cands}")
     cx.close()
     if not keep: shutil.rmtree(d, ignore_errors=True)
     return fails
@@ -1612,6 +1633,15 @@ def rules():
     for name, want in cs_cases:
         got = collection_state(name)
         if got != want: bad.append(f"collection_state({name!r}) gave {got!r}, expected {want!r}")
+    morioka_names = [("Tonan", "1955-04-01", "1992-04-01")]                                        # a place's own dated names, as tools/resolve_places.py writes them from Wikidata
+    dn_cases = [
+        (("Tonan, Japan", "Morioka < Iwate < Japan"), ("agrees", "as Tonan, a name it held 1955-04-01–1992-04-01")),
+        (("Ogau Tonan, Japan", "Morioka < Iwate < Japan"), ("agrees", "as Tonan, a name it held 1955-04-01–1992-04-01")),   # a leading word (a hamlet) ahead of the dated name is not mistaken for the whole
+        (("Tokushima, Japan", "Morioka < Iwate < Japan"), ("disagrees", None)),                     # a real disagreement is not papered over by an unrelated dated name
+    ]
+    for (record, tree), want in dn_cases:
+        got = place_verdict(record, tree, dated_names=morioka_names)
+        if got != want: bad.append(f"place_verdict({record!r}, {tree!r}, dated_names=...) gave {got!r}, expected {want!r}")
     return bad
 
 def connectors_offline():
@@ -1837,7 +1867,7 @@ def main():
     try: fails = places(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))
-    else: print("ok   resolve_places.py: a unique full match auto-accepts; a city coterminous with its county accepts as one territory; a village nested in its much larger town stays Undecided with both offered")
+    else: print("ok   resolve_places.py: a unique full match auto-accepts; a city coterminous with its county accepts as one territory; a village nested in its much larger town stays Undecided with both offered; a resolved place's wikidata_id brings its dated former names, offered as a candidate to a string naming one, never auto-resolved")
     try: fails = place_fallback_depth(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL Catalog.place fallback: " + "; ".join(fails))

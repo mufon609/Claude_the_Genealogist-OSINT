@@ -364,7 +364,19 @@ def _place_verdict_once(record, tree, supply=None):
     name = next((p for p in below if key(p) == key(finest)), finest)
     return "agrees", f"the record gives only {name.title()}"
 
-def place_verdict(record, tree, record_state=None):
+def _dated_agree(record, dated_names):
+    """Whether some part of record, tail-word first (so a hamlet or ward named ahead of it, "Ogau" in "Ogau Tonan",
+    is never mistaken for the whole), is one of dated_names ([(name, valid_from, valid_to), ...], a place's own
+    former names from place_name): a note naming the name and the period it held it, or None."""
+    for part in re.split(r"<|,", record):
+        words = [w for w in part.strip().split() if w]
+        for i in range(len(words)):
+            tail = key(" ".join(words[i:]))
+            for name, vf, vt in dated_names or []:
+                if tail and tail == key(name): return f"as {name}, a name it held {vf or '?'}–{vt or '?'}"
+    return None
+
+def place_verdict(record, tree, record_state=None, dated_names=None):
     """(verdict, note): agrees when every part the record states, at or below the country, is a part of the tree's resolved
     chain — 'Town < County < State < Country' — matched whole after normalisation (a jurisdiction word stripped, a
     two-letter US state code expanded to its name, with or without a period), never as a substring of another word: 'Kent'
@@ -377,13 +389,18 @@ def place_verdict(record, tree, record_state=None):
     names that part; a full match down to the tree's own finest part carries no note. A part that is a real place but is
     not in the tree's chain (a same-named town in another state, a county alone against a tree that holds only the state)
     disagrees — unless the record names a county alone: it then takes the state of the record's own event place
-    (record_state, collection_state on the record's own collection) for the comparison, the note saying so; the string
-    itself is never changed, only compared. absent when either side has none."""
+    (record_state, collection_state on the record's own collection) for the comparison, the note saying so; or unless the
+    record names a dated former name of the tree's own place (dated_names, place_name rows with a valid_from or valid_to:
+    Tonan, a village Morioka absorbed in 1992) — it then agrees on that name, the note naming the period it held it. The
+    string itself is never changed, only compared. absent when either side has none."""
     if not record or not tree: return "absent", None
     v, note = _place_verdict_once(record, tree)
     if v == "disagrees" and record_state and re.search(r"\bcounty\b", record, re.I) and not re.search(r"<|,", record):
         v2, note2 = _place_verdict_once(record, tree, supply=record_state)
         if v2 == "agrees": return v2, (f"{note2}; " if note2 else "") + f"supplying {record_state}, the record's own event place, for the bare county"
+    if v == "disagrees" and dated_names:
+        note3 = _dated_agree(record, dated_names)
+        if note3: return "agrees", note3
     return v, note
 
 
@@ -452,11 +469,12 @@ class Catalog:
                 text_of = (lambda gk: groups[gk]["date"][0]) if axis == "date" else (lambda gk: groups[gk]["place"])
                 tree_val = {"start": e[3], "text": e[2], "qualifier": e[4]} if axis == "date" else tree_place
                 tree_text = e[2] if axis == "date" else tree_place
+                tree_dated = self.dated_names(e[5]) if axis == "place" else None
                 def cmp(av, asa, bv, bsa):
                     if axis == "date": return date_verdict(av, bv)
-                    v, note = place_verdict(av, bv, record_state=asa)
+                    v, note = place_verdict(av, bv, record_state=asa, dated_names=tree_dated)
                     if v == "disagrees" and bsa:
-                        v2, note2 = place_verdict(bv, av, record_state=bsa)
+                        v2, note2 = place_verdict(bv, av, record_state=bsa, dated_names=tree_dated)
                         if v2 == "agrees": return v2, note2
                     return v, note
                 accepted = [gk for gk in order if groups[gk]["status"] == "accepted" and value_of(gk) is not None]
@@ -498,6 +516,12 @@ class Catalog:
                         return tree_text if "tree" in ms else text_of(ms[0])
                     out.append(f"{kind} {axis}: {side(members[0])} against {side(members[1])}: {value(members[0])} against {value(members[1])}")
         return list(dict.fromkeys(out))
+    def dated_names(self, place_id):
+        """place_id's own former names (place_name rows with a valid_from or valid_to, written by tools/resolve_places.py
+        from Wikidata): [(name, valid_from, valid_to), ...], for place_verdict to agree a record naming one with the
+        place as it is now. [] for no place_id or none dated."""
+        if not place_id: return []
+        return self.q("SELECT name, valid_from, valid_to FROM place_name WHERE place_id=? AND (valid_from IS NOT NULL OR valid_to IS NOT NULL)", place_id)
     def find_person(self, key):
         """A person by id, by the last six characters of the id in brackets or alone ("Noi Davidson [MEXW2C]", "MEXW2C"), by exact
         display name, or by a substring of the name. Several matches stop the tool and list them with their six characters, so a
@@ -551,7 +575,7 @@ class Catalog:
             if r[1] == "country": region["country"] = r[0].lower()
             if r[1] == "state": region["state"] = r[0].lower()
             pid = r[2]
-        return {"text": " < ".join(chain), "resolved": True, **region}
+        return {"text": " < ".join(chain), "resolved": True, "place_id": place_id, **region}
     def _place_depth(self, place_id):
         d = 0
         while place_id:

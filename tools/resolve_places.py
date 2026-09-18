@@ -134,6 +134,114 @@ def nominatim(q):
     with open(path, "w", encoding="utf-8") as fh: json.dump({"query": q, "fetched_at": now(), "results": results}, fh, ensure_ascii=False)
     return results
 
+WIKIDATA_ENDPOINT = "https://www.wikidata.org/wiki/Special:EntityData"
+
+def wikidata_cache_dir():
+    return os.path.join(derivatives_dir(), "geocode", "wikidata")
+
+def wikidata_entity(qid):
+    """The Wikidata item for qid (its labels and claims), fetched once and cached under derivatives/geocode/wikidata/;
+    the public endpoint at one request a second, as Nominatim is. {} on any error, so a place missing from Wikidata
+    or a network failure never stops the run."""
+    os.makedirs(wikidata_cache_dir(), exist_ok=True)
+    path = os.path.join(wikidata_cache_dir(), qid + ".json")
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh: return json.load(fh)
+    url = f"{WIKIDATA_ENDPOINT}/{qid}.json"
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    try:
+        time.sleep(1.1)
+        with urllib.request.urlopen(req, timeout=30) as r: data = json.load(r)
+    except Exception:
+        return {}
+    with open(path, "w", encoding="utf-8") as fh: json.dump(data, fh, ensure_ascii=False)
+    return data
+
+def _wd_label(ent):
+    labels = (ent or {}).get("labels") or {}
+    if "en" in labels: return labels["en"].get("value")
+    return next(iter(labels.values()), {}).get("value")
+
+def _wd_time(claims, prop):
+    """A Wikidata time claim's value, cut to its own precision (day, month or year): "+1992-04-01T00:00:00Z" at
+    day precision (11) is "1992-04-01"; at year precision (9) it is "1992". None when the claim is absent."""
+    c = ((claims or {}).get(prop) or [None])[0]
+    v = ((c or {}).get("mainsnak") or {}).get("datavalue", {}).get("value") if c else None
+    t = (v or {}).get("time")
+    if not t: return None
+    parts = t.lstrip("+-").split("T")[0].split("-")
+    precision = v.get("precision", 11)
+    if precision <= 9: return parts[0]
+    if precision == 10: return "-".join(parts[:2])
+    return "-".join(parts[:3])
+
+def former_names(qid):
+    """Former names for the Wikidata item qid, from what it replaces or was merged from (P1365, each with its own
+    P571 inception and P576 dissolved dates): a list of {name, valid_from, valid_to, wikidata_id}. A replaced item
+    with no P576 of its own is skipped: P1365 is a looser claim than a merger (a border adjustment, or two entries
+    for a place that never actually dissolved, as Wikidata's own data for two neighbors of Morioka shows), and
+    without the replaced item's own word that it stopped existing there is no date to stand on, so nothing is
+    written rather than guessing one from the replacing item's own founding. Every call goes through
+    wikidata_entity, so it is cached and rate-limited like any other Wikidata call; an item with no P1365 claim, or
+    none of its own dissolved, gives an empty list."""
+    ent = (wikidata_entity(qid).get("entities") or {}).get(qid) or {}
+    claims = ent.get("claims") or {}
+    out = []
+    for c in claims.get("P1365") or []:
+        rid = (c.get("mainsnak") or {}).get("datavalue", {}).get("value", {}).get("id")
+        if not rid: continue
+        rent = (wikidata_entity(rid).get("entities") or {}).get(rid) or {}
+        rname = _wd_label(rent)
+        if not rname: continue
+        rclaims = rent.get("claims") or {}
+        valid_to = _wd_time(rclaims, "P576")
+        if not valid_to: continue
+        out.append({"name": rname, "valid_from": _wd_time(rclaims, "P571"), "valid_to": valid_to, "wikidata_id": rid})
+    return out
+
+def add_former_names(cx, pid, wikidata_id):
+    """Ask Wikidata for wikidata_id's former names (former_names) and write each as a place_name row on place pid,
+    dated, skipping one already there (place, name and dates the same). Returns how many were added."""
+    added = 0
+    for fn in former_names(wikidata_id):
+        if cx.execute("""SELECT 1 FROM place_name WHERE place_id=? AND name=? AND COALESCE(valid_from,'')=COALESCE(?,'')
+                         AND COALESCE(valid_to,'')=COALESCE(?,'')""", (pid, fn["name"], fn["valid_from"], fn["valid_to"])).fetchone(): continue
+        cx.execute("INSERT INTO place_name (id,place_id,name,valid_from,valid_to,is_primary) VALUES (?,?,?,?,?,0)",
+                   (ulid(), pid, fn["name"], fn["valid_from"], fn["valid_to"]))
+        added += 1
+    return added
+
+def backfill_former_names(cx):
+    """Every place already carrying a wikidata_id (its own past resolution, this run's included) gets its former
+    names asked of Wikidata: cheap to repeat, since a place already checked costs a cache read, not a request."""
+    return sum(add_former_names(cx, pid, wdid) for pid, wdid in cx.execute("SELECT id, wikidata_id FROM place WHERE wikidata_id IS NOT NULL").fetchall())
+
+def chain_text(cx, pid):
+    names = []
+    while pid:
+        r = cx.execute("SELECT name, parent_id FROM place WHERE id=?", (pid,)).fetchone()
+        if not r: break
+        names.append(r[0]); pid = r[1]
+    return " < ".join(names)
+
+def dated_candidate(cx, p):
+    """A parsed string's own components read against every place's dated former names (place_name rows with a
+    valid_from or valid_to), tail-word first so a hamlet or ward named ahead of it ("Ogau" in "Ogau Tonan") is never
+    mistaken for the whole: {place_id, place (its modern chain), name, valid_from, valid_to, leading} for the first
+    match, tried finest component first; None when nothing dated matches. Offered as a candidate only — a dated name
+    is not a geocoder-verified match, so it never auto-resolves (CLAUDE.md's place-resolution rule stops at a unique
+    full match and one territory under two names)."""
+    dated = cx.execute("SELECT place_id, name, valid_from, valid_to FROM place_name WHERE valid_from IS NOT NULL OR valid_to IS NOT NULL").fetchall()
+    if not dated: return None
+    for comp in p["components"]:
+        words = comp.split()
+        for i in range(len(words)):
+            tail = " ".join(words[i:])
+            for pid, name, vf, vt in dated:
+                if similar(tail, name):
+                    return {"place_id": pid, "place": chain_text(cx, pid), "name": name, "valid_from": vf, "valid_to": vt, "leading": " ".join(words[:i]) or None}
+    return None
+
 def verify(p, cand):
     """Score a candidate: fraction of given components found in its hierarchy; country must match."""
     addr = cand.get("address") or {}; names = cand.get("namedetails") or {}
@@ -375,10 +483,11 @@ def main():
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
     if a.reset: reset_ai_resolutions(cx, tree_id, a.by, ts, only=a.only)
+    former_names_added = backfill_former_names(cx)   # every place with a wikidata_id, before today's strings are read against it
     rows = cx.execute("SELECT id, raw FROM place_string WHERE status='undecided' AND place_id IS NULL AND resolver IS NULL " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
                       (a.only,) if a.only else ()).fetchall()
     if a.limit: rows = rows[: a.limit]
-    stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0}
+    stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0, "former_names_added": former_names_added}
     report = []
     for psid, raw in rows:
         note = ov["note"].get(raw)
@@ -390,6 +499,7 @@ def main():
         p = parse(raw)
         if not p["components"] and not p["country"] and not p["region"]:
             report.append(("SKIP", raw, "nothing parseable")); continue
+        dated = dated_candidate(cx, p)   # a component naming a place's own dated former name (Tonan, in "Ogau Tonan"); offered, never auto-resolved
         variants = query_variants(p) if (p["components"] or p["country"]) else ["Silesia"]
         extras = ov["extra_queries"].get(raw, [])
         cands, queries = [], []
@@ -419,6 +529,15 @@ def main():
         forced = ov["force_review"].get(raw)
         bare = len(p["components"]) == 1 and not p["country"]
         if not scored:
+            if dated:
+                period = f"{dated['valid_from'] or '?'}–{dated['valid_to'] or '?'}"
+                reason = f"no geocoder candidates; {dated['name']} is a dated former name of {dated['place']} ({period})"
+                payload = {"raw": raw, "place_string_id": psid, "parsed": p, "queries": queries,
+                           "candidates": [{**dated, "kind": "jurisdiction_change"}], "reason": reason}
+                cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
+                           (ulid(), tree_id, "place_resolution", dumps(payload), ((note + " ") if note else "") + reason, ext_id, ts))
+                cx.execute("UPDATE place_string SET resolver=?, resolved_at=?, notes=? WHERE id=?", (resolver_tag, ts, dumps({"result": "review", "reason": "dated former name", "candidate": dated, "note": note}), psid))
+                stats["undecided"] += 1; report.append(("REVIEW", raw, f"dated name: {dated['name']} ({period})")); continue
             payload = {"raw": raw, "place_string_id": psid, "parsed": p, "queries": queries, "candidates": [], "reason": "no candidates"}
             cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
                        (ulid(), tree_id, "place_resolution", dumps(payload), (note or "") + " No geocoder candidates; resolve by hand.", ext_id, ts))
@@ -431,6 +550,8 @@ def main():
             leaf = st.hierarchy(c)
             if not cx.execute("SELECT 1 FROM place_name WHERE place_id=? AND name=?", (leaf, raw)).fetchone():
                 cx.execute("INSERT INTO place_name (id,place_id,name,is_primary) VALUES (?,?,?,?)", (ulid(), leaf, raw, False))
+            leaf_wd = cx.execute("SELECT wikidata_id FROM place WHERE id=?", (leaf,)).fetchone()
+            if leaf_wd and leaf_wd[0]: stats["former_names_added"] += add_former_names(cx, leaf, leaf_wd[0])   # a place resolved for the first time, its own wikidata_id fresh from Nominatim's extratags
             cx.execute("UPDATE place_string SET place_id=?, status='accepted', resolver=?, resolved_at=?, notes=? WHERE id=?",
                        (leaf, resolver_tag, ts, dumps({"queries": queries, "how": how, "match": candidate_summary(c, score, checks),
                                                              "alternatives": [x.get("display_name") for _, _, x in full if x is not c],
@@ -440,8 +561,10 @@ def main():
         else:
             reason = forced or ("bare single token; needs context" if bare else
                                 (how or f"{len(full)} fully-verified candidates") if full else "no candidate matches every component")
+            candidates = [candidate_summary(c, s, ch) for s, ch, c in scored[:12]]
+            if dated: candidates.append({**dated, "kind": "jurisdiction_change"})
             payload = {"raw": raw, "place_string_id": psid, "parsed": p, "queries": queries,
-                       "candidates": [candidate_summary(c, s, ch) for s, ch, c in scored[:12]],
+                       "candidates": candidates,
                        "suggested": 0 if scored and scored[0][0] >= 0.6 else None, "reason": reason}
             cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
                        (ulid(), tree_id, "place_resolution", dumps(payload), ((note + " ") if note else "") + reason, ext_id, ts))

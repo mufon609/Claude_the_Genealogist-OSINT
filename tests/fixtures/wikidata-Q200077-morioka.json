@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Q200077": {
+      "id": "Q200077",
+      "labels": {
+        "ja": {
+          "language": "ja",
+          "value": "盛岡市"
+        },
+        "en": {
+          "language": "en",
+          "value": "Morioka"
+        }
+      },
+      "claims": {
+        "P1365": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 11643491,
+                  "id": "Q11643491"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            }
+          }
+        ],
+        "P1366": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "entity-type": "item",
+                  "numeric-id": 2391361,
+                  "id": "Q2391361"
+                },
+                "type": "wikibase-entityid"
+              },
+              "datatype": "wikibase-item"
+            }
+          }
+        ],
+        "P571": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "time": "+1889-04-01T00:00:00Z",
+                  "timezone": 0,
+                  "before": 0,
+                  "after": 0,
+                  "precision": 11,
+                  "calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+                },
+                "type": "time"
+              },
+              "datatype": "time"
+            }
+          }
+        ],
+        "P1448": [
+          {
+            "mainsnak": {
+              "datavalue": {
+                "value": {
+                  "text": "盛岡市",
+                  "language": "ja"
+                },
+                "type": "monolingualtext"
+              },
+              "datatype": "monolingualtext"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
