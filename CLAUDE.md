@@ -115,6 +115,9 @@ python3 tools/run_step.py <step id>          # run an auto search step through i
 python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions and the cards it refused; one it would no longer take is a card again, one it would now take is taken; --dry-run
 python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…"   # your own word on a family link a record stops short of; --parent, --marriage; `divorce` likewise
 python3 tools/cite.py "<person>" --row "census household:1950" --holder D05 --field "surname=…" --field "enumeration district=…" --field "page=…"   # a record you cite on your own word, nothing in the file: a fetch step the runner asks the holder for
+python3 tools/queue.py                        # the next person at the edge of the confirmed tree, in the overview's order; --all lists everyone, with why each is next or passed over
+python3 tools/turn.py "<person>"              # one person's plan run end to end: the plan, every step a connector can run, the rule's decisions; pauses on the pages to save in the browser
+python3 tools/turn.py --resume                # after the browser session: collect, attach what collect left, reconsider, the plan again; the turn's report
 python3 tools/backup.py verify                # every archived object hashed against its sha256; `bag <dir> --target <drive>` writes a BagIt bag with the catalog dumped to SQL; `check <bag>`
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
 python3 tools/initdb.py --sync-event-types   # after any change to schema/seed_event_type.sql: the new types on an existing catalog
