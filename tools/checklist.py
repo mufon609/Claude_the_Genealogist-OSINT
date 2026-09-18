@@ -83,6 +83,13 @@ def build(cat: Catalog, pid: str):
     # ---- the fields every query is built from: {value, basis}; a rejected or absent fact is left out
     def F(value, basis):
         return None if basis == "rejected" or value in (None, "", []) else {"value": value, "basis": basis or "claim"}
+    def PLACES(place, basis, year=None):
+        """A search step's place field, every accurate name in order (docs/RESEARCH-WORKFLOW.md §3, Catalog.place_search_names):
+        the name valid at year first, then the person's own as-written strings for it, then its current name, then every other
+        dated name; a place with no place_id (never resolved) gives its bare text alone. None for a rejected or absent place."""
+        if not place or basis == "rejected": return None
+        names = cat.place_search_names(place.get("place_id"), year=year, person_id=pid) if place.get("place_id") else ([place["text"]] if place.get("text") else [])
+        return {"value": names, "basis": basis or "claim"} if names else None
     ROW = lambda v: {"value": v, "basis": "row"}                  # set by the checklist row, not a fact about the person
     bb = birth["basis"] if birth and birth["year"] else "claim"    # an estimated year is a claim
     db = death["basis"] if death and death["year"] else (burial["basis"] if burial and burial["year"] else "claim")
@@ -174,7 +181,7 @@ def build(cat: Catalog, pid: str):
             note = "head of household only; counted, not named" if y < 1850 else "everyone in the house: ages, birthplaces, relationships"
             near = next((e for e in ev if e["type"] == "Residence" and e["year"] and abs(e["year"] - y) <= 5 and e["place"]), None)
             row("A", "census household", MATCH["census"](y), ["D05" if y == 1950 else "D01", "D03"], note,
-                ("household", fields(year=ROW(y), place=F(near["place"]["text"], near["basis"]) if near else None)),
+                ("household", fields(year=ROW(y), place=PLACES(near["place"], near["basis"], year=y) if near else None)),
                 household=True, instance=str(y))
         for st_, years in STATE_CENSUS.items():
             if st_ in states:
@@ -208,7 +215,7 @@ def build(cat: Catalog, pid: str):
             r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, mb if m and m["place"] else sb)),
                            "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"]), "free_mode": mode_for(r["sources"]), "expect": r["settles"]}
         A.append(r)
-    dplace = F(death["place"]["text"], death["basis"]) if death and death["place"] else F(home_state, sb)
+    dplace = PLACES(death["place"], death["basis"], year=d) if death and death["place"] else F(home_state, sb)
     if known_death and known_death >= 1800:
         row("A", "obituary", MATCH["obituary"], (["H05"] if known_death >= 1999 else []) + ["H01", "H07", "H03", "H04"], "survivors, maiden names, places",
             ("obituary", fields(death_year=F(d, db), place=dplace)))   # Legacy.com (H05) covers US obituaries from 1999 on (data/data-sources.csv), searched first for a death in its window

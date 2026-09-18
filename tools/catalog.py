@@ -522,6 +522,30 @@ class Catalog:
         place as it is now. [] for no place_id or none dated."""
         if not place_id: return []
         return self.q("SELECT name, valid_from, valid_to FROM place_name WHERE place_id=? AND (valid_from IS NOT NULL OR valid_to IS NOT NULL)", place_id)
+    def place_search_names(self, place_id, year=None, person_id=None):
+        """Every accurate name for place_id, ordered for a search (docs/RESEARCH-WORKFLOW.md §3): the one valid at year
+        first (a dated name, dated_names, whose range covers it), then the as-written strings the person's own accepted
+        records use for this place, then its current name, then every other dated name. A collection is found under the
+        place's modern name and the record inside it under the name its own day used, so the modern name is never
+        dropped even when a period name is offered first. A plain list of strings, de-duplicated in that order; []
+        without a place_id."""
+        if not place_id: return []
+        dated = self.dated_names(place_id)
+        def covers(vf, vt):
+            if year is None: return False
+            try:
+                if vf and int(str(vf)[:4]) > year: return False
+                if vt and int(str(vt)[:4]) < year: return False
+            except ValueError: return False
+            return True
+        out = [n for n, vf, vt in dated if covers(vf, vt)]
+        if person_id:
+            out += [r[0] for r in self.q("""SELECT DISTINCT ps.raw FROM place_string ps JOIN persona_fact pf ON pf.place_string_id=ps.id
+                                            JOIN person_persona pp ON pp.persona_id=pf.persona_id
+                                            WHERE ps.place_id=? AND pp.person_id=? AND pp.status='accepted'""", place_id, person_id)]
+        out.append(self._place_chain(place_id)["text"])
+        out += [n for n, _, _ in dated]
+        return list(dict.fromkeys(x for x in out if x))
     def find_person(self, key):
         """A person by id, by the last six characters of the id in brackets or alone ("Noi Davidson [MEXW2C]", "MEXW2C"), by exact
         display name, or by a substring of the name. Several matches stop the tool and list them with their six characters, so a

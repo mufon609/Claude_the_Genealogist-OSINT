@@ -333,6 +333,52 @@ def places(keep):
     if not keep: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def place_name_retry(keep):
+    """run_step.run_connector, given a search step whose place field carries more than one accurate name
+    (checklist.py's PLACES), tries each in order and stops at the first hit, with no real network: a fake connector
+    and a monkeypatched fetch answer 'none' for the first name and 'found' for the second."""
+    import treelib; d, db = scratch(keep); treelib.DATA_ROOT = d
+    import run_step
+    from treelib import dumps, ulid, now
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "retrytest", "--name", "Retry Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='retrytest'").fetchone()[0]
+    ts = now(); pid = ulid()
+    cx.execute("INSERT INTO person (id,tree_id,display_name,created_at,updated_at) VALUES (?,?,?,?,?)", (pid, tid, "Retry Person", ts, ts))
+    query = {"surname": {"value": "Davidson", "basis": "accepted"}, "place": {"value": ["Tonan", "Morioka"], "basis": "accepted"}}
+    spid = ulid()
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""", (spid, pid, "test row", 1, "search:test", "search", "household", dumps(query), dumps(["D05"]), "auto", "planned", ts))
+    cx.commit()
+    step = cx.execute("SELECT * FROM search_plan WHERE id=?", (spid,)).fetchone()
+    from connectors import value
+    import types
+    seen_urls = []
+    def fake_requests(fields):
+        place = value(fields, "place")
+        return [{"url": f"http://test.invalid/search?place={place}", "kind": "search"}] if place else []
+    def fake_hits(url, data):
+        return [] if data == b"none" else [{"label": "hit", "locator": "loc1", "fetch": [], "notes": {}}]
+    conn = types.SimpleNamespace(__name__="fake.connector", SOURCE="D05", COLLECTION="Test Collection", RATE={"search": 6000}, requests=fake_requests, hits=fake_hits, total=lambda data: None)
+    def fake_fetch(url, kind, c, data=None):
+        return (b"none" if "place=Tonan" in url else b"found"), {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": "application/json"}
+    orig_fetch = run_step.fetch; run_step.fetch = fake_fetch
+    try:
+        from catalog import Catalog
+        cat = Catalog(cx, tid)
+        r = run_step.run_connector(cx, cat, tid, step, conn, BY)
+    finally:
+        run_step.fetch = orig_fetch
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    fail(r.get("outcome") == "found", f"the second name gets a hit and the run reads found: {r}")
+    fail(r.get("requests") == ["http://test.invalid/search?place=Tonan", "http://test.invalid/search?place=Morioka"], f"both names are tried, in order, before the run stops: {r.get('requests')}")
+    logged = cx.execute("SELECT query_json FROM search_log WHERE plan_step_id=?", (spid,)).fetchone()
+    tried = json.loads(logged[0])["place"] if logged else {}
+    fail(tried.get("tried") == ["Tonan", "Morioka"] and tried.get("value") == "Morioka", f"the logged run's query names every try, the one that hit last: {tried}")
+    cx.close()
+    if not keep: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def _chain_fixture(cx, tid, ts):
     """A tree scratch fixture with places on one chain (United States > Pennsylvania > Philadelphia County >
     Philadelphia) and a second city (Pittsburgh, under Allegheny County, the same state) on a different chain, and two
@@ -1868,6 +1914,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL resolve_places.py: " + "; ".join(fails))
     else: print("ok   resolve_places.py: a unique full match auto-accepts; a city coterminous with its county accepts as one territory; a village nested in its much larger town stays Undecided with both offered; a resolved place's wikidata_id brings its dated former names, offered as a candidate to a string naming one, never auto-resolved")
+    try: fails = place_name_retry(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL run_step.py place retry: " + "; ".join(fails))
+    else: print("ok   run_step.py: a search step's place field carrying more than one accurate name is tried in order and stops at the first hit, every try named on the logged run's query")
     try: fails = place_fallback_depth(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL Catalog.place fallback: " + "; ".join(fails))

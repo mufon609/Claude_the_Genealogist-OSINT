@@ -159,14 +159,22 @@ def run(cx, cat, tree_id, step, by, dry_run=False):
 
 def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     """One step at one connector: requests, responses archived, hits fetched and archived, the log row under the connector's
-    source. Returns the run with the records archived, to be read afterwards."""
+    source. A place field carrying more than one accurate name (checklist.py's PLACES, docs/RESEARCH-WORKFLOW.md §3: the
+    name valid at the record's date first, then as-written, then current, then every other dated name) is tried in that
+    order, one substituted for it at a time, and stops at the first that gets a hit; every name actually tried is on the
+    logged run's query, the one that hit last, so the same search is never repeated blindly and a widening try is read
+    back afterwards. Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     from connectors.ia import name_parts
     surname = name_parts(query)[1]
     variants = variants_of(cx, step["person_id"], surname) if surname else []
     if variants: query = {**query, "surname_variants": {"value": variants, "basis": "record"}}   # the spellings records gave the person, for a search that takes one word
-    reqs = conn.requests(query); gate = outside(cat, conn, step["query_type"], query)
-    if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs, **({"outside": gate} if gate else {})}
+    place_field = query.get("place")
+    names = place_field["value"] if isinstance(place_field, dict) and isinstance(place_field.get("value"), list) and place_field["value"] else [None]
+    query_for = lambda name: query if name is None else {**query, "place": {**place_field, "value": name}}
+    reqs = conn.requests(query_for(names[0])); gate = outside(cat, conn, step["query_type"], query)
+    if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs, **({"outside": gate} if gate else {}),
+                        **({"place_names": names} if names != [None] else {})}
     if not reqs: return {"connector": conn.__name__.split(".")[-1], "error": "the fields give the connector nothing to ask: a surname, or for a cited book its title"}
     if gate:                                                     # the source's years miss the step's: a none run with the reason, no request
         lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome="none", artifacts=None, note=gate, query=query)
@@ -174,7 +182,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (conn.SOURCE,)).fetchone()
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")
-    cid = collection_for(cx, conn); shas, records, hits, errors, totals = [], [], [], [], []
+    cid = collection_for(cx, conn); shas, records, hits, errors, totals, tried, all_reqs = [], [], [], [], [], [], []
     def keep(data, http, kind, url, notes, label=None, locator=None, derived_from=None):
         mime = (http.get("content_type") or "").split(";")[0].strip() or {"json": "application/json", "text": "text/plain", "image": "image/jpeg"}[kind]
         if kind in ("json", "search", "text") and mime.startswith("text/html"): mime = "application/json" if data[:1] in (b"{", b"[") else mime
@@ -200,29 +208,36 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
             if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted"))})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
-    for rq in reqs:
-        url = rq["url"]; pages = 1
-        while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
-            first = url == rq["url"]                             # the request as the connector gave it; a later page is a GET of the URL the connector named
-            try: data, http = fetch(url, rq["kind"], conn, rq.get("data") if first else None)
-            except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); break
-            sha = keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": query}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
-            rq["archived_sha"] = sha                              # this request's own bytes, for hits() to derive from (connectors/__init__.py)
-            if url == rq["url"]:
-                try: totals.append(conn.total(data))
-                except ValueError: totals.append(None)
-                try: asked.append(conn.narrow(url, data) if hasattr(conn, "narrow") else None)
-                except ValueError: pass
-            page_hits = conn.hits(url, data, rq) if conn.hits.__code__.co_argcount > 2 else conn.hits(url, data)
-            if rq.get("record") and page_hits: records.append(sha)   # the response is the record itself (a results page listing what was found); an empty answer is not a record
-            pages += 1
-            try: url = conn.next_page(url, data) if hasattr(conn, "next_page") and rq["kind"] == "search" else None
-            except ValueError: url = None
-            for h in page_hits:
-                hits_of_page(h)
+    for name in names:
+        q = query_for(name); creqs = reqs if name == names[0] else conn.requests(q)
+        if name is not None: tried.append(name)
+        before = len(hits)
+        for rq in creqs:
+            all_reqs.append(rq["url"])
+            url = rq["url"]; pages = 1
+            while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
+                first = url == rq["url"]                             # the request as the connector gave it; a later page is a GET of the URL the connector named
+                try: data, http = fetch(url, rq["kind"], conn, rq.get("data") if first else None)
+                except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); break
+                sha = keep(data, http, rq["kind"], url, {"request": rq["kind"], "query": q}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
+                rq["archived_sha"] = sha                              # this request's own bytes, for hits() to derive from (connectors/__init__.py)
+                if url == rq["url"]:
+                    try: totals.append(conn.total(data))
+                    except ValueError: totals.append(None)
+                    try: asked.append(conn.narrow(url, data) if hasattr(conn, "narrow") else None)
+                    except ValueError: pass
+                page_hits = conn.hits(url, data, rq) if conn.hits.__code__.co_argcount > 2 else conn.hits(url, data)
+                if rq.get("record") and page_hits: records.append(sha)   # the response is the record itself (a results page listing what was found); an empty answer is not a record
+                pages += 1
+                try: url = conn.next_page(url, data) if hasattr(conn, "next_page") and rq["kind"] == "search" else None
+                except ValueError: url = None
+                for h in page_hits:
+                    hits_of_page(h)
+        if len(hits) > before: break                              # a hit under this name: never try the rest
     outcome = outcome_of(hits, errors, shas)
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [a for a in asked if a] + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
+    if tried: query = {**query, "place": {**place_field, "value": tried[-1], "tried": tried}}   # every name actually tried, the one the run stopped on
 
     own = step["kind"] != "fetch" or conn.SOURCE == step["locator_source_id"]   # a fetch step is done by its holder's answer alone: a row-source connector's hit is another paper's page, logged and held, the cited record still to fetch
     lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query, done=own)
@@ -231,7 +246,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         for other in household_steps(cx, tree_id, step):
             log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
                        query=rendered_query(other["query_json"], other["revisions_json"])); household.append(other["id"])
-    return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [r["url"] for r in reqs], "outcome": outcome, "log": lid, "artifacts": shas, "hits": hits,
+    return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": all_reqs, "outcome": outcome, "log": lid, "artifacts": shas, "hits": hits,
             "errors": errors, "household_steps": household, "records": records}
 
 def main():
