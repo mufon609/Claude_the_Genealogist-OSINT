@@ -423,7 +423,7 @@ class Catalog:
         self.sources = {r[0]: {"name": r[1], "access": r[2] or "", "status": r[3] or "", "cost": r[4] or "", "connector": r[5] or "", "coverage": r[6] or ""}
                         for r in self.q("SELECT id, name, access, status, cost, connector, coverage FROM source")}
         self.holders = holders()
-        self._groups = self._held = self._holdings = None
+        self._groups = self._held = self._holdings = self._tiers = None
     def disagreements(self, pid):
         """Where an accepted record says something else than the tree's event or than another statement on it: for each event
         of the person and each of date and place, one line per differing value, naming every statement on each side and the
@@ -719,6 +719,50 @@ class Catalog:
                                         "marriages": [{"id": m[0], "year": year(m[1]), "place": self.place(m[0], m[2]), "basis": self.basis("event", m[0]), "citations": self.citations("event", m[0])} for m in marr],
                                         "divorces": [{"id": x[0], "date": x[1], "year": year(x[2]), "basis": self.basis("event", x[0])} for x in div]})
         return fam
+    def home(self):
+        """The tree's home person (tools/tree.py home), or None."""
+        r = self.q("SELECT home_person_id FROM tree WHERE id=?", self.tree_id)
+        return r[0][0] if r else None
+    def tiers(self):
+        """{person id: generation relative to the home person} for everyone a chain of family links reaches from the home
+        person (docs/DATA-ARCHITECTURE.md §7 decision 3): a parent one generation up, a child one down, a partner the same,
+        along every membership whose assertions are not all rejected (accepted or claimed, as `family` reads them); a person
+        reached by more than one path takes the nearest generation. Up is positive. Computed once per Catalog; empty when
+        the tree has no home person."""
+        if self._tiers is not None: return self._tiers
+        self._tiers = {}
+        home = self.home()
+        if not home: return self._tiers
+        fams = {}; best = {home: 0}; seen = {(home, 0)}; frontier = [(home, 0)]
+        while frontier:
+            nxt = []
+            for pid, g in frontier:
+                if pid not in fams: fams[pid] = self.family(pid)
+                for rel, step in (("parents", 1), ("children", -1), ("spouses", 0)):
+                    for other, _ in fams[pid][rel]:
+                        og = g + step
+                        if abs(og) > 12 or (other, og) in seen: continue
+                        seen.add((other, og)); nxt.append((other, og))
+                        if other not in best or abs(og) < abs(best[other]): best[other] = og
+            frontier = nxt
+        self._tiers = best
+        return best
+    def living(self, pid):
+        """The person's living status as the default reads it (docs/DATA-ARCHITECTURE.md §7 decision 3): {status: living |
+        unknown | deceased, tier, reason}. The owner's word (person.living_override) stands above everything; death evidence
+        the tree holds (v_person_vitals.has_death_evidence) makes a person deceased at any tier; tiers 0 and 1 are living, tier
+        2 unknown until the owner confirms the person (tools/conclude.py living), tier 3 and beyond and a person no chain of
+        links reaches from the home person deceased. A tree with no home person places nobody, so everyone in it is unknown
+        until one is set. The tier is the generation's distance, None for an unreached person."""
+        override, death = self.q("SELECT living_override, has_death_evidence FROM v_person_vitals WHERE person_id=?", pid)[0]
+        g = self.tiers().get(pid); tier = abs(g) if g is not None else None
+        if override: return {"status": override, "tier": tier, "reason": "the owner's word"}
+        if death: return {"status": "deceased", "tier": tier, "reason": "death evidence"}
+        if not self.home(): return {"status": "unknown", "tier": None, "reason": "no home person set: tools/tree.py home"}
+        if tier is None: return {"status": "deceased", "tier": None, "reason": "no link to the home person"}
+        if tier <= 1: return {"status": "living", "tier": tier, "reason": f"tier {tier}, living by default"}
+        if tier == 2: return {"status": "unknown", "tier": 2, "reason": "tier 2, unconfirmed"}
+        return {"status": "deceased", "tier": tier, "reason": f"tier {tier}, deceased by default"}
     def fetched_rows(self, pid):
         """Checklist row keys (record:instance) with a done step whose record is held: an archived artifact in its log, or an
         artifact at the step's locator (for a record id, one that holds it for this person). {row key: whether a held record

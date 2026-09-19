@@ -6,7 +6,9 @@ usage: tools/checklist.py "<person name or id>" [--tree slug] [--json]
 
 Read-only. For one person it reports:
   foundation  the facts search would be seeded with, each marked accepted or claim
-              (an Undecided fact is a claim; nothing runs on claims until reviewed)
+              (an Undecided fact is a claim; nothing runs on claims until reviewed), and the
+              living default's reading of the person (Catalog.living: the tier, held death
+              evidence, the owner's word), which sets a search step's mode
   questions   generated from gaps in the tree (missing parents, no surname, ...)
   checklist   Group A (records that hold several family members) then Group B
               (records about this person), each row gated by era, place and sex
@@ -18,7 +20,7 @@ Read-only. For one person it reports:
               steps for cited records exist: no search steps, no footprint,
               no duplicate or unlinked persons (docs/RESEARCH-WORKFLOW.md §2).
 """
-import argparse, collections, datetime as dt, json, os, re, sqlite3, sys
+import argparse, collections, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, resolve_tree
 from catalog import Catalog, US_STATES, US_NAMES, year
@@ -58,7 +60,7 @@ def build(cat: Catalog, pid: str):
     notes = []
     if b is None and dated: b = min(dated) - 20; notes.append(f"birth year estimated as {b} from earliest dated event")
     known_death = d                                               # the death the tree states; the assumed lifespan below gates era rows only, never a search for a death
-    living = not known_death and bool(b) and b >= dt.date.today().year - 100   # presumed living (docs/DATA-ARCHITECTURE.md §7): no search runs for them on its own
+    life = cat.living(pid); living = life["status"] != "deceased"   # the living default (docs/DATA-ARCHITECTURE.md §7 decision 3): a living or unknown person's searches are assisted, never auto
     if d is None and b: d = b + 90; notes.append(f"no death: lifespan assumed to {d}")
     places = [e["place"] for e in ev if e["place"]]
     countries = {pl["country"] for pl in places if pl["country"]}; states = [pl["state"] for pl in places if pl["state"]]
@@ -72,7 +74,8 @@ def build(cat: Catalog, pid: str):
         return {"field": label, "value": value, "basis": basis, **(extra or {})}
     foundation = [field("name", " ".join(x for x in (given, surname) if x) or None, cat.basis("person", pid),
                         {"given": given, "surname": surname, "variants": sorted({" ".join(x for x in (n[0], n[1]) if x) for n in p["names"][1:]} | set(p["aliases"]))}),
-                  field("sex", sex, cat.basis("person", pid))]
+                  field("sex", sex, cat.basis("person", pid)),
+                  field("living", life["status"] + (", confirm with tools/conclude.py living" if life["status"] == "unknown" else ""), life["reason"])]
     for label, e in (("birth", birth), ("death", death)):
         if e: foundation.append(field(label, {"year": e["year"], "date": e["date_text"], "place": e["place"]["text"] if e["place"] else None}, e["basis"]))
     foundation += [field("parents", [n for _, n in fam["parents"]], cat.link_basis(pid, "parents")),

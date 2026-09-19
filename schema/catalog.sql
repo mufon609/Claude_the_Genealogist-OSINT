@@ -277,7 +277,7 @@ CREATE TABLE tree (
   name            TEXT NOT NULL,
   description     TEXT,
   home_person_id  TEXT,                   -- REFERENCES person(id), declared below
-  settings_json   TEXT,                   -- {"living_years":100, ...}
+  settings_json   TEXT,                   -- per-tree settings as JSON; none is defined today (the living default is the tier rule, the same for every tree)
   created_at      TEXT NOT NULL,
   updated_at      TEXT NOT NULL
 );
@@ -592,8 +592,8 @@ CREATE TABLE artifact_copy (
 -- VIEWS
 -- =============================================================================
 
--- presumed_living: no death-class event, no override, born within 100 years.
--- Threshold is applied by the app (parameterized); this view exposes the inputs.
+-- The inputs of the living default (docs/DATA-ARCHITECTURE.md §7 decision 3): the owner's word and held death evidence;
+-- the tier from the home person is walked by the app (Catalog.living), which decides.
 CREATE VIEW v_person_vitals AS
 SELECT
   p.tree_id,

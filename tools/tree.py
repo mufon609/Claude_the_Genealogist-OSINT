@@ -20,7 +20,7 @@ def cmd_create(cx, a):
         sys.exit(f"tree '{a.slug}' already exists")
     ts = now(); tid = ulid()
     cx.execute("INSERT INTO tree (id,slug,name,description,settings_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?)",
-               (tid, a.slug, a.name, a.description, dumps({"living_years": 100}), ts, ts))
+               (tid, a.slug, a.name, a.description, dumps({}), ts, ts))
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id) VALUES (?,?,?,?,?,?,?)",
                (ulid(), tid, ts, a.by, "insert", "tree", tid))
     cx.commit()

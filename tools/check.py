@@ -1635,6 +1635,131 @@ def decisions(keep, show):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def living_check(keep):
+    """The living default as the tier rule (docs/DATA-ARCHITECTURE.md §7 decision 3), on tests/fixtures/harness.ged with
+    Frederick Micheal Ahearn Jr the home person, and a family planted around it. Alicia Ahern, his sister (tier 0, born
+    about 1935, no death): living, her search steps assisted. A partner planted beside his father (tier 1, no death): living,
+    assisted. Charlotte D Lukens, his grandmother (tier 2, death held): deceased on the evidence, auto. A grandparent planted
+    without a death (tier 2): unknown, assisted, the checklist saying to confirm with tools/conclude.py living. A
+    great-grandparent planted above James Joseph Ahearn (tier 3, no death): deceased by default, auto. Raymond Earl Davidson,
+    whom the file links to nobody, and a planted person with no death and no link: deceased, auto. The planted grandparent is
+    placed through an undecided (claimed) membership; that membership rejected, no chain reaches them. Frederick Michael
+    Ahearn (tier 1) holds death evidence: deceased. The living command flips the status, writes the audit row, and unknown
+    clears it. Returns the failures found."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    from treelib import dumps as tdumps, now as tnow, ulid as tulid
+    from catalog import Catalog
+    from checklist import build
+    from conclude import living
+    from facts import decide_fact
+    from plan import plan_person
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "harness", "--name", "Harness")
+    run(os.path.join(ROOT, "tools", "ingest_gedcom.py"), os.path.join(FIXTURES, "harness.ged"), "--keep", "--db", db, "--tree", "harness", "--by", BY)
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "home", "Frederick Micheal Ahearn Jr", "--tree", "harness")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='harness'").fetchone()[0]
+    who = {r["display_name"]: r["id"] for r in cx.execute("SELECT id, display_name FROM person WHERE tree_id=?", (tid,))}
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    ts = tnow(); sha = cx.execute("SELECT artifact_sha256 FROM tree_import WHERE tree_id=?", (tid,)).fetchone()[0]
+    def mkperson(name, sex):
+        pid = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (pid, tid, sex, name, ts, ts))
+        given, surname = name.rsplit(" ", 1)
+        cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), pid, given, surname, f"{surname}, {given}".lower()))
+        return pid
+    def assert_(kind, sid, status):                # the file's own claim on the person or the link (undecided), or one the owner accepted
+        cx.execute("INSERT INTO assertion (id,tree_id,subject_kind,subject_id,artifact_sha256,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?)",
+                   (tulid(), tid, kind, sid, sha, status, BY, ts, tdumps({"vouched": True}) if status == "accepted" else None))
+    def family_of(pid, role):
+        return cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role=?", (pid, role)).fetchone()[0]
+    # ---- planted: a second partner beside the father (tier 1); a second partner beside James Joseph (tier 2, undecided
+    # membership); a parent above James Joseph (tier 3); a person with no link at all
+    aunt = mkperson("Planted Stepmother", "F"); assert_("person", aunt, "accepted")
+    fam_father = family_of(who["Frederick Michael Ahearn"], "partner")
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fam_father, aunt)); assert_("family_member", tdumps([fam_father, aunt, "partner"]), "accepted")
+    fam_jj = family_of(who["James Joseph Ahearn"], "partner")
+    gran = mkperson("Planted Grandmother", "F"); assert_("person", gran, "accepted")
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fam_jj, gran)); assert_("family_member", tdumps([fam_jj, gran, "partner"]), "accepted")
+    fam_top = tulid(); cx.execute("INSERT INTO family (id,tree_id,rel_type,created_at,updated_at) VALUES (?,?,'unknown',?,?)", (fam_top, tid, ts, ts))
+    great = mkperson("Planted Greatgrandfather", "M"); assert_("person", great, "accepted")
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fam_top, great)); assert_("family_member", tdumps([fam_top, great, "partner"]), "accepted")
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'child')", (fam_top, who["James Joseph Ahearn"])); assert_("family_member", tdumps([fam_top, who["James Joseph Ahearn"], "child"]), "undecided")
+    alone = mkperson("Planted Nobody", "M"); assert_("person", alone, "accepted")
+    cx.commit()
+    cat = Catalog(cx, tid)
+    def status(pid): return cat.living(pid)
+    s = status(who["Frederick Micheal Ahearn Jr"]); fail(s["status"] == "deceased" and s["tier"] == 0 and s["reason"] == "death evidence", f"the home person, death held: deceased on the evidence at tier 0: {s}")
+    s = status(who["Alicia Ahern"]); fail(s["status"] == "living" and s["tier"] == 0 and s["reason"] == "tier 0, living by default", f"the home person's sister, no death: living at tier 0: {s}")
+    s = status(aunt); fail(s["status"] == "living" and s["tier"] == 1, f"a partner beside the father, no death: living at tier 1: {s}")
+    s = status(who["Frederick Michael Ahearn"]); fail(s["status"] == "deceased" and s["tier"] == 1 and s["reason"] == "death evidence", f"the father, death held: deceased at tier 1 on the evidence: {s}")
+    s = status(who["Charlotte D Lukens"]); fail(s["status"] == "deceased" and s["tier"] == 2 and s["reason"] == "death evidence", f"a grandmother with death held: deceased at tier 2 on the evidence: {s}")
+    s = status(gran); fail(s["status"] == "unknown" and s["tier"] == 2 and s["reason"] == "tier 2, unconfirmed", f"a grandparent without a death or an override: unknown at tier 2: {s}")
+    s = status(great); fail(s["status"] == "deceased" and s["tier"] == 3 and s["reason"] == "tier 3, deceased by default", f"a great-grandparent reached through a claimed membership, no death: deceased by default at tier 3: {s}")
+    s = status(who["Raymond Earl Davidson"]); fail(s["status"] == "deceased" and s["tier"] is None, f"a person the file links to nobody: deceased, no tier: {s}")
+    s = status(alone); fail(s["status"] == "deceased" and s["tier"] is None and s["reason"] == "no link to the home person", f"a planted person with no link and no death: deceased, no link: {s}")
+    # ---- a rejected membership does not place: James Joseph's child membership above rejected, the great-grandfather is unreached
+    cx.execute("UPDATE assertion SET status='rejected' WHERE subject_kind='family_member' AND subject_id=?", (tdumps([fam_top, who["James Joseph Ahearn"], "child"]),)); cx.commit()
+    s = Catalog(cx, tid).living(great); fail(s["status"] == "deceased" and s["tier"] is None and s["reason"] == "no link to the home person", f"the link rejected, no chain reaches the great-grandfather: {s}")
+    cx.execute("UPDATE assertion SET status='undecided' WHERE subject_kind='family_member' AND subject_id=?", (tdumps([fam_top, who["James Joseph Ahearn"], "child"]),)); cx.commit()
+    # ---- the mode of a search step follows the status: the planted people's baselines are complete (name accepted, no
+    # dated claim, links accepted), Alicia's and Charlotte's vouched fact by fact
+    cx.execute("UPDATE assertion SET status='accepted' WHERE subject_kind='family_member' AND subject_id=?", (tdumps([fam_top, who["James Joseph Ahearn"], "child"]),))
+    for pid, fields in ((who["Alicia Ahern"], ("name", "sex", "birth", "parents")), (who["Charlotte D Lukens"], ("name", "sex", "birth", "death", "spouses", "children")),
+                        (aunt, ("children",)), (gran, ("children",))):
+        for field in fields:
+            res = decide_fact(cx, tid, pid, field, "accepted", "harness: vouch, to open the searches", BY); fail(res.get("ok"), f"{field} vouched on {pid}: {res}")
+    cx.commit()
+    from connectors import answers
+    cat = Catalog(cx, tid)
+    runnable = lambda record, sources: any(cat.sources.get(sid, {}).get("connector") and answers(cat.sources[sid]["connector"], record) for sid in sources)   # the rows whose mode the living default decides: a source with a connector answers them
+    def mode(pid):
+        """The one mode of every search step the checklist opens for the person at a source with a connector (a cited row's fetch aside)."""
+        cat_ = Catalog(cx, tid); r = build(cat_, pid)
+        fail(r["baseline"]["complete"], f"the baseline of {cat_.person(pid)['name']} is complete, so search steps exist: undecided {r['baseline']['undecided']}")
+        modes = {x["search"]["mode"] for x in r["checklist"]["A"] + r["checklist"]["B"] if x.get("search") and x["search"]["mode"] in ("auto", "assisted") and runnable(x["record"], x["sources"])}
+        return modes.pop() if len(modes) == 1 else modes
+    def foundation_living(pid):
+        return next(f for f in build(Catalog(cx, tid), pid)["foundation"] if f["field"] == "living")
+    fail(mode(who["Alicia Ahern"]) == "assisted", f"a living tier-0 person's search step is assisted: {mode(who['Alicia Ahern'])}")
+    fail(mode(aunt) == "assisted", f"a living tier-1 person's search step is assisted: {mode(aunt)}")
+    fail(mode(who["Charlotte D Lukens"]) == "auto", f"a tier-2 person with death held: her search step is auto: {mode(who['Charlotte D Lukens'])}")
+    fail(mode(gran) == "assisted", f"an unknown tier-2 person's search step is assisted: {mode(gran)}")
+    f = foundation_living(gran); fail(f["value"] == "unknown, confirm with tools/conclude.py living" and f["basis"] == "tier 2, unconfirmed", f"the checklist's foundation says to confirm an unknown person: {f}")
+    fail(mode(great) == "auto", f"a tier-3 person with no death: deceased by default, auto: {mode(great)}")
+    fail(mode(alone) == "auto", f"a person with no link and no death: deceased, auto: {mode(alone)}")
+    for pid in (gran, great): plan_person(cx, tid, pid, BY)
+    cx.commit()
+    def planned(pid):
+        modes = {r["mode"] for r in cx.execute("SELECT row_key, sources_json, mode FROM search_plan WHERE person_id=? AND kind='search' AND mode IN ('auto','assisted')", (pid,))
+                 if runnable(r["row_key"].split(":")[0], json.loads(r["sources_json"]))}
+        return modes.pop() if len(modes) == 1 else modes
+    fail(planned(gran) == "assisted", f"the plan writes the unknown grandparent's searches assisted: {planned(gran)}")
+    fail(planned(great) == "auto", f"the plan writes the great-grandfather's searches auto: {planned(great)}")
+    # ---- the living command: the owner's word above the rule, one audit row each, unknown clears it
+    n_audit = lambda: cx.execute("SELECT COUNT(*) FROM audit_log WHERE entity_kind='person' AND entity_id=? AND json_extract(diff_json,'$.living_override') IS NOT NULL", (gran,)).fetchone()[0]
+    res = living(cx, tid, gran, "living", BY, "harness: the owner says she is alive"); cx.commit()
+    fail(res["was"] is None and res["now"] == "living" and res["status"] == "living" and res["reason"] == "the owner's word", f"the living command sets living on the owner's word: {res}")
+    fail(cx.execute("SELECT living_override FROM person WHERE id=?", (gran,)).fetchone()[0] == "living", "person.living_override holds the word")
+    row = cx.execute("SELECT actor, action, diff_json FROM audit_log WHERE entity_kind='person' AND entity_id=? ORDER BY at DESC, id DESC LIMIT 1", (gran,)).fetchone()
+    diff = json.loads(row["diff_json"]) if row else {}
+    fail(row and row["actor"] == BY and row["action"] == "update" and diff.get("living_override") == {"was": None, "now": "living"} and diff.get("note") == "harness: the owner says she is alive", f"one audit row carries the word, by whom and the note: {dict(row) if row else None}")
+    fail(n_audit() == 1, f"one audit row for the one write: {n_audit()}")
+    plan_person(cx, tid, gran, BY); cx.commit()
+    fail(planned(gran) == "assisted", f"living on the owner's word: assisted: {planned(gran)}")
+    res = living(cx, tid, gran, "deceased", BY, "harness: the owner corrects it"); cx.commit()
+    fail(res["was"] == "living" and res["now"] == "deceased" and res["status"] == "deceased" and res["reason"] == "the owner's word", f"the word flips to deceased: {res}")
+    plan_person(cx, tid, gran, BY); cx.commit()
+    fail(planned(gran) == "auto", f"deceased on the owner's word: auto: {planned(gran)}")
+    res = living(cx, tid, gran, "unknown", BY, "harness: the owner withdraws the word"); cx.commit()
+    fail(res["was"] == "deceased" and res["now"] is None and res["status"] == "unknown" and res["reason"] == "tier 2, unconfirmed", f"unknown clears the word and the rule decides again: {res}")
+    fail(n_audit() == 3, f"three writes, three audit rows: {n_audit()}")
+    s = Catalog(cx, tid).living(who["Alicia Ahern"]); res = living(cx, tid, who["Alicia Ahern"], "deceased", BY, "harness: the owner's word over the tier"); cx.commit()
+    fail(s["status"] == "living" and res["status"] == "deceased" and res["reason"] == "the owner's word", f"the owner's word stands above a tier-0 default: {res}")
+    cx.close()
+    if keep: print("living scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def turn_check(keep):
     """tools/queue.py and tools/turn.py on tests/fixtures/harness.ged. The queue names James Joseph Ahearn first: the home
     person's own parent, the file's claim, not yet accepted. Charlotte D Lukens's six vouchable key facts (name, sex,
@@ -2694,6 +2819,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL decisions on harness.ged: " + "; ".join(fails))
     else: print("ok   decisions on harness.ged: the matcher, the rule and the writers as the docs say")
+    try: fails = living_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL living default on harness.ged: " + "; ".join(fails))
+    else: print("ok   living default on harness.ged: tiers 0 and 1 living and assisted, tier 2 unknown and assisted until the owner confirms, tier 3 and the unlinked deceased and auto; a claimed link places and a rejected one does not; held death evidence makes a tier-1 person deceased; the living command flips the status with one audit row and unknown clears it")
     try: fails = turn_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL turn.py / queue.py on harness.ged: " + "; ".join(fails))

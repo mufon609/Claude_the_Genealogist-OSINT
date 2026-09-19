@@ -862,6 +862,19 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
               (ulid(), tree_id, ts, by, "update", "person", dup_id, dumps({"merged_into": kept_id, "proposal": prop_id, "note": note, **moved})))
     return {"proposal": prop_id, "duplicate": dup_id, "kept": kept_id, **moved}
 
+def living(cx, tree_id, pid, word, by, note):
+    """The owner's word on whether a person is alive, above the tier rule (docs/DATA-ARCHITECTURE.md §7 decision 3):
+    person.living_override set to living or deceased, or cleared by unknown so the rule decides again; one audit row. Returns
+    what was and is, with the default's reading afterwards."""
+    q = _q(cx); ts = now()
+    row = q.execute("SELECT living_override FROM person WHERE id=? AND tree_id=?", (pid, tree_id)).fetchone()
+    if not row: raise ValueError("no such person in this tree")
+    value = None if word == "unknown" else word
+    q.execute("UPDATE person SET living_override=?, updated_at=? WHERE id=?", (value, ts, pid))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "update", "person", pid, dumps({"living_override": {"was": row["living_override"], "now": value}, "note": note})))
+    return {"was": row["living_override"], "now": value, **Catalog(cx, tree_id).living(pid)}
+
 def withdraw(cx, tree_id, prop_id, by, why, ts):
     """The rule takes back a decision it would no longer make: the proposal and the persona link return to Undecided, every
     assertion the decision wrote returns to Undecided (an Accept later makes them Accepted again), the questions the decision
@@ -962,7 +975,7 @@ def reconsider(cx, tree_id, by, dry_run=False):
     return out + list(cards.values()) + rows_out
 
 def main():
-    ap = argparse.ArgumentParser(description="The standing rule's decisions examined again; the owner's word on a family link or a divorce.")
+    ap = argparse.ArgumentParser(description="The standing rule's decisions examined again; the owner's word on a family link, a divorce, a duplicate or whether a person is alive.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     dc = sub.add_parser("decide", help="the decision on a card: is this record's persona this person (or a new person)"); dc.add_argument("proposal"); dc.add_argument("verdict", choices=["accept", "reject"]); dc.add_argument("--note")
     fc = sub.add_parser("fact", help="a key fact of a person decided: accept touches held evidence or is your own word (a vouch); reject and undecided touch every assertion behind it")
@@ -981,7 +994,9 @@ def main():
     d.add_argument("--evidence", action="append", required=True, help="sha256[:persona fact id][:citation words]"); d.add_argument("--note", required=True)
     mg = sub.add_parser("merge", help="close a duplicate_person question: move the duplicate's evidence links onto the person it duplicates")
     mg.add_argument("duplicate"); mg.add_argument("--into", dest="kept", required=True); mg.add_argument("--note", required=True, help="why these are the same person, kept on the proposal")
-    for x in (dc, fc, ac, ls, r, l, d, mg):
+    lv = sub.add_parser("living", help="your own word on whether a person is alive, above the tier rule; unknown clears it so the rule decides again")
+    lv.add_argument("person"); lv.add_argument("word", choices=["living", "deceased", "unknown"]); lv.add_argument("--note", required=True, help="your reason, kept on the audit row")
+    for x in (dc, fc, ac, ls, r, l, d, mg, lv):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
@@ -1060,6 +1075,10 @@ def main():
                 parts = e.split(":", 2); ev.append((parts[0], parts[1] or None if len(parts) > 1 else None, parts[2] if len(parts) > 2 else "the record's own words"))
             eid = divorce(cx, tree_id, cat.find_person(a.a), cat.find_person(a.b), a.date, ev, a.by, a.note)
             print(f"divorce event {eid} between {a.a} and {a.b}")
+        elif a.cmd == "living":
+            pid = cat.find_person(a.person); res = living(cx, tree_id, pid, a.word, a.by, a.note)
+            print(f"{cx.execute('SELECT display_name FROM person WHERE id=?', (pid,)).fetchone()[0]} [{pid[-6:]}]: living_override {res['was'] or 'none'} -> {res['now'] or 'none'}; "
+                  f"the default now reads {res['status']} ({res['reason']}); the plan next: tools/plan.py")
         else:
             res = merge(cx, tree_id, cat.find_person(a.duplicate), cat.find_person(a.kept), a.by, a.note)
             print(f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s), {res['assertions']} assertion(s), "
