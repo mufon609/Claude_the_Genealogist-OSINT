@@ -1,0 +1,262 @@
+{
+ "title": "the place resolver's own line",
+ "line": "a unique full match auto-accepts; a city and the county coterminous with it accept as one territory; a village genuinely nested in its much larger town stays undecided with both offered; a resolved place's wikidata id brings its dated former names, offered as a candidate to a string naming one, never auto-resolved",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a string of the records for the city a former name of which the file gives as a birthplace",
+   "place_string": {
+    "raw": "Morioka, Japan"
+   }
+  },
+  {
+   "say": "the resolver run with the geocoder's answers in its cache and Wikidata's in its own",
+   "resolve": {
+    "only": [
+     "Coatesville, Chester, Pennsylvania, USA",
+     "Philadelphia, Philadelphia, Pennsylvania, USA",
+     "Hempstead, Nassau, New York",
+     "Morioka, Japan",
+     "Ogau Tonan, Iwate Shiwa, Japan"
+    ],
+    "cache": {
+     "Coatesville, Chester, Pennsylvania, United States": [
+      {
+       "osm_type": "relation",
+       "osm_id": 6,
+       "lat": "39.98",
+       "lon": "-75.82",
+       "name": "Coatesville",
+       "display_name": "Coatesville, Chester County, Pennsylvania, United States",
+       "category": "boundary",
+       "type": "administrative",
+       "addresstype": "city",
+       "address": {
+        "city": "Coatesville",
+        "county": "Chester County",
+        "state": "Pennsylvania",
+        "country": "United States",
+        "country_code": "us"
+       },
+       "extratags": {}
+      }
+     ],
+     "Philadelphia, Philadelphia, Pennsylvania, United States": [
+      {
+       "osm_type": "relation",
+       "osm_id": 2,
+       "lat": "40.0",
+       "lon": "-75.13",
+       "name": "Philadelphia",
+       "display_name": "Philadelphia, Philadelphia County, Pennsylvania, United States",
+       "category": "boundary",
+       "type": "administrative",
+       "addresstype": "city",
+       "boundingbox": [
+        "39.8670050",
+        "40.1379593",
+        "-75.2802660",
+        "-74.9558314"
+       ],
+       "address": {
+        "city": "Philadelphia",
+        "county": "Philadelphia County",
+        "state": "Pennsylvania",
+        "country": "United States",
+        "country_code": "us"
+       },
+       "extratags": {}
+      },
+      {
+       "osm_type": "relation",
+       "osm_id": 3,
+       "lat": "40.0",
+       "lon": "-75.13",
+       "name": "Philadelphia County",
+       "display_name": "Philadelphia County, Pennsylvania, United States",
+       "category": "boundary",
+       "type": "administrative",
+       "addresstype": "county",
+       "boundingbox": [
+        "39.8670050",
+        "40.1379593",
+        "-75.2802660",
+        "-74.9558314"
+       ],
+       "address": {
+        "county": "Philadelphia County",
+        "state": "Pennsylvania",
+        "country": "United States",
+        "country_code": "us"
+       },
+       "extratags": {}
+      }
+     ],
+     "Hempstead, Nassau, New York, United States": [
+      {
+       "osm_type": "relation",
+       "osm_id": 4,
+       "lat": "40.64",
+       "lon": "-73.6",
+       "name": "Town of Hempstead",
+       "display_name": "Town of Hempstead, Nassau County, New York, United States",
+       "category": "boundary",
+       "type": "administrative",
+       "addresstype": "municipality",
+       "boundingbox": [
+        "40.5253180",
+        "40.7567050",
+        "-73.7672900",
+        "-73.4647620"
+       ],
+       "address": {
+        "municipality": "Town of Hempstead",
+        "county": "Nassau County",
+        "state": "New York",
+        "country": "United States",
+        "country_code": "us"
+       },
+       "extratags": {}
+      },
+      {
+       "osm_type": "relation",
+       "osm_id": 5,
+       "lat": "40.70",
+       "lon": "-73.62",
+       "name": "Village of Hempstead",
+       "display_name": "Village of Hempstead, Town of Hempstead, Nassau County, New York, United States",
+       "category": "boundary",
+       "type": "administrative",
+       "addresstype": "town",
+       "boundingbox": [
+        "40.6841120",
+        "40.7213530",
+        "-73.6433830",
+        "-73.5984910"
+       ],
+       "address": {
+        "town": "Village of Hempstead",
+        "municipality": "Town of Hempstead",
+        "county": "Nassau County",
+        "state": "New York",
+        "country": "United States",
+        "country_code": "us"
+       },
+       "extratags": {}
+      }
+     ],
+     "Morioka, Japan": [
+      {
+       "osm_type": "relation",
+       "osm_id": 10,
+       "lat": "39.7",
+       "lon": "141.15",
+       "name": "Morioka",
+       "display_name": "Morioka, Iwate, Japan",
+       "category": "boundary",
+       "type": "administrative",
+       "addresstype": "city",
+       "address": {
+        "city": "Morioka",
+        "state": "Iwate",
+        "country": "Japan",
+        "country_code": "jp"
+       },
+       "extratags": {
+        "wikidata": "Q200077"
+       }
+      }
+     ],
+     "Ogau Tonan, Iwate Shiwa, Japan": [],
+     "Ogau Tonan, Japan": []
+    },
+    "wikidata": {
+     "Q200077": "wikidata-Q200077-morioka.json",
+     "Q11643491": "wikidata-Q11643491-tonan.json"
+    }
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": "Coatesville, Chester, Pennsylvania, USA",
+      "status": "accepted",
+      "has_place": true
+     },
+     "why": "a unique full match auto-accepts"
+    },
+    {
+     "place_string": {
+      "raw": "Philadelphia, Philadelphia, Pennsylvania, USA",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "how": "coterminous: one territory"
+      }
+     },
+     "why": "a city and the county coterminous with it accept as one territory"
+    },
+    {
+     "place_string": {
+      "raw": "Hempstead, Nassau, New York",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "a village genuinely nested in its much larger town stays undecided"
+    },
+    {
+     "place_card": {
+      "raw": "Hempstead, Nassau, New York",
+      "names": {
+       "has": [
+        "Town of Hempstead, Nassau County, New York, United States",
+        "Village of Hempstead, Town of Hempstead, Nassau County, New York, United States"
+       ]
+      }
+     },
+     "why": "the card offers both the village and the town as candidates"
+    },
+    {
+     "place": {
+      "name": "Morioka",
+      "wikidata_id": "Q200077",
+      "dated_name": "Tonan",
+      "dated": [
+       "1955-04-01",
+       "1992-04-01"
+      ]
+     },
+     "why": "the city resolves with its wikidata id carried onto the place, and its former name is written as a dated name from Wikidata's own dates"
+    },
+    {
+     "place_string": {
+      "raw": "Ogau Tonan, Iwate Shiwa, Japan",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "a dated former name is offered, never auto-resolved"
+    },
+    {
+     "place_card": {
+      "raw": "Ogau Tonan, Iwate Shiwa, Japan",
+      "place_of": true,
+      "candidates": [
+       {
+        "kind": "jurisdiction_change",
+        "name": "Tonan",
+        "valid_from": "1955-04-01",
+        "valid_to": "1992-04-01",
+        "leading": "Ogau",
+        "place_name": "Morioka"
+       }
+      ]
+     },
+     "why": "the string's own card offers the former name as a dated candidate of the city, the leading word left as the finer, unverified part"
+    }
+   ]
+  }
+ ]
+}

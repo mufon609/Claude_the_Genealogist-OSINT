@@ -1,0 +1,73 @@
+{
+ "title": "a search step's several place names",
+ "line": "a search step whose place field carries more than one accurate name is tried in order and stops at the first hit, every try named on the logged run's query",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "a search step on a person born under a place's former name, the place field carrying both names",
+   "step": {
+    "person": "I332737099804",
+    "row_key": "footprint:",
+    "seq": 1,
+    "step_key": "search:retry",
+    "kind": "search",
+    "query_type": "household",
+    "query": {
+     "surname": {
+      "value": "Davidson",
+      "basis": "accepted"
+     },
+     "place": {
+      "value": [
+       "Tonan",
+       "Morioka"
+      ],
+      "basis": "accepted"
+     }
+    },
+    "sources": [
+     "D05"
+    ],
+    "mode": "auto"
+   },
+   "as": "s"
+  },
+  {
+   "say": "the connector standing in answers none for the first name and found for the second",
+   "run_connector": {
+    "step": "$s.step",
+    "connector": {
+     "source": "D05",
+     "collection": "Test Collection",
+     "url": "http://test.invalid/search",
+     "none_when": "place=Tonan"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "outcome": "found",
+      "requests": [
+       "http://test.invalid/search?place=Tonan",
+       "http://test.invalid/search?place=Morioka"
+      ],
+      "logged_query": {
+       "place": {
+        "tried": [
+         "Tonan",
+         "Morioka"
+        ],
+        "value": "Morioka"
+       }
+      }
+     },
+     "why": "both names are tried, in order, before the run stops; the logged run's query names every try, the one that hit last"
+    }
+   ]
+  }
+ ]
+}

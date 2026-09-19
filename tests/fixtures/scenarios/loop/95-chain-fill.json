@@ -1,0 +1,209 @@
+{
+ "title": "events filled from facts on one chain",
+ "line": "an event whose accepted facts name a state and a city in that state is filled at its most specific point and shows the deepest place, never the alphabet; an event whose accepted facts name places on different chains stays unplaced",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the census accepted for the couple: their birthplaces from the record, the states",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "say": "",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the file's own birthplaces accepted too: hers a city in the state the record gives, his a city in another state",
+   "fact": {
+    "person": "I332737037573",
+    "field": "birth",
+    "status": "accepted",
+    "note": "harness: the file's claim accepted"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737037257",
+    "field": "birth",
+    "status": "accepted",
+    "note": "harness: the file's claim accepted"
+   }
+  },
+  {
+   "say": "the three strings resolved on their cards",
+   "place_card": {
+    "raw": "Philadelphia, Philadelphia, Pennsylvania, USA",
+    "queries": [
+     "Philadelphia, Philadelphia, Pennsylvania, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 2,
+      "lat": "40.0",
+      "lon": "-75.13",
+      "name": "Philadelphia",
+      "display_name": "Philadelphia, Philadelphia County, Pennsylvania, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "city",
+      "boundingbox": [
+       "39.8670050",
+       "40.1379593",
+       "-75.2802660",
+       "-74.9558314"
+      ],
+      "address": {
+       "city": "Philadelphia",
+       "county": "Philadelphia County",
+       "state": "Pennsylvania",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "p1"
+  },
+  {
+   "say": "",
+   "decide": {
+    "card": "$p1.proposal",
+    "status": "accepted",
+    "choice": 0
+   }
+  },
+  {
+   "say": "",
+   "place_card": {
+    "raw": "Pennsylvania",
+    "queries": [
+     "Pennsylvania, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 7,
+      "lat": "40.9",
+      "lon": "-77.8",
+      "name": "Pennsylvania",
+      "display_name": "Pennsylvania, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "state",
+      "address": {
+       "state": "Pennsylvania",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "p2"
+  },
+  {
+   "say": "",
+   "decide": {
+    "card": "$p2.proposal",
+    "status": "accepted",
+    "choice": 0
+   }
+  },
+  {
+   "say": "",
+   "place_card": {
+    "raw": "Northampton, Hampshire, Massachusetts, USA",
+    "queries": [
+     "Northampton, Hampshire, Massachusetts, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 8,
+      "lat": "42.32",
+      "lon": "-72.63",
+      "name": "Northampton",
+      "display_name": "Northampton, Hampshire County, Massachusetts, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "city",
+      "address": {
+       "city": "Northampton",
+       "county": "Hampshire County",
+       "state": "Massachusetts",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "p3"
+  },
+  {
+   "say": "",
+   "decide": {
+    "card": "$p3.proposal",
+    "status": "accepted",
+    "choice": 0
+   },
+   "expect": [
+    {
+     "event_place": {
+      "person": "I332737037573",
+      "type": "Birth",
+      "shown_first": "Philadelphia"
+     },
+     "why": "before any filler has run, an event with an accepted state and an accepted city in that state already shows the city, the deepest, never the state sorting first"
+    }
+   ]
+  },
+  {
+   "say": "the filler run",
+   "apply_places": {},
+   "expect": [
+    {
+     "event_place": {
+      "person": "I332737037573",
+      "type": "Birth",
+      "place": "Philadelphia"
+     },
+     "why": "a state and the city in it agree: the event takes the most specific"
+    },
+    {
+     "event_place": {
+      "person": "I332737037257",
+      "type": "Birth",
+      "place": null
+     },
+     "why": "a city in one state and another state are different chains: the event stays unplaced"
+    }
+   ]
+  }
+ ]
+}

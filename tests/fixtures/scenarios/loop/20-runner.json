@@ -1,0 +1,196 @@
+{
+ "title": "the runner on a step",
+ "line": "a connector's run whose records are a results listing is found only when a row fits a person: rows under the surname fitting nobody are a none run with the reason first in its note, the rows kept on the artifact and the step planned; a connector with nothing to ask on the step's fields logs a none run with no request, the note naming the field it wanted, and the queue passes the person over",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a grandmother the file gives a name and a husband and nothing else: her baseline reviewed on those claims, and deceased on the owner's word so her searches run unattended",
+   "fact": {
+    "person": "I332737036894",
+    "fields": [
+     "name",
+     "sex",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "living": {
+    "person": "I332737036894",
+    "word": "deceased",
+    "note": "harness: so the steps are auto"
+   }
+  },
+  {
+   "say": "",
+   "plan": [
+    "I332737036894"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036894",
+      "row_key": "death record:",
+      "kind": "search",
+      "fields": {
+       "mode": "auto",
+       "sources": {
+        "has": "C09"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the death index asked for her surname, its download standing in: the file's rows carry nobody under it",
+   "run": {
+    "step": {
+     "person": "I332737036894",
+     "row_key": "death record:",
+     "kind": "search"
+    },
+    "fetch": {
+     "header": "FNAME,LNAME,MIDDLE_NAME,STATE_FILE_NUMBER,BIRTH_YEAR,BIRTH_MONTH,BIRTH_DAY,BIRTH_CITY,BIRTH_STATE,BIRTH_COUNTRY,DEATH_YEAR,DEATH_MONTH,DEATH_DAY,DEATH_STATE",
+     "rows": [
+      "fred,ahearn,,20160057427,1907,5,22,,Massachusetts,United States,2016,3,4,NJ",
+      "noi,davidson,,20150044120,1949,1,12,Morioka,,Japan,2015,6,9,NJ",
+      "alice,ahearn,m,20160012345,1935,,,,,United States,2016,8,1,NJ",
+      "john,smith,,20140099999,1930,7,4,,New Jersey,United States,2014,2,14,NJ"
+     ],
+     "content_type": "text/csv"
+    }
+   },
+   "as": "dr",
+   "expect": [
+    {
+     "last": {
+      "connectors": [
+       "nj_death_index"
+      ],
+      "results": [
+       {
+        "connector": "nj_death_index",
+        "outcome": "none"
+       }
+      ]
+     }
+    },
+    {
+     "search_log": {
+      "step": "$dr.step",
+      "is": [
+       {
+        "outcome": "none"
+       }
+      ]
+     }
+    },
+    {
+     "step": {
+      "person": "I332737036894",
+      "row_key": "death record:",
+      "kind": "search",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "a none run leaves the step planned"
+    }
+   ]
+  },
+  {
+   "say": "the compiled-genealogy step: each connector wants a field the step does not carry",
+   "run": {
+    "step": {
+     "person": "I332737036894",
+     "row_key": "compiled genealogy / family history:",
+     "kind": "search"
+    }
+   },
+   "as": "cg",
+   "expect": [
+    {
+     "last": {
+      "connectors": [
+       "ia_books",
+       "wikitree"
+      ],
+      "results": [
+       {
+        "connector": "ia_books",
+        "outcome": "none",
+        "requests": [],
+        "wants": "a state"
+       },
+       {
+        "connector": "wikitree",
+        "outcome": "none",
+        "requests": [],
+        "wants": "a birth or death year"
+       }
+      ]
+     },
+     "why": "each connector is a none run with no request, naming the field it wanted"
+    },
+    {
+     "search_log": {
+      "step": "$cg.step",
+      "is": [
+       {
+        "source_id": "L02",
+        "outcome": "none",
+        "artifacts": [],
+        "notes": {
+         "has": "it wants a state"
+        }
+       },
+       {
+        "source_id": "B04",
+        "outcome": "none",
+        "artifacts": [],
+        "notes": {
+         "has": "it wants a birth or death year"
+        }
+       }
+      ]
+     },
+     "why": "one log row per connector under its own source, none, no artifact, the note naming the field"
+    },
+    {
+     "step": {
+      "person": "I332737036894",
+      "row_key": "compiled genealogy / family history:",
+      "kind": "search",
+      "fields": {
+       "status": "planned"
+      }
+     }
+    },
+    {
+     "runnable": {
+      "step": "$cg.step",
+      "is": false
+     },
+     "why": "run once on these fields, the step is not runnable again"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

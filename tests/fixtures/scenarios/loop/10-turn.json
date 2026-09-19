@@ -1,0 +1,234 @@
+{
+ "title": "a turn on a person",
+ "line": "the queue names the home person's own unconfirmed parents first; a turn runs every runnable step once, keeps going past a source that did not answer, pauses on the assisted fetch list with its state beside the database naming that source; a step logged error stays runnable and a none run after it closes the step; resumed, the state is cleared, the report still names the source under left, and an unrelated page saved into the inbox is read for its identity and left there",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the queue names the home person's own parents first, the file's claim not yet accepted",
+   "expect": [
+    {
+     "queue": {
+      "first": [
+       "I332737035563",
+       "I332737044283"
+      ],
+      "first_reason": {
+       "has": [
+        "parent",
+        "not yet accepted"
+       ]
+      },
+      "passed_count": 0
+     },
+     "why": "nobody has been planned into settledness yet, so nobody is passed over"
+    }
+   ]
+  },
+  {
+   "say": "a great-great-grandmother's six key facts decided on the file's claims, so her plan opens searches",
+   "fact": {
+    "person": "I332737039686",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   },
+   "expect": [
+    {
+     "last": {
+      "every": {
+       "ok": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "a turn on her, the network standing in: the first source does not answer, the rest answer nothing",
+   "turn": {
+    "person": "I332737039686",
+    "fake_run": {
+     "first": "error",
+     "then": "none",
+     "error": "https://faked.example/search: timed out"
+    }
+   },
+   "as": "turn",
+   "expect": [
+    {
+     "step_count": {
+      "person": "I332737039686",
+      "kind": "search",
+      "mode": "auto",
+      "is": {
+       ">=": 1
+      }
+     },
+     "why": "the plan opens at least one auto search step once her baseline is reviewed"
+    },
+    {
+     "last": {
+      "seen": {
+       "len": {
+        ">=": 2
+       }
+      }
+     }
+    },
+    {
+     "bound": {
+      "value": "$turn.distinct",
+      "is": "$turn.seen_len"
+     },
+     "why": "the turn ran every one of her runnable steps once each"
+    },
+    {
+     "search_log": {
+      "step": "$turn.seen.0",
+      "is": [
+       {
+        "outcome": "error"
+       }
+      ]
+     },
+     "why": "the run that did not answer is logged as run_step.run reports it"
+    },
+    {
+     "search_log": {
+      "step": "$turn.seen.1",
+      "is": [
+       {
+        "outcome": "none"
+       }
+      ]
+     }
+    },
+    {
+     "turn_state": {
+      "person": "I332737039686",
+      "is": {
+       "unanswered": {
+        "len": 1,
+        "every": {
+         "has": [
+          "did not answer",
+          "timed out"
+         ]
+        }
+       }
+      }
+     },
+     "why": "the turn paused on her assisted fetch list, its state naming the source that did not answer, by the registry's name, with what it said"
+    },
+    {
+     "runnable": {
+      "step": "$turn.seen.0",
+      "is": true
+     },
+     "why": "the step whose latest run is an error is still runnable: the source did not answer"
+    },
+    {
+     "runnable": {
+      "step": "$turn.seen.1",
+      "is": false
+     },
+     "why": "a step logged none on these fields is not runnable"
+    },
+    {
+     "step_count": {
+      "person": "I332737039686",
+      "kind": "fetch",
+      "mode": "fetch",
+      "status": "planned",
+      "is": {
+       ">=": 1
+      }
+     },
+     "why": "she still has an assisted fetch step waiting: what the turn paused on"
+    }
+   ]
+  },
+  {
+   "say": "the source answers on the second ask: a none run on the same fields closes the step",
+   "log": {
+    "step": "$turn.seen.0",
+    "outcome": "none",
+    "note": "harness: the source answered on the second ask",
+    "query": true
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$turn.seen.0",
+      "is": false
+     }
+    }
+   ]
+  },
+  {
+   "say": "resumed after the browser session, an unrelated page saved into the inbox by hand",
+   "resume": {
+    "inbox": [
+     "familysearch-census-1940-KQX1-VT9.html"
+    ]
+   },
+   "expect": [
+    {
+     "turn_state": {
+      "is": null
+     },
+     "why": "the state file is cleared once a turn is resumed"
+    },
+    {
+     "last": {
+      "left": {
+       "has": [
+        "the next turn asks it again",
+        "did not answer"
+       ]
+      }
+     },
+     "why": "the resumed turn's report still names the source that did not answer, under left, so the next turn asks it again"
+    },
+    {
+     "locator_known": {
+      "kind": "ark",
+      "value": "ark:/61903/1:1:KQX1-VT9",
+      "exists": false
+     },
+     "why": "the unrelated page is read for its identity and left: it fulfils none of her steps"
+    },
+    {
+     "file": {
+      "name": "familysearch-census-1940-KQX1-VT9.html",
+      "exists": true
+     },
+     "why": "the unmatched file stays in the inbox, not filed under the tree"
+    }
+   ]
+  },
+  {
+   "say": "the plan the turn itself regenerated is already settled",
+   "expect": [
+    {
+     "plan_idempotent": [
+      "I332737039686"
+     ]
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

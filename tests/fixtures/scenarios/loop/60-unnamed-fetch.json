@@ -1,0 +1,76 @@
+{
+ "title": "a fetch step the list cannot name",
+ "line": "a citation with no year on a row with no instance, at a holder whose pages carry no identity the attach reads, is an entry the list cannot name: the save name still wants a year, so a turn prints the page as passed over with the reason and pauses on the rest",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the fetch list's entries at the state marriage index the two grandparents cite with no year",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "C08",
+      "person": [
+       "I332737036054",
+       "I332737036894"
+      ],
+      "is": {
+       "len": 2,
+       "every": {
+        "unnamed": {
+         "has": [
+          "cannot name",
+          "<year>"
+         ]
+        },
+        "save_as": {
+         "has": "<year>"
+        }
+       }
+      }
+     },
+     "why": "the undated citation's entries are ones the list cannot name, the reason naming the file"
+    }
+   ]
+  },
+  {
+   "say": "a turn on one of them pauses on the pages it can name and prints this one as passed over with the reason",
+   "turn": {
+    "person": "I332737036894",
+    "fake_run": {
+     "first": "none"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": [
+        "passed over:",
+        "cannot name"
+       ]
+      }
+     }
+    },
+    {
+     "step": {
+      "person": "I332737036894",
+      "holder": "C08",
+      "kind": "fetch",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "the step stays planned: passed over, not run, not logged"
+    }
+   ]
+  },
+  {
+   "say": "",
+   "clear_state": {}
+  }
+ ]
+}

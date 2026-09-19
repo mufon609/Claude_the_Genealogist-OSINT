@@ -1,0 +1,137 @@
+{
+ "title": "the runner over every step",
+ "line": "runnable steps are read fresh before each run, so a step a run's own regeneration drops is never run and one it opens still gets its turn; a SystemExit from a step's own run rolls that step's transaction back and still propagates",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "two steps written by hand on a person, in order",
+   "step": {
+    "person": "I332737035562",
+    "row_key": "footprint:keep",
+    "seq": 1,
+    "step_key": "keep",
+    "kind": "search",
+    "query_type": "name",
+    "sources": [
+     "H01"
+    ],
+    "mode": "auto"
+   },
+   "as": "keep"
+  },
+  {
+   "say": "",
+   "step": {
+    "person": "I332737035562",
+    "row_key": "footprint:drop",
+    "seq": 2,
+    "step_key": "drop",
+    "kind": "search",
+    "query_type": "name",
+    "sources": [
+     "H01"
+    ],
+    "mode": "auto"
+   },
+   "as": "drop"
+  },
+  {
+   "say": "--all, the first step's own run regenerating the plan: it drops the second and opens a third",
+   "run_all": {
+    "fake": {
+     "regenerates_at": "$keep.step",
+     "drops": "$drop.step",
+     "opens": {
+      "person": "I332737035562",
+      "row_key": "footprint:new",
+      "step_key": "new",
+      "sources": [
+       "H01"
+      ]
+     }
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "raised": false,
+      "calls": {
+       "len": 2
+      },
+      "opened": {
+       "len": 1
+      }
+     }
+    },
+    {
+     "bound": {
+      "value": "$last.calls.0",
+      "is": "$keep.step"
+     },
+     "why": "the step read before the regeneration runs"
+    },
+    {
+     "bound": {
+      "value": "$last.calls.1",
+      "is": "$last.opened.0"
+     },
+     "why": "the one it dropped never runs, the one it opened still gets its own turn"
+    },
+    {
+     "step": {
+      "person": "I332737035562",
+      "step_key": "drop",
+      "exists": false
+     },
+     "why": "the dropped step is really gone"
+    }
+   ]
+  },
+  {
+   "say": "a step whose own run raises SystemExit: the transaction rolls back, the exception still propagates",
+   "step": {
+    "person": "I332737035562",
+    "row_key": "footprint:boom",
+    "seq": 9,
+    "step_key": "boom",
+    "kind": "search",
+    "query_type": "name",
+    "sources": [
+     "H01"
+    ],
+    "mode": "auto"
+   },
+   "as": "boom"
+  },
+  {
+   "say": "",
+   "run_all": {
+    "fake": {
+     "boom": true
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "raised": true
+     },
+     "why": "a SystemExit from a step's own run still stops the run: it is not silently swallowed"
+    },
+    {
+     "step": {
+      "person": "I332737035562",
+      "step_key": "boom",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "its write does not survive: the transaction rolled back before the exception was re-raised"
+    }
+   ]
+  }
+ ]
+}

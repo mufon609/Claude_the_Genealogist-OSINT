@@ -24,12 +24,12 @@ def has(value, wanted):
             for op, w in wanted.items():
                 if op == ">=" and not (isinstance(value, (int, float)) and value >= w): return False
                 if op == "<=" and not (isinstance(value, (int, float)) and value <= w): return False
-                if op == "has" and not (value is not None and (all(x in value for x in w) if isinstance(w, list) and isinstance(value, str) else (any(has(v, w) for v in value) if isinstance(value, (list, dict)) and not isinstance(w, str) else w in value))): return False
+                if op == "has" and not (value is not None and all(holds(value, x) for x in (w if isinstance(w, list) else [w]))): return False
                 if op == "lacks" and not (value is None or (all(x not in value for x in w) if isinstance(w, list) else w not in value)): return False
                 if op == "starts" and not (isinstance(value, str) and value.startswith(w)): return False
                 if op == "ends" and not (isinstance(value, str) and value.endswith(w)): return False
                 if op == "first" and not (isinstance(value, (list, tuple)) and value and has(value[0], w)): return False
-                if op == "len" and not (value is not None and len(value) == w): return False
+                if op == "len" and not (value is not None and has(len(value), w)): return False
                 if op == "some" and not (isinstance(value, (list, dict)) and any(has(v, w) for v in (value.values() if isinstance(value, dict) else value))): return False
                 if op == "none" and not (value is None or not any(has(v, w) for v in (value.values() if isinstance(value, dict) else value))): return False
                 if op == "every" and not (isinstance(value, (list, dict)) and all(has(v, w) for v in (value.values() if isinstance(value, dict) else value))): return False
@@ -42,6 +42,13 @@ def has(value, wanted):
         return isinstance(value, dict) and all(has(value.get(k), w) for k, w in wanted.items())
     if isinstance(wanted, list): return isinstance(value, (list, tuple)) and len(value) == len(wanted) and all(has(v, w) for v, w in zip(value, wanted))
     return value == wanted
+
+def holds(value, x):
+    """One thing a value has: a substring of a text, an element of a list (equal, or matching a pattern), a key of a dict."""
+    if isinstance(value, str): return isinstance(x, str) and x in value
+    if isinstance(value, dict): return x in value
+    if isinstance(value, (list, tuple)): return any(v == x or (isinstance(x, (dict, list)) and has(v, x)) for v in value)
+    return False
 
 def short(x, n=400):
     try: s = json.dumps(x, default=str, ensure_ascii=False)
@@ -64,6 +71,8 @@ class Walker:
         if tree.get("file"): run(tool("ingest_gedcom.py"), os.path.join(FIXTURES, tree["file"]), "--keep", "--db", self.db, "--tree", self.slug, "--by", BY)
         self.cx = connect(self.db)
         self.tid = self.cx.execute("SELECT id FROM tree WHERE slug=?", (self.slug,)).fetchone()[0]
+        imp = self.cx.execute("SELECT artifact_sha256 FROM tree_import WHERE tree_id=?", (self.tid,)).fetchone()
+        self.env["import"] = {"sha": imp[0] if imp else None}                    # the file itself, for a vouch that rests on it
         if tree.get("home"): self.cx.execute("UPDATE tree SET home_person_id=? WHERE id=?", (self.person(tree["home"]), self.tid)); self.cx.commit()
         if tree.get("plan"):
             from plan import plan_person
@@ -139,6 +148,8 @@ class Walker:
         if "step_key" in ref: q += " AND step_key=?"; args.append(ref["step_key"])
         if "step_key_like" in ref: q += " AND step_key LIKE ?"; args.append(ref["step_key_like"])
         if "row_key" in ref: q += " AND row_key=?"; args.append(ref["row_key"])
+        if "row_key_like" in ref: q += " AND row_key LIKE ?"; args.append(ref["row_key_like"])
+        if "holder" in ref: q += " AND locator_source_id=?"; args.append(ref["holder"])
         if "locator" in ref: q += " AND locator_kind=? AND locator_value=?"; args += [ref["locator"]["kind"], ref["locator"]["value"]]
         if "kind" in ref: q += " AND kind=?"; args.append(ref["kind"])
         if "status" in ref: q += " AND status=?"; args.append(ref["status"])
@@ -338,6 +349,7 @@ def a_save(w, x):
     entries = [e for e in waiting(w.cx, w.tid) if (not x.get("holder") or e["holder_id"] == x["holder"]) and (pid is None or any(s in e["step_ids"] for s in [s[0] for s in w.cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))]))]
     if not entries: raise KeyError("no fetch entry waiting for that person at that holder")
     e = entries[0]; name = e["save_as"].replace("<year>", str(x.get("year", "")))
+    for k, v in (x.get("fill") or {}).items(): name = name.replace(k, v)
     folder = os.path.join(w.root, x["folder"]) if x.get("folder") else w.treelib.inbox_dir(); os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, name), "wb") as fh: fh.write(w.fixture_bytes({**x, "saved_from": x.get("saved_from") or e.get("url")}))
     return {"entry": e, "file": name, "folder": folder, "url": e.get("url"), "save_as": e["save_as"], "how": e.get("how"), "steps": e.get("step_ids")}

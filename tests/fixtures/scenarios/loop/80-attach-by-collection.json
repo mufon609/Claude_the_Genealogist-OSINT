@@ -1,0 +1,123 @@
+{
+ "title": "the attach by a row's kind and the person's name",
+ "line": "the fallback that matches a page to a step by the row's kind and the person's name also requires the page's own collection to be the citation's holder collection: two citations of one row at the same holder are not each other's record, and a page of neither citation's collection matches nothing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "one person's three death-record citations at the same holder: two Kentucky collections and an Ohio one",
+   "expect": [
+    {
+     "steps_by_kind": {
+      "parsed": {
+       "fields": [
+        [
+         "Event Type",
+         "Death"
+        ],
+        [
+         "Event Date",
+         "1918"
+        ]
+       ],
+       "collection": "Vital • Kentucky, Vital Record Indexes, 1911-1999",
+       "name": "Lena Howard Bell"
+      },
+      "is": [
+       {
+        "person": "I332737204852",
+        "kind": "fetch",
+        "locator": {
+         "kind": "apid",
+         "value": "1,3077::604157"
+        }
+       }
+      ]
+     },
+     "why": "a Kentucky death index page matches only the Kentucky death index citation's step, never the death records citation's nor the Ohio one at the same holder"
+    },
+    {
+     "steps_by_kind": {
+      "parsed": {
+       "fields": [
+        [
+         "Event Type",
+         "Death"
+        ],
+        [
+         "Event Date",
+         "1918"
+        ]
+       ],
+       "collection": "Death • Kentucky, Death Records, 1911-1967",
+       "name": "Lena Howard Bell"
+      },
+      "is": [
+       {
+        "person": "I332737204852",
+        "kind": "fetch",
+        "locator": {
+         "kind": "apid",
+         "value": "1,1222::1373711"
+        }
+       }
+      ]
+     },
+     "why": "a page of the death records collection, as the holders registry titles it, matches only the death records citation's step"
+    },
+    {
+     "steps_by_kind": {
+      "parsed": {
+       "fields": [
+        [
+         "Event Type",
+         "Death"
+        ],
+        [
+         "Event Date",
+         "1918"
+        ]
+       ],
+       "collection": "Vital • Ohio, Deaths, 1908-1953",
+       "name": "Lena Howard Bell"
+      },
+      "is": [
+       {
+        "person": "I332737204852",
+        "kind": "fetch",
+        "locator": {
+         "kind": "apid",
+         "value": "1,5763::82380252"
+        }
+       }
+      ]
+     },
+     "why": "an Ohio death index page matches only the Ohio citation's step"
+    },
+    {
+     "steps_by_kind": {
+      "parsed": {
+       "fields": [
+        [
+         "Event Type",
+         "Death"
+        ],
+        [
+         "Event Date",
+         "1918"
+        ]
+       ],
+       "collection": "Vital • Some Other State, Deaths",
+       "name": "Lena Howard Bell"
+      },
+      "is": []
+     },
+     "why": "a page of a collection neither citation names matches nothing"
+    }
+   ]
+  }
+ ]
+}

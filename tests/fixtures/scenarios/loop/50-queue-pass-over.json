@@ -1,0 +1,232 @@
+{
+ "title": "the queue's pass-over",
+ "line": "a person already planned with nothing left for a turn to run, whose open question is the owner's alone, is passed over and never named next; a parent with a runnable step is named; one whose only step is an assisted search with no link is passed over; one whose memorial page is on the fetch list with a link is named; a step logged none on the very fields it carries is not a turn's work, new fields name the person again, an error run is no run, a none run after it closes the step",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so their own parents are the edge",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": [
+     "I332737035563",
+     "I332737044283"
+    ],
+    "kind": "child",
+    "record": "import"
+   },
+   "as": "v"
+  },
+  {
+   "say": "a confirmed parent fully planned with nothing left to run, a document still undecided on him",
+   "step": {
+    "person": "I332737035563",
+    "row_key": "obituary:",
+    "seq": 1,
+    "step_key": "fetch:done",
+    "kind": "fetch",
+    "query_type": "subject_record",
+    "sources": [],
+    "mode": "fetch",
+    "status": "done"
+   }
+  },
+  {
+   "say": "",
+   "place_card": {
+    "raw": "Columbus, Muscogee, Georgia, USA",
+    "queries": [],
+    "candidates": []
+   }
+  },
+  {
+   "say": "a grandparent with an auto search step still to run, at a source with a connector",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "footprint:",
+    "seq": 1,
+    "step_key": "search:parent",
+    "kind": "search",
+    "query_type": "name",
+    "sources": [
+     "H01"
+    ],
+    "mode": "auto"
+   },
+   "as": "parent_step"
+  },
+  {
+   "say": "a grandparent whose only step is an assisted search with no link the fetch list prints",
+   "step": {
+    "person": "I332737036894",
+    "row_key": "will / probate:",
+    "seq": 1,
+    "step_key": "search:probate",
+    "kind": "search",
+    "query_type": "probate",
+    "sources": [
+     "J03"
+    ],
+    "mode": "assisted"
+   }
+  },
+  {
+   "say": "a grandparent whose memorial page is on the fetch list, with its link",
+   "step": {
+    "person": "I332737099805",
+    "row_key": "cemetery / family plot:",
+    "seq": 1,
+    "step_key": "fetch:memorial",
+    "kind": "fetch",
+    "query_type": "subject_record",
+    "query": {
+     "url": {
+      "value": "https://www.findagrave.com/memorial/72299815/",
+      "basis": "citation"
+     }
+    },
+    "locator": {
+     "source": "E01",
+     "kind": "memorial_id",
+     "value": "72299815"
+    },
+    "sources": [
+     "E01"
+    ],
+    "mode": "fetch"
+   },
+   "as": "memorial_step",
+   "expect": [
+    {
+     "queue": {
+      "named": [
+       "I332737036054",
+       "I332737099805"
+      ],
+      "not_named": [
+       "I332737035563"
+      ],
+      "passed": [
+       "I332737035563",
+       "I332737036894"
+      ],
+      "not_passed": [
+       "I332737036054"
+      ]
+     },
+     "why": "the grandparent with a runnable step is named; the confirmed parent with nothing left to run is passed over, his open document the reason; the grandparent with only an assisted search and no link is passed over; the one whose memorial page has a link is named"
+    }
+   ]
+  },
+  {
+   "say": "the runnable step logged none on the very fields it carries",
+   "log": {
+    "step": "$parent_step.step",
+    "source": "H01",
+    "outcome": "none",
+    "note": "harness: run on these very fields"
+   },
+   "expect": [
+    {
+     "queue": {
+      "passed": [
+       "I332737036054"
+      ],
+      "not_named": [
+       "I332737036054"
+      ]
+     },
+     "why": "the same query again is not a turn's work: passed over"
+    }
+   ]
+  },
+  {
+   "say": "the plan writes new fields on it",
+   "step_query": {
+    "step": "$parent_step.step",
+    "query": {
+     "surname": {
+      "value": "Ahearn",
+      "basis": "claim"
+     }
+    }
+   },
+   "expect": [
+    {
+     "queue": {
+      "named": [
+       "I332737036054"
+      ]
+     },
+     "why": "once the step's fields change, the person is named again"
+    }
+   ]
+  },
+  {
+   "say": "logged error on those fields: the source did not answer, not a run",
+   "log": {
+    "step": "$parent_step.step",
+    "source": "H01",
+    "outcome": "error",
+    "note": "harness: the source did not answer"
+   },
+   "expect": [
+    {
+     "queue": {
+      "named": [
+       "I332737036054"
+      ],
+      "not_passed": [
+       "I332737036054"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "logged none on them after that: the step is closed",
+   "log": {
+    "step": "$parent_step.step",
+    "source": "H01",
+    "outcome": "none",
+    "note": "harness: answered on the second ask"
+   },
+   "expect": [
+    {
+     "queue": {
+      "passed": [
+       "I332737036054"
+      ],
+      "not_named": [
+       "I332737036054"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the memorial page logged on unchanged fields: not opened again",
+   "log": {
+    "step": "$memorial_step.step",
+    "source": "E01",
+    "outcome": "none",
+    "note": "harness: the page saved, no fit"
+   },
+   "expect": [
+    {
+     "queue": {
+      "passed": [
+       "I332737099805"
+      ],
+      "not_named": [
+       "I332737099805"
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}

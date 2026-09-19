@@ -1,0 +1,76 @@
+{
+ "title": "a page saved under the fetch list's own name",
+ "line": "a results page saved under the name the fetch list prints for a fetch step (its citation has no record id at the holder) is brought in by collect by that name and sets the run to none the same way a page attached by its own identity does, when its rows fit nobody",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the page saved in the browser under the list's name, into the download folder",
+   "save": {
+    "holder": "D03",
+    "person": "I332737204852",
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "folder": "downloads",
+    "fill": {
+     "<ark id>": "NSGC-PXX"
+    }
+   },
+   "as": "saved",
+   "expect": [
+    {
+     "last": {
+      "how": "page",
+      "save_as": {
+       "starts": "familysearch-kentucky-death-records-1918-"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "collect brings it in by the name",
+   "collect": {
+    "folder": "$saved.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "left": null,
+        "outcome": "none",
+        "proposals": []
+       }
+      ]
+     },
+     "why": "no candidate fits, so the run the page was saved for is none, not found"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": {
+       "some": {
+        "outcome": "none",
+        "notes": {
+         "has": "no candidate fits"
+        }
+       }
+      }
+     },
+     "why": "the step's own log row reads none, the reason in its note"
+    }
+   ]
+  }
+ ]
+}

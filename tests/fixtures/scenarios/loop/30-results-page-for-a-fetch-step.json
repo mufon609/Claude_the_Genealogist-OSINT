@@ -1,0 +1,158 @@
+{
+ "title": "a results page saved for a fetch step's own search",
+ "line": "a results page is told from a record page by the parser that claims it, never the file name, and goes to the fetch step whose citation was searched for by that name in that collection, as the run's own artifact with the query as run: none when no row fits, the rows kept on the artifact, the step planned, the page filed under the tree; the same page saved again is a repeat and stays in the inbox",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the search saved, under a name of the owner's own",
+   "attach": {
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "as_file": "kentucky-deaths-search-saved.html"
+   },
+   "as": "ky",
+   "expect": [
+    {
+     "last": {
+      "identity": {
+       "starts": "fs_search "
+      },
+      "left": null,
+      "steps": [
+       [
+        {
+         "any": true
+        },
+        "Lena Howard Bell",
+        {
+         "starts": "death record"
+        },
+        {
+         "has": "citation's own search"
+        }
+       ]
+      ],
+      "proposals": [],
+      "outcome": "none"
+     },
+     "why": "read as a results page by its own markup; it fulfils the fetch step whose citation was searched for by this name in this collection; the page names her only as a mother with no dates, so no row fits and the run is none"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": [
+       {
+        "outcome": "none",
+        "notes": {
+         "has": [
+          "no candidate fits",
+          "529 matching records"
+         ]
+        },
+        "artifacts": {
+         "has": "$ky.sha"
+        },
+        "query": {
+         "q.surname": {
+          "value": "Bell"
+         }
+        }
+       }
+      ]
+     },
+     "why": "the step's log row: none, the reason and the count in its note, the query as run, the page as its artifact"
+    },
+    {
+     "artifact": {
+      "record": "ky",
+      "source_id": "D03",
+      "locator_kind": "url",
+      "locator_value": {
+       "starts": "https://www.familysearch.org/en/search/record/results?f.collectionId=1417491"
+      }
+     },
+     "why": "archived under the holder with the search URL as locator"
+    },
+    {
+     "step": {
+      "person": "I332737204852",
+      "row_key": "death record:1918",
+      "kind": "fetch",
+      "locator": {
+       "kind": "apid",
+       "value": "1,1222::1373711"
+      },
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "a none run leaves the step planned"
+    },
+    {
+     "count": {
+      "personas_of": "ky",
+      "is": 20
+     },
+     "why": "the twenty rows stay on the artifact as candidates"
+    },
+    {
+     "file": {
+      "name": "kentucky-deaths-search-saved.html",
+      "exists": false
+     },
+     "why": "the page leaves the inbox, filed under the tree"
+    }
+   ]
+  },
+  {
+   "say": "the same search saved once more, other bytes, the same rows",
+   "attach": {
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "suffix": "\n",
+    "as_file": "kentucky-deaths-search-saved-again.html"
+   },
+   "expect": [
+    {
+     "last": {
+      "left": {
+       "has": "repeat"
+      }
+     },
+     "why": "a repeat is left in the inbox"
+    },
+    {
+     "file": {
+      "name": "kentucky-deaths-search-saved-again.html",
+      "exists": true
+     }
+    },
+    {
+     "count": {
+      "logs_of_step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": 1
+     },
+     "why": "the repeat logs no second run"
+    }
+   ]
+  }
+ ]
+}
