@@ -59,11 +59,15 @@ def ran_unchanged(cx, step, rendered):
 def reopen(cx, tree_id, by, step_id, note):
     """A step marked done by a run that did not hold its record after all is planned again; the run's log row stays as what
     happened and a new row, its note under REOPENED, says why the step reopened. From that row on, the earlier found run no
-    longer names the person as one the record was fetched for (match.persons_for reads the reopen)."""
+    longer names the person as one the record was fetched for (match.persons_for reads the reopen). The reopen row carries
+    the source of the run it reopens, the step's latest run that is not itself a reopen; a step with no run takes log()'s
+    own fallback, the step's holder or first source."""
     st = cx.execute("SELECT id, status FROM search_plan WHERE id=?", (step_id,)).fetchone()
     if not st: raise SystemExit(f"no step {step_id}")
     cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (step_id,))
-    return log(cx, tree_id, by, step_id=step_id, outcome="none", note=f"{REOPENED}{note}")
+    last = next((sid for sid, n in cx.execute("SELECT source_id, notes FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step_id,))
+                 if not (n or "").startswith(REOPENED)), None)
+    return log(cx, tree_id, by, step_id=step_id, source_id=last, outcome="none", note=f"{REOPENED}{note}")
 
 def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None, done=True):
     """One run of a step (or of a question with no step) into search_log; a found run marks the step done unless done is

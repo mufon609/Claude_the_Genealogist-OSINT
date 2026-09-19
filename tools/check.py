@@ -1575,6 +1575,9 @@ def decisions(keep, show):
     fail(sar and not named_after and all(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "planned" for sid in sar["step_ids"]), f"reopened, the steps are planned again and the record names nobody: {named_after}")
     rows_after = [tuple(r) for r in cx.execute("SELECT id, outcome, artifacts_json FROM search_log WHERE plan_step_id IN (%s) ORDER BY id" % ",".join("?" * len(sar["step_ids"])), sar["step_ids"])] if sar else []
     fail(rows_before and rows_after[:len(rows_before)] == rows_before and len(rows_after) == len(rows_before) + len(sar["step_ids"]) and all(r[1] == "none" for r in rows_after[len(rows_before):]), f"the found rows stay as they were, one reopen row added per step: before {rows_before}, after {rows_after}, steps {sar and sar['step_ids']}")
+    srcs = [tuple(r) for r in cx.execute("SELECT plan_step_id, source_id, substr(notes,1,10) FROM search_log WHERE plan_step_id IN (%s) ORDER BY id" % ",".join("?" * len(sar["step_ids"])), sar["step_ids"])] if sar else []
+    fail(srcs and all(any(s2 == s1 and st2 == st1 and n2.startswith("reopened") for st2, s2, n2 in srcs) for st1, s1, n1 in srcs if not n1.startswith("reopened")) and all(r[1] == "F04" for r in srcs),
+         f"each reopen row carries the source of the found run it reopens, the SAR row the page was attached under: {srcs}")
     # ---- a found run at a source other than a fetch step's holder leaves the step planned: the pages are held, the cited record is not
     from log_search import log as log_run
     ob = cx.execute("SELECT id, status FROM search_plan WHERE person_id=? AND kind='fetch' AND status='planned' LIMIT 1", (who["James Joseph Ahearn"],)).fetchone()
@@ -1582,6 +1585,10 @@ def decisions(keep, show):
         log_run(cx, tid, BY, step_id=ob["id"], source_id="H07", outcome="found", artifacts=[sha_v], note="harness: another paper's page", done=False); cx.commit()
         fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (ob["id"],)).fetchone()[0] == "planned" and cx.execute("SELECT outcome FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC LIMIT 1", (ob["id"],)).fetchone()[0] == "found",
              "a found run at a row-source connector is logged and the fetch step stays planned")
+        holder = cx.execute("SELECT locator_source_id FROM search_plan WHERE id=?", (ob["id"],)).fetchone()[0]
+        reopen(cx, tid, BY, ob["id"], "harness: the other paper's page was not his after all"); cx.commit()
+        re_src = cx.execute("SELECT source_id FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC LIMIT 1", (ob["id"],)).fetchone()[0]
+        fail(re_src == "H07" and holder != "H07", f"the reopen row carries the source of the run it reopens (H07), not the step's own holder ({holder}): {re_src}")
     # ---- a step the generator no longer produces is dropped and named in the run's audit row, the only trace of it afterwards
     gone = treelib.ulid()
     cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,expected,status,rationale,created_at)
