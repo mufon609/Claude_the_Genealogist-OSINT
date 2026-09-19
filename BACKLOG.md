@@ -176,21 +176,32 @@ the name a piece unique to the citation as well (the citation's own record
 locator when it has one, else the step's key), so one person's several pages
 of one collection are told apart too.
 
-### C6. The harness names the owner's family
+### C6. The harness names the owner's family and plants people
 
-`tools/check.py` checks each fixture by a dedicated function
-(`check_census_1940`, `check_memorial`, `check_fs_numident`, …) whose
-assertions spell out that record's own personas, facts and relations in
-Python lines, and `decisions()` walks the Ahearn and Davidson households by
-name throughout. A second family's documents cannot be dropped in beside
-these without editing the harness itself, and several tool docstrings
-(`tools/extract.py`, `tools/match.py`) use the family's own names as their
-worked examples. Keep each fixture's expected personas, facts and relations
-as data beside the fixture (a JSON sidecar, on the fixture's own naming
-pattern) with a generic comparison the harness runs over every fixture the
-same way, `check.py` reading the data rather than asserting it inline; make
-the docstring examples neutral (a placeholder household) so a tool's own
-documentation does not depend on whose tree this is.
+`tools/check.py` is one file of near three thousand lines: a dedicated
+function per fixture (`check_census_1940`, `check_memorial`, …) spells out
+that page's personas, facts and relations in Python lines; `decisions()`
+and the checks beside it look people up by name (`who["…"]`) and insert
+people the file does not hold to shape a scenario; and several tool
+docstrings (`tools/extract.py`, `tools/match.py`, the usage lines of
+`tools/cite.py` and `tools/tree.py`) use the family's names as worked
+examples. The owner's rulings of 18 Sept 2026: no invented test data, and
+no names in the harness code. Rebuild the harness to that. `python3
+tools/check.py` stays the one command, and its work moves into modules by
+concern (compiles and the pure rules; every parser on its fixture; the
+matcher, the rule and the writers on the harness tree; the loop's tools),
+each generic. Every expectation is data beside its fixture
+(`<fixture>.expect.json` on the fixture's own naming pattern: the
+personas, facts and relations the page yields, compared by one reader),
+and every decisions scenario is data too (the setup by the harness file's
+own entry ids, the page attached and to whom, what the matcher and the
+rule must write or refuse, in a small vocabulary `tests/fixtures/README.md`
+documents), so the harness code walks the data and names nobody. No
+person is planted: a scenario that needs a person the harness file lacks
+takes one from the owner's own export, the harness file re-cut from it
+rather than written by hand. The docstring examples become neutral. The
+proof is a grep: no family name in the harness code, and the same harness
+running unchanged over another family's fixtures and sidecars.
 
 ### C7. Hints on the person page
 
@@ -331,6 +342,21 @@ vouch, recorded as their word), the household then read outward from her
 through its stated relationships as any accepted record is; or the card stays
 the owner's.
 
+### C16. A merge carries the duplicate's events beside the kept person's own
+
+`tools/conclude.py merge` moves the duplicate's event participations onto
+the kept person as they are, so a duplicate whose Birth and Death the file
+states with the kept person's own dates leaves the kept person with two
+Birth events and two Death events of one date, and the plan opens a
+`conflict` question "more than one birth event" between values that agree:
+Thomas Ahearn [6FX2NF] after the merge of 18 Sept 2026 carries Birth 2 Oct
+1846 twice (five assertions and one) and Death 21 Aug 1902 twice. When the
+duplicate's event is of the same type as one of the kept person's and its
+date agrees to the day (its place agreeing or absent), move its assertions
+onto the kept event and leave the duplicate's event behind with the
+duplicate's row, so a merge never opens a conflict between equal values; a
+differing value stays a second event and a real conflict, as now.
+
 ### C17. A runner that takes turns from the queue in sequence
 
 `tools/queue.py` names the next person and `tools/turn.py` runs one
@@ -344,6 +370,31 @@ runner, in a session with the owner's browser, is the loop run without a
 hand on it.
 
 ---
+
+### C18. A merge leaves the kept person in two families with the same partner
+
+The file's duplicate entry had its own family with the same partner (Alice
+McGee, child Patrick Ahearn); the merge moves the membership across, so the
+kept Thomas Ahearn is a partner of Alice McGee in two families, the
+checklist lists her twice under spouses, and the plan carries every
+marriage citation twice, the second step keyed `:2`. When, after the
+merge, the duplicate's family has exactly the partners the kept person's
+family has, fold it: the children's memberships and the family's events
+and assertions move to the kept family, the emptied family row stays with
+the duplicate for the audit trail, and the audit row names what moved.
+
+### C19. The person screen has no living line and no control to confirm it
+
+The living status is the tier from the home person
+(`docs/DATA-ARCHITECTURE.md` §7): a person in the grandparents' generation
+is unknown until the owner confirms them, and `tools/checklist.py` prints
+the line ("living: unknown, confirm with tools/conclude.py living"). The
+person screen's foundation shows the seven key facts only, so the owner
+never meets the question on the one screen where they decide. Show the
+living line in the foundation with its reason, and on an unknown person
+the two-way control (living, deceased) that writes `person.living_override`
+through `conclude.living` with one audit row, as the fact rows write their
+decisions.
 
 ## Externally blocked
 
