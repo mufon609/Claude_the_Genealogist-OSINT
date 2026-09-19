@@ -133,14 +133,16 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 `{"is": null}`, `{"any": true}`.
 
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
-person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `resume` (pages
+person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `turns` (`tools/turns.py` the same way: `turns` for --turns,
+`resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
 into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py`, its download a body the
 data gives, `fetch: {header, rows}` or `{body}`, one answer per request as `fetch: {answers: [{url_has, body | error}]}`, or no
 network at all; `dry` for a dry run, `again` for a run by the step's id at every connector), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
 `none_when`), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache` and Wikidata's
 answers planted), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
-`not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `locator_known`, `steps_by_kind`,
+`not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in
+order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`), `locator_known`, `steps_by_kind`,
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place`, `place_card`, `event_place`. The fakes are code because they exercise the connectors' contract;
 what they are asked with and answer with is in the scenario. `connectors.json` holds the same for the offline connector
 checks in `tools/check.py`: the names, titles and bodies they are run against.

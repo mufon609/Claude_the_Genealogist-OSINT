@@ -9,7 +9,7 @@ able to distrust every earlier conclusion.
 | `docs/DATA-ARCHITECTURE.md` | The design: four layers, content-addressed archive, trees/profiles, trust boundaries, aliases. Accepted decisions are recorded there. |
 | `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status). `data/holders.csv` maps cited Ancestry collections to their free holders. `data/DATA-SOURCES.md` has the reasoning. |
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
-| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `cite.py`, `queue.py`, `turn.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. `tests/checks/` holds the harness (`parsers.py`, `scenario.py`, `loop.py`, `cut_gedcom.py`) and `tests/fixtures/` its saved pages, their `.expect.json` sidecars, the scenarios and the harness tree. |
+| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `cite.py`, `queue.py`, `turn.py`, `turns.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. `tests/checks/` holds the harness (`parsers.py`, `scenario.py`, `loop.py`, `cut_gedcom.py`) and `tests/fixtures/` its saved pages, their `.expect.json` sidecars, the scenarios and the harness tree. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/` (snapshots, ignored). |
 | `inbox/` | Drop zone for files to ingest. |
 | `app/person/` | The person screen: stdlib server plus one page. |
@@ -31,5 +31,6 @@ python3 tools/resolve_places.py
 python3 tools/backfill_aliases.py
 python3 tools/checklist.py "Abram C Brant"      # per-person checklist and gaps
 python3 tools/queue.py && python3 tools/turn.py "<person>"   # the loop: the next person at the tree's edge, their plan run end to end
+python3 tools/turns.py --turns 2                             # the loop run without a hand on it: turn after turn from the queue, pausing for the browser session (--resume)
 python3 app/person/server.py                    # the person screen, http://127.0.0.1:8765/
 ```

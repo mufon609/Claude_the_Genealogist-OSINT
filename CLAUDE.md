@@ -120,6 +120,8 @@ python3 tools/cite.py "<person>" --row "census household:1950" --holder D05 --fi
 python3 tools/queue.py                        # the next person at the edge of the confirmed tree, in the overview's order; --all lists everyone, with why each is next or passed over
 python3 tools/turn.py "<person>"              # one person's plan run end to end: the plan, every step a connector can run, the rule's decisions; pauses on the pages to save in the browser
 python3 tools/turn.py --resume                # after the browser session: collect, attach what collect left, reconsider, the plan again; the turn's report
+python3 tools/turns.py [--turns N]            # the loop without a hand on it: the queue's next person, their turn, the next; stops when a turn pauses on pages to save, when the queue names nobody, or after N turns; a person named again with nothing new held is passed over
+python3 tools/turns.py --resume [--turns N]   # after the browser session: the paused turn resumed, then on to the next person
 python3 tools/backup.py verify                # every archived object hashed against its sha256; `bag <dir> --target <drive>` writes a BagIt bag with the catalog dumped to SQL; `check <bag>`
 python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
 python3 tools/initdb.py --sync-event-types   # after any change to schema/seed_event_type.sql: the new types on an existing catalog

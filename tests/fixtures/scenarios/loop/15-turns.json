@@ -1,0 +1,206 @@
+{
+ "title": "the runner, turn after turn",
+ "line": "the runner takes the queue's first person, runs their turn with the network standing in (a challenge at a connector is an error run and the turn goes on), names them again and passes them over once their turn held nothing new, runs the next person and stops with the turn's state kept when that turn pauses on pages to save, refusing a fresh run while it is paused; --resume picks the paused turn up, passes its person over the same way when nothing came back, goes on to the next person and stops after --turns; the run's state is cleared when it ends and a fresh run starts the count again",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so the queue names the home person's own open question, then the grandparents",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": [
+     "I332737035563",
+     "I332737044283"
+    ],
+    "kind": "child",
+    "record": "import"
+   }
+  },
+  {
+   "say": "two turns: the first person's turn holds nothing new (a challenge at the first connector, an error run; nothing at the rest), and the queue names them again, so they are passed over; the next person's turn pauses on pages to save",
+   "turns": {
+    "turns": 2,
+    "fake_run": {
+     "first": "error",
+     "then": "none",
+     "error": "https://faked.example/search: 403, a challenge page"
+    }
+   },
+   "as": "first",
+   "expect": [
+    {
+     "turns_run": {
+      "turns": [
+       {
+        "person": "I332737035562",
+        "paused": false,
+        "nothing_new": true
+       },
+       {
+        "person": "I332737036054",
+        "paused": true
+       }
+      ],
+      "passed": [
+       "I332737035562"
+      ]
+     },
+     "why": "the home person's turn ran and held nothing new; named again, he is passed over; the grandfather's turn paused"
+    },
+    {
+     "turn_state": {
+      "person": "I332737036054"
+     },
+     "why": "the paused turn's own state is kept, as turn.py keeps it"
+    },
+    {
+     "last": {
+      "saved": {
+       "turns": {
+        "len": 2
+       }
+      },
+      "summary": {
+       "has": [
+        "paused",
+        "held nothing new",
+        "turns.py --resume"
+       ]
+      }
+     },
+     "why": "the runner's state is kept beside the turn's, and the summary says what stopped it"
+    },
+    {
+     "last": {
+      "seen": {
+       "len": {
+        ">=": 1
+       }
+      }
+     }
+    },
+    {
+     "runnable": {
+      "step": "$first.seen.0",
+      "is": true
+     },
+     "why": "the challenge is an error run: the source did not answer, the step stays runnable and the next turn asks it again"
+    }
+   ]
+  },
+  {
+   "say": "a fresh run while a turn is paused is refused",
+   "turns": {
+    "turns": 1
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "has": "paused"
+      },
+      "state": {
+       "is": null
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "resumed with nothing saved: the paused turn is finished and its person, named again with nothing new, is passed over; the next person's turn runs; the third turn is the last asked for, and the run's state is cleared",
+   "turns": {
+    "resume": true,
+    "inbox": [],
+    "turns": 3
+   },
+   "expect": [
+    {
+     "turn_state": {
+      "is": null
+     },
+     "why": "the paused turn is resumed and its state cleared"
+    },
+    {
+     "turns_run": {
+      "turns": [
+       {
+        "person": "I332737035562",
+        "nothing_new": true
+       },
+       {
+        "person": "I332737036054",
+        "paused": false,
+        "nothing_new": true
+       },
+       {
+        "person": "I332737036894",
+        "paused": false
+       }
+      ],
+      "passed": [
+       "I332737035562",
+       "I332737036054"
+      ]
+     },
+     "why": "the resumed turn counts as the second; its person is passed over once named again; the grandmother is the third"
+    },
+    {
+     "last": {
+      "saved": {
+       "is": null
+      },
+      "summary": {
+       "has": [
+        "3 turn(s) done",
+        "named again"
+       ]
+      }
+     },
+     "why": "the run ended on --turns: its state file is gone, the summary says so"
+    }
+   ]
+  },
+  {
+   "say": "a fresh run starts the count again: the queue names the home person first as before, and nobody is passed over for the last run's reasons",
+   "turns": {
+    "turns": 1
+   },
+   "expect": [
+    {
+     "turns_run": {
+      "turns": [
+       {
+        "person": "I332737035562",
+        "paused": false,
+        "nothing_new": true
+       }
+      ],
+      "not_passed": [
+       "I332737035562",
+       "I332737036054"
+      ]
+     },
+     "why": "a new run: the home person's turn runs once more, nobody passed over yet"
+    },
+    {
+     "last": {
+      "saved": {
+       "is": null
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

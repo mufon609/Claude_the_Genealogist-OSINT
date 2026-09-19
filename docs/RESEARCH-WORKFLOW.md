@@ -719,6 +719,21 @@ own: every catalog write is one of those tools' under its own name. Its
 report says what was held, what the rule decided, who was created and what is
 left for the owner, in words. A record the owner cites on their own word
 (`tools/cite.py`) is a fetch step on the plan a turn runs like any other.
+`tools/turns.py` is the loop run without a hand on it: it asks the queue for
+the next person, runs their turn with `tools/turn.py`'s own code, prints the
+turn's report and asks the queue again, until the queue names nobody a turn
+can act on, a turn pauses on pages to save (the runner stops with that list
+printed and the turn's state kept; the session at the owner's browser saves
+them and calls `tools/turns.py --resume`, which resumes the paused turn and
+goes on to the next person), or `--turns N` turns are done. A person the
+queue names again whose last turn held nothing new for them is passed over
+for the rest of the run with that reason. Its own state (the turns run, each
+person's held count before and after, the passed-over) lives beside the
+turn's state file on the same pattern; it writes nothing of its own to the
+catalog. A connector's challenge is an error run, the source did not answer,
+and the turn goes on; a challenge in the browser is the session's pause,
+outside the runner. Its summary says, in words, the turns run, the people
+passed over and why, and what is left for the owner.
 
 ## Worked example: Thomas Ahearn (1846–1902)
 

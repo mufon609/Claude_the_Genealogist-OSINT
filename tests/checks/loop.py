@@ -61,6 +61,24 @@ def a_resume(w, x):
     out = buf.getvalue()
     return {"report": out, "left": out.split("left:", 1)[1] if "left:" in out else "", "state": turn.load_state(w.db)}
 
+def a_turns(w, x):
+    """tools/turns.py: turn after turn from the queue, run_step.run standing in for the network as the data says (fake_run, as
+    a turn's), --turns as `turns` says, or --resume with the pages `inbox` names dropped into the inbox first; what it
+    printed, the summary, the run's state as it ended, what is saved beside the database, the turn's state, and a refusal's
+    text when it exited."""
+    import run_step, turn, turns
+    fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
+    if x.get("resume"):
+        os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
+        for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
+    buf = io.StringIO(); refused = None; st = None
+    with patched(run_step, "run", fake_run), contextlib.redirect_stdout(buf):
+        try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"), resume=bool(x.get("resume")))
+        except SystemExit as e: refused = str(e)
+    out = buf.getvalue()
+    return {"printed": out, "summary": out.split("\nloop:", 1)[1] if "\nloop:" in out else "", "state": st, "saved": turns.load_state(w.db), "turn_state": turn.load_state(w.db),
+            "seen": seen, "refused": refused, "turn_people": [t["person"] for t in (st or {}).get("turns", [])], "passed_people": [p["person"] for p in (st or {}).get("passed", [])]}
+
 def a_clear_state(w, x):
     import turn; turn.clear_state(w.db); return {}
 
@@ -163,7 +181,7 @@ def a_step_query(w, x):
     """A step's fields rewritten, as the plan writes new fields on it."""
     st = w.step(x["step"]); w.cx.execute("UPDATE search_plan SET query_json=? WHERE id=?", (json.dumps(x["query"]), st["id"])); return {"step": st["id"]}
 
-ACTIONS.update({"step_query": a_step_query, "turn": a_turn, "resume": a_resume, "clear_state": a_clear_state, "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
+ACTIONS.update({"step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places})
 
 # ---------------------------------------------------------------- expectations
@@ -195,6 +213,21 @@ def e_turn_state(w, x, want):
     if x.get("is") is None and "person" not in x: return st is None, st
     ok = st is not None and (("person" not in x) or st.get("person_id") == w.person(x["person"])) and has(st, x.get("is", {}))
     return ok, st
+
+def e_turns_run(w, x, want):
+    """The runner's state as the last turns action left it: the turns in order (each a person, whether it paused, whether it
+    held nothing new) and the people passed over this run."""
+    st = (w.env.get("last") or {}).get("state") or {}
+    got = {"turns": [{"person": t["person_id"], "paused": t.get("held_after") is None, "nothing_new": t.get("held_after") == t["held_before"]} for t in st.get("turns", [])],
+           "passed": [p["person_id"] for p in st.get("passed", [])]}
+    ok = True
+    if "turns" in x:
+        ok &= len(got["turns"]) == len(x["turns"])
+        for g, wnt in zip(got["turns"], x["turns"]):
+            ok &= g["person"] == w.person(wnt["person"]) and all(g[k] == wnt[k] for k in ("paused", "nothing_new") if k in wnt)
+    for ref in x.get("passed", []): ok &= w.person(ref) in got["passed"]
+    for ref in x.get("not_passed", []): ok &= w.person(ref) not in got["passed"]
+    return ok, {"turns": [{**t, "name": w.name_of(t["person"])} for t in got["turns"]], "passed": [w.name_of(p) for p in got["passed"]]}
 
 def e_locator_known(w, x, want):
     v = w.cx.execute("SELECT 1 FROM artifact_locator WHERE kind=? AND value=?", (x["kind"], x["value"])).fetchone() is not None
@@ -242,7 +275,7 @@ def e_event_place(w, x, want):
     got = {"place": name, "shown": cat.place(eid, None)["text"], "shown_first": cat.place(eid, None)["text"].split(" < ")[0]}
     return has(got, {k: v for k, v in x.items() if k in got}), got
 
-EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "locator_known": e_locator_known, "steps_by_kind": e_steps_by_kind, "fetched_rows": e_fetched_rows,
+EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_kind": e_steps_by_kind, "fetched_rows": e_fetched_rows,
                 "place": e_place, "place_card": e_place_card, "event_place": e_event_place})
 
 def check(keep, show, only=None):

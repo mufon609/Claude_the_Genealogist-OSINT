@@ -312,20 +312,6 @@ onto the kept event and leave the duplicate's event behind with the
 duplicate's row, so a merge never opens a conflict between equal values; a
 differing value stays a second event and a real conflict, as now.
 
-### C17. A runner that takes turns from the queue in sequence
-
-`tools/queue.py` names the next person and `tools/turn.py` runs one
-person's turn, pausing for the browser saves; nothing yet runs turn after
-turn. Build the runner `docs/RESEARCH-WORKFLOW.md` §8 describes: it asks
-the queue, runs the turn, hands the pause's list to the browser session,
-resumes, reports the turn's two lines, and goes on until the queue names
-nobody, a challenge stops it, or a set number of turns is done; a person
-the queue names twice running with nothing new held is passed over. This
-runner, in a session with the owner's browser, is the loop run without a
-hand on it.
-
----
-
 ### C18. A merge leaves the kept person in two families with the same partner
 
 The file's duplicate entry had its own family with the same partner (Alice
