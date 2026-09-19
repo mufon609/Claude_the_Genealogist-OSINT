@@ -125,6 +125,23 @@ found on every household member's own step from one page
 answer) needs the same reach, from the record's own accepted personas to each
 one's matching census-year step, once each is decided.
 
+### C3. A step's several connectors share one run
+
+`log_search.ran_unchanged` reads a step's latest answered run whatever its
+source, so a search step whose sources have two connectors (a compiled
+genealogy step at WikiTree and the Archive's books) is closed for both by
+either's answer: when one connector logs `none` on the step's fields and the
+other's run on the same fields is an `error`, the none closes the step and
+the source that did not answer is not asked again until the plan changes the
+fields, though `docs/RESEARCH-WORKFLOW.md` §0 and §8 leave an unanswered
+source to be asked on the next turn. Read the latest answered run per source
+(`search_log.source_id`): `tools/run_step.py`'s `runnable` keeps a step while
+any of its connectors' sources has no `found` or `none` run on the current
+fields, `run` asks only those connectors, and the queue and the fetch list
+read the same function. Harness: a step with two connectors, one answering
+none and one timing out on the same fields, runnable at the second alone,
+and not runnable once the second has answered.
+
 ### C4. A record page saved for a church-register fetch step attaches to nothing
 
 `tools/fetches.py list` sends a church-register citation (Ancestry's
