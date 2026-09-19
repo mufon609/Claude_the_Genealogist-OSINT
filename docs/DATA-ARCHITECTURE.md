@@ -207,8 +207,10 @@ A **tree** is a workspace of conclusions. The catalog holds any number of them.
   tree and where the named copy was filed.
 - Switching: `tools/tree.py use <slug>` writes `catalog/.active-tree`; any tool
   accepts `--tree <slug>` and honours `$TREE`; the screen takes `?tree=<slug>`.
-- Per-tree settings (living-person threshold, home person) live in
-  `tree.settings_json` and `tree.home_person_id`.
+- The home person, the one the overview lays the tree out from and the
+  living default counts tiers from (§7 decision 3), lives in
+  `tree.home_person_id`; `tree.settings_json` is for per-tree settings, and
+  none is defined today.
 - Access control per tree is a later addition: a `tree_member` table keyed on
   `tree_id` is all the schema needs.
 
@@ -270,12 +272,28 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    archive writer targets an S3-compatible interface behind a local-filesystem
    adapter, so switching on S3 later is configuration, not code. Git holds
    code, docs and the CSV registry; never the objects, never a catalog dump.
-3. **Living-person policy: two thresholds.** `record_release` follows each
-   source's own law (census 72 years under Pub. L. 95-416 / 44 U.S.C. 2108(b);
-   PA deaths 50 years and births 105 years under Act 110 of 2011); stored per
-   row in the source registry. `presumed_living` = born within 100 years and no
-   death evidence, manual override allowed, redacted in every export and
-   derivative, retained in the archive under ACL. Both thresholds configurable.
+3. **Living-person policy: a release threshold and a tier rule.**
+   `record_release` follows each source's own law (census 72 years under
+   Pub. L. 95-416 / 44 U.S.C. 2108(b); PA deaths 50 years and births 105
+   years under Act 110 of 2011); stored per row in the source registry and
+   configurable there. `presumed_living` is decided by tier. A person's tier
+   is their generation relative to the tree's home person, counted along the
+   family links the tree holds, accepted or claimed (a `family_member` row
+   whose assertion is not rejected): a parent is one generation up, a child
+   one down, a partner shares the tier, and a person reached by more than one
+   path takes the nearest. The home person's generation and their parents'
+   (tiers 0 and 1) are living. The grandparents' generation (tier 2) is
+   unknown until the owner confirms the person (`tools/conclude.py living`),
+   and while unknown is treated as living wherever the default is read. Tier
+   3 and beyond, and a person no chain of links reaches from the home person,
+   are deceased. Death evidence the tree holds
+   (`v_person_vitals.has_death_evidence`) makes a person deceased at any
+   tier; `person.living_override`, `living` or `deceased`, stands above
+   everything. The same structure holds for every tree; there is no per-tree
+   threshold. A living person is redacted in every export and derivative and
+   retained in the archive under ACL. The one thing the default decides today
+   is the search mode: a search step on a living or unknown person is
+   assisted, never auto.
 
 ## 8. Wrong source data, variants and aliases
 

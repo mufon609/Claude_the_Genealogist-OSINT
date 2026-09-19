@@ -115,6 +115,7 @@ python3 tools/match.py <extraction id>       # proposals: persona match or new p
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
 python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions and the cards it refused; one it would no longer take is a card again, one it would now take is taken; --dry-run
 python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…"   # your own word on a family link a record stops short of; --parent, --marriage; `divorce` likewise
+python3 tools/conclude.py living "<person>" living|deceased|unknown --note "…"   # your own word on whether a person is alive, above the tier rule; `unknown` clears it
 python3 tools/cite.py "<person>" --row "census household:1950" --holder D05 --field "surname=…" --field "enumeration district=…" --field "page=…"   # a record you cite on your own word, nothing in the file: a fetch step the runner asks the holder for
 python3 tools/queue.py                        # the next person at the edge of the confirmed tree, in the overview's order; --all lists everyone, with why each is next or passed over
 python3 tools/turn.py "<person>"              # one person's plan run end to end: the plan, every step a connector can run, the rule's decisions; pauses on the pages to save in the browser
@@ -198,11 +199,18 @@ so the audit trail says who did what. A writing tool run without `--by`
 records the shell user as the owner, except the runner and the planner, which
 record themselves (`agent:run_step`, `rule:plan@0.1.0`). The read-only tools (`checklist`,
 `cards`, `footprint`, `backup verify`) and the registry syncs take no `--by`.
-One default, the owner's to change: a search step on a person with no death
-and born within a hundred years is assisted rather than automatic, so a
-person runs it. Nothing else differs for them: a record fetched for a
-relative that names them attaches to them as to anyone, and the records the
-file cites on them are fetched like any other.
+One default, the owner's to change: a search step on a living or unknown
+person is assisted rather than automatic, so a person runs it. Living is by
+tier: a person's generation from the home person along the tree's family
+links, accepted or claimed, the nearest path counting. The home person's
+generation and their parents' are living; the grandparents' is unknown
+until the owner confirms the person (`tools/conclude.py living`) and is
+treated as living meanwhile; everyone beyond, and anyone no chain of links
+reaches, is deceased. Held death evidence makes a person deceased at any
+tier, and the owner's word (`living_override`) stands above everything. The
+same structure for every tree. Nothing else differs for them: a record
+fetched for a relative that names them attaches to them as to anyone, and
+the records the file cites on them are fetched like any other.
 
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).
 - Verify after every change: `PRAGMA integrity_check`, `foreign_key_check`,
