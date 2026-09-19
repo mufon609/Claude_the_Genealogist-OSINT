@@ -1,111 +1,53 @@
 #!/usr/bin/env python3
-"""Green in one command: every parser read against a saved real page.
+"""Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, every parser
+reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
+the harness tree what the scenarios say.
 
 usage: tools/check.py [--show] [--keep]
 
-A scratch catalog under a temporary data root, never the owner's. Every page under tests/fixtures/ is archived there and
-read by tools/extract.py as the attach would read it, and the personas, facts and relations it writes are compared with
-the expectations in the sidecar beside the page (<stem>.expect.json, the vocabulary in tests/fixtures/README.md) by
-tests/checks/parsers.py; the connectors' requests and their reading of saved responses are checked with no network. One
-line per fixture, ok or FAIL with every reason; exit status 1 on any failure. --show prints what each extraction wrote,
-for writing a sidecar; --keep leaves the scratch directories in place and prints their paths.
+Each check runs on a scratch catalog under a temporary data root, never the owner's. The expectations are data beside
+the fixtures (tests/fixtures/README.md): <stem>.expect.json beside each page for tests/checks/parsers.py, the scenarios
+under tests/fixtures/scenarios/ for tests/checks/scenario.py and tests/checks/loop.py, tests/fixtures/rules.json for the
+pure rules here and tests/fixtures/connectors.json for the offline connector checks here; the harness tree is
+tests/fixtures/harness.ged, the owner's own export cut down. One line per check, ok or FAIL with every reason; exit
+status 1 on any failure. --show prints what each reading and each scenario step did, for writing a sidecar; --keep
+leaves the scratch directories in place and prints their paths. Nothing in the harness names a person: another family's
+export, pages and sidecars run through it unchanged.
 """
-import argparse, json, os, sqlite3, subprocess, sys, tempfile, shutil
+import argparse, json, os, shutil, sqlite3, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FIXTURES = os.path.join(ROOT, "tests", "fixtures")
-BY = "agent:check"
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
-import parsers, scenario, loop                               # every parser on its fixture, and the scenarios on the harness tree: the expectations in the data beside them
-
-def scratch(keep):
-    d = tempfile.mkdtemp(prefix="tree-check-")
-    os.environ["DATA_ROOT"] = d                                  # before treelib is imported: every data path resolves under it
-    db = os.path.join(d, "catalog", "tree.db"); os.makedirs(os.path.dirname(db)); os.makedirs(os.path.join(d, "inbox"))
-    r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "initdb.py"), "--db", db], capture_output=True, text=True)
-    if r.returncode: sys.exit(f"initdb failed:\n{r.stdout}{r.stderr}")
-    return d, db
-
-def run(*args):
-    r = subprocess.run([sys.executable, *args], capture_output=True, text=True, env=os.environ)
-    if r.returncode: raise RuntimeError(f"{os.path.basename(args[0])} failed:\n{r.stdout}{r.stderr}")
-    return r.stdout
+from common import BY, FIXTURES, scratch
+import loop, parsers, scenario
 
 def rules():
-    """The name rules as the docs state them, on their own."""
-    from catalog import same_surname
-    want = {("ahearn", "ahearn"): "agrees", ("ahern", "ahearn"): "variant", ("brant", "brandt"): "variant", ("ahearu", "ahearn"): "one letter apart",
-            ("grant", "brant"): "", ("bran", "brant"): "", ("kriebel", "krebel"): "variant", ("horn", "ahearn"): ""}
-    bad = [f"same_surname{k} gave {same_surname(*k)!r}, expected {v!r}" for k, v in want.items() if same_surname(*k) != v]
-    from catalog import holder_search
-    f = lambda **kw: {k: {"value": v, "basis": "citation"} for k, v in kw.items()}
-    cases = [
-        ({"HolderKind": "url", "HolderKey": "https://archive.org/search?query=title%3A%28%22{title}%22%29", "HolderCollection": "x"}, f(name="Abram C Brant", citation="The Genealogical Record of the Schwenkfelder Families"),
-         "https://archive.org/search?query=title%3A%28%22The%20Genealogical%20Record%20of%20the%20Schwenkfelder%20Families%22%29"),
-        ({"HolderKind": "url", "HolderKey": "https://www.legacy.com/obituaries/search?firstName={given}&lastName={surname}", "HolderCollection": "x"}, f(name="Helen Sara Brant"), "https://www.legacy.com/obituaries/search?firstName=Helen%20Sara&lastName=Brant"),
-        ({"HolderKind": "url", "HolderKey": "{url}", "HolderCollection": "x"}, f(name="Noi Davidson", url="http://www.legacy.com/obituaries/x?n=noi"), "http://www.legacy.com/obituaries/x?n=noi"),
-        ({"HolderKind": "url", "HolderKey": "https://archive.org/search?query=x+{year}", "HolderCollection": "x"}, f(name="Carol Evers"), None),
-        ({"HolderKind": "url", "HolderKey": "", "HolderCollection": "x"}, f(name="Catherine Rittenhouse"), None),
-        ({"HolderKind": "fs_images", "HolderKey": "1999196", "HolderCollection": "Pennsylvania, Probate Records, 1683-1994"}, f(name="Matthias Wool Rittenhouse"), None),
-        ({"HolderKind": "fs_collection", "HolderKey": "1937489", "HolderCollection": "New York, State Census, 1925"}, f(name="Dorothy Peters", city="Hempstead", county="Nassau"),
-         "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Dorothy&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"),
-        ({"HolderKind": "url", "HolderKey": "https://www.google.com/search?q=%22{title}%22&tbm=bks&tbs=cdr:1,cd_min:{mdy},cd_max:{mdy}", "HolderCollection": "x"},
-         f(name="Helen Sara Brant", citation="Boca Raton News", **{"publication date": "27 Jan 1986"}),
-         "https://www.google.com/search?q=%22Boca%20Raton%20News%22&tbm=bks&tbs=cdr:1,cd_min:1%2F27%2F1986,cd_max:1%2F27%2F1986"),
-    ]
-    for h, fields, want_url in cases:
-        got = holder_search(h, fields)
-        if got != want_url: bad.append(f"holder_search({h['HolderKind']}, {h['HolderKey'][:40]!r}) gave {got!r}, expected {want_url!r}")
+    """The name and place rules as the docs state them, on their own, against tests/fixtures/rules.json."""
+    with open(os.path.join(FIXTURES, "rules.json"), encoding="utf-8") as fh: R = json.load(fh)
+    from catalog import collection_state, holder_search, place_verdict, same_surname
     from conclude import AUTOMATED
-    if "nj-death-index" not in AUTOMATED: bad.append("conclude.AUTOMATED does not name nj-death-index: a death index would stay a hint until a person reads it")
-    from catalog import collection_state, place_verdict
-    township = "Mount Holly Township < Burlington County < New Jersey < United States"
-    franklin_ky = "Franklin < Simpson County < Kentucky < United States"
-    pv_cases = [
-        (("NJ", township), ("agrees", "the record gives only New Jersey")),                    # a state code against a township in the state: agrees, coarser, and says so
-        (("NJ", "New Jersey < United States"), ("agrees", None)),                              # a state against itself: agrees outright, nothing coarser to say
-        (("Newark", township), ("disagrees", None)),                                            # two different towns: still disagrees
-        (("Kent", franklin_ky), ("disagrees", None)),                                           # "Kent" is not Kentucky: no whole part matches
-        (("Frank", franklin_ky), ("disagrees", None)),                                          # "Frank" is not Franklin
-        (("Franklin, Tennessee", franklin_ky), ("disagrees", None)),                            # the town's name alone does not carry the wrong state
-        (("KY", franklin_ky), ("agrees", "the record gives only Kentucky")),                    # a state code, expanded, still agrees, coarser
-        (("Simpson County, Kentucky", franklin_ky), ("agrees", "the record gives only Simpson")), # county and state agree, coarser than the town
-        (("Simpson", franklin_ky), ("agrees", "the record gives only Simpson")),                # the county alone still agrees
-        (("Methacton Mennonite Cemetery, Norristown, Montgomery County, Pennsylvania, USA", "Norristown < Montgomery < Pennsylvania < United States"),
-         ("agrees", "the record is finer: Methacton Mennonite Cemetery")),                      # a cemetery named ahead of the town is not compared; the jurisdictions match in full, and the note names what the record adds
-        (("Vickers Hospital, Franklin, Simpson, Ky.", "Franklin, Simpson, Kentucky, United States"), ("agrees", "the record is finer: Vickers Hospital")),   # a building ahead of the town on a record that names no country, against a string that does: the country is not a part to count
-        (("Franklin, Simpson, Kentucky, United States", "Franklin, Simpson, Ky."), ("agrees", None)),                     # and the other way round
-        (("United States", franklin_ky), ("absent", None)),                                     # a record that names only the country says nothing to compare
-        (("Simpson County, Kentucky", "Kentucky < United States"), ("agrees", "the record is finer: Simpson County")),   # a finer record against a tree that holds only the state: agrees on the state, the note says the record is finer, in the record's own words
-        (("Franklin, Simpson, Ky.", "Simpson County < Kentucky < United States"), ("agrees", "the record is finer: Franklin")),   # the town ahead of the county the tree holds: agrees on the county
-        (("Simpson County", "Kentucky < United States"), ("disagrees", None)),                  # a county alone, naming no state, against a tree that holds only the state: no level in common on the strings
-        (("Franklin, Simpson, Kentucky", "Simpson County < Tennessee < United States"), ("disagrees", None)),   # finer, but under another state: disagrees
-    ]
-    for (record, tree), want in pv_cases:
-        got = place_verdict(record, tree)
-        if got != want: bad.append(f"place_verdict({record!r}, {tree!r}) gave {got!r}, expected {want!r}")
-    rs_cases = [                                                                                # a bare county takes the record's own event place's state, supplied by the caller (match.personas_of, from the collection's own name)
-        (("Simpson County", "Kentucky < United States", "Kentucky"),
-         ("agrees", "the record is finer: Simpson County; supplying Kentucky, the record's own event place, for the bare county")),
-        (("Simpson County", "Simpson County < Kentucky < United States", "Kentucky"), ("agrees", None)),   # the tree already holds the county: no need to fall back to the supplied state, so no note about it
-        (("Simpson County", "Tennessee < United States", "Kentucky"), ("disagrees", None)),      # a wrong state supplied does not paper over a real disagreement
-    ]
-    for (record, tree, record_state), want in rs_cases:
-        got = place_verdict(record, tree, record_state=record_state)
-        if got != want: bad.append(f"place_verdict({record!r}, {tree!r}, record_state={record_state!r}) gave {got!r}, expected {want!r}")
-    cs_cases = [("Kentucky, U.S., Death Index, 1911-2000", "Kentucky"), ("United States Census, 1900", None), ("", None)]
-    for name, want in cs_cases:
-        got = collection_state(name)
-        if got != want: bad.append(f"collection_state({name!r}) gave {got!r}, expected {want!r}")
-    morioka_names = [("Tonan", "1955-04-01", "1992-04-01")]                                        # a place's own dated names, as tools/resolve_places.py writes them from Wikidata
-    dn_cases = [
-        (("Tonan, Japan", "Morioka < Iwate < Japan"), ("agrees", "as Tonan, a name it held 1955-04-01–1992-04-01")),
-        (("Ogau Tonan, Japan", "Morioka < Iwate < Japan"), ("agrees", "as Tonan, a name it held 1955-04-01–1992-04-01")),   # a leading word (a hamlet) ahead of the dated name is not mistaken for the whole
-        (("Tokushima, Japan", "Morioka < Iwate < Japan"), ("disagrees", None)),                     # a real disagreement is not papered over by an unrelated dated name
-    ]
-    for (record, tree), want in dn_cases:
-        got = place_verdict(record, tree, dated_names=morioka_names)
-        if got != want: bad.append(f"place_verdict({record!r}, {tree!r}, dated_names=...) gave {got!r}, expected {want!r}")
+    bad = []
+    for c in R["same_surname"]:
+        got = same_surname(c["record"], c["tree"])
+        if got != c["verdict"]: bad.append(f"same_surname({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {c['verdict']!r}")
+    for c in R["holder_search"]:
+        got = holder_search(c["holder"], {k: {"value": v, "basis": "citation"} for k, v in c["fields"].items()})
+        if got != c["url"]: bad.append(f"holder_search({c['holder']['HolderKind']}, {c['holder']['HolderKey'][:40]!r}) gave {got!r}, expected {c['url']!r}")
+    for kind in R["automated_kinds"]:
+        if kind not in AUTOMATED: bad.append(f"conclude.AUTOMATED does not name {kind}: its records would stay a hint until a person reads them")
+    for c in R["place_verdict"]:
+        got = place_verdict(c["record"], c["tree"])
+        if got != (c["verdict"], c["note"]): bad.append(f"place_verdict({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {(c['verdict'], c['note'])!r}")
+    for c in R["place_verdict_with_record_state"]:
+        got = place_verdict(c["record"], c["tree"], record_state=c["record_state"])
+        if got != (c["verdict"], c["note"]): bad.append(f"place_verdict({c['record']!r}, {c['tree']!r}, record_state={c['record_state']!r}) gave {got!r}, expected {(c['verdict'], c['note'])!r}")
+    for c in R["collection_state"]:
+        got = collection_state(c["name"])
+        if got != c["state"]: bad.append(f"collection_state({c['name']!r}) gave {got!r}, expected {c['state']!r}")
+    names = [tuple(x) for x in R["dated_names"]["names"]]
+    for c in R["dated_names"]["cases"]:
+        got = place_verdict(c["record"], c["tree"], dated_names=names)
+        if got != (c["verdict"], c["note"]): bad.append(f"place_verdict({c['record']!r}, {c['tree']!r}, dated_names=...) gave {got!r}, expected {(c['verdict'], c['note'])!r}")
     return bad
 
 def connectors_offline():
@@ -229,7 +171,6 @@ def connectors_offline():
     say(deriv_text.splitlines()[0] == DF["header"] and len(deriv_text.splitlines()) == DF["rows_under"] + 1 and DF["not_in_derivative"] not in deriv_text.lower(), f"the derivative carries the header and only the surname's rows, nobody else's: {deriv_text}")
     say(nj.hits(nj.CSV_URL, whole, {"surname": DF["absent_surname"], "archived_sha": rq0["archived_sha"]}) == [], "a surname the file carries no row under gives no hit")
     d, db = scratch(False)
-    import treelib; treelib.DATA_ROOT = d
     from treelib import archive_object as ao
     from extract import extract as ext_fn
     cx2 = sqlite3.connect(db); cx2.execute("PRAGMA foreign_keys=ON"); cx2.row_factory = sqlite3.Row
@@ -279,14 +220,14 @@ def compiles():
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--show", action="store_true"); ap.add_argument("--keep", action="store_true"); a = ap.parse_args()
-    bad_files = compiles()
-    print("ok   every tool compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
-    bad_rules = rules(); bad_files += bad_rules
-    print("ok   the surname rule, the holder search, the rule's automated kinds and place_verdict's coarser and finer agreement: as written, a variant, one letter apart, not Grant for Brant; a template filled from the citation or the holder's page; nj-death-index is automated; a state code or an ancestor place agrees on the level it states, a finer place on the level the tree states and says so" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
-    sys.path.insert(0, os.path.join(ROOT, "tools"))
-    bad_conn = connectors_offline(); bad_files += bad_conn
-    print("ok   connectors offline: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
-    bad = len(bad_files) + parsers.check(a.keep, a.show)
+    bad = 0
+    bad_files = compiles(); bad += bool(bad_files)
+    print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
+    bad_rules = rules(); bad += bool(bad_rules)
+    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    bad_conn = connectors_offline(); bad += bool(bad_conn)
+    print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
+    bad += parsers.check(a.keep, a.show)
     bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
     bad += loop.check(a.keep, a.show)
     print("green" if not bad else f"{bad} failure(s)")

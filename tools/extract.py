@@ -69,7 +69,7 @@ Family); those typed Grave become the gravestone fetch steps (tools/plan.py).
 A FamilySearch record page (verified on a real 1900 census page): the subject's
 name in the h1 and the collection in the h2; a citation fetched on a relative
 of the record's own subject carries a leading h2 of its own ("Mentioned in the
-Record of Ollie Duke Davidson (Lena Howard Bell's Son)"), never taken as the
+Record of John Doe (Jane Roe's Son)"), never taken as the
 collection, whose own h2 follows it. The "Document Information" table
 (digital folder, microfilm, image number, batch) kept in structured_json; the
 subject's details table under "Cite This Record" as the fields, labelled as the
@@ -416,7 +416,7 @@ AAD_MARK = re.compile(r"Access to Archival Databases \(AAD\)|<title>NARA - AAD")
 VA_MARK = re.compile(r'<table[^>]*\bid="searchResults"')
 
 def va_name(s):
-    """A name as the gravesite locator writes it, DAVIDSON, RAYMOND E, the right way round: Raymond E Davidson."""
+    """A name as the gravesite locator writes it, DOE, JOHN A, the right way round: John A Doe."""
     parts = [p.strip() for p in (s or "").split(",", 1)]
     words = parts[1].split() + parts[0].split() if len(parts) == 2 else (s or "").split()
     return " ".join(w.capitalize() for w in words)
@@ -430,7 +430,7 @@ def parse_va(text):
 AAD_RECORD = "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&tf=F&bc=,sl,fd&rid="
 
 def aad_name(text):
-    """A name as the enlistment file writes it, DAVIDSON#ROBERT#C#######, the right way round: Robert C Davidson."""
+    """A name as the enlistment file writes it, DOE#JOHN#A#######, the right way round: John A Doe."""
     parts = [p for p in (text or "").split("#") if p]
     if not parts: return text or ""
     return " ".join(w.capitalize() for w in (parts[1:] + parts[:1]))
@@ -785,7 +785,7 @@ def write_record(w, parsed):
     write_facts(w, subject, by_type)
     seq0 = 2
     for label, who in named:                                         # a relative the record names in a field: Father's Name, Mother's Name, Spouse
-        if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Davidson") names nobody
+        if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Doe") names nobody
         pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
         w.fact(pid, "Name", who, labels=[label])
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
@@ -919,7 +919,7 @@ def write_ocr(w, parsed):
     seq, seen = 1, set()
     for m in re.finditer(r"(?:\b[A-Z][A-Za-z.'-]*\s+){0,2}\b(?i:" + "|".join(re.escape(s) for s in spellings) + r")\b(?:\s+[A-Z][A-Za-z.]*)?", text):   # capitalized words around the surname, any spelling, in any case
         words = re.sub(r"\s+", " ", m.group(0)).strip().split()
-        cut = [i for i, w_ in enumerate(words[:-1]) if w_.strip(".").lower() in STOP]     # "RECTOR AND Davidson": what stands before a stop word is not the name
+        cut = [i for i, w_ in enumerate(words[:-1]) if w_.strip(".").lower() in STOP]     # "RECTOR AND Doe": what stands before a stop word is not the name
         if cut: words = words[cut[-1] + 1:]
         name = " ".join(words)
         if key_of(name) in seen: continue

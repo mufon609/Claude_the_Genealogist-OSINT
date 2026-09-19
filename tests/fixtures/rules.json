@@ -1,0 +1,314 @@
+{
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, place_verdict's record-against-tree cases, collection_state's names, and a place's dated names. Examples, not records of anyone.",
+ "same_surname": [
+  {
+   "record": "ahearn",
+   "tree": "ahearn",
+   "verdict": "agrees"
+  },
+  {
+   "record": "ahern",
+   "tree": "ahearn",
+   "verdict": "variant"
+  },
+  {
+   "record": "brant",
+   "tree": "brandt",
+   "verdict": "variant"
+  },
+  {
+   "record": "ahearu",
+   "tree": "ahearn",
+   "verdict": "one letter apart"
+  },
+  {
+   "record": "grant",
+   "tree": "brant",
+   "verdict": ""
+  },
+  {
+   "record": "bran",
+   "tree": "brant",
+   "verdict": ""
+  },
+  {
+   "record": "kriebel",
+   "tree": "krebel",
+   "verdict": "variant"
+  },
+  {
+   "record": "horn",
+   "tree": "ahearn",
+   "verdict": ""
+  }
+ ],
+ "holder_search": [
+  {
+   "holder": {
+    "HolderKind": "url",
+    "HolderKey": "https://archive.org/search?query=title%3A%28%22{title}%22%29",
+    "HolderCollection": "x"
+   },
+   "fields": {
+    "name": "Abram C Brant",
+    "citation": "The Genealogical Record of the Schwenkfelder Families"
+   },
+   "url": "https://archive.org/search?query=title%3A%28%22The%20Genealogical%20Record%20of%20the%20Schwenkfelder%20Families%22%29"
+  },
+  {
+   "holder": {
+    "HolderKind": "url",
+    "HolderKey": "https://www.legacy.com/obituaries/search?firstName={given}&lastName={surname}",
+    "HolderCollection": "x"
+   },
+   "fields": {
+    "name": "Helen Sara Brant"
+   },
+   "url": "https://www.legacy.com/obituaries/search?firstName=Helen%20Sara&lastName=Brant"
+  },
+  {
+   "holder": {
+    "HolderKind": "url",
+    "HolderKey": "{url}",
+    "HolderCollection": "x"
+   },
+   "fields": {
+    "name": "Noi Davidson",
+    "url": "http://www.legacy.com/obituaries/x?n=noi"
+   },
+   "url": "http://www.legacy.com/obituaries/x?n=noi"
+  },
+  {
+   "holder": {
+    "HolderKind": "url",
+    "HolderKey": "https://archive.org/search?query=x+{year}",
+    "HolderCollection": "x"
+   },
+   "fields": {
+    "name": "Carol Evers"
+   },
+   "url": null
+  },
+  {
+   "holder": {
+    "HolderKind": "url",
+    "HolderKey": "",
+    "HolderCollection": "x"
+   },
+   "fields": {
+    "name": "Catherine Rittenhouse"
+   },
+   "url": null
+  },
+  {
+   "holder": {
+    "HolderKind": "fs_images",
+    "HolderKey": "1999196",
+    "HolderCollection": "Pennsylvania, Probate Records, 1683-1994"
+   },
+   "fields": {
+    "name": "Matthias Wool Rittenhouse"
+   },
+   "url": null
+  },
+  {
+   "holder": {
+    "HolderKind": "fs_collection",
+    "HolderKey": "1937489",
+    "HolderCollection": "New York, State Census, 1925"
+   },
+   "fields": {
+    "name": "Dorothy Peters",
+    "city": "Hempstead",
+    "county": "Nassau"
+   },
+   "url": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Dorothy&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+  },
+  {
+   "holder": {
+    "HolderKind": "url",
+    "HolderKey": "https://www.google.com/search?q=%22{title}%22&tbm=bks&tbs=cdr:1,cd_min:{mdy},cd_max:{mdy}",
+    "HolderCollection": "x"
+   },
+   "fields": {
+    "name": "Helen Sara Brant",
+    "citation": "Boca Raton News",
+    "publication date": "27 Jan 1986"
+   },
+   "url": "https://www.google.com/search?q=%22Boca%20Raton%20News%22&tbm=bks&tbs=cdr:1,cd_min:1%2F27%2F1986,cd_max:1%2F27%2F1986"
+  }
+ ],
+ "automated_kinds": [
+  "nj-death-index"
+ ],
+ "place_verdict": [
+  {
+   "record": "NJ",
+   "tree": "Mount Holly Township < Burlington County < New Jersey < United States",
+   "verdict": "agrees",
+   "note": "the record gives only New Jersey"
+  },
+  {
+   "record": "NJ",
+   "tree": "New Jersey < United States",
+   "verdict": "agrees",
+   "note": null
+  },
+  {
+   "record": "Newark",
+   "tree": "Mount Holly Township < Burlington County < New Jersey < United States",
+   "verdict": "disagrees",
+   "note": null
+  },
+  {
+   "record": "Kent",
+   "tree": "Franklin < Simpson County < Kentucky < United States",
+   "verdict": "disagrees",
+   "note": null
+  },
+  {
+   "record": "Frank",
+   "tree": "Franklin < Simpson County < Kentucky < United States",
+   "verdict": "disagrees",
+   "note": null
+  },
+  {
+   "record": "Franklin, Tennessee",
+   "tree": "Franklin < Simpson County < Kentucky < United States",
+   "verdict": "disagrees",
+   "note": null
+  },
+  {
+   "record": "KY",
+   "tree": "Franklin < Simpson County < Kentucky < United States",
+   "verdict": "agrees",
+   "note": "the record gives only Kentucky"
+  },
+  {
+   "record": "Simpson County, Kentucky",
+   "tree": "Franklin < Simpson County < Kentucky < United States",
+   "verdict": "agrees",
+   "note": "the record gives only Simpson"
+  },
+  {
+   "record": "Simpson",
+   "tree": "Franklin < Simpson County < Kentucky < United States",
+   "verdict": "agrees",
+   "note": "the record gives only Simpson"
+  },
+  {
+   "record": "Methacton Mennonite Cemetery, Norristown, Montgomery County, Pennsylvania, USA",
+   "tree": "Norristown < Montgomery < Pennsylvania < United States",
+   "verdict": "agrees",
+   "note": "the record is finer: Methacton Mennonite Cemetery"
+  },
+  {
+   "record": "Vickers Hospital, Franklin, Simpson, Ky.",
+   "tree": "Franklin, Simpson, Kentucky, United States",
+   "verdict": "agrees",
+   "note": "the record is finer: Vickers Hospital"
+  },
+  {
+   "record": "Franklin, Simpson, Kentucky, United States",
+   "tree": "Franklin, Simpson, Ky.",
+   "verdict": "agrees",
+   "note": null
+  },
+  {
+   "record": "United States",
+   "tree": "Franklin < Simpson County < Kentucky < United States",
+   "verdict": "absent",
+   "note": null
+  },
+  {
+   "record": "Simpson County, Kentucky",
+   "tree": "Kentucky < United States",
+   "verdict": "agrees",
+   "note": "the record is finer: Simpson County"
+  },
+  {
+   "record": "Franklin, Simpson, Ky.",
+   "tree": "Simpson County < Kentucky < United States",
+   "verdict": "agrees",
+   "note": "the record is finer: Franklin"
+  },
+  {
+   "record": "Simpson County",
+   "tree": "Kentucky < United States",
+   "verdict": "disagrees",
+   "note": null
+  },
+  {
+   "record": "Franklin, Simpson, Kentucky",
+   "tree": "Simpson County < Tennessee < United States",
+   "verdict": "disagrees",
+   "note": null
+  }
+ ],
+ "place_verdict_with_record_state": [
+  {
+   "record": "Simpson County",
+   "tree": "Kentucky < United States",
+   "record_state": "Kentucky",
+   "verdict": "agrees",
+   "note": "the record is finer: Simpson County; supplying Kentucky, the record's own event place, for the bare county"
+  },
+  {
+   "record": "Simpson County",
+   "tree": "Simpson County < Kentucky < United States",
+   "record_state": "Kentucky",
+   "verdict": "agrees",
+   "note": null
+  },
+  {
+   "record": "Simpson County",
+   "tree": "Tennessee < United States",
+   "record_state": "Kentucky",
+   "verdict": "disagrees",
+   "note": null
+  }
+ ],
+ "collection_state": [
+  {
+   "name": "Kentucky, U.S., Death Index, 1911-2000",
+   "state": "Kentucky"
+  },
+  {
+   "name": "United States Census, 1900",
+   "state": null
+  },
+  {
+   "name": "",
+   "state": null
+  }
+ ],
+ "dated_names": {
+  "names": [
+   [
+    "Tonan",
+    "1955-04-01",
+    "1992-04-01"
+   ]
+  ],
+  "cases": [
+   {
+    "record": "Tonan, Japan",
+    "tree": "Morioka < Iwate < Japan",
+    "verdict": "agrees",
+    "note": "as Tonan, a name it held 1955-04-01–1992-04-01"
+   },
+   {
+    "record": "Ogau Tonan, Japan",
+    "tree": "Morioka < Iwate < Japan",
+    "verdict": "agrees",
+    "note": "as Tonan, a name it held 1955-04-01–1992-04-01"
+   },
+   {
+    "record": "Tokushima, Japan",
+    "tree": "Morioka < Iwate < Japan",
+    "verdict": "disagrees",
+    "note": null
+   }
+  ]
+ }
+}

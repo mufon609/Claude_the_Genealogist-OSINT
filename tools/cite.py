@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """A record the owner cites on their own word: a fetch step on the person's plan, with the citation's own details.
 
-usage: tools/cite.py "<person>" --row "census household:1950" --holder D05 --field "surname=Evers" --field "census place=East Northport, Suffolk County, New York"
-                     --field "enumeration district=52-133A" --field "page=5" --field "year=1950" [--field "collection=…"] [--type household|subject_record]
+usage: tools/cite.py "<person>" --row "census household:1950" --holder D05 --field "surname=Doe" --field "census place=Springfield, Sangamon County, Illinois"
+                     --field "enumeration district=84-12" --field "page=5" --field "year=1950" [--field "collection=…"] [--type household|subject_record]
                      [--note "…"] [--tree slug] [--db catalog/tree.db] [--by user:<you>]
 
 The file cites nothing for the person and nothing is archived yet, but the owner knows the record exists at a holder (a

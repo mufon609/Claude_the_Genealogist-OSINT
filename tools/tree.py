@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Manage trees (profiles).
 
-  tools/tree.py create <slug> --name "Ahearn Family Tree" [--description ...]
+  tools/tree.py create <slug> --name "Doe Family Tree" [--description ...]
   tools/tree.py list
   tools/tree.py use <slug>          # sets catalog/.active-tree
   tools/tree.py show [<slug>]

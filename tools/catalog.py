@@ -18,8 +18,8 @@ def year(s): return int(s[:4]) if s and s[:4].isdigit() else None
 SUFFIX = {"jr", "sr", "ii", "iii", "iv", "esq"}
 
 def split_name(text):
-    """(given names, surname, suffix) from a name as written: "Frederick Micheal Ahearn Jr" is given "Frederick Micheal",
-    surname "Ahearn", suffix "Jr"; "Ahearn, Frederick M" (surname first, as an index writes it) the same way round. None for a
+    """(given names, surname, suffix) from a name as written: "John Alan Doe Jr" is given "John Alan",
+    surname "Doe", suffix "Jr"; "Doe, John A" (surname first, as an index writes it) the same way round. None for a
     part that is not there."""
     t = re.sub(r"[\u201c\u201d\"']", " ", text or "").strip()
     m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", t)
@@ -94,9 +94,9 @@ def edits(a, b):
 
 def same_surname(a, b):
     """Whether two surname keys are one name: written the same; a spelling variant (the same Soundex code and at most two
-    edits apart, so Ahearn and Ahern, Brant and Brandt, Kriebel and Krebel); or one letter apart in a name of five letters or
-    more, whatever the Soundex, an indexer's slip (Ahearu for Ahearn), as long as the first letter stands: a substitution, a
-    missing or an extra letter, never Grant for Brant. Returns "" when they differ, "agrees" when written the same, "variant"
+    edits apart, so Rowan and Rowen, Reid and Reed, Kriebel and Krebel); or one letter apart in a name of five letters or
+    more, whatever the Soundex, an indexer's slip (Rowau for Rowan), as long as the first letter stands: a substitution, a
+    missing or an extra letter, never Cowan for Rowan. Returns "" when they differ, "agrees" when written the same, "variant"
     for a spelling variant, "one letter apart" for the slip."""
     if not a or not b: return ""
     if a == b: return "agrees"
@@ -547,7 +547,7 @@ class Catalog:
         out += [n for n, _, _ in dated]
         return list(dict.fromkeys(x for x in out if x))
     def find_person(self, key):
-        """A person by id, by the last six characters of the id in brackets or alone ("Noi Davidson [MEXW2C]", "MEXW2C"), by exact
+        """A person by id, by the last six characters of the id in brackets or alone ("Jane Roe [MEXW2C]", "MEXW2C"), by exact
         display name, or by a substring of the name. Several matches stop the tool and list them with their six characters, so a
         decision never lands on whichever sorts first. A person merged into another (`person.merged_into`) does not match:
         the merge moved everything about them onto the person they duplicate."""

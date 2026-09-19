@@ -176,33 +176,6 @@ the name a piece unique to the citation as well (the citation's own record
 locator when it has one, else the step's key), so one person's several pages
 of one collection are told apart too.
 
-### C6. The harness names the owner's family and plants people
-
-`tools/check.py` is one file of near three thousand lines: a dedicated
-function per fixture (`check_census_1940`, `check_memorial`, …) spells out
-that page's personas, facts and relations in Python lines; `decisions()`
-and the checks beside it look people up by name (`who["…"]`) and insert
-people the file does not hold to shape a scenario; and several tool
-docstrings (`tools/extract.py`, `tools/match.py`, the usage lines of
-`tools/cite.py` and `tools/tree.py`) use the family's names as worked
-examples. The owner's rulings of 18 Sept 2026: no invented test data, and
-no names in the harness code. Rebuild the harness to that. `python3
-tools/check.py` stays the one command, and its work moves into modules by
-concern (compiles and the pure rules; every parser on its fixture; the
-matcher, the rule and the writers on the harness tree; the loop's tools),
-each generic. Every expectation is data beside its fixture
-(`<fixture>.expect.json` on the fixture's own naming pattern: the
-personas, facts and relations the page yields, compared by one reader),
-and every decisions scenario is data too (the setup by the harness file's
-own entry ids, the page attached and to whom, what the matcher and the
-rule must write or refuse, in a small vocabulary `tests/fixtures/README.md`
-documents), so the harness code walks the data and names nobody. No
-person is planted: a scenario that needs a person the harness file lacks
-takes one from the owner's own export, the harness file re-cut from it
-rather than written by hand. The docstring examples become neutral. The
-proof is a grep: no family name in the harness code, and the same harness
-running unchanged over another family's fixtures and sidecars.
-
 ### C7. Hints on the person page
 
 A run that found pages naming the person on the name alone (a directory

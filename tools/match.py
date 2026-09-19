@@ -25,7 +25,7 @@ unless the record names a dated former name of the tree's own place (catalog.dat
 own Wikidata reading), which then agrees on that name, the note naming the period it held it; the
 place string itself is never touched. A prefix (Dr, Maj), a nickname in quotes
 and an extra middle name are not disagreements; a name written surname first
-(Davidson, Robert E.) is read as such and an initial is never a surname; the
+(Doe, John A.) is read as such and an initial is never a surname; the
 surname agrees when any token of the record's name after the given name is a
 surname the tree has for the candidate (a memorial writes a married woman's
 birth surname inside her name). A persona fits a candidate when the given name agrees, nothing compared
@@ -97,10 +97,10 @@ def name_keys(cat, pid):
 
 def split_persona_name(name_text):
     """(first given name key, [every later token's key]) with a leading prefix (Dr, Maj) dropped and quotes gone: a memorial writes a
-    woman's name with her birth surname inside it (Helen Sara Brant Ahearn), so any token after the given name may be the surname
+    woman's name with her birth surname inside it (Jane Ann Roe Doe), so any token after the given name may be the surname
     the tree knows, and a nickname in quotes is one more token."""
     text = re.sub(r"[\u201c\u201d\"']", " ", name_text or "").strip()
-    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", text)                   # a census writes the surname first: "Davidson, Robert E."
+    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", text)                   # a census writes the surname first: "Doe, John A."
     if m: text = f"{m.group(2)} {m.group(1)}"
     parts = [p for p in text.replace(",", " ").split() if key(p)]
     while parts and key(parts[0]) in PREFIX: parts.pop(0)
