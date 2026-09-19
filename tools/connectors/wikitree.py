@@ -19,6 +19,12 @@ FIELDS = "Id,Name,FirstName,MiddleName,LastNameAtBirth,LastNameCurrent,BirthDate
 PROFILE = FIELDS + ",Parents,Spouses,Children,Siblings,Bio,Touched"
 MOST_HITS = 5
 
+def wants(fields):
+    """A surname, then a birth or death year: the search by name alone lists too many profiles to read."""
+    if not value(fields, "surname"): return "a surname"
+    if not (value(fields, "birth_year") or value(fields, "death_year")): return "a birth or death year"
+    return None
+
 def requests(fields):
     surname, given = value(fields, "surname"), value(fields, "given")
     b, d = value(fields, "birth_year"), value(fields, "death_year")

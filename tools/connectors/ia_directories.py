@@ -18,6 +18,12 @@ def years(fields):
     if d: return int(d) - 60, int(d)
     return None, None
 
+def wants(fields):
+    """A surname, then the towns the person lived in: a surname across every directory in the country is a hint feed."""
+    if not phrase(fields): return "a surname"
+    if not (value(fields, "towns") or []): return "a town the person lived in"
+    return None
+
 def requests(fields):
     p = phrase(fields); towns = value(fields, "towns") or []
     if not p or not towns: return []                                # a surname across every directory in the country is a hint feed

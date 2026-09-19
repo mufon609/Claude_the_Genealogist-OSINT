@@ -26,6 +26,12 @@ CSV_URL = "https://archive.org/download/newjerseydeathindex_2006-2017_data_csv/R
 RATE = {"text": 6}                                                # a 69 MB file; a person's pace asks it no more often than this
 FIELDS = ["FNAME", "LNAME", "MIDDLE_NAME", "STATE_FILE_NUMBER", "BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY", "DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"]
 
+def wants(fields):
+    """A citation of the death index itself (a marriage or birth citation at C09 asks nothing here), then a surname."""
+    coll = (value(fields, "collection") or "").lower()
+    if coll and "death" not in coll: return "a citation of the death index: this file is the death index alone"
+    return None if name_parts(fields)[1] else "a surname"
+
 def requests(fields):
     """The whole file, once, when the step's fields name a surname (the citation's own name, or a search step's). C09
     also holds the state's marriage and birth indexes (data/holders.csv), so a citation naming one of those (its own

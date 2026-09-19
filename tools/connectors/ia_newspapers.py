@@ -23,6 +23,9 @@ def years(fields):
     if b: return int(b), int(b) + 100
     return None, None
 
+def wants(fields):
+    return None if phrase(fields) else "a surname"
+
 def requests(fields):
     p = phrase(fields)
     if not p: return []

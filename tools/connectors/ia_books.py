@@ -25,6 +25,14 @@ def title_of(fields):
     one of books. None for a search step or a citation naming no book."""
     return value(fields, "book title") or value(fields, "title") or (value(fields, "citation") if BOOKS.search(str(value(fields, "collection") or "")) else None)
 
+def wants(fields):
+    """A cited book's title with a word in it; a search step's surname, then the state its genealogies are shelved under."""
+    t = title_of(fields)
+    if t: return None if title_url(t) else "a title with a word in it"
+    if not phrase(fields): return "a surname"
+    if not value(fields, "state"): return "a state"
+    return None
+
 def requests(fields):
     t = title_of(fields)
     if t:

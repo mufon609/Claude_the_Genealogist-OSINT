@@ -2007,6 +2007,65 @@ def run_none_check(keep):
     else: shutil.rmtree(d, ignore_errors=True)
     return fails
 
+def run_wants_check(keep):
+    """A search step its connectors cannot ask: a person with a name and nothing else, on a compiled-genealogy step at the
+    Archive's books (L02) and WikiTree (B04), run once with no network. Each connector logs a none run with no request, the
+    note naming the field it wanted (a state; a birth or death year); the step is not runnable after, and the queue passes
+    the person over. Once the plan writes the field wanted, the step is runnable again."""
+    d, db = scratch(keep)
+    import treelib; treelib.DATA_ROOT = d
+    import run_step
+    from treelib import now as tnow, ulid as tulid, dumps as tdumps
+    from catalog import Catalog
+    run(os.path.join(ROOT, "tools", "tree.py"), "--db", db, "--by", BY, "create", "wantstest", "--name", "Wants Test")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    tid = cx.execute("SELECT id FROM tree WHERE slug='wantstest'").fetchone()[0]
+    ts = tnow(); home_id, parent_id = tulid(), tulid()
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (home_id, tid, "F", "Home Person", ts, ts))
+    cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (parent_id, tid, "M", "Nameonly Parent", ts, ts))
+    cx.execute("INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)", (tulid(), parent_id, "Nameonly", "Parent", "parent, nameonly"))
+    cx.execute("UPDATE tree SET home_person_id=? WHERE id=?", (home_id, tid))
+    fid = tulid(); cx.execute("INSERT INTO family (id,tree_id,rel_type,created_at,updated_at) VALUES (?,?,'unknown',?,?)", (fid, tid, ts, ts))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid, parent_id))
+    cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'child')", (fid, home_id))
+    sid = tulid()
+    cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,sources_json,mode,status,created_at)
+                  VALUES (?,?,'compiled genealogy / family history:',1,'search:compiled','search','name',?,'["L02","B04"]','auto','planned',?)""",
+               (sid, parent_id, tdumps({"given": {"value": "Nameonly", "basis": "accepted"}, "surname": {"value": "Parent", "basis": "accepted"}}), ts))
+    cx.commit()
+    def no_fetch(url, kind, c, data=None): raise AssertionError(f"a request went out: {url}")
+    orig_fetch = run_step.fetch; run_step.fetch = no_fetch
+    fails = []; fail = lambda ok, why: None if ok else fails.append(why)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tree_queue3", os.path.join(ROOT, "tools", "queue.py"))
+    tree_queue = importlib.util.module_from_spec(spec); spec.loader.exec_module(tree_queue)
+    try:
+        cat = Catalog(cx, tid)
+        step = cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone()
+        fail([c.__name__.split(".")[-1] for c in run_step.connectors_for(cat, step)] == ["ia_books", "wikitree"], "the step runs at the Archive's books and WikiTree")
+        fail(sid in {r["id"] for r in run_step.runnable(cx, cat, tid)}, "with no run, the step is runnable")
+        out, passed = tree_queue.edge(cx, tid)
+        fail(any(e["id"] == parent_id for e in out), f"the parent is named on it: {out}")
+        cx.execute("BEGIN"); res = run_step.run(cx, cat, tid, step, BY); cx.commit()
+        fail([(r.get("connector"), r.get("outcome"), r.get("requests"), r.get("wants")) for r in res] == [("ia_books", "none", [], "a state"), ("wikitree", "none", [], "a birth or death year")],
+             f"each connector is a none run with no request, naming the field it wanted: {[(r.get('connector'), r.get('outcome'), r.get('requests'), r.get('wants'), r.get('error')) for r in res]}")
+        rows = cx.execute("SELECT source_id, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY id", (sid,)).fetchall()
+        fail([(r["source_id"], r["outcome"], r["artifacts_json"]) for r in rows] == [("L02", "none", None), ("B04", "none", None)], f"one log row per connector under its own source, none, no artifact: {[tuple(r) for r in rows]}")
+        fail(rows and "it wants a state" in (rows[0]["notes"] or "") and "it wants a birth or death year" in (rows[1]["notes"] or ""), f"the notes name the field: {[r['notes'] for r in rows]}")
+        fail(cx.execute("SELECT status FROM search_plan WHERE id=?", (sid,)).fetchone()[0] == "planned", "the step stays planned")
+        fail(sid not in {r["id"] for r in run_step.runnable(cx, cat, tid)}, "run once on these fields, the step is not runnable again")
+        out, passed = tree_queue.edge(cx, tid)
+        fail(any(e["id"] == parent_id for e in passed) and not any(e["id"] == parent_id for e in out), f"the parent is passed over: {passed}")
+        cx.execute("UPDATE search_plan SET query_json=? WHERE id=?", (tdumps({"given": {"value": "Nameonly", "basis": "accepted"}, "surname": {"value": "Parent", "basis": "accepted"}, "birth_year": {"value": "1880", "basis": "accepted"}}), sid)); cx.commit()
+        fail(sid in {r["id"] for r in run_step.runnable(cx, cat, tid)}, "once the plan writes a birth year, the step is runnable again")
+        fail(any(e["id"] == parent_id for e in tree_queue.edge(cx, tid)[0]), "and the parent is named again")
+    finally:
+        run_step.fetch = orig_fetch
+    cx.close()
+    if keep: print("run wants scratch kept at", d)
+    else: shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def results_for_fetch_check(keep):
     """A results page saved for a fetch step's own search at the holder (the citation carries no record id of the holder's
     to open): tools/attach.py tells it from a record page by the parser that claims it, never the file name, and attaches
@@ -2652,6 +2711,10 @@ def main():
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL run_step none run: " + "; ".join(fails))
     else: print("ok   run_step none run: a connector's results listing whose rows fit nobody is a none run with the reason, the rows kept as candidates and the step planned; a row that fits is a card and a found run")
+    try: fails = run_wants_check(a.keep)
+    except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+    if fails: bad += 1; print("FAIL run_step none run for want of a field: " + "; ".join(fails))
+    else: print("ok   run_step none run for want of a field: a connector with nothing to ask on the step's fields logs a none run with no request, the note naming the field it wanted; the step is not runnable until the plan writes it, and the queue passes the person over")
     try: fails = results_for_fetch_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL attach results page for a fetch step: " + "; ".join(fails))

@@ -8,6 +8,7 @@ text services 150 per minute, image services 150 per minute; exceeding them bloc
 """
 import json, re, urllib.parse
 from connectors import value
+from connectors.ia import name_parts
 
 SOURCE = "H01"
 COLLECTION = "Chronicling America (loc.gov)"
@@ -22,6 +23,9 @@ def state_of(place):
     for part in re.split(r"[<,]", place or ""):
         if part.strip().lower() in US_STATES: return part.strip().lower()
     return None
+
+def wants(fields):
+    return None if name_parts(fields)[1] else "a surname"
 
 def requests(fields):
     """A search step's fields (surname, given, a death year or census year, the state), or a fetch step's (the citation's name

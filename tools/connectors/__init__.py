@@ -11,6 +11,10 @@ The contract, and nothing else:
               identity the response is archived under when the url alone does not carry the query (a posted search);
               "record": True says the response is itself the record (a results page listing what was found), read by the
               extractor as a hit's own record would be.
+  wants(fields) -> str or None
+              the field the connector still wants when requests(fields) is empty, in words ("a surname", "a birth or death
+              year", "a state", "a title"): the runner logs a none run with no request whose note names it, so the step is
+              asked again once the plan writes that field. None when the connector wants nothing it lacks.
   total(body) -> int or None
               how many results the source says it has for the request, from the response bytes; goes in the log note.
   hits(url, body[, request]) -> [hit]

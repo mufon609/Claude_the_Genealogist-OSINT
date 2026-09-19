@@ -8,6 +8,7 @@ the site. The search is fuzzy, so a result is a hit only when a highlighted name
 """
 import json, re, urllib.parse
 from connectors import value
+from connectors.ia import name_parts
 from connectors.loc_gov import US_STATES
 
 SOURCE = "D05"
@@ -24,6 +25,9 @@ def place_parts(place):
     county = next((re.sub(r"\s+County$", "", p, flags=re.I) for p in parts if re.search(r"\bCounty$", p, re.I)), None)
     if county is None and state and len(parts) >= 2 and parts[parts.index(state) - 1] != parts[0]: county = parts[parts.index(state) - 1]
     return county, ABBR.get(state.lower()) if state else None
+
+def wants(fields):
+    return None if name_parts(fields)[1] else "a surname"
 
 def requests(fields):
     """A search step's fields (given, surname, place) become a name search in the state and county. A fetch step's fields are the

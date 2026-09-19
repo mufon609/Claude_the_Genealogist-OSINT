@@ -15,6 +15,7 @@ step is asked to narrow.
 """
 import re, urllib.parse
 from connectors import value
+from connectors.ia import name_parts
 
 SOURCE = "E03"
 COLLECTION = "VA Nationwide Gravesite Locator"
@@ -26,6 +27,9 @@ FORM = "https://gravelocator.cem.va.gov/ngl/"                      # the page a 
 MARK = re.compile(r'<table[^>]*\bid="searchResults"')
 LABELS = {"Name": "name", "Rank & Branch": "rank_branch", "War Period": "war", "Date of Birth": "birth", "Date of Death": "death",
           "Buried At": "buried_at", "Cemetery": "cemetery", "Cemetery Address": "address", "Telephone": "telephone"}
+
+def wants(fields):
+    return None if name_parts(fields)[1] else "a surname"
 
 def requests(fields):
     surname, given = value(fields, "surname"), value(fields, "given")

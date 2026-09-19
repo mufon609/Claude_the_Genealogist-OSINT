@@ -28,7 +28,9 @@ connector.follow); the search inside a book is asked once per spelling of the su
 person (surname_variants on the rendered fields, basis record), and a book the Archive only lends is a none run with the
 reason. A source's years, from the registry's coverage column (1756-1963, 1780s-1990s, 1950), gate its steps: a step whose
 years fall wholly outside them (an obituary for a death after the newspapers end, a cited obituary whose paper's date is)
-is logged none without a request, the note saying so.
+is logged none without a request, the note saying so. A connector with nothing to ask on the step's fields (WikiTree
+without a birth or death year, the Archive's books without a state, a cited book without a title: connector.wants) is
+logged none the same way, the note naming the field it wanted, so the step is asked again once the plan writes it.
 --all runs every planned step a connector can take and that has no run since the plan last wrote its fields, in plan order,
 keeping each connector's pace across steps; a step already run on the same fields is run again by its id, or once the plan
 changes them. A run logged error is a source that did not answer, not a run on the fields: the step stays runnable and
@@ -211,12 +213,13 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     names = place_field["value"] if isinstance(place_field, dict) and isinstance(place_field.get("value"), list) and place_field["value"] else [None]
     query_for = lambda name: query if name is None else {**query, "place": {**place_field, "value": name}}
     reqs = conn.requests(query_for(names[0])); gate = outside(cat, conn, step["query_type"], query)
-    if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs, **({"outside": gate} if gate else {}),
+    wants = (conn.wants(query_for(names[0])) if hasattr(conn, "wants") else None) or "a surname, or for a cited book its title" if not reqs else None
+    if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs, **({"outside": gate} if gate else {}), **({"wants": wants} if wants else {}),
                         **({"place_names": names} if names != [None] else {})}
-    if not reqs: return {"connector": conn.__name__.split(".")[-1], "error": "the fields give the connector nothing to ask: a surname, or for a cited book its title"}
-    if gate:                                                     # the source's years miss the step's: a none run with the reason, no request
+    if not reqs: gate = f"the fields give the connector nothing to ask; it wants {wants}: not asked"   # no request: a none run with the reason, the step asked again once the plan writes the field
+    if gate:                                                     # the source's years miss the step's, or its connector has nothing to ask: a none run with the reason, no request
         lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome="none", artifacts=None, note=gate, query=query)
-        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "none", "log": lid, "artifacts": [], "hits": [], "errors": [], "household_steps": [], "records": [], "outside": gate}
+        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "none", "log": lid, "artifacts": [], "hits": [], "errors": [], "household_steps": [], "records": [], **({"wants": wants} if wants else {"outside": gate})}
     src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (conn.SOURCE,)).fetchone()
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")
