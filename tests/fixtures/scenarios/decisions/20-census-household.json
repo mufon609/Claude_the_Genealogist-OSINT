@@ -1,0 +1,542 @@
+{
+ "title": "a census household decided",
+ "line": "the four the page names and cites each get a card and the rule takes none on a tree with no accepted fact; the son's accept writes his facts and an alias, the mother's the mother-son link, the father's the couple; the accepted birthplace against the file's claim is a conflict question, never an overwrite; the birth record's father is one letter apart and the mother's surname garbled, both cards for the owner; the sister is taken by the rule through the claimed sibling and placed undecided; a link on the owner's word is a vouch, no link for the matcher",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 page arrives through the inbox",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "step_people": {
+       "len": 4
+      }
+     }
+    },
+    {
+     "cards": {
+      "record": "c40",
+      "people": [
+       "I332737072856",
+       "I332737037257",
+       "I332737036054",
+       "I332737037573"
+      ],
+      "kind": "persona_match"
+     },
+     "why": "a card for each of the four the page names and cites, nobody else, every one a persona match: the tree has them all"
+    },
+    {
+     "rule": {
+      "record": "c40",
+      "person": "I332737036054",
+      "taken": false,
+      "why": {
+       "has": "not accepted"
+      }
+     },
+     "why": "the rule stands on accepted facts only, and the son has none"
+    },
+    {
+     "rule": {
+      "record": "c40",
+      "person": "I332737037257",
+      "taken": false,
+      "why": "the name is not accepted yet"
+     },
+     "why": "his disagreement rests on no accepted assertion yet either, so it is not a veto; the name is what refuses him"
+    },
+    {
+     "rule": {
+      "record": "c40",
+      "person": "I332737037573",
+      "taken": false
+     }
+    },
+    {
+     "rule": {
+      "record": "c40",
+      "person": "I332737072856",
+      "taken": false
+     }
+    }
+   ]
+  },
+  {
+   "say": "the son accepted: his facts, no family link yet",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "assertions": {
+       ">=": 6
+      },
+      "memberships": []
+     },
+     "why": "the son's facts accepted from the record and no family link before a parent is"
+    },
+    {
+     "facts": {
+      "person": "I332737036054",
+      "name": "accepted",
+      "birth": "accepted",
+      "parents": "undecided"
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737036054",
+      "is": {
+       "has": [
+        "Frederick Ahern",
+        "typo",
+        "accepted"
+       ]
+      }
+     },
+     "why": "the record's own words, the alias kind the surname difference is, accepted with the decision, not left for a later backfill"
+    }
+   ]
+  },
+  {
+   "say": "a results page of the 1950 census for him: the matcher's verdict on every row, on the candidate card",
+   "archive": {
+    "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html",
+    "source": "D03",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn"
+    },
+    "extract": true
+   },
+   "as": "r50",
+   "expect": [
+    {
+     "results_page": {
+      "record": "r50",
+      "person": "I332737036054",
+      "rows": 20,
+      "fits": [
+       1
+      ],
+      "names": {
+       "1": "Fred M Ahearn"
+      },
+      "places": {
+       "2": "Sayre, Bradford, Pennsylvania, United States"
+      }
+     },
+     "why": "row 1 fits him and rows 2 to 20 do not; a record row shows its residence as its place"
+    }
+   ]
+  },
+  {
+   "say": "the mother accepted: the mother-son link",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "memberships": {
+       "some": {
+        "role": "child",
+        "as": "Mother"
+       }
+      }
+     },
+     "why": "accepting the mother asserts the son's child membership"
+    },
+    {
+     "facts": {
+      "person": "I332737036054",
+      "parents": "accepted"
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737037573",
+      "spouses": "undecided"
+     },
+     "why": "her spouses wait for the father's card"
+    }
+   ]
+  },
+  {
+   "say": "the father accepted: the couple relation and the link from his side",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "memberships": {
+       "some": {
+        "role": "child"
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "memberships": {
+       "some": {
+        "role": "partner"
+       }
+      }
+     },
+     "why": "the father's accept asserts the child link and the couple"
+    },
+    {
+     "facts": {
+      "person": "I332737037573",
+      "spouses": "accepted"
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737037257",
+      "spouses": "accepted"
+     }
+    },
+    {
+     "event": {
+      "person": "I332737037257",
+      "type": "Birth",
+      "strings": {
+       "Pennsylvania": "accepted",
+       "Northampton, Hampshire, Massachusetts, USA": "undecided"
+      },
+      "shown": "Pennsylvania"
+     },
+     "why": "his birth event carries the file's claim (undecided) and the census's (accepted): the event shows the accepted one, not whichever sorts first"
+    },
+    {
+     "linked": {
+      "a": "I332737037573",
+      "b": "I332737036054"
+     },
+     "why": "the mother and son are linked on the record for the matcher once both are accepted on it"
+    },
+    {
+     "linked": {
+      "a": "I332737037573",
+      "b": "I332737037257"
+     },
+     "why": "the couple is linked on the record"
+    },
+    {
+     "disagreements": {
+      "person": "I332737037257",
+      "is": {
+       "some": {
+        "has": [
+         "birth place:",
+         "against the file",
+         "Pennsylvania against Northampton, Hampshire, Massachusetts, USA"
+        ]
+       }
+      }
+     },
+     "why": "the accepted birthplace is compared with the file's own claim on the event"
+    }
+   ]
+  },
+  {
+   "say": "his plan regenerated: the difference opens as a conflict question",
+   "plan": [
+    "I332737037257"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "Pennsylvania against Northampton"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the father's birth record arrives: its row by the record's event type, his name one letter apart",
+   "attach": {
+    "fixture": "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"
+   },
+   "as": "birth",
+   "expect": [
+    {
+     "last": {
+      "steps": {
+       "every": [
+        {
+         "any": true
+        },
+        "Frederick Michael Ahearn",
+        {
+         "starts": "birth record"
+        },
+        {
+         "any": true
+        }
+       ]
+      }
+     },
+     "why": "the birth record attaches to his birth record step by the record's own event type and his name one letter apart"
+    },
+    {
+     "cards": {
+      "record": "birth",
+      "people": [
+       "I332737037257"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "card": {
+      "record": "birth",
+      "person": "I332737037257",
+      "rationale": {
+       "has": "one letter apart"
+      }
+     },
+     "why": "one card, his, saying the surname is one letter apart"
+    }
+   ]
+  },
+  {
+   "say": "his card accepted: his birth on its day",
+   "decide": {
+    "card": {
+     "record": "birth",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "event": {
+      "person": "I332737037257",
+      "type": "Birth",
+      "canonical_date": "22 May 1907",
+      "basis": "accepted"
+     }
+    },
+    {
+     "card": {
+      "record": "birth",
+      "person": "I332737043939",
+      "status": "undecided",
+      "rationale": {
+       "has": "Father"
+      }
+     },
+     "why": "the father the record names is proposed to the tree's own claimed father on the stated relationship once the child is accepted, a card"
+    },
+    {
+     "rule": {
+      "record": "birth",
+      "person": "I332737043939",
+      "taken": false,
+      "why": {
+       "has": "one letter apart"
+      }
+     },
+     "why": "the rule does not take a name one letter apart"
+    },
+    {
+     "card": {
+      "record": "birth",
+      "person": "I332737044799",
+      "status": "undecided",
+      "kind": "persona_match",
+      "rationale": {
+       "has": "urname disagrees"
+      }
+     },
+     "why": "the mother the index garbles is still put to the tree's own claimed mother through the family link, the disagreement named, never hidden"
+    },
+    {
+     "rule": {
+      "record": "birth",
+      "person": "I332737044799",
+      "taken": false,
+      "why": {
+       "has": "surname disagrees"
+      }
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737037257",
+      "parents": "undecided"
+     },
+     "why": "his parents wait on their own cards"
+    }
+   ]
+  },
+  {
+   "say": "the rule re-examines: the sister is taken through the claimed sibling and placed undecided beside her brother",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "card",
+        "taken": true,
+        "person": "Alicia Ahern",
+        "why": {
+         "has": "sibling Frederick Ahern"
+        }
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "c40",
+      "person": "I332737072856",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": "sibling Frederick Ahern"
+      }
+     }
+    },
+    {
+     "memberships": {
+      "person": "I332737072856",
+      "is": {
+       "some": {
+        "role": "child",
+        "status": "undecided",
+        "placed": "sibling"
+       }
+      }
+     },
+     "why": "the sister's membership carries an undecided sibling placement: the record states the sibling, not the parents"
+    }
+   ]
+  },
+  {
+   "say": "the rule's decision on the sister stands: the owner's Add is not a second decision",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737072856"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": "already decided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the sister placed with her parents on the owner's word",
+   "link_on_word": {
+    "person": "I332737072856",
+    "others": [
+     "I332737037257",
+     "I332737037573"
+    ],
+    "kind": "child",
+    "record": "c40"
+   },
+   "as": "vouch",
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737072856",
+      "parents": "accepted"
+     }
+    },
+    {
+     "linked": {
+      "a": "I332737072856",
+      "b": "I332737036054",
+      "is": false
+     }
+    },
+    {
+     "linked": {
+      "a": "I332737072856",
+      "b": "I332737037573",
+      "is": false
+     },
+     "why": "a vouched link is not a link on a record: the sister is linked to neither her brother nor her mother for the matcher"
+    },
+    {
+     "trusted": {
+      "membership": {
+       "family": "$vouch.family",
+       "person": "I332737072856",
+       "role": "child"
+      }
+     },
+     "why": "the vouch counts as ground with nothing excluded"
+    },
+    {
+     "trusted": {
+      "membership": {
+       "family": "$vouch.family",
+       "person": "I332737072856",
+       "role": "child"
+      },
+      "without": [
+       "some-other-proposal-id"
+      ]
+     },
+     "why": "the vouch still counts as ground when an unrelated proposal's assertions are excluded: it has no proposal key to match"
+    }
+   ]
+  },
+  {
+   "say": "the plan settled and the catalog whole",
+   "expect": [
+    {
+     "plan_idempotent": "all"
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

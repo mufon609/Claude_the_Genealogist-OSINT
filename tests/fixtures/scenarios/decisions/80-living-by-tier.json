@@ -1,0 +1,444 @@
+{
+ "title": "the living default by tier",
+ "line": "tiers 0 and 1 living and assisted, tier 2 unknown and assisted until the owner confirms, tier 3 and the unreached deceased and auto; a claimed link places and a rejected one does not; held death evidence makes a person deceased at any tier; the living command flips the status with one audit row and unknown clears it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "everyone's status as the tier rule reads it, from the home person",
+   "expect": [
+    {
+     "living": {
+      "person": "I332737035562",
+      "status": "living",
+      "tier": 0,
+      "reason": "tier 0, living by default"
+     },
+     "why": "the home person, no death: living at tier 0"
+    },
+    {
+     "living": {
+      "person": "I332737035563",
+      "status": "living",
+      "tier": 1,
+      "reason": "tier 1, living by default"
+     },
+     "why": "a parent, no death: living at tier 1"
+    },
+    {
+     "living": {
+      "person": "I332737044283",
+      "status": "living",
+      "tier": 1
+     }
+    },
+    {
+     "living": {
+      "person": "I332737036054",
+      "status": "deceased",
+      "tier": 2,
+      "reason": "death evidence"
+     },
+     "why": "a grandparent with death held: deceased at tier 2 on the evidence"
+    },
+    {
+     "living": {
+      "person": "I332737036894",
+      "status": "unknown",
+      "tier": 2,
+      "reason": "tier 2, unconfirmed"
+     },
+     "why": "a grandparent without a death or an override: unknown at tier 2"
+    },
+    {
+     "living": {
+      "person": "I332737072856",
+      "status": "unknown",
+      "tier": 2
+     },
+     "why": "a grandparent's sister, no death: the same generation, unknown"
+    },
+    {
+     "living": {
+      "person": "I332737037257",
+      "status": "deceased",
+      "tier": 3,
+      "reason": "death evidence"
+     }
+    },
+    {
+     "living": {
+      "person": "I332737044989",
+      "status": "deceased",
+      "tier": 3,
+      "reason": "tier 3, deceased by default"
+     },
+     "why": "a great-grandparent's brother, no death: deceased by default at tier 3"
+    },
+    {
+     "living": {
+      "person": "I332737043939",
+      "status": "deceased",
+      "tier": 4
+     }
+    },
+    {
+     "living": {
+      "person": "I332737058557",
+      "status": "deceased",
+      "tier": null,
+      "reason": "no link to the home person"
+     },
+     "why": "a person the file links to nobody, no death: deceased, no tier"
+    }
+   ]
+  },
+  {
+   "say": "the one link that reaches the great-great-grandfather rejected: no chain reaches him",
+   "assertion": {
+    "person": "I332737037257",
+    "membership": {
+     "family_of": "I332737043939",
+     "role": "child"
+    },
+    "verdict": "reject"
+   },
+   "expect": [
+    {
+     "living": {
+      "person": "I332737043939",
+      "status": "deceased",
+      "tier": null
+     },
+     "why": "the link rejected, no chain reaches him: no tier"
+    },
+    {
+     "living": {
+      "person": "I332737044799",
+      "status": "deceased",
+      "tier": null
+     }
+    }
+   ]
+  },
+  {
+   "say": "the link a claim again",
+   "assertion": {
+    "person": "I332737037257",
+    "membership": {
+     "family_of": "I332737043939",
+     "role": "child"
+    },
+    "verdict": "undecided",
+    "was": "rejected"
+   },
+   "expect": [
+    {
+     "living": {
+      "person": "I332737043939",
+      "status": "deceased",
+      "tier": 4
+     }
+    }
+   ]
+  },
+  {
+   "say": "the mode of a search step follows the status: the baselines reviewed on the file's claims",
+   "fact": {
+    "person": "I332737072856",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "parents"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737036894",
+    "fields": [
+     "name",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737039686",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737044989",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "parents"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737058557",
+    "fields": [
+     "name",
+     "sex",
+     "birth"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737035563",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   },
+   "expect": [
+    {
+     "mode": {
+      "person": "I332737072856",
+      "is": "assisted"
+     },
+     "why": "an unknown tier-2 person's search step is assisted"
+    },
+    {
+     "mode": {
+      "person": "I332737036894",
+      "is": "assisted"
+     }
+    },
+    {
+     "mode": {
+      "person": "I332737035563",
+      "is": "assisted"
+     },
+     "why": "a living tier-1 person's search step is assisted"
+    },
+    {
+     "mode": {
+      "person": "I332737039686",
+      "is": "auto"
+     },
+     "why": "a tier-4 person with death held: her search step is auto"
+    },
+    {
+     "mode": {
+      "person": "I332737044989",
+      "is": "auto"
+     },
+     "why": "a tier-3 person with no death: deceased by default, auto"
+    },
+    {
+     "mode": {
+      "person": "I332737058557",
+      "is": "auto"
+     },
+     "why": "a person with no link and no death: deceased, auto"
+    },
+    {
+     "foundation": {
+      "person": "I332737036894",
+      "field": "living",
+      "value": "unknown, confirm with tools/conclude.py living",
+      "basis": "tier 2, unconfirmed"
+     },
+     "why": "the checklist's foundation says to confirm an unknown person"
+    }
+   ]
+  },
+  {
+   "say": "the plan writes the modes",
+   "plan": [
+    "I332737036894",
+    "I332737044989"
+   ],
+   "expect": [
+    {
+     "mode": {
+      "person": "I332737036894",
+      "planned": true,
+      "is": "assisted"
+     }
+    },
+    {
+     "mode": {
+      "person": "I332737044989",
+      "planned": true,
+      "is": "auto"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the living command: the owner's word above the rule",
+   "living": {
+    "person": "I332737036894",
+    "word": "living",
+    "note": "harness: the owner says she is alive"
+   },
+   "expect": [
+    {
+     "last": {
+      "was": null,
+      "now": "living",
+      "status": "living",
+      "reason": "the owner's word"
+     }
+    },
+    {
+     "audit": {
+      "entity": "person",
+      "id": "I332737036894",
+      "diff_key": "living_override",
+      "is": [
+       {
+        "actor": "agent:check",
+        "action": "update",
+        "diff": {
+         "living_override": {
+          "was": null,
+          "now": "living"
+         },
+         "note": "harness: the owner says she is alive"
+        }
+       }
+      ]
+     },
+     "why": "one audit row carries the word, by whom and the note"
+    }
+   ]
+  },
+  {
+   "say": "",
+   "plan": [
+    "I332737036894"
+   ],
+   "expect": [
+    {
+     "mode": {
+      "person": "I332737036894",
+      "planned": true,
+      "is": "assisted"
+     },
+     "why": "living on the owner's word: assisted"
+    }
+   ]
+  },
+  {
+   "say": "the word flips to deceased",
+   "living": {
+    "person": "I332737036894",
+    "word": "deceased",
+    "note": "harness: the owner corrects it"
+   },
+   "expect": [
+    {
+     "last": {
+      "was": "living",
+      "now": "deceased",
+      "status": "deceased",
+      "reason": "the owner's word"
+     }
+    }
+   ]
+  },
+  {
+   "say": "",
+   "plan": [
+    "I332737036894"
+   ],
+   "expect": [
+    {
+     "mode": {
+      "person": "I332737036894",
+      "planned": true,
+      "is": "auto"
+     },
+     "why": "deceased on the owner's word: auto"
+    }
+   ]
+  },
+  {
+   "say": "unknown clears the word and the rule decides again",
+   "living": {
+    "person": "I332737036894",
+    "word": "unknown",
+    "note": "harness: the owner withdraws the word"
+   },
+   "expect": [
+    {
+     "last": {
+      "was": "deceased",
+      "now": null,
+      "status": "unknown",
+      "reason": "tier 2, unconfirmed"
+     }
+    },
+    {
+     "audit": {
+      "entity": "person",
+      "id": "I332737036894",
+      "diff_key": "living_override",
+      "is": {
+       "len": 3
+      }
+     },
+     "why": "three writes, three audit rows"
+    }
+   ]
+  },
+  {
+   "say": "the owner's word stands above a tier-1 default",
+   "living": {
+    "person": "I332737035563",
+    "word": "deceased",
+    "note": "harness: the owner's word over the tier"
+   },
+   "expect": [
+    {
+     "last": {
+      "status": "deceased",
+      "reason": "the owner's word"
+     }
+    }
+   ]
+  }
+ ]
+}

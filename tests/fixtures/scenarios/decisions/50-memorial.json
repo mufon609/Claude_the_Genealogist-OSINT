@@ -1,0 +1,679 @@
+{
+ "title": "a memorial, a page anyone can edit",
+ "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the relatives it lists come up as cards and are refused with the reason; a rejection writes nothing else; a new person accepted is created with her marked maiden name as her birth surname and the subject placed as her child with an undecided membership; reconsider keeps the identity, a withdrawn one is taken again; a re-read carries the decided links and accepts no fact; the owner's accept is an identity too; the daughter listed under her married name fits and her accept writes a married_name alias; the subject holds the cemetery row, a listed relative never does; the gravestone photograph is a fetch step saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it by the model is a card the rule leaves to the owner",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial arrives",
+   "attach": {
+    "fixture": "findagrave-memorial-78019650.html"
+   },
+   "as": "mem",
+   "expect": [
+    {
+     "last": {
+      "taken": [
+       [
+        "Abram C Brant",
+        {
+         "has": [
+          "identity",
+          "birth date to the day",
+          "death date to the day",
+          "burial place",
+          "Charlotte",
+          "Helen"
+         ]
+        }
+       ]
+      ]
+     },
+     "why": "the rule takes the memorial's subject as an identity on a page anyone can edit; its reason names the day of birth, the day of death, the burial place and the relatives listed"
+    },
+    {
+     "card": {
+      "record": "mem",
+      "person": "I332737038183",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737038183",
+      "role": "memorial",
+      "is": [
+       "accepted"
+      ]
+     }
+    },
+    {
+     "assertions_on": {
+      "record": "mem",
+      "undecided": {
+       ">=": 4
+      },
+      "accepted": 0
+     },
+     "why": "every fact the page types is written undecided, none accepted"
+    },
+    {
+     "facts": {
+      "person": "I332737038183",
+      "birth": "undecided",
+      "death": "undecided"
+     },
+     "why": "a page anyone can edit builds no fact"
+    },
+    {
+     "cards": {
+      "record": "mem",
+      "kinds": [
+       "persona_match"
+      ],
+      "people": [
+       "I332737039686",
+       "I332737037573"
+      ]
+     },
+     "why": "his wife and daughter proposed once he is accepted"
+    },
+    {
+     "rule": {
+      "record": "mem",
+      "person": "I332737039686",
+      "taken": false,
+      "why": {
+       "has": [
+        "three",
+        "Abram C Brant agrees"
+       ]
+      }
+     },
+     "why": "a relative the page lists by name and years alone is refused, the stated relation the one thing that agrees"
+    },
+    {
+     "rule": {
+      "record": "mem",
+      "person": "I332737037573",
+      "taken": false,
+      "why": {
+       "has": "three"
+      }
+     }
+    },
+    {
+     "cards": {
+      "record": "mem",
+      "kinds": [
+       "new_person"
+      ],
+      "count": {
+       ">=": 3
+      },
+      "personas_has": [
+       "Sarah D. Cassel Brant"
+      ]
+     },
+     "why": "his parents and siblings, not in the tree, proposed as new people"
+    },
+    {
+     "rule": {
+      "record": "mem",
+      "persona": "Sarah D. Cassel Brant",
+      "taken": false,
+      "why": {
+       "has": "never creates one"
+      }
+     },
+     "why": "a page anyone can edit names a person but never creates one"
+    }
+   ]
+  },
+  {
+   "say": "a sibling's card rejected: the proposal and nothing else",
+   "decide": {
+    "card": {
+     "record": "mem",
+     "persona": "Bertha C. Brant"
+    },
+    "status": "rejected"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "persons": {
+      "count": 26
+     }
+    },
+    {
+     "assertions_on": {
+      "record": "mem",
+      "accepted": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "his mother accepted as a new person",
+   "decide": {
+    "card": {
+     "record": "mem",
+     "persona": "Sarah D. Cassel Brant"
+    },
+    "status": "accepted"
+   },
+   "as": "mother",
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "identity": true,
+      "memberships": {
+       "some": {
+        "role": "child",
+        "undecided": true
+       }
+      }
+     },
+     "why": "the subject placed as the new parent's child on the record, the membership created but its assertion undecided like the page's facts"
+    },
+    {
+     "persons": {
+      "named": "Sarah D. Cassel Brant",
+      "surname": "Cassel",
+      "given": {
+       "has": "Sarah"
+      }
+     },
+     "why": "the person created with the name as written and the marked maiden name as her birth surname"
+    },
+    {
+     "facts": {
+      "person": "I332737038183",
+      "parents": "undecided"
+     }
+    },
+    {
+     "assertions_on": {
+      "record": "mem",
+      "accepted": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider keeps the identity and refuses the listed relatives with the reason",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Abram C Brant"
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kind": "card",
+        "taken": true
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "card",
+        "person": "Charlotte D Lukens",
+        "why": {
+         "has": "three"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the identity taken back",
+   "withdraw": {
+    "card": {
+     "record": "mem",
+     "person": "I332737038183"
+    }
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "mem",
+      "person": "I332737038183",
+      "status": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a card the rule would take is taken by reconsider, recorded as the rule",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "card",
+        "taken": true,
+        "person": "Abram C Brant"
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "mem",
+      "person": "I332737038183",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the page read again while the rule's decision stands: the link carries to the new persona",
+   "reread": {
+    "record": "mem"
+   },
+   "as": "re1",
+   "expect": [
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737038183",
+      "persona": "Abram C Brant",
+      "role": "memorial",
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     }
+    },
+    {
+     "is_subject": {
+      "record": "mem",
+      "person": "I332737038183"
+     },
+     "why": "the memorial's subject through the current reading"
+    }
+   ]
+  },
+  {
+   "say": "the decision withdrawn after a re-read resets both personas: the decision is about the record, not one reading of it",
+   "withdraw": {
+    "card": {
+     "record": "mem",
+     "person": "I332737038183"
+    }
+   },
+   "expect": [
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737038183",
+      "persona": "Abram C Brant",
+      "role": "memorial",
+      "is": [
+       "undecided",
+       "undecided"
+      ]
+     }
+    },
+    {
+     "is_subject": {
+      "record": "mem",
+      "person": "I332737038183",
+      "is": false
+     }
+    },
+    {
+     "citations_held": {
+      "person": "I332737038183",
+      "count": 0
+     },
+     "why": "withdrawn, no citation of his is held through an accepted subject persona, the earlier reading's link included"
+    }
+   ]
+  },
+  {
+   "say": "the owner gives the identity: an identity still, the facts undecided, every reading's persona linked",
+   "decide": {
+    "card": {
+     "record": "mem",
+     "person": "I332737038183"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "identity": true
+     }
+    },
+    {
+     "assertions_on": {
+      "record": "mem",
+      "accepted": 0
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737038183",
+      "parents": "undecided"
+     }
+    },
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737038183",
+      "persona": "Abram C Brant",
+      "role": "memorial",
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     },
+     "why": "the owner's decision applies to every reading's persona of that name and role on the record"
+    }
+   ]
+  },
+  {
+   "say": "the daughter the page lists under her married name accepted by the owner: an identity, and her married name an alias",
+   "decide": {
+    "card": {
+     "record": "mem",
+     "person": "I332737037573",
+     "latest": true
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "identity": true
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737037573",
+      "is": {
+       "some": [
+        "Helen Sara Brant Ahearn",
+        "married_name",
+        "accepted"
+       ]
+      }
+     },
+     "why": "the record's own words for a daughter under her husband's surname are a married_name alias, not left unclassified"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737038183",
+      "record": "cemetery / family plot",
+      "status": "held"
+     },
+     "why": "the memorial's own subject holds the cemetery row"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737037573",
+      "record": "cemetery / family plot",
+      "status": {
+       "not": "held"
+      }
+     },
+     "why": "a relative the page merely lists never holds the row, even accepted: her own memorial is not on this tree"
+    }
+   ]
+  },
+  {
+   "say": "the page read again: the decided links carry, the old cards close as superseded, the facts stay undecided",
+   "reread": {
+    "record": "mem"
+   },
+   "as": "re2",
+   "expect": [
+    {
+     "last": {
+      "n": {
+       "links_carried": 3
+      }
+     },
+     "why": "the three decided links (the subject, his mother, his daughter) carried to the new personas"
+    },
+    {
+     "cards": {
+      "record": "mem",
+      "status": "undecided",
+      "count": 0
+     }
+    },
+    {
+     "assertions_on": {
+      "record": "mem",
+      "accepted": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the subject's plan: the one photograph the page types Grave is a fetch step under the cemetery row",
+   "plan": [
+    "I332737038183"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737038183",
+      "step_key_like": "fetch:photo:%",
+      "fields": {
+       "step_key": "fetch:photo:49839510",
+       "locator_source_id": "E05",
+       "locator_kind": "url",
+       "locator_value": {
+        "ends": "78019650_131821819991.jpg"
+       },
+       "row_key": {
+        "starts": "cemetery"
+       }
+      }
+     },
+     "why": "one fetch step, for the photograph typed Grave, with the image's URL as locator; the family photographs make none"
+    },
+    {
+     "step_count": {
+      "person": "I332737038183",
+      "step_key_like": "fetch:photo:%",
+      "is": 1
+     }
+    },
+    {
+     "fetch_entries": {
+      "holder": "E05",
+      "person": "I332737038183",
+      "is": [
+       {
+        "save_as": "findagrave-photo-78019650-49839510.jpg",
+        "how": "image"
+       }
+      ]
+     },
+     "why": "the fetch list names the image and the file to save it under"
+    }
+   ]
+  },
+  {
+   "say": "the photograph saved in the browser under that name, into the download folder",
+   "save": {
+    "holder": "E05",
+    "person": "I332737038183",
+    "stand_in": "image",
+    "folder": "downloads"
+   },
+   "as": "photo",
+   "expect": [
+    {
+     "bound": {
+      "value": "$photo.url",
+      "is": {
+       "ends": "78019650_131821819991.jpg"
+      }
+     },
+     "why": "the entry's link is the step's locator"
+    }
+   ]
+  },
+  {
+   "say": "collect brings the saved image in: it reaches its step by the list's name and is not parsed",
+   "collect": {
+    "folder": "$photo.folder"
+   },
+   "as": "got",
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "file": "findagrave-photo-78019650-49839510.jpg",
+        "left": null,
+        "steps": {
+         "len": 1
+        },
+        "extraction": null
+       }
+      ]
+     },
+     "why": "the image reaches its step by the list's name and is not parsed"
+    },
+    {
+     "file": {
+      "folder": "$photo.folder",
+      "name": "findagrave-photo-78019650-49839510.jpg",
+      "exists": false
+     },
+     "why": "the file has left the download folder"
+    },
+    {
+     "artifact": {
+      "record": "$got.results.0.sha256",
+      "source_id": "E05",
+      "mime": "image/jpeg",
+      "tier": "T1"
+     },
+     "why": "archived under the gravestone row, an image, tier 1"
+    },
+    {
+     "step": {
+      "person": "I332737038183",
+      "step_key_like": "fetch:photo:%",
+      "fields": {
+       "status": "done"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the stone read by the model: a card for the subject the rule leaves to the owner",
+   "transcribe": {
+    "record": "$got.results.0.sha256",
+    "form": {
+     "name": "Abram C. Brant",
+     "role": "named on the stone",
+     "birth_date": "1880",
+     "death_date": "1961"
+    },
+    "by": "llm:harness"
+   },
+   "as": "stone",
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "proposals": 1,
+      "accepted_by_rule": 0,
+      "card_status": "undecided"
+     }
+    },
+    {
+     "extractor": {
+      "extraction": "$stone.extraction",
+      "kind": "llm",
+      "name": "harness",
+      "model_id": "harness",
+      "prompt": "form",
+      "prompt_is_form": true
+     },
+     "why": "the model's extractor row carries the model named after llm: and the hash of the form's field names, the only prompt there is"
+    },
+    {
+     "card": {
+      "record": "$stone.sha",
+      "person": "I332737038183",
+      "status": "undecided"
+     }
+    },
+    {
+     "rule": {
+      "record": "$stone.sha",
+      "person": "I332737038183",
+      "taken": false,
+      "why": {
+       "has": "not accepted"
+      }
+     },
+     "why": "a reading of the stone is a kind the rule may take, refused for the true reason: the subject's own name is not yet accepted on this tree, not for who read it"
+    }
+   ]
+  },
+  {
+   "say": "the plan settled and the catalog whole",
+   "expect": [
+    {
+     "plan_idempotent": [
+      "I332737038183",
+      "I332737037573"
+     ]
+    },
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

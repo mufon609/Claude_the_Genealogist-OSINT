@@ -70,27 +70,67 @@ taught. `tools/check.py --show` prints what each reading wrote, for writing a si
 
 ## The harness tree
 
-`harness.ged` is a small GEDCOM in Ancestry's shape, written by hand for `tools/check.py`: the Ahearn household of the
-1940 census of Caln Township (Frederick Michael Ahearn, Helen Sara Brant, Frederick Micheal Ahearn Jr, Alicia Ahern),
-Helen's parents Abram C Brant and Charlotte D Lukens, and Frederick's father James Joseph Ahearn, each with the citations
-the owner's file carries for the two pages above (the 1940 record ids, Abram's memorial; James also cites the SAR
-applications, whose free holder has no parser), and Raymond Earl Davidson
-(1939–2007) on his own, with no citation, for the gravesite locator's page. Ingested into a scratch catalog,
-it is what the matcher, the standing rule and the decision writers are run against: the four cards the 1940 page makes,
-the rule refusing each (no accepted fact, a disagreement), the son accepted with his facts and no link, the mother's
-accept asserting the mother-son link, the father's the couple and his side of the link (mother, son and the couple then linked on the record for the matcher), the sister placed beside her
-brother undecided and then with her parents on the owner's word (a vouch, no link for the matcher), the memorial taken by the rule as Abram's identity on a page anyone can edit (the name, both dates to
-the day, the burial place and the relatives it lists agreeing with the tree's claims), its facts written undecided and none
-accepted, his wife and daughter refused with the reason and the new people the memorial links coming up once he is
-accepted, a rejection writing nothing else, a new person created with her marked maiden name as her birth surname and
-Abram placed as her child from the page with the membership created but its assertion undecided like the page's other
-facts, reconsider keeping the identity and refusing the listed relatives, a decision
-taken back taken again as a card, the owner's own accept of it an identity too, the page re-read carrying two decided
-links and no fact accepted, the photograph the page types Grave as a fetch step saved under the list's name and archived
-under the gravestone row unparsed, a reading of it by the model one card for Abram the rule leaves to the owner, the
-gravesite page's one card for Raymond among its namesakes (the near ones hints) and the rule taking it once his dates are
-his own word, the SAR page listed once for James and once for his son's footprint step, each name ending in its person's six characters,
-saved under James's name and reaching his step alone, unparsed, the son's still waiting, James's step then reopened so the
-record names nobody it was fetched for while the found row stays, a
-found run at a row-source connector leaving a fetch step planned, a planted step nothing generates dropped and named in the
-run's audit row, and the plan regenerating unchanged. It is the only `.ged` the commit guard allows.
+`harness.ged` is cut from the owner's own export by `tests/checks/cut_gedcom.py`, never written by hand: the header and the
+submitter record verbatim, the INDI and FAM records of the people the scenarios need, verbatim, and every SOUR record they
+cite. The one edit the cut makes is dropping a line whose value points at a record outside the cut (a family, a person, a
+media object), with the lines under it; so a person whose families all fall outside the cut stands in the file with no
+link, as the file itself would hold a stranger. It holds the home person, their parents and grandparents on both sides,
+two great-grandparents' households as two census pages name them (the 1940 and 1920 pages above), the great-grandmother's
+parents (the memorial's subject and his wife), a great-great-grandfather's parents and his two entries in the file (the
+file's own duplicate, for the merge), and the 1900 household of a great-great-grandmother's parents. It is the only `.ged`
+the commit guard allows. To cut it again from a fresh export, or from another family's:
+
+```
+python3 tests/checks/cut_gedcom.py <export.ged> tests/fixtures/harness.ged <INDI xref> ... --fam <FAM xref> ...
+```
+
+## The scenarios
+
+`scenarios/<module>/<nn>-<name>.json` are what `tests/checks/scenario.py` walks, one scratch catalog each: the tree
+ingested, then steps in order, each doing one thing and checking what it wrote or refused. Nothing in the walker names a
+person: people are the harness file's own entry ids (`I…`, as `external_id` keeps them), records the label a step bound
+them under, and expectations name the words a reason must carry. A scenario file:
+
+| Key | Meaning |
+|---|---|
+| `title`, `line` | the check's name, and the ok line printed when it passes |
+| `tree` | `file` (the GEDCOM under `tests/fixtures/`), `home` (the home person's entry id), `plan` (every person planned first) |
+| `steps` | the list of steps; each is one action key with its arguments, `as` (a label to bind the result under), `say` (what the step is about), and `expect` (a list of expectations) |
+
+A value `"$label"` reads what a step bound; `"$label.key.0.key"` reads into it. A person is an entry id, `{"name": …}` or
+`{"created": …}` (a person the rule made, by display name), or `"$label"`. A record is the label of the step that
+archived it. A card is `{"record": label, "person": ref}` or `{"record": label, "persona": name as written[, "role": …]}`,
+with `extraction` and `latest` to pick a reading; a step of the plan is `{"person": ref, "step_key": …}`, `step_key_like`,
+`row_key`, `kind`, `status`, or `locator: {kind, value}`.
+
+Actions: `plan` (`"all"` or people), `attach` (`fixture` into the inbox and `tools/attach_inbox.py`, `about` for the
+owner's word), `archive` (a `fixture`, or a stand-in: `stand_in: "image"`, or a page with only a `saved_from` line,
+`suffix` to make other bytes of the same page; `source`, `collection`, `locator`, or a `manifest`; `extract`, `match`
+(people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same, for a page the harness only
+reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`), `withdraw`,
+`reconsider` (`dry`), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
+`tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `link_on_word`, `living`,
+`transcribe` (a reading typed into the person screen's form: `record`, `form`, `relations` to bound personas, `about`,
+`by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`),
+`collect`, `log`, `reopen`, `step` (a plan step written by hand), `place_card` (a place answer's card with the geocoder's
+`candidates` planted in the cache), `older_matcher`, `merge`, `cite`.
+
+Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
+`kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `note`, `rationale`), `rule` (`taken`, `why`),
+`facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
+`surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `disagreements`, `question`,
+`assertions_on`, `links` (a person's link statuses on a record's personas), `is_subject`, `citations_held`,
+`checklist_row`, `baseline`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
+`living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact`,
+`artifact_where`, `extractor`, `person_persona`, `reach`, `trusted`, `plan_idempotent`, `no_repeats`, `whole`, `file`,
+`count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
+an expectation is printed with its failure.
+
+Patterns: a dict matches the keys given, a list its length and each element, a string or number equals; `{">=": n}`,
+`{"<=": n}`, `{"has": x}` (a substring, or every substring of a list, or an element), `{"lacks": x}`, `{"starts": s}`,
+`{"ends": s}`, `{"first": p}`, `{"len": n}`, `{"some": p}`, `{"none": p}`, `{"every": p}`, `{"not": p}`, `{"in": [..]}`,
+`{"is": null}`, `{"any": true}`.
+
+Two stand-ins carry no fact of anyone: the smallest of JPEG files stands for a gravestone photograph the harness never
+parses, and a page of nothing but its saved-from line stands for an obituary the file cites at a holder with no parser,
+read only by a reading typed from the file's own claims.

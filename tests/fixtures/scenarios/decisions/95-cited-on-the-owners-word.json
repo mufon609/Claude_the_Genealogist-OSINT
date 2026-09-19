@@ -1,0 +1,117 @@
+{
+ "title": "a record cited on the owner's word",
+ "line": "a fetch step with the citation's details, basis owner, the holder as its locator source; the same citation is one step; a citation with no name is refused; the planner keeps the step though it generates none; the holder's connector asks by the fields",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner cites the 1950 census on a grandparent the file cites nothing for in that year",
+   "cite": {
+    "person": "I332737036054",
+    "row": "census household:1950",
+    "holder": "D05",
+    "fields": {
+     "surname": "Ahearn",
+     "census place": "Pennsylvania",
+     "year": "1950"
+    },
+    "note": "harness: the owner's own knowledge of the schedule"
+   },
+   "as": "cited",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "row_key": "census household:1950",
+      "kind": "fetch",
+      "fields": {
+       "mode": "fetch",
+       "query_type": "household",
+       "locator_source_id": "D05",
+       "sources": [
+        "D05"
+       ],
+       "query": {
+        "every": {
+         "basis": "owner"
+        }
+       }
+      }
+     },
+     "why": "the step as written: a fetch at the holder, every field on the owner's word"
+    }
+   ]
+  },
+  {
+   "say": "the same citation is one step",
+   "cite": {
+    "person": "I332737036054",
+    "row": "census household:1950",
+    "holder": "D05",
+    "fields": {
+     "surname": "Ahearn",
+     "census place": "Pennsylvania",
+     "year": "1950"
+    }
+   },
+   "expect": [
+    {
+     "bound": {
+      "value": "$last.step",
+      "is": "$cited.step"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a citation with no name is refused",
+   "cite": {
+    "person": "I332737036054",
+    "row": "death record:",
+    "holder": "C09",
+    "fields": {
+     "year": "2016"
+    },
+    "refused": true
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "any": true
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the planner keeps a step the owner's word wrote, though it generates none",
+   "plan": [
+    "I332737036054"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "row_key": "census household:1950",
+      "kind": "fetch",
+      "fields": {
+       "status": "planned"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

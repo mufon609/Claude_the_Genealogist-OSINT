@@ -1,0 +1,129 @@
+{
+ "title": "two entries of one person merged (neither step carries a run)",
+ "line": "evidence and open work move to the kept person, a step collision keeps the kept person's own and says why, the duplicate's row stays out of every listing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the file's two entries for one person each have a plan and open questions"
+  },
+  {
+   "say": "the duplicate merged into the kept person",
+   "merge": {
+    "duplicate": "I332737068288",
+    "kept": "I332737059537"
+   },
+   "as": "m",
+   "expect": [
+    {
+     "last": {
+      "persona_links": 1,
+      "assertions": 1,
+      "plan_steps_dropped": 1,
+      "questions_moved": 1,
+      "questions_dropped": 1
+     },
+     "why": "the persona link and the assertion move; the colliding step is dropped and the questions follow"
+    },
+    {
+     "last": {
+      "dropped_steps": [
+       {
+        "step_key": "fetch:1,2511::15589360",
+        "reason": "the kept person's own step of this key is kept; neither carries a search_log run"
+       }
+      ]
+     },
+     "why": "the audit row names the dropped step by its key and says why, only when it is true"
+    },
+    {
+     "last": {
+      "dropped_questions": [
+       {
+        "q_key": "missing_parents:",
+        "kind": "missing_parents",
+        "reason": "the kept person already has an open question of this key"
+       }
+      ]
+     }
+    },
+    {
+     "audit": {
+      "entity": "person",
+      "id": "I332737068288",
+      "action": "update",
+      "is": {
+       "some": {
+        "diff": {
+         "dropped_steps": [
+          {
+           "step_key": "fetch:1,2511::15589360"
+          }
+         ]
+        }
+       }
+      }
+     },
+     "why": "the audit_log row itself carries the same named drops"
+    },
+    {
+     "person_merged": {
+      "person": "I332737068288",
+      "into": "I332737059537"
+     }
+    },
+    {
+     "listed": {
+      "has": [
+       "I332737059537"
+      ],
+      "lacks": [
+       "I332737068288"
+      ]
+     },
+     "why": "the duplicate's own row stays but is out of the plain person listing"
+    },
+    {
+     "find_person": {
+      "name": "Thomas Ahearn",
+      "is": "I332737059537"
+     },
+     "why": "find_person now resolves the once-ambiguous name to the kept person alone"
+    },
+    {
+     "step": {
+      "person": "I332737059537",
+      "step_key": "fetch:1,2511::15589360",
+      "fields": {
+       "status": "planned"
+      }
+     }
+    },
+    {
+     "proposals_of": {
+      "kind": "duplicate_person",
+      "is": [
+       {
+        "status": "accepted",
+        "decided_by": "agent:check",
+        "decision_note": "harness: same identity"
+       }
+      ]
+     },
+     "why": "one duplicate_person proposal, decided accepted, the note kept"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

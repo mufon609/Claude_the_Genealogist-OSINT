@@ -1,210 +1,2660 @@
 0 HEAD
+1 SUBM @SUBM1@
 1 SOUR Ancestry.com Family Trees
 2 NAME Ancestry.com Member Trees
 2 VERS 2025.08
-2 _TREE Harness
-3 NOTE A small file of the owner's family, written for tools/check.py: the Ahearn household of the 1940 census of Caln Township, Helen's parents, and Raymond Earl Davidson on his own, so the matcher, the standing rule and the decision writers can be run against the saved pages under tests/fixtures/.
+2 _TREE Ahearn Family Tree
+3 RIN 208317479
+3 NOTE Schwenkfelder immigrant’s from Silesia
+4 CONT 
+4 CONT Fredrick Ahearn (1907–2001)
+4 CONT └─ married Helen Sara Brant (1909–1986)
+4 CONT    └─ daughter of Abram C. Brant (1880–1961)
+4 CONT       └─ son of Abraham B. Brant (1852–1898)
+4 CONT       └─ and Sarah D. Cassel (1856–1916)
+4 CONT          └─ daugh
+3 _ENV prd
 2 CORP Ancestry.com
-1 DATE 7 Sep 2026
+3 PHON 801-705-7000
+3 WWW www.ancestry.com
+3 ADDR 1300 West Traverse Parkway
+4 CONT Lehi, UT  84043
+4 CONT USA
+1 DATE 5 Sep 2026
+2 TIME 17:40:11
 1 GEDC
 2 VERS 5.5.1
 2 FORM LINEAGE-LINKED
 1 CHAR UTF-8
-1 SUBM @SUBM1@
 0 @SUBM1@ SUBM
-1 NAME The harness
-0 @I1@ INDI
-1 NAME Frederick Michael /Ahearn/
-2 GIVN Frederick Michael
+1 NAME Ancestry.com Member Trees Submitter
+0 @I332737035562@ INDI
+1 NAME Matthew Alan /Ahearn/
+2 GIVN Matthew Alan
 2 SURN Ahearn
+2 SOUR @S1277182649@
+3 PAGE Colorado Secretary of State; Denver, Colorado; Colorado Voter Registration Records, 2010-2023
+3 _APID 1,62910::3230778
 1 SEX M
-1 FAMC @F3@
-1 FAMS @F1@
+1 FAMC @F29@
 1 BIRT
-2 DATE 22 May 1907
-2 PLAC Northampton, Hampshire, Massachusetts, USA
-2 SOUR @S3@
-3 PAGE Massachusetts State Archives; Boston, Massachusetts; Massachusetts Vital Records, 1840-1911
-3 _APID 1,5062::1903623
-1 DEAT
-2 DATE 19 Feb 2001
-2 PLAC Boca Raton, Palm Beach, Florida, USA
+2 DATE 08 Feb 1993
+2 PLAC Willingboro, Burlington, New Jersey, USA
+2 SOUR @S1277182649@
+3 PAGE Colorado Secretary of State; Denver, Colorado; Colorado Voter Registration Records, 2010-2023
+3 _APID 1,62910::3230778
 1 RESI
-2 DATE 1940
-2 PLAC Caln Township, Chester, Pennsylvania, USA
-2 SOUR @S1@
-3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
-3 _APID 1,2442::26440831
-0 @I2@ INDI
-1 NAME Helen Sara /Brant/
-2 GIVN Helen Sara
-2 SURN Brant
-1 SEX F
-1 FAMC @F2@
-1 FAMS @F1@
+2 PLAC Englewood, Arapahoe, Colorado, USA
+2 SOUR @S1277182649@
+3 PAGE Colorado Secretary of State; Denver, Colorado; Colorado Voter Registration Records, 2010-2023
+3 _APID 1,62910::3230778
+1 SOUR @S1277182649@
+2 PAGE Colorado Secretary of State; Denver, Colorado; Colorado Voter Registration Records, 2010-2023
+2 _APID 1,62910::3230778
+0 @I332737035563@ INDI
+1 NAME Patrick Michael /Ahearn/
+2 GIVN Patrick Michael
+2 SURN Ahearn
+2 SOUR @S1277172544@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; Marriage Indexes; Index Type: Bride; Year Range: 1988; Surname Range: A-G
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61253::1174421601
+1 SEX M
+1 FAMC @F26@
+1 FAMS @F29@
 1 BIRT
-2 DATE 11 Jul 1909
-2 PLAC Philadelphia, Philadelphia, Pennsylvania, USA
-1 DEAT
-2 DATE 24 Jan 1986
-2 PLAC Boca Raton, Palm Beach, Florida, USA
-1 RESI
-2 DATE 1940
-2 PLAC Caln Township, Chester, Pennsylvania, USA
-2 SOUR @S1@
-3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
-3 _APID 1,2442::26440833
-0 @I3@ INDI
+2 DATE 15 Sep 1955
+2 PLAC Columbus, Muscogee, Georgia, USA
+1 SOUR @S1277172544@
+2 PAGE New Jersey State Archives; Trenton, New Jersey; Marriage Indexes; Index Type: Bride; Year Range: 1988; Surname Range: A-G
+2 DATA
+3 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+2 _APID 1,61253::1174421601
+0 @I332737036054@ INDI
 1 NAME Frederick Micheal /Ahearn/ Jr
 2 GIVN Frederick Micheal
 2 SURN Ahearn
 2 NSFX Jr
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440834
+2 SOUR @S1277171004@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61260::1278466
+2 SOUR @S1277170996@
+3 PAGE National Archives at St. Louis; St Louis, MO, USA; Record Group: Records of the Selective Service System, 1926–1975; Record Group Number: 147; Series: Post-WWII through Vietnam Era Selective Service Records, New York; Series Number: 147-76-0214
+3 DATA
+4 WWW https://www.fold3.com/image/737247633?xid=7602
+3 _APID 1,62234::8071012
 1 SEX M
-1 FAMC @F1@
+1 FAMC @F19@
+1 FAMS @F26@
 1 BIRT
 2 DATE 6 Nov 1932
 2 PLAC Coatesville, Chester, Pennsylvania, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440834
+2 SOUR @S1277171004@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61260::1278466
+2 SOUR @S1277170996@
+3 PAGE National Archives at St. Louis; St Louis, MO, USA; Record Group: Records of the Selective Service System, 1926–1975; Record Group Number: 147; Series: Post-WWII through Vietnam Era Selective Service Records, New York; Series Number: 147-76-0214
+3 DATA
+4 WWW https://www.fold3.com/image/737247633?xid=7602
+3 _APID 1,62234::8071012
+1 RESI
+2 DATE 1935
+2 PLAC Caln, Chester, Pennsylvania
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440834
+1 RESI
+2 DATE 1940
+2 PLAC Caln Twp, Caln, Chester, Pennsylvania, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440834
+2 NOTE Marital Status: Single; Relation to Head of House: Son
+1 _MILT
+2 PLAC New York, USA
+2 SOUR @S1277170996@
+3 PAGE National Archives at St. Louis; St Louis, MO, USA; Record Group: Records of the Selective Service System, 1926–1975; Record Group Number: 147; Series: Post-WWII through Vietnam Era Selective Service Records, New York; Series Number: 147-76-0214
+3 DATA
+4 WWW https://www.fold3.com/image/737247633?xid=7602
+3 _APID 1,62234::8071012
+1 RESI
+2 PLAC Northport, Suffolk, New York
+2 SOUR @S1277170996@
+3 PAGE National Archives at St. Louis; St Louis, MO, USA; Record Group: Records of the Selective Service System, 1926–1975; Record Group Number: 147; Series: Post-WWII through Vietnam Era Selective Service Records, New York; Series Number: 147-76-0214
+3 DATA
+4 WWW https://www.fold3.com/image/737247633?xid=7602
+3 _APID 1,62234::8071012
+2 NOTE Occupation: Student; Marital Status: Single
 1 DEAT
 2 DATE 3 Apr 2016
 2 PLAC New Jersey, USA
+2 SOUR @S1277171004@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61260::1278466
+1 SOUR @S1277170987@
+2 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+2 _APID 1,2442::26440834
+1 SOUR @S1277171004@
+2 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+2 DATA
+3 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+2 _APID 1,61260::1278466
+1 SOUR @S1277279590@
+2 _APID 1,61632::2565702
+1 SOUR @S1277170996@
+2 PAGE National Archives at St. Louis; St Louis, MO, USA; Record Group: Records of the Selective Service System, 1926–1975; Record Group Number: 147; Series: Post-WWII through Vietnam Era Selective Service Records, New York; Series Number: 147-76-0214
+2 DATA
+3 WWW https://www.fold3.com/image/737247633?xid=7602
+2 _APID 1,62234::8071012
+0 @I332737036894@ INDI
+1 NAME Carol /Evers/
+2 GIVN Carol
+2 SURN Evers
+1 SEX F
+1 FAMS @F26@
+1 SOUR @S1277279590@
+2 _APID 1,61632::2565702
+0 @I332737037257@ INDI
+1 NAME Frederick Michael /Ahearn/
+2 GIVN Frederick Michael
+2 SURN Ahearn
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For Pennsylvania, 10/16/1940-03/31/1947; Record Group: Records of the Selective Service System, 147; Box: 14
+3 _APID 1,2238::7668333
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440831
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::411959
+2 SOUR @S1277167269@
+3 _APID 1,5062::1903623
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041066
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343656
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698160/frederick-michael-ahearn
+3 _APID 1,60525::117062538
+2 SOUR @S1277167309@
+3 _APID 1,61381::2508654
+1 SEX M
+1 FAMC @F2@
+1 FAMS @F19@
+1 BIRT
+2 DATE 22 May 1907
+2 PLAC Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For Pennsylvania, 10/16/1940-03/31/1947; Record Group: Records of the Selective Service System, 147; Box: 14
+3 _APID 1,2238::7668333
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440831
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::411959
+2 SOUR @S1277167269@
+3 _APID 1,5062::1903623
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041066
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343656
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698160/frederick-michael-ahearn
+3 _APID 1,60525::117062538
+2 SOUR @S1277167309@
+3 _APID 1,61381::2508654
+1 RESI
+2 DATE 1910
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343656
+2 NOTE Marital Status: Single; Relation to Head of House: Son
+1 RESI
+2 DATE 1920
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041066
+2 NOTE Marital Status: Single; Relation to Head of House: Sister; Relation to Head of House: Son
+1 RESI
+2 DATE 1935
+2 PLAC Caln, Chester, Pennsylvania
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440831
 1 RESI
 2 DATE 1940
-2 PLAC Caln Township, Chester, Pennsylvania, USA
-2 SOUR @S1@
+2 PLAC Caln Twp, Caln, Chester, Pennsylvania, USA
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For Pennsylvania, 10/16/1940-03/31/1947; Record Group: Records of the Selective Service System, 147; Box: 14
+3 _APID 1,2238::7668333
+2 SOUR @S1277170987@
 3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
-3 _APID 1,2442::26440834
-0 @I4@ INDI
-1 NAME Alicia /Ahern/
-2 GIVN Alicia
-2 SURN Ahern
+3 _APID 1,2442::26440831
+2 NOTE Occupation: Assist Supply; Marital Status: Married; Relation to Head of House: Head
+1 RESI
+2 DATE 1961-1962
+2 PLAC New York
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::411959
+1 DEAT
+2 DATE 19 Feb 2001
+2 PLAC Boca Raton, Palm Beach, Florida, USA
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::411959
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698160/frederick-michael-ahearn
+3 _APID 1,60525::117062538
+1 BURI
+2 PLAC Norristown, Montgomery County, Pennsylvania, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698160/frederick-michael-ahearn
+3 _APID 1,60525::117062538
+1 SOUR @S1277171076@
+2 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For Pennsylvania, 10/16/1940-03/31/1947; Record Group: Records of the Selective Service System, 147; Box: 14
+2 _APID 1,2238::7668333
+1 SOUR @S1277170987@
+2 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+2 _APID 1,2442::26440831
+1 SOUR @S1277167303@
+2 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+2 _APID 1,3693::411959
+1 SOUR @S1277167269@
+2 _APID 1,5062::1903623
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+2 _APID 1,6061::114041066
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+2 _APID 1,7884::126343656
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/142698160/frederick-michael-ahearn
+2 _APID 1,60525::117062538
+1 SOUR @S1277167309@
+2 _APID 1,61381::2508654
+0 @I332737037573@ INDI
+1 NAME Helen Sara /Brant/
+2 GIVN Helen Sara
+2 SURN Brant
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For Pennsylvania, 10/16/1940-03/31/1947; Record Group: Records of the Selective Service System, 147; Box: 14
+3 _APID 1,2238::97668333
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440833
+2 SOUR @S1277171086@
+3 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+3 _APID 1,2451::6421651
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::412029
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279213
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::124058854
+2 SOUR @S1277171069@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+3 _APID 1,60484::735843
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698059/helen-sara-ahearn
+3 _APID 1,60525::117062458
+2 SOUR @S1277167309@
+3 _APID 1,61381::902508654
+2 SOUR @S1277167915@
+3 PAGE Boca Raton News; Publication Date: 27 Jan 1986; Publication Place: Boca Raton, Florida, USA; URL: https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 _APID 1,61843::1033161519
+2 SOUR @S1277171108@
+3 PAGE The Genealogical Record of the Schwenkfelder Families
+3 _APID 1,62282::4301449763
 1 SEX F
-1 FAMC @F1@
+1 FAMC @F6@
+1 FAMS @F19@
 1 BIRT
-2 DATE Abt 1935
-2 PLAC Pennsylvania, USA
-0 @I5@ INDI
+2 DATE 11 Jul 1909
+2 PLAC Philadelphia, Philadelphia, Pennsylvania, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440833
+2 SOUR @S1277171086@
+3 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+3 _APID 1,2451::6421651
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::412029
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279213
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::124058854
+2 SOUR @S1277171069@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+3 _APID 1,60484::735843
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698059/helen-sara-ahearn
+3 _APID 1,60525::117062458
+2 SOUR @S1277167309@
+3 _APID 1,61381::902508654
+2 SOUR @S1277167915@
+3 PAGE Boca Raton News; Publication Date: 27 Jan 1986; Publication Place: Boca Raton, Florida, USA; URL: https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 _APID 1,61843::1033161519
+2 SOUR @S1277171108@
+3 PAGE The Genealogical Record of the Schwenkfelder Families
+3 _APID 1,62282::4301449763
+1 BAPM
+2 DATE 9 Jun 1918
+2 PLAC Penns Park, Bucks, Pennsylvania, USA
+2 SOUR @S1277171086@
+3 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+3 _APID 1,2451::6421651
+1 RESI
+2 DATE 1910
+2 PLAC Philadelphia Ward 28, Philadelphia, Pennsylvania, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::124058854
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter
+1 RESI
+2 DATE 1920
+2 PLAC Warwick, Bucks, Pennsylvania, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279213
+2 NOTE Occupation: None; Marital Status: Single; Relation to Head of House: Daughter
+1 RESI
+2 DATE 1935
+2 PLAC Caln, Chester, Pennsylvania
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440833
+1 RESI
+2 DATE 1940
+2 PLAC Caln Twp, Caln, Chester, Pennsylvania, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440833
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 RESI
+2 DATE 1954-1956
+2 PLAC New York
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::412029
+1 RESI
+2 PLAC Boca Raton, Palm Beach, Florida, USA
+2 SOUR @S1277167915@
+3 PAGE Boca Raton News; Publication Date: 27 Jan 1986; Publication Place: Boca Raton, Florida, USA; URL: https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 _APID 1,61843::1033161519
+1 DEAT
+2 DATE 24 Jan 1986
+2 PLAC Boca Raton, Palm Beach, Florida, USA
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::412029
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698059/helen-sara-ahearn
+3 _APID 1,60525::117062458
+2 SOUR @S1277167915@
+3 PAGE Boca Raton News; Publication Date: 27 Jan 1986; Publication Place: Boca Raton, Florida, USA; URL: https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+3 _APID 1,61843::1033161519
+1 BURI
+2 PLAC Norristown, Montgomery County, Pennsylvania, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/142698059/helen-sara-ahearn
+3 _APID 1,60525::117062458
+1 SOUR @S1277171076@
+2 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For Pennsylvania, 10/16/1940-03/31/1947; Record Group: Records of the Selective Service System, 147; Box: 14
+2 _APID 1,2238::97668333
+1 SOUR @S1277170987@
+2 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+2 _APID 1,2442::26440833
+1 SOUR @S1277171086@
+2 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+2 _APID 1,2451::6421651
+1 SOUR @S1277167303@
+2 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+2 _APID 1,3693::412029
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+2 _APID 1,6061::42279213
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+2 _APID 1,7884::124058854
+1 SOUR @S1277171069@
+2 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+2 _APID 1,60484::735843
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/142698059/helen-sara-ahearn
+2 _APID 1,60525::117062458
+1 SOUR @S1277167309@
+2 _APID 1,61381::902508654
+1 SOUR @S1277167915@
+2 PAGE Boca Raton News; Publication Date: 27 Jan 1986; Publication Place: Boca Raton, Florida, USA; URL: https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+2 DATA
+3 WWW https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355
+2 _APID 1,61843::1033161519
+1 SOUR @S1277171108@
+2 PAGE The Genealogical Record of the Schwenkfelder Families
+2 _APID 1,62282::4301449763
+0 @I332737038183@ INDI
 1 NAME Abram C /Brant/
 2 GIVN Abram C
 2 SURN Brant
-1 SEX M
-1 FAMS @F2@
-1 BIRT
-2 DATE 20 Sep 1880
-2 PLAC Worcester Township, Montgomery, Pennsylvania, USA
-1 DEAT
-2 DATE 10 Oct 1961
-2 PLAC Pottstown, Montgomery, Pennsylvania, USA
-1 BURI
-2 PLAC Norristown, Montgomery, Pennsylvania, USA
-2 SOUR @S2@
+2 SOUR @S1277171086@
+3 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+3 _APID 1,2451::22699845
+2 SOUR @S1277171191@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Death Certificates, 1906-1968; Certificate Number Range: 093151-096000
+3 _APID 1,5164::6703265
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279211
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::25557500
+2 SOUR @S1277171069@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+3 _APID 1,60484::1735843
+2 SOUR @S1277167338@
 3 DATA
 4 WWW https://www.findagrave.com/memorial/78019650/abram-c-brant
 3 _APID 1,60525::38130497
-0 @I6@ INDI
+2 SOUR @S1277171108@
+3 PAGE The Genealogical Record of the Schwenkfelder Families
+3 _APID 1,62282::4301385968
+3 _APID 1,62282::4301449769
+1 SEX M
+1 FAMS @F6@
+1 BIRT
+2 DATE 20 September 1880
+2 PLAC Worcester, Montgomery County, Pennsylvania, United States of America
+2 SOUR @S1277171191@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Death Certificates, 1906-1968; Certificate Number Range: 093151-096000
+3 _APID 1,5164::6703265
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279211
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::25557500
+2 SOUR @S1277171069@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+3 _APID 1,60484::1735843
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019650/abram-c-brant
+3 _APID 1,60525::38130497
+2 SOUR @S1277171108@
+3 PAGE The Genealogical Record of the Schwenkfelder Families
+3 _APID 1,62282::4301385968
+3 _APID 1,62282::4301449769
+1 RESI
+2 DATE 1910
+2 PLAC Philadelphia Ward 28, Philadelphia, Pennsylvania, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::25557500
+2 NOTE Occupation: Conductor; Marital Status: Married; Relation to Head of House: Head
+1 RESI
+2 DATE 1920
+2 PLAC Warwick, Bucks, Pennsylvania, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279211
+2 NOTE Occupation: Farmer; Marital Status: Married; Relation to Head of House: Head
+1 DEAT
+2 DATE 10 Oct 1961
+2 PLAC Pottstown, Montgomery, Pennsylvania, USA
+2 SOUR @S1277171191@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Death Certificates, 1906-1968; Certificate Number Range: 093151-096000
+3 _APID 1,5164::6703265
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019650/abram-c-brant
+3 _APID 1,60525::38130497
+1 BURI
+2 PLAC Norristown, Montgomery, Pennsylvania, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019650/abram-c-brant
+3 _APID 1,60525::38130497
+1 SOUR @S1277171086@
+2 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+2 _APID 1,2451::22699845
+1 SOUR @S1277171191@
+2 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Death Certificates, 1906-1968; Certificate Number Range: 093151-096000
+2 _APID 1,5164::6703265
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+2 _APID 1,6061::42279211
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+2 _APID 1,7884::25557500
+1 SOUR @S1277171069@
+2 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+2 _APID 1,60484::1735843
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/78019650/abram-c-brant
+2 _APID 1,60525::38130497
+1 SOUR @S1277171108@
+2 PAGE The Genealogical Record of the Schwenkfelder Families
+2 _APID 1,62282::4301385968
+2 _APID 1,62282::4301449769
+0 @I332737039686@ INDI
 1 NAME Charlotte D /Lukens/
 2 GIVN Charlotte D
 2 SURN Lukens
+2 SOUR @S1277171086@
+3 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+3 _APID 1,2451::38977991
+2 SOUR @S1277171191@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Death Certificates, 1906-1968; Certificate Number Range: 093151-096000
+3 _APID 1,5164::456703265
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279212
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Norristown, Montgomery, Pennsylvania; Roll: 1444; Page: 2; Enumeration District: 0240
+3 _APID 1,7602::47389682
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::124058853
+2 SOUR @S1277171069@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+3 _APID 1,60484::2735843
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019739/charlotte-d-brant
+3 _APID 1,60525::38130578
+2 SOUR @S1277171108@
+3 PAGE The Genealogical Record of the Schwenkfelder Families
+3 _APID 1,62282::4301449766
 1 SEX F
-1 FAMS @F2@
+1 FAMS @F6@
 1 BIRT
 2 DATE 12 Apr 1882
 2 PLAC Norristown, Montgomery, Pennsylvania, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279212
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Norristown, Montgomery, Pennsylvania; Roll: 1444; Page: 2; Enumeration District: 0240
+3 _APID 1,7602::47389682
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::124058853
+2 SOUR @S1277171069@
+3 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+3 _APID 1,60484::2735843
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019739/charlotte-d-brant
+3 _APID 1,60525::38130578
+2 SOUR @S1277171108@
+3 PAGE The Genealogical Record of the Schwenkfelder Families
+3 _APID 1,62282::4301449766
+1 RESI
+2 DATE 1900
+2 PLAC Norristown, Montgomery, Pennsylvania, USA
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Norristown, Montgomery, Pennsylvania; Roll: 1444; Page: 2; Enumeration District: 0240
+3 _APID 1,7602::47389682
+2 NOTE Occupation: Looper Stocking; Marital Status: Single; Relation to Head of House: Daughter
+1 RESI
+2 DATE 1910
+2 PLAC Philadelphia Ward 28, Philadelphia, Pennsylvania, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+3 _APID 1,7884::124058853
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 RESI
+2 DATE 1920
+2 PLAC Warwick, Bucks, Pennsylvania, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+3 _APID 1,6061::42279212
+2 NOTE Occupation: None; Marital Status: Married; Relation to Head of House: Wife
 1 DEAT
 2 DATE 19 Dec 1968
 2 PLAC Norristown, Montgomery, Pennsylvania, USA
-0 @I7@ INDI
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019739/charlotte-d-brant
+3 _APID 1,60525::38130578
+1 BURI
+2 PLAC Norristown, Montgomery County, Pennsylvania, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/78019739/charlotte-d-brant
+3 _APID 1,60525::38130578
+1 SOUR @S1277171086@
+2 PAGE Historical Society of Pennsylvania; Philadelphia, Pennsylvania; Historic Pennsylvania Church and Town Records; Reel: 1106
+2 _APID 1,2451::38977991
+1 SOUR @S1277171191@
+2 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Death Certificates, 1906-1968; Certificate Number Range: 093151-096000
+2 _APID 1,5164::456703265
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Warwick, Bucks, Pennsylvania; Roll: T625_1543; Page: 5A; Enumeration District: 64
+2 _APID 1,6061::42279212
+1 SOUR @S1277171273@
+2 PAGE Year: 1900; Census Place: Norristown, Montgomery, Pennsylvania; Roll: 1444; Page: 2; Enumeration District: 0240
+2 _APID 1,7602::47389682
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Philadelphia Ward 28, Philadelphia, Pennsylvania; Roll: T624_1402; Page: 14b; Enumeration District: 0645; FHL microfilm: 1375415
+2 _APID 1,7884::124058853
+1 SOUR @S1277171069@
+2 PAGE Pennsylvania Historical and Museum Commission; Harrisburg, PA, USA; Pennsylvania (State). Birth certificates, 1906; Box Number: 254; Certificate Number Range: 111156-113831
+2 _APID 1,60484::2735843
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/78019739/charlotte-d-brant
+2 _APID 1,60525::38130578
+1 SOUR @S1277171108@
+2 PAGE The Genealogical Record of the Schwenkfelder Families
+2 _APID 1,62282::4301449766
+0 @I332737043939@ INDI
 1 NAME James Joseph /Ahearn/
 2 GIVN James Joseph
 2 SURN Ahearn
+2 SOUR @S1277168964@
+3 _APID 1,2495::6376956
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::2726763
+2 SOUR @S1277168734@
+3 _APID 1,2966::579721
+2 SOUR @S1277168802@
+3 _APID 1,3659::1842307
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041063
+2 SOUR @S1277167607@
+3 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+3 _APID 1,6224::16775297
+2 SOUR @S1277168973@
+3 PAGE Registration State: Massachusetts; Registration County: Hampshire
+3 _APID 1,6482::33538683
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::43873762
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::11029149
 1 SEX M
-1 FAMS @F3@
+1 FAMC @F4@
+1 FAMS @F2@
 1 BIRT
-2 DATE 1873
-2 PLAC Massachusetts, USA
-2 SOUR @S4@
-3 PAGE Volume: 123; SAR Membership Number: 24680
-3 _APID 1,2204::13579
+2 DATE 25 May 1873
+2 PLAC Sunderland, Massachusetts, USA
+2 SOUR @S1277168964@
+3 _APID 1,2495::6376956
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::2726763
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041063
+2 SOUR @S1277167607@
+3 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+3 _APID 1,6224::16775297
+2 SOUR @S1277168973@
+3 PAGE Registration State: Massachusetts; Registration County: Hampshire
+3 _APID 1,6482::33538683
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::43873762
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::11029149
+1 MARR
+2 DATE 1901
+2 PLAC Northampton, Massachusetts, USA
+2 SOUR @S1277168734@
+3 _APID 1,2966::579721
+1 RESI
+2 DATE 1880
+2 PLAC Sunderland, Franklin, Massachusetts, USA
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::43873762
+2 NOTE Marital Status: Single; Relation to Head of House: Son
+1 RESI
+2 DATE 1910
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::11029149
+2 NOTE Occupation: Embalmer; Marital Status: Married; Relation to Head of House: Head
+1 RESI
+2 DATE 1917-1918
+2 PLAC Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S1277168973@
+3 PAGE Registration State: Massachusetts; Registration County: Hampshire
+3 _APID 1,6482::33538683
+1 RESI
+2 DATE 1920
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041063
+2 NOTE Occupation: Truckman; Marital Status: Widowed; Relation to Head of House: Head
+1 RESI
+2 DATE 1930
+2 PLAC Northampton, Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S1277167607@
+3 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+3 _APID 1,6224::16775297
+2 NOTE Marital Status: Widowed; Relation to Head of House: Head; Occupation: Laborer
 1 DEAT
 2 DATE 1940
-0 @I9@ INDI
-1 NAME Robert Michael /Ahearn/
-2 GIVN Robert Michael
+2 PLAC Northampton, Massachusetts, USA
+2 SOUR @S1277168802@
+3 _APID 1,3659::1842307
+1 SOUR @S1277168964@
+2 _APID 1,2495::6376956
+1 SOUR @S1277167649@
+2 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+2 _APID 1,2511::2726763
+1 SOUR @S1277168734@
+2 _APID 1,2966::579721
+1 SOUR @S1277168802@
+2 _APID 1,3659::1842307
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+2 _APID 1,6061::114041063
+1 SOUR @S1277167607@
+2 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+2 _APID 1,6224::16775297
+1 SOUR @S1277168973@
+2 PAGE Registration State: Massachusetts; Registration County: Hampshire
+2 _APID 1,6482::33538683
+1 SOUR @S1277169039@
+2 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+2 _APID 1,6742::43873762
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+2 _APID 1,7884::11029149
+0 @I332737044283@ INDI
+1 NAME Reiko Diane /Davidson/
+2 GIVN Reiko Diane
+2 SURN Davidson
+2 SOUR @S1277172553@
+3 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 DATA
+4 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 _APID 1,7545::104240099
+2 SOUR @S1277172544@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; Marriage Indexes; Index Type: Bride; Year Range: 1988; Surname Range: A-G
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61253::1084421601
+2 SOUR @S1277167915@
+3 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 _APID 1,61843::721841024
+1 SEX F
+1 FAMC @F41@
+1 FAMS @F29@
+1 BIRT
+2 DATE 16 Dec 1960
+2 PLAC Misawa, Aomori, Japan
+1 SOUR @S1277172553@
+2 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+2 DATA
+3 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+2 _APID 1,7545::104240099
+1 SOUR @S1277172544@
+2 PAGE New Jersey State Archives; Trenton, New Jersey; Marriage Indexes; Index Type: Bride; Year Range: 1988; Surname Range: A-G
+2 DATA
+3 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+2 _APID 1,61253::1084421601
+1 SOUR @S1277167915@
+2 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+2 DATA
+3 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+2 _APID 1,61843::721841024
+0 @I332737044799@ INDI
+1 NAME Annie E /Scannell/
+2 GIVN Annie E
+2 SURN Scannell
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::12726763
+2 SOUR @S1277168734@
+3 _APID 1,2966::4776482
+2 SOUR @S1277168802@
+3 _APID 1,3659::3204266
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343654
+1 SEX F
+1 FAMS @F2@
+1 BIRT
+2 DATE 1876
+2 PLAC Massachusetts
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::12726763
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343654
+1 MARR
+2 DATE 1901
+2 PLAC Amherst, Massachusetts, USA
+2 SOUR @S1277168734@
+3 _APID 1,2966::4776482
+1 RESI
+2 DATE 1910
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343654
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 DEAT
+2 DATE 1917
+2 PLAC Northampton, Massachusetts, USA
+2 SOUR @S1277168802@
+3 _APID 1,3659::3204266
+1 SOUR @S1277167649@
+2 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+2 _APID 1,2511::12726763
+1 SOUR @S1277168734@
+2 _APID 1,2966::4776482
+1 SOUR @S1277168802@
+2 _APID 1,3659::3204266
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+2 _APID 1,7884::126343654
+0 @I332737044989@ INDI
+1 NAME Francis Thomas /Ahearn/
+2 GIVN Francis Thomas
 2 SURN Ahearn
+2 SOUR @S1277167269@
+3 _APID 1,5062::612932
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041065
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343655
+1 SEX M
+1 FAMC @F2@
+1 BIRT
+2 DATE 30 Nov 1904
+2 PLAC Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S1277167269@
+3 _APID 1,5062::612932
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041065
+1 RESI
+2 DATE 1910
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343655
+2 NOTE Marital Status: Single; Relation to Head of House: Son
+1 RESI
+2 DATE 1920
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041065
+2 NOTE Marital Status: Single; Relation to Head of House: Sister; Relation to Head of House: Son
+1 SOUR @S1277167269@
+2 _APID 1,5062::612932
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+2 _APID 1,6061::114041065
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+2 _APID 1,7884::126343655
+0 @I332737044990@ INDI
+1 NAME Alicia Mary /Ahearn/
+2 GIVN Alicia Mary
+2 SURN Ahearn
+2 SOUR @S1277167269@
+3 _APID 1,5062::2051998
+2 SOUR @S1277167607@
+3 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+3 _APID 1,6224::16775300
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343657
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/133534189/alicia-m-ahearn
+3 _APID 1,60525::110888768
+2 SOUR @S1277167915@
+3 PAGE Daily Hampshire Gazette; Publication Date: 20 Dec 2000; Publication Place: Northampton, Massachusetts, USA; URL: https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374
+4 CONC &xid=335
+3 DATA
+4 WWW https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374&xid=3355
+3 _APID 1,61843::891669478
+1 SEX F
+1 FAMC @F2@
+1 BIRT
+2 DATE 23 Mar 1910
+2 PLAC Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S1277167269@
+3 _APID 1,5062::2051998
+2 SOUR @S1277167607@
+3 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+3 _APID 1,6224::16775300
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/133534189/alicia-m-ahearn
+3 _APID 1,60525::110888768
+2 SOUR @S1277167915@
+3 PAGE Daily Hampshire Gazette; Publication Date: 20 Dec 2000; Publication Place: Northampton, Massachusetts, USA; URL: https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374
+4 CONC &xid=335
+3 DATA
+4 WWW https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374&xid=3355
+3 _APID 1,61843::891669478
+1 RESI
+2 DATE 1910
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277166984@
+3 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+3 _APID 1,7884::126343657
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter
+1 RESI
+2 DATE 1930
+2 PLAC Northampton, Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S1277167607@
+3 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+3 _APID 1,6224::16775300
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter; Occupation: Operator
+1 RESI
+2 PLAC Boca Raton, Palm Beach, Florida, USA
+2 SOUR @S1277167915@
+3 PAGE Daily Hampshire Gazette; Publication Date: 20 Dec 2000; Publication Place: Northampton, Massachusetts, USA; URL: https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374
+4 CONC &xid=335
+3 DATA
+4 WWW https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374&xid=3355
+3 _APID 1,61843::891669478
+1 DEAT
+2 DATE Abt 2000
+2 PLAC Boca Raton, Palm Beach, Florida, USA
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/133534189/alicia-m-ahearn
+3 _APID 1,60525::110888768
+2 SOUR @S1277167915@
+3 PAGE Daily Hampshire Gazette; Publication Date: 20 Dec 2000; Publication Place: Northampton, Massachusetts, USA; URL: https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374
+4 CONC &xid=335
+3 DATA
+4 WWW https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374&xid=3355
+3 _APID 1,61843::891669478
+1 BURI
+2 PLAC Boca Raton, Palm Beach County, Florida, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/133534189/alicia-m-ahearn
+3 _APID 1,60525::110888768
+1 SOUR @S1277167269@
+2 _APID 1,5062::2051998
+1 SOUR @S1277167607@
+2 PAGE Year: 1930; Census Place: Northampton, Hampshire, Massachusetts; Page: 6A; Enumeration District: 0025; FHL microfilm: 2340647
+2 _APID 1,6224::16775300
+1 SOUR @S1277166984@
+2 PAGE Year: 1910; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T624_593; Page: 6a; Enumeration District: 0695; FHL microfilm: 1374606
+2 _APID 1,7884::126343657
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/133534189/alicia-m-ahearn
+2 _APID 1,60525::110888768
+1 SOUR @S1277167915@
+2 PAGE Daily Hampshire Gazette; Publication Date: 20 Dec 2000; Publication Place: Northampton, Massachusetts, USA; URL: https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374
+3 CONC &xid=335
+2 DATA
+3 WWW https://www.newspapers.com/image/834797547/?article=b7db0b2d-8308-4e8c-9e76-f5f2df657e46&focus=0.20779653,0.795458,0.3600836,0.91739374&xid=3355
+2 _APID 1,61843::891669478
+0 @I332737058557@ INDI
+1 NAME Anna Rose /Ahearn/
+2 GIVN Anna Rose
+2 SURN Ahearn
+2 SOUR @S1277167269@
+3 _APID 1,5062::7974290
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041068
+1 SEX F
+1 BIRT
+2 DATE 1911
+2 PLAC Northampton, Hampshire, Massachusetts, USA
+2 SOUR @S1277167269@
+3 _APID 1,5062::7974290
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041068
+1 RESI
+2 DATE 1920
+2 PLAC Northampton Ward 1, Hampshire, Massachusetts, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+3 _APID 1,6061::114041068
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter
+1 SOUR @S1277167269@
+2 _APID 1,5062::7974290
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Northampton Ward 1, Hampshire, Massachusetts; Roll: T625_705; Page: 10A; Enumeration District: 162
+2 _APID 1,6061::114041068
+0 @I332737059537@ INDI
+1 NAME Thomas /Ahearn/
+2 GIVN Thomas
+2 SURN Ahearn
+2 SOUR @S1277170117@
+3 PAGE National Archives at Washington, DC; Washington, DC; Non-population Census Schedules for Massachusetts, 1850-1880; NAID: 2791276; Record Group Number: 29; Record Group Title: Records of the Bureau of the Census, 1790-2007
+3 _APID 1,1276::3367443
+2 SOUR @S1277169608@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1840–1911
+3 _APID 1,2101::1814525
+2 SOUR @S1277168964@
+3 _APID 1,2495::6368883
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::5589360
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::16678723
+2 SOUR @S1277169512@
+3 PAGE Year: 1870; Census Place: Sunderland, Franklin, Massachusetts; Roll: M593_615; Page: 401A
+3 _APID 1,7163::26817909
+2 SOUR @S1277169091@
+3 PAGE Franklin County Probate Files, Ca. 1812-1915 (Franklin County, Massachusetts); Author: Massachusetts. Probate Court (Franklin County)
+3 _APID 1,9069::282479
 1 SEX M
 1 FAMS @F4@
+1 BIRT
+2 DATE 2 Oct 1846
+2 PLAC Ballyquirk, Ireland
+2 SOUR @S1277169608@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1840–1911
+3 _APID 1,2101::1814525
+2 SOUR @S1277168964@
+3 _APID 1,2495::6368883
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::5589360
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::16678723
+2 SOUR @S1277169512@
+3 PAGE Year: 1870; Census Place: Sunderland, Franklin, Massachusetts; Roll: M593_615; Page: 401A
+3 _APID 1,7163::26817909
+1 RESI
+2 DATE 1870
+2 PLAC Sunderland, Montague, Franklin, Massachusetts, USA
+2 SOUR @S1277169512@
+3 PAGE Year: 1870; Census Place: Sunderland, Franklin, Massachusetts; Roll: M593_615; Page: 401A
+3 _APID 1,7163::26817909
+2 NOTE Occupation: Farm Laborer
+1 RESI
+2 DATE 1880
+2 PLAC Sunderland, Franklin, Massachusetts, USA
+2 SOUR @S1277170117@
+3 PAGE National Archives at Washington, DC; Washington, DC; Non-population Census Schedules for Massachusetts, 1850-1880; NAID: 2791276; Record Group Number: 29; Record Group Title: Records of the Bureau of the Census, 1790-2007
+3 _APID 1,1276::3367443
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::16678723
+2 NOTE Occupation: Farmer; Marital Status: Married; Relation to Head of House: Self
+1 RESI
+2 DATE Abt 1902
+2 PLAC Franklin
+2 SOUR @S1277169091@
+3 PAGE Franklin County Probate Files, Ca. 1812-1915 (Franklin County, Massachusetts); Author: Massachusetts. Probate Court (Franklin County)
+3 _APID 1,9069::282479
 1 DEAT
-2 DATE 1935
-0 @I10@ INDI
-1 NAME Grace Mary /Ahearn/
-2 GIVN Grace Mary
-2 SURN Ahearn
+2 DATE 21 Aug 1902
+2 PLAC Sunderland, Massachusetts, USA
+2 SOUR @S1277169608@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1840–1911
+3 _APID 1,2101::1814525
+2 SOUR @S1277168964@
+3 _APID 1,2495::6368883
+2 SOUR @S1277169091@
+3 PAGE Franklin County Probate Files, Ca. 1812-1915 (Franklin County, Massachusetts); Author: Massachusetts. Probate Court (Franklin County)
+3 _APID 1,9069::282479
+1 PROB
+2 DATE 5 Sep 1902
+2 PLAC Franklin, Massachusetts, USA
+2 SOUR @S1277169091@
+3 PAGE Franklin County Probate Files, Ca. 1812-1915 (Franklin County, Massachusetts); Author: Massachusetts. Probate Court (Franklin County)
+3 _APID 1,9069::282479
+1 SOUR @S1277170117@
+2 PAGE National Archives at Washington, DC; Washington, DC; Non-population Census Schedules for Massachusetts, 1850-1880; NAID: 2791276; Record Group Number: 29; Record Group Title: Records of the Bureau of the Census, 1790-2007
+2 _APID 1,1276::3367443
+1 SOUR @S1277169608@
+2 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1840–1911
+2 _APID 1,2101::1814525
+1 SOUR @S1277168964@
+2 _APID 1,2495::6368883
+1 SOUR @S1277167649@
+2 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+2 _APID 1,2511::5589360
+1 SOUR @S1277169039@
+2 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+2 _APID 1,6742::16678723
+1 SOUR @S1277169512@
+2 PAGE Year: 1870; Census Place: Sunderland, Franklin, Massachusetts; Roll: M593_615; Page: 401A
+2 _APID 1,7163::26817909
+1 SOUR @S1277169091@
+2 PAGE Franklin County Probate Files, Ca. 1812-1915 (Franklin County, Massachusetts); Author: Massachusetts. Probate Court (Franklin County)
+2 _APID 1,9069::282479
+0 @I332737059556@ INDI
+1 NAME Alice /McGee/
+2 GIVN Alice
+2 SURN McGee
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::15589360
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::15160100
 1 SEX F
-1 FAMC @F4@
-0 @I8@ INDI
+1 FAMS @F4@
+1 FAMS @F5@
+1 BIRT
+2 DATE abt 1846
+2 PLAC Ireland
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _APID 1,2511::15589360
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::15160100
+1 RESI
+2 DATE 1880
+2 PLAC Sunderland, Franklin, Massachusetts, USA
+2 SOUR @S1277169039@
+3 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+3 _APID 1,6742::15160100
+2 NOTE Occupation: Housekeeper; Marital Status: Married; Relation to Head of House: Wife
+1 DEAT
+2 DATE 21 Jan 1910
+2 PLAC Northampton, Massachusetts, USA
+1 SOUR @S1277167649@
+2 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+2 _APID 1,2511::15589360
+1 SOUR @S1277169039@
+2 PAGE Year: 1880; Census Place: Sunderland, Franklin, Massachusetts; Roll: 533; Page: 250c; Enumeration District: 261
+2 _APID 1,6742::15160100
+0 @I332737068288@ INDI
+1 NAME Thomas /Ahearn/
+2 GIVN Thomas
+2 SURN Ahearn
+1 SEX M
+1 FAMS @F5@
+1 BIRT
+2 DATE 2 Oct 1846
+2 PLAC Ballyquirk, Ireland
+1 DEAT
+2 DATE 21 Aug 1902
+2 PLAC Sunderland, Massachusetts, USA
+0 @I332737072856@ INDI
+1 NAME Alicia /Ahern/
+2 GIVN Alicia
+2 SURN Ahern
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440835
+1 SEX F
+1 FAMC @F19@
+1 BIRT
+2 DATE abt 1935
+2 PLAC Pennsylvania
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440835
+1 RESI
+2 DATE 1935
+2 PLAC Caln, Chester, Pennsylvania
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440835
+1 RESI
+2 DATE 1940
+2 PLAC Caln Twp, Caln, Chester, Pennsylvania, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+3 _APID 1,2442::26440835
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter
+1 SOUR @S1277170987@
+2 PAGE Year: 1940; Census Place: Caln, Chester, Pennsylvania; Roll: m-t0627-03464; Page: 23B; Enumeration District: 15-4
+2 _APID 1,2442::26440835
+0 @I332737099804@ INDI
+1 NAME Noi /Davidson/
+2 GIVN Noi
+2 SURN Davidson
+2 SOUR @S1277172603@
+3 PAGE Legacy Funeral's; Publication Place: USA
+3 _APID 1,2190::502215420
+2 SOUR @S1277172589@
+3 PAGE The National Archives At Seattle; Seattle, Washington; ARC Title: Petitions For Naturalization, 1896-1897, 1988; NAI Number: 612775; Record Group Title: Records of District Courts of the United States, 1685 - 2009; Record Group Number: 21
+3 _APID 1,2531::258719
+2 SOUR @S1277172553@
+3 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 DATA
+4 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 _APID 1,7545::502601691
+2 SOUR @S1277172587@
+3 PAGE National Cemetery Administration; U.S. Veterans' Gravesites
+3 DATA
+4 WWW Http://Www.state.nj.us/Military/Cemetery/Index.html
+3 _APID 1,8750::7685383
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/155014393/noi-davidson
+3 _APID 1,60525::127620662
+2 SOUR @S1277171004@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61260::897829
+2 SOUR @S1277167915@
+3 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 _APID 1,61843::662352590
+1 SEX F
+1 FAMS @F41@
+1 BIRT
+2 DATE 15 Jan 1929
+2 PLAC Ogau Tonan, Iwate Shiwa, Japan
+2 SOUR @S1277172589@
+3 PAGE The National Archives At Seattle; Seattle, Washington; ARC Title: Petitions For Naturalization, 1896-1897, 1988; NAI Number: 612775; Record Group Title: Records of District Courts of the United States, 1685 - 2009; Record Group Number: 21
+3 _APID 1,2531::258719
+2 SOUR @S1277172553@
+3 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 DATA
+4 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 _APID 1,7545::502601691
+2 SOUR @S1277172587@
+3 PAGE National Cemetery Administration; U.S. Veterans' Gravesites
+3 DATA
+4 WWW Http://Www.state.nj.us/Military/Cemetery/Index.html
+3 _APID 1,8750::7685383
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/155014393/noi-davidson
+3 _APID 1,60525::127620662
+2 SOUR @S1277171004@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61260::897829
+2 SOUR @S1277167915@
+3 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 _APID 1,61843::662352590
+1 RESI
+2 PLAC New Egypt
+2 SOUR @S1277172553@
+3 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 DATA
+4 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 _APID 1,7545::502601691
+1 RESI
+2 PLAC New Egypt, Ocean, New Jersey, USA
+2 SOUR @S1277167915@
+3 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 _APID 1,61843::662352590
+1 RESI
+2 PLAC Tacoma, Washington
+2 SOUR @S1277172589@
+3 PAGE The National Archives At Seattle; Seattle, Washington; ARC Title: Petitions For Naturalization, 1896-1897, 1988; NAI Number: 612775; Record Group Title: Records of District Courts of the United States, 1685 - 2009; Record Group Number: 21
+3 _APID 1,2531::258719
+2 NOTE Relation to Head of House: Self
+1 DEAT
+2 DATE 12 Nov 2015
+2 PLAC Mount Holly, Burlington County, New Jersey, United States of America
+2 SOUR @S1277172603@
+3 PAGE Legacy Funeral's; Publication Place: USA
+3 _APID 1,2190::502215420
+2 SOUR @S1277172553@
+3 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 DATA
+4 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 _APID 1,7545::502601691
+2 SOUR @S1277172587@
+3 PAGE National Cemetery Administration; U.S. Veterans' Gravesites
+3 DATA
+4 WWW Http://Www.state.nj.us/Military/Cemetery/Index.html
+3 _APID 1,8750::7685383
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/155014393/noi-davidson
+3 _APID 1,60525::127620662
+2 SOUR @S1277171004@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _APID 1,61260::897829
+2 SOUR @S1277167915@
+3 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 _APID 1,61843::662352590
+1 BURI
+2 DATE 19 Nov
+2 PLAC Arneytown, Burlington County, New Jersey, United States of America
+2 SOUR @S1277172553@
+3 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 DATA
+4 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 _APID 1,7545::502601691
+2 SOUR @S1277172587@
+3 PAGE National Cemetery Administration; U.S. Veterans' Gravesites
+3 DATA
+4 WWW Http://Www.state.nj.us/Military/Cemetery/Index.html
+3 _APID 1,8750::7685383
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/155014393/noi-davidson
+3 _APID 1,60525::127620662
+2 SOUR @S1277167915@
+3 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 _APID 1,61843::662352590
+1 SOUR @S1277172603@
+2 PAGE Legacy Funeral's; Publication Place: USA
+2 _APID 1,2190::502215420
+1 SOUR @S1277172589@
+2 PAGE The National Archives At Seattle; Seattle, Washington; ARC Title: Petitions For Naturalization, 1896-1897, 1988; NAI Number: 612775; Record Group Title: Records of District Courts of the United States, 1685 - 2009; Record Group Number: 21
+2 _APID 1,2531::258719
+1 SOUR @S1277172553@
+2 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+2 DATA
+3 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+2 _APID 1,7545::502601691
+1 SOUR @S1277172587@
+2 PAGE National Cemetery Administration; U.S. Veterans' Gravesites
+2 DATA
+3 WWW Http://Www.state.nj.us/Military/Cemetery/Index.html
+2 _APID 1,8750::7685383
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/155014393/noi-davidson
+2 _APID 1,60525::127620662
+1 SOUR @S1277171004@
+2 PAGE New Jersey State Archives; Trenton, New Jersey; New Jersey Death Index, 2001-2017
+2 DATA
+3 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+2 _APID 1,61260::897829
+1 SOUR @S1277167915@
+2 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+2 DATA
+3 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+2 _APID 1,61843::662352590
+0 @I332737099805@ INDI
 1 NAME Raymond Earl /Davidson/
 2 GIVN Raymond Earl
 2 SURN Davidson
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362985
+2 SOUR @S1277172553@
+3 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 DATA
+4 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+3 _APID 1,7545::147376410
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 DATA
+4 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 _APID 1,7545::225160171
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/72299815/raymond-earl-davidson
+3 _APID 1,60525::49841111
+2 SOUR @S1277182702@
+3 _APID 1,60901::26617542
+2 SOUR @S1277167915@
+3 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 DATA
+4 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+3 _APID 1,61843::721540338
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787789
 1 SEX M
+1 FAMC @F10@
+1 FAMS @F41@
 1 BIRT
 2 DATE 12 Oct 1939
 2 PLAC Suffolk County, New York, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362985
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/72299815/raymond-earl-davidson
+3 _APID 1,60525::49841111
+2 SOUR @S1277182702@
+3 _APID 1,60901::26617542
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787789
+1 RESI
+2 DATE 1940
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362985
+2 NOTE Marital Status: Single; Relation to Head of House: Son
+1 RESI
+2 DATE 1950
+2 PLAC Hempstead, Nassau, New York, USA
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787789
+2 NOTE Relation to Head of House: Son; Marital Status: Never Married
 1 DEAT
 2 DATE 27 Jan 2007
 2 PLAC New Egypt, Ocean, New Jersey, USA
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/72299815/raymond-earl-davidson
+3 _APID 1,60525::49841111
+2 SOUR @S1277182702@
+3 _APID 1,60901::26617542
 1 BURI
-2 PLAC Arneytown, Burlington, New Jersey, USA
-0 @I11@ INDI
-1 NAME Ellen Louise /Ahearn/
-2 GIVN Ellen Louise
-2 SURN Ahearn
+2 PLAC Arneytown, Burlington County, New Jersey, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/72299815/raymond-earl-davidson
+3 _APID 1,60525::49841111
+1 SOUR @S1277323483@
+2 _APID 1,2441::1854510
+1 SOUR @S1277170987@
+2 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+2 _APID 1,2442::8362985
+1 SOUR @S1277172553@
+2 PAGE URL: http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+2 DATA
+3 WWW http://www.legacy.com/obituaries/trentonian/obituary.aspx?n=noi-davidson&amp;pid=176509219
+2 _APID 1,7545::147376410
+1 SOUR @S1277172553@
+2 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+2 DATA
+3 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+2 _APID 1,7545::225160171
+1 SOUR @S1277323486@
+2 _APID 1,8750::8101596
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/72299815/raymond-earl-davidson
+2 _APID 1,60525::49841111
+1 SOUR @S1277182702@
+2 _APID 1,60901::26617542
+1 SOUR @S1277167915@
+2 PAGE Asbury Park Press; Publication Date: 15 Nov 2015; Publication Place: Asbury Park, New Jersey, USA; URL: https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+2 DATA
+3 WWW https://www.newspapers.com/image/138093453/?article=d73a24fd-cd98-445a-a6b8-80337a7b2c96&focus=0.3463484,0.5889352,0.6522162,0.7702743&xid=3355
+2 _APID 1,61843::721540338
+1 SOUR @S1277182686@
+2 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+2 _APID 1,62308::290787789
+0 @I332737100400@ INDI
+1 NAME Ruth M /Peters/
+2 GIVN Ruth M
+2 SURN Peters
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For New York State, 10/16/1940 - 03/31/1947; Record Group: Records of the Selective Service System, 147
+3 _APID 1,2238::334176510
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362984
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548238
+2 SOUR @S1277182702@
+3 _APID 1,60901::776617542
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787788
 1 SEX F
+1 FAMS @F10@
 1 BIRT
-2 DATE 1873
-1 DEAT
-2 DATE 1940
-0 @F1@ FAM
-1 HUSB @I1@
-1 WIFE @I2@
-1 CHIL @I3@
-1 CHIL @I4@
-1 MARR
+2 DATE abt 1921
+2 PLAC New York
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362984
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548238
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787788
+1 RESI
+2 DATE 1925
+2 PLAC Hempstead, Nassau
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548238
+2 NOTE Relation to Head of House: Daughter
+1 RESI
 2 DATE 1930
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277240638@
+3 _APID 1,6224::41449693
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter
+1 RESI
+2 DATE 1935
+2 PLAC Hempstead, Nassau, New York
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362984
+1 RESI
+2 DATE 1940
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362984
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 RESI
+2 DATE 1950
+2 PLAC Hempstead, Nassau, New York, USA
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787788
+2 NOTE Occupation: Salesgirl; Relation to Head of House: Wife; Marital Status: Married
+1 RESI
+2 PLAC Hempstead, Nassau, New York
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787788
+1 DEAT
+2 DATE Abt. 1999
+1 SOUR @S1277171076@
+2 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For New York State, 10/16/1940 - 03/31/1947; Record Group: Records of the Selective Service System, 147
+2 _APID 1,2238::334176510
+1 SOUR @S1277170987@
+2 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+2 _APID 1,2442::8362984
+1 SOUR @S1277183048@
+2 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+2 _APID 1,2704::16548238
+1 SOUR @S1277240638@
+2 _APID 1,6224::41449693
+1 SOUR @S1277182702@
+2 _APID 1,60901::776617542
+1 SOUR @S1277182686@
+2 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+2 _APID 1,62308::290787788
+0 @I332737100409@ INDI
+1 NAME Robert Edgar /Davidson/
+2 GIVN Robert Edgar
+2 SURN Davidson
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For New York State, 10/16/1940 - 03/31/1947; Record Group: Records of the Selective Service System, 147
+3 _APID 1,2238::304176510
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362983
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::73006881
+2 SOUR @S1277182707@
+3 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+3 _APID 1,5763::7380252
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+3 _APID 1,6061::24922699
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 DATA
+4 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 _APID 1,7545::2520318
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 DATA
+4 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 _APID 1,7545::2574614
+2 SOUR @S1277182811@
+3 _APID 1,8788::2406490
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/92726257/robert-edgar-davidson
+3 _APID 1,60525::45567895
+2 SOUR @S1277182702@
+3 _APID 1,60901::42584762
+3 _APID 1,60901::626617542
+2 SOUR @S1277167915@
+3 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+4 CONC 55
+3 DATA
+4 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+3 _APID 1,61843::1017897651
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787787
+1 SEX M
+1 FAMC @F12@
+1 FAMS @F10@
+1 BIRT
+2 DATE 19 February 1915
+2 PLAC Woodburn, Logan, Kentucky
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For New York State, 10/16/1940 - 03/31/1947; Record Group: Records of the Selective Service System, 147
+3 _APID 1,2238::304176510
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362983
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::73006881
+2 SOUR @S1277182707@
+3 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+3 _APID 1,5763::7380252
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+3 _APID 1,6061::24922699
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 DATA
+4 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 _APID 1,7545::2520318
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 DATA
+4 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 _APID 1,7545::2574614
+2 SOUR @S1277182811@
+3 _APID 1,8788::2406490
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/92726257/robert-edgar-davidson
+3 _APID 1,60525::45567895
+2 SOUR @S1277182702@
+3 _APID 1,60901::42584762
+2 SOUR @S1277167915@
+3 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+4 CONC 55
+3 DATA
+4 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+3 _APID 1,61843::1017897651
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787787
+1 RESI
+2 DATE 1920
+2 PLAC Franklin, Simpson, Kentucky, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+3 _APID 1,6061::24922699
+2 NOTE Marital Status: Single; Relation to Head of House: Son
+1 RESI
+2 DATE 1935
+2 PLAC Hempstead, Nassau, New York
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362983
+1 RESI
+2 DATE 1940
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277170987@
+3 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+3 _APID 1,2442::8362983
+2 NOTE Occupation: Truck Driver; Marital Status: Married; Relation to Head of House: Head
+1 RESI
+2 DATE 1950
+2 PLAC Hempstead, Nassau, New York, USA
+2 SOUR @S1277182686@
+3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+3 _APID 1,62308::290787787
+2 NOTE Occupation: Chauffeur; Relation to Head of House: Head; Marital Status: Married
+1 RESI
+2 DATE Before 1951
+2 PLAC New York
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::73006881
+1 RESI
+2 PLAC 4859 Dickson Road, Tiro
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 DATA
+4 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 _APID 1,7545::2520318
+1 RESI
+2 PLAC Crawford, Crawford, Ohio, USA
+2 SOUR @S1277182707@
+3 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+3 _APID 1,5763::7380252
+2 NOTE Occupation: Occupation Not Classifiable; Marital Status: Divorced
+1 RESI
+2 PLAC Hemp., Nassau, New York
+2 SOUR @S1277171076@
+3 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For New York State, 10/16/1940 - 03/31/1947; Record Group: Records of the Selective Service System, 147
+3 _APID 1,2238::304176510
+1 RESI
+2 PLAC Tiro
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 DATA
+4 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 _APID 1,7545::2574614
+1 RESI
+2 PLAC Tiro, Crawford, Ohio, USA
+2 SOUR @S1277167915@
+3 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+4 CONC 55
+3 DATA
+4 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+3 _APID 1,61843::1017897651
+1 DEAT
+2 DATE 5 April 2004
+2 PLAC Tiro, Crawford, Ohio, United States of America
+2 SOUR @S1277167303@
+3 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+3 _APID 1,3693::73006881
+2 SOUR @S1277182707@
+3 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+3 _APID 1,5763::7380252
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 DATA
+4 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 _APID 1,7545::2520318
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 DATA
+4 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 _APID 1,7545::2574614
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/92726257/robert-edgar-davidson
+3 _APID 1,60525::45567895
+2 SOUR @S1277182702@
+3 _APID 1,60901::42584762
+2 SOUR @S1277167915@
+3 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+4 CONC 55
+3 DATA
+4 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+3 _APID 1,61843::1017897651
+1 BURI
+2 PLAC Shelby, Richland County, Ohio, United States of America
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 DATA
+4 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 _APID 1,7545::2520318
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 DATA
+4 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+3 _APID 1,7545::2574614
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/92726257/robert-edgar-davidson
+3 _APID 1,60525::45567895
+2 SOUR @S1277167915@
+3 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+4 CONC 55
+3 DATA
+4 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+3 _APID 1,61843::1017897651
+1 SOUR @S1277171076@
+2 PAGE National Archives at St. Louis; St. Louis, Missouri; Wwii Draft Registration Cards For New York State, 10/16/1940 - 03/31/1947; Record Group: Records of the Selective Service System, 147
+2 _APID 1,2238::304176510
+1 SOUR @S1277170987@
+2 PAGE Year: 1940; Census Place: Hempstead, Nassau, New York; Roll: m-t0627-02685; Page: 2A; Enumeration District: 30-70
+2 _APID 1,2442::8362983
+1 SOUR @S1277167303@
+2 PAGE Social Security Administration; Washington D.C., USA; Social Security Death Index, Master File
+2 _APID 1,3693::73006881
+1 SOUR @S1277182707@
+2 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+2 _APID 1,5763::7380252
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+2 _APID 1,6061::24922699
+1 SOUR @S1277172553@
+2 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+2 DATA
+3 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+2 _APID 1,7545::2520318
+1 SOUR @S1277172553@
+2 PAGE Publication Date: 11/ Apr/ 2004; Publication Place: Zanesville, Ohio, USA; URL: http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+2 DATA
+3 WWW http://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html
+2 _APID 1,7545::2574614
+1 SOUR @S1277182811@
+2 _APID 1,8788::2406490
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/92726257/robert-edgar-davidson
+2 _APID 1,60525::45567895
+1 SOUR @S1277182702@
+2 _APID 1,60901::42584762
+2 _APID 1,60901::626617542
+1 SOUR @S1277167915@
+2 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+3 CONC 55
+2 DATA
+3 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+2 _APID 1,61843::1017897651
+1 SOUR @S1277182686@
+2 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
+2 _APID 1,62308::290787787
+0 @I332737204849@ INDI
+1 NAME John Y /Davidson/
+2 GIVN John Y
+2 SURN Davidson
+2 SOUR @S1277182707@
+3 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+3 _APID 1,5763::67380252
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+3 _APID 1,6061::24922692
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 DATA
+4 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 _APID 1,7545::33992116
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+3 _APID 1,7602::5537738
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509402/john-georgi_young-davidson
+3 _APID 1,60525::108296369
+2 SOUR @S1277182702@
+3 _APID 1,60901::642584762
+2 SOUR @S1277167915@
+3 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+4 CONC 55
+3 DATA
+4 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+3 _APID 1,61843::964866801
+1 SEX M
+1 FAMC @F15@
+1 FAMS @F12@
+1 BIRT
+2 DATE 24 April 1876
+2 PLAC Kentucky, United States of America
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+3 _APID 1,6061::24922692
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+3 _APID 1,7602::5537738
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509402/john-georgi_young-davidson
+3 _APID 1,60525::108296369
+1 RESI
+2 DATE 1900
+2 PLAC Adairville, Logan, Kentucky, USA
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+3 _APID 1,7602::5537738
+2 NOTE Occupation: Farmer; Marital Status: Married; Relation to Head of House: Head
+1 RESI
+2 DATE 1920
+2 PLAC Franklin, Simpson, Kentucky, USA
+2 SOUR @S1277167329@
+3 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+3 _APID 1,6061::24922692
+2 NOTE Occupation: Farming; Marital Status: Widowed; Relation to Head of House: Head
+1 RESI
+2 PLAC Simpson
+2 SOUR @S1277185320@
+3 _APID 1,3077::604036
+1 DEAT
+2 DATE 10 June 1946
+2 PLAC Simpson County, Kentucky, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509402/john-georgi_young-davidson
+3 _APID 1,60525::108296369
+1 BURI
+2 PLAC Franklin, Simpson County, Kentucky, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509402/john-georgi_young-davidson
+3 _APID 1,60525::108296369
+1 SOUR @S1277240785@
+2 _APID 1,1169::7027633
+1 SOUR @S1277185320@
+2 _APID 1,3077::604036
+1 SOUR @S1277182707@
+2 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+2 _APID 1,5763::67380252
+1 SOUR @S1277167329@
+2 PAGE Year: 1920; Census Place: Franklin, Simpson, Kentucky; Roll: T625_599; Page: 8A; Enumeration District: 109
+2 _APID 1,6061::24922692
+1 SOUR @S1277172553@
+2 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+2 DATA
+3 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+2 _APID 1,7545::33992116
+1 SOUR @S1277171273@
+2 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+2 _APID 1,7602::5537738
+1 SOUR @S1277185807@
+2 _APID 1,7602::5537742
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/130509402/john-georgi_young-davidson
+2 _APID 1,60525::108296369
+1 SOUR @S1277182702@
+2 _APID 1,60901::642584762
+1 SOUR @S1277167915@
+2 PAGE New Washington Herald; Publication Date: 15 Apr 2004; Publication Place: New Washington, Ohio, USA; URL: https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=33
+3 CONC 55
+2 DATA
+3 WWW https://www.newspapers.com/image/761985776/?article=82a9dd5e-d2b7-4f09-85fb-a2c8aec0ba66&focus=0.22314237,0.1279657,0.4068183,0.48159316&xid=3355
+2 _APID 1,61843::964866801
+0 @I332737204852@ INDI
+1 NAME Lena Howard /Bell/
+2 GIVN Lena Howard
+2 SURN Bell
+2 SOUR @S1277182707@
+3 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+3 _APID 1,5763::82380252
+2 SOUR @S1277172553@
+3 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 DATA
+4 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+3 _APID 1,7545::77840664
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+3 _APID 1,7602::5537739
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130598061/lena-howard_a.-davidson
+3 _APID 1,60525::108445780
+2 SOUR @S1277182702@
+3 _APID 1,60901::792584762
+1 SEX F
+1 FAMS @F12@
+1 BIRT
+2 DATE 6 April 1880
+2 PLAC Logan County, Kentucky, United States of America
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+3 _APID 1,7602::5537739
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130598061/lena-howard_a.-davidson
+3 _APID 1,60525::108445780
+1 RESI
+2 DATE 1900
+2 PLAC Adairville, Logan, Kentucky, USA
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+3 _APID 1,7602::5537739
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 DEAT
+2 DATE 30 October 1918
+2 PLAC Logan County, Kentucky, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130598061/lena-howard_a.-davidson
+3 _APID 1,60525::108445780
+1 BURI
+2 PLAC Logan County, Kentucky, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130598061/lena-howard_a.-davidson
+3 _APID 1,60525::108445780
+1 SOUR @S1277323533@
+2 PAGE Ancestry Family Tree
+2 _APID 19433033772:1030:39965210
+1 SOUR @S1277240785@
+2 _APID 1,1169::7027633
+1 SOUR @S1277240943@
+2 _APID 1,1222::1373711
+2 _APID 1,1222::601373711
+1 SOUR @S1277185320@
+2 _APID 1,3077::604157
+1 SOUR @S1277182707@
+2 PAGE Ohio Department of Health; Columbus, OH, USA; Ohio Deaths, 1908-1932, 1938-1944, and 1958-2007
+2 _APID 1,5763::82380252
+1 SOUR @S1277172553@
+2 PAGE Publication Date: 8/ Apr/ 2004; Publication Place: Lancaster, Ohio, USA; URL: http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+2 DATA
+3 WWW http://www.bucyrustelegraphforum.com/news/stories/20040407/obituaries/187390.html
+2 _APID 1,7545::77840664
+1 SOUR @S1277171273@
+2 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+2 _APID 1,7602::5537739
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/130598061/lena-howard_a.-davidson
+2 _APID 1,60525::108445780
+1 SOUR @S1277172877@
+2 _APID 1,60525::175603714
+1 SOUR @S1277182702@
+2 _APID 1,60901::792584762
+0 @I332737209655@ INDI
+1 NAME Ellen E /McCrary/
+2 GIVN Ellen E
+2 SURN McCrary
+2 SOUR @S1277183700@
+3 PAGE Kentucky Department For Libraries and Archives; Frankfort, Kentucky; Vital Statistics Original Death Certificates-Microfilm, 1911-1965
+3 _APID 1,1222::549617
+2 SOUR @S1277183365@
+3 PAGE The National Archives in Washington, DC; Washington, DC, USA; U.s., Civil War Pension Index: General Index to Pension Files, 1861-1934; NAI Title: General Index to Civil War and Later Pension Files, Ca. 1949-Ca. 1949; NAI Number: 563268; Record Gro
+4 CONC up Title
+3 _APID 1,4654::11086303
+2 SOUR @S1277172396@
+3 PAGE The National Archives in Washington, DC; Record Group: Records of the Bureau of the Census; Record Group Number: 29; Series Number: M432; Residence Date: 1850; Home in 1850: Waverly, Humphreys, Tennessee; Roll: 884; Page: 157a
+3 _APID 1,8054::6268229
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509189/ellen-e.-davidson
+3 _APID 1,60525::108296189
+1 SEX F
+1 FAMS @F15@
+1 BIRT
+2 DATE 2 May 1835
+2 PLAC Hickman County,Tennessee
+2 SOUR @S1277183700@
+3 PAGE Kentucky Department For Libraries and Archives; Frankfort, Kentucky; Vital Statistics Original Death Certificates-Microfilm, 1911-1965
+3 _APID 1,1222::549617
+2 SOUR @S1277172396@
+3 PAGE The National Archives in Washington, DC; Record Group: Records of the Bureau of the Census; Record Group Number: 29; Series Number: M432; Residence Date: 1850; Home in 1850: Waverly, Humphreys, Tennessee; Roll: 884; Page: 157a
+3 _APID 1,8054::6268229
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509189/ellen-e.-davidson
+3 _APID 1,60525::108296189
+1 RESI
+2 DATE 1850
+2 PLAC Waverly, Humphreys, Tennessee, USA
+2 SOUR @S1277172396@
+3 PAGE The National Archives in Washington, DC; Record Group: Records of the Bureau of the Census; Record Group Number: 29; Series Number: M432; Residence Date: 1850; Home in 1850: Waverly, Humphreys, Tennessee; Roll: 884; Page: 157a
+3 _APID 1,8054::6268229
+1 RESI
+2 DATE 1900
+2 PLAC Adairville, Logan, Kentucky, USA
+2 SOUR @S1277185807@
+3 _APID 1,7602::5537742
+2 NOTE Marital Status: Widowed; Relation to Head of House: Mother
+1 RESI
+2 PLAC Kentucky, USA
+2 SOUR @S1277183365@
+3 PAGE The National Archives in Washington, DC; Washington, DC, USA; U.s., Civil War Pension Index: General Index to Pension Files, 1861-1934; NAI Title: General Index to Civil War and Later Pension Files, Ca. 1949-Ca. 1949; NAI Number: 563268; Record Gro
+4 CONC up Title
+3 _APID 1,4654::11086303
+2 NOTE Relation to Head of House: Widow
+1 DEAT
+2 DATE 16 Mar 1918
+2 PLAC Logan, Kentucky
+2 SOUR @S1277183700@
+3 PAGE Kentucky Department For Libraries and Archives; Frankfort, Kentucky; Vital Statistics Original Death Certificates-Microfilm, 1911-1965
+3 _APID 1,1222::549617
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509189/ellen-e.-davidson
+3 _APID 1,60525::108296189
+1 BURI
+2 PLAC Franklin, Simpson County, Kentucky, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/130509189/ellen-e.-davidson
+3 _APID 1,60525::108296189
+1 SOUR @S1277183700@
+2 PAGE Kentucky Department For Libraries and Archives; Frankfort, Kentucky; Vital Statistics Original Death Certificates-Microfilm, 1911-1965
+2 _APID 1,1222::549617
+1 SOUR @S1277185320@
+2 _APID 1,3077::603594
+1 SOUR @S1277183365@
+2 PAGE The National Archives in Washington, DC; Washington, DC, USA; U.s., Civil War Pension Index: General Index to Pension Files, 1861-1934; NAI Title: General Index to Civil War and Later Pension Files, Ca. 1949-Ca. 1949; NAI Number: 563268; Record Gro
+3 CONC up Title
+2 _APID 1,4654::11086303
+1 SOUR @S1277185807@
+2 _APID 1,7602::5537742
+1 SOUR @S1277172396@
+2 PAGE The National Archives in Washington, DC; Record Group: Records of the Bureau of the Census; Record Group Number: 29; Series Number: M432; Residence Date: 1850; Home in 1850: Waverly, Humphreys, Tennessee; Roll: 884; Page: 157a
+2 _APID 1,8054::6268229
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/130509189/ellen-e.-davidson
+2 _APID 1,60525::108296189
+0 @I332737209721@ INDI
+1 NAME John Young /Davidson/
+2 GIVN John Young
+2 SURN Davidson
+2 SOUR @S1277183365@
+3 PAGE The National Archives in Washington, DC; Washington, DC, USA; U.s., Civil War Pension Index: General Index to Pension Files, 1861-1934; NAI Title: General Index to Civil War and Later Pension Files, Ca. 1949-Ca. 1949; NAI Number: 563268; Record Gro
+4 CONC up Title
+3 _APID 1,4654::1086303
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/143847338/john-davidson
+3 _APID 1,60525::120100122
+1 SEX M
+1 FAMS @F15@
+1 BIRT
+2 DATE 1822
+2 PLAC Virginia, United States
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/143847338/john-davidson
+3 _APID 1,60525::120100122
+1 RESI
+2 PLAC Kentucky, USA
+2 SOUR @S1277183365@
+3 PAGE The National Archives in Washington, DC; Washington, DC, USA; U.s., Civil War Pension Index: General Index to Pension Files, 1861-1934; NAI Title: General Index to Civil War and Later Pension Files, Ca. 1949-Ca. 1949; NAI Number: 563268; Record Gro
+4 CONC up Title
+3 _APID 1,4654::1086303
+2 NOTE Relation to Head of House: Soldier
+1 DEAT
+2 DATE 8 Jan 1877
+2 PLAC Franklin, Simpson, Kentucky, United States
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/143847338/john-davidson
+3 _APID 1,60525::120100122
+1 BURI
+2 PLAC Franklin, Simpson County, Kentucky, United States of America
+2 SOUR @S1277167338@
+3 DATA
+4 WWW https://www.findagrave.com/memorial/143847338/john-davidson
+3 _APID 1,60525::120100122
+1 SOUR @S1277183365@
+2 PAGE The National Archives in Washington, DC; Washington, DC, USA; U.s., Civil War Pension Index: General Index to Pension Files, 1861-1934; NAI Title: General Index to Civil War and Later Pension Files, Ca. 1949-Ca. 1949; NAI Number: 563268; Record Gro
+3 CONC up Title
+2 _APID 1,4654::1086303
+1 SOUR @S1277167338@
+2 DATA
+3 WWW https://www.findagrave.com/memorial/143847338/john-davidson
+2 _APID 1,60525::120100122
 0 @F2@ FAM
-1 HUSB @I5@
-1 WIFE @I6@
-1 CHIL @I2@
-0 @F3@ FAM
-1 HUSB @I7@
-1 CHIL @I1@
+1 HUSB @I332737043939@
+1 WIFE @I332737044799@
+1 CHIL @I332737044989@
+1 CHIL @I332737037257@
+1 CHIL @I332737044990@
+1 MARR
+2 DATE 26 Jun 1901
+2 PLAC Northampton, Massachusetts, USA
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _HPID 1,2511::2726763
+3 _WPID 1,2511::12726763
 0 @F4@ FAM
-1 HUSB @I9@
-1 CHIL @I10@
-0 @S1@ SOUR
-1 TITL 1940 United States Federal Census
+1 HUSB @I332737059537@
+1 WIFE @I332737059556@
+1 CHIL @I332737043939@
+1 MARR
+2 DATE 15 Aug 1869
+2 PLAC Northampton, Massachusetts, USA
+2 SOUR @S1277167649@
+3 PAGE New England Historic Genealogical Society; Boston, Massachusetts; Massachusetts Vital Records, 1911–1915
+3 _HPID 1,2511::5589360
+3 _WPID 1,2511::15589360
+0 @F5@ FAM
+1 HUSB @I332737068288@
+1 WIFE @I332737059556@
+0 @F6@ FAM
+1 HUSB @I332737038183@
+1 WIFE @I332737039686@
+1 CHIL @I332737037573@
+1 MARR
+2 DATE 14 Sep 1907
+2 SOUR @S1277171108@
+3 PAGE The Genealogical Record of the Schwenkfelder Families
+3 _WPID 1,62282::4301449766
+3 _HPID 1,62282::4301449769
+0 @F10@ FAM
+1 HUSB @I332737100409@
+1 WIFE @I332737100400@
+1 CHIL @I332737099805@
+0 @F12@ FAM
+1 HUSB @I332737204849@
+1 WIFE @I332737204852@
+1 CHIL @I332737100409@
+1 MARR
+2 DATE 25 Dec 1895
+2 PLAC Robertson, Tennessee, USA
+2 SOUR @S1277240785@
+3 _HPID 1,1169::7027633
+3 _WPID 1,1169::7027633
+2 SOUR @S1277171273@
+3 PAGE Year: 1900; Census Place: Adairville, Logan, Kentucky; Roll: 539; Page: 13; Enumeration District: 0042
+3 _HPID 1,7602::5537738
+3 _WPID 1,7602::5537739
+0 @F15@ FAM
+1 HUSB @I332737209721@
+1 WIFE @I332737209655@
+1 CHIL @I332737204849@
+0 @F19@ FAM
+1 HUSB @I332737037257@
+1 WIFE @I332737037573@
+1 CHIL @I332737036054@
+1 CHIL @I332737072856@
+1 MARR
+2 DATE 27 Jul 1931
+2 PLAC Chester, Pennsylvania, USA
+2 SOUR @S1277167309@
+3 _HPID 1,61381::2508654
+3 _WPID 1,61381::902508654
+0 @F26@ FAM
+1 HUSB @I332737036054@
+1 WIFE @I332737036894@
+1 CHIL @I332737035563@
+1 MARR
+2 DATE 29 Jan 1955
+2 PLAC Greenburgh, New York, USA
+2 SOUR @S1277279590@
+3 _HPID 1,61632::2565702
+3 _WPID 1,61632::2565702
+0 @F29@ FAM
+1 HUSB @I332737035563@
+1 WIFE @I332737044283@
+1 CHIL @I332737035562@
+1 MARR
+2 DATE 12 Nov 1988
+2 PLAC New Hanover Township, Burlington, New Jersey, USA
+2 SOUR @S1277172544@
+3 PAGE New Jersey State Archives; Trenton, New Jersey; Marriage Indexes; Index Type: Bride; Year Range: 1988; Surname Range: A-G
+3 DATA
+4 WWW https://vitalrecords.egov.com/CDC.VitalRecordsMVC.Web/Wizard/NJ/Municipality/SelectMunicipality
+3 _WPID 1,61253::1084421601
+3 _HPID 1,61253::1174421601
+0 @F41@ FAM
+1 HUSB @I332737099805@
+1 WIFE @I332737099804@
+1 CHIL @I332737044283@
+0 @S1277166984@ SOUR
+1 TITL 1910 United States Federal Census
 1 AUTH Ancestry.com
-1 PUBL Ancestry.com Operations, Inc.
-2 DATE 2012
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2006
 2 PLAC Lehi, UT, USA
-1 _APID 1,2442::0
-0 @S3@ SOUR
+1 _APID 1,7884::0
+0 @S1277167269@ SOUR
 1 TITL Massachusetts, U.S., Birth Records, 1840-1915
 1 AUTH Ancestry.com
 1 PUBL Ancestry.com Operations, Inc.
 2 DATE 2013
-2 PLAC Lehi, UT, USA
+2 PLAC Provo, UT, USA
 1 _APID 1,5062::0
-0 @S2@ SOUR
+0 @S1277167303@ SOUR
+1 TITL U.S., Social Security Death Index, 1935-2014
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2014
+2 PLAC Provo, UT, USA
+1 _APID 1,3693::0
+0 @S1277167309@ SOUR
+1 TITL Pennsylvania, U.S., Marriages, 1852-1968
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2016
+2 PLAC Lehi, UT, USA
+1 _APID 1,61381::0
+0 @S1277167329@ SOUR
+1 TITL 1920 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2010
+2 PLAC Provo, UT, USA
+1 _APID 1,6061::0
+0 @S1277167338@ SOUR
 1 TITL U.S., Find a Grave® Index, 1600s-Current
 1 AUTH Ancestry.com
 1 PUBL Ancestry.com Operations, Inc.
 2 DATE 2012
 2 PLAC Lehi, UT, USA
 1 _APID 1,60525::0
-0 @S4@ SOUR
-1 TITL U.S., Sons of the American Revolution Membership Applications, 1889-1970
+0 @S1277167607@ SOUR
+1 TITL 1930 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2002
+2 PLAC Provo, UT, USA
+1 _APID 1,6224::0
+0 @S1277167649@ SOUR
+1 TITL Massachusetts, U.S., Marriage Records, 1840-1915
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2013
+2 PLAC Provo, UT, USA
+1 _APID 1,2511::0
+0 @S1277167915@ SOUR
+1 TITL U.S., Newspapers.com™ Obituary Index, 1800s-current
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2019
+2 PLAC Lehi, UT, USA
+1 _APID 1,61843::0
+0 @S1277168734@ SOUR
+1 TITL Massachusetts, U.S., Marriage Index, 1901-1955 and 1966-1970
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2013
+2 PLAC Provo, UT, USA
+1 _APID 1,2966::0
+0 @S1277168802@ SOUR
+1 TITL Massachusetts, U.S., Death Index, 1901-1980
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2013
+2 PLAC Provo, UT, USA
+1 _APID 1,3659::0
+0 @S1277168964@ SOUR
+1 TITL Massachusetts, U.S., Town and Vital Records, 1620-1988
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2011
+2 PLAC Provo, UT, USA
+1 _APID 1,2495::0
+0 @S1277168973@ SOUR
+1 TITL U.S., World War I Draft Registration Cards, 1917-1918
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2005
+2 PLAC Provo, UT, USA
+1 _APID 1,6482::0
+0 @S1277169039@ SOUR
+1 TITL 1880 United States Federal Census
+1 AUTH Ancestry.com and The Church of Jesus Christ of Latter-day Saints
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2010
+2 PLAC Lehi, UT, USA
+1 _APID 1,6742::0
+0 @S1277169091@ SOUR
+1 TITL Massachusetts, U.S., Wills and Probate Records, 1635-1991
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2015
+2 PLAC Lehi, UT, USA
+1 _APID 1,9069::0
+0 @S1277169512@ SOUR
+1 TITL 1870 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2009
+2 PLAC Lehi, UT, USA
+1 _APID 1,7163::0
+0 @S1277169608@ SOUR
+1 TITL Massachusetts, U.S., Death Records, 1841-1915
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2013
+2 PLAC Provo, UT, USA
+1 _APID 1,2101::0
+0 @S1277170117@ SOUR
+1 TITL U.S., Selected Federal Census Non-Population Schedules, 1850-1880
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2010
+2 PLAC Lehi, UT, USA
+1 _APID 1,1276::0
+0 @S1277170987@ SOUR
+1 TITL 1940 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2012
+2 PLAC Provo, UT, USA
+1 _APID 1,2442::0
+0 @S1277170996@ SOUR
+1 TITL U.S., Korean War Era Draft Cards, 1948-1959
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2024
+2 PLAC Lehi, UT, USA
+1 _APID 1,62234::0
+0 @S1277171004@ SOUR
+1 TITL New Jersey, U.S., Death Index, 1848-1878, 1901-2017
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2016
+2 PLAC Lehi, UT, USA
+1 _APID 1,61260::0
+0 @S1277171069@ SOUR
+1 TITL Pennsylvania, U.S., Birth Certificates, 1906-1917
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2015
+2 PLAC Lehi, UT, USA
+1 _APID 1,60484::0
+0 @S1277171076@ SOUR
+1 TITL U.S., World War II Draft Cards Young Men, 1940-1947
 1 AUTH Ancestry.com
 1 PUBL Ancestry.com Operations, Inc.
 2 DATE 2011
 2 PLAC Lehi, UT, USA
-1 _APID 1,2204::0
+1 _APID 1,2238::0
+0 @S1277171086@ SOUR
+1 TITL Pennsylvania and New Jersey, U.S., Church and Town Records, 1669-2013
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2011
+2 PLAC Lehi, UT, USA
+1 _APID 1,2451::0
+0 @S1277171108@ SOUR
+1 TITL U.S., Family History Books
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2025
+2 PLAC Lehi, UT, USA
+1 _APID 1,62282::0
+0 @S1277171191@ SOUR
+1 TITL Pennsylvania, U.S., Death Certificates, 1906-1973
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2014
+2 PLAC Lehi, UT, USA
+1 _APID 1,5164::0
+0 @S1277171273@ SOUR
+1 TITL 1900 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2004
+2 PLAC Lehi, UT, USA
+1 _APID 1,7602::0
+0 @S1277172396@ SOUR
+1 TITL 1850 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2009
+2 PLAC Lehi, UT, USA
+1 _APID 1,8054::0
+0 @S1277172544@ SOUR
+1 TITL New Jersey, U.S., Marriage Index, 1901-2016
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2016
+2 PLAC Lehi, UT, USA
+1 _APID 1,61253::0
+0 @S1277172553@ SOUR
+1 TITL U.S., Obituary Collection, 1930-Current
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2006
+2 PLAC Lehi, UT, USA
+1 _APID 1,7545::0
+0 @S1277172587@ SOUR
+1 TITL U.S., Veterans' Gravesites, ca. 1775-2019
+1 AUTH National Cemetery Administration
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2006
+2 PLAC Lehi, UT, USA
+1 _APID 1,8750::0
+0 @S1277172589@ SOUR
+1 TITL Washington, U.S., Petitions for Naturalization, 1860-1991
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2011
+2 PLAC Lehi, UT, USA
+1 _APID 1,2531::0
+0 @S1277172603@ SOUR
+1 TITL U.S., Cemetery and Funeral Home Collection, 1847-Current
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2011
+2 PLAC Lehi, UT, USA
+1 _APID 1,2190::0
+0 @S1277172877@ SOUR
+1 TITL U.S., Find a Grave® Index, 1600s-Current
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2012
+2 PLAC Lehi, UT, USA
+0 @S1277182649@ SOUR
+1 TITL Colorado, U.S., Voter Registration Records, 2010-2023
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2023
+2 PLAC Lehi, UT, USA
+1 _APID 1,62910::0
+0 @S1277182686@ SOUR
+1 TITL 1950 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2022
+2 PLAC Lehi, UT, USA
+1 _APID 1,62308::0
+0 @S1277182702@ SOUR
+1 TITL U.S., Social Security Applications and Claims Index, 1936-2007
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2015
+2 PLAC Provo, UT, USA
+1 _APID 1,60901::0
+0 @S1277182707@ SOUR
+1 TITL Ohio, U.S., Death Records, 1908-1932, 1938-2022
+1 AUTH Ancestry.com and Ohio Department of Health
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2010
+2 PLAC Lehi, UT, USA
+1 _APID 1,5763::0
+0 @S1277182811@ SOUR
+1 TITL Kentucky, U.S., Birth Index, 1911-1999
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc.
+2 DATE 2006
+2 PLAC Provo, UT, USA
+1 _APID 1,8788::0
+0 @S1277183048@ SOUR
+1 TITL New York, U.S., State Census, 1925
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2012
+2 PLAC Provo, UT, USA
+1 _APID 1,2704::0
+0 @S1277183365@ SOUR
+1 TITL U.S., Civil War Pension Index: General Index to Pension Files, 1861-1934
+1 AUTH National Archives and Records Administration
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2000
+2 PLAC Lehi, UT, USA
+1 _APID 1,4654::0
+0 @S1277183700@ SOUR
+1 TITL Kentucky, U.S., Death Records, 1852-1965
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2007
+2 PLAC Lehi, UT, USA
+1 _APID 1,1222::0
+0 @S1277185320@ SOUR
+1 TITL Kentucky, U.S., Death Index, 1911-2000
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2000
+2 PLAC Provo, UT, USA
+0 @S1277185807@ SOUR
+1 TITL 1900 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2004
+2 PLAC Lehi, UT, USA
+0 @S1277240638@ SOUR
+1 TITL 1930 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2002
+2 PLAC Provo, UT, USA
+0 @S1277240785@ SOUR
+1 TITL Tennessee, U.S., Marriage Records, 1780-2002
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2008
+2 PLAC Lehi, UT, USA
+0 @S1277240943@ SOUR
+1 TITL Kentucky, U.S., Death Records, 1852-1965
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2007
+2 PLAC Lehi, UT, USA
+0 @S1277279590@ SOUR
+1 TITL New York State, Marriage Index, 1881-1967
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2017
+2 PLAC Lehi, UT, USA
+0 @S1277323483@ SOUR
+1 TITL U.S., Department of Veterans Affairs BIRLS Death File, 1850-2020
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2011
+2 PLAC Provo, UT, USA
+0 @S1277323486@ SOUR
+1 TITL U.S., Veterans' Gravesites, ca. 1775-2019
+1 AUTH National Cemetery Administration
+1 PUBL Ancestry.com Operations Inc
+2 DATE 2006
+2 PLAC Lehi, UT, USA
+0 @S1277323533@ SOUR
+1 TITL Ancestry Family Trees
+1 PUBL Online publication - Provo, UT, USA: Ancestry.com.  Original data:  Family Tree files submitted by Ancestry members.
+1 _APID 1,1030::0
 0 TRLR

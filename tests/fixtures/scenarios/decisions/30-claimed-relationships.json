@@ -1,0 +1,403 @@
+{
+ "title": "claimed relationships on a census",
+ "line": "a daughter is taken once her father is accepted on the record, her name and birth year agreeing and the file claiming the link; a stated sibling nobody in the tree holds is put to the unlinked person of that name by the surname alone and taken on the sibling route; a member related only as other is a card for the owner; the decisions are kept by the route each stands on; a rule decision withdrawn is undecided again and does not carry to a re-read, so the matcher proposes it again; cards an older matcher wrote are superseded and proposed again",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 page arrives: five cards, one per person of the tree it names",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20",
+   "expect": [
+    {
+     "cards": {
+      "record": "c20",
+      "people": [
+       "I332737044990",
+       "I332737043939",
+       "I332737058557",
+       "I332737044989",
+       "I332737037257"
+      ],
+      "kind": "persona_match"
+     },
+     "why": "a card for the daughter, the father, the sister and the two sons the tree holds; the mother's row, related only as other and fitting nobody, is no card yet"
+    },
+    {
+     "rule": {
+      "record": "c20",
+      "person": "I332737044990",
+      "taken": false,
+      "why": "the name is not accepted yet"
+     }
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737058557",
+      "rationale": {
+       "any": true
+      }
+     },
+     "why": "the sister with no family link at all is found by the surname alone"
+    },
+    {
+     "reach": {
+      "name": "Anna Rose Ahearn",
+      "birth": null,
+      "has": [
+       "I332737058557"
+      ],
+      "lacks": [
+       "I332737044989",
+       "I332737044990"
+      ]
+     },
+     "why": "the surname alone reaches only a person with no family link yet; one already placed in a family is not reached by it"
+    }
+   ]
+  },
+  {
+   "say": "the father accepted by the owner",
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "c20",
+      "person": "I332737044990",
+      "taken": true,
+      "why": {
+       "has": [
+        "claimed relationship",
+        "parent James J Ahearn"
+       ]
+      }
+     },
+     "why": "the daughter's stated relationship names the father, now accepted on this record, and the tree already claims her his daughter; her name and birth year agree, so the rule takes her"
+    },
+    {
+     "rule": {
+      "record": "c20",
+      "person": "I332737037257",
+      "taken": false,
+      "why": "the name is not accepted yet"
+     },
+     "why": "the son whose relationship cell is blank relates only as other, and his name is not accepted on this tree: refused"
+    }
+   ]
+  },
+  {
+   "say": "the rule re-examines the cards",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": [
+        "claimed relationship",
+        "James J Ahearn"
+       ]
+      }
+     },
+     "why": "the rule's own reason names the claimed relationship"
+    },
+    {
+     "facts": {
+      "person": "I332737044990",
+      "name": "accepted",
+      "birth": "accepted",
+      "parents": "accepted"
+     },
+     "why": "the record's own facts document her, accepted with everything it states"
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737058557",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": [
+        "a stated sibling",
+        "holds no parents"
+       ]
+      }
+     },
+     "why": "a sister nobody in the tree holds is taken on the sibling route, the reason saying the tree holds no parents to contradict it"
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737058557",
+      "rationale": {
+       "has": "has no parents in the tree to hold or contradict a sibling"
+      }
+     },
+     "why": "the card's rationale reads the sibling as absent, not a disagreement"
+    },
+    {
+     "facts": {
+      "person": "I332737058557",
+      "name": "accepted",
+      "parents": "undecided"
+     }
+    },
+    {
+     "memberships": {
+      "person": "I332737058557",
+      "is": {
+       "some": {
+        "role": "child",
+        "status": "undecided",
+        "placed": "sibling"
+       }
+      }
+     },
+     "why": "placed beside her sister, the membership undecided: the record states the sibling, not the parents"
+    },
+    {
+     "card": {
+      "record": "c20",
+      "persona": "Mary A Ahearn",
+      "kind": "new_person",
+      "status": "undecided"
+     },
+     "why": "the member related only as other, fitting nobody, is a card for the owner"
+    },
+    {
+     "rule": {
+      "record": "c20",
+      "persona": "Mary A Ahearn",
+      "taken": false,
+      "why": {
+       "has": [
+        "only as other",
+        "not a family relationship"
+       ]
+      }
+     },
+     "why": "the reason names the word the record uses"
+    },
+    {
+     "persons": {
+      "count": 26
+     },
+     "why": "nobody created for her"
+    }
+   ]
+  },
+  {
+   "say": "reconsider judges each decision by the route it stands on",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Alicia Mary Ahearn",
+        "why": {
+         "has": "claimed relationship"
+        }
+       }
+      }
+     },
+     "why": "the daughter's decision is kept by the claimed relationship, her own name a claim again without its assertion"
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Anna Rose Ahearn"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the daughter's decision taken back: a card again, her link undecided",
+   "withdraw": {
+    "card": {
+     "record": "c20",
+     "person": "I332737044990"
+    }
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "undecided"
+     }
+    },
+    {
+     "links": {
+      "record": "c20",
+      "person": "I332737044990",
+      "is": [
+       "undecided"
+      ]
+     },
+     "why": "withdrawn, her link reads undecided again"
+    }
+   ]
+  },
+  {
+   "say": "the page read again while her decision is withdrawn: an undecided link is not a decision and does not carry",
+   "reread": {
+    "record": "c20",
+    "match": []
+   },
+   "as": "again",
+   "expect": [
+    {
+     "last": {
+      "n": {
+       "links_carried": {
+        "<=": 2
+       }
+      }
+     },
+     "why": "the father's decision and the sister's carry to the new personas; the withdrawn one does not"
+    },
+    {
+     "links": {
+      "record": "c20",
+      "person": "I332737044990",
+      "is": [
+       "undecided"
+      ]
+     },
+     "why": "the new persona carries no link of hers at all: only the earlier reading's undecided row stands"
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "extraction": "$again.extraction",
+      "status": "undecided",
+      "exists": true
+     },
+     "why": "the matcher proposes her again on the re-read"
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737043939",
+      "extraction": "$again.extraction",
+      "exists": false
+     },
+     "why": "the father's decided link carried, so he is not proposed again"
+    }
+   ]
+  },
+  {
+   "say": "the cards on the re-read marked as an older matcher's",
+   "older_matcher": {
+    "record": "c20"
+   },
+   "as": "old"
+  },
+  {
+   "say": "a dry run names every older card as one it would propose again and writes nothing",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "rematch"
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "extraction": "$again.extraction",
+      "status": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider closes every older card as superseded and proposes each persona again by the matcher as it stands",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "rematch"
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "extraction": "$again.extraction",
+      "status": "rejected",
+      "note": "superseded"
+     },
+     "why": "every older card closes rejected, superseded"
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "extraction": "$again.extraction",
+      "latest": true,
+      "status": {
+       "in": [
+        "undecided",
+        "accepted"
+       ]
+      }
+     },
+     "why": "the persona is proposed again to the same person, by the matcher as it stands"
+    }
+   ]
+  },
+  {
+   "say": "the plan settled and the catalog whole",
+   "expect": [
+    {
+     "plan_idempotent": "all"
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

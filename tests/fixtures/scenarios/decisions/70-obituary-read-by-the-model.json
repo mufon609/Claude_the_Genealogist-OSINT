@@ -1,0 +1,192 @@
+{
+ "title": "an obituary read by the model",
+ "line": "the page the file cites, held as a stand-in the harness never parses, read by the model into a card for the deceased that the rule takes because the text names the husband who already stands as her accepted spouse; held is the record's own subject, never a relative it merely names",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 household accepted first, so her name and her husband rest on a record",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "say": "the son",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the mother",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the father: the couple asserted on the record",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737037573",
+      "name": "accepted",
+      "spouses": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the obituary page the file cites, held as bytes the harness never parses",
+   "seed": {
+    "file": "obituary-stand-in.html",
+    "saved_from": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355",
+    "source": "H04",
+    "collection": "U.S., Newspapers.com™ Obituary Index, 1800s-current",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355"
+    }
+   },
+   "as": "ob"
+  },
+  {
+   "say": "the deceased, as the model reads her: the file's own claims typed",
+   "transcribe": {
+    "record": "ob",
+    "form": {
+     "name": "Helen Sara Brant",
+     "sex": "F",
+     "role": "deceased",
+     "year": "1986",
+     "age": "76"
+    },
+    "about": [
+     "I332737037573"
+    ],
+    "by": "llm:harness"
+   },
+   "as": "dead",
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "card_status": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "her husband, named as a survivor",
+   "transcribe": {
+    "record": "ob",
+    "form": {
+     "name": "Frederick Michael Ahearn",
+     "role": "husband",
+     "residence": "Boca Raton, Florida"
+    },
+    "relations": [
+     {
+      "persona": "$dead.persona",
+      "kind": "spouse",
+      "text": "husband"
+     }
+    ],
+    "by": "llm:harness"
+   },
+   "as": "husband",
+   "expect": [
+    {
+     "rule": {
+      "record": "ob",
+      "person": "I332737037573",
+      "taken": true,
+      "why": {
+       "has": "spouse Frederick Michael Ahearn"
+      }
+     },
+     "why": "an obituary read by the model, naming her husband who already stands as her accepted spouse, is taken by the rule, the reason naming him"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737037257",
+      "record": "obituary",
+      "status": {
+       "not": "held"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "her card accepted: the deceased's own identity; the husband, named beside her, is proposed against her now-open family and taken by the rule on his accepted name and the spouse on a record",
+   "decide": {
+    "card": {
+     "record": "ob",
+     "person": "I332737037573"
+    },
+    "status": "accepted",
+    "note": "harness: the deceased's own identity"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "ob",
+      "person": "I332737037257",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": "spouse Helen Sara Brant"
+      }
+     },
+     "why": "the husband's own persona match is proposed on the same record once she is accepted on it, and the rule takes him: his name is accepted and the spouse she is stands on a record"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737037573",
+      "record": "obituary",
+      "status": "held"
+     },
+     "why": "the deceased is the obituary's own subject: her obituary row is held by it"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737037257",
+      "record": "obituary",
+      "status": {
+       "not": "held"
+      }
+     },
+     "why": "her husband is named as a survivor, not the record's subject: his own obituary row is never held by a record that only names him"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

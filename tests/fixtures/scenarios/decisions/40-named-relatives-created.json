@@ -1,0 +1,245 @@
+{
+ "title": "named relatives created from a primary record",
+ "line": "once the head is accepted on a T2 census, his mother is taken through the claimed link though the index spells her Ellan under her married surname, the son and daughter nobody fits are created by the rule with the record's facts and the child link accepted and enter the plan, and his wife is taken on the claimed spouse relationship; a creation taken back is taken again and links the same person, never a second one",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 page arrives: two cards, the head and his wife",
+   "attach": {
+    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+   },
+   "as": "c00",
+   "expect": [
+    {
+     "cards": {
+      "record": "c00",
+      "people": [
+       "I332737204849",
+       "I332737204852"
+      ],
+      "kind": "persona_match"
+     },
+     "why": "the head and the wife the tree holds; the mother, the son and the daughter wait on the head"
+    },
+    {
+     "card": {
+      "record": "c00",
+      "person": "I332737204849",
+      "rationale": {
+       "has": "though something disagrees"
+      }
+     },
+     "why": "the head's birth as the index gives it is a year off the file's: named on the card, no veto on a claim"
+    }
+   ]
+  },
+  {
+   "say": "the head accepted by the owner: the record's relatives follow at once",
+   "decide": {
+    "card": {
+     "record": "c00",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "as": "head",
+   "expect": [
+    {
+     "rule": {
+      "record": "c00",
+      "person": "I332737204852",
+      "taken": true,
+      "why": {
+       "has": [
+        "claimed relationship",
+        "spouse John Davidson"
+       ]
+      }
+     },
+     "why": "the wife's stated relationship names the head, accepted on this record, and the tree claims the couple: the rule would take her"
+    },
+    {
+     "card": {
+      "record": "c00",
+      "person": "I332737209655",
+      "kind": "persona_match",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": [
+        "claimed relationship",
+        "child John Davidson"
+       ]
+      },
+      "rationale": {
+       "has": "Given name agrees (record Ellan E Davidson"
+      }
+     },
+     "why": "the mother, written Ellan under her married surname, fits the tree's own mother through the stated relationship, the spelling agreeing, and is taken on the claimed link"
+    },
+    {
+     "card": {
+      "record": "c00",
+      "persona": "Willie R Davidson",
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      },
+      "note": {
+       "has": "Son of John Y Davidson"
+      }
+     },
+     "why": "a son nobody fits, named beside the head on a T2 census, is created by the rule, recorded as the rule with its reason"
+    },
+    {
+     "card": {
+      "record": "c00",
+      "persona": "Cassie E Davidson",
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      }
+     }
+    },
+    {
+     "persons": {
+      "named": "Willie R Davidson",
+      "surname": "Davidson"
+     }
+    },
+    {
+     "persons": {
+      "count": 28
+     },
+     "why": "two people created, the proposals remembering them"
+    },
+    {
+     "facts": {
+      "person": {
+       "created": "Willie R Davidson"
+      },
+      "name": "accepted",
+      "birth": "accepted",
+      "parents": "accepted"
+     },
+     "why": "his name, birth and parents link accepted from the record"
+    },
+    {
+     "step_count": {
+      "person": {
+       "created": "Willie R Davidson"
+      },
+      "is": {
+       ">=": 1
+      }
+     },
+     "why": "the created person enters the plan"
+    }
+   ]
+  },
+  {
+   "say": "the rule re-examines: the wife taken on the claimed spouse relationship",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c00",
+      "person": "I332737204852",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": "spouse John Davidson"
+      }
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737204852",
+      "name": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule's creation taken back: his link undecided, the person row stays",
+   "withdraw": {
+    "card": {
+     "record": "c00",
+     "persona": "Willie R Davidson"
+    }
+   },
+   "expect": [
+    {
+     "links": {
+      "record": "c00",
+      "person": {
+       "created": "Willie R Davidson"
+      },
+      "is": [
+       "undecided"
+      ]
+     }
+    },
+    {
+     "persons": {
+      "count": 28
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider takes the card again and links the same person, no second one",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "card",
+        "taken": true,
+        "person": "Willie R Davidson"
+       }
+      }
+     }
+    },
+    {
+     "persons": {
+      "count": 28
+     }
+    },
+    {
+     "links": {
+      "record": "c00",
+      "person": {
+       "created": "Willie R Davidson"
+      },
+      "is": [
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

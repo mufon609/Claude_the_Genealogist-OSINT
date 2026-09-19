@@ -1,0 +1,909 @@
+{
+ "title": "a person confirmed on a primary record",
+ "line": "the owner accepts one primary record and the rule follows: the gravesite locator's one card among namesakes is taken though the burial town differs from a bare claim, a second census takes the son on name, birth year and the claimed parent whose persona fits, the parents follow; a record attached on the owner's word with no step citing it is a fetch step done with a found run that a regeneration keeps and a re-read supersedes; a record's undated death beside the file's dated claim; a rule decision's re-run is logged under the session that acted; a step nothing generates is dropped and named in the audit row; the rule judges a record by the collection its current reading gives, never the archive row's stale banner",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Social Security record arrives: the file cites it, so it reaches his step; a card for him and for the parents it names",
+   "attach": {
+    "fixture": "familysearch-social-security-numident-1956-6KML-FS23.html"
+   },
+   "as": "ssn",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "step_people": {
+       "has": "Raymond Earl Davidson"
+      }
+     }
+    },
+    {
+     "cards": {
+      "record": "ssn",
+      "people": [
+       "I332737099805"
+      ],
+      "kind": "persona_match"
+     },
+     "why": "a card for the record's subject, the person it was fetched for; the parents it names wait on him"
+    },
+    {
+     "rule": {
+      "record": "ssn",
+      "person": "I332737099805",
+      "taken": false,
+      "why": "the name is not accepted yet"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts him on it: his name and birth now rest on a trusted source",
+   "decide": {
+    "card": {
+     "record": "ssn",
+     "person": "I332737099805"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "assertions": {
+       ">=": 3
+      }
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737099805",
+      "name": "accepted",
+      "birth": "accepted"
+     }
+    },
+    {
+     "card": {
+      "record": "ssn",
+      "person": "I332737100409",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": [
+        "claimed relationship",
+        "child"
+       ]
+      }
+     },
+     "why": "the father the record names, in a stated relationship to the son just accepted and claimed by the file, is taken by the rule at once"
+    },
+    {
+     "card": {
+      "record": "ssn",
+      "person": "I332737100400",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737099805",
+      "parents": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the gravesite locator's page for his name and death year: one card, his, among the namesakes",
+   "archive": {
+    "fixture": "va-gravesite-search-davidson-raymond-2007.html",
+    "source": "E03",
+    "collection": "VA Nationwide Gravesite Locator",
+    "locator": {
+     "kind": "url",
+     "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007"
+    },
+    "extract": true,
+    "match": [
+     "I332737099805"
+    ]
+   },
+   "as": "grave",
+   "expect": [
+    {
+     "last": {
+      "n": {
+       "personas": 2
+      },
+      "written": [
+       {
+        "kind": "persona_match",
+        "name": "Raymond E Davidson"
+       }
+      ]
+     },
+     "why": "the namesake who died the same year another day stays a hint"
+    },
+    {
+     "card": {
+      "record": "grave",
+      "person": "I332737099805",
+      "rationale": {
+       "has": [
+        "though something disagrees",
+        "urial place disagrees",
+        "irth date agrees",
+        "eath date agrees"
+       ]
+      }
+     },
+     "why": "the card says the dates agree to the day and the burial town differs: the locator's postal town against the file's"
+    },
+    {
+     "rule": {
+      "record": "grave",
+      "person": "I332737099805",
+      "taken": true,
+      "why": {
+       "has": [
+        "disagrees with the tree's own claim, not yet accepted",
+        "burial place"
+       ]
+      }
+     },
+     "why": "his name and dates on a trusted source, the card is taken: the burial town disagrees only with a bare claim, so it is named, not a veto"
+    }
+   ]
+  },
+  {
+   "say": "the locator's first page of namesakes: ten decedents agreeing on the name alone make no card",
+   "archive": {
+    "fixture": "va-gravesite-search-davidson-raymond-page1.html",
+    "source": "E03",
+    "collection": "VA Nationwide Gravesite Locator",
+    "locator": {
+     "kind": "url",
+     "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond"
+    },
+    "extract": true,
+    "match": [
+     "I332737099805"
+    ]
+   },
+   "as": "namesakes",
+   "expect": [
+    {
+     "last": {
+      "n": {
+       "personas": 10
+      },
+      "written": []
+     }
+    },
+    {
+     "hints": {
+      "record": "namesakes",
+      "person": "I332737099805",
+      "count": 10,
+      "hints": {
+       "none": {
+        "hint": true
+       }
+      }
+     },
+     "why": "namesakes agreeing on the name alone are no hint"
+    }
+   ]
+  },
+  {
+   "say": "the 1940 census of his parents' household: the rule takes him on name, birth year and the claimed parent whose persona fits, and the parents follow",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQT1-2MF.html"
+   },
+   "as": "c40b",
+   "expect": [
+    {
+     "last": {
+      "taken": {
+       "some": [
+        "Raymond Davidson",
+        {
+         "has": [
+          "birth date",
+          "parent Robert Davidson"
+         ]
+        }
+       ]
+      }
+     },
+     "why": "the confirmed son in the claimed parents' household is taken on his name, birth year and the stated parent"
+    },
+    {
+     "last": {
+      "taken": {
+       "some": [
+        "Robert Davidson",
+        {
+         "has": [
+          "child Raymond Davidson",
+          "a link the file claims"
+         ]
+        }
+       ]
+      }
+     },
+     "why": "the father follows through the claimed route, the son's own persona fitting on more than a name"
+    },
+    {
+     "rule": {
+      "record": "c40b",
+      "person": "I332737100400",
+      "taken": false,
+      "why": {
+       "has": [
+        "spouse Robert Davidson",
+        "a link the file claims",
+        "two are needed"
+       ]
+      }
+     },
+     "why": "the mother, a name and the claimed spouse only, is one point short: a card for the owner"
+    },
+    {
+     "facts": {
+      "person": "I332737099805",
+      "parents": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a record attached on the owner's word, no step citing it: his father's death index page",
+   "attach": {
+    "fixture": "familysearch-ohio-death-index-VKBL-4FN.html",
+    "about": "I332737100409"
+   },
+   "as": "ohio",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "steps": [],
+      "proposals": [
+       [
+        {
+         "any": true
+        },
+        "persona_match",
+        "Robert Edgar Davidson",
+        {
+         "any": true
+        }
+       ]
+      ]
+     },
+     "why": "no step cited the record; a card on arrival for the record's subject, his"
+    },
+    {
+     "step": {
+      "person": "I332737100409",
+      "locator": {
+       "kind": "ark",
+       "value": "ark:/61903/1:1:VKBL-4FN"
+      },
+      "fields": {
+       "kind": "fetch",
+       "status": "done",
+       "row_key": {
+        "starts": "death record"
+       },
+       "rationale": {
+        "has": "owner's word"
+       }
+      }
+     },
+     "why": "a fetch step written on his plan, done under the death record row, on the owner's word"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737100409",
+       "locator": {
+        "kind": "ark",
+        "value": "ark:/61903/1:1:VKBL-4FN"
+       }
+      },
+      "is": [
+       {
+        "outcome": "found",
+        "artifacts": {
+         "has": "$ohio.sha"
+        }
+       }
+      ]
+     },
+     "why": "the step's found run names the record"
+    }
+   ]
+  },
+  {
+   "say": "his plan regenerated keeps the done step",
+   "plan": [
+    "I332737100409"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737100409",
+      "locator": {
+       "kind": "ark",
+       "value": "ark:/61903/1:1:VKBL-4FN"
+      },
+      "fields": {
+       "status": "done"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the record read again: proposed again through the step, the first card superseded",
+   "reread": {
+    "record": "ohio",
+    "match": null,
+    "rule": true
+   },
+   "expect": [
+    {
+     "last": {
+      "written": [
+       {
+        "kind": "persona_match",
+        "name": "Robert Edgar Davidson"
+       }
+      ]
+     }
+    },
+    {
+     "card": {
+      "record": "ohio",
+      "person": "I332737100409",
+      "status": "rejected",
+      "note": "superseded"
+     },
+     "why": "the first reading's card closed as superseded"
+    },
+    {
+     "card": {
+      "record": "ohio",
+      "person": "I332737100409",
+      "latest": true,
+      "status": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts him on it: the record's undated death stands beside the file's dated claim",
+   "decide": {
+    "card": {
+     "record": "ohio",
+     "person": "I332737100409",
+     "latest": true
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "event": {
+      "person": "I332737100409",
+      "type": "Death",
+      "events": 2,
+      "basis": "accepted"
+     },
+     "why": "the record's own Death, with no date, is a second event with an accepted statement; the key fact's basis is the accepted one"
+    }
+   ]
+  },
+  {
+   "say": "that one statement rejected on its own: the key fact falls back to the file's claim",
+   "assertion": {
+    "record": "ohio",
+    "person": "I332737100409",
+    "event_type": "Death",
+    "verdict": "reject"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737100409",
+      "type": "Death",
+      "canonical_date": "5 April 2004",
+      "basis": "claim"
+     },
+     "why": "an event carrying only a rejected statement shows nowhere; the file's dated claim is the value again"
+    }
+   ]
+  },
+  {
+   "say": "a source with a window: a death in 2007 is within Legacy.com's, so his obituary row lists it first",
+   "expect": [
+    {
+     "checklist_row": {
+      "person": "I332737099805",
+      "record": "obituary",
+      "sources": {
+       "first": "H05"
+      }
+     },
+     "why": "a death in 2007 is in Legacy.com's 1999-on window: its row lists H05 first"
+    }
+   ]
+  },
+  {
+   "say": "a newspaper page from a connector's run, read with its manifest: a hit on the surname alone is no card and no hint",
+   "archive": {
+    "fixture": "locgov-ocr-sn89058321-1918-05-10-p2.json",
+    "manifest": "locgov-ocr-sn89058321-1918-05-10-p2.manifest.json",
+    "source": "H01",
+    "notes": {
+     "step_type": "obituary"
+    },
+    "extract": true,
+    "match": [
+     "I332737099805"
+    ]
+   },
+   "as": "paper",
+   "expect": [
+    {
+     "last": {
+      "written": [],
+      "n": {
+       "personas": {
+        ">=": 1
+       }
+      }
+     }
+    },
+    {
+     "artifact": {
+      "record": "paper",
+      "redistributable": 1,
+      "manifest": {
+       "rights": {
+        "redistributable": true,
+        "redistributable_by": "H01"
+       }
+      }
+     },
+     "why": "a loc.gov page (public domain) is redistributable and its manifest names the registry row that said so"
+    },
+    {
+     "artifact_where": {
+      "mime": "text/x-gedcom",
+      "is": {
+       "redistributable": 0,
+       "manifest": {
+        "rights": {
+         "redistributable": false
+        }
+       }
+      }
+     },
+     "why": "an Ancestry export is not"
+    },
+    {
+     "hints": {
+      "record": "paper",
+      "person": "I332737099805",
+      "hints": {
+       "none": {
+        "hint": true
+       }
+      }
+     },
+     "why": "a newspaper hit on the surname alone makes no card and is no hint"
+    }
+   ]
+  },
+  {
+   "say": "his remaining key facts decided on the file's claims: the baseline reviewed",
+   "fact": {
+    "person": "I332737099805",
+    "fields": [
+     "sex",
+     "death",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   },
+   "expect": [
+    {
+     "baseline": {
+      "person": "I332737099805",
+      "complete": true
+     }
+    },
+    {
+     "hints": {
+      "record": "namesakes",
+      "person": "I332737099805",
+      "hints": {
+       "none": {
+        "hint": true
+       }
+      }
+     },
+     "why": "reviewed, the namesakes agreeing on the name alone are still no hint"
+    },
+    {
+     "hints": {
+      "record": "paper",
+      "person": "I332737099805",
+      "hints": {
+       "none": {
+        "hint": true
+       }
+      }
+     },
+     "why": "reviewed, the surname-only newspaper hit is still no hint"
+    }
+   ]
+  },
+  {
+   "say": "a rule decision's re-run of the matcher is logged as the session that acted",
+   "decide": {
+    "card": {
+     "record": "grave",
+     "person": "I332737099805"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner",
+    "note": "harness: session-preserving re-run"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "audit": {
+      "entity": "proposal",
+      "id": "$grave.extraction",
+      "is": {
+       "some": {
+        "actor": "agent:harness-session for user:owner"
+       }
+      }
+     },
+     "why": "the matcher's re-run after a rule decision is logged under the session that acted, not the owner alone"
+    }
+   ]
+  },
+  {
+   "say": "a step nothing generates, written by hand",
+   "step": {
+    "person": "I332737099805",
+    "row_key": "obituary:",
+    "seq": 999,
+    "step_key": "search:harness:gone",
+    "kind": "search",
+    "query_type": "obituary",
+    "query": {},
+    "sources": [
+     "H01"
+    ],
+    "mode": "assisted",
+    "expected": "nothing",
+    "status": "planned",
+    "rationale": "harness: a step nothing generates"
+   },
+   "as": "gone"
+  },
+  {
+   "say": "the plan regenerated drops it and names it in the run's audit row, the only trace of it afterwards",
+   "plan": [
+    "I332737099805"
+   ],
+   "expect": [
+    {
+     "last": {
+      "Raymond Earl Davidson": {
+       "steps_dropped": 1,
+       "dropped": [
+        {
+         "step_key": "search:harness:gone",
+         "row_key": "obituary:",
+         "rationale": "harness: a step nothing generates"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "audit": {
+      "entity": "search_plan",
+      "person": "I332737099805",
+      "is": {
+       "some": {
+        "diff": {
+         "dropped": [
+          {
+           "step_key": "search:harness:gone",
+           "row_key": "obituary:",
+           "rationale": "harness: a step nothing generates"
+          }
+         ]
+        }
+       }
+      }
+     },
+     "why": "the audit row names the dropped step by key, row and rationale"
+    },
+    {
+     "step": {
+      "person": "I332737099805",
+      "step_key": "search:harness:gone",
+      "exists": false
+     }
+    }
+   ]
+  },
+  {
+   "say": "a death record naming a woman as the deceased's mother, attached on the owner's word as hers: a card on the name alone",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
+    "about": "I332737204852"
+   },
+   "as": "ment",
+   "expect": [
+    {
+     "card": {
+      "record": "ment",
+      "person": "I332737204852",
+      "status": "undecided",
+      "rationale": {
+       "has": "on the name alone"
+      }
+     }
+    },
+    {
+     "rule": {
+      "record": "ment",
+      "person": "I332737204852",
+      "taken": false,
+      "why": {
+       "lacks": [
+        "hint until a person reads it",
+        "Mentioned in the Record"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the same page archived once more under the banner title an older parser took for its collection",
+   "archive": {
+    "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
+    "suffix": "\n",
+    "source": "D03",
+    "collection": "Mentioned in the Record of Ollie Duke Davidson (Lena Howard Bell's Son)",
+    "locator": {
+     "kind": "file",
+     "value": "stale-banner.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737204852"
+    ]
+   },
+   "as": "stale",
+   "expect": [
+    {
+     "last": {
+      "written": [
+       {
+        "kind": "persona_match",
+        "name": "Lena Howard Bell"
+       }
+      ]
+     }
+    },
+    {
+     "rule": {
+      "record": "stale",
+      "person": "I332737204852",
+      "taken": false,
+      "why": {
+       "lacks": [
+        "hint until a person reads it",
+        "Mentioned in the Record"
+       ]
+      }
+     },
+     "why": "the rule judges the page by the collection its current reading gives (a death record, an identifying kind), never the archive row's banner title"
+    }
+   ]
+  },
+  {
+   "say": "the step the owner's-word record fulfilled, reopened: the found rows stay, a reopen row is added under the run's source, and the record names nobody it was fetched for",
+   "reopen": {
+    "step": {
+     "person": "I332737100409",
+     "locator": {
+      "kind": "ark",
+      "value": "ark:/61903/1:1:VKBL-4FN"
+     }
+    },
+    "note": "harness: wrongly matched"
+   },
+   "expect": [
+    {
+     "step": {
+      "person": "I332737100409",
+      "locator": {
+       "kind": "ark",
+       "value": "ark:/61903/1:1:VKBL-4FN"
+      },
+      "fields": {
+       "status": "planned"
+      }
+     }
+    },
+    {
+     "named_for": {
+      "record": "ohio",
+      "is": {
+       "has": "Robert Edgar Davidson"
+      }
+     },
+     "why": "reopened, the record still names him, through the accepted link he keeps on it, not through the run"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737100409",
+       "locator": {
+        "kind": "ark",
+        "value": "ark:/61903/1:1:VKBL-4FN"
+       }
+      },
+      "is": {
+       "first": {
+        "outcome": "found"
+       },
+       "some": {
+        "outcome": "none",
+        "notes": {
+         "starts": "reopened"
+        },
+        "source_id": "D03"
+       }
+      }
+     },
+     "why": "the found row stays as written; the reopen row carries the source of the run it reopens"
+    }
+   ]
+  },
+  {
+   "say": "a found run at a source other than a planned fetch step's holder: the pages are held, the cited record is not",
+   "log": {
+    "step": {
+     "person": "I332737043939",
+     "kind": "fetch",
+     "status": "planned"
+    },
+    "source": "H07",
+    "outcome": "found",
+    "artifacts": [
+     "grave"
+    ],
+    "note": "harness: another paper's page",
+    "done": false
+   },
+   "as": "run",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737043939",
+      "kind": "fetch",
+      "status": "planned",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "a found run at a row-source connector is logged and the fetch step stays planned"
+    },
+    {
+     "named_for": {
+      "record": "grave",
+      "is": {
+       "has": "James Joseph Ahearn"
+      }
+     },
+     "why": "the page's found run names him as a person it was fetched for"
+    }
+   ]
+  },
+  {
+   "say": "that run reopened: the reopen row carries the run's source, not the step's own holder, and the record names him no more",
+   "reopen": {
+    "step": "$run.step",
+    "note": "harness: the other paper's page was not his after all"
+   },
+   "expect": [
+    {
+     "search_log": {
+      "step": "$run.step",
+      "is": {
+       "some": {
+        "outcome": "found",
+        "source_id": "H07"
+       },
+       "every": {
+        "source_id": "H07"
+       },
+       "len": 2
+      }
+     },
+     "why": "the found row stays as it was; one reopen row added, under the source of the run it reopens"
+    },
+    {
+     "search_log": {
+      "step": "$run.step",
+      "is": {
+       "some": {
+        "outcome": "none",
+        "notes": {
+         "starts": "reopened"
+        }
+       }
+      }
+     }
+    },
+    {
+     "named_for": {
+      "record": "grave",
+      "is": {
+       "lacks": "James Joseph Ahearn"
+      }
+     },
+     "why": "reopened, the record no longer names him"
+    }
+   ]
+  },
+  {
+   "say": "the plan settled and the catalog whole",
+   "expect": [
+    {
+     "plan_idempotent": "all"
+    },
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,169 @@
+{
+ "title": "place answers on the card",
+ "line": "a place string the resolver left undecided is decided on its card: the place chosen fills every event carrying the words, the audit row written; not a place leaves them and keeps the reason; an answer is given once",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a card for a death place of the file, the geocoder's answer for it planted in the cache",
+   "place_card": {
+    "raw": "New Egypt, Ocean, New Jersey, USA",
+    "queries": [
+     "New Egypt, Ocean County, New Jersey, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 170912,
+      "lat": "40.0676",
+      "lon": "-74.5307",
+      "name": "New Egypt",
+      "display_name": "New Egypt, Plumsted Township, Ocean County, New Jersey, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "village",
+      "address": {
+       "village": "New Egypt",
+       "county": "Ocean County",
+       "state": "New Jersey",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {
+       "wikidata": "Q1024281"
+      }
+     }
+    ]
+   },
+   "as": "egypt",
+   "expect": [
+    {
+     "place_string": {
+      "raw": "New Egypt, Ocean, New Jersey, USA",
+      "status": "undecided",
+      "events": {
+       ">=": 1
+      },
+      "events_placed": 0
+     },
+     "why": "before the answer, the events carrying the words have no place"
+    }
+   ]
+  },
+  {
+   "say": "a card for a death place the file gives as the state alone",
+   "place_card": {
+    "raw": "New Jersey, USA",
+    "queries": [
+     "New Jersey, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 224951,
+      "lat": "40.07",
+      "lon": "-74.72",
+      "name": "New Jersey",
+      "display_name": "New Jersey, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "state",
+      "address": {
+       "state": "New Jersey",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "jersey"
+  },
+  {
+   "say": "the first card accepted with its one candidate",
+   "decide": {
+    "card": "$egypt.proposal",
+    "status": "accepted",
+    "choice": 0
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "kind": "place_resolution"
+     }
+    },
+    {
+     "place_string": {
+      "raw": "New Egypt, Ocean, New Jersey, USA",
+      "status": "accepted",
+      "has_place": true,
+      "resolver": "agent:check",
+      "audited": true,
+      "chain": "New Egypt < Ocean County < New Jersey < United States"
+     },
+     "why": "the string is accepted with a place, the resolver the one who answered, the string's audit row written, and the event shows the chosen place's chain"
+    },
+    {
+     "bound": {
+      "value": "$last.placed",
+      "is": "$last.events"
+     },
+     "why": "every event carrying the words takes the place, and the answer says so"
+    },
+    {
+     "proposal_status": {
+      "id": "$egypt.proposal",
+      "status": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the second card rejected: the words are a stand-in, not a place",
+   "decide": {
+    "card": "$jersey.proposal",
+    "status": "rejected",
+    "note": "harness: the words are a stand-in, not a place"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "placed": 0
+     },
+     "why": "the events carrying the rejected words are left as they were"
+    },
+    {
+     "place_string": {
+      "raw": "New Jersey, USA",
+      "status": "rejected",
+      "has_place": false,
+      "notes": {
+       "reason": "harness: the words are a stand-in, not a place"
+      },
+      "events_placed": 0
+     },
+     "why": "the string is rejected with the reason kept in its notes"
+    }
+   ]
+  },
+  {
+   "say": "a place answer is given once",
+   "decide": {
+    "card": "$jersey.proposal",
+    "status": "rejected"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": "already decided"
+     }
+    }
+   ]
+  }
+ ]
+}
