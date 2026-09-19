@@ -12,6 +12,7 @@ as it is.
 | `familysearch-census-1940-KQX1-VT9.html` | FamilySearch record ark:/61903/1:1:KQX1-VT9, United States Census 1940, the Ahearn household of Caln Township, Chester County, Pennsylvania | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-census-1900-M9HX-SWP.html` | FamilySearch record ark:/61903/1:1:M9HX-SWP, United States Census 1900, the Davidson household of Adairville, Logan County, Kentucky | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-census-1950-6X5P-KT7T.html` | FamilySearch record ark:/61903/1:1:6X5P-KT7T, United States Census 1950, the Hahnle household of Lindenhurst, Suffolk County, New York | `rule:familysearch-record` | public record; FamilySearch terms |
+| `familysearch-census-1950-6XYS-NQ16.html` | FamilySearch record ark:/61903/1:1:6XYS-NQ16, United States Census 1950, the Fred M Ahern household of Pennsylvania, saved from a search's results rather than a citation, as the archive holds it under its file name with no record id; the household record the loop's scenarios accept member by member | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-census-1940-KQT1-2MF.html` | FamilySearch record ark:/61903/1:1:KQT1-2MF, United States Census 1940, the Robert Davidson household of Hempstead, Nassau County, New York; the head's own Birth Date field is a bare year (1914), the census index's own estimate from his age, not a birth as written | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-census-1920-MXBF-NHK.html` | FamilySearch record ark:/61903/1:1:MXBF-NHK, United States Census 1920, the James J Ahearn household of Northampton, Hampshire County, Massachusetts; the mother's and two sons' rows carry a blank relationship cell, testing that sex, age and birthplace still land in their own columns rather than shifting into it | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-ohio-death-index-VKBL-4FN.html` | FamilySearch record ark:/61903/1:1:VKBL-4FN, Ohio, Death Index, Robert Edgar Davidson; the page's own Event Date field carries his time of death ("09:50 PM"), not a date | `rule:familysearch-record` | public record; FamilySearch terms |
@@ -140,7 +141,7 @@ the plan or raises, as the data says), `run_connector` (a connector standing in,
 `none_when`), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache` and Wikidata's
 answers planted), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `locator_known`, `steps_by_kind`,
-`fetched_rows`, `place`, `place_card`, `event_place`. The fakes are code because they exercise the connectors' contract;
+`fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place`, `place_card`, `event_place`. The fakes are code because they exercise the connectors' contract;
 what they are asked with and answer with is in the scenario. `connectors.json` holds the same for the offline connector
 checks in `tools/check.py`: the names, titles and bodies they are run against.
 

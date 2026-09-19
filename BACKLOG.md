@@ -101,30 +101,6 @@ its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
 Earl Davidson and Noi Davidson) carries no year to choose an item by.
 
-### C2. A household record found through a search step marks only one member's step done
-
-A page fetched through a search step, not a cited fetch, carries no identity
-`tools/attach.py` can key against every household member's own row: a
-FamilySearch record page saved from a name search
-(`familysearch-record-1950-census-6XYS-NQ16.html`, archived with
-`locator_kind='file'`, no ark learned before archiving) is not named in any
-`search_log.artifacts_json`. Extraction and match ran directly on the file,
-and three of its personas are accepted onto their own persons: Frederick
-Micheal Ahearn Jr (son), Frederick Michael Ahearn (father), Helen Sara Brant
-(mother). Frederick Micheal Ahearn Jr's and Helen Sara Brant's own `census
-household:1950` rows read `held` (each of their steps carries a found log, hers
-from a results page saved by hand); the father's still reads `missing`, `mode
-auto` (`D05`, `D03`), because `catalog.fetched_rows` marks a row held only
-through a `done` step on that person's own plan, and his 1950 step never
-received a found log for this artifact. `tools/run_step.py` searched the NARA
-1950 site again for a household this tree has already read and logged none
-(too many results to read). The NARA 1950 connector already logs
-found on every household member's own step from one page
-(`docs/RESEARCH-WORKFLOW.md` §4); a household record arriving through
-`tools/attach.py` instead (a saved search-results page, not a connector
-answer) needs the same reach, from the record's own accepted personas to each
-one's matching census-year step, once each is decided.
-
 ### C4. A record page saved for a church-register fetch step attaches to nothing
 
 `tools/fetches.py list` sends a church-register citation (Ancestry's

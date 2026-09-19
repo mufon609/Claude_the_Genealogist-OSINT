@@ -62,6 +62,7 @@ from catalog import date_verdict, place_verdict, same_surname
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, match, personas_of, split_persona_name
 from plan import plan_person
+from log_search import release_household
 from backfill_aliases import classify, clean, key
 
 SKIP = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
@@ -454,13 +455,17 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     (new_person); or, on a place_resolution proposal, the owner's answer on a place string (decide_place, choice naming the
     candidate). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
     family links it states with persons already matched on it accepted (link_family), the plans of the person and of the
-    person the record was fetched for regenerated and the questions that closes marked answered; on a page anyone can edit the
+    person the record was fetched for regenerated and the questions that closes marked answered (the regeneration logs a
+    household record, a census page whichever way it arrived, found on the person's own step for its census year,
+    plan_person through log_search.hold_household, so their row reads held and no runner searches that census again for a
+    household the tree has read, the way the runner logs the household's other steps for a connector's answer); on a page
+    anyone can edit the
     decision is an identity: the link accepted, the memberships it states created where the tree lacks them with an Undecided
     assertion, and the facts written undecided. Every other undecided results-page row (role result) naming this person that
     points at a record the person is now accepted on directly closes rejected, "the record itself is accepted"
     (close_result_rows): the summary row is superseded by its own record, not left open beside it. Rejected: the link rejected;
     for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link
-    and every assertion the rule wrote turn rejected; one the rule took back (withdraw) is accepted with everything it had
+    and every assertion the rule wrote turn rejected, and a step held by the record for this person is planned again; one the rule took back (withdraw) is accepted with everything it had
     written standing again. Returns what was written, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
@@ -487,6 +492,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
     for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
+    released = release_household(cx, tree_id, person_id, pay["artifact_sha256"], by) if status == "rejected" and person_id and not identity else []   # a step the record held for this person is planned again
+    if released: answered += answer_questions(cx, tree_id, person_id, prop_id, by)   # the plan sees the row open again
     if status == "accepted":                                     # the record's other personas come up next, against this person's relatives, on the current reading of the record
         eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
         while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]): eid = later
@@ -494,8 +501,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     closed_rows = close_result_rows(cx, tree_id, person_id, by, ts) if status == "accepted" and person_id else []
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
               (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "proposal", prop_id,
-               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "note": note})))
-    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "note": note}
+               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "released_steps": released, "note": note})))
+    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "released_steps": released, "note": note}
 
 def _stands_for(cat, persona, cand, chosen):
     """Whether a persona on a page anyone can edit stands for a person of the tree as the relative the identity rule may count:

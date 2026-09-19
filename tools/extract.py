@@ -532,6 +532,24 @@ class Writer:
         self.cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
                         (ulid(), a, b, kind, as_written, dumps({"label": label}))); self.n["relations"] += 1
 
+STATE_CENSUS_ROW = re.compile(r"\b(new york|massachusetts)\b[^•]*\bstate census\b", re.I)
+
+def household_row(parsed):
+    """The checklist row a household record fills, from its parsed form: a FamilySearch census page (its collection's kind word
+    Census) the "census household:<year>" row of the record's own year (the Event Date, else the collection's single year), or
+    a state census the "<State> state census:<year>" row the checklist keys such a row by; the 1950 site's schedule the 1950
+    row. None for a record of any other kind: a household record is one every person in the house has a row of their own for,
+    and only such a record holds a row on each of them."""
+    if not isinstance(parsed, dict): return None
+    if parsed.get("kind") == "nara1950": return "census household:1950"
+    coll = parsed.get("collection") or ""
+    if coll.split("•")[0].strip().lower() != "census": return None
+    f = {k.lower(): v for k, v in parsed.get("fields") or []}
+    ym = re.search(r"\b(1[789]\d\d)\b", f.get("event date") or "") or re.fullmatch(r".*\b(1[789]\d\d)\b.*", re.sub(r"\b1[789]\d\d-1[789]\d\d\b", "", coll))
+    if not ym: return None
+    st = STATE_CENSUS_ROW.search(coll)
+    return f"{st.group(1).title()} state census:{ym.group(1)}" if st else f"census household:{ym.group(1)}"
+
 def field_facts(fields, default_etype=None):
     """Group label/value rows into facts: {fact_type: {"date": (value, label), "place": (value, label), "values": [(value, label)]}}, and the
     relatives named in fields as [(label word, name)]. A date and a place of one type are one fact; a second date or place of the same

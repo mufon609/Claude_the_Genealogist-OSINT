@@ -70,6 +70,37 @@ def ran_unchanged(cx, step, rendered, source_id=None):
     a = latest_answer(cx, step, source_id)
     return a is not None and same_fields(rendered, a[2])
 
+HOUSEHOLD = "the household's record, accepted onto "     # the note prefix of a run written when a household record's persona is accepted onto a person
+
+def hold_household(cx, tree_id, person_id, sha, by):
+    """A household record (a census page, whichever way it arrived: a connector's answer, a page saved by hand, a search's
+    result) accepted onto a person holds that person's own checklist row for its census year: every planned step of theirs
+    on that row (extract.household_row) is logged found with the record, the way tools/run_step.py logs the household's other
+    steps for a connector's answer, so catalog.fetched_rows reads the row held and no runner searches that census again for a
+    household the tree has read. Returns the step ids logged; a step already logged with this record is left as it is."""
+    from extract import household_row
+    e = cx.execute("SELECT structured_json FROM extraction WHERE artifact_sha256=? AND status<>'failed' AND superseded_by IS NULL ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
+    row = household_row(json.loads(e[0] or "{}")) if e else None
+    if not row: return []
+    name = cx.execute("SELECT display_name FROM person WHERE id=?", (person_id,)).fetchone()[0]
+    out = []
+    for sid, qj, rj in cx.execute("SELECT id, query_json, revisions_json FROM search_plan WHERE person_id=? AND row_key=? AND status='planned' ORDER BY seq", (person_id, row)).fetchall():
+        if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (sid, f'%"{sha}"%')).fetchone(): continue
+        log(cx, tree_id, by, step_id=sid, outcome="found", artifacts=[sha], note=f"{HOUSEHOLD}{name}", query=rendered_query(qj, rj))
+        out.append(sid)
+    return out
+
+def release_household(cx, tree_id, person_id, sha, by):
+    """The steps hold_household logged found with this record for this person are planned again (reopen) once the record's
+    persona is rejected for them: the record no longer holds their row. Returns the step ids reopened."""
+    out = []
+    for sid, in cx.execute("""SELECT DISTINCT l.plan_step_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
+                              WHERE sp.person_id=? AND sp.status='done' AND l.outcome='found' AND l.notes LIKE ? AND l.artifacts_json LIKE ?
+                              AND NOT EXISTS (SELECT 1 FROM search_log r WHERE r.plan_step_id=l.plan_step_id AND r.notes LIKE ? AND r.id > l.id)""",
+                           (person_id, HOUSEHOLD + "%", f'%"{sha}"%', REOPENED + "%")).fetchall():
+        reopen(cx, tree_id, by, sid, "the record's persona is rejected for this person: it no longer holds the row"); out.append(sid)
+    return out
+
 def reopen(cx, tree_id, by, step_id, note):
     """A step marked done by a run that did not hold its record after all is planned again; the run's log row stays as what
     happened and a new row, its note under REOPENED, says why the step reopened. From that row on, the earlier found run no

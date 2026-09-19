@@ -1,0 +1,91 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "file",
+   "value": "familysearch-census-1950-6XYS-NQ16.html"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 5,
+ "sequence": {
+  "1": {
+   "name": "Fred M Ahearn",
+   "role": "son",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1933",
+     "place": "Pennsylvania"
+    }
+   ],
+   "why": "the record's principal is the son, found through his own search; his birth calculated from age 17 on the 1950 record"
+  },
+  "2": {
+   "name": "Fred M Ahern",
+   "role": "father",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1908",
+     "place": "Massachusetts"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father"
+    },
+    {
+     "kind": "spouse",
+     "to": 3,
+     "value": "Parents"
+    }
+   ],
+   "why": "the household's father indexed Ahern, the surname's other spelling on the one page; Father stated toward the principal, the couple relation between the household's parents"
+  },
+  "3": {
+   "name": "Helen B Ahearn",
+   "role": "mother",
+   "sex": "F",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1910",
+     "place": "Pennsylvania"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother"
+    }
+   ]
+  },
+  "5": {
+   "name": "John D Ahearn",
+   "role": "brother",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1944",
+     "place": "Maryland"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "sibling",
+     "to": 1,
+     "value": "Brother"
+    }
+   ],
+   "why": "a brother the file does not hold, born after the 1940 census, in another state"
+  }
+ }
+}

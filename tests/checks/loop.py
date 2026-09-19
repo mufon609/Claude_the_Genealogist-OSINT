@@ -207,7 +207,10 @@ def e_steps_by_kind(w, x, want):
     return got == want_ids, [w.cx.execute("SELECT step_key FROM search_plan WHERE id=?", (g,)).fetchone()[0] for g in got]
 
 def e_fetched_rows(w, x, want):
-    v = w.catalog().fetched_rows(w.person(x["person"])).get(x["row"])
+    """Catalog.fetched_rows on a person's row: `held` reads the value (a one-person row, held by the record's own subject),
+    `present` the key (a household row, held by any member's done step)."""
+    rows = w.catalog().fetched_rows(w.person(x["person"])); v = rows.get(x["row"])
+    if "present" in x: return (x["row"] in rows) == bool(x["present"]), {"present": x["row"] in rows, "value": v}
     return (v is True) if x.get("held") else (v is not True), v
 
 def e_place(w, x, want):

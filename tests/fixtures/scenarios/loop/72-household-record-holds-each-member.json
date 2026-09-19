@@ -1,0 +1,348 @@
+{
+ "title": "a household record holds each member's row as they are accepted",
+ "line": "a great-grandfather's 1950 row is an auto search step at the 1950 site, run once with too many results to read; the household's page, found through his son's search and archived by its file name with no step naming it, holds nobody's row; the son accepted on it, the rule takes the father on the same record and the father's own search step is logged found with the page after his own decision, his row reads held, so no runner searches the 1950 site again for a household the tree has read; a rule decision rejected by a person plans the step again and the row is open once more; a member whose plan opens the year's step only later has it held the moment the plan opens it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the great-grandfather's seven key facts decided on the file's claims, so his plan opens searches; deceased by tier, his 1950 step runs unattended",
+   "fact": {
+    "person": "I332737037257",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "plan": [
+    "I332737037257"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737037257",
+      "row_key": "census household:1950",
+      "kind": "search",
+      "fields": {
+       "mode": "auto",
+       "status": "planned",
+       "sources": {
+        "has": "D05"
+       }
+      }
+     },
+     "why": "no citation for 1950: an auto search step at the 1950 site"
+    }
+   ]
+  },
+  {
+   "say": "the 1950 site asked once: too many results to read, a none run on the step's fields",
+   "log": {
+    "step": {
+     "person": "I332737037257",
+     "row_key": "census household:1950",
+     "kind": "search"
+    },
+    "source": "D05",
+    "outcome": "none",
+    "note": "harness: the source answered 6857 results and only the first page was read",
+    "query": true
+   },
+   "as": "father_step",
+   "expect": [
+    {
+     "runnable": {
+      "step": "$father_step.step",
+      "is": false
+     },
+     "why": "run on these very fields: not a turn's work again"
+    }
+   ]
+  },
+  {
+   "say": "the household's page, found through the son's own search and saved by hand: archived by its file name, no step naming it, read and matched for the son on the owner's word",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-census-1950-6XYS-NQ16.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737036054"
+    ]
+   },
+   "as": "c50",
+   "expect": [
+    {
+     "cards": {
+      "record": "c50",
+      "people": [
+       "I332737036054"
+      ]
+     },
+     "why": "the son alone is proposed; the household waits on him"
+    },
+    {
+     "fetched_rows": {
+      "person": "I332737037257",
+      "row": "census household:1950",
+      "present": false
+     },
+     "why": "a page named by no step holds nobody's row"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737037257",
+      "record": "census household",
+      "instance": "1950",
+      "status": "missing"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the son accepted by hand; the rule takes the father on the same record, and the father's own search step is found with the page by his own plan, regenerated on his own decision",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "c50",
+      "person": "I332737037257"
+     },
+     "status": "accepted",
+     "decided_by": {
+      "starts": "rule:"
+     },
+     "why": "the rule takes the father: the son is accepted on the record and the father agrees with what the tree holds on him"
+    },
+    {
+     "step": {
+      "person": "I332737037257",
+      "row_key": "census household:1950",
+      "kind": "search",
+      "fields": {
+       "status": "done"
+      }
+     }
+    },
+    {
+     "search_log": {
+      "step": "$father_step.step",
+      "is": [
+       {
+        "source_id": "D05",
+        "outcome": "none"
+       },
+       {
+        "outcome": "found",
+        "artifacts": [
+         "$c50.sha"
+        ],
+        "notes": {
+         "has": "accepted onto"
+        }
+       }
+      ]
+     },
+     "why": "the none run stays as what happened; the found run holds the page, its note saying the record was accepted onto him"
+    },
+    {
+     "fetched_rows": {
+      "person": "I332737037257",
+      "row": "census household:1950",
+      "present": true
+     }
+    },
+    {
+     "checklist_row": {
+      "person": "I332737037257",
+      "record": "census household",
+      "instance": "1950",
+      "status": "held"
+     },
+     "why": "his 1950 row reads held: the runner does not search the 1950 site again for this household"
+    },
+    {
+     "runnable": {
+      "step": "$father_step.step",
+      "is": false
+     }
+    },
+    {
+     "step": {
+      "person": "I332737036054",
+      "row_key": "census household:1950",
+      "exists": false
+     },
+     "why": "the son's own baseline is not reviewed: his plan opens no search yet, so there is nothing of his to hold"
+    }
+   ]
+  },
+  {
+   "say": "a person rejects the rule's decision on the father: his step is planned again and his row is open, the son's standing",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037257"
+    },
+    "status": "rejected",
+    "note": "harness: not him"
+   },
+   "expect": [
+    {
+     "last": {
+      "released_steps": {
+       "len": 1
+      }
+     }
+    },
+    {
+     "step": {
+      "person": "I332737037257",
+      "row_key": "census household:1950",
+      "kind": "search",
+      "fields": {
+       "status": "planned"
+      }
+     }
+    },
+    {
+     "search_log": {
+      "step": "$father_step.step",
+      "is": [
+       {
+        "outcome": "none"
+       },
+       {
+        "outcome": "found"
+       },
+       {
+        "outcome": "none",
+        "notes": {
+         "starts": "reopened: "
+        }
+       }
+      ]
+     },
+     "why": "the found run stays as what happened; a reopen row says why the step is planned again"
+    },
+    {
+     "fetched_rows": {
+      "person": "I332737037257",
+      "row": "census household:1950",
+      "present": false
+     }
+    },
+    {
+     "checklist_row": {
+      "person": "I332737037257",
+      "record": "census household",
+      "instance": "1950",
+      "status": {
+       "not": "held"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the son's seven key facts decided later, and his plan regenerated: the 1950 step it opens is held at once by the record already accepted onto him",
+   "fact": {
+    "person": "I332737036054",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "his plan, regenerated as the facts were decided: the 1950 step it opened is held at once by the record already accepted onto him, and a plan run again keeps it so",
+   "plan": [
+    "I332737036054"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "row_key": "census household:1950",
+      "kind": "search",
+      "fields": {
+       "status": "done"
+      }
+     }
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737036054",
+       "row_key": "census household:1950",
+       "kind": "search"
+      },
+      "is": [
+       {
+        "outcome": "found",
+        "artifacts": [
+         "$c50.sha"
+        ],
+        "notes": {
+         "has": "accepted onto"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "fetched_rows": {
+      "person": "I332737036054",
+      "row": "census household:1950",
+      "present": true
+     }
+    },
+    {
+     "checklist_row": {
+      "person": "I332737036054",
+      "record": "census household",
+      "instance": "1950",
+      "status": "held"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

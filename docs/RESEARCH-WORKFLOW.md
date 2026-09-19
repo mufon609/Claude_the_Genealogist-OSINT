@@ -407,7 +407,11 @@ connector: the 1950 site takes the citation's surname within its enumeration
 district and answers with the household's schedule, whose every row becomes a
 persona and whose image is archived beside it; the page is logged found on
 every household member's step that cites the same year, district, place and
-page. A schedule row that fits nobody stays on the page. The Archive takes a
+page. A schedule row that fits nobody stays on the page. A household record
+that arrives any other way (a page saved by hand, a search's result) holds a
+member's own row the moment its persona is accepted onto them: their step for
+that census year is logged found with the record, so no runner searches that
+census again for a household the tree has read. The Archive takes a
 cited book's title and the gravesite locator the citation's name; a citation
 that names no book gives the Archive nothing to ask, and that step is listed
 for a hand. A source's years, from the registry's coverage column, gate its

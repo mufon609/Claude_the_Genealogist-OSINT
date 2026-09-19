@@ -545,7 +545,7 @@ def e_citations_held(w, x, want):
 def e_checklist_row(w, x, want):
     from checklist import build
     r = build(w.catalog(), w.person(x["person"]))
-    row = next((row for row in r["checklist"]["A"] + r["checklist"]["B"] if row["record"] == x["record"]), None)
+    row = next((row for row in r["checklist"]["A"] + r["checklist"]["B"] if row["record"] == x["record"] and ("instance" not in x or str(row.get("instance") or "") == str(x["instance"]))), None)
     got = {"status": row["status"], "sources": row.get("sources")} if row else None
     return row is not None and has(got, {k: v for k, v in x.items() if k in ("status", "sources")}), got
 

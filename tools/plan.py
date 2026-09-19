@@ -20,7 +20,9 @@ is not done is kept for its log as skipped, planned again if generated again;
 one dropped is named in the run's audit row by its key, row and rationale, the
 only trace of it once the row is deleted), marks a fetch step done when an
 archived record holds its citation for the person (catalog.held_for: the step's own record id, a sheet image of the page,
-or a record page naming the person), keeps done steps, and closes questions
+or a record page naming the person), logs a household record (a census page, whichever way it arrived) accepted onto the
+person found on their own step for its census year (log_search.hold_household), so the row reads held and no runner
+searches that census again for a household the tree has read, keeps done steps, and closes questions
 whose gap has gone (closed_reason 'gap_gone'). A question a person dismissed or answered stays closed. Nothing
 here runs a search. Before writing anything the plan checks that every holder
 in data/holders.csv and every source id the checklist emits is a row in the
@@ -32,6 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, now, resolve_tree, ulid
 from catalog import Catalog, dbid_of
 from checklist import build
+from log_search import hold_household
 
 FOOTPRINT_HOME = ("missing_parents", "identity_incomplete", "missing_spouse", "unverified_claim")
 ANCESTRY = "B02"
@@ -200,6 +203,9 @@ def plan_person(cx, tree_id, pid, by):
         if (lkind == "apid" and cat.held_for(lval, pid)) or (lkind and lkind != "apid" and lval and cx.execute("""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?
                 UNION SELECT 1 FROM artifact_locator WHERE kind=? AND value=?""", (lkind, lval, lkind, lval)).fetchone()):
             cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,)); stats["steps_done_by_archive"] += 1
+    for sha, in cx.execute("SELECT DISTINCT pe.artifact_sha256 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pp.person_id=? AND pp.status='accepted'", (pid,)).fetchall():
+        held = hold_household(cx, tree_id, pid, sha, by)                 # a household record accepted onto the person holds their own step for its census year, whenever the plan opens or keeps one
+        if held: stats["steps_held_by_record"] = stats.get("steps_held_by_record", 0) + len(held)
     for skey, sid in have_steps.items():                                 # a step the generator no longer produces goes; done it stays; run but not done it is skipped, kept for its log
         if skey in wanted_keys: continue
         row = cx.execute("SELECT status, EXISTS (SELECT 1 FROM search_log l WHERE l.plan_step_id=search_plan.id), row_key, rationale, query_json FROM search_plan WHERE id=?", (sid,)).fetchone()
