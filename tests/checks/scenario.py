@@ -573,7 +573,7 @@ def e_fetch_entries(w, x, want):
     if "holder" in x: entries = [e for e in entries if e["holder_id"] == x["holder"]]
     if "person" in x: names = [w.name_of(p) for p in w.people(x["person"])]; entries = [e for e in entries if any(n in e["people"] for n in names)]
     if "url_has" in x: entries = [e for e in entries if x["url_has"] in (e.get("url") or "")]
-    got = [{"save_as": e["save_as"], "how": e.get("how"), "people": e["people"], "url": e.get("url"), "unnamed": e.get("unnamed"), "tail": e["save_as"][-11:], "stem": e["save_as"][:-11]} for e in entries]
+    got = [{"save_as": e["save_as"], "how": e.get("how"), "people": e["people"], "url": e.get("url"), "tail": e["save_as"][-11:], "stem": e["save_as"][:-11]} for e in entries]
     return has(got, w.value(x["is"])), got
 
 def e_search_log(w, x, want):

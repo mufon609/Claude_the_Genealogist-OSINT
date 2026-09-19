@@ -1,6 +1,6 @@
 {
  "title": "the runner, turn after turn",
- "line": "the runner takes the queue's first person, runs their turn with the network standing in (a challenge at a connector is an error run and the turn goes on), names them again and passes them over once their turn held nothing new, runs the next person and stops with the turn's state kept when that turn pauses on pages to save, refusing a fresh run while it is paused; --resume picks the paused turn up, passes its person over the same way when nothing came back, goes on to the next person and stops after --turns; the run's state is cleared when it ends and a fresh run starts the count again",
+ "line": "the runner takes the queue's first person, runs their turn with the network standing in (a challenge at a connector is an error run and the turn goes on), names them again and passes them over once their turn held nothing new, runs the next person and stops with the turn's state kept when that turn pauses on pages to save, refusing a fresh run while it is paused; --resume picks the paused turn up, passes its person over the same way when nothing came back, goes on to the next person, and stops again when that turn pauses; resumed once more it stops after --turns; the run's state is cleared when it ends and a fresh run starts the count again",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -110,7 +110,63 @@
    ]
   },
   {
-   "say": "resumed with nothing saved: the paused turn is finished and its person, named again with nothing new, is passed over; the next person's turn runs; the third turn is the last asked for, and the run's state is cleared",
+   "say": "resumed with nothing saved: the paused turn is finished and its person, named again with nothing new, is passed over; the next person's turn is the third and pauses on her own marriage-index page, so the run stops again with both states kept",
+   "turns": {
+    "resume": true,
+    "inbox": [],
+    "turns": 3
+   },
+   "expect": [
+    {
+     "turns_run": {
+      "turns": [
+       {
+        "person": "I332737035562",
+        "nothing_new": true
+       },
+       {
+        "person": "I332737036054",
+        "paused": false,
+        "nothing_new": true
+       },
+       {
+        "person": "I332737036894",
+        "paused": true
+       }
+      ],
+      "passed": [
+       "I332737035562",
+       "I332737036054"
+      ]
+     },
+     "why": "the resumed turn counts as the second; its person is passed over once named again; the grandmother is the third and pauses"
+    },
+    {
+     "turn_state": {
+      "person": "I332737036894"
+     },
+     "why": "the grandmother's paused turn keeps its own state"
+    },
+    {
+     "last": {
+      "saved": {
+       "turns": {
+        "len": 3
+       }
+      },
+      "summary": {
+       "has": [
+        "paused",
+        "turns.py --resume"
+       ]
+      }
+     },
+     "why": "the run stops on the pause with its state kept, the summary saying so"
+    }
+   ]
+  },
+  {
+   "say": "resumed again with nothing saved: the grandmother's turn is finished, the third turn is the last asked for, and the run's state is cleared",
    "turns": {
     "resume": true,
     "inbox": [],
@@ -137,7 +193,8 @@
        },
        {
         "person": "I332737036894",
-        "paused": false
+        "paused": false,
+        "nothing_new": true
        }
       ],
       "passed": [
@@ -145,7 +202,7 @@
        "I332737036054"
       ]
      },
-     "why": "the resumed turn counts as the second; its person is passed over once named again; the grandmother is the third"
+     "why": "the resumed turn is the third, finished with nothing new"
     },
     {
      "last": {

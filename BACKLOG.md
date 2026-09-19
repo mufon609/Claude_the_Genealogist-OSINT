@@ -121,24 +121,6 @@ holder collection is the page's (`_matches_collection`) and whose name is the
 page's principal, whatever checklist row the citation sits under, the row's
 kind narrowing only when the citation's collection is unknown.
 
-### C5. One person's two citations of one collection share a saved page's name
-
-`tools/fetches.py list` names a page at a holder whose pages carry no identity
-the attach reads (an SAR patriot page, a Legacy.com obituary, a Google News
-Archive issue) once per person waiting on it, the name ending in that person's
-six characters, so two people's pages of one collection no longer collide. Two
-citations of the same collection on one person still do: Wilhelmina Dewees's
-two SAR applications, Noi Davidson's own obituary and the relative's obituary
-her footprint step cites at the same holder, each pair printed under one name,
-and a file saved under it reaches whichever entry `named_for` meets first. Give
-the name a piece unique to the citation as well (the citation's own record
-locator when it has one, else the step's key), so one person's several pages
-of one collection are told apart too.
-The year in the name is also what stops the list naming any page at such a
-holder for a citation that carries none: every obituary and marriage-index
-citation in this tree lacks a year, so none of their pages can be saved
-through the list today; the step's key in the year's place frees them.
-
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the

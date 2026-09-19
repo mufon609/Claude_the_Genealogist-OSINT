@@ -265,12 +265,14 @@ the file name to save under; a browser session works down that list one tab per
 page; `tools/fetches.py collect` then moves every saved page from the download
 folder into `inbox/` and attaches each by its own identity, or, for a page from
 a holder whose pages carry none (an SAR patriot page, a Legacy.com obituary),
-by the name the list printed with its year filled in: such a page is listed
-once per person waiting on it, under a name that ends in that person's six
-characters (the citation carries no record id of the holder's to tell two
-people's pages of one collection apart), and the saved file goes to that
-person's steps alone, archived under that holder with the page's own URL as
-locator, logged found, unparsed until a parser claims it. Never encode a page and read it out through the model in slices.
+by the name the list printed, whole: such a page is listed once per citation
+and person waiting on it, under a name that carries the citation's own record
+locator (the step's key when it has none) and ends in that person's six
+characters, so one person's several pages of one collection are told apart as
+two people's are, and no name waits on a year the citation may not carry; the
+saved file goes to that person's steps on that citation alone, archived under
+that holder with the page's own URL as locator, logged found, unparsed until
+a parser claims it. Never encode a page and read it out through the model in slices.
 
 **When the site blocks the fetch.** When a source answers a page save or a
 search in the owner's browser with a challenge or a sign-in, the session
@@ -709,8 +711,7 @@ step a connector can run on this person's plan, one commit each as
 creating the people a record names; then this person's own pages at holders
 without a connector (`tools/fetches.py list`, narrowed to their unrun steps)
 are printed with the file name to save under, and the turn pauses for the
-owner's browser session, its state kept beside the catalog. A page the list
-cannot name is passed over with the reason, never paused on.
+owner's browser session, its state kept beside the catalog.
 `tools/turn.py --resume` picks the paused turn up: `tools/fetches.py collect`,
 `tools/attach_inbox.py` on whatever collect's naming left behind,
 `tools/conclude.py reconsider`, and the plan regenerated; a turn with nothing
