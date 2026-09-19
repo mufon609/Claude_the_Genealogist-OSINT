@@ -1632,9 +1632,12 @@ def turn_check(keep):
     """tools/queue.py and tools/turn.py on tests/fixtures/harness.ged. The queue names James Joseph Ahearn first: the home
     person's own parent, the file's claim, not yet accepted. Charlotte D Lukens's six vouchable key facts (name, sex,
     birth, death, spouses, children; she has no parents claimed) are accepted so her plan opens searches, then a turn on
-    her: plan, every step a connector can run (the network faked to answer nothing, so each logs 'error' and the turn
-    keeps going, never stopping on a source that did not answer), the assisted fetch list she still has, the turn's own
-    state kept beside the database (nothing written to the catalog by pausing), no state once nothing is left to fetch.
+    her: plan, every step a connector can run (the network faked: the first step's source does not answer and logs
+    'error', the rest answer nothing and log 'none'; the turn keeps going, never stopping on a source that did not
+    answer), the assisted fetch list she still has, the turn's own state kept beside the database (nothing written to
+    the catalog by pausing) naming the source that did not answer, no state once nothing is left to fetch. The step
+    logged error is still runnable (an error is no run on its fields; queue_pass_over_check has the queue's side of it,
+    on a person at the edge), the steps logged none are not, and a none run after the error closes it.
     Then a page dropped into the inbox as a save would leave it, and --resume: fetches.py collect, attach_inbox.py,
     reconsider, the plan regenerated, the state file cleared, and the file's identity read even though it answers no
     step of hers (an unrelated fixture), reported as left in the inbox."""
@@ -1672,8 +1675,9 @@ def turn_check(keep):
     def fake_run(cx_, cat_, tree_id_, step_, by_, dry_run=False):
         seen_steps.append(step_["id"])
         from log_search import log as log_search
-        lid = log_search(cx_, tree_id_, by_, step_id=step_["id"], source_id=None, outcome="none", artifacts=None, note="harness: faked, no network", query=json.loads(step_["query_json"] or "{}"))
-        return [{"connector": "fake", "query": {}, "outcome": "none", "log": lid, "artifacts": [], "hits": [], "errors": [], "household_steps": [], "extracted": []}]
+        outcome = "error" if len(seen_steps) == 1 else "none"; errors = ["https://faked.example/search: timed out"] if outcome == "error" else []
+        lid = log_search(cx_, tree_id_, by_, step_id=step_["id"], source_id=None, outcome=outcome, artifacts=None, note="harness: faked, no network", query=json.loads(step_["query_json"] or "{}"))
+        return [{"connector": "fake", "query": {}, "outcome": outcome, "log": lid, "artifacts": [], "hits": [], "errors": errors, "household_steps": [], "extracted": []}]
     run_step.run = fake_run
     try:
         turn.start(cx, tid, slug, pid, BY, db)
@@ -1681,18 +1685,35 @@ def turn_check(keep):
         run_step.run = real_run
     steps = cx.execute("SELECT id FROM search_plan WHERE person_id=? AND kind='search' AND mode='auto'", (pid,)).fetchall()
     fail(len(steps) >= 1, "the plan opens at least one auto search step once her baseline is reviewed")
-    fail(len(seen_steps) >= 1 and len(seen_steps) == len(set(seen_steps)), f"turn.py ran every one of her runnable steps once each, one commit apiece: {seen_steps}")
-    logged = cx.execute("""SELECT COUNT(*) FROM search_log l WHERE l.plan_step_id IN ({}) AND l.outcome='none'""".format(",".join("?" * len(seen_steps))), seen_steps).fetchone()[0] if seen_steps else 0
-    fail(logged == len(seen_steps), "each run it took is logged, exactly as run_step.run reports it")
+    fail(len(seen_steps) >= 2 and len(seen_steps) == len(set(seen_steps)), f"turn.py ran every one of her runnable steps once each, one commit apiece: {seen_steps}")
+    logged = cx.execute("""SELECT GROUP_CONCAT(l.outcome) FROM search_log l WHERE l.plan_step_id IN ({}) ORDER BY l.id""".format(",".join("?" * len(seen_steps))), seen_steps).fetchone()[0] if seen_steps else ""
+    fail(sorted((logged or "").split(",")) == sorted(["error"] + ["none"] * (len(seen_steps) - 1)), f"each run it took is logged, exactly as run_step.run reports it: {logged}")
     st = turn.load_state(db)
     fail(st is not None and st["person_id"] == pid, f"the turn paused on her assisted fetch list with its own state kept beside the database: {st}")
+    # ---- an error run is a source that did not answer, not a run on the step's fields: the step stays runnable, the queue names her on it, the state names the source
+    from catalog import Catalog as _Catalog
+    cat_h = _Catalog(cx, tid)
+    errored = cx.execute("SELECT * FROM search_plan WHERE id=?", (seen_steps[0],)).fetchone() if seen_steps else None
+    src_name = cx.execute("SELECT s.name FROM search_log l JOIN source s ON s.id=l.source_id WHERE l.plan_step_id=? AND l.outcome='error'", (seen_steps[0],)).fetchone() if seen_steps else None
+    fail(errored is not None and errored["id"] in {r["id"] for r in run_step.runnable(cx, cat_h, tid)}, "the step whose latest run is an error is still runnable: the source did not answer")
+    fail(seen_steps[1:] and not ({sid for sid in seen_steps[1:]} & {r["id"] for r in run_step.runnable(cx, cat_h, tid)}), "the steps logged none on these fields are not runnable")
+    fail(st is not None and len(st.get("unanswered") or []) == 1 and src_name and src_name[0] in st["unanswered"][0] and "did not answer" in st["unanswered"][0] and "timed out" in st["unanswered"][0],
+         f"the paused turn's state names the source that did not answer, by the registry's name, with what it said: {st and st.get('unanswered')}")
+    from log_search import log as log_none
+    log_none(cx, tid, BY, step_id=seen_steps[0], outcome="none", note="harness: the source answered on the second ask", query=json.loads(errored["query_json"] or "{}")); cx.commit()
+    fail(errored["id"] not in {r["id"] for r in run_step.runnable(cx, cat_h, tid)}, "a none run on the same fields after the error closes the step")
     fail(not cx.execute("SELECT 1 FROM search_plan WHERE person_id=? AND kind='fetch' AND mode='fetch' AND status='planned'", (pid,)).fetchall() == [], "she still has an assisted fetch step waiting, or there was nothing to pause on")
 
     import shutil as _sh
     os.makedirs(treelib.inbox_dir(), exist_ok=True)
     _sh.copy(os.path.join(FIXTURES, "familysearch-census-1940-KQX1-VT9.html"), os.path.join(treelib.inbox_dir(), "familysearch-census-1940-KQX1-VT9.html"))
-    turn.resume(cx, tid, slug, BY, db)
+    import contextlib, io as _io
+    buf = _io.StringIO()
+    with contextlib.redirect_stdout(buf): turn.resume(cx, tid, slug, BY, db)
+    resumed = buf.getvalue()
     fail(turn.load_state(db) is None, "the state file is cleared once a turn is resumed")
+    fail("left:" in resumed and src_name and f"{src_name[0]}" in resumed.split("left:", 1)[1] and "the next turn asks it again" in resumed.split("left:", 1)[1],
+         f"the resumed turn's report still names the source that did not answer, under left, so the next turn asks it again:\n{resumed}")
     left_row = cx.execute("SELECT 1 FROM artifact_locator WHERE kind='ark' AND value='ark:/61903/1:1:KQX1-VT9'").fetchone()
     fail(left_row is None, "an unrelated fixture, saved by hand into the inbox, is read for its identity and left there: it fulfils none of her steps")
     fail(os.path.isfile(os.path.join(treelib.inbox_dir(), "familysearch-census-1940-KQX1-VT9.html")), "the unmatched file stays in the inbox, not filed under the tree")
@@ -2126,7 +2147,8 @@ def queue_pass_over_check(keep):
     left to run, a document still undecided: passed over. Her own unconfirmed parent, with a runnable auto search step
     still planned: still named next, not passed over, though his link is the very same shape of open question (a claim
     not yet accepted). Then the test itself: once that step is logged none on the very fields it carries, the parent is
-    passed over (the same query again is not a turn's work); once the plan writes new fields, named again. A second
+    passed over (the same query again is not a turn's work); once the plan writes new fields, named again; logged error on
+    those fields (the source did not answer), still named; logged none on them after that, passed over. A second
     parent whose only step is an assisted search with no link to open is passed over from the start. A spouse whose
     only step is a memorial page on the fetch list, with a link: named; logged none on unchanged fields: passed over."""
     d, db = scratch(keep)
@@ -2181,6 +2203,12 @@ def queue_pass_over_check(keep):
     cx.execute("UPDATE search_plan SET query_json=? WHERE id=?", (tdumps({"surname": {"value": "Parent", "basis": "claim"}}), parent_step)); cx.commit()   # the plan wrote new fields
     out, passed = tree_queue.edge(cx, tid)
     fail(any(e["id"] == parent_id for e in out), f"once the plan changes the step's fields, the parent is named again: {out}")
+    log_search(cx, tid, BY, step_id=parent_step, source_id="H01", outcome="error", note="harness: the source did not answer"); cx.commit()
+    out, passed = tree_queue.edge(cx, tid)
+    fail(any(e["id"] == parent_id for e in out) and not any(e["id"] == parent_id for e in passed), f"a run logged error on these fields is a source that did not answer, not a run: the parent is still named: {passed}")
+    log_search(cx, tid, BY, step_id=parent_step, source_id="H01", outcome="none", note="harness: answered on the second ask"); cx.commit()
+    out, passed = tree_queue.edge(cx, tid)
+    fail(any(e["id"] == parent_id for e in passed) and not any(e["id"] == parent_id for e in out), f"a none run on the same fields after the error closes the step: passed over: {passed}")
     log_search(cx, tid, BY, step_id=spouse_step, source_id="E01", outcome="none", note="harness: the page saved, no fit"); cx.commit()
     out, passed = tree_queue.edge(cx, tid)
     fail(any(e["id"] == spouse_id for e in passed) and not any(e["id"] == spouse_id for e in out), f"the spouse's page, logged on unchanged fields, is not opened again: passed over: {passed}")
@@ -2603,7 +2631,7 @@ def main():
     try: fails = turn_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL turn.py / queue.py on harness.ged: " + "; ".join(fails))
-    else: print("ok   turn.py / queue.py on harness.ged: the queue names the edge, a turn runs its connector steps, pauses on its assisted list, resumes, reconsiders and reports")
+    else: print("ok   turn.py / queue.py on harness.ged: the queue names the edge, a turn runs its connector steps, pauses on its assisted list, resumes, reconsiders and reports; a step whose latest run is an error stays runnable and the report names the source that did not answer")
     try: fails = merge_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL conclude.py merge: " + "; ".join(fails))
@@ -2635,7 +2663,7 @@ def main():
     try: fails = queue_pass_over_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL queue.py pass-over: " + "; ".join(fails))
-    else: print("ok   queue.py pass-over: a person already planned with nothing left for a turn to run, whose open question is the owner's alone, is passed over and never named next")
+    else: print("ok   queue.py pass-over: a person already planned with nothing left for a turn to run, whose open question is the owner's alone, is passed over and never named next; an error run is no run on the fields, a none run after it is")
     try: fails = unnamed_fetch_check(a.keep)
     except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
     if fails: bad += 1; print("FAIL fetch step the list cannot name: " + "; ".join(fails))

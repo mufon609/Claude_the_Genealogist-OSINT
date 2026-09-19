@@ -329,21 +329,6 @@ vouch, recorded as their word), the household then read outward from her
 through its stated relationships as any accepted record is; or the card stays
 the owner's.
 
-### C16. An error run closes a step the doc says a pause reopens
-
-`log_search.ran_unchanged` reads the step's latest run whatever its outcome,
-so a run logged `error` on the step's current fields (`tools/run_step.py`'s
-`outcome_of`: the source did not answer, a timeout, a challenge, a reset
-connection) makes the step not runnable until the plan changes them;
-`tools/queue.py` then passes the person over as an auto step run on these
-fields already, and no turn asks the source again. `docs/RESEARCH-WORKFLOW.md`
-§0 closes a lead only when it is run found or none, and §8 has a challenge
-pause the turn for the owner's hand and resume; `tools/turn.py` pauses only on
-the fetch list (the owner's browser), and a connector's challenge is an error
-run. Let an error run leave the step runnable (`ran_unchanged` looks past it,
-the way it looks past a reopen's own row), and have the turn's report name the
-source that did not answer, so the next turn asks it again.
-
 ### C17. A runner that takes turns from the queue in sequence
 
 `tools/queue.py` names the next person and `tools/turn.py` runs one

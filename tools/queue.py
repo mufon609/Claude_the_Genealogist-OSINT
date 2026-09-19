@@ -21,8 +21,9 @@ it is fetched by hand, carries a link the fetch list prints (tools/fetches.py li
 (fetches.unnamed: a name still wanting a year the citation does not carry is one no save can be made under) and has no
 such run either. A person already planned
 with no such step, whose open question is now only the owner's (a card to decide, a conflict, a baseline nobody has
-vouched or decided, an assisted search with no link to open, an auto step run on these fields already, a fetch
-logged blocked, a fetch whose page the list cannot name) is passed over: named, with why, but never named next, since
+vouched or decided, an assisted search with no link to open, an auto step run on these fields already (a run logged
+error, the source not answering, is not such a run), a fetch logged blocked, a fetch whose page the list cannot name) is
+passed over: named, with why, but never named next, since
 running a turn on them would do nothing.
 Without --all, prints the first person found and stops (queue.py --all lists the rest).
 """

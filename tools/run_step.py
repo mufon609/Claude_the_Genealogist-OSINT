@@ -31,7 +31,8 @@ years fall wholly outside them (an obituary for a death after the newspapers end
 is logged none without a request, the note saying so.
 --all runs every planned step a connector can take and that has no run since the plan last wrote its fields, in plan order,
 keeping each connector's pace across steps; a step already run on the same fields is run again by its id, or once the plan
-changes them.
+changes them. A run logged error is a source that did not answer, not a run on the fields: the step stays runnable and
+the next --all or turn asks the source again.
 --dry-run prints the requests and sends nothing.
 """
 import argparse, http.client, json, os, re, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
@@ -148,7 +149,8 @@ def runnable(cx, cat, tree_id):
     """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector that can ask
     for the record from the citation's details (a book citation that names no title gives the books connector nothing to ask;
     that step stays a link for a hand); each only while it has no run since the plan last wrote its fields (ran_unchanged):
-    a step run once on these fields is asked again only when the plan changes them, or by its id."""
+    a step run once on these fields is asked again only when the plan changes them, or by its id; a run logged error, the
+    source not answering, does not count, so the step is asked again."""
     rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
                          AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch')) ORDER BY p.display_name, sp.seq""", (tree_id,)).fetchall()
     out = []

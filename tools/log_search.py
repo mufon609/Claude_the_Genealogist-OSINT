@@ -47,10 +47,12 @@ def same_fields(rendered, ran):
     return all(k in rendered for k, v in ran.items() if not (isinstance(v, dict) and v.get("basis") in ("run", "record")))
 
 def ran_unchanged(cx, step, rendered):
-    """Whether the step's latest run (a reopen's own row is bookkeeping, not a run) asked these very fields: nothing has
-    changed on the step since, so running it again would be the same query blind."""
-    for q, note in cx.execute("SELECT query_json, notes FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
-        if (note or "").startswith(REOPENED): continue
+    """Whether the step's latest run the source answered asked these very fields: nothing has changed on the step since, so
+    running it again would be the same query blind. A reopen's own row is bookkeeping, not a run, and a run logged error is
+    a source that did not answer (a timeout, a challenge, a reset connection): both are looked past, so a step whose latest
+    run is an error is asked again, and a found or none run before it on the same fields still closes the step."""
+    for q, note, outcome in cx.execute("SELECT query_json, notes, outcome FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
+        if (note or "").startswith(REOPENED) or outcome == "error": continue
         return same_fields(rendered, json.loads(q or "{}"))
     return False
 
