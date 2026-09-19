@@ -1,0 +1,36 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E01",
+  "locator": {
+   "kind": "url",
+   "value": "https://www.findagrave.com/memorial/search?firstname=Robert&lastname=Davidson&birthyear=1915&deathyear=2004"
+  }
+ },
+ "extractor": "findagrave-search",
+ "personas": 1,
+ "sequence": {
+  "1": {
+   "name": "Robert Edgar Davidson",
+   "region": [
+    "92726257"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "19 Feb 1915"
+    },
+    {
+     "type": "Death",
+     "date": "5 Apr 2004"
+    },
+    {
+     "type": "Burial",
+     "value": "Plot: sect S",
+     "place": "Shelby-Oakland Cemetery, Shelby, Richland County, Ohio"
+    }
+   ],
+   "why": "one result row with the memorial id as its identity, the row's dates, the row's cemetery and plot as the burial"
+  }
+ }
+}

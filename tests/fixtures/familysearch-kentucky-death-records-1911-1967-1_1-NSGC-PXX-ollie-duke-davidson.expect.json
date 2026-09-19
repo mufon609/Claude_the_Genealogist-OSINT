@@ -1,0 +1,29 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "file",
+   "value": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html"
+  }
+ },
+ "extractor": "familysearch-record",
+ "parsed": {
+  "collection": "Death • Kentucky, Deaths, 1911-1967",
+  "why": "the collection is read from its own h2, not the leading 'Mentioned in the Record of' banner naming the record's subject to the citation's own person"
+ },
+ "sequence": {
+  "1": {
+   "name": "Lena Howard Bell",
+   "role": "subject",
+   "why": "the page's own h1 is the citation's own person"
+  }
+ },
+ "some": [
+  {
+   "name": "Ollie Duke Davidson",
+   "role": "son",
+   "why": "the record's true subject, named in the banner, still read as a relative on the page"
+  }
+ ]
+}

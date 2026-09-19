@@ -1,0 +1,106 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,6061::114041063"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 6,
+ "sequence": {
+  "1": {
+   "name": "Alicia M Ahearn",
+   "role": "daughter",
+   "sex": "F",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1911",
+     "place": "Massachusetts"
+    }
+   ],
+   "why": "the principal's birth calculated from her age 9 on the 1920 record"
+  },
+  "2": {
+   "name": "James J Ahearn",
+   "role": "father",
+   "sex": "M",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father"
+    }
+   ]
+  },
+  "3": {
+   "name": "Anna R Ahearn",
+   "role": "sister",
+   "sex": "F",
+   "relations": [
+    {
+     "kind": "sibling",
+     "to": 1,
+     "value": "Sister"
+    }
+   ]
+  },
+  "4": {
+   "name": "Mary A Ahearn",
+   "role": "",
+   "sex": "F",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1870",
+     "place": "Massachusetts"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1
+    }
+   ],
+   "why": "the mother's row, its relationship cell blank: her age and birthplace still land in Birth, not shifted one column; a member with a blank relationship word relates as other, not skipped"
+  },
+  "5": {
+   "name": "Francis T Ahearn",
+   "role": "",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1905",
+     "place": "Massachusetts"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1
+    }
+   ]
+  },
+  "6": {
+   "name": "Frederick M Ahearn",
+   "role": "",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1908",
+     "place": "Massachusetts"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1
+    }
+   ]
+  }
+ }
+}

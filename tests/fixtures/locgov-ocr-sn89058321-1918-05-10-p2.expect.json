@@ -1,0 +1,28 @@
+{
+ "extractor": "loc-gov-ocr",
+ "notes": {
+  "step_type": "obituary"
+ },
+ "personas": {
+  "min": 1
+ },
+ "every": {
+  "name_has": [
+   "davidson"
+  ],
+  "no_facts": [
+   {
+    "type": "Death"
+   },
+   {
+    "type": "Residence"
+   }
+  ],
+  "region": [
+   "\"segment\":\"/service/ndnp",
+   "\"date\":\"1918-05-10\"",
+   "union city"
+  ],
+  "why": "a persona per place the searched surname stands in the page's OCR text; no date of life made from the page's date, running text states none; the page's segment, date and place in the persona's region"
+ }
+}

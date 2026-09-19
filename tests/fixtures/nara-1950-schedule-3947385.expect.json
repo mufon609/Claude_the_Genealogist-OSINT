@@ -1,0 +1,36 @@
+{
+ "archive": {
+  "mime": "application/json",
+  "source": "D05",
+  "locator": {
+   "kind": "url",
+   "value": "https://1950census.archives.gov/api/search?scheduleId=3947385"
+  }
+ },
+ "extractor": "nara-1950-schedule",
+ "personas": 30,
+ "sequence": {
+  "1": {
+   "name": "Dauck Thomas E.",
+   "role": "listed",
+   "region": [
+    "3947385"
+   ],
+   "why": "the first row as transcribed, the schedule id on the row"
+  }
+ },
+ "every": {
+  "facts": [
+   {
+    "type": "Residence",
+    "date": "1950",
+    "place": "Nassau, New York, United States"
+   },
+   {
+    "type": "Unknown",
+    "value_starts": "Enumeration District: 30-392"
+   }
+  ],
+  "why": "every row a Residence 1950 in Nassau, New York, with the enumeration district"
+ }
+}

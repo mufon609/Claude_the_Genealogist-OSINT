@@ -1,6 +1,6 @@
 # Fixtures
 
-Saved real pages, one per parser, read by `tools/check.py` on a scratch catalog. They are the owner's own family documents
+Saved real pages, one per parser, read by `tools/check.py` (through `tests/checks/parsers.py`) on a scratch catalog. They are the owner's own family documents
 in the owner's repository; every page is public at its holder except where the rights column says otherwise. A fixture is
 the bytes as the archive holds them (or as the browser saved them), never edited: the parser is checked against the page
 as it is.
@@ -41,6 +41,32 @@ step's kind), as the extractor reads it on arrival.
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record
 ids are FamilySearch record pages.
+
+## What each page must yield
+
+Beside every fixture a parser reads sits `<stem>.expect.json` (the fixture's own name with its extension replaced, the way
+`<stem>.manifest.json` sits beside a connector's response): the expectations `tests/checks/parsers.py` compares the reading
+with, one reader for every page, so a page of another family needs a page and a sidecar and nothing else. A sidecar holds:
+
+| Key | Meaning |
+|---|---|
+| `archive` | how the page is archived: `mime`, `source` (the registry id) and `locator` (`kind`, `value`), as the attach would archive it. Absent for a fixture with a manifest: the manifest is its provenance. |
+| `notes` | what the run's log knew that the manifest does not (the step's kind), merged over the manifest's notes. |
+| `extractor` | the parser that must claim the page, by the name of its extractor row. |
+| `personas` | how many personas the reading writes: a number, exact, or `{"min": n}`. |
+| `sequence` | `{"<n>": persona pattern}`: the persona at that sequence must match the pattern. |
+| `every` | a persona pattern every persona must match. |
+| `some` | a list of persona patterns; at least one persona matches each, or exactly `count` of them when the pattern says so. |
+| `toward` | `{"<n>": {kind: count, …}}`: how many relations of each kind point at persona n from the others; `"only": true` forbids any other kind. |
+| `none` | `place`: no fact anywhere carries that place as written; `name_ends`: no name ends with that text. |
+| `parsed` | a pattern over the parsed page (`extraction.structured_json`): a dict matches the keys given, a list its length and each element in turn, a string equals, `null` is nothing, `{"$starts": s}` a prefix. |
+
+A persona pattern: `name` (as written, exact), `name_has` (words the name contains, any case), `role` (the page's own word,
+`""` for none), `sex`, `region` (texts the persona's `region_json` contains), `facts` (fact patterns each of which some fact
+of the persona matches), `no_facts` (fact patterns none may match), `relations` (`kind`, `to` the sequence it points at,
+`value` as written when it matters). A fact pattern: `type`, and any of `value`, `value_starts`, `date`, `place` (matched
+as a prefix of the place string as written). A `why` on any pattern is printed with the failure and says what the page
+taught. `tools/check.py --show` prints what each reading wrote, for writing a sidecar.
 
 ## The harness tree
 

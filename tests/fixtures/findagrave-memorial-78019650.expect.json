@@ -1,0 +1,100 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E01",
+  "locator": {
+   "kind": "memorial_id",
+   "value": "78019650"
+  }
+ },
+ "extractor": "findagrave-memorial",
+ "personas": 11,
+ "parsed": {
+  "photos": [
+   {
+    "type": "Grave",
+    "id": "49839510",
+    "url": "https://images.findagrave.com/photos/2011/281/78019650_131821819991.jpg",
+    "caption": null
+   },
+   {
+    "type": "Family",
+    "caption": {
+     "$starts": "Undated, About 1919"
+    }
+   },
+   {
+    "type": "Family"
+   },
+   {
+    "type": "Family"
+   }
+  ],
+  "why": "the page's four photographs with the type the page gives each, the full-size image and the caption"
+ },
+ "sequence": {
+  "1": {
+   "name": "Abram C Brant",
+   "role": "memorial",
+   "region": [
+    "78019650"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "20 Sep 1880",
+     "place": "Worcester, Montgomery County, Pennsylvania"
+    },
+    {
+     "type": "Death",
+     "date": "10 Oct 1961",
+     "place": "Pottstown, Montgomery County, Pennsylvania"
+    },
+    {
+     "type": "Burial",
+     "place": "Methacton Mennonite Cemetery, Norristown"
+    }
+   ],
+   "why": "the memorial's subject with the memorial id on the persona, birth and death on their days at their places, the burial at the cemetery"
+  }
+ },
+ "toward": {
+  "1": {
+   "parent": 2,
+   "spouse": 1,
+   "sibling": 6,
+   "child": 1,
+   "only": true
+  }
+ },
+ "some": [
+  {
+   "relations": [
+    {
+     "kind": "child",
+     "to": 1
+    }
+   ],
+   "name": "Helen Sara Brant Ahearn",
+   "region": [
+    "\"maiden\":\"Brant\"",
+    "142698059"
+   ],
+   "why": "the child, her birth surname marked and her own memorial linked"
+  },
+  {
+   "name": "Abraham Brant",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "1852"
+    },
+    {
+     "type": "Death",
+     "date": "1898"
+    }
+   ],
+   "why": "a linked parent's years as the page lists them"
+  }
+ ]
+}

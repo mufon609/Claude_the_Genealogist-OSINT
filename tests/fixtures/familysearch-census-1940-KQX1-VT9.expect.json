@@ -1,0 +1,102 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,2442::26440834"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 4,
+ "sequence": {
+  "1": {
+   "name": "Frederick Ahern",
+   "role": "son",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1933",
+     "place": "Pennsylvania"
+    },
+    {
+     "type": "Residence",
+     "date": "1935",
+     "place": "Caln Township, Chester, Pennsylvania"
+    },
+    {
+     "type": "Residence",
+     "date": "1940",
+     "place": "Caln Township, Chester, Pennsylvania"
+    }
+   ],
+   "why": "the principal's birth calculated from age 7 on the 1940 record; Residence Date 1935 / Same House read as the record's own place, not a place called Same House; the record's own residence 1940"
+  },
+  "2": {
+   "name": "Helen Ahern",
+   "role": "mother",
+   "sex": "F",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1910"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother"
+    },
+    {
+     "kind": "spouse",
+     "to": 3,
+     "value": "Parents"
+    }
+   ],
+   "why": "the mother's birth calculated from her age, Mother stated toward the principal, the couple relation between the household's mother and father"
+  },
+  "3": {
+   "name": "Frederick Ahern",
+   "role": "father",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1908"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father"
+    }
+   ]
+  },
+  "4": {
+   "name": "Alicia Ahern",
+   "role": "sister",
+   "sex": "F",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1935"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "sibling",
+     "to": 1,
+     "value": "Sister"
+    }
+   ]
+  }
+ },
+ "none": {
+  "place": [
+   "Same House"
+  ]
+ }
+}

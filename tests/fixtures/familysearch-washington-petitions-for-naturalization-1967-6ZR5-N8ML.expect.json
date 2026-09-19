@@ -1,0 +1,34 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,2531::258719"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 1,
+ "sequence": {
+  "1": {
+   "name": "Noi Davidson",
+   "role": "subject",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "15 Jan 1929"
+    },
+    {
+     "type": "Naturalization",
+     "date": "11 Dec 1967",
+     "place": "Tacoma, Pierce, Washington"
+    },
+    {
+     "type": "Unknown",
+     "value": "Event Place (Original): Tacoma, Washington"
+    }
+   ],
+   "why": "the petition's own subject; her birth date from the fields; Event Type Naturalization: Event Date and Event Place become one Naturalization fact, not Unknown; the place as written stays an Unknown fact beside the standardized one"
+  }
+ }
+}

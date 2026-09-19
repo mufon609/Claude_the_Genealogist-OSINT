@@ -1,0 +1,24 @@
+{
+ "extractor": "ia-search-inside",
+ "personas": {
+  "min": 1
+ },
+ "every": {
+  "name_has": [
+   "heebner"
+  ],
+  "no_facts": [
+   {
+    "type": "Death"
+   },
+   {
+    "type": "Residence"
+   }
+  ],
+  "region": [
+   "\"segment\":\"genealogicalreco01krie\"",
+   "\"date\":\"1879-01-01\""
+  ],
+  "why": "a persona per place the searched surname stands in the chosen pages' text; no residence made from a book's date, only a directory entry states one; the item and its date in the persona's region"
+ }
+}

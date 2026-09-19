@@ -1,0 +1,63 @@
+{
+ "extractor": "wikitree-profile",
+ "personas": {
+  "min": 2
+ },
+ "sequence": {
+  "1": {
+   "name_has": [
+    "David",
+    "Hubner"
+   ],
+   "region": [
+    "Hubner-223"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "27 AUG 1696",
+     "place": "Harpersdorf"
+    },
+    {
+     "type": "Death",
+     "date": "27 DEC 1784",
+     "place": "Worcester Township, Montgomery"
+    },
+    {
+     "type": "Name",
+     "value": "David Hubner"
+    },
+    {
+     "type": "Name",
+     "value": "David Heebner"
+    }
+   ],
+   "why": "the profile's subject first, birth and death as the profile writes them, the name at birth and the current name both as Name facts, the profile id as the persona's identity"
+  }
+ },
+ "some": [
+  {
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 1
+    }
+   ],
+   "name": "Maria Kriebel",
+   "region": [
+    "Kriebel-138"
+   ],
+   "why": "the spouse with her own profile id"
+  },
+  {
+   "relations": [
+    {
+     "kind": "child",
+     "to": 1
+    }
+   ],
+   "count": 3,
+   "why": "three children on the profile"
+  }
+ ]
+}

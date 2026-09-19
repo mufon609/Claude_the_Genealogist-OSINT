@@ -1,0 +1,33 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E03",
+  "locator": {
+   "kind": "url",
+   "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond"
+  }
+ },
+ "extractor": "va-gravesite",
+ "personas": 10,
+ "every": {
+  "role": "result",
+  "why": "ten decedents on the first page, every one a result"
+ },
+ "sequence": {
+  "1": {
+   "name": "Raymond Jr Davidson",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "12/20/1926"
+    },
+    {
+     "type": "Burial",
+     "value": "Plot: SECTION 404 SITE 640",
+     "place": "FLORIDA NATIONAL CEMETERY, Bushnell, Florida"
+    }
+   ],
+   "why": "the first decedent as written"
+  }
+ }
+}

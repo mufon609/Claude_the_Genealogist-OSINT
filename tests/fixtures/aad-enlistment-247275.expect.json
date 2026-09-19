@@ -1,0 +1,41 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "F01",
+  "locator": {
+   "kind": "url",
+   "value": "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275"
+  }
+ },
+ "extractor": "aad-enlistment",
+ "personas": 1,
+ "sequence": {
+  "1": {
+   "name": "Robert C Davidson",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "1915"
+    },
+    {
+     "type": "Residence",
+     "place": "Blair, Pennsylvania"
+    },
+    {
+     "type": "Military Service",
+     "date": "21 SEP 1945",
+     "place": "Charleston Port Of Embarkation"
+    },
+    {
+     "type": "Education",
+     "value": "2 years of high school"
+    },
+    {
+     "type": "Marital Status",
+     "value": "Married"
+    }
+   ],
+   "why": "the enlistee as the file writes him: birth year and residence at enlistment, the enlistment as a Military Service event on its day at its place, education and marital status as written"
+  }
+ }
+}

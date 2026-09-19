@@ -1,0 +1,48 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,2442::8362985"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 3,
+ "sequence": {
+  "1": {
+   "name": "Robert Davidson",
+   "role": "head",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1914",
+     "place": "Kentucky"
+    }
+   ],
+   "why": "the head's own Birth Date field (a bare year, 1914) is the census index's estimate from his age 26, calculated like a household member's, not exact"
+  },
+  "2": {
+   "name": "Raymond Davidson",
+   "role": "son",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1940"
+    }
+   ],
+   "why": "the son's birth calculated from his age 0"
+  },
+  "3": {
+   "name": "Ruth Davidson",
+   "role": "wife",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1921"
+    }
+   ],
+   "why": "the wife's birth calculated from her age 19"
+  }
+ }
+}

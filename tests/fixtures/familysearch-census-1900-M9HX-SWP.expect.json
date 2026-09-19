@@ -1,0 +1,83 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,7602::5537739"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 5,
+ "sequence": {
+  "1": {
+   "name": "John Davidson",
+   "role": "head",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "Apr 1875",
+     "place": "Kentucky"
+    },
+    {
+     "type": "Residence",
+     "date": "1900",
+     "place": "Magisterial District 2 Adairville, Logan, Kentucky"
+    }
+   ],
+   "why": "the head's birth as the 1900 index gives it, the residence 1900 as written"
+  },
+  "2": {
+   "name": "Ellan E Davidson",
+   "role": "mother",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1835",
+     "place": "Tennessee"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother"
+    }
+   ],
+   "why": "a member's birth calculated from her age"
+  },
+  "3": {
+   "name": "Lena H Davidson",
+   "role": "wife",
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 1,
+     "value": "Wife"
+    }
+   ]
+  },
+  "4": {
+   "name": "Willie R Davidson",
+   "role": "son",
+   "relations": [
+    {
+     "kind": "child",
+     "to": 1,
+     "value": "Son"
+    }
+   ]
+  },
+  "5": {
+   "name": "Cassie E Davidson",
+   "role": "daughter",
+   "relations": [
+    {
+     "kind": "child",
+     "to": 1,
+     "value": "Daughter"
+    }
+   ]
+  }
+ }
+}

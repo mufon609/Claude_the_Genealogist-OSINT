@@ -1,0 +1,62 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "url",
+   "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=4464515&q.givenName=Frederick%20Micheal&q.surname=Ahearn"
+  }
+ },
+ "extractor": "familysearch-search",
+ "personas": 20,
+ "sequence": {
+  "1": {
+   "name": "Fred M Ahearn",
+   "role": "result",
+   "region": [
+    "6XYS-NQ16",
+    "\"collection\":\"United States, Census, 1950\"",
+    "\"role\":\"principal\""
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1933",
+     "place": "Pennsylvania"
+    },
+    {
+     "type": "Unknown",
+     "value": "Parents: Fred M Ahern, Helen B Ahearn"
+    },
+    {
+     "type": "Unknown",
+     "value": "Siblings: Alice M Ahearn, John D Ahearn"
+    },
+    {
+     "type": "Identification Number",
+     "value": "ark:/61903/1:1:6XYS-NQ16"
+    }
+   ],
+   "why": "the first row as written with its ark as identity; the row's birth year, a census index's estimate, as a calculated year, and its place; the relatives named under each label; the collection and the role word on the persona"
+  },
+  "2": {
+   "name": "Frederick Horn",
+   "facts": [
+    {
+     "type": "Residence",
+     "date": "3 April 1950",
+     "place": "Sayre, Bradford, Pennsylvania"
+    }
+   ],
+   "why": "a row's census event as a Residence on its date at its place"
+  }
+ },
+ "none": {
+  "name_ends": [
+   "undefined"
+  ],
+  "place": [
+   "Other Places"
+  ]
+ }
+}

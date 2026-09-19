@@ -1,0 +1,42 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "file",
+   "value": "familysearch-census-1950-6X5P-KT7T.html"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 2,
+ "sequence": {
+  "1": {
+   "name": "Christian Hahnle",
+   "role": "head",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1899",
+     "place": "New York"
+    },
+    {
+     "type": "Residence",
+     "date": "11 April 1950",
+     "place": "Lindenhurst, Babylon, Suffolk, New York"
+    }
+   ],
+   "why": "the head's birth calculated, the residence on the census day as written"
+  },
+  "2": {
+   "name": "Adeline Hahnle",
+   "role": "",
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1
+    }
+   ],
+   "why": "a member with no role word relates as other"
+  }
+ }
+}

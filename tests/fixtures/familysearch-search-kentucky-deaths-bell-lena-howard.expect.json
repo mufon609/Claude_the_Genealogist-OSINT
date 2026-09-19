@@ -1,0 +1,49 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "url",
+   "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1417491&q.givenName=Lena%20Howard&q.surname=Bell"
+  }
+ },
+ "extractor": "familysearch-search",
+ "personas": 20,
+ "sequence": {
+  "1": {
+   "name": "Lena Howard Bell",
+   "region": [
+    "NSGC-PXX",
+    "\"role\":\"mother\"",
+    "\"collection\":\"Kentucky, Deaths, 1911-1967\""
+   ],
+   "no_facts": [
+    {
+     "type": "Birth"
+    },
+    {
+     "type": "Death"
+    },
+    {
+     "type": "Burial"
+    }
+   ],
+   "why": "the first row: the searched name itself, as a mother on another's death record, with its ark and collection; that row carries no event of its own, nothing to compare"
+  },
+  "8": {
+   "name": "Lena W. Bell",
+   "facts": [
+    {
+     "type": "Death",
+     "date": "9 June 1941",
+     "place": "Lexington, Fayette, Kentucky"
+    },
+    {
+     "type": "Birth",
+     "date": "1884"
+    }
+   ],
+   "why": "a row's death on its date at its place and its birth year as the row gives it"
+  }
+ }
+}

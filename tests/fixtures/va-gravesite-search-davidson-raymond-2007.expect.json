@@ -1,0 +1,53 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E03",
+  "locator": {
+   "kind": "url",
+   "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007"
+  }
+ },
+ "extractor": "va-gravesite",
+ "personas": 2,
+ "every": {
+  "role": "result",
+  "why": "the page's two decedents as results"
+ },
+ "sequence": {
+  "1": {
+   "facts": [
+    {
+     "type": "Burial",
+     "place": "HILLCREST MEMORIAL PARK, Hermitage, Pennsylvania"
+    }
+   ],
+   "why": "a private cemetery's burial at its town"
+  },
+  "2": {
+   "name": "Raymond E Davidson",
+   "region": [
+    "\"name_as_written\":\"DAVIDSON, RAYMOND E\""
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "10/12/1939"
+    },
+    {
+     "type": "Death",
+     "date": "01/27/2007"
+    },
+    {
+     "type": "Burial",
+     "value": "Plot: SECTION O1 SITE 2239",
+     "place": "BG WILLIAM C DOYLE VET'S MEM CEM, Wrightstown, New Jersey"
+    },
+    {
+     "type": "Military Service",
+     "value": "MSGT US AIR FORCE, VIETNAM"
+    }
+   ],
+   "why": "the name the right way round, the page's form in the region; the dates of birth and death as the page writes them; the burial: the section and site as the plot, the cemetery at its town and state; rank, branch and war period as one Military Service attribute"
+  }
+ }
+}

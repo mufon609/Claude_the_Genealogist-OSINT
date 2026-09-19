@@ -1,0 +1,39 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,60901::26617542"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 3,
+ "sequence": {
+  "1": {
+   "name": "Raymond Earl Davidson",
+   "role": "subject"
+  },
+  "2": {
+   "name": "Robert Davidson",
+   "role": "",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1
+    }
+   ]
+  },
+  "3": {
+   "name": "Ruth Peters",
+   "role": "",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1
+    }
+   ],
+   "why": "the two names the record's own Parents and Siblings table gives, with no role word of their own, both read as parent relations toward the subject: a NUMIDENT record's own Parents and Siblings table names only the parents"
+  }
+ }
+}

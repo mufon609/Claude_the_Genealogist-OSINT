@@ -1,0 +1,52 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,5062::1903623"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 3,
+ "sequence": {
+  "1": {
+   "name": "Frederick Michael Ahearu",
+   "role": "subject",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "22 May 1907",
+     "place": "Northampton, Hampshire, Massachusetts"
+    }
+   ],
+   "why": "the birth record's subject as written; the birth on its day at its place, from the fields, whatever the heading says"
+  },
+  "2": {
+   "name": "James J. Ahearu",
+   "role": "father",
+   "sex": "M",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father"
+    }
+   ]
+  },
+  "3": {
+   "name": "Annie E. Scauusl",
+   "role": "mother",
+   "sex": "F",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother"
+    }
+   ],
+   "why": "the parents its relatives table names, as written, Father and Mother stated toward the child"
+  }
+ }
+}

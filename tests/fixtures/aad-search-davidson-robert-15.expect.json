@@ -1,0 +1,32 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "F01",
+  "locator": {
+   "kind": "url",
+   "value": "https://aad.archives.gov/aad/display-partial-records.jsp?txt_24995=DAVIDSON%20ROBERT&txt_24983=15"
+  }
+ },
+ "extractor": "aad-search",
+ "personas": 10,
+ "sequence": {
+  "1": {
+   "name": "Robert C Davidson",
+   "region": [
+    "247275"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "1915"
+    },
+    {
+     "type": "Residence",
+     "date": "1945",
+     "place": "Blair, Pennsylvania"
+    }
+   ],
+   "why": "the first row's name, its year of birth, its residence county and state dated by the enlistment year, its own record id on the persona"
+  }
+ }
+}

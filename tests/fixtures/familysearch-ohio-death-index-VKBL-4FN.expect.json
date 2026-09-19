@@ -1,0 +1,38 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,5763::7380252"
+  }
+ },
+ "extractor": "familysearch-record",
+ "sequence": {
+  "1": {
+   "name": "Robert Edgar Davidson",
+   "role": "subject",
+   "no_facts": [
+    {
+     "type": "Death",
+     "date": "09:50 PM"
+    }
+   ],
+   "facts": [
+    {
+     "type": "Unknown",
+     "value": "Death Time: 09:50 PM"
+    },
+    {
+     "type": "Death",
+     "place": "United States"
+    },
+    {
+     "type": "Birth",
+     "date": "19 Feb 1915"
+    }
+   ],
+   "why": "the time of death the page mislabels Event Date is never read as the Death date; it is written as a fact of its own kind under its own label; the Death event still carries the record's own place; the birth as written, unaffected"
+  }
+ }
+}
