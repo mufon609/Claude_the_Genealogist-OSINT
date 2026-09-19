@@ -49,7 +49,8 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    such a record names in a stated relationship to someone it has just
    accepted is taken the same way when the name agrees and a birth year
    agrees where both have one, and is created as a new person when nobody
-   in the tree fits them.
+   in the tree fits them, when the record is a primary record (T1–T2) or an
+   obituary once read.
    A page anyone can
    edit (Find a Grave, member trees) identifies a person but never builds
    their facts: accepting a memorial writes the persona link, and the family

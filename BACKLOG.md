@@ -131,13 +131,16 @@ one's matching census-year step, once each is decided.
 Pennsylvania and New Jersey Church and Town Records, dbid 2451, cited on
 seven people for Helen Sara Brant's 1909 birth) to its free holder's
 collection (`data/holders.csv`: FamilySearch, Pennsylvania Births and
-Christenings, 1709-1950), and the record page saved there
-(`familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html`)
-comes back "no fetch step in this tree cites this record": `tools/attach.py`'s
-`_steps_by_kind` reads the page's own event type (Birth) into the birth
-record row and has no row for a church register, so the seven `church
-register` steps citing the page's own collection at its own holder are never
-reached. The fallback should reach every planned fetch step whose citation's
+Christenings, 1709-1950). A record page saved there attaches only through
+its own event type: `tools/attach.py`'s `_steps_by_kind` reads the page's
+event (Birth) into the birth record row and has no row for a church
+register, so the page `HHGB-BQ3Z` attached to Helen Sara Brant's own `birth
+record:1909` search step and never to a church-register step, and the two
+pages now in `inbox/` (`HHGB-BQW2`, `HHGB-BQZM`, saved from the same
+collection) come back "no fetch step in this tree cites this record"
+because no birth-record step wants them: the seven `church register` steps
+citing the page's own collection at its own holder are never reached. The
+fallback should reach every planned fetch step whose citation's
 holder collection is the page's (`_matches_collection`) and whose name is the
 page's principal, whatever checklist row the citation sits under, the row's
 kind narrowing only when the citation's collection is unknown.
@@ -230,7 +233,7 @@ Frederick Michael Ahearn's card on his WWII draft registration card
 (FamilySearch, ark `Q2SN-6M4R`, cited by the file) agrees on the name and the
 birth day and disagrees on the birth place: the record writes "North Hampton,
 Massachusetts", the tree has Northampton, Hampshire County, resolved and
-accepted. `tools/match.py`'s `place_verdict` counts two places the same when
+accepted. `tools/catalog.py`'s `place_verdict` (which `tools/match.py` uses) counts two places the same when
 both resolve to one place or one is a dated name of the other
 (`docs/DATA-ARCHITECTURE.md` §8), and "North Hampton, Massachusetts" is an
 unresolved string, so the disagreement stands and the rule leaves the record

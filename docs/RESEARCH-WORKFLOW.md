@@ -223,7 +223,7 @@ combination only once those are not getting hits.
 
 | Mode | Sources | Behaviour |
 |---|---|---|
-| auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text and title search, WikiTree, the VA gravesite locator; FamilySearch after Innovator approval, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
+| auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text and title search, WikiTree, the VA gravesite locator, the New Jersey death index; FamilySearch after Innovator approval, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
 | assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
 
 **Adjusting a prefilled search.** A person at the keyboard may change the
@@ -378,10 +378,15 @@ a book asks the Archive's advanced search for the title and reads the copies
 found, the search inside each for the citation's surname), `wikitree` on B04 (the
 shared tree's search by name and birth or death year, each profile fetched
 with its parents, spouses, children and siblings; a page anyone can edit, so
-always a card), and `va_graves` on E03 (the Nationwide Gravesite Locator's
+always a card), `va_graves` on E03 (the Nationwide Gravesite Locator's
 own search, posted by surname and first given name with the step's death
 year; the results page is the record: each veteran's name, dates of birth and
-death, rank, branch, war period, cemetery, section and site).
+death, rank, branch, war period, cemetery, section and site), and
+`nj_death_index` on C09 (the New Jersey death index 2001-2017 as Reclaim The
+Records' CSV files on the Internet Archive, fetched whole and read locally;
+the death record row alone, since C09 sits on the birth and marriage rows
+too; the surname's own rows out of the whole file are the record, a none run
+when none fits anyone).
 `tools/run_step.py` runs an auto step at every
 connector its sources have, one log row per source, and a fetch step at its
 holder's connector and at those of its row's sources too (an obituary cited at
