@@ -233,9 +233,9 @@ def e_locator_known(w, x, want):
     v = w.cx.execute("SELECT 1 FROM artifact_locator WHERE kind=? AND value=?", (x["kind"], x["value"])).fetchone() is not None
     return v == x.get("exists", True), v
 
-def e_steps_by_kind(w, x, want):
-    from attach import _steps_by_kind
-    got = [g["id"] for g in _steps_by_kind(w.cx, w.tid, x["parsed"])]
+def e_steps_by_collection(w, x, want):
+    from attach import _steps_by_collection
+    got = [g["id"] for g in _steps_by_collection(w.cx, w.tid, x["parsed"])]
     want_ids = [w.step(s)["id"] for s in x["is"]]
     return got == want_ids, [w.cx.execute("SELECT step_key FROM search_plan WHERE id=?", (g,)).fetchone()[0] for g in got]
 
@@ -275,7 +275,7 @@ def e_event_place(w, x, want):
     got = {"place": name, "shown": cat.place(eid, None)["text"], "shown_first": cat.place(eid, None)["text"].split(" < ")[0]}
     return has(got, {k: v for k, v in x.items() if k in got}), got
 
-EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_kind": e_steps_by_kind, "fetched_rows": e_fetched_rows,
+EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows,
                 "place": e_place, "place_card": e_place_card, "event_place": e_event_place})
 
 def check(keep, show, only=None):

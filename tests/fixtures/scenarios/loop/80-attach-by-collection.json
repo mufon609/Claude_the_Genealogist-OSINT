@@ -1,6 +1,6 @@
 {
- "title": "the attach by a row's kind and the person's name",
- "line": "the fallback that matches a page to a step by the row's kind and the person's name also requires the page's own collection to be the citation's holder collection: two citations of one row at the same holder are not each other's record, and a page of neither citation's collection matches nothing",
+ "title": "the attach by the citation's collection and the person's name",
+ "line": "the fallback that matches a page to a step by the person's name requires the page's own collection to be the citation's holder collection, whatever checklist row the citation sits under: two citations of one row at the same holder are not each other's record, a page of neither citation's collection matches nothing, and a birth page of the church-register collection reaches its principal's church-register steps and her birth-record search step alike, never her parents' steps",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -11,7 +11,7 @@
    "say": "one person's three death-record citations at the same holder: two Kentucky collections and an Ohio one",
    "expect": [
     {
-     "steps_by_kind": {
+     "steps_by_collection": {
       "parsed": {
        "fields": [
         [
@@ -40,7 +40,7 @@
      "why": "a Kentucky death index page matches only the Kentucky death index citation's step, never the death records citation's nor the Ohio one at the same holder"
     },
     {
-     "steps_by_kind": {
+     "steps_by_collection": {
       "parsed": {
        "fields": [
         [
@@ -69,7 +69,7 @@
      "why": "a page of the death records collection, as the holders registry titles it, matches only the death records citation's step"
     },
     {
-     "steps_by_kind": {
+     "steps_by_collection": {
       "parsed": {
        "fields": [
         [
@@ -98,7 +98,7 @@
      "why": "an Ohio death index page matches only the Ohio citation's step"
     },
     {
-     "steps_by_kind": {
+     "steps_by_collection": {
       "parsed": {
        "fields": [
         [
@@ -116,6 +116,130 @@
       "is": []
      },
      "why": "a page of a collection neither citation names matches nothing"
+    }
+   ]
+  },
+  {
+   "say": "the grandmother's baseline decided on the owner's word, so her searches open, the birth record's among them",
+   "fact": {
+    "person": "I332737037573",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "plan": [
+    "I332737037573"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737037573",
+      "row_key": "birth record:1909",
+      "kind": "search"
+     },
+     "fields": {
+      "status": "planned"
+     },
+     "why": "her birth-record search step is planned"
+    }
+   ]
+  },
+  {
+   "say": "her birth page of the church-register collection, saved from FamilySearch and attached from the inbox",
+   "attach": {
+    "fixture": "familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html"
+   },
+   "as": "birth",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "identity": "ark ark:/61903/1:1:HHGB-BQ3Z",
+      "steps": {
+       "len": 4
+      },
+      "step_people": {
+       "every": "Helen Sara Brant"
+      }
+     },
+     "why": "the page reaches four steps, all hers: three church-register citations of the collection it came from and the birth-record search"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737037573",
+       "row_key_like": "church register%",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,2451::6421651"
+       }
+      },
+      "is": {
+       "some": {
+        "outcome": "found",
+        "notes": {
+         "has": "the citation's own collection at its holder"
+        }
+       }
+      }
+     },
+     "why": "a church-register citation of the collection is logged found with the page, the reason naming the collection, though the page's own event is a birth and its row is not the birth row"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737037573",
+       "row_key": "birth record:1909",
+       "kind": "search"
+      },
+      "is": {
+       "some": {
+        "outcome": "found",
+        "notes": {
+         "has": "the row's kind and the person's name"
+        }
+       }
+      }
+     },
+     "why": "the search step, with no citation of its own, is reached by the row's kind as before"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737038183",
+       "row_key_like": "church register%",
+       "kind": "fetch"
+      },
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "her father's church-register citation of the same collection is not reached: the page's principal is not him, and his own page in the entry is his record"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737039686",
+       "row_key_like": "church register%",
+       "kind": "fetch"
+      },
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "nor her mother's"
     }
    ]
   }

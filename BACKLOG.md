@@ -101,26 +101,6 @@ its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
 Earl Davidson and Noi Davidson) carries no year to choose an item by.
 
-### C4. A record page saved for a church-register fetch step attaches to nothing
-
-`tools/fetches.py list` sends a church-register citation (Ancestry's
-Pennsylvania and New Jersey Church and Town Records, dbid 2451, cited on
-seven people for Helen Sara Brant's 1909 birth) to its free holder's
-collection (`data/holders.csv`: FamilySearch, Pennsylvania Births and
-Christenings, 1709-1950). A record page saved there attaches only through
-its own event type: `tools/attach.py`'s `_steps_by_kind` reads the page's
-event (Birth) into the birth record row and has no row for a church
-register, so the page `HHGB-BQ3Z` attached to Helen Sara Brant's own `birth
-record:1909` search step and never to a church-register step, and the two
-pages now in `inbox/` (`HHGB-BQW2`, `HHGB-BQZM`, saved from the same
-collection) come back "no fetch step in this tree cites this record"
-because no birth-record step wants them: the seven `church register` steps
-citing the page's own collection at its own holder are never reached. The
-fallback should reach every planned fetch step whose citation's
-holder collection is the page's (`_matches_collection`) and whose name is the
-page's principal, whatever checklist row the citation sits under, the row's
-kind narrowing only when the citation's collection is unknown.
-
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the
@@ -330,6 +310,19 @@ date until that statement is rejected by hand. When a record's fact of a
 type carries no date and the person has exactly one event of that type,
 the statement asserts that event; with more than one, the difference is a
 conflict question on the card, never a new undated event.
+
+### C21. A birth page's parents are written twice
+
+`tools/extract.py`'s FamilySearch record reader writes a parent once from the
+page's fields (Father's Name, Mother's Name: a persona with the name and the
+parent relation, no sex, the field's Father's Sex left as an Unknown fact on
+the child) and once more from the relatives table (Parents and Siblings: a
+persona with the name, sex and the same relation), when a page carries both,
+as `tests/fixtures/familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html`
+does: five personas for three people, and the matcher proposes each parent
+twice, two cards for one decision. The Massachusetts birth fixture carries
+the table alone and reads clean. One persona per named person on a page: the
+table's row, which carries the sex, with the field's statement on it.
 
 ## Externally blocked
 

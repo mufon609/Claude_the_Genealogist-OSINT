@@ -192,7 +192,7 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
             rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                  AND sp.query_type='household' ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id,)).fetchall()
             return _why([r for r in rows if _cites_page(r, named) and _named_on(cx, r["person_id"], parsed)], "the citation names this census page, and the page names this person")
-        return _steps_by_kind(cx, tree_id, parsed or {})
+        return _steps_by_collection(cx, tree_id, parsed or {})
     return []
 
 ROW_OF = [(r"obituar", "obituary"), (r"death", "death record"), (r"birth", "birth record"), (r"marriage", "marriage record"), (r"social security|numident", "Social Security (SSDI / SS-5)"),
@@ -213,32 +213,38 @@ def _matches_collection(r, coll):
     dbid = dbid_of(r["locator_value"])
     return any(h["HolderSourceId"] == r["locator_source_id"] and h["HolderCollection"] == coll for h in (holders().get(dbid) or []))
 
-def _steps_by_kind(cx, tree_id, parsed):
-    """A record that names no census page: the steps of the checklist row its own event type is about (a birth, a death, a
-    marriage), or, when the page names none, its collection (an obituary collection to the obituary row, a death index to the
-    death record row, the Social Security files to that row), on every person of the tree whose name is the record's principal
-    name, the surname as written, a spelling variant or one letter apart, whose row's year is the record's within two, and
-    whose own citation is of the collection this page came from (data/holders.csv). The record satisfies the row whatever
-    holder the file had pointed at, so long as the holder's collection agrees."""
+def _steps_by_collection(cx, tree_id, parsed):
+    """A record that names no census page: every planned step on a person of the tree whose name is the record's principal
+    name (the surname as written, a spelling variant or one letter apart) and whose row's year is the record's within two,
+    where the step's own citation is of the collection this page came from (data/holders.csv: the citation's holder
+    collection is the page's, at the holder it was fetched from), whatever checklist row the citation sits under, since a
+    church-register citation is held by the birth its collection holds. A step with no citation of its own (a search step),
+    or a page with no collection, is narrowed by the row's kind instead: the checklist row the page's own event type is
+    about (a birth, a death, a marriage), or, when the page names none, its collection words (an obituary collection to the
+    obituary row, a death index to the death record row). The record satisfies the row whatever holder the file had pointed
+    at, so long as the holder's collection agrees."""
     from catalog import same_surname
     fields = {k.lower(): v for k, v in parsed.get("fields") or []}
+    pg, rest = _split_name(parsed.get("name") or "")
+    if not pg or not rest: return []
     kind = (fields.get("event type") or "").lower()                        # the record's own event before its heading: FamilySearch mislabels a heading ("Death" over a birth)
     row = next((r for rx, r in ROW_OF if re.search(rx, kind)), None) if kind else None
     if not row:
         coll = (parsed.get("collection") or "").lower(); row = next((r for rx, r in ROW_OF if re.search(rx, coll)), None)
-    if not row: return []
-    pg, rest = _split_name(parsed.get("name") or "")
-    if not pg or not rest: return []
     ym = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", fields.get("event date") or fields.get("event year") or ""); year = int(ym.group(1)) if ym else None
     record_coll = _record_collection(parsed)
-    out = []
-    for r in cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned' AND sp.row_key LIKE ? ORDER BY sp.seq""", (tree_id, row + ":%")):
+    out, by_coll = [], {}
+    for r in cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned' ORDER BY sp.seq""", (tree_id,)):
+        cited = bool(r["locator_value"] and record_coll)
+        if cited and not _matches_collection(r, record_coll): continue
+        if not cited and not (row and r["row_key"].startswith(row + ":")): continue
         inst = r["row_key"].split(":", 1)[1] if ":" in r["row_key"] else ""
         if year and inst.isdigit() and abs(int(inst) - year) > 2: continue      # the row's year (birth record:1932) against the record's own: a father's birth is not his son's
-        if not _matches_collection(r, record_coll): continue
         keys = {(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
-        if any(g == pg and any(same_surname(t, sn) for t in rest) for g, sn in keys): out.append(r)   # as written, a spelling variant or an indexer's slip
-    return _why(out, f"a {row} naming {parsed.get('name')}, the row's kind and the person's name" + (f", in {year}" if year else ""))
+        if any(g == pg and any(same_surname(t, sn) for t in rest) for g, sn in keys): out.append(r); by_coll[r["id"]] = cited   # as written, a spelling variant or an indexer's slip
+    when = f", in {year}" if year else ""
+    return _why(out, lambda r: f"a {record_coll} record naming {parsed.get('name')}, the citation's own collection at its holder and the person's name{when}" if by_coll[r["id"]]
+                else f"a {row} naming {parsed.get('name')}, the row's kind and the person's name{when}")
 
 def _named_on(cx, person_id, parsed):
     """Whether a record page names this person: its subject or a household member, each with the birth year its age and the

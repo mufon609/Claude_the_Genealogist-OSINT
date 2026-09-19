@@ -1,0 +1,74 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,2451::22699845"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 5,
+ "sequence": {
+  "1": {
+   "name": "Helen Sarah Brandt",
+   "role": "subject",
+   "sex": "F",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "11 Jul 1909",
+     "place": "Philadelphia, Pennsylvania"
+    }
+   ],
+   "why": "the birth record's subject as written, the birth on its day at its place, from the fields"
+  },
+  "2": {
+   "name": "Abram C Brandt",
+   "role": "father",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father"
+    }
+   ]
+  },
+  "3": {
+   "name": "Charlotte D. Lukens Brandt",
+   "role": "mother",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother"
+    }
+   ],
+   "why": "the parents the fields name (Father's Name, Mother's Name), as written, Father and Mother stated toward the child"
+  },
+  "4": {
+   "name": "Abram C Brandt",
+   "role": "father",
+   "sex": "M",
+   "region": [
+    "Parents and Siblings"
+   ],
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father"
+    }
+   ]
+  },
+  "5": {
+   "name": "Charlotte D. Lukens Brandt",
+   "role": "mother",
+   "sex": "F",
+   "region": [
+    "Parents and Siblings"
+   ],
+   "why": "the same parents once more from the relatives table, each with a page of their own in the same entry, so this page shape writes each parent twice (the BACKLOG block on a parent written twice)"
+  }
+ }
+}
