@@ -23,7 +23,9 @@ the rows stay on the artifact as candidates, and the step stands as it stood bef
 A step whose sources have several connectors runs at each, one log row per source: a search step at the connectors of its
 row's sources, a fetch step at its holder's and at those of its row's sources too (an obituary cited at a closed source runs
 at the Archive's newspapers with the citation's paper and date), the page saved by hand and a connector's answer being runs
-of the same step. A fetched response may name more to fetch (an item's metadata, then the search inside it, then its pages:
+of the same step. Each source's runs are read on their own (search_log.source_id): a step is asked at the connectors whose
+source has no found or none run on its current fields, so one connector's none does not close the step at another, and a
+source that did not answer (a run logged error) is asked again while the rest are not. A fetched response may name more to fetch (an item's metadata, then the search inside it, then its pages:
 connector.follow); the search inside a book is asked once per spelling of the surname the alias table holds for the step's
 person (surname_variants on the rendered fields, basis record), and a book the Archive only lends is a none run with the
 reason. A source's years, from the registry's coverage column (1756-1963, 1780s-1990s, 1950), gate its steps: a step whose
@@ -31,17 +33,18 @@ years fall wholly outside them (an obituary for a death after the newspapers end
 is logged none without a request, the note saying so. A connector with nothing to ask on the step's fields (WikiTree
 without a birth or death year, the Archive's books without a state, a cited book without a title: connector.wants) is
 logged none the same way, the note naming the field it wanted, so the step is asked again once the plan writes it.
---all runs every planned step a connector can take and that has no run since the plan last wrote its fields, in plan order,
-keeping each connector's pace across steps; a step already run on the same fields is run again by its id, or once the plan
-changes them. A run logged error is a source that did not answer, not a run on the fields: the step stays runnable and
-the next --all or turn asks the source again.
---dry-run prints the requests and sends nothing.
+--all runs every planned step one of whose connectors' sources has no run since the plan last wrote its fields, in plan
+order, keeping each connector's pace across steps, asking only those connectors; a step already run on the same fields at
+every source is run again at every one by its id, or once the plan changes them. A run logged error is a source that did
+not answer, not a run on the fields: the step stays runnable at that source and the next --all or turn asks it again.
+--dry-run prints the requests and sends nothing, saying per connector whether it would be asked and what its source last
+answered on these fields.
 """
 import argparse, http.client, json, os, re, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
 from catalog import Catalog
-from log_search import log as log_search, ran_unchanged, rendered_query
+from log_search import log as log_search, latest_answer, ran_unchanged, rendered_query
 from extract import extract, RESULTS_LISTINGS
 from conclude import match_record
 import connectors
@@ -147,12 +150,18 @@ def fits(cx, tree_id, eid, written):
 def connector_for(cat, step):
     conns = connectors_for(cat, step); return conns[0] if conns else None
 
+def waiting_connectors(cx, step, rendered, conns):
+    """The step's connectors still to ask on its current fields: those whose source has no found or none run on them
+    (log_search.ran_unchanged, read per source). A step with two connectors is closed at one by its own none run and stays
+    open at the other until that one answers; a source whose run was an error is asked again."""
+    return [c for c in conns if not ran_unchanged(cx, step, rendered, c.SOURCE)]
+
 def runnable(cx, cat, tree_id):
     """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector that can ask
     for the record from the citation's details (a book citation that names no title gives the books connector nothing to ask;
-    that step stays a link for a hand); each only while it has no run since the plan last wrote its fields (ran_unchanged):
-    a step run once on these fields is asked again only when the plan changes them, or by its id; a run logged error, the
-    source not answering, does not count, so the step is asked again."""
+    that step stays a link for a hand); each while one of its connectors' sources has no run since the plan last wrote its
+    fields (waiting_connectors): a step run once on these fields at every source is asked again only when the plan changes
+    them, or by its id; a run logged error, the source not answering, does not count, so that source is asked again."""
     rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
                          AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch')) ORDER BY p.display_name, sp.seq""", (tree_id,)).fetchall()
     out = []
@@ -161,7 +170,7 @@ def runnable(cx, cat, tree_id):
         if not conns: continue
         q = rendered_query(r["query_json"], r["revisions_json"])
         if r["kind"] == "fetch" and not any(c.requests(q) for c in conns): continue
-        if ran_unchanged(cx, r, q): continue
+        if not waiting_connectors(cx, r, q, conns): continue
         out.append(r)
     return out
 
@@ -174,15 +183,26 @@ def household_steps(cx, tree_id, step):
                          AND sp.locator_source_id=? AND sp.status='planned'""", (tree_id, step["id"], step["locator_source_id"])).fetchall()
     return [r for r in rows if all(v(json.loads(r["query_json"] or "{}"), k) == v(q, k) for k in ("year", "enumeration district", "census place", "page"))]
 
-def run(cx, cat, tree_id, step, by, dry_run=False):
-    """One step through every connector its sources have: one run each (run_connector), then extraction and matching over
-    every record any of them archived. Returns one result per connector."""
+def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
+    """One step through the connectors still to ask on its current fields (waiting_connectors), or through every one when
+    again is set (a step run by its id): one run each (run_connector), then extraction and matching over every record any of
+    them archived. Returns one result per connector: a connector not asked, its source having answered on these fields,
+    reports that answer (asked False, answered {outcome, at}) instead of a run, so --dry-run says which sources a step would
+    ask."""
     conns = connectors_for(cat, step)
     if not conns: return [{"error": "no source of this step has a connector"}]
+    q = rendered_query(step["query_json"], step["revisions_json"])
+    todo = conns if again else waiting_connectors(cx, step, q, conns)
     out = []
     for conn in conns:
+        name = conn.__name__.split(".")[-1]
+        a = latest_answer(cx, step, conn.SOURCE)
+        if conn not in todo:
+            out.append({"connector": name, "source": conn.SOURCE, "asked": False, "answered": {"outcome": a[0], "at": a[1]}}); continue
         r = run_connector(cx, cat, tree_id, step, conn, by, dry_run)
-        if dry_run or "error" in r: out.append(r); continue
+        if dry_run: out.append({**r, "source": conn.SOURCE, "asked": True, **({"answered": {"outcome": a[0], "at": a[1]}} if a else {})}); continue
+        r = {**r, "source": conn.SOURCE, "asked": True}
+        if "error" in r: out.append(r); continue
         extracted, read = [], []                                 # read: (a results listing, fits someone) per record read
         for sha in r.pop("records"):                             # a hit's own record; the search response is the query's evidence, not a record
             eid, n = extract(cx, sha, by)
@@ -315,9 +335,9 @@ def main():
     if not st: sys.exit(f"no step {a.step} in tree {slug}")
     if connector_for(cat, st) is None or st["status"] != "planned": sys.exit(f"step {a.step} is {st['kind']}/{st['mode']}/{st['status']}: no connector runs it")
     who = cx.execute("SELECT display_name FROM person WHERE id=?", (st["person_id"],)).fetchone()[0]
-    if a.dry_run: print(who, st["id"], st["row_key"], dumps(run(cx, cat, tree_id, st, a.by, dry_run=True))); return
+    if a.dry_run: print(who, st["id"], st["row_key"], dumps(run(cx, cat, tree_id, st, a.by, dry_run=True, again=True))); return
     cx.execute("BEGIN")
-    try: res = run(cx, cat, tree_id, st, a.by); cx.commit()
+    try: res = run(cx, cat, tree_id, st, a.by, again=True); cx.commit()
     except (Exception, SystemExit): cx.rollback(); raise
     print(who, st["id"], st["row_key"])
     for r in res: print("  ", dumps(r))

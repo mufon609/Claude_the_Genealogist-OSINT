@@ -17,16 +17,20 @@ def queue_module():
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m
 
 def fake_answers(fake):
-    """A run_step.run stand-in whose outcomes come from the data: the first run's outcome, then the rest's, each logged
-    as run_step.run would log it, the errors as the data words them."""
+    """A run_step.run stand-in whose outcomes come from the data: the first run's outcome, then the rest's, one log row per
+    connector of the step under that connector's own source, as run_step.run logs them, the errors as the data words them."""
     seen = []
-    def fake_run(cx, cat, tree_id, step, by, dry_run=False):
+    def fake_run(cx, cat, tree_id, step, by, dry_run=False, again=False):
+        import run_step
         from log_search import log as log_search
         seen.append(step["id"])
         outcome = fake["first"] if len(seen) == 1 else fake.get("then", "none")
         errors = [fake["error"]] if outcome == "error" and fake.get("error") else []
-        lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=None, outcome=outcome, artifacts=None, note="harness: faked, no network", query=json.loads(step["query_json"] or "{}"))
-        return [{"connector": "fake", "query": {}, "outcome": outcome, "log": lid, "artifacts": [], "hits": [], "errors": errors, "household_steps": [], "extracted": []}]
+        out = []
+        for conn in run_step.connectors_for(cat, step) or [types.SimpleNamespace(__name__="fake", SOURCE=None)]:
+            lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=None, note="harness: faked, no network", query=json.loads(step["query_json"] or "{}"))
+            out.append({"connector": conn.__name__.split(".")[-1], "source": conn.SOURCE, "asked": True, "query": {}, "outcome": outcome, "log": lid, "artifacts": [], "hits": [], "errors": errors, "household_steps": [], "extracted": []})
+        return out
     return fake_run, seen
 
 @contextlib.contextmanager
@@ -61,19 +65,31 @@ def a_clear_state(w, x):
     import turn; turn.clear_state(w.db); return {}
 
 def a_run(w, x):
-    """tools/run_step.py run on one step, the download faked: a body the data gives (a text, or CSV rows under a header),
-    or no network at all, when a request must not go out."""
-    import run_step
+    """tools/run_step.py run on one step, the download faked: a body the data gives (a text, or CSV rows under a header), one
+    answer per request under `answers` (each for the URLs carrying `url_has`: a `body`, or an `error` the source's connection
+    raises, standing for a timeout or a challenge), or no network at all, when a request must not go out; `dry` for --dry-run,
+    `again` for a run by the step's id, every connector asked."""
+    import run_step, urllib.error
     st = w.step(x["step"]); cat = w.catalog()
     fetch = x.get("fetch")
-    if fetch is None:
+    def meta(url, content_type): return {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": content_type}
+    def body_of(f): return (f["header"] + "\r\n" + "\r\n".join(f["rows"]) + "\r\n").encode() if "rows" in f else f["body"].encode()
+    if fetch is None or x.get("dry"):
         def fake_fetch(url, kind, c, data=None): raise AssertionError(f"a request went out: {url}")
+    elif "answers" in fetch:
+        def fake_fetch(url, kind, c, data=None):
+            for ans in fetch["answers"]:
+                if ans["url_has"] not in url: continue
+                if ans.get("error"): raise urllib.error.URLError(ans["error"])
+                return body_of(ans), meta(url, ans.get("content_type", "application/json"))
+            raise AssertionError(f"a request went out that the data does not answer: {url}")
     else:
-        body = (fetch["header"] + "\r\n" + "\r\n".join(fetch["rows"]) + "\r\n").encode() if "rows" in fetch else fetch["body"].encode()
-        def fake_fetch(url, kind, c, data=None): return body, {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": fetch.get("content_type", "text/plain")}
+        body = body_of(fetch)
+        def fake_fetch(url, kind, c, data=None): return body, meta(url, fetch.get("content_type", "text/plain"))
     with patched(run_step, "fetch", fake_fetch):
-        w.cx.execute("BEGIN"); res = run_step.run(w.cx, cat, w.tid, st, BY); w.cx.commit()
-    return {"step": st["id"], "results": [{"connector": r.get("connector"), "outcome": r.get("outcome"), "requests": r.get("requests"), "wants": r.get("wants"), "error": r.get("error"),
+        w.cx.execute("BEGIN"); res = run_step.run(w.cx, cat, w.tid, st, BY, dry_run=bool(x.get("dry")), again=bool(x.get("again"))); w.cx.commit()
+    return {"step": st["id"], "results": [{"connector": r.get("connector"), "source": r.get("source"), "asked": r.get("asked"), "answered": r.get("answered"), "outcome": r.get("outcome"),
+                                          "requests": r.get("requests"), "wants": r.get("wants"), "error": r.get("error"),
                                           "proposals": (r.get("extracted") or [{}])[0].get("proposals"), "extraction": (r.get("extracted") or [{}])[0].get("extraction")} for r in res],
             "connectors": [c.__name__.split(".")[-1] for c in run_step.connectors_for(cat, st)]}
 
@@ -83,7 +99,7 @@ def a_run_all(w, x):
     import run_step
     calls, opened = [], []
     fake = x["fake"]
-    def fake_run(cx, cat, tree_id, st, by, dry_run=False):
+    def fake_run(cx, cat, tree_id, st, by, dry_run=False, again=False):
         calls.append(st["id"])
         if fake.get("regenerates_at") and st["id"] == w.value(fake["regenerates_at"]):
             cx.execute("DELETE FROM search_plan WHERE id=?", (w.value(fake["drops"]),))
@@ -95,7 +111,8 @@ def a_run_all(w, x):
             raise SystemExit("no step " + st["id"])
         return []
     raised = False; old_argv = sys.argv
-    with patched(run_step, "run", fake_run), patched(run_step, "connectors_for", lambda cat, st: [True]):
+    stand_in = types.SimpleNamespace(__name__="fake.connector", SOURCE=None, requests=lambda fields: [{"url": "fake", "kind": "search"}])   # a connector every planned step has, its runs read whatever their source
+    with patched(run_step, "run", fake_run), patched(run_step, "connectors_for", lambda cat, st: [stand_in]):
         sys.argv = ["run_step.py", "--all", "--db", w.db, "--tree", w.slug, "--by", BY]
         try:
             with contextlib.redirect_stdout(io.StringIO()): run_step.main()

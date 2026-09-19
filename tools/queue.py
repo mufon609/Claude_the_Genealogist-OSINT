@@ -16,7 +16,8 @@ conflict already waits on (overview's own filter), so nobody surfaces two links 
 
 An open question names the next person only when a turn can still act on them: no plan has been made for them
 yet (a turn's own first move), or their plan still has a step a turn can advance. A step is that when a connector
-can run it and it has no run since the plan last wrote its fields (tools/run_step.py's own runnable steps), or when
+can run it and its source has no run since the plan last wrote its fields (tools/run_step.py's own runnable steps, each
+source's runs read on their own), or when
 it is fetched by hand, carries a link the fetch list prints (tools/fetches.py list), a file name the list can print whole
 (fetches.unnamed: a name still wanting a year the citation does not carry is one no save can be made under) and has no
 such run either. A person already planned

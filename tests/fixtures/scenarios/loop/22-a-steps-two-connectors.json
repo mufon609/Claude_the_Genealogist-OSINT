@@ -1,0 +1,155 @@
+{
+ "title": "a step's two connectors, each answered on its own",
+ "line": "a search step at two connectors is asked at both; one's none run and the other's error on the same fields leave the step runnable at the source that did not answer alone, and a dry run says so; asked again, only that source is asked, and its none run closes the step; a run by the step's id asks every connector again",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "a compiled-genealogy step on a great-great-grandmother, with the fields both connectors want: a state for the Archive's books, a birth year for WikiTree",
+   "step": {
+    "person": "I332737039686",
+    "row_key": "compiled genealogy / family history:",
+    "seq": 1,
+    "step_key": "search:compiled genealogy",
+    "kind": "search",
+    "query_type": "name",
+    "query": {
+     "given": {"value": "Charlotte", "basis": "claim"},
+     "surname": {"value": "Lukens", "basis": "claim"},
+     "birth_year": {"value": "1882", "basis": "claim"},
+     "state": {"value": "Pennsylvania", "basis": "claim"}
+    },
+    "sources": ["L02", "B04"],
+    "mode": "auto"
+   },
+   "as": "cg",
+   "expect": [
+    {"runnable": {"step": "$cg.step", "is": true}}
+   ]
+  },
+  {
+   "say": "run once: the Archive answers with nothing, WikiTree's connection times out",
+   "run": {
+    "step": "$cg.step",
+    "fetch": {
+     "answers": [
+      {"url_has": "archive.org", "body": "{\"hits\": {\"total\": {\"value\": 0}, \"hits\": []}}"},
+      {"url_has": "api.wikitree.com", "error": "timed out"}
+     ]
+    }
+   },
+   "as": "first",
+   "expect": [
+    {
+     "last": {
+      "connectors": ["ia_books", "wikitree"],
+      "results": [
+       {"connector": "ia_books", "asked": true, "outcome": "none"},
+       {"connector": "wikitree", "asked": true, "outcome": "error"}
+      ]
+     },
+     "why": "both connectors asked, one log row each: the Archive's none, WikiTree's error"
+    },
+    {
+     "search_log": {
+      "step": "$cg.step",
+      "is": [
+       {"source_id": "L02", "outcome": "none"},
+       {"source_id": "B04", "outcome": "error", "notes": {"has": "timed out"}}
+      ]
+     }
+    },
+    {"runnable": {"step": "$cg.step", "is": true}, "why": "the step stays runnable: WikiTree did not answer on these fields, though the Archive did"}
+   ]
+  },
+  {
+   "say": "a dry run says which source the step would ask",
+   "run": {"step": "$cg.step", "dry": true},
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {"connector": "ia_books", "asked": false, "answered": {"outcome": "none"}},
+       {"connector": "wikitree", "asked": true, "requests": {"len": 1}}
+      ]
+     },
+     "why": "the Archive answered none on these very fields and is not asked; WikiTree is, with its one request"
+    }
+   ]
+  },
+  {
+   "say": "run again: only WikiTree is asked (an Archive request would be a failure of the fake), and it answers with nothing",
+   "run": {
+    "step": "$cg.step",
+    "fetch": {
+     "answers": [
+      {"url_has": "api.wikitree.com", "body": "[{\"status\": 0, \"matches\": [], \"total\": 0}]"}
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {"connector": "ia_books", "asked": false},
+       {"connector": "wikitree", "asked": true, "outcome": "none"}
+      ]
+     }
+    },
+    {
+     "search_log": {
+      "step": "$cg.step",
+      "is": [
+       {"source_id": "L02", "outcome": "none"},
+       {"source_id": "B04", "outcome": "error"},
+       {"source_id": "B04", "outcome": "none"}
+      ]
+     },
+     "why": "one more row, WikiTree's none; the Archive's run stands alone"
+    },
+    {"runnable": {"step": "$cg.step", "is": false}, "why": "every source has answered on these fields: the step is closed until the plan changes them"},
+    {
+     "step": {"person": "I332737039686", "row_key": "compiled genealogy / family history:", "kind": "search", "fields": {"status": "planned"}},
+     "why": "none runs leave the step planned"
+    }
+   ]
+  },
+  {
+   "say": "the plan writes new fields on it: both sources are to ask again",
+   "step_query": {
+    "step": "$cg.step",
+    "query": {
+     "given": {"value": "Charlotte", "basis": "claim"},
+     "surname": {"value": "Lukens", "basis": "claim"},
+     "birth_year": {"value": "1882", "basis": "claim"},
+     "death_year": {"value": "1968", "basis": "claim"},
+     "state": {"value": "Pennsylvania", "basis": "claim"}
+    }
+   },
+   "expect": [
+    {"runnable": {"step": "$cg.step", "is": true}}
+   ]
+  },
+  {
+   "say": "a dry run by the step's id asks every connector again, whatever answered",
+   "run": {"step": "$cg.step", "dry": true, "again": true},
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {"connector": "ia_books", "asked": true, "requests": {"len": 1}},
+       {"connector": "wikitree", "asked": true, "requests": {"len": 1}}
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

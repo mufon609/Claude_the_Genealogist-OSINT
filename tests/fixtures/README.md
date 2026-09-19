@@ -134,7 +134,8 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
 person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `resume` (pages
 into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py`, its download a body the
-data gives, `fetch: {header, rows}` or `{body}`, or no network at all), `run_all` (`--all` with a run that regenerates
+data gives, `fetch: {header, rows}` or `{body}`, one answer per request as `fetch: {answers: [{url_has, body | error}]}`, or no
+network at all; `dry` for a dry run, `again` for a run by the step's id at every connector), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
 `none_when`), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache` and Wikidata's
 answers planted), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,

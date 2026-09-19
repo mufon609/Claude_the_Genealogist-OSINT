@@ -416,7 +416,12 @@ logged `none` at loc.gov without a request, the note saying so. A connector
 with nothing to ask on the step's fields (WikiTree without a birth or death
 year, the Archive's books without a state, a cited book without a title) is
 logged `none` the same way, without a request, the note naming the field it
-wanted, so the step is asked again once the plan writes that field. A connector's request may post a form, name the identity its
+wanted, so the step is asked again once the plan writes that field. Each
+source's runs on a step are read on their own: a step whose row has two
+connectors is asked at the ones whose source has no found or none run on its
+current fields, so one connector's none does not close the step at the other,
+and a source that did not answer (a run logged `error`) is asked again on the
+next turn while the rest are not. A connector's request may post a form, name the identity its
 response is archived under, and say the response is itself the record. Every
 other search step is `assisted` or `awaiting_approval`.
 

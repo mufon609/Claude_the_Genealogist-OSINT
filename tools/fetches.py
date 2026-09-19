@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, inbox_dir, resolve_tree
 from attach import attach, attach_inbox, line
 from catalog import Catalog, fetch_target
-from log_search import ran_unchanged, rendered_query
+from log_search import ran_unchanged, rendered_query, step_source
 import connectors
 
 MEMORIAL = re.compile(r"/memorial/(\d+)(?:/|$)")
@@ -92,7 +92,10 @@ def waiting(cx, tree_id):
 
 def openable(cx, tree_id):
     """The waiting pages a turn can send someone to: entries with a link to open, each with open_step_ids, the steps among its
-    step_ids with no run since the plan last wrote their fields (log_search.ran_unchanged); an entry with none is left out. A
+    step_ids with no run at the step's own source (log_search.step_source: the holder, or the row's first source, what a page
+    saved by hand is logged under) since the plan last wrote their fields (log_search.ran_unchanged, the reading the runner's
+    own runnable steps use per source); a run of a row source's connector on the same step (an obituary step answered at the
+    Archive's newspapers) does not stand for the holder's page. An entry with none is left out. A
     page saved once and logged (found, none, blocked) on a step's unchanged fields is listed by `list` as still waiting, but
     that step does not send anyone to it again until the plan changes it; a page seven people's steps share is open for the
     people whose own step is still unrun. An entry the list cannot name (unnamed set) is returned with its reason: nobody can
@@ -101,7 +104,7 @@ def openable(cx, tree_id):
     for e in waiting(cx, tree_id):
         if not e["url"]: continue
         steps = [cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone() for sid in e["step_ids"]]
-        open_ids = [st["id"] for st in steps if st and not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"]))]
+        open_ids = [st["id"] for st in steps if st and not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"]), step_source(st))]
         if open_ids: out.append({**e, "open_step_ids": open_ids})
     return out
 

@@ -95,23 +95,27 @@
     {
      "search_log": {
       "step": "$turn.seen.0",
-      "is": [
-       {
+      "is": {
+       "len": 1,
+       "every": {
+        "source_id": "E03",
         "outcome": "error"
        }
-      ]
+      }
      },
-     "why": "the run that did not answer is logged as run_step.run reports it"
+     "why": "the run that did not answer is logged as run_step.run reports it, under the connector's own source: the gravesite locator on her cemetery step"
     },
     {
      "search_log": {
       "step": "$turn.seen.1",
-      "is": [
-       {
+      "is": {
+       "len": 2,
+       "every": {
         "outcome": "none"
        }
-      ]
-     }
+      }
+     },
+     "why": "her compiled-genealogy step has two connectors: one none run each, under its own source"
     },
     {
      "turn_state": {
@@ -159,12 +163,13 @@
    ]
   },
   {
-   "say": "the source answers on the second ask: a none run on the same fields closes the step",
+   "say": "the source answers on the second ask: a none run on the same fields, under the connector's own source, closes the step (one under the holder alone would not: the locator has still not answered)",
    "log": {
     "step": "$turn.seen.0",
     "outcome": "none",
     "note": "harness: the source answered on the second ask",
-    "query": true
+    "query": true,
+    "source": "E03"
    },
    "expect": [
     {

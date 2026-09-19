@@ -46,15 +46,29 @@ def same_fields(rendered, ran):
         elif r.get("value") != f["value"]: return False
     return all(k in rendered for k, v in ran.items() if not (isinstance(v, dict) and v.get("basis") in ("run", "record")))
 
-def ran_unchanged(cx, step, rendered):
-    """Whether the step's latest run the source answered asked these very fields: nothing has changed on the step since, so
-    running it again would be the same query blind. A reopen's own row is bookkeeping, not a run, and a run logged error is
-    a source that did not answer (a timeout, a challenge, a reset connection): both are looked past, so a step whose latest
-    run is an error is asked again, and a found or none run before it on the same fields still closes the step."""
-    for q, note, outcome in cx.execute("SELECT query_json, notes, outcome FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
+def step_source(step):
+    """The source a run of the step is logged under when the run names none: the step's holder (a fetch step's locator source),
+    else the first of its row's sources. What a page saved by hand is logged under, and what the fetch list reads."""
+    return step["locator_source_id"] or (json.loads(step["sources_json"] or "[]") or [None])[0]
+
+def latest_answer(cx, step, source_id=None):
+    """The step's latest run the source answered: (outcome, executed_at, fields as logged), or None. A reopen's own row is
+    bookkeeping, not a run, and a run logged error is a source that did not answer (a timeout, a challenge, a reset
+    connection): both are looked past. With a source named, that source's own rows alone (search_log.source_id): a step whose
+    sources have two connectors is answered by each on its own; with none, the latest answer whatever its source."""
+    for q, note, outcome, sid, at in cx.execute("SELECT query_json, notes, outcome, source_id, executed_at FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
         if (note or "").startswith(REOPENED) or outcome == "error": continue
-        return same_fields(rendered, json.loads(q or "{}"))
-    return False
+        if source_id and sid != source_id: continue
+        return outcome, at, json.loads(q or "{}")
+    return None
+
+def ran_unchanged(cx, step, rendered, source_id=None):
+    """Whether the step's latest run the source answered (latest_answer) asked these very fields: nothing has changed on the step
+    since, so running it again at that source would be the same query blind. A found or none run before an error on the same
+    fields still closes the step at that source; a source whose runs are all errors is asked again. Read per source: one
+    connector's none run on the step's fields does not close the step at another source, which is asked until it answers."""
+    a = latest_answer(cx, step, source_id)
+    return a is not None and same_fields(rendered, a[2])
 
 def reopen(cx, tree_id, by, step_id, note):
     """A step marked done by a run that did not hold its record after all is planned again; the run's log row stays as what
@@ -76,7 +90,8 @@ def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome
     if step_id:
         st = cx.execute("SELECT id, question_id, query_json, sources_json, revisions_json, locator_source_id FROM search_plan WHERE id=?", (step_id,)).fetchone()
         if not st: raise SystemExit(f"no step {step_id}")
-        question_id = st[1]; query = query or rendered_query(st[2], st[4]); source_id = source_id or st[5] or (json.loads(st[3]) or [None])[0]
+        st = dict(zip(("id", "question_id", "query_json", "sources_json", "revisions_json", "locator_source_id"), st))   # a plain tuple or a Row alike
+        question_id = st["question_id"]; query = query or rendered_query(st["query_json"], st["revisions_json"]); source_id = source_id or step_source(st)
     if question_id and not cx.execute("SELECT 1 FROM research_question WHERE id=? AND tree_id=?", (question_id, tree_id)).fetchone(): raise SystemExit("question not in this tree")
     lid = ulid()
     cx.execute("""INSERT INTO search_log (id,tree_id,plan_step_id,question_id,executed_at,executed_by,source_id,query_json,outcome,artifacts_json,notes)
