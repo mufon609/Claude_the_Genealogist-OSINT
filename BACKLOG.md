@@ -175,6 +175,29 @@ and a file saved under it reaches whichever entry `named_for` meets first. Give
 the name a piece unique to the citation as well (the citation's own record
 locator when it has one, else the step's key), so one person's several pages
 of one collection are told apart too.
+The year in the name is also what stops the list naming any page at such a
+holder for a citation that carries none: every obituary and marriage-index
+citation in this tree lacks a year, so none of their pages can be saved
+through the list today; the step's key in the year's place frees them.
+
+### C6. Rule paths the harness no longer exercises, for want of a real record
+
+When the harness became data (no invented test data, no names in the
+harness code), every scenario that only a planted person or a made-up
+record could carry was dropped rather than faked. Each is a path the code
+still has and nothing now tests: an in-law resolving to a real link
+through the relative it names; the spouse fit where the other party
+carries another name; the fitting check on garbled initials and on a
+short-form given name; a results row outliving its own record; a
+namesake's kin shown as a hint; the SAR page at a holder without a parser
+and its two-entry listing; the found halves of the runner's listing run
+and of the results page saved for a fetch step; a step runnable again once
+the plan writes the field a connector wanted; the dated-row half of the
+unnamed fetch; the merge's reach by name and year. When a real document
+that carries one of these is archived (the owner's own, saved by the
+page-saves-itself method or a connector's answer), add it under
+`tests/fixtures/` with its sidecar, write the scenario as data under
+`tests/fixtures/scenarios/`, one per path, and strike it here.
 
 ### C7. Hints on the person page
 
@@ -368,6 +391,18 @@ living line in the foundation with its reason, and on an unknown person
 the two-way control (living, deceased) that writes `person.living_override`
 through `conclude.living` with one audit row, as the fact rows write their
 decisions.
+
+### C20. A record's undated event fact creates a second event beside the person's dated one
+
+Accepting a death index page whose Death fact carries no date writes a
+second Death event on the person: `conclude.decide` creates an event from
+the record's date when the person has none of that type and year, and an
+undated fact has no year to match. The new event's accepted statement then
+outranks the file's dated claim, so the key fact reads accepted with no
+date until that statement is rejected by hand. When a record's fact of a
+type carries no date and the person has exactly one event of that type,
+the statement asserts that event; with more than one, the difference is a
+conflict question on the card, never a new undated event.
 
 ## Externally blocked
 
