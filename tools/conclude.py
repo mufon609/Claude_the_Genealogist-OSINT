@@ -842,7 +842,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
             moved["log_rows_repointed"] += q.execute("UPDATE search_log SET plan_step_id=? WHERE plan_step_id=?", (existing["id"], step["id"])).rowcount
             q.execute("DELETE FROM search_plan WHERE id=?", (step["id"],)); moved["plan_steps_dropped"] += 1
             moved["dropped_steps"].append({"step_key": step["step_key"], "row_key": step["row_key"], "rationale": step["rationale"],
-                                           "reason": "the kept person's own step of this key carries search_log runs already"})
+                                           "reason": "the kept person's own step of this key carries search_log runs already" if kept_has_runs
+                                                     else "the kept person's own step of this key is kept; neither carries a search_log run"})
 
     for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=?", (dup_id,)).fetchall():
         if q.execute("SELECT 1 FROM research_question WHERE subject_person_id=? AND q_key=?", (kept_id, question["q_key"])).fetchone():

@@ -1923,6 +1923,12 @@ def merge_check(keep):
          f"the audit row names the dropped step by its key, row and rationale, the way plan.py's own drop does: {res['dropped_steps']}")
     fail(res["dropped_questions"] == [{"q_key": "missing_spouse:", "kind": "missing_spouse", "reason": "the kept person already has an open question of this key"}],
          f"the audit row names the dropped question by its key and kind too: {res['dropped_questions']}")
+    # ---- a collision where neither step carries a run: the kept person's own stays, the audit row saying so and not that it carries runs
+    dup2 = tulid(); cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)", (dup2, tid, "M", "Second Duplicate", ts, ts))
+    kept_bare = step(kept, "will / probate:", "planned"); step(dup2, "will / probate:", "planned"); cx.commit()
+    res2 = merge(cx, tid, dup2, kept, BY, "harness: same identity, no runs on either"); cx.commit()
+    fail(res2["plan_steps_dropped"] == 1 and res2["dropped_steps"][0]["reason"] == "the kept person's own step of this key is kept; neither carries a search_log run"
+         and cx.execute("SELECT 1 FROM search_plan WHERE id=?", (kept_bare,)).fetchone(), f"neither step carrying a run, the kept person's own stays and the audit row says so: {res2['dropped_steps']}")
     fail(json.loads(cx.execute("SELECT diff_json FROM audit_log WHERE entity_kind='person' AND entity_id=? AND action='update'", (dup,)).fetchone()[0])["dropped_steps"] == res["dropped_steps"],
          "the audit_log row itself carries the same named drops, not just the returned dict")
     fail(cx.execute("SELECT 1 FROM research_question WHERE id=?", (dup_colliding_q_id,)).fetchone(), "the duplicate's colliding, undecided question stays on its own row like a dropped step's")
