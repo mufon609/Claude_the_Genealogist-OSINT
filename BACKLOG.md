@@ -141,6 +141,21 @@ showed; the byte count and the markers it returns must still be checked
 before the tab is closed, as §4 says. Until then a page from such a site
 cannot be saved by this method.
 
+### C5. A FamilySearch results page with no rows is not recognised, so a search that found nothing is never logged
+
+`tools/attach.py`'s `identity` knows a FamilySearch results page by
+`extract.FS_SEARCH_MARK`, a result row's own markup, so a page whose search
+found nothing (the site's "No Results", saved from the search's URL as any
+results page is) matches nothing and stays in `inbox/` as a page with no
+identity: two such pages from 19 Sept 2026 (the Massachusetts marriage
+records searched for Annie E Scannell and for James Joseph Ahearn) sit
+there, their steps still planned and still listed as though never
+searched. Read the identity from the saved-from line when it is the site's
+record search URL, whatever the body holds; a page with no rows attaches
+to the steps whose fields are its search as a `none` run (the search as
+run, no results), and the step is not listed again until its fields
+change.
+
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the
@@ -316,6 +331,17 @@ onto the kept event and leave the duplicate's event behind with the
 duplicate's row, so a merge never opens a conflict between equal values; a
 differing value stays a second event and a real conflict, as now.
 
+### C17. Two census collections of one person share one save name
+
+`tools/fetches.py`'s `save_as` collapses every collection whose name says
+census to the word "census", so a person cited on the 1925 New York state
+census and the 1930 federal census is listed under one name,
+`familysearch-census-search-<given>-<surname>.html`, for two different
+searches; the browser's own duplicate naming ("(1)") kept the two apart on
+19 Sept 2026 and the attach read each by its saved-from URL, but the name
+the list prints should tell them apart itself: the row's year, or the
+collection's own words, in the name.
+
 ### C18. A merge leaves the kept person in two families with the same partner
 
 The file's duplicate entry had its own family with the same partner (Alice
@@ -365,6 +391,25 @@ does: five personas for three people, and the matcher proposes each parent
 twice, two cards for one decision. The Massachusetts birth fixture carries
 the table alone and reads clean. One persona per named person on a page: the
 table's row, which carries the sex, with the field's statement on it.
+
+### C21. A fetch step its holder's connector cannot ask is sent to the browser, where the page is a listing it cannot save
+
+`tools/run_step.py`'s `runnable` leaves out a fetch step whose holder has a
+connector that has nothing to ask from the citation's details (the city
+directories at K01 want a town; an Ancestry directory citation carries
+the collection and the name alone) without logging anything, and
+`tools/fetches.py`'s `waiting` then lists the step's page for the owner's
+browser. At an archive.org holder that page is a full-text search
+listing, not the record, and the page-saves-itself method captures
+nothing there (the shadow-root entry), so a turn pauses on it and every
+resume pauses again: Abraham B Brant [MW1YKY], citation
+1,2469::161249030, six people's steps, 19 Sept 2026. Do for a fetch step
+what the runner does for a search step: log a `none` run without a
+request, the note naming the field the connector wanted, so the step is
+answered on its fields, off the fetch list and the queue, on the person's
+screen for a hand with the reason, and asked again once the plan writes
+that field (a town from an accepted residence). The §4 sentence "that
+step is listed for a hand" then means the screen, not the loop's list.
 
 ## Externally blocked
 
