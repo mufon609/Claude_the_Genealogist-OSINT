@@ -181,8 +181,17 @@ def a_step_query(w, x):
     """A step's fields rewritten, as the plan writes new fields on it."""
     st = w.step(x["step"]); w.cx.execute("UPDATE search_plan SET query_json=? WHERE id=?", (json.dumps(x["query"]), st["id"])); return {"step": st["id"]}
 
+def a_fetch_list(w, x):
+    """tools/fetches.py list's own entries, read-only: every save-as name it prints (or, with `search_links`, only the
+    FamilySearch fielded searches: a D03 entry whose link is the collection's own record search, not a catalog browse),
+    for a check that a search link's name is built whole from the search's own fields, no placeholder left in it."""
+    from fetches import waiting
+    rows = waiting(w.cx, w.tid)
+    if x.get("search_links"): rows = [e for e in rows if e["holder_id"] == "D03" and "/search/record/results" in (e.get("url") or "")]
+    return {"names": [e["save_as"] for e in rows]}
+
 ACTIONS.update({"step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
-                "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places})
+                "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 
 # ---------------------------------------------------------------- expectations
 
@@ -275,8 +284,14 @@ def e_event_place(w, x, want):
     got = {"place": name, "shown": cat.place(eid, None)["text"], "shown_first": cat.place(eid, None)["text"].split(" < ")[0]}
     return has(got, {k: v for k, v in x.items() if k in got}), got
 
+def e_file_exists(w, x, want):
+    """Whether a named file still sits in a folder, for a page collect had nothing to take (no saved-from identity the
+    attach reads, no name the fetch list printed): it is left exactly where it was saved."""
+    v = os.path.isfile(os.path.join(w.value(x["folder"]), x["name"]))
+    return v == x.get("is", True), v
+
 EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows,
-                "place": e_place, "place_card": e_place_card, "event_place": e_event_place})
+                "place": e_place, "place_card": e_place_card, "event_place": e_event_place, "file_exists": e_file_exists})
 
 def check(keep, show, only=None):
     return scenario.check(os.path.join(SCENARIOS, "loop"), keep, show, only)

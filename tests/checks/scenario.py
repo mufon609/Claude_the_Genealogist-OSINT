@@ -342,17 +342,21 @@ def a_view(w, x):
     return server.artifact_view(w.cx, w.tid, w.sha(x["record"]), w.person(x["person"]))
 
 def a_save(w, x):
-    """A page or an image saved in the browser under the name the fetch list prints for it, as a stand-in: into the
-    inbox, or into a download folder for collect."""
+    """A page or an image saved in the browser, as a stand-in: into the inbox, or into a download folder for collect.
+    Under the name the fetch list prints for it, unless `name` gives the file's own name instead (the sanitized shape a
+    browser actually produced, to prove collect takes a page by its saved-from identity whatever it is named)."""
     from fetches import waiting
     pid = w.person(x["person"]) if x.get("person") else None
     entries = [e for e in waiting(w.cx, w.tid) if (not x.get("holder") or e["holder_id"] == x["holder"]) and (pid is None or any(s in e["step_ids"] for s in [s[0] for s in w.cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))]))]
-    if not entries: raise KeyError("no fetch entry waiting for that person at that holder")
-    e = entries[0]; name = e["save_as"].replace("<year>", str(x.get("year", "")))
-    for k, v in (x.get("fill") or {}).items(): name = name.replace(k, v)
+    e = entries[0] if entries else None
+    if "name" in x: name = x["name"]
+    else:
+        if not e: raise KeyError("no fetch entry waiting for that person at that holder")
+        name = e["save_as"].replace("<year>", str(x.get("year", "")))
+        for k, v in (x.get("fill") or {}).items(): name = name.replace(k, v)
     folder = os.path.join(w.root, x["folder"]) if x.get("folder") else w.treelib.inbox_dir(); os.makedirs(folder, exist_ok=True)
-    with open(os.path.join(folder, name), "wb") as fh: fh.write(w.fixture_bytes({**x, "saved_from": x.get("saved_from") or e.get("url")}))
-    return {"entry": e, "file": name, "folder": folder, "url": e.get("url"), "save_as": e["save_as"], "how": e.get("how"), "steps": e.get("step_ids")}
+    with open(os.path.join(folder, name), "wb") as fh: fh.write(w.fixture_bytes({**x, "saved_from": x.get("saved_from") or (e.get("url") if e else None)}))
+    return {"entry": e, "file": name, "folder": folder, "url": e.get("url") if e else None, "save_as": e["save_as"] if e else None, "how": e.get("how") if e else None, "steps": e.get("step_ids") if e else None}
 
 def a_collect(w, x):
     from fetches import collect

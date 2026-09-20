@@ -265,16 +265,27 @@ planned fetch step points at, at every holder without a connector, once, leads
 from held records first, with the link to open, the people waiting on it and
 the file name to save under; a browser session works down that list one tab per
 page; `tools/fetches.py collect` then moves every saved page from the download
-folder into `inbox/` and attaches each by its own identity, or, for a page from
-a holder whose pages carry none (an SAR patriot page, a Legacy.com obituary),
-by the name the list printed, whole: such a page is listed once per citation
-and person waiting on it, under a name that carries the citation's own record
-locator (the step's key when it has none) and ends in that person's six
-characters, so one person's several pages of one collection are told apart as
-two people's are, and no name waits on a year the citation may not carry; the
+folder (or `--folder`) into `inbox/` and attaches each by its own identity,
+read from the saved-from line the browser wrote (`tools/save_page.js`) when
+that line is a FamilySearch record or search URL, a Find a Grave memorial or
+search, or an AAD record or search — whatever the file is named, since Chrome
+may have sanitized or de-duplicated the name the list printed. A FamilySearch
+link that is the collection's own search (no ark yet known) is listed to save
+under `familysearch-<collection words>-search-<given>-<surname>.html`, the
+given name and surname the search's own, so the several people's steps one
+search serves share one name; a link that is a record page is listed under
+`familysearch-<collection words>-<year>-<ark id>.html`, the ark id read off
+the page once saved. For a page from a holder whose pages carry no identity
+the attach reads (an SAR patriot page, a Legacy.com obituary), by the name
+the list printed, whole: such a page is listed once per citation and person
+waiting on it, under a name that carries the citation's own record locator
+(the step's key when it has none) and ends in that person's six characters,
+so one person's several pages of one collection are told apart as two
+people's are, and no name waits on a year the citation may not carry; the
 saved file goes to that person's steps on that citation alone, archived under
 that holder with the page's own URL as locator, logged found, unparsed until
-a parser claims it. Never encode a page and read it out through the model in slices.
+a parser claims it. A file with neither a recognised saved-from line nor a
+listed name is left in the folder. Never encode a page and read it out through the model in slices.
 
 **When the site blocks the fetch.** When a source answers a page save or a
 search in the owner's browser with a challenge or a sign-in, the session

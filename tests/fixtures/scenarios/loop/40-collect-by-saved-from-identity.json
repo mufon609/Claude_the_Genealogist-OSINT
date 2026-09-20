@@ -1,0 +1,103 @@
+{
+ "title": "collect takes a page by its saved-from identity, whatever it is named",
+ "line": "a FamilySearch search results page saved under a sanitized name a browser actually produced, not the name the fetch list printed, is still taken by collect through the saved-from line's identity and reaches the fetch steps whose search fields it fits; the list's own name for a search link carries no placeholder; a file with neither a saved-from line the attach reads nor a name the list printed is left where it was saved",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the fetch list's own names for a FamilySearch search link carry no placeholder",
+   "fetch_list": {
+    "search_links": true
+   },
+   "expect": [
+    {
+     "last": {
+      "names": {
+       "none": {
+        "has": "<"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the search results page, saved under a sanitized name a browser actually produced (angle brackets it cannot write turned to underscores), not the name the list prints",
+   "save": {
+    "holder": "D03",
+    "person": "I332737204852",
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "folder": "downloads",
+    "name": "familysearch-kentucky-death-index-1918-_ark id_.html"
+   },
+   "as": "saved"
+  },
+  {
+   "say": "an unrelated page beside it, with no saved-from line and no name the list printed",
+   "save": {
+    "holder": "no-such-holder",
+    "name": "random-note.html",
+    "folder": "$saved.folder"
+   }
+  },
+  {
+   "say": "collect: the identified page is taken and matched by its content, the unidentified one is left",
+   "collect": {
+    "folder": "$saved.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "names": [
+       "familysearch-kentucky-death-index-1918-_ark id_.html"
+      ],
+      "results": [
+       {
+        "identity": {
+         "starts": "fs_search "
+        },
+        "left": null,
+        "outcome": "none",
+        "proposals": []
+        }
+      ]
+     },
+     "why": "read as a results page by its own markup, whatever the file is named; it fulfils the fetch step whose citation was searched for by this name in this collection; the page names her only as a mother with no dates, so no row fits and the run is none"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": {
+       "some": {
+        "outcome": "none",
+        "notes": {
+         "has": "no candidate fits"
+        }
+       }
+      }
+     },
+     "why": "the step's own log row reads none, the reason in its note"
+    },
+    {
+     "file_exists": {
+      "folder": "$saved.folder",
+      "name": "random-note.html",
+      "is": true
+     },
+     "why": "no saved-from line the attach reads and no name the list printed, so collect leaves it"
+    }
+   ]
+  }
+ ]
+}

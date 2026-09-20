@@ -13,19 +13,14 @@
     "holder": "D03",
     "person": "I332737204852",
     "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
-    "folder": "downloads",
-    "fill": {
-     "<ark id>": "NSGC-PXX"
-    }
+    "folder": "downloads"
    },
    "as": "saved",
    "expect": [
     {
      "last": {
       "how": "page",
-      "save_as": {
-       "starts": "familysearch-kentucky-death-records-1918-"
-      }
+      "save_as": "familysearch-kentucky-death-records-search-lena-howard-bell.html"
      }
     }
    ]

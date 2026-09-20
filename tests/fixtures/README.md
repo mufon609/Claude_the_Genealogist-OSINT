@@ -113,7 +113,8 @@ reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`
 `reconsider` (`dry`), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
 `tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `link_on_word`, `living`,
 `transcribe` (a reading typed into the person screen's form: `record`, `form`, `relations` to bound personas, `about`,
-`by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`),
+`by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
+`name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's),
 `collect`, `log`, `reopen`, `step` (a plan step written by hand), `place_card` (a place answer's card with the geocoder's
 `candidates` planted in the cache), `older_matcher`, `merge`, `cite`.
 
