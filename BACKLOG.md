@@ -99,7 +99,11 @@ cannot be found by words. The codes run in order through the item, so the
 step must find the block by the page order instead: a page's code read from
 its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
-Earl Davidson and Noi Davidson) carries no year to choose an item by.
+Earl Davidson and Noi Davidson) carries no year to choose an item by. The
+planner blocks every fetch step at a `scanned_index` holder
+(`data/holders.csv`) by the holder's kind alone, whatever record it cites;
+this page-locating step is what unblocks them, for the New York index and
+for the New Jersey marriage index's own scanned-page years alike.
 
 ### C3. A results page closes a fetch step, and the cited record's own page then holds nothing
 
@@ -149,8 +153,10 @@ short-form given name; a results row outliving its own record; a
 namesake's kin shown as a hint; the SAR page at a holder without a parser
 and its two-entry listing; the found halves of the runner's listing run
 and of the results page saved for a fetch step; a step runnable again once
-the plan writes the field a connector wanted; the dated-row half of the
-unnamed fetch; the merge's reach by name and year. When a real document
+the plan writes the field a connector wanted; the unnamed fetch's own naming
+(`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
+citations that carried it (the New Jersey and New York marriage indexes) are
+both blocked as `scanned_index` holders; the merge's reach by name and year. When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under

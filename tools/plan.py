@@ -11,8 +11,10 @@ they serve. A fetch is re-targeted to the free holder of the citation's
 collection (data/holders.csv): the step's locator source is the holder and its
 fields are the citation's own details (collection, the name the citation sits
 on, the page text's parts, the memorial URL), basis citation. A citation whose
-collection has no free holder stays a fetch step with mode blocked and the
-reason in its rationale. A memorial accepted as the person's own gives one
+collection has no free holder, or whose holder is a scanned_index (an
+archive.org collection of scanned index pages, readable only through a
+page-locating step not yet built), stays a fetch step with mode blocked and
+the reason in its rationale. A memorial accepted as the person's own gives one
 fetch step per photograph the page types Grave (the stone itself, registry row
 E05, the image's URL as locator). Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated (one that was run but
@@ -66,7 +68,9 @@ def fetch_step(cat, row_key, query_type, apid, collection, collection_id, on, ex
     holder = (cat.holders.get(dbid_of(apid)) or [None])[0]
     names = cited.get("names") or []
     fields = citation_fields(collection, cited, names[0] if names else name)
-    if holder: source, mode, why = holder["HolderSourceId"], "fetch", f"fetch the record at {holder['HolderCollection']}"
+    if holder and holder["HolderKind"] == "scanned_index":
+        source, mode, why = holder["HolderSourceId"], "blocked", f"blocked: {holder['HolderCollection']} holds scanned index pages; the page-locating step is not built"
+    elif holder: source, mode, why = holder["HolderSourceId"], "fetch", f"fetch the record at {holder['HolderCollection']}"
     else: source, mode, why = ANCESTRY, "blocked", "blocked: no free holder of this collection yet, and Ancestry needs a membership this account lacks"
     return {"step_key": f"fetch:{apid}", "row_key": row_key, "question_key": question_key, "kind": "fetch", "query_type": query_type, "query_json": dumps(fields),
             "locator_source_id": source, "locator_kind": "apid", "locator_value": apid, "collection_id": collection_id, "on_json": dumps(on),

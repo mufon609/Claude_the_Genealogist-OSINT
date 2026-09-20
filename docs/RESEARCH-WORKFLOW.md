@@ -187,8 +187,10 @@ collection, `data/holders.csv`), and the citation's own details as its fields
 (collection, the name the citation sits on, the page text's parts such as
 year, census place, enumeration district, sheet, the memorial URL), each with
 basis `citation`; every citation on a row is one fetch step, in one shape. A
-citation whose collection has no free holder is a fetch step with mode
-`blocked` and the reason in its rationale; a reviewed person whose row is cited
+citation whose collection has no free holder, or whose holder is an
+archive.org collection of scanned index pages with no page-locating step
+built yet (`data/holders.csv`'s `scanned_index` kind), is a fetch step with
+mode `blocked` and the reason in its rationale; a reviewed person whose row is cited
 only through blocked fetches also gets the row's search step at the free
 sources, as for a missing row. A **search**
 is a typed query (`subject_record`, `household`, `couple`, `name`,

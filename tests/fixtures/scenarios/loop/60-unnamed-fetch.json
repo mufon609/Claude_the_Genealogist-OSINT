@@ -1,6 +1,6 @@
 {
- "title": "a fetch step named without a year",
- "line": "a citation with no year on a row with no instance, at a holder whose pages carry no identity the attach reads, is named whole: the citation's own record locator sits where a year would, one person's two citations of one collection are two names, and a turn pauses on the page like any other",
+ "title": "a fetch step at a scanned-index holder is blocked",
+ "line": "the state marriage index the two grandparents cite, and one person's two citations of the New Jersey index, are blocked by their holder's kind alone (scanned index pages, no page-locating step built), the reason naming the holder; none of the four steps reaches the fetch list, and a turn on one of them does not pause",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,66 +8,102 @@
  },
  "steps": [
   {
-   "say": "the fetch list's entries at the state marriage index the two grandparents cite with no year, and one person's two citations of the New Jersey index",
+   "say": "the two grandparents' citations of the New York State marriage index (C08), and one person's two citations of the New Jersey marriage index (C09), are all fetch steps with mode blocked",
    "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "holder": "C08",
+      "kind": "fetch",
+      "fields": {
+       "mode": "blocked",
+       "rationale": {
+        "has": [
+         "blocked",
+         "New York State marriage index",
+         "scanned index pages",
+         "the page-locating step is not built"
+        ]
+       }
+      }
+     },
+     "why": "the holder's own kind (scanned_index) blocks the step, whatever the citation"
+    },
+    {
+     "step": {
+      "person": "I332737036894",
+      "holder": "C08",
+      "kind": "fetch",
+      "fields": {
+       "mode": "blocked",
+       "rationale": {
+        "has": "scanned index pages"
+       }
+      }
+     },
+     "why": "the second grandparent's own citation of the same holder is blocked the same way"
+    },
+    {
+     "step": {
+      "person": "I332737035563",
+      "holder": "C09",
+      "locator": {
+       "kind": "apid",
+       "value": "1,61253::1174421601"
+      },
+      "kind": "fetch",
+      "fields": {
+       "mode": "blocked",
+       "rationale": {
+        "has": [
+         "New Jersey Marriage Index",
+         "scanned index pages"
+        ]
+       }
+      }
+     },
+     "why": "one of the person's two citations of the New Jersey index is blocked"
+    },
+    {
+     "step": {
+      "person": "I332737035563",
+      "holder": "C09",
+      "locator": {
+       "kind": "apid",
+       "value": "1,61253::1084421601"
+      },
+      "kind": "fetch",
+      "fields": {
+       "mode": "blocked",
+       "rationale": {
+        "has": "scanned index pages"
+       }
+      }
+     },
+     "why": "the other citation of the same collection is blocked too"
+    },
     {
      "fetch_entries": {
       "holder": "C08",
-      "person": [
-       "I332737036054",
-       "I332737036894"
-      ],
       "is": {
-       "len": 2,
-       "every": {
-        "save_as": {
-         "has": "c08-new-york-state-marriage-index-1-61632-2565702-",
-         "lacks": "<"
-        }
-       }
+       "len": 0
       }
      },
-     "why": "the undated citation's entries are named whole, the citation's record locator where a year would be, each ending in its own person's six characters"
+     "why": "a blocked step never reaches the fetch list"
     },
     {
      "fetch_entries": {
       "holder": "C09",
-      "person": "I332737035563",
       "is": {
-       "len": 2,
-       "every": {
-        "save_as": {
-         "has": "c09-new-jersey-marriage-index-1-61253-",
-         "lacks": "<"
-        }
-       },
-       "some": {
-        "save_as": {
-         "has": "-1174421601-"
-        }
-       }
+       "len": 0
       }
      },
-     "why": "one person's two citations of one collection at one holder are two entries under two names"
-    },
-    {
-     "fetch_entries": {
-      "holder": "C09",
-      "person": "I332737035563",
-      "is": {
-       "some": {
-        "save_as": {
-         "has": "-1084421601-"
-        }
-       }
-      }
-     },
-     "why": "the other citation's name carries its own locator"
+     "why": "the New Jersey index's blocked steps are absent too"
     }
    ]
   },
   {
-   "say": "a turn on one of the grandparents pauses on the page, named whole",
+   "say": "a turn on one of the grandparents does not pause on the blocked page",
    "turn": {
     "person": "I332737036894",
     "fake_run": {
@@ -78,18 +114,16 @@
     {
      "last": {
       "printed": {
-       "has": [
-        "save as c08-new-york-state-marriage-index-1-61632-2565702-"
-       ],
-       "lacks": "passed over"
+       "lacks": "save as c08-new-york-state-marriage-index"
       }
-     }
+     },
+     "why": "the blocked step is never offered as a page to save"
     },
     {
      "turn_state": {
-      "person": "I332737036894"
+      "is": null
      },
-     "why": "the turn pauses for the browser session: its state is kept"
+     "why": "nothing pauses, so no state is kept"
     },
     {
      "step": {
@@ -97,10 +131,11 @@
       "holder": "C08",
       "kind": "fetch",
       "fields": {
-       "status": "planned"
+       "status": "planned",
+       "mode": "blocked"
       }
      },
-     "why": "the step stays planned: paused on, not run, not logged"
+     "why": "the step stays planned and blocked, not run, not logged"
     }
    ]
   },

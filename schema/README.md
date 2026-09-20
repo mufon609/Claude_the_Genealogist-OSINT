@@ -40,8 +40,9 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   connector may declare the rows it answers (`ROWS` in `tools/connectors/`: the New
   Jersey death index the death row alone, its source sitting on the birth and marriage
   rows too), and is asked a search step only on those. A fetch step's `locator_source_id` is the
-  free holder of the citation's collection (`data/holders.csv`); with no holder the
-  mode is `blocked`.
+  free holder of the citation's collection (`data/holders.csv`); with no holder, or with a
+  `scanned_index` holder (an archive.org collection of scanned index pages with no
+  page-locating step built yet), the mode is `blocked`.
 - An assertion a document decision writes from a page anyone can edit (T4 by the artifact's own
   identity or its row, `catalog.tier_sql`) is `undecided`: accepting the page never accepts its
   facts or the family memberships it states, only the persona link.

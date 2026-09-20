@@ -118,7 +118,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 
 `holders.csv` maps each Ancestry collection the tree cites (by dbid) to the
 free holders of the same record set: the holder's registry row, the kind and
-key of its collection, the collection page, and what the holder covers. Four
+key of its collection, the collection page, and what the holder covers. Five
 kinds: `fs_collection`, a FamilySearch indexed collection whose id is the key
 and whose own search is prefilled from the citation; `fs_images`, a
 FamilySearch images-only collection, browsed; `url`, any other holder, the key
@@ -127,7 +127,11 @@ a search template filled from the citation's details ({given}, {surname},
 own `cd_min`/`cd_max` take it ("27 Jan 1986" → "1/27/1986"), {place}, {city},
 or {url} for the citation's own page), the holder's page opening when a
 detail is missing; `memorial`, the
-citation's own Find a Grave URL. Every FamilySearch id was read off the site's
+citation's own Find a Grave URL; `scanned_index`, an archive.org collection of
+scanned index pages, one item per year, readable only through the
+page-locating step BACKLOG.md describes for the New York State marriage
+index — until that step exists, a citation at such a holder is a fetch step
+with mode `blocked`. Every FamilySearch id was read off the site's
 collection list with its record count (indexed) or "Browse Images"; the other
 holders' search shapes were tried in the browser. Rows for the same dbid are in
 order of preference: the Archive first for a cited book, then FamilySearch's
