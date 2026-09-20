@@ -1,0 +1,90 @@
+{
+ "title": "a fetch step its holder's connector cannot ask is run like a search step, not sent to the browser",
+ "line": "a fetch step whose holder's connector has nothing to ask from the citation's details (the city directories at K01 want a town) is logged none there, the note naming the field wanted, off the fetch list and the queue, on the person's screen for a hand; a turn does not pause on it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "a fetch step at K01 (Internet Archive city directories, data/holders.csv dbid 2469) on a real person, its citation carrying the collection and the name alone: no town of the person's, as the live catalog's own instance of this (Abraham B Brant, citation 1,2469::161249030) has it. That person and citation are outside the cut harness tree, so this step is planted by hand on a person the harness does carry, exactly as tools/plan.py would generate it from such a citation.",
+   "step": {
+    "person": "I332737038183",
+    "row_key": "compiled genealogy / family history:1,2469::161249030",
+    "seq": 1,
+    "step_key": "fetch:1,2469::161249030",
+    "kind": "fetch",
+    "query_type": "subject_record",
+    "query": {
+     "collection": {"value": "U.S., City Directories, 1822-1995", "basis": "citation"},
+     "name": {"value": "Abram C Brant", "basis": "citation"}
+    },
+    "locator": {"source": "K01", "kind": "apid", "value": "1,2469::161249030"},
+    "sources": ["K01"],
+    "mode": "fetch"
+   },
+   "as": "brant",
+   "expect": [
+    {"runnable": {"step": "$brant.step", "is": true}, "why": "the runner takes a fetch step whose holder has a connector, whether or not it currently has anything to ask"}
+   ]
+  },
+  {
+   "say": "run it: no town in the fields, so ia_directories has nothing to ask and no request goes out",
+   "run": {"step": "$brant.step"},
+   "as": "first",
+   "expect": [
+    {
+     "last": {
+      "connectors": ["ia_directories"],
+      "results": [
+       {"connector": "ia_directories", "asked": true, "outcome": "none"}
+      ]
+     },
+     "why": "logged like a search step whose connector has nothing to ask, no request sent"
+    },
+    {
+     "search_log": {
+      "step": "$brant.step",
+      "is": [
+       {"source_id": "K01", "outcome": "none", "notes": {"has": "a town the person lived in"}, "artifacts": []}
+      ]
+     },
+     "why": "a none run with no request, the note naming the field the connector wants"
+    },
+    {
+     "step": {"person": "I332737038183", "step_key": "fetch:1,2469::161249030", "fields": {"status": "planned"}},
+     "why": "a none run leaves the step planned, for a hand on the person's screen"
+    },
+    {"runnable": {"step": "$brant.step", "is": false}, "why": "off the queue: the source has answered on these very fields"}
+   ]
+  },
+  {
+   "say": "off the fetch list too: the holder has a connector, so this step was never sent to the browser",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "K01",
+      "person": "I332737038183",
+      "is": {"len": 0}
+     },
+     "why": "a holder with a connector is never on the browser's own fetch list, whether or not it currently has anything to ask"
+    }
+   ]
+  },
+  {
+   "say": "the plan writes the field it wanted (a town from an accepted residence): the step is asked again",
+   "step_query": {
+    "step": "$brant.step",
+    "query": {
+     "collection": {"value": "U.S., City Directories, 1822-1995", "basis": "citation"},
+     "name": {"value": "Abram C Brant", "basis": "citation"},
+     "towns": {"value": ["Worcester"], "basis": "record"}
+    }
+   },
+   "expect": [
+    {"runnable": {"step": "$brant.step", "is": true}, "why": "new fields: the connector may have something to ask now"}
+   ]
+  }
+ ]
+}

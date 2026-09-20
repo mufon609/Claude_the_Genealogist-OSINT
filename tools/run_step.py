@@ -157,10 +157,10 @@ def waiting_connectors(cx, step, rendered, conns):
     return [c for c in conns if not ran_unchanged(cx, step, rendered, c.SOURCE)]
 
 def runnable(cx, cat, tree_id):
-    """The planned steps the runner can take: auto search steps, and fetch steps whose holder has a connector that can ask
-    for the record from the citation's details (a book citation that names no title gives the books connector nothing to ask;
-    that step stays a link for a hand); each while one of its connectors' sources has no run since the plan last wrote its
-    fields (waiting_connectors): a step run once on these fields at every source is asked again only when the plan changes
+    """The planned steps the runner can take: auto search steps, and every fetch step whose holder (or a row source) has a
+    connector, whether or not that connector currently has anything to ask (a book citation that names no title still runs,
+    logged `none` there with the field wanted); each while one of its connectors' sources has no run since the plan last wrote
+    its fields (waiting_connectors): a step run once on these fields at every source is asked again only when the plan changes
     them, or by its id; a run logged error, the source not answering, does not count, so that source is asked again."""
     rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.status='planned'
                          AND ((sp.kind='search' AND sp.mode='auto') OR (sp.kind='fetch' AND sp.mode='fetch')) ORDER BY p.display_name, sp.seq""", (tree_id,)).fetchall()
@@ -169,7 +169,6 @@ def runnable(cx, cat, tree_id):
         conns = connectors_for(cat, r)
         if not conns: continue
         q = rendered_query(r["query_json"], r["revisions_json"])
-        if r["kind"] == "fetch" and not any(c.requests(q) for c in conns): continue
         if not waiting_connectors(cx, r, q, conns): continue
         out.append(r)
     return out

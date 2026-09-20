@@ -428,8 +428,9 @@ member's own row the moment its persona is accepted onto them: their step for
 that census year is logged found with the record, so no runner searches that
 census again for a household the tree has read. The Archive takes a
 cited book's title and the gravesite locator the citation's name; a citation
-that names no book gives the Archive nothing to ask, and that step is listed
-for a hand. A source's years, from the registry's coverage column, gate its
+that names no book gives the Archive nothing to ask, and that step is logged
+`none` there, the note naming the field wanted, and left for a hand on the
+person's screen, not the fetch list. A source's years, from the registry's coverage column, gate its
 steps: an obituary step for a death after Chronicling America's last year is
 logged `none` at loc.gov without a request, the note saying so. A connector
 with nothing to ask on the step's fields (WikiTree without a birth or death
