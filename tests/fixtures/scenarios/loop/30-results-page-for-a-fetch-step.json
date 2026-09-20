@@ -1,6 +1,6 @@
 {
  "title": "a results page saved for a fetch step's own search",
- "line": "a results page is told from a record page by the parser that claims it, never the file name, and goes to the fetch step whose citation was searched for by that name in that collection, as the run's own artifact with the query as run: none when no row fits, the rows kept on the artifact, the step planned, the page filed under the tree; the same page saved again is a repeat and stays in the inbox",
+ "line": "a results page is told from a record page by the parser that claims it, never the file name, and goes to the fetch step whose citation was searched for by that name in that collection, as the run's own artifact with the query as run: none when no row fits, the rows kept on the artifact, the step planned, the page filed under the tree; the same page saved again is a repeat, already answered on these fields, and is removed with nothing new to log",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -116,7 +116,7 @@
    ]
   },
   {
-   "say": "the same search saved once more, other bytes, the same rows",
+   "say": "the same search saved once more, other bytes, the same rows, the step already answered on these very fields",
    "attach": {
     "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
     "suffix": "\n",
@@ -125,17 +125,18 @@
    "expect": [
     {
      "last": {
-      "left": {
+      "repeat": {
        "has": "repeat"
       }
      },
-     "why": "a repeat is left in the inbox"
+     "why": "a repeat is answered, not archived again"
     },
     {
      "file": {
       "name": "kentucky-deaths-search-saved-again.html",
-      "exists": true
-     }
+      "exists": false
+     },
+     "why": "nothing new to archive: the file is removed as a repeat"
     },
     {
      "count": {

@@ -1,0 +1,134 @@
+{
+ "title": "a repeat save answers a step whose fields have since changed",
+ "line": "the plan rewrites a step's fields after its one logged run, so ran_unchanged says it was never asked on these; the same rows saved again are still a repeat of the earlier artifact, and the fix logs a none run on the step's current fields (the note naming the earlier artifact) instead of leaving the file in the inbox forever: the step is answered and the fetch list moves on",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the search saved once: a none run, the artifact logged on the step",
+   "attach": {
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "as_file": "kentucky-deaths-search-saved.html"
+   },
+   "as": "ky",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "repeat": null,
+      "outcome": "none"
+     },
+     "why": "the first save is fresh: logged, not a repeat"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737204852",
+      "url_has": "f.collectionId=1417491",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "answered on its current fields, the step is already off the list"
+    }
+   ]
+  },
+  {
+   "say": "the plan rewrites the step's fields afterwards (a stand-in: a run written by hand on fields the step no longer carries, as a real field change would leave behind)",
+   "log": {
+    "step": {
+     "person": "I332737204852",
+     "row_key": "death record:1918",
+     "kind": "fetch",
+     "locator": {
+      "kind": "apid",
+      "value": "1,1222::1373711"
+     }
+    },
+    "outcome": "none",
+    "query": {
+     "q.surname": {
+      "value": "Bell-revised"
+     }
+    },
+    "note": "harness: standing in for the plan's own rewrite of this step's fields"
+   },
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737204852",
+      "url_has": "f.collectionId=1417491",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "the step's latest run no longer matches its current fields, so a turn would send someone to it again"
+    }
+   ]
+  },
+  {
+   "say": "the same page is saved again, other bytes, the same rows: still a repeat of the artifact the first save archived",
+   "attach": {
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "suffix": "\n\n",
+    "as_file": "kentucky-deaths-search-saved-again.html"
+   },
+   "expect": [
+    {
+     "last": {
+      "repeat": {
+       "has": "repeat"
+      }
+     },
+     "why": "the rows are those the first save already archived"
+    },
+    {
+     "file": {
+      "name": "kentucky-deaths-search-saved-again.html",
+      "exists": false
+     },
+     "why": "nothing new to archive: removed as a repeat"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": [
+       {"outcome": "none", "query": {"q.surname": {"value": "Bell"}}},
+       {"outcome": "none", "query": {"q.surname": {"value": "Bell-revised"}}},
+       {"outcome": "none", "notes": {"has": ["already logged", "repeat save"]}, "artifacts": [], "query": {"name": {"value": "Lena Howard Bell"}}}
+      ]
+     },
+     "why": "a third run, on the step's current fields again, none, naming the earlier artifact, no artifact of its own"
+    }
+   ]
+  },
+  {
+   "say": "the step is answered on its current fields once more: a turn does not pause on it",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737204852",
+      "url_has": "f.collectionId=1417491",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the repeat's own run matches the step's current fields again, so the list moves on"
+    }
+   ]
+  }
+ ]
+}

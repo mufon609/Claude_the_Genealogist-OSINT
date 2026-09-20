@@ -145,23 +145,6 @@ showed; the byte count and the markers it returns must still be checked
 before the tab is closed, as §4 says. Until then a page from such a site
 cannot be saved by this method.
 
-### C5. A repeat save answers nothing, so the list prints the same search forever
-
-When the plan rewrites a search step's fields (a residence place and year
-added once a fact is accepted), the fetch list prints the search under its
-new URL, the page saved there holds the same rows as one already logged on
-every step it fits, and `tools/attach.py` leaves it in `inbox/` as "the
-same search, with the same rows, is already logged on every step it fits:
-a repeat save", logging nothing; the step's latest run still carries the
-old fields, so `log_search.ran_unchanged` says it was never asked on these,
-and the list prints it again on every turn: the 1880 census search for
-James Joseph Ahearn, saved twice on 20 Sept 2026, printed on every later
-turn for Johanna Barry, Alice McGee and Thomas Ahearn. A repeat save is an
-answer: log a run on every step it fits with the fields as now rendered
-(`none`, the note saying the rows are those already logged), so the step
-is answered on its current fields and the list moves on; the inbox copy
-is removed as a repeat, the bytes already archived.
-
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the

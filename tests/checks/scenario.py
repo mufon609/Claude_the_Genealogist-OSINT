@@ -226,7 +226,7 @@ def a_attach(w, x):
     kw = {"about": w.person(x["about"])} if x.get("about") else {}
     res = attach_inbox(w.cx, w.tid, w.slug, BY, [name], **kw)
     r = res[0] if res else {}
-    return {"sha": r.get("sha256"), "file": name, "steps": r.get("steps"), "left": r.get("left"), "proposals": r.get("proposals"), "accepted_by_rule": r.get("accepted_by_rule"),
+    return {"sha": r.get("sha256"), "file": name, "steps": r.get("steps"), "left": r.get("left"), "repeat": r.get("repeat"), "proposals": r.get("proposals"), "accepted_by_rule": r.get("accepted_by_rule"),
             "outcome": r.get("outcome"), "identity": r.get("identity"), "extraction": r.get("extraction"), "unparsed": r.get("unparsed"), "results": res,
             "taken": [(n, why) for _, n, why in (r.get("accepted_by_rule") or [])], "step_people": [n for _, n, _, _ in (r.get("steps") or [])]}
 
@@ -364,10 +364,15 @@ def a_collect(w, x):
     return {"names": names, "results": res, "files": {r["file"]: r for r in res}}
 
 def a_log(w, x):
+    """A run written by hand, as a connector or a saved page would leave it: query true takes the step's own current
+    fields; a query dict is a literal override, for a run on fields the step no longer carries (the plan has since
+    rewritten them), to stand in for what a real change of fields would leave behind."""
     from log_search import log
     st = w.step(x["step"])
+    q = x.get("query")
+    query = q if isinstance(q, dict) else json.loads(st["query_json"] or "{}") if q else None
     lid = log(w.cx, w.tid, BY, step_id=st["id"], source_id=x.get("source"), outcome=x["outcome"], artifacts=[w.sha(a) for a in x.get("artifacts", [])] or None, note=x.get("note", "harness"), done=x.get("done", False),
-              query=json.loads(st["query_json"] or "{}") if x.get("query") else None)
+              query=query)
     return {"log": lid, "step": st["id"]}
 
 def a_reopen(w, x):

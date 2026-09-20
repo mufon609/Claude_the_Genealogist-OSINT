@@ -18,7 +18,9 @@ parser that claims it, never by its file name) fulfils the search steps whose fi
 steps whose citation was searched for by hand at that holder because it carries no record id of the holder's: the
 citation's collection has the page's collection as a holder (data/holders.csv) and the name the citation sits on is the
 name searched. Such a page is the run's own artifact: a found run when a row fits someone, a none run when none does, the
-query as run on the log; the same search saved again with the same rows is left in the inbox as a repeat. A file
+query as run on the log; the same search saved again with the same rows answers nothing new, so it is a repeat: a none
+run logged on every step it fits that isn't already answered on its current fields (the fields as now rendered, the note
+naming the earlier run's own artifact), and the file leaves the inbox with nothing archived a second time. A file
 whose identity matches no step is not archived by the inbox tool; the screen still attaches it to the step the person
 chose. Archived bytes are linked, not copied, and a step already logged with the same artifact is not logged again.
 """
@@ -26,7 +28,7 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import dbid_of, holders, holds, name_parts, person_named
-from log_search import log as log_search, rendered_query
+from log_search import log as log_search, rendered_query, ran_unchanged
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
 from conclude import match_record
@@ -266,9 +268,10 @@ def _rows_of(kind, parsed):
     return [r.get("ark") or r.get("memorial_id") or r.get("rid") or r.get("url") for r in (parsed or {}).get("rows") or []]
 
 def _repeat_save(cx, step_id, kind, parsed):
-    """Whether this results page is the same search saved again: an artifact already logged on the step carries the same search
-    URL as locator and, read again with the same parser, lists the same rows. The page adds nothing to the record of that run;
-    a later run of the same search that answers with other rows is a new run."""
+    """The earlier artifact's sha256 when this results page is the same search saved again: an artifact already logged on the
+    step carries the same search URL as locator and, read again with the same parser, lists the same rows. The page adds
+    nothing to the record of that run; a later run of the same search that answers with other rows is a new run. None when
+    this page is not a repeat of anything already logged on the step."""
     parse = {"search": parse_search, "fs_search": parse_fs_search, "aad_search": parse_aad_search}[kind]
     for arts, in cx.execute("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL", (step_id,)):
         for sha in json.loads(arts or "[]"):
@@ -277,8 +280,8 @@ def _repeat_save(cx, step_id, kind, parsed):
             try:
                 with open(object_path(sha), "rb") as fh: earlier = parse(fh.read().decode("utf-8", errors="replace"))
             except (OSError, ValueError): continue
-            if _rows_of(kind, earlier) == _rows_of(kind, parsed) and earlier.get("count") == parsed.get("count"): return True
-    return False
+            if _rows_of(kind, earlier) == _rows_of(kind, parsed) and earlier.get("count") == parsed.get("count"): return sha
+    return None
 
 def _row_of(parsed):
     """(checklist row, year) a record page is about, from its own event type (the principal's, else the one type its members
@@ -467,9 +470,19 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
         if not kind: r["left"] = "no record identity read from the file (not a Find a Grave memorial or results page, not a FamilySearch record page, not a photograph under the name the fetch list printed)"; results.append(r); continue
         r["identity"] = f"{kind} {value}"
         steps = steps_for(cx, tree_id, kind, value, parsed)
-        if kind in ("search", "fs_search", "aad_search") and steps:  # the same search saved again adds nothing to a step that already holds its answer
-            fresh = [s for s in steps if not _repeat_save(cx, s["id"], kind, parsed)]
-            if not fresh: r["left"] = "the same search, with the same rows, is already logged on every step it fits: a repeat save"; results.append(r); continue
+        if kind in ("search", "fs_search", "aad_search") and steps:  # the same search saved again is an answer: a none run on the fields as now rendered, wherever the step wasn't already answered on them
+            fresh = []
+            for s in steps:
+                sha = _repeat_save(cx, s["id"], kind, parsed)
+                if not sha: fresh.append(s); continue
+                rendered = rendered_query(s["query_json"], s["revisions_json"])
+                if not ran_unchanged(cx, s, rendered):
+                    log_search(cx, tree_id, by, step_id=s["id"], outcome="none", query=rendered,
+                               note=f"the rows are those already logged, artifact {sha[:12]}: a repeat save")
+            if not fresh:
+                os.remove(path)
+                r["repeat"] = "the same search, with the same rows, is already logged on every step it fits: a repeat save"
+                results.append(r); continue
             steps = fresh
         r["steps"] = [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"], s.get("reason")) for s in steps]
         if not steps and not about: r["left"] = "no search step in this tree has this search's fields, and no fetch step's citation was searched for by this name at this holder" if kind in ("search", "fs_search") else "no step in this tree asks for this photograph" if kind == "photo" else "no fetch step in this tree cites this record"; results.append(r); continue
@@ -479,6 +492,7 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
 
 def line(r):
     """One line per file, as the inbox tool prints it."""
+    if r.get("repeat"): return f"{r['file']}: {r['identity']}; removed as a repeat: {r['repeat']}"
     if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in the inbox: {r['left']}"
     who = "; ".join(f"{n} ({rk.split(':')[0]}: {why or 'the step cites it'})" for _, n, rk, why in r["steps"])
     return (f"{r['file']}: {r['identity']}; {len(r['steps'])} step(s) fulfilled: {who}; artifact {r['sha256'][:12]}{'' if r['new'] else ' (already archived)'}; "
