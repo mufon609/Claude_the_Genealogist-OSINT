@@ -123,7 +123,11 @@ leaves the fetch step planned and puts the row's own record (its ark, from
 the row's persona) on the fetch list as the page to save next, the step
 closing only when a record page holds it; or the fallback reaches a done
 step whose found run holds only a results listing. Either way a record page
-is never left unheld by the listing that pointed at it.
+is never left unheld by the listing that pointed at it. The same holds
+for a page saved by name at a holder without a parser, logged found
+unread: the SAR Patriot Research System's "No matching records found"
+page closed the compiled-genealogy steps of Catharine Rittenhouse and
+Catherine Bonn Van Fossen Rittenhouse on 20 Sept 2026 as found.
 
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
@@ -140,6 +144,23 @@ the place of the host's children), so the saved page is what the browser
 showed; the byte count and the markers it returns must still be checked
 before the tab is closed, as §4 says. Until then a page from such a site
 cannot be saved by this method.
+
+### C5. A repeat save answers nothing, so the list prints the same search forever
+
+When the plan rewrites a search step's fields (a residence place and year
+added once a fact is accepted), the fetch list prints the search under its
+new URL, the page saved there holds the same rows as one already logged on
+every step it fits, and `tools/attach.py` leaves it in `inbox/` as "the
+same search, with the same rows, is already logged on every step it fits:
+a repeat save", logging nothing; the step's latest run still carries the
+old fields, so `log_search.ran_unchanged` says it was never asked on these,
+and the list prints it again on every turn: the 1880 census search for
+James Joseph Ahearn, saved twice on 20 Sept 2026, printed on every later
+turn for Johanna Barry, Alice McGee and Thomas Ahearn. A repeat save is an
+answer: log a run on every step it fits with the fields as now rendered
+(`none`, the note saying the rows are those already logged), so the step
+is answered on its current fields and the list moves on; the inbox copy
+is removed as a repeat, the bytes already archived.
 
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
@@ -315,6 +336,21 @@ date agrees to the day (its place agreeing or absent), move its assertions
 onto the kept event and leave the duplicate's event behind with the
 duplicate's row, so a merge never opens a conflict between equal values; a
 differing value stays a second event and a real conflict, as now.
+
+### C17. A browse-only FamilySearch holder is listed for the browser with a name nobody can fill
+
+Three fetch-list entries point at a FamilySearch catalog description
+(`koha:275375`, the Franklin County probate films) or a browse-only
+collection landing page (`collection/1999196`, the Pennsylvania probate
+images, no index), and print the record-page name with `<year>` and
+`<ark id>` unfilled, since neither link is a search or a record: the loop
+paused on them turn after turn for Thomas Ahearn and Catherine Bonn Van
+Fossen Rittenhouse on 20 Sept 2026 until the session stopped. Such a
+holder (`fs_images`, or a `url` that is a catalog page) is browsed film by
+film by a hand, never saved as a page: the list prints only pages the
+page-saves-itself method can save (a record page, a results page, a
+memorial, a photograph), and a step at a browse-only holder stays on the
+person's screen with the reason, off the loop's list.
 
 ### C18. A merge leaves the kept person in two families with the same partner
 
