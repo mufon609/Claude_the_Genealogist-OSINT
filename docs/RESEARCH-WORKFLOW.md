@@ -273,9 +273,12 @@ may have sanitized or de-duplicated the name the list printed. A FamilySearch
 link that is the collection's own search (no ark yet known) is listed to save
 under `familysearch-<collection words>-search-<given>-<surname>.html`, the
 given name and surname the search's own, so the several people's steps one
-search serves share one name; a link that is a record page is listed under
-`familysearch-<collection words>-<year>-<ark id>.html`, the ark id read off
-the page once saved. For a page from a holder whose pages carry no identity
+search serves share one name; a census collection's search carries the row's
+own year too (`familysearch-census-<year>-search-<given>-<surname>.html`), so
+a person's two census searches (the 1925 New York state census and the 1930
+federal census) do not share a name; a link that is a record page is listed
+under `familysearch-<collection words>-<year>-<ark id>.html`, the ark id read
+off the page once saved. For a page from a holder whose pages carry no identity
 the attach reads (an SAR patriot page, a Legacy.com obituary), by the name
 the list printed, whole: such a page is listed once per citation and person
 waiting on it, under a name that carries the citation's own record locator

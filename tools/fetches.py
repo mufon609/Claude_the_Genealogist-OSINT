@@ -43,27 +43,30 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
     """The file name a saved page takes: findagrave-memorial-<id>.html for a memorial; for a FamilySearch link (D03),
     familysearch-<collection words>-search-<given>-<surname>.html when the link is the collection's own search (no ark in
     the citation: url carries no /ark:/, given and surname read off the search's own q.givenName/q.surname), so the several
-    people's steps one search serves share one name, as the list already groups them by URL; a link with no surname to
-    search by (a catalog browsed, not searched) falls to the record-page shape below; familysearch-<collection
-    words>-<year>-<ark id>.html for a link that is a record page (a lead with an ark), the year from the citation or the
-    row, the ark id read off the record page (the part after ark:/61903/1:1:); <holder>-<collection words>-<piece>-<six>.html
-    for a page at any other holder, piece being the citation's own record locator (the step's key when it has none) and six
-    the six characters of the person the page is saved for (the listing's own way of naming one person), since such a page
-    carries no identity the attach reads and the citation no record id of the holder's: the piece keeps one person's pages of
-    one collection apart, the six characters two people's pages of one, and no part of the name waits on a year the citation
-    may not carry."""
+    people's steps one search serves share one name, as the list already groups them by URL; a census collection's search
+    carries the row's own year too (familysearch-census-<year>-search-<given>-<surname>.html), the row_key's year, since
+    "census" alone would collapse a person's two census searches (the 1925 New York state census and the 1930 federal
+    census) into one name; a link with no surname to search by (a catalog browsed, not searched) falls to the record-page
+    shape below; familysearch-<collection words>-<year>-<ark id>.html for a link that is a record page (a lead with an
+    ark), the year from the citation or the row, the ark id read off the record page (the part after ark:/61903/1:1:);
+    <holder>-<collection words>-<piece>-<six>.html for a page at any other holder, piece being the citation's own record
+    locator (the step's key when it has none) and six the six characters of the person the page is saved for (the
+    listing's own way of naming one person), since such a page carries no identity the attach reads and the citation no
+    record id of the holder's: the piece keeps one person's pages of one collection apart, the six characters two people's
+    pages of one, and no part of the name waits on a year the citation may not carry."""
     if holder_id == "E01" and mid: return f"findagrave-memorial-{mid}.html"
     v = lambda k: ((fields or {}).get(k) or {}).get("value")
     if holder_id == "E05": return f"findagrave-photo-{v('memorial')}-{v('photo')}" + (os.path.splitext((v("url") or "").split("?")[0])[1].lower() or ".jpg")
     coll = v("collection") or ""
-    words = "census" if re.search(r"census", coll, re.I) else _slug(re.sub(r"[\d\u2013-]+|U\.S\.", " ", coll))[:40] or "record"
+    census = bool(re.search(r"census", coll, re.I))
+    words = "census" if census else _slug(re.sub(r"[\d\u2013-]+|U\.S\.", " ", coll))[:40] or "record"
     if holder_id == "D03":
+        row_year = row_key.split(":", 1)[1] if ":" in row_key else ""
         if url and "/ark:/" not in url:
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
             given = _slug((q.get("q.givenName") or [""])[0]); surname = _slug((q.get("q.surname") or [""])[0])
-            if surname: return f"familysearch-{words}-search-{given}-{surname}.html"
-        inst = row_key.split(":", 1)[1] if ":" in row_key else ""
-        return f"familysearch-{words}-{v('year') or (inst if inst.isdigit() else None) or '<year>'}-<ark id>.html"
+            if surname: return f"familysearch-{words}{'-' + row_year if census and row_year.isdigit() else ''}-search-{given}-{surname}.html"
+        return f"familysearch-{words}-{v('year') or (row_year if row_year.isdigit() else None) or '<year>'}-<ark id>.html"
     return f"{_slug(holder_id)}-{words}-{_slug(piece)}-{six}.html"
 
 def waiting(cx, tree_id):
