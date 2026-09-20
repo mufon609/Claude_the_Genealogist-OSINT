@@ -1,0 +1,96 @@
+{
+ "title": "a browse-only FamilySearch holder is off the fetch list, with the reason kept on the step",
+ "line": "the Franklin County probate citation's holder is a FamilySearch catalog description (fs_images), browsed film by film by a hand, no search or record page for the browser to save: the step stays on the plan, fetch, with the reason in its rationale, but never reaches tools/fetches.py's list, and a turn does not pause on it; no name with an unfilled <year> or <ark id> placeholder is ever printed",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Thomas Ahearn's own probate citation is a fetch step at the browse-only FamilySearch catalog holder",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737059537",
+      "locator": {
+       "kind": "apid",
+       "value": "1,9069::282479"
+      },
+      "kind": "fetch",
+      "fields": {
+       "mode": "fetch",
+       "status": "planned",
+       "rationale": {
+        "has": [
+         "browsed by hand",
+         "Franklin County probate",
+         "film by film",
+         "off the fetch list"
+        ]
+       }
+      }
+     },
+     "why": "the step stays planned and fetchable, the reason in its rationale"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737059537",
+      "url_has": "koha:275375",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "a browse-only holder's step never reaches the fetch list, no name with an unfilled placeholder"
+    }
+   ]
+  },
+  {
+   "say": "a turn on Thomas Ahearn does not pause on the browse-only page",
+   "turn": {
+    "person": "I332737059537",
+    "fake_run": {
+     "first": "none"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "lacks": "<year>"
+      }
+     },
+     "why": "no placeholder name is ever offered to save"
+    },
+    {
+     "last": {
+      "printed": {
+       "lacks": "<ark id>"
+      }
+     },
+     "why": "no placeholder name is ever offered to save"
+    },
+    {
+     "step": {
+      "person": "I332737059537",
+      "locator": {
+       "kind": "apid",
+       "value": "1,9069::282479"
+      },
+      "kind": "fetch",
+      "fields": {
+       "status": "planned",
+       "mode": "fetch"
+      }
+     },
+     "why": "the step stays planned and fetch, not run, not logged: it waits for a hand browsing the film, not the loop"
+    }
+   ]
+  },
+  {
+   "say": "",
+   "clear_state": {}
+  }
+ ]
+}

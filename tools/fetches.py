@@ -31,7 +31,7 @@ import argparse, json, os, re, shutil, sqlite3, subprocess, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, inbox_dir, resolve_tree
 from attach import attach, attach_inbox, line
-from catalog import Catalog, fetch_target
+from catalog import Catalog, fetch_target, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
 import connectors
 
@@ -77,7 +77,10 @@ def waiting(cx, tree_id):
     wanted when it has nothing to ask, so the step is answered on its fields and left for a hand on the person's screen, not
     the browser. Steps citing one census page (the household's record ids) are one page. A page at a holder whose pages carry
     no identity the attach reads (no memorial id, no ark) is one entry per citation and person waiting on it, named for both,
-    so the saved file reaches that person's steps on that citation alone."""
+    so the saved file reaches that person's steps on that citation alone. A step at a browse-only holder (catalog.browse_only:
+    a FamilySearch images-only collection, or a url holder whose own key is a catalog or collection page) never appears
+    either: nobody can save such a page the page-saves-itself way, so it stays on the plan with its reason and off this
+    list, never a name with an unfilled placeholder."""
     cat = Catalog(cx, tree_id); groups = cat.page_groups(); out = {}
     for s in cx.execute("""SELECT sp.id, sp.person_id, sp.step_key, sp.locator_source_id, sp.locator_kind, sp.locator_value, sp.query_json, sp.revisions_json, sp.row_key, p.display_name,
                            src.name AS holder_name, src.connector FROM search_plan sp JOIN person p ON p.id=sp.person_id LEFT JOIN source src ON src.id=sp.locator_source_id
@@ -90,6 +93,7 @@ def waiting(cx, tree_id):
             if not mid: continue
             key = (hid, mid); link = f"https://www.findagrave.com/memorial/{mid}/"; holder = "Find a Grave"
         elif s["locator_kind"] == "apid":
+            if browse_only((cat.holders.get(dbid_of(s["locator_value"])) or [None])[0]): continue   # browsed by hand, film by film: no page the browser can save, so it stays off the list
             page = piece = min(groups.get(s["locator_value"]) or {s["locator_value"]})
             key = (hid, page) if hid == "D03" else (hid, page, s["person_id"])      # a FamilySearch page carries its ark; any other page is named for its citation and person
             t = fetch_target(s["locator_value"], url, fields); link = t["url"]; holder = f"{s['holder_name']}: {t['holder']}" if t["holder"] else s["holder_name"]

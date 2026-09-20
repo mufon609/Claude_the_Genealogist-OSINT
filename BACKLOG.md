@@ -320,21 +320,6 @@ onto the kept event and leave the duplicate's event behind with the
 duplicate's row, so a merge never opens a conflict between equal values; a
 differing value stays a second event and a real conflict, as now.
 
-### C17. A browse-only FamilySearch holder is listed for the browser with a name nobody can fill
-
-Three fetch-list entries point at a FamilySearch catalog description
-(`koha:275375`, the Franklin County probate films) or a browse-only
-collection landing page (`collection/1999196`, the Pennsylvania probate
-images, no index), and print the record-page name with `<year>` and
-`<ark id>` unfilled, since neither link is a search or a record: the loop
-paused on them turn after turn for Thomas Ahearn and Catherine Bonn Van
-Fossen Rittenhouse on 20 Sept 2026 until the session stopped. Such a
-holder (`fs_images`, or a `url` that is a catalog page) is browsed film by
-film by a hand, never saved as a page: the list prints only pages the
-page-saves-itself method can save (a record page, a results page, a
-memorial, a photograph), and a step at a browse-only holder stays on the
-person's screen with the reason, off the loop's list.
-
 ### C18. A merge leaves the kept person in two families with the same partner
 
 The file's duplicate entry had its own family with the same partner (Alice

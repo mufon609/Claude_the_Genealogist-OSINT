@@ -42,6 +42,18 @@ def dbid_of(apid):
     m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
     return m.group(1) if m else None
 
+FS_CATALOG_PAGE = re.compile(r"familysearch\.org/(?:en/)?search/(?:catalog|collection)/", re.I)
+
+def browse_only(holder):
+    """Whether a free holder's own pages carry no search or record page the page-saves-itself method can save: a
+    FamilySearch images-only collection (fs_images, browsed by hand, film by film) or a url holder whose own key is
+    itself a FamilySearch catalog or collection landing page, not a search template. Such a step stays on the plan,
+    fetchable, with the reason in its rationale, but a browser session is never sent to it: nobody can save it that
+    way (data/DATA-SOURCES.md §5)."""
+    if not holder: return False
+    if holder["HolderKind"] == "fs_images": return True
+    return holder["HolderKind"] == "url" and bool(FS_CATALOG_PAGE.search(holder.get("URL") or ""))
+
 PAGE_PART = re.compile(r"^([A-Za-z][A-Za-z .]{0,40}): (.+)$")
 
 def page_key(apid, page):
