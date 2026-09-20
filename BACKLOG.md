@@ -121,6 +121,22 @@ closing only when a record page holds it; or the fallback reaches a done
 step whose found run holds only a results listing. Either way a record page
 is never left unheld by the listing that pointed at it.
 
+### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
+
+`tools/save_page.js` clones `document.documentElement` and hands the clone
+to the browser as a download; an element's shadow root attached by script
+is not cloned, so on a site that renders its page inside such roots the
+file holds only the site's no-script fallback. Seen on archive.org on
+19 Sept 2026: the two pages a paused turn listed for Carol Evers came back
+as 843 and 1,885 bytes, the body reading "Javascript is required for this
+site", and the session rightly left them out of `inbox/`. Have the script
+serialise every open shadow root it finds into the clone as declarative
+shadow DOM (`<template shadowrootmode="open">` with the root's markup, in
+the place of the host's children), so the saved page is what the browser
+showed; the byte count and the markers it returns must still be checked
+before the tab is closed, as §4 says. Until then a page from such a site
+cannot be saved by this method.
+
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the

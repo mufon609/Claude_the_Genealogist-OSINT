@@ -10,3 +10,4 @@ inbox/*
 trees/*/imports/
 trees/*/exports/
 __pycache__/
+catalog/*.loop-state.json
