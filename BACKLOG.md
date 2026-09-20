@@ -101,6 +101,26 @@ its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
 Earl Davidson and Noi Davidson) carries no year to choose an item by.
 
+### C3. A results page closes a fetch step, and the cited record's own page then holds nothing
+
+A FamilySearch results page saved for a fetch step's own search is logged
+`found` on the step when a row fits the person (`tools/attach.py`), so the
+step is done and the checklist row reads held on a listing of 244 records,
+though a row on a results page is a hint and its own record is the
+document (`docs/RESEARCH-WORKFLOW.md` §0, §4). The record page that then
+arrives reaches nothing: `attach`'s identity path logs a record on a done
+step, but the fallback by collection and name takes planned steps only, so
+the church-register pages HHGB-BQW2 and HHGB-BQZM in `inbox/` come back "no
+fetch step in this tree cites this record" while the seven steps citing
+their collection stand done on the results page of 18 Sept 2026 (Abraham B
+Brant, Abram C Brant, Allen Brant, Alicia Ahern and others, run
+2026-09-18T22:56:26Z). Decide the shape: a fitting row on a results page
+leaves the fetch step planned and puts the row's own record (its ark, from
+the row's persona) on the fetch list as the page to save next, the step
+closing only when a record page holds it; or the fallback reaches a done
+step whose found run holds only a results listing. Either way a record page
+is never left unheld by the listing that pointed at it.
+
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the
@@ -311,7 +331,7 @@ type carries no date and the person has exactly one event of that type,
 the statement asserts that event; with more than one, the difference is a
 conflict question on the card, never a new undated event.
 
-### C21. A birth page's parents are written twice
+### C2. A birth page's parents are written twice
 
 `tools/extract.py`'s FamilySearch record reader writes a parent once from the
 page's fields (Father's Name, Mother's Name: a persona with the name and the
