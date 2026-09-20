@@ -349,6 +349,7 @@ def parse_search(text):
             "pages": pages, "page": int(query.get("page") or 1), "rows": rows}
 
 FS_SEARCH_MARK = re.compile(r'<tr[^>]*\bdata-testid="/ark:/61903/1:1:')
+FS_SEARCH_URL = re.compile(r"familysearch\.org/(?:[a-z]{2}/)?search/record/results", re.I)   # the site's record search: an fs_search page whatever its body holds, a search with no rows included
 FS_EVENTS = {"census": "Residence", "residence": "Residence", "birth": "Birth", "christening": "Christening", "death": "Death", "marriage": "Marriage", "burial": "Burial"}
 
 def parse_fs_search(text):
@@ -404,7 +405,9 @@ def parse(text):
     if re.search(r'<body[^>]*\bid="memorial-summary"', text): return "findagrave", parse_memorial(text)
     if re.search(r'<body[^>]*\bid="memorial-list"', text): return "findagrave_search", parse_search(text)
     if FS_MARK.search(text): return "familysearch", parse_record(text)
-    if FS_SEARCH_MARK.search(text): return "familysearch_search", parse_fs_search(text)
+    saved = re.search(r"<!-- saved from (\S+) -->", text[:4000])
+    if FS_SEARCH_MARK.search(text) or (saved and FS_SEARCH_URL.search(saved.group(1))):   # a search that found nothing is a results page too
+        return "familysearch_search", parse_fs_search(text)
     if AAD_MARK.search(text) and re.search(r'<table[^>]*\bid="queryResults"', text): return "aad_search", parse_aad_search(text)
     if AAD_MARK.search(text) and re.search(r"Display Full Records", text): return "aad_record", parse_aad_record(text)
     if VA_MARK.search(text) and re.search(r"Grave Locator", text): return "va_graves", parse_va(text)

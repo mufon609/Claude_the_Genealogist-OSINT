@@ -1,0 +1,16 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "url",
+   "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1469062&q.givenName=Annie%20E&q.surname=Scannell"
+  }
+ },
+ "extractor": "familysearch-search",
+ "personas": 0,
+ "parsed": {
+  "count": 0,
+  "rows": []
+ }
+}

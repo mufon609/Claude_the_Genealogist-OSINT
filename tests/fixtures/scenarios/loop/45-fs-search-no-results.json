@@ -1,0 +1,119 @@
+{
+ "title": "a FamilySearch results page with no rows is a none run, not a page with no identity",
+ "line": "a saved-from line that is the site's own record search URL is an fs_search page whatever the body holds; the site's \"No Results\" answers the fetch step whose citation was searched for by that name in that collection with a none run, the search as run, and the step is not listed again until its fields change",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "before the page arrives, a turn can still open Annie's marriage-records search: nothing has answered it",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737044799",
+      "url_has": "f.collectionId=1469062&q.givenName=Annie%20E&q.surname=Scannell",
+      "is": {"len": 1}
+     },
+     "why": "the citation's own search, unopened"
+    }
+   ]
+  },
+  {
+   "say": "the search saved: the site answered No Results, saved from the search's own URL as any results page is",
+   "attach": {
+    "fixture": "familysearch-massachusetts-marriage-search-no-results-annie-e-scannell.html",
+    "as_file": "annie-scannell-marriage-search-saved.html"
+   },
+   "as": "az",
+   "expect": [
+    {
+     "last": {
+      "identity": {
+       "starts": "fs_search "
+      },
+      "left": null,
+      "steps": [
+       [
+        {
+         "any": true
+        },
+        "Annie E Scannell",
+        "marriage record:James Joseph Ahearn",
+        {
+         "has": "citation's own search"
+        }
+       ],
+       [
+        {
+         "any": true
+        },
+        "James Joseph Ahearn",
+        "marriage record:Annie E Scannell",
+        {
+         "has": "citation's own search"
+        }
+       ]
+      ],
+      "proposals": [],
+      "outcome": "none"
+     },
+     "why": "read as an fs_search page from its saved-from line, whatever its body holds (no result row's own markup at all): it fulfils every fetch step whose citation was searched for this name in this collection, on both sides of the couple; no rows at all, so the run is none"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737044799",
+       "row_key": "marriage record:James Joseph Ahearn",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,2511::12726763"
+       }
+      },
+      "is": [
+       {
+        "outcome": "none",
+        "notes": {
+         "has": "no candidate fits"
+        },
+        "artifacts": {
+         "has": "$az.sha"
+        },
+        "query": {
+         "q.surname": {
+          "value": "Scannell"
+         }
+        }
+       }
+      ]
+     },
+     "why": "the step's log row: none, the search as run, the page as its artifact"
+    },
+    {
+     "count": {
+      "personas_of": "az",
+      "is": 0
+     },
+     "why": "no rows at all: nothing to hold as a candidate"
+    }
+   ]
+  },
+  {
+   "say": "a turn does not send anyone to it again until the plan changes its fields",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737044799",
+      "url_has": "f.collectionId=1469062&q.givenName=Annie%20E&q.surname=Scannell",
+      "is": {"len": 0}
+     },
+     "why": "the citation's own search, already answered none on these fields"
+    }
+   ]
+  }
+ ]
+}

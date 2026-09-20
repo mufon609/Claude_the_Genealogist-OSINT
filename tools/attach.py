@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import dbid_of, holders, holds, name_parts, person_named
 from log_search import log as log_search, rendered_query
-from extract import FS_MARK, FS_SEARCH_MARK, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
+from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
 from conclude import match_record
 
@@ -44,7 +44,10 @@ def identity_of_name(name):
 def identity(text):
     """(kind, value, parsed) from a page's own markup: ("memorial", id, parsed memorial) for a Find a Grave memorial (body id
     memorial-summary), ("search", search URL, parsed page) for a Find a Grave results page (body id memorial-list; its identity is
-    the search's own fields), ("ark", ark, parsed record) for a FamilySearch record page, or (None, None, None)."""
+    the search's own fields), ("ark", ark, parsed record) for a FamilySearch record page, ("fs_search", search URL, parsed page)
+    for a FamilySearch results page (a result row's own markup, FS_SEARCH_MARK, or — whatever the body holds — a saved-from line
+    that is the site's own record search URL: a search that found nothing is a results page too, its identity the search's own
+    fields and no rows), or (None, None, None)."""
     if re.search(r'<body[^>]*\bid="memorial-summary"', text):
         p = parse_memorial(text); mid = re.sub(r"\D", "", p.get("memorial_id") or "")
         return ("memorial", mid, p) if mid else (None, None, p)
@@ -54,7 +57,8 @@ def identity(text):
     if FS_MARK.search(text):
         p = parse_record(text)
         return ("ark", p["ark"], p) if p.get("ark") else (None, None, p)
-    if FS_SEARCH_MARK.search(text):                                  # a FamilySearch results page: its identity is the search's own fields
+    saved = re.search(r"<!-- saved from (\S+) -->", text[:4000])
+    if FS_SEARCH_MARK.search(text) or (saved and FS_SEARCH_URL.search(saved.group(1))):   # a FamilySearch results page: its identity is the search's own fields, rows or none
         p = parse_fs_search(text)
         return ("fs_search", p["url"], p) if p["query"].get("q.surname") and p["url"] else (None, None, p)
     if AAD_MARK.search(text) and re.search(r'<table[^>]*\bid="queryResults"', text):
