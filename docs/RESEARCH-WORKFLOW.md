@@ -260,11 +260,15 @@ browser is set to ask where to save each download, turn that off first or
 answer the dialog by hand; a dialog left open blocks every later browser
 call. Chrome lets a page start one download without a hand on it: a second
 page saved in the same tab lands nowhere, so each page gets its own tab,
-closed after the file arrives. `tools/fetches.py list` prints every page a
-planned fetch step points at, at every holder without a connector, once, leads
-from held records first, with the link to open, the people waiting on it and
-the file name to save under; a browser session works down that list one tab per
-page; `tools/fetches.py collect` then moves every saved page from the download
+closed after the file arrives. `tools/fetches.py list` prints only the pages the page-saves-itself
+method can save: every planned fetch step at a holder without a connector,
+once, leads from held records first, with the link to open, the people
+waiting on it and the file name to save under; a browser session works down
+that list one tab per page. A step at a browse-only holder (`catalog.browse_only`:
+a FamilySearch images-only collection, browsed by hand, film by film, with no
+search or record page for a browser to save) stays on the plan, fetchable,
+with the reason in its rationale, but never reaches this list.
+`tools/fetches.py collect` then moves every saved page from the download
 folder (or `--folder`) into `inbox/` and attaches each by its own identity,
 read from the saved-from line the browser wrote (`tools/save_page.js`) when
 that line is a FamilySearch record or search URL, a Find a Grave memorial or
@@ -288,7 +292,12 @@ people's are, and no name waits on a year the citation may not carry; the
 saved file goes to that person's steps on that citation alone, archived under
 that holder with the page's own URL as locator, logged found, unparsed until
 a parser claims it. A file with neither a recognised saved-from line nor a
-listed name is left in the folder. Never encode a page and read it out through the model in slices.
+listed name is left in the folder. A results page saved again with the same
+rows already logged on the step is a repeat: nothing new to archive, so the
+file is removed with none archived twice, and a none run is logged on the
+step's current fields, the note naming the earlier artifact, wherever the
+step wasn't already answered on those fields. Never encode a page and read
+it out through the model in slices.
 
 **When the site blocks the fetch.** When a source answers a page save or a
 search in the owner's browser with a challenge or a sign-in, the session

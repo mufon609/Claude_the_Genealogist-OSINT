@@ -78,9 +78,8 @@ def waiting(cx, tree_id):
     the browser. Steps citing one census page (the household's record ids) are one page. A page at a holder whose pages carry
     no identity the attach reads (no memorial id, no ark) is one entry per citation and person waiting on it, named for both,
     so the saved file reaches that person's steps on that citation alone. A step at a browse-only holder (catalog.browse_only:
-    a FamilySearch images-only collection, or a url holder whose own key is a catalog or collection page) never appears
-    either: nobody can save such a page the page-saves-itself way, so it stays on the plan with its reason and off this
-    list, never a name with an unfilled placeholder."""
+    a FamilySearch images-only collection) never appears either: nobody can save such a page the page-saves-itself way,
+    so it stays on the plan with its reason and off this list, never a name with an unfilled placeholder."""
     cat = Catalog(cx, tree_id); groups = cat.page_groups(); out = {}
     for s in cx.execute("""SELECT sp.id, sp.person_id, sp.step_key, sp.locator_source_id, sp.locator_kind, sp.locator_value, sp.query_json, sp.revisions_json, sp.row_key, p.display_name,
                            src.name AS holder_name, src.connector FROM search_plan sp JOIN person p ON p.id=sp.person_id LEFT JOIN source src ON src.id=sp.locator_source_id

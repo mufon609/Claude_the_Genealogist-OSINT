@@ -15,8 +15,7 @@ collection has no free holder, or whose holder is a scanned_index (an
 archive.org collection of scanned index pages, readable only through a
 page-locating step not yet built), stays a fetch step with mode blocked and
 the reason in its rationale. A citation whose holder is browse-only
-(catalog.browse_only: a FamilySearch images-only collection, or a url holder
-whose own key is a catalog or collection landing page) stays a fetch step,
+(catalog.browse_only: a FamilySearch images-only collection) stays a fetch step,
 mode fetch, with the reason in its rationale: it is browsed by hand, film by
 film, never saved as a page, so tools/fetches.py's list leaves it off (no
 name with an unfilled placeholder is ever printed) and a turn never pauses on

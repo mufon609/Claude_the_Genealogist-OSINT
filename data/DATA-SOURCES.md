@@ -121,7 +121,10 @@ free holders of the same record set: the holder's registry row, the kind and
 key of its collection, the collection page, and what the holder covers. Five
 kinds: `fs_collection`, a FamilySearch indexed collection whose id is the key
 and whose own search is prefilled from the citation; `fs_images`, a
-FamilySearch images-only collection, browsed; `url`, any other holder, the key
+FamilySearch images-only collection, browsed film by film with no search or
+record page for a browser to save, so a step at such a holder stays on the
+plan, fetchable, with the reason in its rationale, but never reaches
+`tools/fetches.py`'s list; `url`, any other holder, the key
 a search template filled from the citation's details ({given}, {surname},
 {name}, {title}, {year}, {date}, {mdy} the publication date as Google Books'
 own `cd_min`/`cd_max` take it ("27 Jan 1986" → "1/27/1986"), {place}, {city},
