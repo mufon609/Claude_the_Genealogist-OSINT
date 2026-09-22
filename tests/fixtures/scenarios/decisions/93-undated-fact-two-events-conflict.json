@@ -1,0 +1,114 @@
+{
+ "title": "an undated fact on a person with two events of its type is a conflict, never a silent drop",
+ "line": "assert_facts leaves an undated death fact unasserted when the person carries two death events, exactly as it already did for two births; the checklist raises the multi-event conflict for every type, in its own words, and a second conflict of its own naming the record whose fact fits none of them, so nothing is dropped without a word",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Robert Edgar Davidson carries one Death event already, the file's own claim",
+   "expect": [
+    {
+     "event": {
+      "person": "I332737100409",
+      "type": "Death",
+      "events": 1,
+      "basis": "claim"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a second Death event planted on him: the harness's own stand-in for a real second dated record, since the harness holds no such pair for him",
+   "event": {
+    "person": "I332737100409",
+    "type": "Death",
+    "date": "1975",
+    "date_start": "1975"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737100409",
+      "type": "Death",
+      "events": 2
+     }
+    }
+   ]
+  },
+  {
+   "say": "a record attached on the owner's word, no step citing it: his father's Ohio death index page, whose own Death fact carries no date",
+   "attach": {
+    "fixture": "familysearch-ohio-death-index-VKBL-4FN.html",
+    "about": "I332737100409"
+   },
+   "as": "ohio",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "proposals": [
+       [
+        {
+         "any": true
+        },
+        "persona_match",
+        "Robert Edgar Davidson",
+        {
+         "any": true
+        }
+       ]
+      ]
+     },
+     "why": "no step cited the record; a card on arrival for the record's subject, his"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts him on it: the record's undated death fits neither of his two events, and nothing is guessed",
+   "decide": {
+    "card": {
+     "record": "ohio",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "event": {
+      "person": "I332737100409",
+      "type": "Death",
+      "events": 2,
+      "basis": "claim"
+     },
+     "why": "no third event guessed at, and the file's own claim is still the key fact's value: the record's own undated Death asserts nothing"
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "detail_has": "more than one death event",
+      "status": "open"
+     },
+     "why": "the checklist raises the multi-event conflict for a death, not only a birth"
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "detail_has": "fits none of your 2 death events",
+      "status": "open"
+     },
+     "why": "and a second conflict of its own, naming the record whose undated fact fits none of them"
+    }
+   ]
+  }
+ ]
+}

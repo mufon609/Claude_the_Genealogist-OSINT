@@ -124,9 +124,10 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     ground for the rule, so the person's facts come from primary documents only). Name and Sex assert the person row. An event
     fact asserts the person's event of that type and year, created from the fact's date when there is none; an undated event
     fact (other than Residence, its own case below) asserts the person's one event of that type when there is exactly one,
-    whatever its own date, rather than guess a year; with more than one, the difference already stands as the checklist's own
-    "more than one event" conflict, and the fact is left unasserted rather than guessed onto either; with none, an event is
-    created as usual. An attribute fact (Occupation, Inscription, Religion, ...) asserts the person's attribute of that type
+    whatever its own date, rather than guess a year; with more than one, the fact is left unasserted rather than guessed onto
+    either: the checklist's own "more than one event" conflict already stands, and Catalog.unplaced raises this fact of its
+    own, naming the record and the type, until the person is left with one event of the type and the record is decided again;
+    with none, an event is created as usual. An attribute fact (Occupation, Inscription, Religion, ...) asserts the person's attribute of that type
     with the same value, created when there is none. A fact the same record already asserts on the same subject with the same
     type, date, value and place is not asserted again, so a re-extraction adds only what is new; one the rule withdrew turns
     Accepted again on a trusted record and stays as it is on an editable page. Returns how many were written."""

@@ -121,23 +121,6 @@ showed; the byte count and the markers it returns must still be checked
 before the tab is closed, as §4 says. Until then a page from such a site
 cannot be saved by this method.
 
-### C5. A record's undated event fact on a person with two events of the type is dropped without a word
-
-`tools/conclude.py assert_facts` asserts a record's undated event fact (a
-death index with no date) on the person's one event of that type, and when
-the person has two or more it asserts nothing and moves on, on the ground
-that the checklist's "more than one event" conflict already stands. The
-checklist raises that conflict for Birth alone (`tools/checklist.py`), so a
-record's undated Death on a person with two Death events leaves no trace
-anywhere: no assertion, no question, no note on the card, a silent drop
-rule 3 forbids. Raise the conflict for every event type with more than one
-event, in the checklist's words ("more than one death event"), and have
-the decision raise a conflict question of its own naming the record and
-the type when its undated fact fits none of several events, the way a
-disagreeing value already becomes a conflict question on the card; the
-statement is then asserted on the event the owner chooses when they answer
-it, never guessed.
-
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the

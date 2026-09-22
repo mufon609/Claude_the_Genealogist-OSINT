@@ -108,8 +108,10 @@ def build(cat: Catalog, pid: str):
     for label, e in (("birth", birth), ("death", death)):
         if not e or not e["year"]: questions.append({"kind": "missing_fact", "detail": f"{label} date"})
         elif not e["place"]: questions.append({"kind": "missing_fact", "detail": f"{label} place"})
-    if sum(1 for e in ev if e["type"] == "Birth") > 1: questions.append({"kind": "conflict", "detail": "more than one birth event"})
+    for etype, n in collections.Counter(e["type"] for e in ev).items():
+        if n > 1: questions.append({"kind": "conflict", "detail": f"more than one {etype.lower()} event"})
     for said in cat.disagreements(pid): questions.append({"kind": "conflict", "detail": said})   # an accepted record says something else than the tree
+    for said in cat.unplaced(pid): questions.append({"kind": "conflict", "detail": said})         # an accepted record's undated fact fits none of several events of its type: assert_facts guessed at none of them
     for f in fam["families"]:
         if len(f["marriages"]) > 1: questions.append({"kind": "conflict", "detail": f"{len(f['marriages'])} marriage events with {f['spouse']}"})
     fp = footprint(cat, pid) if reviewed else {"summary": {"relatives": 0, "records": 0, "shared": 0}, "duplicates": [], "unlinked": [], "records": [], "collections": [], "gated": True}

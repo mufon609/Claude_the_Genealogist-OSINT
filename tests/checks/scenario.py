@@ -391,6 +391,17 @@ def a_step(w, x):
                   loc.get("source"), loc.get("kind"), loc.get("value"), json.dumps(x.get("sources", [])), x.get("mode", "auto"), x.get("expected"), x.get("status", "planned"), x.get("rationale"), x.get("on"), w.treelib.now()))
     return {"step": sid}
 
+def a_event(w, x):
+    """A second event of a type a person already carries, written by the harness itself for a path only a planted event
+    exercises (docs/RESEARCH-WORKFLOW.md's harness-is-data rule keeps the file itself free of invented people and records;
+    a bare event with no record behind it is not one of those)."""
+    eid = w.treelib.ulid()
+    w.cx.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,description,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                 (eid, w.tid, x["type"], x.get("date"), x.get("date_start"), x.get("date_end"), x.get("qualifier"), x.get("calendar", "gregorian"), x.get("description"), w.treelib.now(), w.treelib.now()))
+    w.cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (w.treelib.ulid(), eid, w.person(x["person"])))
+    return {"event": eid}
+
 def a_place_card(w, x):
     """A place_resolution card for a string of the tree, as the resolver would write it, its candidates' geocoder answers
     planted in the cache so no request goes out."""
@@ -451,7 +462,7 @@ def a_question(w, x):
 ACTIONS = {"plan": a_plan, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "link_on_word": a_link_on_word, "living": a_living, "transcribe": a_transcribe, "view": a_view, "save": a_save, "collect": a_collect,
            "question": a_question,
-           "log": a_log, "reopen": a_reopen, "step": a_step, "place_card": a_place_card, "older_matcher": a_older_matcher, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "older_matcher": a_older_matcher, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 
