@@ -28,7 +28,7 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import dbid_of, holders, holds, name_parts, person_named
-from log_search import log as log_search, rendered_query, ran_unchanged
+from log_search import log as log_search, rendered_query, ran_unchanged, step_source
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
 from conclude import match_record
@@ -476,7 +476,7 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
                 sha = _repeat_save(cx, s["id"], kind, parsed)
                 if not sha: fresh.append(s); continue
                 rendered = rendered_query(s["query_json"], s["revisions_json"])
-                if not ran_unchanged(cx, s, rendered):
+                if not ran_unchanged(cx, s, rendered, step_source(s)):
                     log_search(cx, tree_id, by, step_id=s["id"], outcome="none", query=rendered,
                                note=f"the rows are those already logged, artifact {sha[:12]}: a repeat save")
             if not fresh:
