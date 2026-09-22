@@ -117,9 +117,10 @@
     },
     {
      "last": {
-      "events_folded": 2
+      "events_folded": 2,
+      "families_folded": 1
      },
-     "why": "the duplicate's Birth and Death agree with the kept person's own to the day and fold onto them"
+     "why": "the duplicate's Birth and Death agree with the kept person's own to the day and fold onto them; the duplicate's family, once its only other partner is the kept person, has the same partners as the kept person's own and folds into it"
     },
     {
      "event": {
@@ -143,6 +144,21 @@
       "is": 2
      },
      "why": "the duplicate's own Birth and Death events and their participants are left as they are, on the duplicate's row"
+    },
+    {
+     "count": {
+      "family_rows_of": "I332737059537",
+      "is": 1
+     },
+     "why": "the kept person is a partner of Alice McGee in one family, not two"
+    },
+    {
+     "step_count": {
+      "person": "I332737059537",
+      "step_key_like": "%:2",
+      "is": 0
+     },
+     "why": "no step keyed with a second instance: the marriage citations share the one family's row"
     }
    ]
   },

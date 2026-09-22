@@ -281,18 +281,6 @@ vouch, recorded as their word), the household then read outward from her
 through its stated relationships as any accepted record is; or the card stays
 the owner's.
 
-### C18. A merge leaves the kept person in two families with the same partner
-
-The file's duplicate entry had its own family with the same partner (Alice
-McGee, child Patrick Ahearn); the merge moves the membership across, so the
-kept Thomas Ahearn is a partner of Alice McGee in two families, the
-checklist lists her twice under spouses, and the plan carries every
-marriage citation twice, the second step keyed `:2`. When, after the
-merge, the duplicate's family has exactly the partners the kept person's
-family has, fold it: the children's memberships and the family's events
-and assertions move to the kept family, the emptied family row stays with
-the duplicate for the audit trail, and the audit row names what moved.
-
 ### C19. The person screen has no living line and no control to confirm it
 
 The living status is the tier from the home person
