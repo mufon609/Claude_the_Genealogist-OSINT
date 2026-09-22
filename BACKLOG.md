@@ -370,45 +370,6 @@ twice, two cards for one decision. The Massachusetts birth fixture carries
 the table alone and reads clean. One persona per named person on a page: the
 table's row, which carries the sex, with the field's statement on it.
 
-### C5. A repeat save reads the step's runs across every source, the fetch list per the step's own
-
-`tools/attach.py`'s repeat path decides whether a step is already answered on
-its current fields with `log_search.ran_unchanged` and no source, so the
-step's latest run from any source counts; `tools/fetches.py openable` (what
-a turn pauses on) reads the same question per `log_search.step_source`, the
-holder a page saved by hand is logged under, and its own docstring says a
-row source's connector answering the same step does not stand for the
-holder's page. The two readings part on a fetch step at a holder without a
-connector whose fields the plan rewrote after its one saved page, then
-answered by a row source's connector on the new fields: the list prints the
-search, the page saved again is a repeat, the repeat path sees the
-connector's run as the answer and logs nothing, and the list prints the
-search on every later turn, the very loop the repeat run was made to close.
-Read per `step_source` on the repeat path too, so the none run is logged
-under the holder whenever the holder has none on these fields. Harness: a
-results page saved once, a run written by hand under the holder on fields
-the step no longer carries, a run under a row source on the current fields,
-the same page saved again: a none run under the holder, the entry off the
-list.
-
-### C17. The governing docs still describe the fetch list and the inbox as they were
-
-`docs/RESEARCH-WORKFLOW.md` §4 says the list prints every page a planned
-fetch step points at, at every holder without a connector, and
-`schema/README.md`'s fetches row says the same; both now leave out the step
-at a browse-only holder, and neither the collect paragraph, the attach row
-nor `data/DATA-SOURCES.md` §5 (whose `fs_images` sentence says only
-"browsed") says that a browse-only step stays off the list with the reason
-on the step, or that a results page saved again with rows already logged is
-a none run on the step's current fields and leaves the inbox with nothing
-archived twice. Say it in those four places, in the docs' own words. With
-it, `catalog.browse_only`'s second case, a `url` holder whose key is a
-FamilySearch catalog or collection page, names a holder the registry does
-not have (the Franklin County probate row is `fs_images`, like the
-Pennsylvania one), so no real page can exercise it and the harness cannot
-test it: drop that case and its pattern, and let the three docstrings that
-describe it name `fs_images` alone.
-
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
