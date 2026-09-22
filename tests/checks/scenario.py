@@ -219,7 +219,10 @@ def a_plan(w, x):
 
 def a_migrate(w, x):
     """tools/initdb.py --migrate on the scratch catalog itself: its printed line, for a data correction a migration
-    version carries to be checked against a row put in the shape it corrects."""
+    version carries to be checked against a row put in the shape it corrects. A scratch catalog is born current, every
+    MIGRATIONS version already recorded applied, never behind; {"reset_to": version} first forgets every later version's
+    row, so --migrate meets the correction the way an older catalog actually upgraded through it would."""
+    if isinstance(x, dict) and x.get("reset_to"): w.cx.execute("DELETE FROM schema_migration WHERE version > ?", (x["reset_to"],))
     w.cx.commit()
     return {"printed": run(tool("initdb.py"), "--db", w.db, "--migrate").strip()}
 

@@ -91,7 +91,9 @@
   },
   {
    "say": "the migration recomputes every row's key from its own detail_json",
-   "migrate": true,
+   "migrate": {
+    "reset_to": "0.7.2"
+   },
    "expect": [
     {
      "question": {

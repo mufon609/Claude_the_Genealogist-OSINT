@@ -106,7 +106,10 @@ archived it. A card is `{"record": label, "person": ref}` or `{"record": label, 
 with `extraction` and `latest` to pick a reading; a step of the plan is `{"person": ref, "step_key": …}`, `step_key_like`,
 `row_key`, `kind`, `status`, or `locator: {kind, value}`.
 
-Actions: `plan` (`"all"` or people), `attach` (`fixture` into the inbox and `tools/attach_inbox.py`, `about` for the
+Actions: `plan` (`"all"` or people), `migrate` (`tools/initdb.py --migrate` on the scratch catalog itself, its printed
+line; `{"reset_to": version}` first forgets every later version's own row, since a scratch catalog is born with every
+migration already recorded applied, so a correction is met the way an older catalog upgraded through it would), `attach`
+(`fixture` into the inbox and `tools/attach_inbox.py`, `about` for the
 owner's word), `archive` (a `fixture`, or a stand-in: `stand_in: "image"`, or a page with only a `saved_from` line,
 `suffix` to make other bytes of the same page; `source`, `collection`, `locator`, or a `manifest`; `extract`, `match`
 (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same, for a page the harness only
@@ -119,7 +122,9 @@ literal id or `{person, type, index}`, that person's nth event of the type in th
 `transcribe` (a reading typed into the person screen's form: `record`, `form`, `relations` to bound personas, `about`,
 `by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's),
-`collect`, `log`, `reopen`, `step` (a plan step written by hand), `place_card` (a place answer's card with the geocoder's
+`collect`, `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
+carries, written by the harness itself for a path only a planted event exercises), `place_card` (a place answer's card
+with the geocoder's
 `candidates` planted in the cache), `older_matcher`, `merge`, `cite`, `question` (a research_question row patched by
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
 a regeneration to be checked against a prior state, such as a legacy truncated key).

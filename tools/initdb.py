@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_dir
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCHEMA_VERSION = "0.7.2"
+SCHEMA_VERSION = "0.7.3"
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 def requery_questions(cx: sqlite3.Connection) -> None:
@@ -131,8 +131,10 @@ def main() -> int:
     cx.execute("""INSERT INTO storage_target (name, kind, uri, is_master, object_lock, enabled, notes)
                   VALUES ('s3-master','s3','s3://CHANGE-ME/tree/bags',0,1,0,
                           'disabled until project is finished; Versioning + Object Lock compliance, lifecycle to Deep Archive @30d')""")
-    cx.execute("INSERT INTO schema_migration (version, applied_at, notes) VALUES (?,?,?)",
-               (SCHEMA_VERSION, ts, "initial"))
+    for version, note, _ in MIGRATIONS:                 # schema/catalog.sql already carries every migration's structure: recorded applied, never re-run, so a fresh catalog is never born behind
+        cx.execute("INSERT INTO schema_migration (version, applied_at, notes) VALUES (?,?,?)", (version, ts, note))
+    if SCHEMA_VERSION not in {v for v, _, _ in MIGRATIONS}:
+        cx.execute("INSERT INTO schema_migration (version, applied_at, notes) VALUES (?,?,?)", (SCHEMA_VERSION, ts, "initial"))
     cx.commit()
 
     n_tables = cx.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
