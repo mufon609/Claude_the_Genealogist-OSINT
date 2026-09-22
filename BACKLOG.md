@@ -121,6 +121,23 @@ showed; the byte count and the markers it returns must still be checked
 before the tab is closed, as §4 says. Until then a page from such a site
 cannot be saved by this method.
 
+### C5. A record's undated event fact on a person with two events of the type is dropped without a word
+
+`tools/conclude.py assert_facts` asserts a record's undated event fact (a
+death index with no date) on the person's one event of that type, and when
+the person has two or more it asserts nothing and moves on, on the ground
+that the checklist's "more than one event" conflict already stands. The
+checklist raises that conflict for Birth alone (`tools/checklist.py`), so a
+record's undated Death on a person with two Death events leaves no trace
+anywhere: no assertion, no question, no note on the card, a silent drop
+rule 3 forbids. Raise the conflict for every event type with more than one
+event, in the checklist's words ("more than one death event"), and have
+the decision raise a conflict question of its own naming the record and
+the type when its undated fact fits none of several events, the way a
+disagreeing value already becomes a conflict question on the card; the
+statement is then asserted on the event the owner chooses when they answer
+it, never guessed.
+
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the
@@ -167,6 +184,21 @@ needs the extractor to claim a plain-text response by the runner's notes.
 On 11 September 2026 the site served its robots page but reset the connection
 on the search path to a declared tool (urllib and curl alike); confirm it
 answers again before building, and if it keeps refusing, the step is assisted.
+
+### C9. The question re-key is a migration, not a branch of the plan
+
+`tools/plan.py plan_person` carries `_legacy_q_key` and a branch that finds
+a research_question row under the key the planner wrote before it stopped
+truncating a detail to 120 characters, and re-keys it. That is a one-time
+correction of rows the live catalog holds, and the catalog has the place
+for one: `tools/initdb.py --migrate`, whose versions run once and are
+recorded in `schema_migration`. Every row carries its whole detail in
+`detail_json`, so a migration recomputes each open or closed question's
+key from it in place (no two rows can collide, since one full detail has
+one truncated form). Write that migration, drop `_legacy_q_key` and the
+branch, and let the plan know one key. The docstrings there and on the
+harness's `question` action speak of "before this fix" and "a run before a
+fix landed": comments describe the code as it is, never its history.
 
 ### C10. Accepted links that pile up on a re-read
 
