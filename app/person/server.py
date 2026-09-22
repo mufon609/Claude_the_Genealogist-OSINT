@@ -221,9 +221,8 @@ def decide_proposal(cx, tree_id, prop_id, status, note=None, choice=None):
     return {**r, **decision_outcome(cx, tree_id, p, status, r["person"], r["persona"], prop_id, r["answered"], r["memberships"])}
 
 def living_route(cx, tree_id, pid, body):
-    """The living control on the foundation (BACKLOG C19): the owner's word (living, deceased, or unknown to clear it and
-    let the tier rule decide again) through tools/conclude.py living, one audit row, as the fact rows write their
-    decisions."""
+    """The living control on the foundation: the owner's word (living, deceased, or unknown to clear it and let the tier
+    rule decide again) through tools/conclude.py living, one audit row, as the fact rows write their decisions."""
     word = body.get("word")
     if word not in ("living", "deceased", "unknown"): return {"error": "word must be living, deceased or unknown"}
     return {"ok": True, **living(cx, tree_id, pid, word, CFG["by"], (body.get("note") or "").strip() or None)}
