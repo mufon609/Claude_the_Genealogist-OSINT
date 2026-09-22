@@ -105,6 +105,24 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
+### C2. A fetch step tried name by name under its citation's label is asked again blind
+
+`tools/run_step.py run_connector` tries a place field that carries several
+accurate names one at a time under whatever label carries the list (a
+search step's `place`, a fetch step's `census place`) and logs the names
+tried on the run under that label. `tools/log_search.py same_fields` reads a
+run's `tried` list only under the key `place`; under `census place` it
+compares the run's one string with the step's list, finds them unequal, and
+`ran_unchanged` says the step was never asked on these fields, so the
+runner asks it again on every turn, the blind repeat the tried list exists
+to prevent. Read `tried` under any label that carries a list, as the runner
+writes it. Then check the other readers of a fetch step's place outside the
+runner's own substitution (`run_step.runnable`, a connector's `wants` and
+`requests` when handed the step's raw fields, `connectors/nara_1950.py
+place_parts`): each must take the first name, `catalog.first_value`. Harness:
+scenario loop/96 run once more after its name-by-name run, asserting the
+step is not runnable again on unchanged fields.
+
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
