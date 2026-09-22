@@ -350,6 +350,12 @@ def a_living(w, x):
     from conclude import living
     return living(w.cx, w.tid, w.person(x["person"]), x["word"], BY, x.get("note", "harness"))
 
+def a_living_route(w, x):
+    """The person screen's own living control (app/person/server.py living_route), through the same function
+    app/person/server.py's POST route calls: word and an optional note."""
+    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server; server.CFG["by"] = BY
+    return server.living_route(w.cx, w.tid, w.person(x["person"]), {"word": x["word"], "note": x.get("note")})
+
 def a_transcribe(w, x):
     """A reading typed into the person screen's form, as the model or a person reads a record: the fields as given,
     relations to personas earlier readings bound."""
@@ -364,6 +370,12 @@ def a_transcribe(w, x):
 def a_view(w, x):
     sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server
     return server.artifact_view(w.cx, w.tid, w.sha(x["record"]), w.person(x["person"]))
+
+def a_person_view(w, x):
+    """The person screen's own view (app/person/server.py person_view): the foundation with its living line, the
+    checklist and the plan, as the screen renders them."""
+    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server
+    return server.person_view(w.cx, w.tid, w.person(x["person"]))
 
 def a_save(w, x):
     """A page or an image saved in the browser, as a stand-in: into the inbox, or into a download folder for collect.
@@ -483,7 +495,8 @@ def a_question(w, x):
     return {"question": qid}
 
 ACTIONS = {"plan": a_plan, "migrate": a_migrate, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
-           "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "transcribe": a_transcribe, "view": a_view, "save": a_save, "collect": a_collect,
+           "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
+           "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "older_matcher": a_older_matcher, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 

@@ -25,7 +25,7 @@ from log_search import dismiss as dismiss_question, log as log_search, rendered_
 from extract import Writer
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
-from conclude import decide as decide_document, match_record, record_says
+from conclude import decide as decide_document, living, match_record, record_says
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
 from overview import overview, people, person_card
 
@@ -220,6 +220,14 @@ def decide_proposal(cx, tree_id, prop_id, status, note=None, choice=None):
     p = cx.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
     return {**r, **decision_outcome(cx, tree_id, p, status, r["person"], r["persona"], prop_id, r["answered"], r["memberships"])}
 
+def living_route(cx, tree_id, pid, body):
+    """The living control on the foundation (BACKLOG C19): the owner's word (living, deceased, or unknown to clear it and
+    let the tier rule decide again) through tools/conclude.py living, one audit row, as the fact rows write their
+    decisions."""
+    word = body.get("word")
+    if word not in ("living", "deceased", "unknown"): return {"error": "word must be living, deceased or unknown"}
+    return {"ok": True, **living(cx, tree_id, pid, word, CFG["by"], (body.get("note") or "").strip() or None)}
+
 def place_strings(cx, tree_id, eid):
     """The place strings behind an event with no resolved place, from its non-rejected assertions: each with its words and
     status and, for one the resolver left undecided with a place_resolution proposal, the proposal's id, its candidates and
@@ -251,7 +259,7 @@ def other_facts(cx, cat, pid):
     return out
 
 def person_view(cx, tree_id, pid):
-    cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid)
+    cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid); r["living"] = cat.living(pid)
     r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f),
                        "places": [s for k, i in fact_subjects(cx, pid, f) if k == "event" for s in place_strings(cx, tree_id, i)]} for f in KEY_FACTS}
     r["facts"] = other_facts(cx, cat, pid)
@@ -308,16 +316,18 @@ class H(BaseHTTPRequestHandler):
         mf = re.match(r"^/api/person/([A-Z0-9]+)/fact/([a-z]+|event:[A-Z0-9]+)$", u.path); mp = re.match(r"^/api/person/([A-Z0-9]+)/plan$", u.path)
         ms = re.match(r"^/api/step/([A-Z0-9]+)/(log|revise)$", u.path); mq = re.match(r"^/api/question/([A-Z0-9]+)/dismiss$", u.path)
         mt = re.match(r"^/api/artifact/([0-9a-f]{64})/persona$", u.path); md = re.match(r"^/api/proposal/([A-Z0-9]+)/decide$", u.path)
-        if not (mf or mp or ms or mq or mt or md): self.send({"error": "not found"}, code=404); return
+        ml = re.match(r"^/api/person/([A-Z0-9]+)/living$", u.path)
+        if not (mf or mp or ms or mq or mt or md or ml): self.send({"error": "not found"}, code=404); return
         with LOCK:
             cx = db()
             try:
                 tree_id, slug, _ = tree_of(cx, q.get("tree", [None])[0])
-                pid = (mf or mp).group(1) if (mf or mp) else None
+                pid = (mf or mp or ml).group(1) if (mf or mp or ml) else None
                 if pid and not cx.execute("SELECT 1 FROM person WHERE id=? AND tree_id=?", (pid, tree_id)).fetchone(): self.send({"error": "not found"}, code=404); return
                 cx.execute("BEGIN")
                 if mf: res = decide_fact_by(cx, tree_id, pid, mf.group(2), body.get("status"), body.get("note"), CFG["by"])
                 elif mp: res = {"ok": True, **plan_person(cx, tree_id, pid, CFG["by"])}
+                elif ml: res = living_route(cx, tree_id, pid, body)
                 elif mq:
                     try: dismiss_question(cx, tree_id, CFG["by"], mq.group(1), body.get("note")); res = {"ok": True}
                     except SystemExit as e: res = {"error": str(e)}

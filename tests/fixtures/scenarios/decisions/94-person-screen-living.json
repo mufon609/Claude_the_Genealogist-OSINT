@@ -1,0 +1,117 @@
+{
+ "title": "the person screen shows the living line and, on an unknown person, its control",
+ "line": "the foundation's living field, with its reason, reaches the person screen's own view; the screen's living control writes the owner's word through tools/conclude.py living with one audit row, exactly as app/person/server.py's route does; a person with held death evidence shows deceased with that reason and no word of the owner's to give",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a tier-two person with no death and no word: the screen's view carries unknown with its reason, the control's ground",
+   "person_view": {
+    "person": "I332737036894"
+   },
+   "expect": [
+    {
+     "last": {
+      "living": {
+       "status": "unknown",
+       "tier": 2,
+       "reason": "tier 2, unconfirmed"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "a tier-two person with held death evidence: deceased with that reason, nothing for the owner to decide",
+   "person_view": {
+    "person": "I332737036054"
+   },
+   "expect": [
+    {
+     "last": {
+      "living": {
+       "status": "deceased",
+       "tier": 2,
+       "reason": "death evidence"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the screen's control: the owner says the unknown person is alive, through the same function the route calls",
+   "living_route": {
+    "person": "I332737036894",
+    "word": "living",
+    "note": "harness: the screen's control"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "was": null,
+      "now": "living",
+      "status": "living",
+      "reason": "the owner's word"
+     }
+    },
+    {
+     "audit": {
+      "entity": "person",
+      "id": "I332737036894",
+      "diff_key": "living_override",
+      "is": [
+       {
+        "actor": "agent:check",
+        "action": "update",
+        "diff": {
+         "living_override": {
+          "was": null,
+          "now": "living"
+         },
+         "note": "harness: the screen's control"
+        }
+       }
+      ]
+     },
+     "why": "one audit row, as a fact row's decision writes one"
+    }
+   ]
+  },
+  {
+   "say": "the screen's next view shows the flip",
+   "person_view": {
+    "person": "I332737036894"
+   },
+   "expect": [
+    {
+     "last": {
+      "living": {
+       "status": "living",
+       "reason": "the owner's word"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "a word the route refuses: not one of the two the control offers, nor unknown to clear it",
+   "living_route": {
+    "person": "I332737036894",
+    "word": "maybe"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "living, deceased or unknown"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}
