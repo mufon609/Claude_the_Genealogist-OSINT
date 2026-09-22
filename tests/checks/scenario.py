@@ -434,8 +434,23 @@ def a_seed(w, x):
     """A stand-in artifact for a record the owner holds and the harness only reads by a typed reading."""
     return a_archive(w, x)
 
+def a_question(w, x):
+    """A research_question row patched by hand into a shape nothing today writes, for a regeneration to be checked
+    against: the row a run before a fix landed would have left (a legacy truncated key, a dismissed status). The row is
+    found among the person's own by kind and a substring of its detail, and must be exactly one."""
+    pid = w.person(x["person"])
+    rows = w.cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=?", (pid,)).fetchall()
+    if x.get("kind"): rows = [r for r in rows if r["kind"] == x["kind"]]
+    if x.get("detail_has"): rows = [r for r in rows if x["detail_has"] in (r["detail_json"] or "")]
+    if len(rows) != 1: raise KeyError(f"{len(rows)} research_question rows match, expected exactly one")
+    qid = rows[0]["id"]; set_ = x["set"]
+    w.cx.execute(f"UPDATE research_question SET {', '.join(f'{k}=?' for k in set_)} WHERE id=?", (*set_.values(), qid))
+    w.cx.commit()
+    return {"question": qid}
+
 ACTIONS = {"plan": a_plan, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "link_on_word": a_link_on_word, "living": a_living, "transcribe": a_transcribe, "view": a_view, "save": a_save, "collect": a_collect,
+           "question": a_question,
            "log": a_log, "reopen": a_reopen, "step": a_step, "place_card": a_place_card, "older_matcher": a_older_matcher, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
@@ -528,6 +543,7 @@ def e_question(w, x, want):
     if "status" in x: q += " AND status=?"; args.append(x["status"])
     rows = [dict(r) for r in w.cx.execute(q, args)]
     if "detail_has" in x: rows = [r for r in rows if x["detail_has"] in (r["detail_json"] or "")]
+    if "count" in x: return has(len(rows), x["count"]), rows
     return bool(rows) == x.get("exists", True), rows
 
 def e_assertions_on(w, x, want):

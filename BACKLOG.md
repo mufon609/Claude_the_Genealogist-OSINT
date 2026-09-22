@@ -168,21 +168,6 @@ On 11 September 2026 the site served its robots page but reset the connection
 on the search path to a declared tool (urllib and curl alike); confirm it
 answers again before building, and if it keeps refusing, the step is assisted.
 
-### C9. A question's key collides when two questions share a long prefix
-
-`tools/plan.py`'s `q_key()` truncates a question's detail to 120 characters
-before keying it, so two distinct conflicts on the same person collapse into
-one `research_question` row when their text agrees for the first 120
-characters and only then differs: Noi Davidson's New Jersey death index
-citation is a long archive.org URL, and both her birthplace conflicts
-("... against Find a Grave: Morioka against Tokushima" and "... against the
-file: Morioka against Ogau Tonan...") share that URL as their first 120
-characters, so only one of the two ever opens as a question; the plan keeps
-whichever the regeneration writes last, closing gap_gone or overwriting the
-other on the next run. Key on a hash of the full detail (or the full detail
-itself, if the column allows it) instead of a truncated prefix, so two
-questions that happen to start alike stay two rows.
-
 ### C10. Accepted links that pile up on a re-read
 
 Every re-read of a page carries the decided links to its new personas and

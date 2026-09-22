@@ -1,0 +1,119 @@
+{
+ "title": "a question's key is re-keyed, not closed gap-gone and reopened, when the plan stops truncating it",
+ "line": "a conflict's key is its whole detail, never a 120-character prefix; a row a run before this fix left under the old truncated key is found again by its full detail and re-keyed onto it, so a question the owner dismissed under the old key stays dismissed, never silently reopened as a new row",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 page arrives; the son and mother accepted first, so the father's own card can be",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the father accepted: his birthplace disagrees with the file's own claim, a conflict whose detail is well over 120 characters",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "disagreements": {
+      "person": "I332737037257",
+      "is": {
+       "some": {
+        "has": [
+         "birth place:",
+         "against the file",
+         "Pennsylvania against Northampton, Hampshire, Massachusetts, USA"
+        ]
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the plan opens the conflict at its full, untruncated key",
+   "plan": [
+    "I332737037257"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "Pennsylvania against Northampton",
+      "count": 1
+     },
+     "why": "one row, open, at whatever key this run gave it"
+    }
+   ]
+  },
+  {
+   "say": "the owner dismisses it, and the catalog is put back as a run before this fix would have left it: the same row, under the 120-character prefix the old q_key truncated to, closed and dismissed",
+   "question": {
+    "person": "I332737037257",
+    "kind": "conflict",
+    "detail_has": "Pennsylvania against Northampton",
+    "set": {
+     "status": "closed",
+     "closed_reason": "dismissed",
+     "q_key": "conflict:birth place: United States, Census, 1940 (1,2442::26440834) against the file: Pennsylvania against Northampton, Hampshir"
+    }
+   }
+  },
+  {
+   "say": "the plan regenerated finds the dismissed row by its old, truncated key and re-keys it onto the full detail: it is not reopened, and no second row is created beside it",
+   "plan": [
+    "I332737037257"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "detail_has": "Pennsylvania against Northampton",
+      "count": 1
+     },
+     "why": "one row only: re-keyed, never duplicated"
+    },
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "status": "closed",
+      "detail_has": "Pennsylvania against Northampton"
+     },
+     "why": "still closed: a dismissed question stays dismissed"
+    }
+   ]
+  }
+ ]
+}

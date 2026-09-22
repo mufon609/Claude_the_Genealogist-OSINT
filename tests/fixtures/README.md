@@ -117,7 +117,9 @@ reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`
 `by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's),
 `collect`, `log`, `reopen`, `step` (a plan step written by hand), `place_card` (a place answer's card with the geocoder's
-`candidates` planted in the cache), `older_matcher`, `merge`, `cite`.
+`candidates` planted in the cache), `older_matcher`, `merge`, `cite`, `question` (a research_question row patched by
+hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
+a regeneration to be checked against a prior state, such as a legacy truncated key).
 
 Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
 `kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `note`, `rationale`), `rule` (`taken`, `why`),
