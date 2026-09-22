@@ -8,7 +8,7 @@
   }
  },
  "extractor": "familysearch-record",
- "personas": 5,
+ "personas": 3,
  "sequence": {
   "1": {
    "name": "Helen Sarah Brandt",
@@ -26,29 +26,6 @@
   "2": {
    "name": "Abram C Brandt",
    "role": "father",
-   "relations": [
-    {
-     "kind": "parent",
-     "to": 1,
-     "value": "Father"
-    }
-   ]
-  },
-  "3": {
-   "name": "Charlotte D. Lukens Brandt",
-   "role": "mother",
-   "relations": [
-    {
-     "kind": "parent",
-     "to": 1,
-     "value": "Mother"
-    }
-   ],
-   "why": "the parents the fields name (Father's Name, Mother's Name), as written, Father and Mother stated toward the child"
-  },
-  "4": {
-   "name": "Abram C Brandt",
-   "role": "father",
    "sex": "M",
    "region": [
     "Parents and Siblings"
@@ -59,16 +36,36 @@
      "to": 1,
      "value": "Father"
     }
-   ]
+   ],
+   "facts": [
+    {
+     "type": "Name",
+     "value": "Abram C Brandt"
+    }
+   ],
+   "why": "the relatives table's own row, which carries the sex; the Father's Name field states the same person and joins this persona as a second Name fact, not a persona of its own"
   },
-  "5": {
+  "3": {
    "name": "Charlotte D. Lukens Brandt",
    "role": "mother",
    "sex": "F",
    "region": [
     "Parents and Siblings"
    ],
-   "why": "the same parents once more from the relatives table, each with a page of their own in the same entry, so this page shape writes each parent twice (the BACKLOG block on a parent written twice)"
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother"
+    }
+   ],
+   "facts": [
+    {
+     "type": "Name",
+     "value": "Charlotte D. Lukens Brandt"
+    }
+   ],
+   "why": "the same, from the relatives table's own row and the Mother's Name field"
   }
  }
 }

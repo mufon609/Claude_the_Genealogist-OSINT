@@ -791,7 +791,10 @@ def calc_census_birth(by_type, is_census):
         slot["date"] = (f"CAL {slot['date'][0]}", slot["date"][1])
 
 def write_record(w, parsed):
-    """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a relation to the subject."""
+    """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a
+    relation to the subject. A parent the fields also name (Father's Name, Mother's Name) is not written twice: the
+    relatives table's own row, which carries the sex, stands for that parent, and the field's own statement joins it as a
+    second Name fact, so nothing the page says is lost."""
     fields = parsed["fields"]; f = dict(fields)
     kind_word = (parsed.get("collection") or "").split("•")[0].strip().lower()                     # "Census • United States, Census, 1950"
     is_census = kind_word == "census"
@@ -805,24 +808,27 @@ def write_record(w, parsed):
     if year and age and not (by_type.get("Birth") or {}).get("date"):     # the principal's birth year, calculated from the age on the record's date, as for a household member
         by_type.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
     write_facts(w, subject, by_type)
-    seq0 = 2
-    for label, who in named:                                         # a relative the record names in a field: Father's Name, Mother's Name, Spouse
-        if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Doe") names nobody
-        pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
-        w.fact(pid, "Name", who, labels=[label])
-        w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
     members_written = []
-    for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], seq0):   # a surname alone or UNKNOWN names nobody
+    for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], 2):   # a surname alone or UNKNOWN names nobody
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf)
         calc_census_birth(mb, is_census)
         age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
-        if year and age and not (mb.get("Birth") or {}).get("date"):     # a household member's birth year, calculated from the age on the census date
+        if year and age and not (mb.get("Birth") or {}).get("date"):     # a household member's birth year, calculated from the census date
             mb.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
         pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url")})
         write_facts(w, pid, mb)
         w.relation(pid, subject, relation_kind(m["role"], m["section"], parsed.get("collection")), m["role"], m["section"])
         members_written.append((pid, m["role"].lower(), m["section"]))
+    seq0 = 2 + len(members_written)
+    for label, who in named:                                         # a relative the record names in a field: Father's Name, Mother's Name, Spouse
+        if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Doe") names nobody
+        table_row = next((pid for pid, role, _ in members_written if label in ("father", "mother") and role == label), None)
+        if table_row:                                                # the same parent, already written from the relatives table: the field's own words join that persona, not a second one
+            w.fact(table_row, "Name", who, labels=[label]); continue
+        pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
+        w.fact(pid, "Name", who, labels=[label])
+        w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
     parents = [(pid, role, sec) for pid, role, sec in members_written if role in ("father", "mother")]
     if len(parents) == 2 and parents[0][1] != parents[1][1]:      # a census household lists the subject's father and mother together: the household's couple
         w.relation(parents[0][0], parents[1][0], "spouse", "Parents", parents[0][2])

@@ -279,19 +279,6 @@ the two-way control (living, deceased) that writes `person.living_override`
 through `conclude.living` with one audit row, as the fact rows write their
 decisions.
 
-### C2. A birth page's parents are written twice
-
-`tools/extract.py`'s FamilySearch record reader writes a parent once from the
-page's fields (Father's Name, Mother's Name: a persona with the name and the
-parent relation, no sex, the field's Father's Sex left as an Unknown fact on
-the child) and once more from the relatives table (Parents and Siblings: a
-persona with the name, sex and the same relation), when a page carries both,
-as `tests/fixtures/familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html`
-does: five personas for three people, and the matcher proposes each parent
-twice, two cards for one decision. The Massachusetts birth fixture carries
-the table alone and reads clean. One persona per named person on a page: the
-table's row, which carries the sex, with the field's statement on it.
-
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
