@@ -294,18 +294,6 @@ the two-way control (living, deceased) that writes `person.living_override`
 through `conclude.living` with one audit row, as the fact rows write their
 decisions.
 
-### C20. A record's undated event fact creates a second event beside the person's dated one
-
-Accepting a death index page whose Death fact carries no date writes a
-second Death event on the person: `conclude.decide` creates an event from
-the record's date when the person has none of that type and year, and an
-undated fact has no year to match. The new event's accepted statement then
-outranks the file's dated claim, so the key fact reads accepted with no
-date until that statement is rejected by hand. When a record's fact of a
-type carries no date and the person has exactly one event of that type,
-the statement asserts that event; with more than one, the difference is a
-conflict question on the card, never a new undated event.
-
 ### C2. A birth page's parents are written twice
 
 `tools/extract.py`'s FamilySearch record reader writes a parent once from the

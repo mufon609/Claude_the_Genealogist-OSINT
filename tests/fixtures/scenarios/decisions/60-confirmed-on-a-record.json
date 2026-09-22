@@ -1,6 +1,6 @@
 {
  "title": "a person confirmed on a primary record",
- "line": "the owner accepts one primary record and the rule follows: the gravesite locator's one card among namesakes is taken though the burial town differs from a bare claim, a second census takes the son on name, birth year and the claimed parent whose persona fits, the parents follow; a record attached on the owner's word with no step citing it is a fetch step done with a found run that a regeneration keeps and a re-read supersedes; a record's undated death beside the file's dated claim; a rule decision's re-run is logged under the session that acted; a step nothing generates is dropped and named in the audit row; the rule judges a record by the collection its current reading gives, never the archive row's stale banner",
+ "line": "the owner accepts one primary record and the rule follows: the gravesite locator's one card among namesakes is taken though the burial town differs from a bare claim, a second census takes the son on name, birth year and the claimed parent whose persona fits, the parents follow; a record attached on the owner's word with no step citing it is a fetch step done with a found run that a regeneration keeps and a re-read supersedes; a record's undated death asserts the file's one dated event, never a second; a rule decision's re-run is logged under the session that acted; a step nothing generates is dropped and named in the audit row; the rule judges a record by the collection its current reading gives, never the archive row's stale banner",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -393,7 +393,7 @@
    ]
   },
   {
-   "say": "the owner accepts him on it: the record's undated death stands beside the file's dated claim",
+   "say": "the owner accepts him on it: the record's undated death asserts the one Death event he already has, beside the file's dated claim",
    "decide": {
     "card": {
      "record": "ohio",
@@ -412,10 +412,10 @@
      "event": {
       "person": "I332737100409",
       "type": "Death",
-      "events": 2,
+      "events": 1,
       "basis": "accepted"
      },
-     "why": "the record's own Death, with no date, is a second event with an accepted statement; the key fact's basis is the accepted one"
+     "why": "he has one Death event already, the file's own claim; the record's own Death, with no date, asserts that same event rather than guessing a second one, and the key fact's basis is the accepted one"
     }
    ]
   },
@@ -435,7 +435,7 @@
       "canonical_date": "5 April 2004",
       "basis": "claim"
      },
-     "why": "an event carrying only a rejected statement shows nowhere; the file's dated claim is the value again"
+     "why": "the Ohio index's own statement on the shared event is rejected; the file's own statement stands on it as it always did, and is the value again"
     }
    ]
   },
