@@ -11,7 +11,9 @@ prints. `list` prints every planned fetch step whose holder has no connector at 
 nothing to ask yet, a book cited with no title, runs through tools/run_step.py instead: a `none` run naming the field
 wanted, off this list, left for a hand on the person's screen), once per page, with the holder, the
 link to open (the memorial page itself; the holder's own search prefilled from the citation's details, a collection's own
-search when no record id of the holder's is known yet), the people whose steps it fulfils, and the file name to save under
+search when no record id of the holder's is known yet; once that search's saved page has a row proposed or accepted as the
+step's person, the row's own record page instead, under the record-page name with the row's ark filled in, open until a page
+carrying that ark is archived), the people whose steps it fulfils, and the file name to save under
 (a FamilySearch record page's name takes the record's own ark id from its page; a FamilySearch or other holder's search
 carries the search's own given name and surname, so the several people's steps one search serves share one name; a page
 from any other holder carries no identity the attach reads, so it is listed once per citation and person waiting on it,
@@ -30,7 +32,7 @@ listed name is left in the folder.
 import argparse, json, os, re, shutil, sqlite3, subprocess, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, dumps, inbox_dir, resolve_tree
-from attach import attach, attach_inbox, line
+from attach import ark_id, attach, attach_inbox, line, pointed_at
 from catalog import Catalog, fetch_target, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
 import connectors
@@ -77,10 +79,21 @@ def waiting(cx, tree_id):
     wanted when it has nothing to ask, so the step is answered on its fields and left for a hand on the person's screen, not
     the browser. Steps citing one census page (the household's record ids) are one page. A page at a holder whose pages carry
     no identity the attach reads (no memorial id, no ark) is one entry per citation and person waiting on it, named for both,
-    so the saved file reaches that person's steps on that citation alone. A step at a browse-only holder (catalog.browse_only:
+    so the saved file reaches that person's steps on that citation alone. A FamilySearch step whose latest holder run was found
+    on a results listing with a row proposed or accepted as the step's person (attach.pointed_at) is listed as that row's own
+    record page, one entry per ark however many steps it serves, under the record-page name with the ark filled and the year
+    from the citation, the row or the listing's row: the listing pointed at the record and is not one, so its page is the next
+    to save. A step at a browse-only holder (catalog.browse_only:
     a FamilySearch images-only collection) never appears either: nobody can save such a page the page-saves-itself way,
     so it stays on the plan with its reason and off this list, never a name with an unfilled placeholder."""
     cat = Catalog(cx, tree_id); groups = cat.page_groups(); out = {}
+    def add(s, key, link, holder, name, ark=None):
+        e = out.setdefault(key, {"holder_id": s["locator_source_id"], "holder": holder, "url": link, "lead": False, "people": [], "steps": 0, "step_ids": [], "rows": [],
+                                 "save_as": name, "how": "image" if s["locator_source_id"] == "E05" else "page", "ark": ark})
+        e["steps"] += 1; e["step_ids"].append(s["id"]); e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url")
+        if s["display_name"] not in e["people"]: e["people"].append(s["display_name"])
+        rk = s["row_key"].split(":")[0]
+        if rk not in e["rows"]: e["rows"].append(rk)
     for s in cx.execute("""SELECT sp.id, sp.person_id, sp.step_key, sp.locator_source_id, sp.locator_kind, sp.locator_value, sp.query_json, sp.revisions_json, sp.row_key, p.display_name,
                            src.name AS holder_name, src.connector FROM search_plan sp JOIN person p ON p.id=sp.person_id LEFT JOIN source src ON src.id=sp.locator_source_id
                            WHERE p.tree_id=? AND sp.kind='fetch' AND sp.mode='fetch' AND sp.status='planned' ORDER BY sp.seq""", (tree_id,)):
@@ -93,18 +106,20 @@ def waiting(cx, tree_id):
             key = (hid, mid); link = f"https://www.findagrave.com/memorial/{mid}/"; holder = "Find a Grave"
         elif s["locator_kind"] == "apid":
             if browse_only((cat.holders.get(dbid_of(s["locator_value"])) or [None])[0]): continue   # browsed by hand, film by film: no page the browser can save, so it stays off the list
+            pointed = pointed_at(cx, s) if hid == "D03" else []
+            if pointed:                                                          # the listing's fitting row: its own record page is the next page, one entry per ark
+                for ark, link, year in pointed:
+                    row_year = s["row_key"].split(":", 1)[-1] if ":" in s["row_key"] else ""
+                    yr = (fields.get("year") or {}).get("value") or (row_year if row_year.isdigit() else None) or year     # the citation's year, the row's, else the listing row's own
+                    name = save_as(hid, {**fields, **({"year": {"value": yr}} if yr else {})}, s["row_key"], None, None, None, link).replace("<ark id>", ark_id(ark)).replace("-<year>", "")
+                    add(s, (hid, "ark", ark), link, f"{s['holder_name']}: the record a row of the search points at", name, ark)
+                continue
             page = piece = min(groups.get(s["locator_value"]) or {s["locator_value"]})
             key = (hid, page) if hid == "D03" else (hid, page, s["person_id"])      # a FamilySearch page carries its ark; any other page is named for its citation and person
             t = fetch_target(s["locator_value"], url, fields); link = t["url"]; holder = f"{s['holder_name']}: {t['holder']}" if t["holder"] else s["holder_name"]
         else:
             key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
-        name = save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link)
-        e = out.setdefault(key, {"holder_id": hid, "holder": holder, "url": link, "lead": False, "people": [], "steps": 0, "step_ids": [], "rows": [],
-                                 "save_as": name, "how": "image" if hid == "E05" else "page"})
-        e["steps"] += 1; e["step_ids"].append(s["id"]); e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url")
-        if s["display_name"] not in e["people"]: e["people"].append(s["display_name"])
-        rk = s["row_key"].split(":")[0]
-        if rk not in e["rows"]: e["rows"].append(rk)
+        add(s, key, link, holder, save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link))
     return sorted(out.values(), key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
 
 def openable(cx, tree_id):
@@ -115,10 +130,14 @@ def openable(cx, tree_id):
     Archive's newspapers) does not stand for the holder's page. An entry with none is left out. A
     page saved once and logged (found, none, blocked) on a step's unchanged fields is listed by `list` as still waiting, but
     that step does not send anyone to it again until the plan changes it; a page seven people's steps share is open for the
-    people whose own step is still unrun."""
+    people whose own step is still unrun. The record page a listing's row points at (an entry with an ark) is open for every
+    step it serves until an artifact carries that ark as a locator: the listing's own run answered the search, not the record."""
     out = []
     for e in waiting(cx, tree_id):
         if not e["url"]: continue
+        if e.get("ark"):
+            if not cx.execute("SELECT 1 FROM artifact_locator WHERE kind='ark' AND value=?", (e["ark"],)).fetchone(): out.append({**e, "open_step_ids": list(e["step_ids"])})
+            continue
         steps = [cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone() for sid in e["step_ids"]]
         open_ids = [st["id"] for st in steps if st and not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"]), step_source(st))]
         if open_ids: out.append({**e, "open_step_ids": open_ids})

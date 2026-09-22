@@ -20,7 +20,10 @@ citation's collection has the page's collection as a holder (data/holders.csv) a
 name searched. Such a page is the run's own artifact: a found run when a row fits someone, a none run when none does, the
 query as run on the log. A fetch step is done by a found run only when the page is the record it cites (log_search.holds_record): a
 listing points at a record and is not one, and a page no parser read holds nothing, so on either the step stays planned while
-the run on its fields answers the search for the fetch list; the row's own record page, saved next, closes it. The same search saved again with the same rows answers nothing new, so it is a repeat: a none
+the run on its fields answers the search for the fetch list; the row's own record page, saved next, closes it: tools/fetches.py
+lists it for the step (pointed_at: a row whose persona carries an ark and is proposed or accepted as the step's person), and once
+saved it reaches the fetch steps the listing was logged on for that person (steps_pointed), archived under the step's citation.
+The same search saved again with the same rows answers nothing new, so it is a repeat: a none
 run logged on every step it fits that isn't already answered on its current fields (the fields as now rendered, the note
 naming the earlier run's own artifact), and the file leaves the inbox with nothing archived a second time. A file
 whose identity matches no step is not archived by the inbox tool; the screen still attaches it to the step the person
@@ -30,8 +33,8 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import dbid_of, holders, holds, name_parts, person_named
-from log_search import ON_WORD, holds_record, log as log_search, rendered_query, ran_unchanged, step_source
-from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
+from log_search import ON_WORD, holds_record, latest_answer, log as log_search, rendered_query, ran_unchanged, step_source
+from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
 from conclude import match_record
 
@@ -149,8 +152,10 @@ def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=Non
 
 def steps_for(cx, tree_id, kind, value, parsed=None):
     """The tree's steps this identity fulfils: for a memorial or an ark, the fetch steps whose citation carries it, the citation on
-    the person themselves first; for a search results page, the search steps whose fields are the search's own query, and the
-    fetch steps whose citation was searched for by hand at that holder (_fetch_steps_searched)."""
+    the person themselves first, and for an ark new to the archive the planned fetch steps a listing that carries the ark was
+    logged on for the person its row was proposed as (steps_pointed), then the steps citing the census page it names, then the
+    collection fallback; for a search results page, the search steps whose fields are the search's own query, and the fetch
+    steps whose citation was searched for by hand at that holder (_fetch_steps_searched)."""
     if kind == "search":
         qy = (parsed or {}).get("query") or {}
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"E01"%'
@@ -195,12 +200,14 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
                                   AND sp.locator_value IN ({','.join('?'*len(ids))}) ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, *ids)).fetchall()
             own = cx.execute("SELECT locator_value FROM artifact WHERE sha256=?", (loc[0],)).fetchone()[0]
             return _why([r for r in rows if _named_on(cx, r["person_id"], parsed)], lambda r: "the citation is this record's own" if r["locator_value"] == own else "the same sheet, and the page names this person")
+        pointed = steps_pointed(cx, tree_id, value, parsed or {})      # new to the archive: the steps a listing pointed at it for
         named = _page_named(parsed or {})
-        if named:                                                      # new to the archive: the steps citing the page it names, for the people it names
+        if named:                                                      # the steps citing the census page it names, for the people it names
             rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
                                  AND sp.query_type='household' ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id,)).fetchall()
-            return _why([r for r in rows if _cites_page(r, named) and _named_on(cx, r["person_id"], parsed)], "the citation names this census page, and the page names this person")
-        return _steps_by_collection(cx, tree_id, parsed or {})
+            cites = _why([r for r in rows if _cites_page(r, named) and _named_on(cx, r["person_id"], parsed)], "the citation names this census page, and the page names this person")
+            return pointed + [r for r in cites if r["id"] not in {x["id"] for x in pointed}]
+        return pointed or _steps_by_collection(cx, tree_id, parsed or {})
     return []
 
 ROW_OF = [(r"obituar", "obituary"), (r"death", "death record"), (r"birth", "birth record"), (r"marriage", "marriage record"), (r"social security|numident", "Social Security (SSDI / SS-5)"),
@@ -253,6 +260,51 @@ def _steps_by_collection(cx, tree_id, parsed):
     when = f", in {year}" if year else ""
     return _why(out, lambda r: f"a {record_coll} record naming {parsed.get('name')}, the citation's own collection at its holder and the person's name{when}" if by_coll[r["id"]]
                 else f"a {row} naming {parsed.get('name')}, the row's kind and the person's name{when}")
+
+def _pointed(person):
+    """The SQL that keeps, of the personas pe of a pointing listing (extract.POINTING_LISTINGS, its current complete reading),
+    the rows whose persona carries a record ark and is proposed or accepted as the person and not rejected for them, person
+    being the SQL for the person's id (a parameter or a column): the record pages the listing points at for that person."""
+    return f"""JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id
+    WHERE e.superseded_by IS NULL AND e.status='complete' AND x.name IN ({','.join(repr(n) for n in POINTING_LISTINGS)})
+    AND json_extract(pe.region_json,'$.ark') IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM person_persona pp WHERE pp.persona_id=pe.id AND pp.person_id={person} AND pp.status='rejected')
+    AND (EXISTS (SELECT 1 FROM proposal pr WHERE pr.kind='persona_match' AND json_extract(pr.payload_json,'$.persona_id')=pe.id
+                 AND json_extract(pr.payload_json,'$.person_id')={person} AND pr.status<>'rejected')
+         OR EXISTS (SELECT 1 FROM person_persona pp WHERE pp.persona_id=pe.id AND pp.person_id={person} AND pp.status='accepted'))"""
+
+def ark_id(ark):
+    """The id part of a FamilySearch ark ("ark:/61903/1:1:6XYS-NQ16" -> "6XYS-NQ16"), the part the record-page file name carries."""
+    return (ark or "").rsplit(":", 1)[-1]
+
+def pointed_at(cx, step):
+    """The record pages a pointing listing offers for a fetch step at FamilySearch: [(ark, the row's own URL, the row's year or
+    None)] for every row of the listings the step's latest holder run was found on (log_search.latest_answer) whose persona
+    carries an ark and is proposed or accepted as the step's person and not rejected for them (_pointed), in the listing's
+    order. Empty when the latest holder run is not a found run, or holds no pointing listing."""
+    a = latest_answer(cx, step, step["locator_source_id"])
+    if not a or a[0] != "found" or not a[3]: return []
+    out = []
+    for sha in a[3]:
+        for region, when in cx.execute(f"""SELECT pe.region_json, (SELECT min(f.date_start) FROM persona_fact f WHERE f.persona_id=pe.id AND f.date_start IS NOT NULL)
+                                          FROM persona pe {_pointed(':person')} AND pe.artifact_sha256=:sha ORDER BY pe.sequence""", {"person": step["person_id"], "sha": sha}):
+            r = json.loads(region or "{}")
+            if r.get("ark") and r["ark"] not in {o[0] for o in out}:
+                out.append((r["ark"], r.get("url") or f"https://www.familysearch.org/{r['ark']}", int(when[:4]) if when and when[:4].isdigit() else None))
+    return out
+
+def steps_pointed(cx, tree_id, ark, parsed):
+    """The planned fetch steps a record page reaches through the listing that pointed at it: a pointing listing whose row carries
+    this ark was logged found on the step, and the row's persona is proposed or accepted as the step's person and not rejected
+    for them (_pointed); the step's row year, where it has one, within two of the record's own (_row_of), as the collection
+    fallback reads it. The citation on the person themselves first."""
+    _, year = _row_of(parsed)
+    rows = cx.execute(f"""SELECT DISTINCT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id JOIN search_log l ON l.plan_step_id=sp.id AND l.outcome='found'
+                          JOIN persona pe ON l.artifacts_json LIKE '%"' || pe.artifact_sha256 || '"%' {_pointed('sp.person_id')}
+                          AND json_extract(pe.region_json,'$.ark')=:ark AND p.tree_id=:tree AND sp.kind='fetch' AND sp.status='planned'
+                          ORDER BY sp.on_json='[]' DESC, sp.seq""", {"ark": ark, "tree": tree_id}).fetchall()
+    keep = lambda r: not (year and ":" in r["row_key"] and r["row_key"].split(":", 1)[1].isdigit() and abs(int(r["row_key"].split(":", 1)[1]) - year) > 2)
+    return _why([r for r in rows if keep(r)], "a search listing pointed at this record for this person: the row proposed as them")
 
 def _named_on(cx, person_id, parsed):
     """Whether a record page names this person: its subject or a household member, each with the birth year its age and the

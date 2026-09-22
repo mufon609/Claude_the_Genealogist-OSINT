@@ -53,14 +53,14 @@ def step_source(step):
     return step["locator_source_id"] or (json.loads(step["sources_json"] or "[]") or [None])[0]
 
 def latest_answer(cx, step, source_id=None):
-    """The step's latest run the source answered: (outcome, executed_at, fields as logged), or None. A reopen's own row is
-    bookkeeping, not a run, and a run logged error is a source that did not answer (a timeout, a challenge, a reset
-    connection): both are looked past. With a source named, that source's own rows alone (search_log.source_id): a step whose
-    sources have two connectors is answered by each on its own; with none, the latest answer whatever its source."""
-    for q, note, outcome, sid, at in cx.execute("SELECT query_json, notes, outcome, source_id, executed_at FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
+    """The step's latest run the source answered: (outcome, executed_at, fields as logged, the artifacts it holds), or None. A
+    reopen's own row is bookkeeping, not a run, and a run logged error is a source that did not answer (a timeout, a challenge,
+    a reset connection): both are looked past. With a source named, that source's own rows alone (search_log.source_id): a step
+    whose sources have two connectors is answered by each on its own; with none, the latest answer whatever its source."""
+    for q, note, outcome, sid, at, arts in cx.execute("SELECT query_json, notes, outcome, source_id, executed_at, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
         if (note or "").startswith(REOPENED) or outcome == "error": continue
         if source_id and sid != source_id: continue
-        return outcome, at, json.loads(q or "{}")
+        return outcome, at, json.loads(q or "{}"), json.loads(arts or "[]")
     return None
 
 def ran_unchanged(cx, step, rendered, source_id=None):

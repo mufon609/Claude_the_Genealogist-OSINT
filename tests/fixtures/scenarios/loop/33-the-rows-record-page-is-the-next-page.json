@@ -1,0 +1,283 @@
+{
+ "title": "the row's record page is the next page, and it reaches the step",
+ "line": "once a FamilySearch results page saved for a fetch step has a row proposed as the step's person, the fetch list prints that row's own record page in the search link's place, under the record-page name with the row's ark filled, open until a page carrying the ark is archived; the record page saved and collected reaches the step through the listing that pointed at it, is archived under the step's citation, and closes the step: the row reads held and the list is empty for it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word, the name the citation sits on as the search was run",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 90,
+    "step_key": "fetch:1,62308::1",
+    "kind": "fetch",
+    "query_type": "household",
+    "query": {
+     "collection": {
+      "value": "1950 United States Federal Census",
+      "basis": "owner"
+     },
+     "name": {
+      "value": "Frederick Micheal Ahearn",
+      "basis": "owner"
+     }
+    },
+    "locator": {
+     "source": "D03",
+     "kind": "apid",
+     "value": "1,62308::1"
+    },
+    "sources": [
+     "D03"
+    ],
+    "mode": "fetch",
+    "status": "planned",
+    "on": "[]",
+    "rationale": "harness: a 1950 citation on the owner's word; fetch the record at United States, Census, 1950"
+   },
+   "as": "st",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737036054",
+      "url_has": "1950census.archives.gov",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "before the search is saved, the step's own page is open for him"
+    }
+   ]
+  },
+  {
+   "say": "the search saved: the first row is his card, and the row's own record page takes the search link's place on the list",
+   "attach": {
+    "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html"
+   },
+   "as": "ls",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "outcome": {
+       "not": "none"
+      },
+      "proposals": {
+       "len": 1
+      }
+     }
+    },
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:1,62308::1",
+      "fields": {
+       "status": "planned"
+      }
+     }
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737036054",
+      "url_has": "1950census.archives.gov",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the step's own page is gone from the list: a row of the search points on"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737036054",
+      "url_has": "ark:/61903/1:1:6XYS-NQ16",
+      "is": [
+       {
+        "save_as": "familysearch-census-1950-6XYS-NQ16.html",
+        "people": [
+         "Frederick Micheal Ahearn Jr"
+        ],
+        "how": "page",
+        "url": {
+         "starts": "https://www.familysearch.org/ark:/61903/1:1:6XYS-NQ16"
+        }
+       }
+      ]
+     },
+     "why": "the row's own record page, under the record-page name with the ark filled and the row's year, open for his step"
+    },
+    {
+     "fetched_rows": {
+      "person": "I332737036054",
+      "row": "census household:1950",
+      "present": false
+     }
+    }
+   ]
+  },
+  {
+   "say": "the record page saved in the browser into the download folder under the name the list printed",
+   "save": {
+    "holder": "D03",
+    "person": "I332737036054",
+    "name": "familysearch-census-1950-6XYS-NQ16.html",
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "folder": "downloads"
+   },
+   "as": "saved"
+  },
+  {
+   "say": "collect brings it in by its own identity: it reaches the step through the listing that pointed at it, archived under the step's citation, and the step is done",
+   "collect": {
+    "folder": "$saved.folder"
+   },
+   "as": "col",
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": "ark ark:/61903/1:1:6XYS-NQ16",
+        "left": null,
+        "steps": [
+         [
+          {
+           "any": true
+          },
+          "Frederick Micheal Ahearn Jr",
+          {
+           "starts": "census household"
+          },
+          {
+           "has": "listing pointed at this record"
+          }
+         ]
+        ],
+        "unparsed": null
+       }
+      ]
+     },
+     "why": "the page names no sheet the citations name and its principal is Fred, not Frederick, so neither the census-page route nor the collection fallback reaches him: the listing's row does"
+    },
+    {
+     "artifact": {
+      "record": "$col.results.0.sha256",
+      "source_id": "D03",
+      "locator_kind": "apid",
+      "locator_value": "1,62308::1"
+     },
+     "why": "archived under the step's citation, as any record page a step cites"
+    },
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:1,62308::1",
+      "fields": {
+       "status": "done"
+      }
+     },
+     "why": "a record page holds the citation: the step is done"
+    },
+    {
+     "search_log": {
+      "step": "$st.step",
+      "is": [
+       {
+        "source_id": "D03",
+        "outcome": "found",
+        "artifacts": [
+         "$ls.sha"
+        ]
+       },
+       {
+        "source_id": "D03",
+        "outcome": "found",
+        "artifacts": [
+         "$col.results.0.sha256"
+        ],
+        "notes": {
+         "has": "listing pointed at this record"
+        }
+       }
+      ]
+     },
+     "why": "two runs: the listing, then the record it pointed at"
+    },
+    {
+     "cards": {
+      "record": "$col.results.0.sha256",
+      "people": [
+       "I332737036054"
+      ],
+      "count": 1
+     },
+     "why": "the son alone is proposed on the record page; the household waits on him"
+    },
+    {
+     "fetched_rows": {
+      "person": "I332737036054",
+      "row": "census household:1950",
+      "present": true
+     },
+     "why": "the row reads held on the record page"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737036054",
+      "record": "census household",
+      "instance": "1950",
+      "status": "held"
+     }
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737036054",
+      "url_has": "6XYS-NQ16",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the list is empty for it"
+    }
+   ]
+  },
+  {
+   "say": "his plan run again keeps the step done: the archive holds its citation",
+   "plan": [
+    "I332737036054"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:1,62308::1",
+      "fields": {
+       "status": "done"
+      }
+     }
+    },
+    {
+     "count": {
+      "logs_of_step": "$st.step",
+      "is": 2
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
