@@ -139,14 +139,15 @@ def a_run_all(w, x):
     return {"calls": calls, "opened": opened, "raised": raised}
 
 def a_run_connector(w, x):
-    """run_step.run_connector on a step with a connector standing in: its requests from the step's place field, its hits
-    from the fetch's answer, the answer per request from the data (none for a URL carrying one text, found otherwise)."""
+    """run_step.run_connector on a step with a connector standing in: its requests from the step's place field (a search
+    step's own "place", or "field" names a fetch step's own citation label, "census place"), its hits from the fetch's
+    answer, the answer per request from the data (none for a URL carrying one text, found otherwise)."""
     import run_step
     from connectors import value
-    c = x["connector"]; st = w.step(x["step"])
+    c = x["connector"]; st = w.step(x["step"]); field = c.get("field", "place")
     def requests(fields):
-        place = value(fields, "place")
-        return [{"url": f"{c['url']}?place={place}", "kind": "search"}] if place else []
+        place = value(fields, field)
+        return [{"url": f"{c['url']}?{field}={place}", "kind": "search"}] if place else []
     def hits(url, data): return [] if data == b"none" else [{"label": "hit", "locator": "loc1", "fetch": [], "notes": {}}]
     conn = types.SimpleNamespace(__name__="fake.connector", SOURCE=c["source"], COLLECTION=c["collection"], RATE={"search": 6000}, requests=requests, hits=hits, total=lambda data: None)
     def fake_fetch(url, kind, cc, data=None):

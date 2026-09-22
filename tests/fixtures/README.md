@@ -147,7 +147,8 @@ into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/
 data gives, `fetch: {header, rows}` or `{body}`, one answer per request as `fetch: {answers: [{url_has, body | error}]}`, or no
 network at all; `dry` for a dry run, `again` for a run by the step's id at every connector), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
-`none_when`), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache` and Wikidata's
+`none_when`; `field` names the place-like field it asks under, "place" when absent, "census place" for a fetch step's own),
+`resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache` and Wikidata's
 answers planted), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in
 order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`), `locator_known`, `steps_by_collection`,

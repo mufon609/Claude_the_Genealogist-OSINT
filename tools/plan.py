@@ -58,26 +58,35 @@ def q_key(q):
     if q.get("other_id"): return q["kind"] + ":" + q["other_id"]
     return q["kind"] + ":" + re.sub(r"\s+", " ", (q.get("detail") or "")).strip()
 
-def citation_fields(collection, cited, name):
+def citation_fields(cat, collection, cited, name, year=None, person_id=None):
     """The citation's own details as query fields, each {value, basis 'citation'}: the collection, the name the citation sits on,
-    every 'Label: value' part of the page text under its label, the rest of the page text under 'citation', the memorial URL."""
+    every 'Label: value' part of the page text under its label, the rest of the page text under 'citation', the memorial URL.
+    A labelled part that is a place (its label ending "place") carries every accurate name for it, the citation's own string
+    first (Catalog.place_search_names, as a search step's own place field does), when that string is itself a resolved place
+    in the tree; unresolved, it is the citation's bare string alone, as before."""
     f = lambda v: {"value": v, "basis": "citation"}
     out = {"collection": f(collection)}
     if name: out["name"] = f(name)
     rest = []
     for part in (cited.get("page") or "").split("; "):
         m = re.fullmatch(r"([A-Za-z][A-Za-z .]{0,40}): (.+)", part.strip())
-        if m and m.group(1).lower() not in out: out[m.group(1).lower()] = f(m.group(2).strip())
+        if m and m.group(1).lower() not in out:
+            label, value = m.group(1).lower(), m.group(2).strip()
+            if label.endswith("place"):
+                ps = cat.q("SELECT place_id FROM place_string WHERE raw=? AND place_id IS NOT NULL", value)
+                names = cat.place_search_names(ps[0][0], year=year, person_id=person_id) if ps else []
+                out[label] = f([value] + [n for n in names if n != value])
+            else: out[label] = f(value)
         elif part.strip(): rest.append(part.strip())
     if rest: out["citation"] = f("; ".join(rest))
     if cited.get("url"): out["url"] = f(cited["url"])
     return out
 
-def fetch_step(cat, row_key, query_type, apid, collection, collection_id, on, expected, where, sources, name, question_key=None):
+def fetch_step(cat, row_key, query_type, apid, collection, collection_id, on, expected, where, sources, name, question_key=None, year=None, person_id=None):
     cited = cat.cited().get(apid, {})
     holder = (cat.holders.get(dbid_of(apid)) or [None])[0]
     names = cited.get("names") or []
-    fields = citation_fields(collection, cited, names[0] if names else name)
+    fields = citation_fields(cat, collection, cited, names[0] if names else name, year=year, person_id=person_id)
     if holder and holder["HolderKind"] == "scanned_index":
         source, mode, why = holder["HolderSourceId"], "blocked", f"blocked: {holder['HolderCollection']} holds scanned index pages; the page-locating step is not built"
     elif holder and browse_only(holder):
@@ -161,10 +170,11 @@ def plan_person(cx, tree_id, pid, by):
             rk = f"{row['record']}:{row.get('instance') or ''}"
             if row["status"] == "cited":
                 own = []
+                yr = int(row["instance"]) if row.get("instance") and str(row["instance"]).isdigit() else None
                 for c in row["citations"]:
                     where = "cited on " + ", ".join(n for n, _ in c["on"]) if c["on"] else "cited on this person"
                     own.append(fetch_step(cat, rk, s["type"], c["apid"], c["collection"], c["collection_id"], c["on"], row["settles"], where, row["sources"],
-                                          c["on"][0][0] if c["on"] else me))
+                                          c["on"][0][0] if c["on"] else me, year=yr, person_id=pid))
                 fetches += own
                 if r["baseline"]["complete"] and (not own or all(f["mode"] == "blocked" for f in own)) and s.get("free_mode"):   # nothing fetchable from the citations (none with a record id, or every one blocked): search the free sources as for a missing row
                     searches.append({"step_key": f"search:{rk}", "row_key": rk, "question_key": None, "kind": "search", "query_type": s["type"], "query_json": dumps(s["fields"]),
@@ -182,7 +192,7 @@ def plan_person(cx, tree_id, pid, by):
     for rec in r["footprint"]["records"][:12]:
         if not rec.get("apid") or rec["apid"] in have: continue
         fetches.append(fetch_step(cat, f"footprint:{rec['apid']}", "footprint_record", rec["apid"], rec["collection"], rec.get("collection_id"), rec["on"], rec["expect"],
-                                  "already on " + ", ".join(f"{n} ({rel})" for n, rel in rec["on"]), [ANCESTRY], rec["on"][0][0] if rec["on"] else me, home))
+                                  "already on " + ", ".join(f"{n} ({rel})" for n, rel in rec["on"]), [ANCESTRY], rec["on"][0][0] if rec["on"] else me, home, person_id=pid))
     stats = {"questions_new": 0, "questions_kept": 0, "questions_closed": 0, "questions_left_closed": 0, "steps_new": 0, "steps_kept": 0, "steps_dropped": 0, "steps_done_by_archive": 0,
              "dropped": []}                                          # each step deleted below by key, row and rationale: the audit row is the only trace of it afterwards
     existing = {row[1]: row[0] for row in cx.execute("SELECT id, q_key FROM research_question WHERE subject_person_id=? AND status='open'", (pid,))}

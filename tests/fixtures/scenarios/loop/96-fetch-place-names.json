@@ -1,0 +1,134 @@
+{
+ "title": "a fetch step's place carries every accurate name, under the citation's own label",
+ "line": "plan.citation_fields writes a labelled place part as the list a search step's own place field carries, the citation's own string first, unresolved or not; the runner's name-by-name try reads the citation's label as it reads 'place', every name tried logged on the run",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 census fetch step for Robert Edgar Davidson: the citation's own words, unresolved, are the one string alone",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737100409",
+      "row_key": "census household:1940",
+      "kind": "fetch",
+      "fields": {
+       "query": {
+        "census place": {
+         "value": [
+          "Hempstead, Nassau, New York"
+         ],
+         "basis": "citation"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the citation's own words are already a place string of the tree (his own residence claims the same words); the resolver run with the geocoder's answer planted in its cache: a unique full match",
+   "resolve": {
+    "only": [
+     "Hempstead, Nassau, New York"
+    ],
+    "cache": {
+     "Hempstead, Nassau, New York, United States": [
+      {
+       "osm_type": "relation",
+       "osm_id": 4101,
+       "lat": "40.70",
+       "lon": "-73.61",
+       "name": "Hempstead",
+       "display_name": "Hempstead, Nassau County, New York, United States",
+       "category": "boundary",
+       "type": "administrative",
+       "addresstype": "town",
+       "address": {
+        "town": "Hempstead",
+        "county": "Nassau County",
+        "state": "New York",
+        "country": "United States",
+        "country_code": "us"
+       },
+       "extratags": {}
+      }
+     ]
+    }
+   }
+  },
+  {
+   "say": "the plan regenerated: the fetch step's place now carries the citation's own string first, then the place as it resolves",
+   "plan": [
+    "I332737100409"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737100409",
+      "row_key": "census household:1940",
+      "kind": "fetch",
+      "fields": {
+       "query": {
+        "census place": {
+         "value": {
+          "first": "Hempstead, Nassau, New York",
+          "len": {
+           ">=": 2
+          }
+         },
+         "basis": "citation"
+        }
+       }
+      }
+     },
+     "why": "the citation's own words lead; the resolved place's own name follows, never dropped for the raw string"
+    }
+   ]
+  },
+  {
+   "say": "the runner tries the fetch step's several names under the citation's own label, not 'place'",
+   "run_connector": {
+    "step": {
+     "person": "I332737100409",
+     "row_key": "census household:1940",
+     "kind": "fetch"
+    },
+    "connector": {
+     "source": "D03",
+     "collection": "United States, Census, 1940",
+     "url": "http://test.invalid/search",
+     "field": "census place",
+     "none_when": "census place=Hempstead, Nassau, New York"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "outcome": "found",
+      "requests": {
+       "len": 2
+      },
+      "logged_query": {
+       "census place": {
+        "tried": {
+         "first": "Hempstead, Nassau, New York",
+         "len": {
+          ">=": 2
+         }
+        },
+        "value": {
+         "not": "Hempstead, Nassau, New York"
+        }
+       }
+      }
+     },
+     "why": "both names are tried, in order, before the run stops, under the citation's own label"
+    }
+   ]
+  }
+ ]
+}

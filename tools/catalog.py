@@ -42,6 +42,11 @@ def dbid_of(apid):
     m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
     return m.group(1) if m else None
 
+def first_value(v):
+    """A query field's own value: itself, or its first name when it carries several accurate names for a place
+    (checklist.PLACES, plan.citation_fields), the citation's own string or the one valid at year."""
+    return v[0] if isinstance(v, list) else v
+
 def browse_only(holder):
     """Whether a free holder's own pages carry no search or record page the page-saves-itself method can save: a
     FamilySearch images-only collection (fs_images), browsed by hand, film by film. Such a step stays on the plan,
@@ -233,7 +238,7 @@ def holder_search(h, fields):
         year = v("year") or next((m.group(1) for k in ("publication date", "date", "event date") for m in [re.search(r"\b(1[5-9]\d\d|20\d\d)\b", v(k) or "")] if m), None)
         vals = {"given": given, "surname": surname, "name": " ".join(x for x in (given, surname) if x) or None, "title": v("book title") or v("title") or v("citation"),
                 "year": year, "date": v("publication date") or v("date"), "mdy": _mdy(v("publication date") or v("date")),
-                "place": v("publication place") or v("census place") or v("place"), "city": v("city"), "url": v("url")}
+                "place": first_value(v("publication place")) or first_value(v("census place")) or first_value(v("place")), "city": v("city"), "url": v("url")}
         if tpl == "{url}": return vals["url"]
         needed = set(PLACEHOLDER.findall(tpl))
         if any(not vals.get(k) for k in needed): return None
@@ -242,7 +247,7 @@ def holder_search(h, fields):
     if kind == "fs_collection":
         q = [("f.collectionId", h["HolderKey"]), ("q.givenName", given or "")]
         yr = v("year") or (re.search(r"\b(1[78]\d\d|19\d\d)\b", h["HolderCollection"] or "") or [None, None])[1] if re.search(r"census", h["HolderCollection"] or "", re.I) else v("year")
-        place = v("census place") or ", ".join(x for x in (v("city"), v("county")) if x) or None
+        place = first_value(v("census place")) or ", ".join(x for x in (v("city"), v("county")) if x) or None
         if yr and place: q += [("q.residenceDate.from", yr), ("q.residenceDate.to", yr), ("q.residencePlace", place)]
         if surname: q.append(("q.surname", surname))
         return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)

@@ -43,7 +43,7 @@ answered on these fields.
 import argparse, http.client, json, os, re, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
-from catalog import Catalog
+from catalog import Catalog, first_value
 from log_search import log as log_search, latest_answer, ran_unchanged, rendered_query
 from extract import extract, RESULTS_LISTINGS
 from conclude import match_record
@@ -176,7 +176,7 @@ def runnable(cx, cat, tree_id):
 def household_steps(cx, tree_id, step):
     """The other fetch steps at the same holder whose citations name the same census page (year, enumeration district, census
     place and page): every household member cited on it. A page fetched once is held for all of them."""
-    q = json.loads(step["query_json"] or "{}"); v = lambda d, k: ((d.get(k) or {}).get("value") or "").strip().lower()
+    q = json.loads(step["query_json"] or "{}"); v = lambda d, k: str(first_value((d.get(k) or {}).get("value")) or "").strip().lower()
     if not v(q, "enumeration district"): return []
     rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.id<>?
                          AND sp.locator_source_id=? AND sp.status='planned'""", (tree_id, step["id"], step["locator_source_id"])).fetchall()
@@ -218,19 +218,21 @@ def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
 
 def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     """One step at one connector: requests, responses archived, hits fetched and archived, the log row under the connector's
-    source. A place field carrying more than one accurate name (checklist.py's PLACES, docs/RESEARCH-WORKFLOW.md §3: the
-    name valid at the record's date first, then as-written, then current, then every other dated name) is tried in that
-    order, one substituted for it at a time, and stops at the first that gets a hit; every name actually tried is on the
-    logged run's query, the one that hit last, so the same search is never repeated blindly and a widening try is read
-    back afterwards. Returns the run with the records archived, to be read afterwards."""
+    source. A place field carrying more than one accurate name (checklist.py's PLACES for a search step's own "place",
+    plan.citation_fields for a fetch step's citation label, "census place": the name valid at the record's date first, then
+    as-written, then current, then every other dated name) is tried in that order, one substituted for it at a time, and
+    stops at the first that gets a hit; every name actually tried is on the logged run's query, the one that hit last, so
+    the same search is never repeated blindly and a widening try is read back afterwards. Returns the run with the
+    records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     from connectors.ia import name_parts
     surname = name_parts(query)[1]
     variants = variants_of(cx, step["person_id"], surname) if surname else []
     if variants: query = {**query, "surname_variants": {"value": variants, "basis": "record"}}   # the spellings records gave the person, for a search that takes one word
-    place_field = query.get("place")
+    pk = next((k for k in query if (k == "place" or k.endswith("place")) and isinstance((query.get(k) or {}).get("value"), list)), None)   # a search step's own "place", or a fetch step's citation label ("census place")
+    place_field = query.get(pk) if pk else None
     names = place_field["value"] if isinstance(place_field, dict) and isinstance(place_field.get("value"), list) and place_field["value"] else [None]
-    query_for = lambda name: query if name is None else {**query, "place": {**place_field, "value": name}}
+    query_for = lambda name: query if name is None else {**query, pk: {**place_field, "value": name}}
     reqs = conn.requests(query_for(names[0])); gate = outside(cat, conn, step["query_type"], query)
     wants = (conn.wants(query_for(names[0])) if hasattr(conn, "wants") else None) or "a surname, or for a cited book its title" if not reqs else None
     if dry_run: return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": reqs, **({"outside": gate} if gate else {}), **({"wants": wants} if wants else {}),
@@ -297,7 +299,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     outcome = outcome_of(hits, errors, shas)
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [a for a in asked if a] + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
-    if tried: query = {**query, "place": {**place_field, "value": tried[-1], "tried": tried}}   # every name actually tried, the one the run stopped on
+    if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried}}   # every name actually tried, the one the run stopped on
 
     own = step["kind"] != "fetch" or conn.SOURCE == step["locator_source_id"]   # a fetch step is done by its holder's answer alone: a row-source connector's hit is another paper's page, logged and held, the cited record still to fetch
     lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query, done=own)

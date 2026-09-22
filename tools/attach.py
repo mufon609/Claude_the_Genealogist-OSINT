@@ -32,7 +32,7 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
-from catalog import dbid_of, holders, holds, name_parts, person_named, split_name
+from catalog import dbid_of, first_value, holders, holds, name_parts, person_named, split_name
 from log_search import ON_WORD, holds_record, latest_answer, log as log_search, rendered_query, ran_unchanged, step_source
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
@@ -98,7 +98,7 @@ def _cites_page(step, named):
     if ed is not None and v("enumeration district") and _int(v("enumeration district")) != ed: return False
     m = re.search(r"^\d+([A-Za-z])$", v("page").strip())
     if letter and m and m.group(1).upper() != letter: return False
-    parts = [p.strip().lower() for p in v("census place").split(",") if p.strip()]
+    parts = [p.strip().lower() for p in (first_value(v("census place")) or "").split(",") if p.strip()]
     return all(p in orig for p in parts[-2:]) if parts else True
 
 def _same_search(step, qy):
