@@ -168,17 +168,6 @@ On 11 September 2026 the site served its robots page but reset the connection
 on the search path to a declared tool (urllib and curl alike); confirm it
 answers again before building, and if it keeps refusing, the step is assisted.
 
-### C10. Accepted links that pile up on a re-read
-
-Every re-read of a page carries the decided links to its new personas and
-leaves the earlier personas' accepted `person_persona` rows in place, so a
-person read three times has three accepted links on one record. Evidence
-rows are immutable, so the old personas stay; the link rows are decisions and
-could be set aside (status `superseded`, or the earlier persona's link
-withdrawn) when the new one is written, so counts of accepted links on a
-record say what a person would say. Decide the shape, then apply it to the
-live catalog's re-read pages.
-
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card

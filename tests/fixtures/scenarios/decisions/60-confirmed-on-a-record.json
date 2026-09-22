@@ -892,6 +892,96 @@
    ]
   },
   {
+   "say": "the SSN record read again: the accepted links it already carries move to the new reading's personas, nothing waits on a card",
+   "reread": {
+    "record": "ssn",
+    "match": null,
+    "rule": true
+   },
+   "expect": [
+    {
+     "last": {
+      "written": [],
+      "n": {
+       "links_carried": 3
+      }
+     },
+     "why": "the son, the father and the mother were already decided on the first reading; carry_links moves all three, so the rule has nothing left to propose"
+    }
+   ]
+  },
+  {
+   "say": "the old accepted link stays in person_persona as it was; the new reading carries its own",
+   "expect": [
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "ssn",
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     },
+     "why": "one row on the superseded persona, one on the current: neither rewritten nor removed"
+    },
+    {
+     "is_subject": {
+      "record": "ssn",
+      "person": "I332737099805"
+     },
+     "why": "read through the current reading alone, he is still the record's own subject: the extra row does not appear as a second, conflicting answer"
+    },
+    {
+     "named_for": {
+      "record": "ssn",
+      "is": {
+       "has": "Raymond Earl Davidson",
+       "len": {
+        "<=": 3
+       }
+      }
+     },
+     "why": "the matcher's own reading of who is accepted on the record counts him once, through the current extraction, not once per reading"
+    }
+   ]
+  },
+  {
+   "say": "the person screen's own view of the record: one extraction, his link on it accepted",
+   "view": {
+    "record": "ssn",
+    "person": "I332737099805"
+   },
+   "expect": [
+    {
+     "last": {
+      "extractions": {
+       "len": 1
+      },
+      "personas_on_record": {
+       "len": {
+        "<=": 3
+       }
+      }
+     },
+     "why": "the superseded reading's own extraction and personas do not reach the screen at all"
+    },
+    {
+     "last": {
+      "extractions": {
+       "some": {
+        "personas": {
+         "some": {
+          "link": "accepted"
+         }
+        }
+       }
+      }
+     },
+     "why": "his persona on the current reading shows the accepted link the earlier reading's decision carried"
+    }
+   ]
+  },
+  {
    "say": "the plan settled and the catalog whole",
    "expect": [
     {
