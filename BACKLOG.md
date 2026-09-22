@@ -105,6 +105,25 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
+### C2. A record's unplaced statement has no way onto the event the owner means
+
+When a record's undated event fact fits none of a person's several events of
+its type, `tools/conclude.py assert_facts` asserts nothing and the checklist
+raises a conflict question naming the record and the type
+(`Catalog.unplaced`). The owner can dismiss that question and nothing else:
+no command writes a statement from a `persona_fact` onto an event of the
+owner's choosing (`conclude.py assertion` decides an assertion that exists,
+`conclude.py fact` a key fact), so the record's Death stays off every event
+for good, or until the person is left with one event of the type. Give the
+statement a way home: `tools/conclude.py place <persona fact id> --event
+<event id> [--note "…"]` writes the fact as an assertion on that event
+(accepted from a record nobody can edit, undecided from a page anyone can,
+as `assert_facts` writes them), refuses an event of another type or
+another person's, records one audit row, and the question closes on the
+next plan as its gap has gone. The question's detail names the event ids
+to choose from, in the order the person screen lists them, so the owner
+reads the choice on the screen and answers it with the one command.
+
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
