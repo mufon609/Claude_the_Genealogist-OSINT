@@ -105,25 +105,6 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
-### C2. A record's unplaced statement has no way onto the event the owner means
-
-When a record's undated event fact fits none of a person's several events of
-its type, `tools/conclude.py assert_facts` asserts nothing and the checklist
-raises a conflict question naming the record and the type
-(`Catalog.unplaced`). The owner can dismiss that question and nothing else:
-no command writes a statement from a `persona_fact` onto an event of the
-owner's choosing (`conclude.py assertion` decides an assertion that exists,
-`conclude.py fact` a key fact), so the record's Death stays off every event
-for good, or until the person is left with one event of the type. Give the
-statement a way home: `tools/conclude.py place <persona fact id> --event
-<event id> [--note "…"]` writes the fact as an assertion on that event
-(accepted from a record nobody can edit, undecided from a page anyone can,
-as `assert_facts` writes them), refuses an event of another type or
-another person's, records one audit row, and the question closes on the
-next plan as its gap has gone. The question's detail names the event ids
-to choose from, in the order the person screen lists them, so the owner
-reads the choice on the screen and answers it with the one command.
-
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
@@ -217,22 +198,6 @@ them, agrees as a spelling variant, and whether the resolver offers the
 resolved place as such a string's candidate on the same ground; then the
 matcher applies it. Until then such a record is a card.
 
-### C12. A fetch step's place field carries the citation's one string
-
-`tools/plan.py`'s `citation_fields` writes a fetch step's place as the
-citation's own text under the citation's label (`census place`: "Caln,
-Chester, Pennsylvania"), one string, basis `citation`; a search step's
-`place` is every accurate name of the place (`checklist.PLACES`: the name
-valid at the record's date, as written, current, every other dated name,
-`docs/RESEARCH-WORKFLOW.md` §3), and `run_step.run_connector` tries them one
-at a time under `place` alone. A fetch step is asked under the one spelling,
-and the prefilled FamilySearch search on the fetch list carries the same one.
-Give a fetch step's place the same list, the citation's own string first,
-under the field the citation labels it, and have the runner's name-by-name
-try read `census place` as it reads `place`. Harness: a fetch step whose
-citation's place has a dated name, the connector asked once per name until a
-hit.
-
 ### C13. A connector for Open Archives, the Dutch records
 
 api.openarch.nl answers a declared tool with no key: `records/search.json`
@@ -284,19 +249,6 @@ the owner's word: the owner's citation as the ground that persona lacks (a
 vouch, recorded as their word), the household then read outward from her
 through its stated relationships as any accepted record is; or the card stays
 the owner's.
-
-### C19. The person screen has no living line and no control to confirm it
-
-The living status is the tier from the home person
-(`docs/DATA-ARCHITECTURE.md` §7): a person in the grandparents' generation
-is unknown until the owner confirms them, and `tools/checklist.py` prints
-the line ("living: unknown, confirm with tools/conclude.py living"). The
-person screen's foundation shows the seven key facts only, so the owner
-never meets the question on the one screen where they decide. Show the
-living line in the foundation with its reason, and on an unknown person
-the two-way control (living, deceased) that writes `person.living_override`
-through `conclude.living` with one audit row, as the fact rows write their
-decisions.
 
 ## Externally blocked
 
