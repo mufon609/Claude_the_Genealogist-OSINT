@@ -1,6 +1,6 @@
 {
  "title": "an undated fact on a person with two events of its type is a conflict, never a silent drop",
- "line": "assert_facts leaves an undated death fact unasserted when the person carries two death events, exactly as it already did for two births; the checklist raises the multi-event conflict for every type, in its own words, and a second conflict of its own naming the record whose fact fits none of them, so nothing is dropped without a word",
+ "line": "assert_facts leaves an undated death fact unasserted when the person carries two death events, exactly as it already did for two births; the checklist raises the multi-event conflict for every type, in its own words, and a second conflict of its own naming the record whose fact fits none of them, so nothing is dropped without a word; tools/conclude.py place gives the owner a way to name which event the record's undated fact belongs to",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -28,6 +28,7 @@
     "date": "1975",
     "date_start": "1975"
    },
+   "as": "second_death",
    "expect": [
     {
      "event": {
@@ -107,6 +108,113 @@
       "status": "open"
      },
      "why": "and a second conflict of its own, naming the record whose undated fact fits none of them"
+    }
+   ]
+  },
+  {
+   "say": "placing the record's Death fact on his Birth event is refused: another type",
+   "place": {
+    "record": "ohio",
+    "person": "I332737100409",
+    "fact_type": "Death",
+    "event": {
+     "person": "I332737100409",
+     "type": "Birth",
+     "index": 0
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "Birth"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "placing it on John Y Davidson's own Death event is refused: another person's",
+   "place": {
+    "record": "ohio",
+    "person": "I332737100409",
+    "fact_type": "Death",
+    "event": {
+     "person": "I332737204849",
+     "type": "Death",
+     "index": 0
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "another person"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner places the record's Death fact on the planted (second) event: the one it means",
+   "place": {
+    "record": "ohio",
+    "person": "I332737100409",
+    "fact_type": "Death",
+    "event": "$second_death.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "status": "accepted",
+      "event": "$second_death.event"
+     }
+    }
+   ]
+  },
+  {
+   "say": "placing the same fact again is refused: it already has an assertion",
+   "place": {
+    "record": "ohio",
+    "person": "I332737100409",
+    "fact_type": "Death",
+    "event": "$second_death.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "already has an assertion"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the plan reflects the placement: the unplaced conflict is gone, the multi-event conflict remains",
+   "plan": [
+    "I332737100409"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "detail_has": "fits none of your 2 death events",
+      "status": "open",
+      "exists": false
+     },
+     "why": "the record's undated Death fact now sits on the planted event: assert_facts's own gap is filled"
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "detail_has": "more than one death event",
+      "status": "open"
+     },
+     "why": "two Death events still stand on him: the multi-event conflict is not what the placement answers"
     }
    ]
   }

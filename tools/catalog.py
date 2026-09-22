@@ -526,8 +526,9 @@ class Catalog:
     def unplaced(self, pid):
         """A record accepted onto this person whose undated fact of an event type asserts nothing (tools/conclude.py
         assert_facts), because the person carries more than one event of that type and nothing there guesses which one it
-        means: one line per such fact, naming the record and the type. The gap closes itself once the person is left with
-        one event of the type and the record is decided again."""
+        means: one line per such fact, naming the record, the type and the candidate events to choose from, in the order the
+        person screen lists them (by date), so the owner reads the choice there and answers it with tools/conclude.py place.
+        The gap closes itself once the person is left with one event of the type and the record is decided again."""
         out = []
         for fid, ftype, label in self.q("""SELECT pf.id, pf.fact_type, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)) FROM persona_fact pf
                                            JOIN persona pe ON pe.id=pf.persona_id JOIN person_persona pp ON pp.persona_id=pe.id
@@ -535,8 +536,10 @@ class Catalog:
                                            WHERE pp.person_id=? AND pp.status='accepted' AND et.kind='event' AND pf.fact_type<>'Residence'
                                            AND pf.date_start IS NULL AND pf.date_end IS NULL
                                            AND NOT EXISTS (SELECT 1 FROM assertion a WHERE a.persona_fact_id=pf.id)""", pid):
-            n = self.q("SELECT COUNT(*) FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=?", pid, ftype)[0][0]
-            if n > 1: out.append(f"{ftype.lower()}: {label} has no date and fits none of your {n} {ftype.lower()} events")
+            events = self.q("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=? ORDER BY e.date_start", pid, ftype)
+            if len(events) > 1:
+                out.append(f"{ftype.lower()}: {label} has no date and fits none of your {len(events)} {ftype.lower()} events "
+                           f"({', '.join(e[0] for e in events)}); place fact {fid} on one with tools/conclude.py place")
         return list(dict.fromkeys(out))
     def dated_names(self, place_id):
         """place_id's own former names (place_name rows with a valid_from or valid_to, written by tools/resolve_places.py

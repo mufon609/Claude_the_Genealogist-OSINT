@@ -35,6 +35,7 @@ proposed again by the matcher as it stands.
 usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
        tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
        tools/conclude.py assertion <assertion id> accept|reject|undecided [--note "…"]   one statement of one record, on its own
+       tools/conclude.py place <persona fact id> --event <event id> [--note "…"]   a record's undated fact onto the event it belongs to (Catalog.unplaced)
        tools/conclude.py facts "<person>"                                          every fact with its event id and every statement behind it with its id
        tools/conclude.py reconsider [--dry-run]                                   the rule re-examines its decisions and the cards it refused
        tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…" [--marriage "14 AUG 1959"]
@@ -53,6 +54,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - decide_place: the owner's answer on a place string the resolver left undecided, which real place its words mean or that they are
   not a place, applied wherever the same words appear.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
+- place: the owner's answer to Catalog.unplaced, a record's undated fact written onto the event the owner means.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -175,6 +177,35 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
             events = [{"id": eid}]
         for e in events: assert_("event", e["id"], f)
     return n, sha
+
+def place(cx, tree_id, pf_id, event_id, by, note):
+    """The owner's answer to Catalog.unplaced: a record's undated fact, accepted onto a person with several events of its
+    type and left unasserted by assert_facts, written onto the one event the owner means. The assertion is written the way
+    assert_facts writes any other: accepted from a record nobody can edit at will, undecided from a page anyone can. Refused
+    when the persona fact does not exist or its persona is not accepted to a person, the fact already carries an assertion,
+    the event is not this tree's or is of another type than the fact, or the event belongs to another person. One audit row.
+    Returns what was written, or an error."""
+    q = _q(cx); ts = now()
+    pf = q.execute("SELECT pf.*, pe.artifact_sha256 FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pf.id=?", (pf_id,)).fetchone()
+    if not pf: return {"error": "no such persona fact"}
+    pp = q.execute("SELECT person_id FROM person_persona WHERE persona_id=? AND status='accepted'", (pf["persona_id"],)).fetchone()
+    if not pp: return {"error": "this persona is not accepted to a person"}
+    person_id = pp["person_id"]
+    if q.execute("SELECT 1 FROM assertion WHERE persona_fact_id=?", (pf_id,)).fetchone(): return {"error": "this fact already has an assertion"}
+    ev = q.execute("SELECT id, event_type FROM event WHERE id=? AND tree_id=?", (event_id, tree_id)).fetchone()
+    if not ev: return {"error": "no such event in this tree"}
+    if ev["event_type"] != pf["fact_type"]: return {"error": f"the event is {ev['event_type']}, the fact is {pf['fact_type']}"}
+    if not q.execute("SELECT 1 FROM event_participant WHERE event_id=? AND person_id=?", (event_id, person_id)).fetchone(): return {"error": "the event belongs to another person"}
+    a = q.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (pf["artifact_sha256"],)).fetchone()
+    cite = a["name"] or a["original_filename"] or pf["artifact_sha256"][:12]
+    status = "undecided" if editable(cx, pf["artifact_sha256"]) else "accepted"
+    aid = ulid()
+    q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                  VALUES (?,?,'event',?,?,?,?,?,?,?,?)""", (aid, tree_id, event_id, pf_id, pf["artifact_sha256"], cite, status, by, ts, dumps({"note": note})))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "insert", "assertion", aid, dumps({"persona_fact": pf_id, "event": event_id, "person": person_id, "status": status, "note": note})))
+    plan_person(cx, tree_id, person_id, by)
+    return {"ok": True, "assertion": aid, "status": status, "person": person_id, "event": event_id}
 
 def shown_married(cx, tree_id, person_id, sha, written, canon_surname):
     """Whether the record shows this person married under `written`'s own surname: a wife under her husband's surname (the
@@ -1052,6 +1083,8 @@ def main():
     fc.add_argument("person"); fc.add_argument("field"); fc.add_argument("verdict", choices=["accept", "reject", "undecided"]); fc.add_argument("--note")
     ac = sub.add_parser("assertion", help="one statement of one record on one subject, decided on its own (a fact decision touches every statement behind the fact)")
     ac.add_argument("assertion"); ac.add_argument("verdict", choices=["accept", "reject", "undecided"]); ac.add_argument("--note")
+    pc = sub.add_parser("place", help="a record's undated fact, accepted onto a person with several events of its type, written onto the one the owner means (Catalog.unplaced)")
+    pc.add_argument("persona_fact"); pc.add_argument("--event", required=True, dest="event"); pc.add_argument("--note")
     ls = sub.add_parser("facts", help="a person's key facts, events and attributes with their ids, and every statement behind each with its id, status and record"); ls.add_argument("person")
     r = sub.add_parser("reconsider", help="the rule re-examines every decision it made and every card still undecided; a decision it would no longer take is withdrawn, a card it would now take is taken")
     r.add_argument("--dry-run", action="store_true", help="report only")
@@ -1066,7 +1099,7 @@ def main():
     mg.add_argument("duplicate"); mg.add_argument("--into", dest="kept", required=True); mg.add_argument("--note", required=True, help="why these are the same person, kept on the proposal")
     lv = sub.add_parser("living", help="your own word on whether a person is alive, above the tier rule; unknown clears it so the rule decides again")
     lv.add_argument("person"); lv.add_argument("word", choices=["living", "deceased", "unknown"]); lv.add_argument("--note", required=True, help="your reason, kept on the audit row")
-    for x in (dc, fc, ac, ls, r, l, d, mg, lv):
+    for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
@@ -1109,6 +1142,11 @@ def main():
                      else [row["subject_id"]] if row["subject_kind"] == "person" else [json.loads(row["subject_id"])[1]] if row["subject_kind"] == "family_member" else []
             for pid in people: plan_person(cx, tree_id, pid, a.by)
             print(f"assertion {row['id'][-6:]} on {row['subject_kind']} ({row['citation_text'] or ''}): {row['status']} -> {status}; plan regenerated for {len(people)} person(s)")
+        elif a.cmd == "place":
+            res = place(cx, tree_id, a.persona_fact, a.event, a.by, a.note)
+            if "error" in res: raise SystemExit(res["error"])
+            who = cx.execute("SELECT display_name FROM person WHERE id=?", (res["person"],)).fetchone()[0]
+            print(f"persona fact {a.persona_fact[-6:]} placed on event {res['event']}: {res['status']}, {who} [{res['person'][-6:]}]; plan regenerated")
         elif a.cmd == "facts":
             from facts import KEY_FACTS, evidence_rows, fact_status
             pid = cat.find_person(a.person); print(cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0], f"[{pid[-6:]}]")

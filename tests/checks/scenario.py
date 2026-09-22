@@ -323,6 +323,24 @@ def a_assertion(w, x):
     out = run(tool("conclude.py"), "assertion", row[0], x.get("verdict", "reject"), "--note", x.get("note", "harness"), "--db", w.db, "--tree", w.slug, "--by", BY)
     return {"assertion": row[0], "printed": out.strip()}
 
+def a_place(w, x):
+    """A record's undated fact, accepted onto a person with several events of its type, placed on the one the owner means
+    (tools/conclude.py place): the persona fact found by the record, the person and the fact type; the event a literal or
+    bound id, or {"person": ref, "type": event_type, "index": n} the person's nth event of that type in the person
+    screen's own order (Catalog.events: by date)."""
+    from conclude import place
+    sha = w.sha(x["record"]); pid = w.person(x["person"])
+    pf = w.cx.execute("""SELECT pf.id FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id JOIN person_persona pp ON pp.persona_id=pe.id
+                         WHERE pe.artifact_sha256=? AND pp.person_id=? AND pp.status='accepted' AND pf.fact_type=?""", (sha, pid, x["fact_type"])).fetchone()
+    if not pf: raise KeyError("no such persona fact")
+    ref = x["event"]
+    if isinstance(ref, dict):
+        rows = w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=? ORDER BY e.date_start",
+                            (w.person(ref["person"]), ref["type"])).fetchall()
+        eid = rows[ref.get("index", 0)][0]
+    else: eid = w.value(ref)
+    return place(w.cx, w.tid, pf[0], eid, x.get("by", BY), x.get("note", "harness"))
+
 def a_link_on_word(w, x):
     from conclude import link_on_word
     fid = link_on_word(w.cx, w.tid, w.person(x["person"]), w.people(x["others"]), x.get("kind", "child"), w.sha(x["record"]), BY, x.get("note", "harness: the owner's word"))
@@ -465,7 +483,7 @@ def a_question(w, x):
     return {"question": qid}
 
 ACTIONS = {"plan": a_plan, "migrate": a_migrate, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
-           "fact": a_fact, "assertion": a_assertion, "link_on_word": a_link_on_word, "living": a_living, "transcribe": a_transcribe, "view": a_view, "save": a_save, "collect": a_collect,
+           "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "transcribe": a_transcribe, "view": a_view, "save": a_save, "collect": a_collect,
            "question": a_question,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "older_matcher": a_older_matcher, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 

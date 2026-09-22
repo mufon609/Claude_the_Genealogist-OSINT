@@ -112,7 +112,10 @@ owner's word), `archive` (a `fixture`, or a stand-in: `stand_in: "image"`, or a 
 (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same, for a page the harness only
 reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`), `withdraw`,
 `reconsider` (`dry`), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
-`tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `link_on_word`, `living`,
+`tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `place` (a persona fact
+placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact; `event` is a
+literal id or `{person, type, index}`, that person's nth event of the type in the person screen's own order),
+`link_on_word`, `living`,
 `transcribe` (a reading typed into the person screen's form: `record`, `form`, `relations` to bound personas, `about`,
 `by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's),
