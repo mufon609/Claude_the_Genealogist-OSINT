@@ -281,21 +281,6 @@ vouch, recorded as their word), the household then read outward from her
 through its stated relationships as any accepted record is; or the card stays
 the owner's.
 
-### C16. A merge carries the duplicate's events beside the kept person's own
-
-`tools/conclude.py merge` moves the duplicate's event participations onto
-the kept person as they are, so a duplicate whose Birth and Death the file
-states with the kept person's own dates leaves the kept person with two
-Birth events and two Death events of one date, and the plan opens a
-`conflict` question "more than one birth event" between values that agree:
-Thomas Ahearn [6FX2NF] after the merge of 18 Sept 2026 carries Birth 2 Oct
-1846 twice (five assertions and one) and Death 21 Aug 1902 twice. When the
-duplicate's event is of the same type as one of the kept person's and its
-date agrees to the day (its place agreeing or absent), move its assertions
-onto the kept event and leave the duplicate's event behind with the
-duplicate's row, so a merge never opens a conflict between equal values; a
-differing value stays a second event and a real conflict, as now.
-
 ### C18. A merge leaves the kept person in two families with the same partner
 
 The file's duplicate entry had its own family with the same partner (Alice

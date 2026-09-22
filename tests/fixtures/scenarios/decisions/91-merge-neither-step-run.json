@@ -114,6 +114,35 @@
       ]
      },
      "why": "one duplicate_person proposal, decided accepted, the note kept"
+    },
+    {
+     "last": {
+      "events_folded": 2
+     },
+     "why": "the duplicate's Birth and Death agree with the kept person's own to the day and fold onto them"
+    },
+    {
+     "event": {
+      "person": "I332737059537",
+      "type": "Birth",
+      "events": 1
+     },
+     "why": "one Birth event on the kept person, not two, carrying both entries' statements"
+    },
+    {
+     "event": {
+      "person": "I332737059537",
+      "type": "Death",
+      "events": 1
+     },
+     "why": "one Death event the same way"
+    },
+    {
+     "count": {
+      "events_of": "I332737068288",
+      "is": 2
+     },
+     "why": "the duplicate's own Birth and Death events and their participants are left as they are, on the duplicate's row"
     }
    ]
   },

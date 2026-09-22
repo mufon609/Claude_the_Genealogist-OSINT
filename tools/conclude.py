@@ -795,6 +795,13 @@ def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tree_id, ts, by, "accept", "event", eid, dumps({"divorce": [a, b], "date": date_text, "note": note})))
     return eid
 
+def _event_place_keys(q, eid, place_id):
+    """What an event's place stands for, for a merge's own agreement check: the resolved place, or, unresolved, every raw
+    string a non-rejected assertion gives it. Empty counts as absent, agreeing with anything."""
+    if place_id: return {place_id}
+    return {r[0].strip().lower() for r in q.execute("""SELECT ps.raw FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                     JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected'""", (eid,)).fetchall()}
+
 def merge(cx, tree_id, dup_id, kept_id, by, note):
     """Close a duplicate_person question (RESEARCH-WORKFLOW §2; the worked example's "merging the two Thomas entries closes
     the question"): the duplicate's persona links, assertions, event and family memberships, plan steps, search log rows and
@@ -803,7 +810,12 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     decision with the owner's note. A moved step the kept person's plan already has by step_key keeps whichever of the two
     carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
     onto the survivor rather than lost. A dropped step or question is named in the audit row by its key, row (a step's) and
-    rationale, and why it was dropped, the way plan.py's own audit row names what it drops. Returns what moved."""
+    rationale, and why it was dropped, the way plan.py's own audit row names what it drops.
+
+    A duplicate's own event of a type the kept person also has, its date agreeing to the day and its place agreeing or
+    absent, is folded: its assertions move onto the kept person's own event of that type, and the duplicate's event and its
+    participant are left as they are, on the duplicate's row, so the kept person never carries two Birth or two Death
+    events of one value. A differing value stays a second event, as before. Returns what moved."""
     q = _q(cx)
     dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
     kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
@@ -813,9 +825,10 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     if dup["merged_into"]: raise ValueError(f"{dup['display_name']} is already merged into another person")
     if kept["merged_into"]: raise ValueError(f"{kept['display_name']} is itself merged into another person")
     ts = now()
-    moved = {"persona_links": 0, "assertions": 0, "event_participants": 0, "family_memberships": 0,
+    moved = {"persona_links": 0, "assertions": 0, "event_participants": 0, "events_folded": 0, "event_assertions_folded": 0,
+             "family_memberships": 0,
              "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0,
-             "dropped_steps": [], "dropped_questions": []}   # each drop named by its key, row and rationale, the way plan.py's own audit row does: the audit row is the only trace of it afterwards
+             "dropped_steps": [], "dropped_questions": [], "folded_events": []}   # each drop or fold named by its key/type, the way plan.py's own audit row does: the audit row is the only trace of it afterwards
 
     for persona_id, in q.execute("SELECT persona_id FROM person_persona WHERE person_id=?", (dup_id,)).fetchall():
         if q.execute("SELECT 1 FROM person_persona WHERE person_id=? AND persona_id=?", (kept_id, persona_id)).fetchone(): continue
@@ -823,6 +836,21 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         moved["persona_links"] += 1
 
     for ep_id, eid, role, fam in q.execute("SELECT id, event_id, role, family_id FROM event_participant WHERE person_id=?", (dup_id,)).fetchall():
+        dup_event = q.execute("SELECT event_type, date_start, place_id FROM event WHERE id=?", (eid,)).fetchone()
+        fold_into = None
+        if dup_event and dup_event["date_start"]:
+            dup_places = _event_place_keys(q, eid, dup_event["place_id"])
+            for kept_eid, kept_ds, kept_place_id in q.execute("""SELECT e.id, e.date_start, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                                                 WHERE ep.person_id=? AND e.event_type=?""", (kept_id, dup_event["event_type"])).fetchall():
+                if kept_ds != dup_event["date_start"]: continue
+                kept_places = _event_place_keys(q, kept_eid, kept_place_id)
+                if dup_places and kept_places and not (dup_places & kept_places): continue
+                fold_into = kept_eid; break
+        if fold_into:
+            n = q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='event' AND subject_id=?", (fold_into, eid)).rowcount
+            moved["events_folded"] += 1; moved["event_assertions_folded"] += n
+            moved["folded_events"].append({"event_type": dup_event["event_type"], "date_start": dup_event["date_start"], "into_event_id": fold_into, "assertions": n})
+            continue                                          # the duplicate's own event and its participant stay as they are
         if q.execute("SELECT 1 FROM event_participant WHERE event_id=? AND role=? AND person_id=? AND family_id IS ?", (eid, role, kept_id, fam)).fetchone(): continue
         q.execute("UPDATE event_participant SET person_id=? WHERE id=?", (kept_id, ep_id))
         moved["event_participants"] += 1

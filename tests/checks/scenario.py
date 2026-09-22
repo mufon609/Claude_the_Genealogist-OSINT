@@ -718,7 +718,8 @@ def e_file(w, x, want):
 def e_count(w, x, want):
     """A count from one of the catalog's tables, for a few plain questions: the rows of a table for a person."""
     q = {"persona_links_of": "SELECT COUNT(*) FROM person_persona WHERE person_id=?", "family_rows_of": "SELECT COUNT(*) FROM family_member WHERE person_id=?",
-         "steps_of": "SELECT COUNT(*) FROM search_plan WHERE person_id=?", "personas_of": "SELECT COUNT(*) FROM persona WHERE artifact_sha256=?", "logs_of_step": "SELECT COUNT(*) FROM search_log WHERE plan_step_id=?"}
+         "steps_of": "SELECT COUNT(*) FROM search_plan WHERE person_id=?", "personas_of": "SELECT COUNT(*) FROM persona WHERE artifact_sha256=?", "logs_of_step": "SELECT COUNT(*) FROM search_log WHERE plan_step_id=?",
+         "events_of": "SELECT COUNT(*) FROM event_participant WHERE person_id=?"}
     kind = next(k for k in q if k in x)
     arg = w.sha(x[kind]) if kind == "personas_of" else w.step(x[kind])["id"] if kind == "logs_of_step" else w.person(x[kind])
     n = w.cx.execute(q[kind], (arg,)).fetchone()[0]
