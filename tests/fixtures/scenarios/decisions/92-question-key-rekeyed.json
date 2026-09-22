@@ -1,6 +1,6 @@
 {
- "title": "a question's key is re-keyed, not closed gap-gone and reopened, when the plan stops truncating it",
- "line": "a conflict's key is its whole detail, never a 120-character prefix; a row a run before this fix left under the old truncated key is found again by its full detail and re-keyed onto it, so a question the owner dismissed under the old key stays dismissed, never silently reopened as a new row",
+ "title": "a question's key is recomputed from its detail by a migration, not a branch of the plan",
+ "line": "tools/initdb.py --migrate recomputes every research_question row's key from its own detail_json with plan.q_key, open and closed rows alike, so a row written under an older, truncating key is found under its full key without the plan itself carrying a re-key branch",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -77,7 +77,7 @@
    ]
   },
   {
-   "say": "the owner dismisses it, and the catalog is put back as a run before this fix would have left it: the same row, under the 120-character prefix the old q_key truncated to, closed and dismissed",
+   "say": "the owner dismisses it, and the catalog is put back as an older catalog would hold it: the same row, under a truncated key an older q_key once wrote, closed and dismissed",
    "question": {
     "person": "I332737037257",
     "kind": "conflict",
@@ -90,7 +90,31 @@
    }
   },
   {
-   "say": "the plan regenerated finds the dismissed row by its old, truncated key and re-keys it onto the full detail: it is not reopened, and no second row is created beside it",
+   "say": "the migration recomputes every row's key from its own detail_json",
+   "migrate": true,
+   "expect": [
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "detail_has": "Pennsylvania against Northampton",
+      "count": 1
+     },
+     "why": "one row only: re-keyed by the migration, never duplicated"
+    },
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "status": "closed",
+      "detail_has": "Pennsylvania against Northampton"
+     },
+     "why": "still closed: a dismissed question stays dismissed"
+    }
+   ]
+  },
+  {
+   "say": "the plan regenerated finds the row directly under its full key: nothing reopens it, and it carries no re-key branch of its own",
    "plan": [
     "I332737037257"
    ],
@@ -102,7 +126,7 @@
       "detail_has": "Pennsylvania against Northampton",
       "count": 1
      },
-     "why": "one row only: re-keyed, never duplicated"
+     "why": "one row only"
     },
     {
      "question": {

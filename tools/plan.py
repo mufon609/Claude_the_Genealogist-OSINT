@@ -58,13 +58,6 @@ def q_key(q):
     if q.get("other_id"): return q["kind"] + ":" + q["other_id"]
     return q["kind"] + ":" + re.sub(r"\s+", " ", (q.get("detail") or "")).strip()
 
-def _legacy_q_key(q):
-    """The key q_key wrote before it stopped truncating a detail to 120 characters: the row a run before this fix left for
-    this same question, so a regeneration finds and re-keys it instead of closing it gap_gone and opening a new one, which
-    would silently un-dismiss a question the owner had already dismissed under its old key."""
-    if q.get("other_id"): return q["kind"] + ":" + q["other_id"]
-    return q["kind"] + ":" + re.sub(r"\s+", " ", (q.get("detail") or "")).strip()[:120]
-
 def citation_fields(collection, cited, name):
     """The citation's own details as query fields, each {value, basis 'citation'}: the collection, the name the citation sits on,
     every 'Label: value' part of the page text under its label, the rest of the page text under 'citation', the memorial URL."""
@@ -159,7 +152,7 @@ def check_registry(cx, cat, r=None):
 def plan_person(cx, tree_id, pid, by):
     cat = Catalog(cx, tree_id); r = build(cat, pid); ts = now(); me = r["person"]["name"]
     check_registry(cx, cat, r)
-    wanted = {q_key(q): (q["kind"], dumps(q), q) for q in r["questions"]}
+    wanted = {q_key(q): (q["kind"], dumps(q)) for q in r["questions"]}
     fetches, searches = [], []
     for grp in ("A", "B"):
         for row in r["checklist"][grp]:
@@ -194,17 +187,10 @@ def plan_person(cx, tree_id, pid, by):
              "dropped": []}                                          # each step deleted below by key, row and rationale: the audit row is the only trace of it afterwards
     existing = {row[1]: row[0] for row in cx.execute("SELECT id, q_key FROM research_question WHERE subject_person_id=? AND status='open'", (pid,))}
     qid_by_key = {}
-    for key, (kind, detail, q) in wanted.items():
+    for key, (kind, detail) in wanted.items():
         if key in existing: qid = existing[key]; cx.execute("UPDATE research_question SET detail_json=? WHERE id=?", (detail, qid)); stats["questions_kept"] += 1
         else:
             closed = cx.execute("SELECT id, closed_reason FROM research_question WHERE subject_person_id=? AND q_key=?", (pid, key)).fetchone()
-            legacy = _legacy_q_key(q)
-            old = None if (closed or legacy == key) else cx.execute("SELECT id, status, closed_reason FROM research_question WHERE subject_person_id=? AND q_key=?", (pid, legacy)).fetchone()
-            if old:                                                     # the same question, keyed before this fix stopped truncating: re-keyed, never closed gap_gone and reopened
-                qid = old[0]; cx.execute("UPDATE research_question SET q_key=?, detail_json=? WHERE id=?", (key, detail, qid))
-                if existing.get(legacy) == qid: del existing[legacy]
-                stats["questions_kept" if old[1] == "open" else "questions_left_closed"] += 1
-                qid_by_key[key] = qid; continue
             if closed and closed[1] != "gap_gone": stats["questions_left_closed"] += 1; continue      # a person dismissed or answered it
             if closed: qid = closed[0]; cx.execute("UPDATE research_question SET status='open', closed_reason=NULL, closed_at=NULL, detail_json=? WHERE id=?", (detail, qid))
             else: qid = ulid(); cx.execute("INSERT INTO research_question (id,tree_id,subject_person_id,kind,q_key,detail_json,status,created_at) VALUES (?,?,?,?,?,?,'open',?)", (qid, tree_id, pid, kind, key, detail, ts))

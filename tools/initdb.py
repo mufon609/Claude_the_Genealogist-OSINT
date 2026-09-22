@@ -11,10 +11,11 @@ then seeds `source` from data/data-sources.csv, a `human` extractor, and the
 local storage target. --sync-sources rewrites an existing catalog's source rows
 from the CSV (the registry is reference data) and touches nothing else. --migrate
 brings an existing catalog's own structure up to schema/catalog.sql's current
-version, one column or index at a time, without touching a decision; each schema
+version, one column or index at a time, and runs any one-time data correction a
+later version needs (a column's own row-by-row fix, never a decision); each schema
 version this catalog lacks runs once and is recorded in schema_migration. Stdlib only.
 """
-import argparse, csv, datetime as dt, os, sqlite3, sys, time
+import argparse, csv, datetime as dt, json, os, sqlite3, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_dir
 
@@ -22,12 +23,22 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_VERSION = "0.7.2"
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
-# One entry per schema version added after the catalog's first release: (version, note, statements).
+def requery_questions(cx: sqlite3.Connection) -> None:
+    """Every research_question row's key recomputed from its own detail_json with plan.q_key, open and closed alike: the
+    catalog's one-time correction of rows an older, truncating q_key wrote."""
+    from plan import q_key
+    for rid, detail in cx.execute("SELECT id, detail_json FROM research_question").fetchall():
+        cx.execute("UPDATE research_question SET q_key=? WHERE id=?", (q_key(json.loads(detail)), rid))
+
+# One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
+# SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
 MIGRATIONS = [
     ("0.7.2", "person.merged_into: tools/conclude.py merge points a duplicate at the person it duplicates",
      ["ALTER TABLE person ADD COLUMN merged_into TEXT REFERENCES person(id)",
       "CREATE INDEX ix_person_merged_into ON person(merged_into) WHERE merged_into IS NOT NULL"]),
+    ("0.7.3", "research_question.q_key recomputed from detail_json with plan.q_key, dropping the 120-character truncation an older key wrote",
+     [requery_questions]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:
@@ -36,7 +47,7 @@ def migrate(cx: sqlite3.Connection) -> list:
     applied = []
     for version, note, statements in MIGRATIONS:
         if version in have: continue
-        for stmt in statements: cx.execute(stmt)
+        for stmt in statements: stmt(cx) if callable(stmt) else cx.execute(stmt)
         cx.execute("INSERT INTO schema_migration (version, applied_at, notes) VALUES (?,?,?)", (version, now(), note))
         applied.append(version)
     return applied

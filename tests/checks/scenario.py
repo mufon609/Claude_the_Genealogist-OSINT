@@ -217,6 +217,12 @@ def a_plan(w, x):
     pids = [p for p, in w.cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL", (w.tid,))] if x == "all" else w.people(x)
     return {w.name_of(p): plan_person(w.cx, w.tid, p, BY) for p in pids}
 
+def a_migrate(w, x):
+    """tools/initdb.py --migrate on the scratch catalog itself: its printed line, for a data correction a migration
+    version carries to be checked against a row put in the shape it corrects."""
+    w.cx.commit()
+    return {"printed": run(tool("initdb.py"), "--db", w.db, "--migrate").strip()}
+
 def a_attach(w, x):
     """A fixture dropped into the inbox as a save would leave it and attached: the record's sha and the attach's report."""
     from attach import attach_inbox
@@ -446,9 +452,8 @@ def a_seed(w, x):
     return a_archive(w, x)
 
 def a_question(w, x):
-    """A research_question row patched by hand into a shape nothing today writes, for a regeneration to be checked
-    against: the row a run before a fix landed would have left (a legacy truncated key, a dismissed status). The row is
-    found among the person's own by kind and a substring of its detail, and must be exactly one."""
+    """A research_question row patched by hand into any shape, for a migration or a later plan run to be checked
+    against it. The row is found among the person's own by kind and a substring of its detail, and must be exactly one."""
     pid = w.person(x["person"])
     rows = w.cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=?", (pid,)).fetchall()
     if x.get("kind"): rows = [r for r in rows if r["kind"] == x["kind"]]
@@ -459,7 +464,7 @@ def a_question(w, x):
     w.cx.commit()
     return {"question": qid}
 
-ACTIONS = {"plan": a_plan, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
+ACTIONS = {"plan": a_plan, "migrate": a_migrate, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "link_on_word": a_link_on_word, "living": a_living, "transcribe": a_transcribe, "view": a_view, "save": a_save, "collect": a_collect,
            "question": a_question,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "older_matcher": a_older_matcher, "merge": a_merge, "cite": a_cite, "seed": a_seed}

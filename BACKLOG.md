@@ -168,21 +168,6 @@ On 11 September 2026 the site served its robots page but reset the connection
 on the search path to a declared tool (urllib and curl alike); confirm it
 answers again before building, and if it keeps refusing, the step is assisted.
 
-### C9. The question re-key is a migration, not a branch of the plan
-
-`tools/plan.py plan_person` carries `_legacy_q_key` and a branch that finds
-a research_question row under the key the planner wrote before it stopped
-truncating a detail to 120 characters, and re-keys it. That is a one-time
-correction of rows the live catalog holds, and the catalog has the place
-for one: `tools/initdb.py --migrate`, whose versions run once and are
-recorded in `schema_migration`. Every row carries its whole detail in
-`detail_json`, so a migration recomputes each open or closed question's
-key from it in place (no two rows can collide, since one full detail has
-one truncated form). Write that migration, drop `_legacy_q_key` and the
-branch, and let the plan know one key. The docstrings there and on the
-harness's `question` action speak of "before this fix" and "a run before a
-fix landed": comments describe the code as it is, never its history.
-
 ### C10. Accepted links that pile up on a re-read
 
 Every re-read of a page carries the decided links to its new personas and
