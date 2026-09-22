@@ -41,7 +41,7 @@ def same_fields(rendered, ran):
         r = ran.get(k)
         if r is None: return False
         if not isinstance(r, dict): r = {"value": r}
-        if k == "place" and r.get("tried"):
+        if r.get("tried"):
             names = f["value"] if isinstance(f["value"], list) else [f["value"]]
             if list(r["tried"]) != list(names): return False
         elif r.get("value") != f["value"]: return False

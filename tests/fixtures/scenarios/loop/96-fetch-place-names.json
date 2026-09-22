@@ -129,6 +129,39 @@
      "why": "both names are tried, in order, before the run stops, under the citation's own label"
     }
    ]
+  },
+  {
+   "say": "a dry run on the same fields: the tried list read back under the citation's own label, not asked blind again",
+   "run_connector": {
+    "step": {
+     "person": "I332737100409",
+     "row_key": "census household:1940",
+     "kind": "fetch"
+    },
+    "connector": {
+     "source": "D03",
+     "collection": "United States, Census, 1940",
+     "url": "http://test.invalid/search",
+     "field": "census place",
+     "none_when": "census place=Hempstead, Nassau, New York"
+    },
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "results": {
+       "some": {
+        "asked": false,
+        "answered": {
+         "outcome": "found"
+        }
+       }
+      }
+     },
+     "why": "the run's tried names, read under 'census place' as the runner wrote them, match the step's own names: the same query again, so the dry run says the connector would not be asked"
+    }
+   ]
   }
  ]
 }

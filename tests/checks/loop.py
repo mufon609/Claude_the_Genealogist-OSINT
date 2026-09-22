@@ -141,7 +141,9 @@ def a_run_all(w, x):
 def a_run_connector(w, x):
     """run_step.run_connector on a step with a connector standing in: its requests from the step's place field (a search
     step's own "place", or "field" names a fetch step's own citation label, "census place"), its hits from the fetch's
-    answer, the answer per request from the data (none for a URL carrying one text, found otherwise)."""
+    answer, the answer per request from the data (none for a URL carrying one text, found otherwise). `dry`: run_step.run
+    in dry-run mode instead, the same connector standing in through connectors_for, saying whether the runner would ask
+    it again on the step's current fields."""
     import run_step
     from connectors import value
     c = x["connector"]; st = w.step(x["step"]); field = c.get("field", "place")
@@ -152,6 +154,10 @@ def a_run_connector(w, x):
     conn = types.SimpleNamespace(__name__="fake.connector", SOURCE=c["source"], COLLECTION=c["collection"], RATE={"search": 6000}, requests=requests, hits=hits, total=lambda data: None)
     def fake_fetch(url, kind, cc, data=None):
         return (b"none" if c["none_when"] in url else b"found"), {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": "application/json"}
+    if x.get("dry"):
+        with patched(run_step, "connectors_for", lambda cat, s: [conn] if s["id"] == st["id"] else []):
+            res = run_step.run(w.cx, w.catalog(), w.tid, st, BY, dry_run=True)
+        return {"results": [{"connector": r.get("connector"), "asked": r.get("asked"), "answered": r.get("answered")} for r in res]}
     with patched(run_step, "fetch", fake_fetch): r = run_step.run_connector(w.cx, w.catalog(), w.tid, st, conn, BY)
     logged = w.cx.execute("SELECT query_json FROM search_log WHERE plan_step_id=?", (st["id"],)).fetchone()
     return {"outcome": r.get("outcome"), "requests": r.get("requests"), "logged_query": json.loads(logged[0]) if logged else {}}

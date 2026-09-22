@@ -19,8 +19,10 @@ ABBR = dict(zip(sorted(US_STATES), ["AL","AK","AZ","AR","CA","CO","CT","DE","FL"
                                     "NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"]))
 
 def place_parts(place):
-    """(county, state abbreviation) from a place text such as 'Hempstead < Nassau County < New York < United States'."""
-    parts = [p.strip() for p in re.split(r"[<,]", place or "") if p.strip()]
+    """(county, state abbreviation) from a place text such as 'Hempstead < Nassau County < New York < United States', or the
+    first name when the field carries several (catalog.first_value)."""
+    from catalog import first_value
+    parts = [p.strip() for p in re.split(r"[<,]", first_value(place) or "") if p.strip()]
     state = next((p for p in parts if p.lower() in US_STATES), None)
     county = next((re.sub(r"\s+County$", "", p, flags=re.I) for p in parts if re.search(r"\bCounty$", p, re.I)), None)
     if county is None and state and len(parts) >= 2 and parts[parts.index(state) - 1] != parts[0]: county = parts[parts.index(state) - 1]
