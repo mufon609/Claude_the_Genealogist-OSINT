@@ -105,30 +105,6 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
-### C3. A results page closes a fetch step, and the cited record's own page then holds nothing
-
-A FamilySearch results page saved for a fetch step's own search is logged
-`found` on the step when a row fits the person (`tools/attach.py`), so the
-step is done and the checklist row reads held on a listing of 244 records,
-though a row on a results page is a hint and its own record is the
-document (`docs/RESEARCH-WORKFLOW.md` §0, §4). The record page that then
-arrives reaches nothing: `attach`'s identity path logs a record on a done
-step, but the fallback by collection and name takes planned steps only, so
-the church-register pages HHGB-BQW2 and HHGB-BQZM in `inbox/` come back "no
-fetch step in this tree cites this record" while the seven steps citing
-their collection stand done on the results page of 18 Sept 2026 (Abraham B
-Brant, Abram C Brant, Allen Brant, Alicia Ahern and others, run
-2026-09-18T22:56:26Z). Decide the shape: a fitting row on a results page
-leaves the fetch step planned and puts the row's own record (its ark, from
-the row's persona) on the fetch list as the page to save next, the step
-closing only when a record page holds it; or the fallback reaches a done
-step whose found run holds only a results listing. Either way a record page
-is never left unheld by the listing that pointed at it. The same holds
-for a page saved by name at a holder without a parser, logged found
-unread: the SAR Patriot Research System's "No matching records found"
-page closed the compiled-genealogy steps of Catharine Rittenhouse and
-Catherine Bonn Van Fossen Rittenhouse on 20 Sept 2026 as found.
-
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
@@ -155,8 +131,8 @@ through the relative it names; the spouse fit where the other party
 carries another name; the fitting check on garbled initials and on a
 short-form given name; a results row outliving its own record; a
 namesake's kin shown as a hint; the SAR page at a holder without a parser
-and its two-entry listing; the found halves of the runner's listing run
-and of the results page saved for a fetch step; a step runnable again once
+and its two-entry listing; the found half of the runner's listing run; a
+step runnable again once
 the plan writes the field a connector wanted; the unnamed fetch's own naming
 (`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
 citations that carried it (the New Jersey and New York marriage indexes) are

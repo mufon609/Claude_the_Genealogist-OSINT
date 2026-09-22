@@ -1,6 +1,6 @@
 {
  "title": "a repeat save answers a step whose fields have since changed",
- "line": "the plan rewrites a step's fields after its one logged run, so ran_unchanged says it was never asked on these; a row source's connector then answers the step on its current fields, which must not stand for the holder's own page (fetches.openable reads per step_source, the holder); the same rows saved again are still a repeat of the earlier artifact, and the fix reads the repeat path per step_source too, so it logs a none run under the holder on the step's current fields (the note naming the earlier artifact) instead of leaving the file in the inbox forever: the step is answered and the fetch list moves on",
+ "line": "the plan rewrites a step's fields after its one logged run, so ran_unchanged says it was never asked on these; a row source's connector then answers the step on its current fields, which must not stand for the holder's own page (fetches.openable reads per step_source, the holder); the same rows saved again are still a repeat of the earlier artifact, and the repeat path reads per step_source too, so it logs a none run under the holder on the step's current fields (the note naming the earlier artifact) instead of leaving the file in the inbox forever: the step is answered and the fetch list moves on",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",

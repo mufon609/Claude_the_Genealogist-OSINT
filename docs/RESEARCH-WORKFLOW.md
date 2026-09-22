@@ -264,7 +264,11 @@ closed after the file arrives. `tools/fetches.py list` prints only the pages the
 method can save: every planned fetch step at a holder without a connector,
 once, leads from held records first, with the link to open, the people
 waiting on it and the file name to save under; a browser session works down
-that list one tab per page. A step at a browse-only holder (`catalog.browse_only`:
+that list one tab per page. A FamilySearch step whose saved search has a row
+proposed or accepted as the step's person is listed as that row's own record
+page in the search link's place, under the record-page name with the row's ark
+filled in, and stays open until a page carrying that ark is archived: the
+listing pointed at the record and is not one. A step at a browse-only holder (`catalog.browse_only`:
 a FamilySearch images-only collection, browsed by hand, film by film, with no
 search or record page for a browser to save) stays on the plan, fetchable,
 with the reason in its rationale, but never reaches this list.
@@ -291,7 +295,8 @@ so one person's several pages of one collection are told apart as two
 people's are, and no name waits on a year the citation may not carry; the
 saved file goes to that person's steps on that citation alone, archived under
 that holder with the page's own URL as locator, logged found, unparsed until
-a parser claims it. A file with neither a recognised saved-from line nor a
+a parser claims it, and the step stays planned: a page no parser reads holds
+nothing and closes nothing. A file with neither a recognised saved-from line nor a
 listed name is left in the folder. A results page saved again with the same
 rows already logged on the step is a repeat: nothing new to archive, so the
 file is removed with none archived twice, and a none run is logged on the
@@ -321,7 +326,9 @@ the model, into a card like any other image.
 `tools/attach_inbox.py` then takes every file in `inbox/`: it reads the
 record's own identity from the file (the memorial id, the ark), archives it
 once, logs a found run on every fetch step whose citation carries that
-identity, and runs the extractor and matcher once; the screen's own attach
+identity (a record page a listing pointed at reaches the steps the listing was
+logged on, for the person its row was proposed as), marks the step done when
+the page is the record it cites, and runs the extractor and matcher once; the screen's own attach
 does the same for the step the person chose plus every other step the record
 fulfils. A file whose identity matches no step stays in the inbox.
 
@@ -388,7 +395,14 @@ year inside the page's range, the census year of the collection searched), the
 extractor makes one persona per row with the record's own ark as its identity,
 the row's events (a census as a residence on its date and place) and the
 relatives it names, and the matcher audits every row as it audits a memorial
-search; the record page of a row that fits is saved by the same method. When
+search. A row that fits is a card and leaves the fetch step planned: the
+listing points at a record and is not one, so the run is found with the page,
+the row is not held, and the row's own record page takes the search link's
+place on the fetch list; saved by the same method, it reaches the step through
+the listing that pointed at it, is archived under the step's citation, and
+closes the step. A fetch step is done only when a record page holds its
+citation; a done step whose found runs hold only listings or unread pages is
+planned again by the plan. When
 a step's sources include a holder with a connector as well (the 1950 site),
 the page saved by hand and the connector's own answer are runs of the same
 step, whichever came first.
