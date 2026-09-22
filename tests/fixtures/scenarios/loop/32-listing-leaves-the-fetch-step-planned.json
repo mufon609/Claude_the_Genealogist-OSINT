@@ -1,0 +1,222 @@
+{
+ "title": "a results page leaves the fetch step planned",
+ "line": "a row of a FamilySearch results page fits the person whose 1950 fetch step was searched for by that name in that collection, so the run is found with the page and the row is a card; the listing points at a record and is not one, so the step stays planned and the row is not held, while the holder's run on the step's own fields keeps the search off the fetch list; a plan run keeps the step planned; a step standing done on a listing alone is planned again by the plan, one done on a record page stays done; a page no parser reads, saved under the list's name, is logged found and closes nothing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word, the name the citation sits on as the search was run",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 90,
+    "step_key": "fetch:1,62308::1",
+    "kind": "fetch",
+    "query_type": "household",
+    "query": {
+     "collection": {"value": "1950 United States Federal Census", "basis": "owner"},
+     "name": {"value": "Frederick Micheal Ahearn", "basis": "owner"}
+    },
+    "locator": {"source": "D03", "kind": "apid", "value": "1,62308::1"},
+    "sources": ["D03"],
+    "mode": "fetch",
+    "status": "planned",
+    "on": "[]",
+    "rationale": "harness: a 1950 citation on the owner's word; fetch the record at United States, Census, 1950"
+   },
+   "as": "st"
+  },
+  {
+   "say": "the collection's search saved for the step: the first row is his, a card; the listing is not the record",
+   "attach": {
+    "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html"
+   },
+   "as": "ls",
+   "expect": [
+    {
+     "last": {
+      "identity": {"starts": "fs_search "},
+      "left": null,
+      "steps": [[{"any": true}, "Frederick Micheal Ahearn Jr", {"starts": "census household"}, {"has": "citation's own search"}]],
+      "outcome": {"not": "none"},
+      "proposals": {"len": {">=": 1}}
+     },
+     "why": "read as a results page by its own markup; it fulfils the fetch step whose citation was searched for by this name in this collection; a row fits, so the run is found and there is a card"
+    },
+    {
+     "cards": {"record": "ls", "people": ["I332737036054"], "count": 1},
+     "why": "one card, the first row's, for the person the step is on: the other rows agree on the surname alone and stay hints on the page"
+    },
+    {
+     "search_log": {
+      "step": "$st.step",
+      "is": [{"source_id": "D03", "outcome": "found", "artifacts": ["$ls.sha"], "query": {"q.surname": {"value": "Ahearn"}}}]
+     },
+     "why": "the step's one log row: found, under the holder, the listing as its artifact, the query as run"
+    },
+    {
+     "step": {"person": "I332737036054", "step_key": "fetch:1,62308::1", "fields": {"status": "planned"}},
+     "why": "a listing points at a record and is not one: the step stays planned"
+    },
+    {
+     "fetched_rows": {"person": "I332737036054", "row": "census household:1950", "present": false},
+     "why": "the row is not held on a listing"
+    },
+    {
+     "checklist_row": {"person": "I332737036054", "record": "census household", "instance": "1950", "status": {"not": "held"}}
+    },
+    {
+     "fetch_entries": {"holder": "D03", "person": "I332737036054", "url_has": "f.collectionId=4464515", "is": {"len": 0}},
+     "why": "the holder answered the search on the step's own fields: the search link does not send anyone back"
+    }
+   ]
+  },
+  {
+   "say": "his plan run again keeps the step planned and logs nothing",
+   "plan": ["I332737036054"],
+   "expect": [
+    {
+     "step": {"person": "I332737036054", "step_key": "fetch:1,62308::1", "fields": {"status": "planned"}},
+     "why": "the citation is not held and the step was never done: nothing to plan again, nothing to close"
+    },
+    {
+     "count": {"logs_of_step": "$st.step", "is": 1}
+    }
+   ]
+  },
+  {
+   "say": "a second citation of the same collection standing done on the listing alone, as an earlier attach left steps",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 91,
+    "step_key": "fetch:1,62308::2",
+    "kind": "fetch",
+    "query_type": "household",
+    "query": {
+     "collection": {"value": "1950 United States Federal Census", "basis": "owner"},
+     "name": {"value": "Frederick Micheal Ahearn", "basis": "owner"}
+    },
+    "locator": {"source": "D03", "kind": "apid", "value": "1,62308::2"},
+    "sources": ["D03"],
+    "mode": "fetch",
+    "status": "done",
+    "on": "[]",
+    "rationale": "harness: a step an earlier attach marked done on a results page"
+   },
+   "as": "done_on_listing"
+  },
+  {
+   "say": "",
+   "log": {"step": "$done_on_listing.step", "source": "D03", "outcome": "found", "artifacts": ["ls"], "note": "harness: the listing's found run, as an earlier attach logged it", "query": true}
+  },
+  {
+   "say": "the household's record page archived by its file name, a stand-in for a third citation's record: a step done on it stays done",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {"kind": "file", "value": "familysearch-census-1950-6XYS-NQ16.html"},
+    "extract": true
+   },
+   "as": "c50"
+  },
+  {
+   "say": "",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 92,
+    "step_key": "fetch:1,62308::3",
+    "kind": "fetch",
+    "query_type": "household",
+    "query": {
+     "collection": {"value": "1950 United States Federal Census", "basis": "owner"},
+     "name": {"value": "Frederick Micheal Ahearn", "basis": "owner"}
+    },
+    "locator": {"source": "D03", "kind": "apid", "value": "1,62308::3"},
+    "sources": ["D03"],
+    "mode": "fetch",
+    "status": "done",
+    "on": "[]",
+    "rationale": "harness: a step done on the record page itself"
+   },
+   "as": "done_on_record"
+  },
+  {
+   "say": "",
+   "log": {"step": "$done_on_record.step", "source": "D03", "outcome": "found", "artifacts": ["c50"], "note": "harness: the record page's found run", "query": true}
+  },
+  {
+   "say": "the plan: the step done on the listing alone is planned again, the one done on a record page stays done, the one never done stays planned",
+   "plan": ["I332737036054"],
+   "expect": [
+    {
+     "last": {"Frederick Micheal Ahearn Jr": {"steps_planned_again": 1}},
+     "why": "one step planned again by this run"
+    },
+    {
+     "step": {"person": "I332737036054", "step_key": "fetch:1,62308::2", "fields": {"status": "planned"}},
+     "why": "its only found run carries a listing that points at records: the citation is not held, so the step is planned again"
+    },
+    {
+     "search_log": {"step": "$done_on_listing.step", "is": [{"outcome": "found", "artifacts": ["$ls.sha"]}]},
+     "why": "the run stays as what happened; planning the step again writes no log row"
+    },
+    {
+     "step": {"person": "I332737036054", "step_key": "fetch:1,62308::3", "fields": {"status": "done"}},
+     "why": "its found run carries a record page: done it stays"
+    },
+    {
+     "step": {"person": "I332737036054", "step_key": "fetch:1,62308::1", "fields": {"status": "planned"}}
+    }
+   ]
+  },
+  {
+   "say": "a page from a holder without a parser, saved under the list's own name for a cited obituary page: nothing but its saved-from line",
+   "save": {
+    "holder": "H05",
+    "person": "I332737204852",
+    "folder": "downloads"
+   },
+   "as": "saved",
+   "expect": [
+    {
+     "last": {"how": "page", "save_as": {"starts": "h05-"}}
+    }
+   ]
+  },
+  {
+   "say": "collect brings it in by the name: logged found on her step, unparsed, and the step stays planned",
+   "collect": {"folder": "$saved.folder"},
+   "expect": [
+    {
+     "last": {"results": [{"left": null, "unparsed": {"has": "no parser claims"}, "logs": {"len": 1}}]},
+     "why": "the page reaches the step by the list's name and no parser reads it"
+    },
+    {
+     "step": {"person": "I332737204852", "holder": "H05", "kind": "fetch", "status": "planned", "fields": {"status": "planned"}},
+     "why": "a page no parser read holds nothing: the step it was saved for stays planned"
+    },
+    {
+     "search_log": {
+      "step": {"person": "I332737204852", "holder": "H05", "kind": "fetch", "status": "planned"},
+      "is": {"some": {"source_id": "H05", "outcome": "found"}}
+     },
+     "why": "the run is what happened: the page was saved and is held, logged found under the holder"
+    },
+    {
+     "fetch_entries": {"holder": "H05", "person": "I332737204852", "is": {"none": {"save_as": "$saved.save_as"}}},
+     "why": "the holder's run on the step's own fields keeps that page off the open list"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

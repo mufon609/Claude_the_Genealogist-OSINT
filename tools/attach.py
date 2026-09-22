@@ -18,7 +18,9 @@ parser that claims it, never by its file name) fulfils the search steps whose fi
 steps whose citation was searched for by hand at that holder because it carries no record id of the holder's: the
 citation's collection has the page's collection as a holder (data/holders.csv) and the name the citation sits on is the
 name searched. Such a page is the run's own artifact: a found run when a row fits someone, a none run when none does, the
-query as run on the log; the same search saved again with the same rows answers nothing new, so it is a repeat: a none
+query as run on the log. A fetch step is done by a found run only when the page is the record it cites (log_search.holds_record): a
+listing points at a record and is not one, and a page no parser read holds nothing, so on either the step stays planned while
+the run on its fields answers the search for the fetch list; the row's own record page, saved next, closes it. The same search saved again with the same rows answers nothing new, so it is a repeat: a none
 run logged on every step it fits that isn't already answered on its current fields (the fields as now rendered, the note
 naming the earlier run's own artifact), and the file leaves the inbox with nothing archived a second time. A file
 whose identity matches no step is not archived by the inbox tool; the screen still attaches it to the step the person
@@ -28,7 +30,7 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import dbid_of, holders, holds, name_parts, person_named
-from log_search import log as log_search, rendered_query, ran_unchanged, step_source
+from log_search import ON_WORD, holds_record, log as log_search, rendered_query, ran_unchanged, step_source
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
 from conclude import match_record
@@ -332,7 +334,7 @@ def on_word(cx, tree_id, pid, sha, by, note=None, parsed=None):
                   (sid, pid, row_key, seq, key, dumps(fields), ar["source_id"], lkind, lvalue, ar["collection_id"], dumps([ar["source_id"]] if ar["source_id"] else []),
                    "the record the owner named as this person's, read for what it says about them", f"attached on the owner's word as {who}'s: no step of the plan cited it", ts))
     if q.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (sid, f'%"{sha}"%')).fetchone(): return sid, None
-    return sid, log_search(cx, tree_id, by, step_id=sid, outcome="found", artifacts=[sha], note="; ".join(x for x in (f"on the owner's word about {who}", note) if x), query=fields)
+    return sid, log_search(cx, tree_id, by, step_id=sid, outcome="found", artifacts=[sha], note="; ".join(x for x in (f"{ON_WORD}{who}", note) if x), query=fields)
 
 def cite_on_word(cx, tree_id, pid, row_key, holder, fields, by, note=None, query_type=None):
     """A record the owner says exists about a person, at a holder, with no citation in the file and nothing archived yet: a
@@ -376,7 +378,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     retrieved gives terms and cost; the locator is the step's, or the search URL for a results page), log a found run on every
     step not yet logged with it (a results page's log carries the query as run and the number of results), file the original
     under the tree, then parse and match a page new to the archive. A results page on which no candidate fits has its run set
-    to none, the candidates kept on the artifact. Returns what happened."""
+    to none, the candidates kept on the artifact. Then the steps the run closes are marked done: a search step by the found run;
+    a fetch step only when the page is the record it cites (log_search.holds_record), so a listing that points at records and a
+    page no parser read leave it planned. Returns what happened."""
     src = os.path.join(inbox_dir(), os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
     if not steps and not about: raise ValueError("no step to attach to")
@@ -411,12 +415,11 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     if kind == "memorial": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "memorial_id", value))   # the page's own identity, however it was cited
     if kind == "ark": cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", value))
     logs = []
-    was = {s["id"]: cx.execute("SELECT status FROM search_plan WHERE id=?", (s["id"],)).fetchone()[0] for s in steps}   # each step's status before this page's run marks it done
     if not steps and about: logs.append(on_word(cx, tree_id, about, sha, by, note=note, parsed=parsed or {}))   # the owner's word: a fetch step on their plan, done with the found run, so the record is fetched for them from now on
-    for s in steps:
+    for s in steps:                                              # logged before the page is read, so the matcher sees every person it was fetched for; done below, once read
         if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (s["id"], f'%"{sha}"%')).fetchone(): continue
         fields = rendered_query(s["query_json"], s["revisions_json"])   # the step's own fields, and for a results page the fields as searched beside them (basis run)
-        logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query={**fields, **(query or {})})))
+        logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query={**fields, **(query or {})}, done=False)))
     out = {"sha256": sha, "new": new, "mime": mime, "logs": logs, "extraction": None, "proposals": [], "unparsed": None}
     if new and mime.startswith("text/html"):                     # a page is parsed and matched on arrival; an image waits for a transcription
         from extract import extract as extract_html, RESULTS_LISTINGS
@@ -426,10 +429,12 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         is_results_page = cx.execute(f"""SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
                                         WHERE e.id=? AND x.name IN ({','.join('?' * len(RESULTS_LISTINGS))})""", (eid, *RESULTS_LISTINGS)).fetchone()
         if is_results_page and not out["proposals"] and logs:   # a results page whose own rows fit nobody: the run found nothing for the person, the candidates stay on the artifact
-            for sid, lid in logs:                                # and a none run holds no record: the step stands as it stood before, planned or done by an earlier run
-                cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
-                if sid in was: cx.execute("UPDATE search_plan SET status=? WHERE id=?", (was[sid], sid))
+            for sid, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
+    if out.get("outcome") != "none" and logs:                     # the found run closes a search step; a fetch step only when the page is the record it cites
+        kinds = {s["id"]: s["kind"] for s in steps}; record = holds_record(cx, sha)
+        for sid, lid in logs:
+            if record or kinds.get(sid) != "fetch": cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,))
     filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)   # the original leaves the inbox last, so a failure before this point leaves it there
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
     return out

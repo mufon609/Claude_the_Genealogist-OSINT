@@ -7,9 +7,10 @@ usage: tools/log_search.py --step <search_plan id> --outcome found|none|blocked|
        tools/log_search.py --list "<person>"
 
 The query recorded is exactly what was run: the step's fields after the person's
-include/revise unless --query overrides them. A 'found' outcome marks the step done;
-'none' leaves it planned so it can be retried with different fields, and the log
-shows it was tried. A dismissed question stays closed when the plan is regenerated.
+include/revise unless --query overrides them. A 'found' outcome marks the step done
+(a fetch step only when the page is the record it cites, holds_record); 'none' leaves
+it planned so it can be retried with different fields, and the log shows it was
+tried. A dismissed question stays closed when the plan is regenerated.
 """
 import argparse, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -71,6 +72,30 @@ def ran_unchanged(cx, step, rendered, source_id=None):
     return a is not None and same_fields(rendered, a[2])
 
 HOUSEHOLD = "the household's record, accepted onto "     # the note prefix of a run written when a household record's persona is accepted onto a person
+ON_WORD = "on the owner's word about "                 # the note prefix of the run attach.on_word writes: the owner's word that a record is a person's, never reopened by the plan
+
+def holds_record(cx, sha):
+    """Whether an archived file is a record a fetch step's found run may close the step with: a file never parsed (an image, a
+    photograph of the stone) is what was fetched; a page is one when its current reading (the latest not superseded) is
+    complete and not a pointing listing (extract.POINTING_LISTINGS). A listing that points at records is not one, and a
+    page no parser read holds nothing, so neither closes the step it was logged on."""
+    from extract import POINTING_LISTINGS
+    e = cx.execute("""SELECT e.status, x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND e.superseded_by IS NULL
+                      ORDER BY e.ran_at DESC, e.id DESC LIMIT 1""", (sha,)).fetchone()
+    return True if not e else e[0] == "complete" and e[1] not in POINTING_LISTINGS
+
+def closed_by_pointers(cx, step_id):
+    """Whether a step's found runs, since it was last reopened, are all pages that point at its record or hold nothing
+    (not holds_record): the step stands done on listings or unread pages alone. False when it has no found run since, when
+    a found run carries no artifact (a hand's found: the owner's word) or is the owner's word about a record (ON_WORD), or
+    when any found run carries a record."""
+    since = cx.execute("SELECT coalesce(max(id), '') FROM search_log WHERE plan_step_id=? AND notes LIKE ?", (step_id, REOPENED + "%")).fetchone()[0]
+    runs = cx.execute("SELECT artifacts_json, notes FROM search_log WHERE plan_step_id=? AND outcome='found' AND id > ?", (step_id, since)).fetchall()
+    if not runs: return False
+    for arts, note in runs:
+        shas = json.loads(arts or "[]")
+        if not shas or (note or "").startswith(ON_WORD) or any(holds_record(cx, s) for s in shas): return False
+    return True
 
 def hold_household(cx, tree_id, person_id, sha, by):
     """A household record (a census page, whichever way it arrived: a connector's answer, a page saved by hand, a search's
@@ -116,7 +141,9 @@ def reopen(cx, tree_id, by, step_id, note):
 
 def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None, done=True):
     """One run of a step (or of a question with no step) into search_log; a found run marks the step done unless done is
-    False (a fetch step answered at a source other than its holder: the pages found are held, the cited record is not)."""
+    False (a fetch step answered at a source other than its holder: the pages found are held, the cited record is not; or by
+    a page that is not the record it cites, a listing that points at one or a page no parser read: tools/attach.py marks the
+    step done itself once the page is read, holds_record)."""
     ts = now()
     if step_id:
         st = cx.execute("SELECT id, question_id, query_json, sources_json, revisions_json, locator_source_id FROM search_plan WHERE id=?", (step_id,)).fetchone()
