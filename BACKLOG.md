@@ -105,6 +105,22 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
+### C3. A results page never reaches a fetch step whose citation's name ends in a suffix
+
+`tools/attach.py`'s `_fetch_steps_searched` compares a saved search's surname
+with the last word of the citation's name (`catalog.name_parts`: every later
+word, the surname the last), while the prefilled search link the fetch list
+prints takes the surname from `catalog.split_name`, which sets a suffix
+(Jr, Sr, II, III, IV, Esq) aside. A citation on "Frederick Micheal Ahearn
+Jr" is searched as Ahearn, and the results page comes back "no fetch step's
+citation was searched for by this name at this holder": the step is never
+answered and the list prints the search on every turn. `docs/RESEARCH-
+WORKFLOW.md` §4 names a suffix taken as a surname as a defect to report.
+Read the citation's name through `split_name` there too, the suffix set
+aside, so the surname compared is the surname searched; the harness's
+"Frederick Micheal Ahearn Jr" (`I332737036054`) and the saved 1950 search
+are the case.
+
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
