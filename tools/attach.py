@@ -32,7 +32,7 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
-from catalog import dbid_of, holders, holds, name_parts, person_named
+from catalog import dbid_of, holders, holds, name_parts, person_named, split_name
 from log_search import ON_WORD, holds_record, latest_answer, log as log_search, rendered_query, ran_unchanged, step_source
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
@@ -133,8 +133,9 @@ def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=Non
     directly, so the holder's own collection search was run by hand on the citation's own details, and the page is that
     search's answer. A step fits when its citation's collection has this holder's collection as a holder (data/holders.csv:
     the citation's dbid, the holder, and the holder's own key where the page names one, a FamilySearch f.collectionId) and
-    the name the citation sits on is the name searched (the first given name and the surname). Planned or done: a step
-    found at another holder since still ran this search."""
+    the name the citation sits on is the name searched (the first given name and the surname, a suffix set aside through
+    split_name so a citation ending "Jr", "Sr", "II"... is searched, and matched, on its own surname, never the suffix).
+    Planned or done: a step found at another holder since still ran this search."""
     pg, sn = name_key((given or "").split()[0]) if (given or "").split() else "", name_key(surname)
     if not sn: return []
     dbids = {d for d, rows in holders().items() for h in rows if h["HolderSourceId"] == holder_id and (holder_key is None or h["HolderKey"] == holder_key)}
@@ -145,8 +146,9 @@ def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=Non
         if dbid_of(r["locator_value"]) not in dbids: continue
         q = json.loads(r["query_json"] or "{}")
         if MEMORIAL_URL.search((q.get("url") or {}).get("value") or ""): continue            # a memorial cited by its own URL is fetched as itself, never searched for
-        cg, rest = _split_name((q.get("name") or {}).get("value") or "")     # the first given name's key and every later word's: the surname is the last
-        if not rest or (cg and pg and cg != pg) or rest[-1] != sn: continue
+        cgiven, csurname, _ = split_name((q.get("name") or {}).get("value") or "")     # the suffix set aside; the surname is what was searched
+        cg = name_key((cgiven or "").split()[0]) if cgiven else ""
+        if not csurname or (cg and pg and cg != pg) or name_key(csurname) != sn: continue
         out.append(r)
     return _why(out, "the citation's own search at the holder: its name and collection")
 

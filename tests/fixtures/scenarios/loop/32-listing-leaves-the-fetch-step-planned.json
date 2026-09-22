@@ -8,7 +8,7 @@
  },
  "steps": [
   {
-   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word, the name the citation sits on as the search was run",
+   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word, the name the citation sits on as the file writes it, suffix and all",
    "step": {
     "person": "I332737036054",
     "row_key": "census household:1950",
@@ -22,7 +22,7 @@
       "basis": "owner"
      },
      "name": {
-      "value": "Frederick Micheal Ahearn",
+      "value": "Frederick Micheal Ahearn Jr",
       "basis": "owner"
      }
     },
@@ -90,7 +90,7 @@
        }
       }
      },
-     "why": "read as a results page by its own markup; it fulfils the fetch step whose citation was searched for by this name in this collection; a row fits, so the run is found and there is a card"
+     "why": "read as a results page by its own markup; it fulfils the fetch step whose citation was searched for by this name in this collection, the citation's own suffix set aside so the surname compared is the surname searched; a row fits, so the run is found and there is a card"
     },
     {
      "cards": {
@@ -202,7 +202,7 @@
       "basis": "owner"
      },
      "name": {
-      "value": "Frederick Micheal Ahearn",
+      "value": "Frederick Micheal Ahearn Jr",
       "basis": "owner"
      }
     },
@@ -263,7 +263,7 @@
       "basis": "owner"
      },
      "name": {
-      "value": "Frederick Micheal Ahearn",
+      "value": "Frederick Micheal Ahearn Jr",
       "basis": "owner"
      }
     },
