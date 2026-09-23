@@ -134,7 +134,7 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas), `is_subject`, `citations_held`,
-`checklist_row`, `baseline`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
+`checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
 `living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact`,
 `artifact_where`, `extractor`, `person_persona`, `reach`, `trusted`, `plan_idempotent`, `no_repeats`, `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside

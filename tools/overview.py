@@ -70,6 +70,7 @@ def render(o, cx):
         out.append(f"-- {labels[i] if i < len(labels) else f'{i} generations back'}")
         for c in gen:
             waits = [f"{c['documents']} document(s) to decide" if c["documents"] else None, f"{c['conflicts']} conflict(s)" if c["conflicts"] else None,
+                     f"{c['leads']} lead(s) waiting" if c["leads"] else None,
                      "rests on sources anyone can edit" if c["editable_only"] else None, "parents link rests on an editable source" if c["link_trusted"] is False else None]
             sp = "; ".join(f"spouse {x['name']}" + (f" m. {', '.join(map(str, x['married']))}" if x["married"] else "") for x in c["spouses"])
             claim = ("the file names parents " + " and ".join(c["claimed_parents"]) + ": not confirmed") if c["claimed_parents"] else ("" if c["parents"] else "no parents claimed")

@@ -1,0 +1,79 @@
+{
+ "title": "leads are counted apart from documents to decide",
+ "line": "a person named on a real, undecided card is named next by the queue; one whose only open work is a lead (a memorial's listed relative, tools/plan.py's listed_relative_leads) is neither named nor passed over, since Catalog.waiting never counts a lead as a document and the queue never adds a confirmed person on a lead's account alone",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a census page names and cites four people, none yet decided: a real document waits on each",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40",
+   "expect": [
+    {
+     "cards": {
+      "record": "c40",
+      "count": 4
+     }
+    },
+    {
+     "queue": {
+      "named": [
+       "I332737072856"
+      ],
+      "reasons": {
+       "I332737072856": {
+        "has": "document"
+       }
+      }
+     },
+     "why": "Alicia Ahern's card is a real document to decide, so the queue names her"
+    }
+   ]
+  },
+  {
+   "say": "a memorial's listed relative is a lead, hand-planted here as tools/plan.py would write one, on a person with nothing else open",
+   "step": {
+    "person": "I332737036894",
+    "row_key": "listed relative:99999999",
+    "step_key": "fetch:listed:99999999",
+    "kind": "fetch",
+    "query_type": "subject_record",
+    "locator": {
+     "source": "E01",
+     "kind": "memorial_id",
+     "value": "99999999"
+    },
+    "sources": [
+     "E01"
+    ],
+    "mode": "fetch"
+   },
+   "expect": [
+    {
+     "waiting": {
+      "person": "I332737036894",
+      "documents": 0,
+      "leads": 1
+     },
+     "why": "the lead is counted apart from documents to decide"
+    },
+    {
+     "queue": {
+      "not_named": [
+       "I332737036894"
+      ],
+      "not_passed": [
+       "I332737036894"
+      ]
+     },
+     "why": "a lead is not a document, a conflict, or an undecided key fact, so the queue never puts this person up at all: not named next, and not named among those passed over either, exactly as before the lead existed"
+    }
+   ]
+  }
+ ]
+}

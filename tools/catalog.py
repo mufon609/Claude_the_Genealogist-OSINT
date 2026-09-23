@@ -714,9 +714,12 @@ class Catalog:
     def waiting(self, pid):
         """What waits on a person, in plain counts: documents to decide (proposals about them: a persona proposed as them, a new
         person on a record fetched for them), steps that run on their own (a connector can take them), steps that need a hand
-        (a page saved in the owner's browser, an assisted search), and conflicts open. Nothing here is a score."""
+        (a page saved in the owner's browser, an assisted search), conflicts open, and leads (a relative a memorial merely
+        lists, tools/plan.py's listed_relative_leads, row_key "listed relative:<memorial id>": not a document, since the
+        matcher never proposes one and the rule could never take it). Nothing here is a score."""
         docs = self.q("""SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
                          AND (json_extract(payload_json,'$.person_id')=? OR (kind='new_person' AND json_extract(payload_json,'$.subject_person_id')=?))""", self.tree_id, pid, pid)[0][0]
+        leads = self.q("SELECT COUNT(*) FROM search_plan WHERE person_id=? AND status='planned' AND row_key LIKE 'listed relative:%'", pid)[0][0]
         conn = {sid for sid, s in self.sources.items() if s.get("connector")}
         runs, hand = 0, 0
         for kind, mode, holder, sources in self.q("SELECT kind, mode, locator_source_id, sources_json FROM search_plan WHERE person_id=? AND status='planned'", pid):
@@ -729,7 +732,7 @@ class Catalog:
                                        WHERE a.tree_id=? AND a.status='accepted' AND ((a.subject_kind='person' AND a.subject_id=?)
                                           OR (a.subject_kind='event' AND a.subject_id IN (SELECT event_id FROM event_participant WHERE person_id=?)))""", self.tree_id, pid, pid)}
         editable_only = bool(tiers) and tiers <= {"T4"}         # every accepted fact rests on a source anyone can edit
-        return {"documents": docs, "runs_next": runs, "needs_hand": hand, "conflicts": conflicts, "editable_only": editable_only}
+        return {"documents": docs, "runs_next": runs, "needs_hand": hand, "conflicts": conflicts, "editable_only": editable_only, "leads": leads}
     def family(self, pid):
         """Relatives through family memberships; a membership whose assertions are all rejected does not count."""
         fam = {"parents": [], "spouses": [], "children": [], "siblings": [], "families": []}

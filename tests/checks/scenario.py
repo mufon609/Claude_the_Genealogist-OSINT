@@ -627,6 +627,11 @@ def e_checklist_row(w, x, want):
 def e_baseline(w, x, want):
     b = w.catalog().baseline(w.person(x["person"])); return b["complete"] == x.get("complete", True), b
 
+def e_waiting(w, x, want):
+    """Catalog.waiting's own counts for a person: documents to decide, runs_next, needs_hand, conflicts, editable_only, and
+    leads (a relative a memorial merely lists, never a document)."""
+    got = w.catalog().waiting(w.person(x["person"])); return has(got, {k: v for k, v in x.items() if k != "person"}), got
+
 def e_step(w, x, want):
     st = w.step(x); n = len(w.cx.execute("SELECT id FROM search_plan WHERE person_id=?", (w.person(x["person"]),)).fetchall()) if "person" in x and isinstance(x, dict) else None
     if st is None: return x.get("exists") is False, {"count_on_person": n}
@@ -819,7 +824,7 @@ def e_assertion_subject(w, x, want):
 
 EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "rule": e_rule, "facts": e_facts, "alias": e_alias, "linked": e_linked, "memberships": e_memberships, "persons": e_persons,
            "event": e_event, "disagreements": e_disagreements, "question": e_question, "assertions_on": e_assertions_on, "links": e_links, "is_subject": e_is_subject, "citations_held": e_citations_held,
-           "checklist_row": e_checklist_row, "baseline": e_baseline, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
+           "checklist_row": e_checklist_row, "baseline": e_baseline, "waiting": e_waiting, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,

@@ -373,6 +373,22 @@
      "why": "planning the leads writes no card either"
     },
     {
+     "waiting": {
+      "person": "I332737038183",
+      "documents": 0,
+      "leads": 8
+     },
+     "why": "his eight leads are not documents to decide, and are counted apart from them"
+    },
+    {
+     "waiting": {
+      "person": "I332737039686",
+      "documents": 0,
+      "leads": 0
+     },
+     "why": "a lead seated under a matched person's own cemetery row is an ordinary fetch, not counted as a lead waiting on them"
+    },
+    {
      "fetch_entries": {
       "holder": "E01",
       "person": "I332737038183",
