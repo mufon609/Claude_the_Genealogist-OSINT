@@ -19,8 +19,10 @@ US_STATES = {"alabama","alaska","arizona","arkansas","california","colorado","co
              "south carolina","south dakota","tennessee","texas","utah","vermont","virginia","washington","west virginia","wisconsin","wyoming"}
 
 def state_of(place):
-    """The US state named in a place text ('Pottstown < Montgomery County < Pennsylvania < United States', or a raw string)."""
-    for part in re.split(r"[<,]", place or ""):
+    """The US state named in a place text ('Pottstown < Montgomery County < Pennsylvania < United States', or a raw string),
+    or the first name when the field carries several accurate names for a place (catalog.first_value)."""
+    from catalog import first_value
+    for part in re.split(r"[<,]", first_value(place) or ""):
         if part.strip().lower() in US_STATES: return part.strip().lower()
     return None
 
