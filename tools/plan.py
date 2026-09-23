@@ -21,7 +21,11 @@ film, never saved as a page, so tools/fetches.py's list leaves it off (no
 name with an unfilled placeholder is ever printed) and a turn never pauses on
 it. A memorial accepted as the person's own gives one
 fetch step per photograph the page types Grave (the stone itself, registry row
-E05, the image's URL as locator). Idempotent: questions and steps are keyed, so re-running updates what
+E05, the image's URL as locator), and one fetch step per relative it merely
+lists (the matcher writes no card for one, tools/match.py): the relative's own
+memorial, under the tree person their name and birth year fit when exactly one
+does, else on the memorial's own person as a lead, row_key "listed relative:
+<memorial id>" (tools/plan.py's listed_relative_leads). Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated (one that was run but
 is not done is kept for its log as skipped, planned again if generated again;
 one dropped is named in the run's audit row by its key, row and rationale, the
@@ -146,6 +150,46 @@ def gravestone_photos(cx, tree_id, cat, pid):
                         "rationale": f"photograph {ph['id']} on memorial {mid}, typed Grave by the page: the stone itself is a primary source, saved in the owner's browser and read by the transcription path"})
     return out
 
+FAG_COLLECTION = "U.S., Find a Grave Index, 1600s-Current"
+
+def listed_relative_leads(cx, tree_id, cat, pid):
+    """Fetch steps for the relatives a memorial merely lists, once the memorial is accepted as somebody's own: the owner's
+    word is that a memorial's family connections are leads to look over, not facts (docs/RESEARCH-WORKFLOW.md §0), so the
+    matcher writes no card for one (tools/match.py). A relative whose given name, surname and birth year plainly fit
+    exactly one person of the tree (match.fits_by_name_and_year: a listed relative may already be someone fully placed
+    in the family, so this is not the fitting check's unlinked-only candidate list) gets a fetch step for their own
+    memorial under that person's cemetery row; one fitting nobody, or more than one, stays a lead on the memorial's own
+    person, row_key "listed relative:<memorial id>", with the relationship the page states in its rationale. Nothing
+    here decides who the relative is or creates anyone: the fit is by name and year alone, so a wrong fit costs a
+    wasted fetch, never a wrong identity. Dropped, like any generated step, once the memorial's acceptance is
+    withdrawn: the query that finds it no longer does."""
+    from match import fits_by_name_and_year, personas_of
+    out = []; q = cx.cursor(); q.row_factory = sqlite3.Row
+    for sub in q.execute("""SELECT pp.person_id AS subject_id, pe.extraction_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
+                             JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id JOIN person p ON p.id=pp.person_id
+                             WHERE pp.status='accepted' AND pe.role_in_record='memorial' AND x.name='findagrave-memorial' AND e.superseded_by IS NULL
+                             AND p.tree_id=? AND p.merged_into IS NULL""", (tree_id,)).fetchall():
+        subject_id, eid = sub["subject_id"], sub["extraction_id"]
+        subject_name = cat.person(subject_id)["name"]
+        for pr in personas_of(cx, eid):
+            if pr["role"] == "memorial" or not pr.get("memorial"): continue
+            if q.execute("SELECT 1 FROM person_persona WHERE persona_id=?", (pr["id"],)).fetchone(): continue   # decided some other way already: not a lead
+            fits = [c for c in fits_by_name_and_year(cat, cx, tree_id, pr) if c != subject_id]
+            mid = pr["memorial"]; f = lambda v: {"value": v, "basis": "record"}
+            fields = {"collection": f(FAG_COLLECTION), "name": f(pr["name"]), "url": f(f"https://www.findagrave.com/memorial/{mid}/"),
+                      "linked from": f(f"{subject_name}'s memorial, where {pr['name']} is listed under {pr['role']}")}
+            base = {"question_key": None, "kind": "fetch", "query_type": "subject_record", "query_json": dumps(fields), "locator_source_id": "E01",
+                    "locator_kind": "memorial_id", "locator_value": mid, "collection_id": None, "on_json": "[]", "sources_json": dumps(["E01"]), "mode": "fetch",
+                    "expected": "the relative's own memorial: name, dates, cemetery, plot, the family it links"}
+            if len(fits) == 1 and fits[0] == pid:
+                out.append({**base, "step_key": f"fetch:memorial:{mid}", "row_key": "cemetery / family plot:",
+                            "rationale": f"listed as {pr['role']} on {subject_name}'s memorial, fits this person by name and birth year; fetch their own memorial next"})
+            elif len(fits) != 1 and pid == subject_id:
+                out.append({**base, "step_key": f"fetch:listed:{mid}", "row_key": f"listed relative:{mid}",
+                            "rationale": f"listed as {pr['role']} on this memorial, {'fitting nobody' if not fits else 'fitting more than one person'} in the tree by name and birth year; "
+                                         "a lead, not a person: fetch their own memorial to see who they are"})
+    return out
+
 class RegistryOutOfStep(Exception):
     """A source id the plan would write is not in the catalog's source table."""
 
@@ -187,6 +231,7 @@ def plan_person(cx, tree_id, pid, by):
     for lk in linked_records(cx, tree_id, cat, pid, me):                # a held record that names this person and links their own record: a lead
         if not any(lk["locator_value"] in (json.loads(f["query_json"]).get("url") or {}).get("value", "") for f in fetches): fetches.append(lk)
     fetches += gravestone_photos(cx, tree_id, cat, pid)                 # the stone itself, photographed on the person's own memorial
+    fetches += listed_relative_leads(cx, tree_id, cat, pid)             # a relative a memorial merely lists: their own memorial, a lead
     home = next((k for k in wanted if wanted[k][0] in FOOTPRINT_HOME), None)
     have = {st["locator_value"] for st in fetches}
     for rec in r["footprint"]["records"][:12]:

@@ -53,7 +53,12 @@ does not fit. The rationale says in plain words which fields agree, which disagr
 are absent. Nothing numeric is stored. A persona that already has a proposal is
 skipped, so re-running adds nothing; a proposal closed as superseded (a re-read's,
 or an older matcher's, tools/conclude.py reconsider) is not one, so that persona
-is proposed again. The matcher is versioned like an extractor (MATCHER); every
+is proposed again. A relative a memorial merely lists (every persona on a
+findagrave-memorial extraction but its own subject) gets no proposal at all,
+fit or not: the owner's word is that a memorial's family connections are leads
+to look over, not facts (docs/RESEARCH-WORKFLOW.md §0), so tools/plan.py writes
+a fetch step for the relative's own memorial instead, and the persona stays a
+hint on the page. The matcher is versioned like an extractor (MATCHER); every
 proposal carries the version that wrote it in generated_by.
 """
 import argparse, json, os, re, sqlite3, sys
@@ -62,7 +67,8 @@ from treelib import ROOT, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.2.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.3.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
 MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
 
@@ -227,6 +233,29 @@ def by_name_and_year(cat, cx, tree_id, persona):
         out.append(pid)
     return out
 
+def fits_by_name_and_year(cat, cx, tree_id, persona):
+    """Persons of the tree whose given name and surname (or birth surname) agree with this persona's (same_given, same_surname,
+    every name and alias the tree holds for them) and whose birth year agrees within three years where both give one: a plain
+    name-and-year fit on a specific candidate, unlike by_name_and_year's coarser surname-only filter (deliberately wide,
+    for compare() to judge further; wrong here, since a shared surname alone would fit a memorial's subject to their own
+    listed spouse). tools/plan.py's listed-relative leads call this to seat a relative the matcher never proposes
+    (docs/RESEARCH-WORKFLOW.md §0) on the one person of the tree they plainly are, without deciding an identity."""
+    given, rest = split_persona_name(persona["name"])
+    if not given or not rest: return []
+    by = (persona["birth"] or {}).get("start")
+    y = int(by[:4]) if by and by[:4].isdigit() else None
+    out = []
+    for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL", (tree_id,)):
+        keys = name_keys(cat, pid)
+        if not any(same_given(given, k) for k, _ in keys): continue
+        if not any(s in rest for _, s in keys if s): continue
+        if y is not None:
+            years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                     WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]
+            if years and not any(abs(cy - y) <= 3 for cy in years): continue
+        out.append(pid)
+    return out
+
 def by_memorial(cx, tree_id, mid):
     """Persons of the tree already accepted under this memorial id, by memorials_of, on current extractions only."""
     return [pid for pid, in cx.execute("""SELECT DISTINCT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
@@ -298,6 +327,8 @@ def match(cx, eid, by, about=None):
     if not ext: raise SystemExit(f"no extraction {eid}")
     if ext[1]: return []                                        # a superseded reading's personas are history: only the current reading is proposed
     sha = ext[0]; ts = now()
+    extractor_name = cx.execute("SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()[0]
+    subject_role = LISTED_RELATIVE_SUBJECT.get(extractor_name)   # set on a page anyone can edit that lists a subject's family: every other role on it is a relative merely listed
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", MATCHER).fetchone()
     mid = row[0] if row else ulid()
     if not row: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (mid, *MATCHER, ts))
@@ -346,6 +377,7 @@ def match(cx, eid, by, about=None):
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')", (tree_id, pr["id"])).fetchone(): continue   # proposed already, unless that proposal was superseded
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
+            if subject_role and pr["role"] != subject_role: continue   # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
             if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
                 continue                                          # a row on a results page, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card: its own record is the document
             if pr["id"] in nearly and (any(o != pr["id"] and o not in nearly and chosen[o]["id"] == chosen[pr["id"]]["id"] for o in chosen)

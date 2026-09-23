@@ -1,6 +1,6 @@
 {
  "title": "a memorial, a page anyone can edit",
- "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the relatives it lists come up as cards and are refused with the reason; a rejection writes nothing else; a new person accepted is created with her marked maiden name as her birth surname and the subject placed as her child with an undecided membership; reconsider keeps the identity, a withdrawn one is taken again; a re-read carries the decided links and accepts no fact; the owner's accept is an identity too; the daughter listed under her married name fits and her accept writes a married_name alias; the subject holds the cemetery row, a listed relative never does; the gravestone photograph is a fetch step saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it by the model is a card the rule leaves to the owner",
+ "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the ten relatives it lists get no card at all, fit or not, and create nobody; reconsider keeps the identity, a withdrawn one is taken again; a re-read carries the decided link and accepts no fact; the owner's accept is an identity too, and his parents fact has nothing to decide since no relative is ever linked through this record; the plan turns each listed relative into a fetch step for their own memorial, on the tree person their name and birth year plainly fit when exactly one does (his wife, his daughter, each under their own cemetery row) and otherwise as a lead on the subject's own plan (his parents, his six siblings), named apart from documents to decide; the gravestone photograph is a fetch step saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it by the model is a card the rule leaves to the owner",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -75,146 +75,20 @@
     {
      "cards": {
       "record": "mem",
-      "kinds": [
-       "persona_match"
-      ],
-      "people": [
-       "I332737039686",
-       "I332737037573"
-      ]
+      "count": 0
      },
-     "why": "his wife and daughter proposed once he is accepted"
-    },
-    {
-     "rule": {
-      "record": "mem",
-      "person": "I332737039686",
-      "taken": false,
-      "why": {
-       "has": [
-        "three",
-        "Abram C Brant agrees"
-       ]
-      }
-     },
-     "why": "a relative the page lists by name and years alone is refused, the stated relation the one thing that agrees"
-    },
-    {
-     "rule": {
-      "record": "mem",
-      "person": "I332737037573",
-      "taken": false,
-      "why": {
-       "has": "three"
-      }
-     }
-    },
-    {
-     "cards": {
-      "record": "mem",
-      "kinds": [
-       "new_person"
-      ],
-      "count": {
-       ">=": 3
-      },
-      "personas_has": [
-       "Sarah D. Cassel Brant"
-      ]
-     },
-     "why": "his parents and siblings, not in the tree, proposed as new people"
-    },
-    {
-     "rule": {
-      "record": "mem",
-      "persona": "Sarah D. Cassel Brant",
-      "taken": false,
-      "why": {
-       "has": "never creates one"
-      }
-     },
-     "why": "a page anyone can edit names a person but never creates one"
-    }
-   ]
-  },
-  {
-   "say": "a sibling's card rejected: the proposal and nothing else",
-   "decide": {
-    "card": {
-     "record": "mem",
-     "persona": "Bertha C. Brant"
-    },
-    "status": "rejected"
-   },
-   "expect": [
-    {
-     "last": {
-      "ok": true
-     }
+     "why": "a memorial's listed relatives are leads, never cards: the matcher writes no proposal for any of the ten personas the page names beside its own subject, fit or not"
     },
     {
      "persons": {
       "count": 26
-     }
-    },
-    {
-     "assertions_on": {
-      "record": "mem",
-      "accepted": 0
-     }
+     },
+     "why": "nobody is created from a relative the page merely lists"
     }
    ]
   },
   {
-   "say": "his mother accepted as a new person",
-   "decide": {
-    "card": {
-     "record": "mem",
-     "persona": "Sarah D. Cassel Brant"
-    },
-    "status": "accepted"
-   },
-   "as": "mother",
-   "expect": [
-    {
-     "last": {
-      "ok": true,
-      "identity": true,
-      "memberships": {
-       "some": {
-        "role": "child",
-        "undecided": true
-       }
-      }
-     },
-     "why": "the subject placed as the new parent's child on the record, the membership created but its assertion undecided like the page's facts"
-    },
-    {
-     "persons": {
-      "named": "Sarah D. Cassel Brant",
-      "surname": "Cassel",
-      "given": {
-       "has": "Sarah"
-      }
-     },
-     "why": "the person created with the name as written and the marked maiden name as her birth surname"
-    },
-    {
-     "facts": {
-      "person": "I332737038183",
-      "parents": "undecided"
-     }
-    },
-    {
-     "assertions_on": {
-      "record": "mem",
-      "accepted": 0
-     }
-    }
-   ]
-  },
-  {
-   "say": "reconsider keeps the identity and refuses the listed relatives with the reason",
+   "say": "reconsider keeps the identity; there is nothing else to take",
    "reconsider": {
     "dry": true
    },
@@ -238,20 +112,8 @@
         "taken": true
        }
       }
-     }
-    },
-    {
-     "last": {
-      "rows": {
-       "some": {
-        "kind": "card",
-        "person": "Charlotte D Lukens",
-        "why": {
-         "has": "three"
-        }
-       }
-      }
-     }
+     },
+     "why": "no card exists to take: the ten listed relatives were never proposed"
     }
    ]
   },
@@ -390,8 +252,9 @@
     {
      "facts": {
       "person": "I332737038183",
-      "parents": "undecided"
-     }
+      "parents": null
+     },
+     "why": "no relative the page lists is ever accepted through this record, so link_family finds nobody to place him under: his parents fact has nothing to decide, the way a fact the file makes no claim about does"
     },
     {
      "links": {
@@ -409,82 +272,134 @@
    ]
   },
   {
-   "say": "the daughter the page lists under her married name accepted by the owner: an identity, and her married name an alias",
-   "decide": {
-    "card": {
-     "record": "mem",
-     "person": "I332737037573",
-     "latest": true
-    },
-    "status": "accepted"
-   },
+   "say": "the plan turns each listed relative into a fetch step for their own memorial: his wife and his daughter, whom the tree already holds, under their own cemetery row; his parents and his six siblings, whom it does not, as leads on his own plan",
+   "plan": [
+    "I332737038183",
+    "I332737039686",
+    "I332737037573"
+   ],
    "expect": [
     {
-     "last": {
-      "ok": true,
-      "identity": true
-     }
-    },
-    {
-     "alias": {
-      "person": "I332737037573",
-      "is": {
-       "some": [
-        "Helen Sara Brant Ahearn",
-        "married_name",
-        "accepted"
-       ]
-      }
-     },
-     "why": "the record's own words for a daughter under her husband's surname are a married_name alias, not left unclassified"
-    },
-    {
-     "checklist_row": {
+     "step_count": {
       "person": "I332737038183",
-      "record": "cemetery / family plot",
-      "status": "held"
+      "step_key_like": "fetch:listed:%",
+      "is": 8
      },
-     "why": "the memorial's own subject holds the cemetery row"
+     "why": "his two parents and his six siblings fit nobody in the tree by name and birth year"
     },
     {
-     "checklist_row": {
-      "person": "I332737037573",
-      "record": "cemetery / family plot",
-      "status": {
-       "not": "held"
+     "step": {
+      "person": "I332737038183",
+      "step_key": "fetch:listed:78019488",
+      "fields": {
+       "row_key": "listed relative:78019488",
+       "locator_source_id": "E01",
+       "locator_kind": "memorial_id",
+       "locator_value": "78019488",
+       "mode": "fetch",
+       "rationale": {
+        "has": [
+         "parent",
+         "fitting nobody",
+         "a lead, not a person"
+        ]
+       }
       }
      },
-     "why": "a relative the page merely lists never holds the row, even accepted: her own memorial is not on this tree"
-    }
-   ]
-  },
-  {
-   "say": "the page read again: the decided links carry, the old cards close as superseded, the facts stay undecided",
-   "reread": {
-    "record": "mem"
-   },
-   "as": "re2",
-   "expect": [
+     "why": "his father, a lead on his own plan, keyed by his father's own memorial id"
+    },
     {
-     "last": {
-      "n": {
-       "links_carried": 3
+     "step": {
+      "person": "I332737038183",
+      "step_key": "fetch:listed:25193301",
+      "fields": {
+       "row_key": "listed relative:25193301",
+       "rationale": {
+        "has": "sibling"
+       }
       }
      },
-     "why": "the three decided links (the subject, his mother, his daughter) carried to the new personas"
+     "why": "a sibling the same way, the stated relationship in the rationale"
+    },
+    {
+     "step": {
+      "person": "I332737039686",
+      "step_key": "fetch:memorial:78019739",
+      "fields": {
+       "row_key": {
+        "starts": "cemetery"
+       },
+       "locator_source_id": "E01",
+       "locator_kind": "memorial_id",
+       "locator_value": "78019739",
+       "mode": "fetch",
+       "rationale": {
+        "has": [
+         "spouse",
+         "fits this person"
+        ]
+       }
+      }
+     },
+     "why": "his wife's name and birth year plainly fit the tree's own Charlotte D Lukens, so her lead sits under her own cemetery row, not as a lead on his plan"
+    },
+    {
+     "step": {
+      "person": "I332737037573",
+      "step_key": "fetch:memorial:142698059",
+      "fields": {
+       "row_key": {
+        "starts": "cemetery"
+       },
+       "locator_source_id": "E01",
+       "locator_kind": "memorial_id",
+       "locator_value": "142698059",
+       "mode": "fetch",
+       "rationale": {
+        "has": [
+         "child",
+         "fits this person"
+        ]
+       }
+      }
+     },
+     "why": "his daughter, listed under her married name, plainly fits the tree's own Helen Sara Brant the same way"
     },
     {
      "cards": {
       "record": "mem",
-      "status": "undecided",
       "count": 0
-     }
+     },
+     "why": "planning the leads writes no card either"
     },
     {
-     "assertions_on": {
-      "record": "mem",
-      "accepted": 0
-     }
+     "fetch_entries": {
+      "holder": "E01",
+      "person": "I332737038183",
+      "is": {
+       "len": 8,
+       "some": {
+        "save_as": "findagrave-memorial-78019488.html",
+        "people": {
+         "has": "Abram C Brant"
+        }
+       }
+      }
+     },
+     "why": "the fetch list names each parent's and sibling's own memorial page, to save under the memorial's own name"
+    },
+    {
+     "fetch_entries": {
+      "holder": "E01",
+      "person": "I332737039686",
+      "is": {
+       "len": 1,
+       "some": {
+        "save_as": "findagrave-memorial-78019739.html"
+       }
+      }
+     },
+     "why": "the lead and the tree's own citation of her memorial are the same page, so the fetch list names it once"
     }
    ]
   },
@@ -664,6 +579,7 @@
     {
      "plan_idempotent": [
       "I332737038183",
+      "I332737039686",
       "I332737037573"
      ]
     },
