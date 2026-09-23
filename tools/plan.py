@@ -173,7 +173,7 @@ def listed_relative_leads(cx, tree_id, cat, pid):
         subject_name = cat.person(subject_id)["name"]
         for pr in personas_of(cx, eid):
             if pr["role"] == "memorial" or not pr.get("memorial"): continue
-            if q.execute("SELECT 1 FROM person_persona WHERE persona_id=?", (pr["id"],)).fetchone(): continue   # decided some other way already: not a lead
+            if q.execute("SELECT 1 FROM person_persona WHERE persona_id=? AND status<>'undecided'", (pr["id"],)).fetchone(): continue   # decided some other way already: not a lead; conclude.link_family's own Undecided trace does not count
             fits = [c for c in fits_by_name_and_year(cat, cx, tree_id, pr) if c != subject_id]
             mid = pr["memorial"]; f = lambda v: {"value": v, "basis": "record"}
             fields = {"collection": f(FAG_COLLECTION), "name": f(pr["name"]), "url": f(f"https://www.findagrave.com/memorial/{mid}/"),

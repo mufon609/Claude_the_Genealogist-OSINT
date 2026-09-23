@@ -62,7 +62,7 @@ from treelib import ROOT, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, source_tier, split_name, tier_sql
 from catalog import date_verdict, place_verdict, same_surname
 from catalog import key as surname_key
-from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, match, personas_of, split_persona_name
+from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
 from plan import plan_person
 from log_search import release_household
 from backfill_aliases import classify, clean, key
@@ -313,15 +313,34 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
     membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law) is resolved through
     the relative it names (resolve_in_law) to the child, parent or spouse link it actually gives, written and evidenced the
     same way as a link the record states outright; a resolution that lands on a sibling goes through the sibling rule above,
-    Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. Returns the
-    links written: person, role, the other person, the page's own word, whether the membership is new, and "undecided" for a
-    sibling placement or a link from a page anyone can edit."""
+    Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. On a page
+    anyone can edit, a relative the record relates to the subject but that the matcher never proposed a persona_match for (a
+    memorial's listed relative, docs/RESEARCH-WORKFLOW.md §0) is still placed when their name and birth year plainly fit
+    exactly one person of the tree (match.fits_by_name_and_year): the listed persona is linked to that person Undecided (so
+    the membership traces to the persona, and their own record decides their identity later) and the membership follows the
+    same path as any other relation above. Fitting nobody or several writes nothing, as a sibling of no placed parents gives
+    none today. Returns the links written: person, role, the other person, the page's own word, whether the membership is
+    new, and "undecided" for a sibling placement or a link from a page anyone can edit."""
     q = _q(cx)
     out = []
     identity = editable(cx, sha)   # a page anyone can edit: the memberships it states stand, but their assertions do not
+    cat = Catalog(cx, tree_id)
+    listed_personas = None          # persona id -> persona dict of this extraction (match.personas_of shape), built once, only when needed
     def person_of(x):
         r = q.execute("SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?", (x, tree_id)).fetchone()
-        return r["person_id"] if r else None
+        if r: return r["person_id"]
+        if not identity: return None          # a listed relative is never proposed only on a page anyone can edit
+        nonlocal listed_personas
+        if listed_personas is None:
+            eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
+            listed_personas = {p["id"]: p for p in personas_of(cx, eid)}
+        pr = listed_personas.get(x)
+        if not pr: return None
+        fits = [c for c in fits_by_name_and_year(cat, cx, tree_id, pr) if c != pid]
+        if len(fits) != 1: return None
+        other_pid = fits[0]
+        q.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,'undecided',?,?,?)", (other_pid, x, prop_id, by, ts))
+        return other_pid
     def member(fid, who, role):
         if q.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, who, role)).fetchone(): return False
         q.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fid, who, role)); return True

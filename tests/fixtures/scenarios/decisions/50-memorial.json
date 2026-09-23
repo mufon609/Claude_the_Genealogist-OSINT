@@ -1,6 +1,6 @@
 {
  "title": "a memorial, a page anyone can edit",
- "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the ten relatives it lists get no card at all, fit or not, and create nobody; reconsider keeps the identity, a withdrawn one is taken again; a re-read carries the decided link and accepts no fact; the owner's accept is an identity too, and his parents fact has nothing to decide since no relative is ever linked through this record; the plan turns each listed relative into a fetch step for their own memorial, on the tree person their name and birth year plainly fit when exactly one does (his wife, his daughter, each under their own cemetery row) and otherwise as a lead on the subject's own plan (his parents, his six siblings), named apart from documents to decide; the gravestone photograph is a fetch step saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it by the model is a card the rule leaves to the owner",
+ "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the ten relatives it lists get no card at all, fit or not, and create nobody, but his wife and his daughter, each fitting exactly one person of the tree by name and birth year, get an undecided membership and an undecided persona link the same acceptance, while his parents and his six siblings, fitting nobody, get neither, so his own parents fact still has nothing to decide; reconsider keeps the identity, a withdrawn one is taken again and leaves the memberships as they were; a re-read carries the decided link and accepts no fact; the owner's accept is an identity too; the plan turns each listed relative into a fetch step for their own memorial, on the tree person their name and birth year plainly fit when exactly one does (his wife, his daughter, each under their own cemetery row) and otherwise as a lead on the subject's own plan (his parents, his six siblings), named apart from documents to decide; the gravestone photograph is a fetch step saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it by the model is a card the rule leaves to the owner",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -84,6 +84,51 @@
       "count": 26
      },
      "why": "nobody is created from a relative the page merely lists"
+    },
+    {
+     "memberships": {
+      "person": "I332737039686",
+      "is": {
+       "some": {
+        "role": "partner",
+        "status": "undecided"
+       }
+      }
+     },
+     "why": "his wife's name and birth year plainly fit her alone, so the acceptance creates the membership the page states where the tree's own claim already had it, an undecided assertion on the memorial"
+    },
+    {
+     "memberships": {
+      "person": "I332737037573",
+      "is": {
+       "some": {
+        "role": "child",
+        "status": "undecided"
+       }
+      }
+     },
+     "why": "his daughter the same way"
+    },
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737039686",
+      "role": "spouse",
+      "is": [
+       "undecided"
+      ]
+     },
+     "why": "the listed persona that seated the membership is itself linked undecided, so it traces to the persona; her own memorial, once fetched, is the card that decides who she is"
+    },
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737037573",
+      "role": "child",
+      "is": [
+       "undecided"
+      ]
+     }
     }
    ]
   },
@@ -131,6 +176,29 @@
       "record": "mem",
       "person": "I332737038183",
       "status": "undecided"
+     }
+    },
+    {
+     "memberships": {
+      "person": "I332737039686",
+      "is": {
+       "some": {
+        "role": "partner",
+        "status": "undecided"
+       }
+      }
+     },
+     "why": "withdrawing the identity leaves the memberships as the plan and the tree's own claims already have them: the assertion was never more than undecided, so taking the card back writes nothing further"
+    },
+    {
+     "memberships": {
+      "person": "I332737037573",
+      "is": {
+       "some": {
+        "role": "child",
+        "status": "undecided"
+       }
+      }
      }
     }
    ]
@@ -254,7 +322,7 @@
       "person": "I332737038183",
       "parents": null
      },
-     "why": "no relative the page lists is ever accepted through this record, so link_family finds nobody to place him under: his parents fact has nothing to decide, the way a fact the file makes no claim about does"
+     "why": "his own listed parents fit nobody in the tree, so link_family places him under neither: his parents fact has nothing to decide, the way a fact the file makes no claim about does"
     },
     {
      "links": {
