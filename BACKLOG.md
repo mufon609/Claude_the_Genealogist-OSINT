@@ -201,26 +201,6 @@ and the step exists, so it is tested on a real step. On 11 September 2026 the
 endpoint did not answer a declared tool from this machine (the connection timed
 out, twice); confirm it answers before building.
 
-### C14. A memorial's listed relatives are counted as documents waiting
-
-Over a hundred undecided cards propose a persona a Find a Grave memorial
-lists as a relative of its subject (siblings most, then parents, children,
-spouses and half siblings; persona matches and new people both), on confirmed
-people and on the file's others alike: John Y Davidson, Robert Edgar Davidson
-and Lena Howard Bell carry several each. `Catalog.waiting` counts every
-undecided persona match or new person as a document to decide, so
-`tools/tree.py overview` and `tools/queue.py` show them as documents waiting
-and name the person next on them. The rule can never take such a card: a
-listed relative carries a name, years and a link to their own memorial, never
-the three to-the-day agreements the identity rule wants
-(`docs/RESEARCH-WORKFLOW.md` §0), and accepting one by hand writes an identity
-link and nothing more, since a page anyone can edit builds no facts. The
-owner's word is that a memorial's family connections are leads to look over,
-not facts. Make each one a lead: a fetch step for the relative's own memorial
-under that relative's cemetery row, the card coming from that page once it is
-fetched; and count them apart from documents to decide on the overview and in
-the queue, so nobody is named next on cards nobody can take.
-
 ### C15. A record whose two personas each wait on the other
 
 Carol Evers's card on the 1950 schedule the owner cited on their own word
