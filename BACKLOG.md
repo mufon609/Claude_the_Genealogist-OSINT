@@ -105,6 +105,30 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
+### C2. A memorial's stated family memberships are no longer created
+
+Rule 3 says accepting a memorial writes the persona link and creates the
+family memberships the page states where the tree lacks them, an undecided
+assertion each. `tools/conclude.py link_family` creates a membership only
+where the related persona is already accepted as a person, and since a
+memorial's listed relatives are leads and never cards (`tools/match.py`
+writes no proposal for them), no relative persona is ever accepted on a
+memorial, so no membership is ever created from one: the decisions/50
+scenario once asserted an undecided child membership on the subject's
+acceptance and now asserts no membership at all, and the subject's parents
+fact reads null where the page names both parents. Restore the clause: when
+a listed relative fits exactly one tree person by name and birth year (the
+test that already seats their lead on that person's plan,
+`match.fits_by_name_and_year`), the acceptance creates the membership the
+page states where the tree lacks it, an undecided assertion on the memorial,
+and links the listed persona to that person undecided, so the membership
+traces to the persona; the relative's own memorial, once fetched, is the
+card that decides their identity. A relative fitting nobody or several
+gives no membership, as a sibling of no placed parents gives none today.
+Restore the membership check to decisions/50. Beside it, two loop
+scenarios carry the number 60 (`60-unnamed-fetch`,
+`60-listed-relative-leads`): renumber the newer one.
+
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
