@@ -61,7 +61,7 @@ COUNTRY_SYN = {"usa": "United States", "u.s.a.": "United States", "us": "United 
                "united states of america": "United States", "allemagne": "Germany", "deutschland": "Germany",
                "germany": "Germany", "netherlands": "Netherlands", "ireland": "Ireland", "japan": "Japan",
                "poland": "Poland", "england": "United Kingdom", "great britain and ireland": "Ireland", "canada": "Canada"}
-DROP = {"north america", "british colonies", "europe", "colonial america"}
+DROP = {"north america", "british colonies", "europe", "colonial america", "unknown"}   # words for no place more specific than the rest of the string ("UNKNOWN, Germany" is Germany)
 US_STATES = {"alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia",
              "hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts",
              "michigan","minnesota","mississippi","missouri","montana","nebraska","nevada","new hampshire","new jersey",

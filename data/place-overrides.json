@@ -8,7 +8,8 @@
     "Berthelsdorf, Freiberg, Dresden, Sachsen, Germany": "See Berthelsdorf/Herrnhut note.",
     "Berthelsdorf, Sachsen, Allemagne": "See Berthelsdorf/Herrnhut note.",
     "Norristown, Chester, Pennsylvania, United States": "Norristown is in Montgomery County (formed 1784 from Philadelphia County). Chester is wrong or refers to a different Norristown.",
-    "Amwell, Hunterdon Co, Pennsylvania, United States": "Hunterdon County is in New Jersey; the string's state is wrong."
+    "Amwell, Hunterdon Co, Pennsylvania, United States": "Hunterdon County is in New Jersey; the string's state is wrong.",
+    "Württemberg, Germany": "the historic kingdom and state (today part of Baden-Württemberg), not the small place of that name the geocoder finds; choose the territory the record's date means."
   },
   "extra_queries": {
     "Berthelsdorf, Freiberg, Sachsen, Germany": [

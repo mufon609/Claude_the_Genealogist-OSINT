@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, place_verdict's record-against-tree cases, collection_state's names, and a place's dated names. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, and the place resolver's reading of a string into the queries it sends. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -310,5 +310,51 @@
     "note": null
    }
   ]
- }
+ },
+ "place_parse": [
+  {
+   "raw": "UNKNOWN, Germany",
+   "parsed": {
+    "components": [],
+    "country": "Germany",
+    "queries": [
+     "Germany"
+    ]
+   }
+  },
+  {
+   "raw": "Unknown",
+   "parsed": {
+    "components": [],
+    "country": null,
+    "queries": []
+   }
+  },
+  {
+   "raw": "Unknown, New Jersey, United States",
+   "parsed": {
+    "components": [
+     "New Jersey"
+    ],
+    "country": "United States",
+    "queries": [
+     "New Jersey, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Philadelphia, Philadelphia, Pennsylvania, USA",
+   "parsed": {
+    "components": [
+     "Philadelphia",
+     "Pennsylvania"
+    ],
+    "country": "United States",
+    "queries": [
+     "Philadelphia, Pennsylvania, United States",
+     "Philadelphia, United States"
+    ]
+   }
+  }
+ ]
 }

@@ -45,6 +45,10 @@ def rules():
     for c in R["collection_state"]:
         got = collection_state(c["name"])
         if got != c["state"]: bad.append(f"collection_state({c['name']!r}) gave {got!r}, expected {c['state']!r}")
+    from resolve_places import parse, query_variants
+    for c in R["place_parse"]:
+        p = parse(c["raw"]); got = {"components": p["components"], "country": p["country"], "queries": query_variants(p) if (p["components"] or p["country"]) else []}
+        if got != c["parsed"]: bad.append(f"resolve_places.parse({c['raw']!r}) gave {got!r}, expected {c['parsed']!r}")
     names = [tuple(x) for x in R["dated_names"]["names"]]
     for c in R["dated_names"]["cases"]:
         got = place_verdict(c["record"], c["tree"], dated_names=names)
