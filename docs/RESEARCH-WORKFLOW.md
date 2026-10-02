@@ -825,23 +825,52 @@ with the reason; accepting that card makes everything the decision had written
 stand again. It then proposes again the cards an older
 matcher wrote, and examines every card still undecided
 the same way and takes one it would now take, recorded as the rule; a decision
-can open another card, so it passes again until nothing new is taken. Run it
+can open another card, so it passes again until nothing new is taken. Then it
+goes over the conflicts: every conflict it resolved is examined again, newest
+first on each date or place, and one it would no longer resolve so (the
+statement it kept rejected, primary information arrived against it) is taken
+back, the event's value restored from the resolution's own record of it and
+the question open again for the owner; then every open conflict on an event's
+date or place is resolved where the classes decide it (the proof standard
+below), the rest left to the owner with the rule's reason. Run it
 after any change to the rule, to the matcher or to a source's tier.
 
 Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the
-evidence; a `conflict` closes only when a person resolves it with a written
-reason or dismisses it. Resolving (`tools/conclude.py resolve <question>
---keep <statement> --note "…"`) names the statement whose date or place the
-event keeps: that value becomes the event's own (the place only once its words
-are resolved to a place), the question closes `resolved` with the reason and
-the resolution in it, one audit row names the value kept and every statement
-set aside, and each statement stays as its record says it. The same
+evidence; a `conflict` closes only when it is resolved with a written reason,
+by a person or by the rule, or a person dismisses it. Resolving
+(`tools/conclude.py resolve <question> --keep <statement> --note "…"`) names
+the statement whose date or place the event keeps: that value becomes the
+event's own (the place only once its words are resolved to a place), the
+question closes `resolved` with the reason and the resolution in it, one audit
+row names the value kept, the event's value before and every statement set
+aside, and each statement stays as its record says it. The same
 difference read afterwards from the kept side is closed with it, so a
 regeneration reopens nothing, while a statement that comes later makes a
-question of its own. Accepting grows
+question of its own. Every decision that changes a person's evidence
+regenerates the plan and then lets the rule go over the person's conflicts, as
+`reconsider` does for everyone. The rule resolves through the same path,
+recorded as `rule:classes-favour-one-side for <owner>`, when the classes favour
+one side without doubt (`conclude.classes_decide`): the statement it keeps
+holds the event first-hand (primary information, accepted, from a record whose
+source class is original or derivative and nobody can edit at will, direct, and
+the event the record was made for: an event the classes table names primary
+for the record's kind, such as a census household's residence or a death
+record's death, for anyone on it, any other only for the person the record is
+about, so a parent's birthplace on a child's birth register decides nothing),
+no statement that differs from it holds primary information or the owner's own
+word (a vouch, the file's uncited claim the owner accepted), and the
+statements that agree with it agree with one another, so a county kept while
+two towns in it still differ never closes a difference the classes do not
+decide; a place it keeps only once its words are resolved, waiting on the
+owner's answer to them otherwise. A date or place the owner has resolved,
+dismissed a difference on, or reopened is the owner's from then on, and the
+rule never decides there. The owner's own resolve on a question the rule
+resolved takes the rule's resolution back first; `tools/conclude.py reopen
+<question> --note "…"` takes it back without keeping anything, the event's
+value restored and the question open again. Accepting grows
 the baseline, which generates new questions.
 
 ### The proof standard

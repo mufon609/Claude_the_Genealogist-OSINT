@@ -494,15 +494,24 @@ def a_divorce(w, x):
         ev.append((w.sha(e["record"]), pf[0], e.get("citation", "harness")))
     return {"event": divorce(w.cx, w.tid, w.person(x["a"]), w.person(x["b"]), x["date"], ev, x.get("by", BY), x.get("note", "harness"))}
 
+def conflict_question(w, x, closed=False):
+    """The person's one conflict question whose detail has `detail_has`: an open one, or with closed one the rule resolved
+    (its own question, not one closed beside it)."""
+    pid = w.person(x["person"])
+    q = "SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict' AND " + \
+        ("status='closed' AND closed_reason='resolved' AND json_extract(detail_json,'$.resolution.question')=id AND json_extract(detail_json,'$.resolution.by') LIKE 'rule:%'" if closed else "status='open'")
+    rows = [r for r in w.cx.execute(q, (pid,)) if x["detail_has"] in (r["detail_json"] or "")]
+    if len(rows) != 1: raise KeyError(f"{len(rows)} {'conflict questions the rule resolved' if closed else 'open conflict questions'} match, expected exactly one")
+    return rows[0]
+
 def a_resolve_conflict(w, x):
     """A conflict question closed through tools/conclude.py resolve: the person's one open conflict whose detail has
-    `detail_has`, the statement kept a literal or bound assertion id, or {record, event_type} for that record's statement
-    on the person's event of the type, with `note`; a refusal comes back as {"error": ...}."""
+    `detail_has` (with `over_rule`, the one the rule resolved instead, for the owner's own resolution over it), the
+    statement kept a literal or bound assertion id, or {record, event_type} for that record's statement on the person's
+    event of the type, with `note`; a refusal comes back as {"error": ...}."""
     from conclude import resolve
     pid = w.person(x["person"])
-    rows = [r for r in w.cx.execute("SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", (pid,))
-            if x["detail_has"] in (r["detail_json"] or "")]
-    if len(rows) != 1: raise KeyError(f"{len(rows)} open conflict questions match, expected exactly one")
+    rows = [conflict_question(w, x, closed=bool(x.get("over_rule")))]
     keep = x["keep"]
     if isinstance(keep, dict):
         row = w.cx.execute("""SELECT a.id FROM assertion a JOIN event e ON e.id=a.subject_id JOIN event_participant ep ON ep.event_id=e.id
@@ -511,6 +520,13 @@ def a_resolve_conflict(w, x):
         if not row: raise KeyError("no such statement")
         keep = row[0]
     return {**resolve(w.cx, w.tid, rows[0]["id"], keep, x.get("by", BY), x.get("note", "harness")), "question_id": rows[0]["id"]}
+
+def a_reopen_conflict(w, x):
+    """A conflict the rule resolved, reopened by the owner through tools/conclude.py reopen: the person's one question the
+    rule resolved whose detail has `detail_has`, with `note`; a refusal comes back as {"error": ...}."""
+    from conclude import reopen
+    row = conflict_question(w, x, closed=True)
+    return {**reopen(w.cx, w.tid, row["id"], x.get("by", BY), x.get("note", "harness")), "question_id": row["id"]}
 
 def a_place_card(w, x):
     """A place_resolution card for a string of the tree, as the resolver would write it, its candidates' geocoder answers
@@ -585,7 +601,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
-           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 
@@ -842,6 +858,17 @@ def e_artifact_where(w, x, want):
     got = {"redistributable": row["redistributable"], "manifest": json.loads(row["manifest_json"] or "{}")} if row else None
     return row is not None and has(got, x["is"]), got
 
+def e_conflict_rule(w, x, want):
+    """The rule's test on a conflict (conclude.classes_decide) about a person's event of a `type`, on its `axis` (date or
+    place): whether it keeps a statement (`taken`) and the reason in words (`why`)."""
+    from conclude import classes_decide
+    row = w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=? ORDER BY e.date_start",
+                       (w.person(x["person"]), x["type"])).fetchone()
+    if not row: return False, "no such event"
+    keep, why = classes_decide(w.cx, w.tid, row[0], x["axis"])
+    got = {"taken": keep is not None, "why": why}
+    return has(got, w.value({k: v for k, v in x.items() if k in got})), got
+
 def e_classes(w, x, want):
     """The classes of a record's statements about a person, in words (catalog.evidence_classes): the statements on the
     person's events of `event_type`, or on a family link (`link`: parents, spouses or children), that the record carries;
@@ -946,7 +973,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "event": e_event, "family_event": e_family_event, "disagreements": e_disagreements, "question": e_question, "assertions_on": e_assertions_on, "links": e_links, "is_subject": e_is_subject, "citations_held": e_citations_held,
            "checklist_row": e_checklist_row, "baseline": e_baseline, "waiting": e_waiting, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
-           "artifact_where": e_artifact_where, "classes": e_classes, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
+           "artifact_where": e_artifact_where, "classes": e_classes, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject}
 

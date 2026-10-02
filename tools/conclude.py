@@ -33,6 +33,14 @@ way, and one the rule would now take is taken. Between the two, every current ex
 matcher wrote (the matcher is versioned, match.MATCHER) is matched again: those cards close as superseded and the personas are
 proposed again by the matcher as it stands.
 
+The rule decides a conflict on an event's date or place when the classes favour one side without doubt (classes_decide,
+docs/RESEARCH-WORKFLOW.md, the proof standard): one side holds the event first-hand, primary information from the record of
+the event itself, and every other rests only on secondary or indeterminable information, a page anyone can edit or the
+file's claim. It resolves such a conflict through the owner's own resolve, its reason in words as the note, after every
+decision that changes a person's evidence and in reconsider, which also examines its earlier resolutions again and takes
+back one it would no longer make, the event's value restored. Every other conflict is the owner's, and the owner's own
+resolve, or a reopen, stands above the rule's.
+
 usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
        tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
        tools/conclude.py assertion <assertion id> accept|reject|undecided [--note "…"]   one statement of one record, on its own
@@ -44,6 +52,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
        tools/conclude.py divorce "<a>" "<b>" --date "BET 1950 AND 1959" --evidence <sha256>[:<persona fact id>][:<citation>] … --note "…"
        tools/conclude.py merge "<duplicate>" --into "<person>" --note "…"          close a duplicate_person question: the duplicate's row stays, out of every listing
        tools/conclude.py resolve <question id> --keep <assertion id> --note "…"    close a conflict question: the event keeps that statement's date or place
+       tools/conclude.py reopen <question id> --note "…"                           a conflict the rule resolved, taken back and yours from now on
        common: [--tree slug] [--db catalog/tree.db] [--by user:<you>]
 
 - decide: a person's (or the rule's) decision on a proposal, with everything that follows from it; a command too, as is a
@@ -57,7 +66,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
   not a place, applied wherever the same words appear.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
 - place: the owner's answer to Catalog.unplaced, a record's undated fact written onto the event the owner means.
-- resolve: the owner's answer to a conflict question, the statement whose date or place the event keeps, with the reason.
+- resolve: the answer to a conflict question, the statement whose date or place the event keeps, with the reason: the owner's,
+  or the rule's (rule_conflicts, classes_decide); take_back and reopen: a resolution of the rule's taken back.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -79,7 +89,7 @@ TRUSTED = ("T1", "T2", "T3")                            # a record the rule may 
 EDITABLE_IDENTIFYING = ("findagrave-memorial", "wikitree-profile")   # a page anyone can edit that identifies a person (a memorial, a profile): the rule may take the identity, never a fact; a results page's row is a hint
 FAMILY_WORD = re.compile(r"\bhalf\b|grand(?:son|daughter|child)|in-law", re.I)   # a stated family relationship the record files under 'other': a half sibling, a grandchild, an in-law; never "other relative" or a blank
 IN_LAW = {"mother-in-law": "parent", "father-in-law": "parent", "son-in-law": "spouse", "daughter-in-law": "spouse", "brother-in-law": "sibling", "sister-in-law": "sibling"}   # the kind an in-law's own word resolves toward, once the relative it is in-law to is found (resolve_in_law)
-RULE_ACTOR = {"persona_match": "rule:agrees-with-accepted", "new_person": "rule:creates-named-relative"}   # the rule as the decider, by what it did
+RULE_ACTOR = {"persona_match": "rule:agrees-with-accepted", "new_person": "rule:creates-named-relative", "conflict": "rule:classes-favour-one-side"}   # the rule as the decider, by what it did
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).
 
 def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()):
@@ -695,7 +705,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link,
     every assertion and the name alias the rule wrote turn rejected, and a step held by the record for this person is planned
     again; one the rule took back (withdraw) is accepted with everything it had written standing again, its name alias
-    included. Returns what was written, or an error."""
+    included. Either way, once the plans are regenerated, the rule goes over the conflicts of the people whose plans the
+    decision changed (rule_conflicts): its own resolutions there examined again, every open conflict on an event's date or
+    place decided where the classes favour one side without doubt. Returns what was written, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"): return decide_place(cx, tree_id, p, status, by, note, choice)
@@ -730,6 +742,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
     released = release_household(cx, tree_id, person_id, pay["artifact_sha256"], by) if status == "rejected" and person_id and not identity else []   # a step the record held for this person is planned again
     if released: answered += answer_questions(cx, tree_id, person_id, prop_id, by)   # the plan sees the row open again
+    people = [pid for pid in dict.fromkeys([person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"]) if pid]
+    conflicts = rule_conflicts(cx, tree_id, by, people=people)   # the conflicts the decision opened or changed, and the rule's own resolutions that rest on what it changed
     if status == "accepted":                                     # the record's other personas come up next, against this person's relatives, on the current reading of the record
         eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
         while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]): eid = later
@@ -738,7 +752,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
               (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "proposal", prop_id,
                dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "released_steps": released, "note": note})))
-    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "released_steps": released, "note": note}
+    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "released_steps": released, "note": note,
+            "conflicts": conflicts}
 
 def _stands_for(cat, persona, cand, chosen):
     """Whether a persona on a page anyone can edit stands for a person of the tree as the relative the identity rule may count:
@@ -1267,20 +1282,33 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
 CONFLICT_AXIS = re.compile(r"^(.+?) (date|place): ")              # a conflict line's own opening: the event type, lowercased, and the axis (Catalog.disagreements)
 
 def resolve(cx, tree_id, qid, keep, by, note):
-    """The owner closes a conflict question with a written reason naming the value kept (docs/RESEARCH-WORKFLOW.md, the proof
-    standard): the kept statement's date, or its place, becomes the event's own value (the event row's date fields, or its
-    place_id), the question closes 'resolved' with the resolution in its detail, and one audit row names the value kept and
-    every statement set aside. Evidence is untouched: each statement stays as it was, the ones set aside still accepted as
-    what their records say. The difference then reads from the event's new value, the kept side now beside the tree: every
-    line the catalog gives for that event and axis afterwards is that same difference, and is recorded closed 'resolved'
-    under its own key, for every partner of a family's event too, so a regeneration reopens nothing; a statement that comes
-    later makes another line, a question of its own. Refused when the note is empty, the question is not an open conflict
-    about an event's date or place, the statement is rejected, is not on the event the question is about, or gives no value
-    on that axis, or the place it gives is not yet resolved to a place. Returns what was done, or an error."""
+    """A conflict question closed with a written reason naming the value kept (docs/RESEARCH-WORKFLOW.md, the proof
+    standard), by the owner, or by the rule acting for them (rule_conflicts, the reason its own words): the kept statement's
+    date, or its place, becomes the event's own value (the event row's date fields, or its place_id), the question closes
+    'resolved' with the resolution in its detail, who resolved it included (by), and one audit row names the value kept, the
+    event's value before (was, so a resolution the rule takes back restores it) and every statement set aside. Evidence is
+    untouched: each statement stays as it was, the ones set aside still accepted as what their records say. The difference
+    then reads from the event's new value, the kept side now beside the tree: every line the catalog gives for that event and
+    axis afterwards is that same difference, and is recorded closed 'resolved' under its own key, for every partner of a
+    family's event too, so a regeneration reopens nothing; a statement that comes later makes another line, a question of its
+    own. The owner resolving a question the rule resolved overrides the rule: the rule's resolution is taken back first
+    (take_back), and nothing changes should the owner's be refused. Refused when the note is empty, the question is not an
+    open conflict about an event's date or place, the statement is rejected, is not on the event the question is about, or
+    gives no value on that axis, or the place it gives is not yet resolved to a place. Returns what was done, or an error."""
     from plan import q_key
     q = _q(cx); ts = now(); cat = Catalog(cx, tree_id)
     if not (note or "").strip(): return {"error": "a resolution needs your written reason (--note)"}
     rq = q.execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
+    rule_res = rule_resolution(rq)
+    if rule_res and not by.startswith("rule:"):                        # the owner's own resolution over the rule's
+        cx.execute("SAVEPOINT owner_over_rule")
+        take_back(cx, tree_id, qid, by, f"the owner resolves it: {note}", ts)
+        primary = rule_res.get("question") or qid
+        reopened = q.execute("SELECT id FROM research_question WHERE id IN (?,?) AND status='open' ORDER BY id=? DESC", (qid, primary, qid)).fetchone()
+        out = resolve(cx, tree_id, reopened["id"], keep, by, note) if reopened else {"error": "the rule's resolution is taken back, but the difference no longer reads as this question: resolve the question the plan now holds"}
+        if "error" in out: cx.execute("ROLLBACK TO owner_over_rule")
+        cx.execute("RELEASE owner_over_rule")
+        return out
     if not rq or rq["kind"] != "conflict" or rq["status"] != "open": return {"error": "not an open conflict question in this tree"}
     detail = (json.loads(rq["detail_json"] or "{}") or {}).get("detail") or ""
     m = CONFLICT_AXIS.match(detail)
@@ -1337,6 +1365,269 @@ def resolve(cx, tree_id, qid, keep, by, note):
               (ulid(), tree_id, ts, by, "update", "research_question", qid, dumps({**resolution, "questions_closed": closed})))
     for person in dict.fromkeys(people): plan_person(cx, tree_id, person, by)
     return {"ok": True, "question": qid, "event": ev["id"], "axis": axis, "kept": resolution["kept"], "set_aside": set_aside, "was": was, "questions_closed": closed}
+
+FIRST_HAND = ("original", "derivative")         # the source classes the record of the event itself is read from: its own image, or an index or transcript of it
+
+def rule_resolution(rq):
+    """The resolution the rule wrote on a question row closed 'resolved' (its detail's resolution, by rule:…), else None."""
+    if not rq or rq["kind"] != "conflict" or rq["status"] != "closed" or rq["closed_reason"] != "resolved": return None
+    try: res = (json.loads(rq["detail_json"] or "{}") or {}).get("resolution")
+    except ValueError: return None
+    return res if isinstance(res, dict) and str(res.get("by") or "").startswith("rule:") else None
+
+def owner_decided(cx, tree_id, ev, axis):
+    """Words when the owner has spoken on this event's date or place: resolved a conflict on it, reopened one the rule had
+    resolved (take_back's audit row, reopened), or dismissed one on it (a dismissal's line names the type and the axis, not
+    the event, so a dismissal on any of the person's events of the type counts). The rule then leaves every conflict on it
+    to the owner. None when the owner has not."""
+    q = _q(cx); what = f"{ev['event_type'].lower()} {axis}"
+    for r in q.execute("""SELECT json_extract(detail_json,'$.resolution.by') AS by FROM research_question WHERE tree_id=? AND kind='conflict' AND closed_reason='resolved'
+                          AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.event')=? AND json_extract(detail_json,'$.resolution.axis')=?""", (tree_id, ev["id"], axis)):
+        if not str(r["by"] or "").startswith("rule:"): return f"you resolved a difference on this {what} yourself: every later one is yours"
+    if q.execute("""SELECT 1 FROM audit_log WHERE tree_id=? AND entity_kind='research_question' AND actor NOT LIKE 'rule:%' AND json_valid(diff_json)
+                    AND json_extract(diff_json,'$.reopened') IS NOT NULL AND json_extract(diff_json,'$.event')=? AND json_extract(diff_json,'$.axis')=?""", (tree_id, ev["id"], axis)).fetchone():
+        return f"you reopened the rule's resolution of this {what}: it is yours"
+    people = [r["person_id"] for r in q.execute("""SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL
+                                                   UNION SELECT fm.person_id FROM event_participant ep JOIN family_member fm ON fm.family_id=ep.family_id AND fm.role='partner' WHERE ep.event_id=?""", (ev["id"], ev["id"]))]
+    for r in q.execute(f"SELECT detail_json FROM research_question WHERE kind='conflict' AND closed_reason='dismissed' AND subject_person_id IN ({','.join('?' * len(people))})", people):
+        try: d = (json.loads(r["detail_json"] or "{}") or {}).get("detail") or ""
+        except ValueError: d = ""
+        if d.startswith(what + ":"): return f"you dismissed a difference on this {what}: it is yours"
+    return None
+
+def classes_decide(cx, tree_id, eid, axis):
+    """The rule's test on a conflict about one event's date or place (docs/RESEARCH-WORKFLOW.md §5–7, the proof standard:
+    conflicts kept, cited, pointed out, then decided): (the assertion id of the statement it keeps, or None; why, a sentence
+    in words from the classes). The statements on the event of its own type, rejected ones and the owner's own word aside,
+    are read by their classes (data/evidence-classes.csv, catalog.evidence_classes), a place compared as the place its words
+    are resolved to, as Catalog.disagreements compares it. A statement holds the event first-hand when it is primary
+    information, accepted as the person's, from a record whose source class is original or derivative (the record of the
+    event itself, or an index or transcript of it) and nobody can edit at will (T1–T3), direct evidence, and the event the
+    record was made for: an event the table names primary for the record's kind (a census household's residence, a death
+    record's death) for anyone on it, any other only for the person the record is about (Catalog.is_subject's reading: the
+    persona others on the record relate to, never one relating to another), so a parent's birthplace on a child's birth
+    register, primary by the table's row for the whole record, is no record of the parent's birth. The rule keeps the most
+    specific first-hand statement, original before derivative, only when the classes favour its side without doubt: no
+    statement that differs from it holds primary information, however it is held; none that differs is the owner's own
+    word (the file's uncited claim the owner accepted), nor does a vouch stand for a tree's value that differs; and the
+    statements that agree with it agree with one another, so a county kept while two towns in it still differ never closes
+    a difference the classes do not decide. The sides that differ then rest only on secondary or indeterminable
+    information, on a page anyone can edit, on an authored work or on the file's claim, and the reason names them
+    (proof.sides). No first-hand statement, primary information against it, the owner's word against it, a difference left
+    beside it, or an owner who has spoken on this event's date or place before (owner_decided): no decision, the conflict is
+    the owner's, and the reason says which. A place is kept only once its words are resolved to a place, as resolve needs,
+    the rule otherwise waiting on the owner's answer to the words."""
+    from catalog import evidence_table
+    from proof import axis_value, order, record_info, same_value, sides, specificity, subject_statements, words
+    q = _q(cx); cat = Catalog(cx, tree_id); cache = {}
+    ev = q.execute("SELECT * FROM event WHERE id=? AND tree_id=?", (eid, tree_id)).fetchone()
+    if not ev: return None, "no such event in this tree"
+    fact = ev["event_type"].lower()
+    said = owner_decided(cx, tree_id, ev, axis)
+    if said: return None, said
+    sts, extra = [], {}
+    for s in subject_statements(cat, "event", eid, want=ev["event_type"]):
+        if s["status"] == "rejected": continue
+        r = q.execute("""SELECT a.notes, ps.place_id, ps.status, pf.persona_id, NOT EXISTS (SELECT 1 FROM persona_relation pr WHERE pr.persona_id=pf.persona_id) AS own
+                         FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.id=?""", (s["id"],)).fetchone()
+        try: notes = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
+        except ValueError: notes = {}
+        extra[s["id"]] = {"notes": notes, "place_id": r["place_id"] if r["status"] == "accepted" else None, "own": bool(r["persona_id"] and r["own"])}
+        resolved = extra[s["id"]]["place_id"]
+        sts.append(dict(s, raw=s["place"], place=cat._place_chain(resolved)["text"] if resolved and s["place"] else s["place"]))
+    vouched = any(s["kind"] == "vouch" and s["status"] == "accepted" for s in sts)
+    valued = [s for s in sts if s["kind"] != "vouch" and axis_value(axis, s)]
+    if not valued: return None, f"no statement on the {fact} gives a {axis}: nothing to decide"
+    tree = {"start": ev["date_start"] or ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]} if axis == "date" else (cat.place(eid, ev["place_id"]) or {}).get("text")
+    if not ((tree or {}).get("start") if axis == "date" else tree): tree = None
+    shown = lambda s: s["date"]["text"] if axis == "date" else s["raw"]
+    trusted = lambda s: str(source_tier(cx, s["sha256"]) or "")[:2] in TRUSTED
+    primary = lambda s: s["kind"] == "record" and (s["classes"] or {}).get("information") == "primary"
+    owners_word = lambda s: s["kind"] == "file" and s["status"] == "accepted" and extra[s["id"]]["notes"].get("uncited")
+    table = evidence_table()
+    made_for = lambda s: any(r["field"] == ev["event_type"] and r.get("information") == "primary" for k in (s["classes"] or {}).get("kinds") or [] for r in table.get(k, []))   # the table names this event the record's own, for everyone on it (a census household's residence)
+    def name(s):
+        c = s["classes"] or {}; rec = record_info(cx, s["sha256"], cache)["name"]
+        return f"the {c['original']} ({rec})" if c.get("original") else rec
+    def rests(statements):
+        parts = {}
+        for s in statements:
+            c = s["classes"] or {}
+            if s["kind"] == "file": parts.setdefault("the file's claim", [])
+            elif editable(cx, s["sha256"]): parts.setdefault("a page anyone can edit", []).append(name(s))
+            elif c.get("source") == "authored": parts.setdefault("an authored work", []).append(name(s))
+            elif c.get("information") == "secondary": parts.setdefault("secondary information", []).append(name(s))
+            else: parts.setdefault("indeterminable information", []).append(name(s))
+        return " and ".join(k + (f" ({'; '.join(dict.fromkeys(v))})" if v else "") for k, v in parts.items())
+    def narrative(statements, only="", kept=None):
+        """The sides these statements form, each with what it rests on, and the tree's own value when no statement gives it."""
+        out = [f"{shown(g['statements'][0])} rests {only}on {rests(g['statements'])}" for g in sides(axis, statements)]
+        if tree and not any(same_value(axis, tree, axis_value(axis, s)) for s in statements) and not (kept and same_value(axis, tree, kept)):
+            out.append(f"the tree's own {tree['text'] if axis == 'date' else tree} rests {only}on no statement")
+        return "; ".join(out)
+    def not_first(s):
+        """Why a primary statement does not hold the event first-hand, or None when it does."""
+        c = s["classes"] or {}
+        if s["status"] != "accepted": return "it is not accepted as this person's"
+        if not trusted(s): return "it is a page anyone can edit"
+        if c.get("source") not in FIRST_HAND: return f"its source is {c.get('source') or 'unclassed'}"
+        if c.get("evidence") != "direct": return "it is indirect evidence"
+        if not (extra[s["id"]]["own"] or made_for(s)): return f"the record was made for another person's event, and the {fact} it gives is a relative's"
+        return None
+    first = [s for s in valued if primary(s) and not_first(s) is None]
+    if not first:
+        held = next((s for s in valued if primary(s)), None)
+        if held: return None, f"{name(held)} gives the {fact} as primary information, {shown(held)}, but {not_first(held)}: the conflict is yours"
+        return None, f"no side holds primary information about the {fact}, so the classes favour none: {narrative(valued)}"
+    keep = sorted(first, key=lambda s: (-specificity(axis, axis_value(axis, s)), order(s["classes"])))
+    k = keep[0]; vk = axis_value(axis, k)
+    beside = [s for s in valued if s is not k and same_value(axis, axis_value(axis, s), vk)]
+    apart = [s for s in valued if s is not k and s not in beside]
+    clash = next((s for s in apart if primary(s)), None)
+    if clash: return None, f"primary information about the {fact} on more than one side: {name(k)} gives {shown(k)}, {name(clash)} {shown(clash)}"
+    word = next((shown(s) for s in apart if owners_word(s)), None)
+    if word is None and vouched and tree and not same_value(axis, tree, vk): word = tree["text"] if axis == "date" else tree   # a vouch stands for the tree's own value
+    if word: return None, f"your own word stands on {word}, against {name(k)}'s {shown(k)}: the conflict is yours"
+    left = next(((a, b) for i, a in enumerate(beside) for b in beside[i + 1:] if not same_value(axis, axis_value(axis, a), axis_value(axis, b))), None)
+    if left: return None, f"{name(k)} states the {fact} first-hand only as {shown(k)}, which leaves {shown(left[0])} against {shown(left[1])}: the classes decide between none of them, so the conflict is yours"
+    if axis == "place":
+        placed = [s for s in keep if extra[s["id"]]["place_id"] and same_value(axis, axis_value(axis, s), vk) and specificity(axis, axis_value(axis, s)) >= specificity(axis, vk)]   # as fine a place as the one kept, never a coarser stand-in for it
+        if not placed: return None, f"{name(k)} states the {fact} first-hand, but the place it gives, “{k['raw']}”, is not yet resolved to a place: the rule keeps it once its words are answered"
+        k = placed[0]
+    rest = narrative(apart, only="only ", kept=vk)
+    return k["id"], f"{name(k)} states the {fact} first-hand, {shown(k)} ({words(k['classes'])}); " + (rest or "every other statement agrees with it")
+
+def take_back(cx, tree_id, qid, by, why, ts, reopened=False):
+    """A conflict the rule resolved, taken back: by the rule (rule_conflicts, when it would no longer resolve it so), or by
+    the owner (reopen, or their own resolve over it). The event's date or place returns to what it was before the
+    resolution (the resolution's own record of it, was), every question the resolution closed is set back to gap_gone so the
+    plan reopens those whose difference is back, and one audit row says why and what was restored; reopened marks it the
+    owner's reopen, after which the conflict on that date or place is the owner's (owner_decided). Evidence is untouched.
+    Returns the question ids set back."""
+    q = _q(cx)
+    rq = q.execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
+    res = rule_resolution(rq)
+    if not res: raise ValueError("not a conflict the rule resolved")
+    primary, axis, was = res.get("question") or qid, res["axis"], res["was"]
+    ev = q.execute("SELECT * FROM event WHERE id=?", (res["event"],)).fetchone()
+    current = None
+    if ev and axis == "date":
+        current = {k: ev[k] for k in ("date_text", "date_start", "date_end", "date_qualifier")}
+        q.execute("UPDATE event SET date_text=?, date_start=?, date_end=?, date_qualifier=?, updated_at=? WHERE id=?", (was["date_text"], was["date_start"], was["date_end"], was["date_qualifier"], ts, ev["id"]))
+    elif ev:
+        current = {"place_id": ev["place_id"]}
+        q.execute("UPDATE event SET place_id=?, updated_at=? WHERE id=?", (was["place_id"], ts, ev["id"]))
+    rows = q.execute("""SELECT id, subject_person_id FROM research_question WHERE tree_id=? AND closed_reason='resolved' AND json_valid(detail_json)
+                        AND json_extract(detail_json,'$.resolution.question')=? AND json_extract(detail_json,'$.resolution.at')=?""", (tree_id, primary, res["at"])).fetchall()
+    ids = [r["id"] for r in rows]
+    q.execute(f"UPDATE research_question SET closed_reason='gap_gone' WHERE id IN ({','.join('?' * len(ids))})", ids)
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "update", "research_question", primary, dumps({"withdrawn": why, "event": res["event"], "axis": axis, "restored": was, "from": current,
+                                                                                         "kept": res["kept"], "questions": ids, **({"reopened": why} if reopened else {})})))
+    for person in dict.fromkeys(r["subject_person_id"] for r in rows): plan_person(cx, tree_id, person, by)
+    return ids
+
+def reopen(cx, tree_id, qid, by, note):
+    """The owner reopens a conflict the rule resolved: taken back (take_back, reopened), the event's value back to what it was
+    and the question open again, the owner's from now on; the rule never resolves that event's date or place again. Refused
+    when the note is empty or the question is not one the rule resolved (the owner's own resolution stands as written).
+    Returns what was done, or an error."""
+    if not (note or "").strip(): return {"error": "a reopen needs your written reason (--note)"}
+    rq = _q(cx).execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
+    res = rule_resolution(rq)
+    if not res: return {"error": "not a conflict the rule resolved"}
+    ids = take_back(cx, tree_id, qid, by, note, now(), reopened=True)
+    st = _q(cx).execute("SELECT status FROM research_question WHERE id=?", (res.get("question") or qid,)).fetchone()
+    return {"ok": True, "question": res.get("question") or qid, "event": res["event"], "axis": res["axis"], "restored": res["was"], "questions": ids, "open": bool(st and st["status"] == "open")}
+
+def conflict_lines(cat, pid):
+    """The person's conflict lines on an event's date or place as the catalog gives them now (Catalog.disagreements), each
+    with its event and axis: [(line, event id, axis)]."""
+    out = []
+    for eid, in cat.q("""SELECT DISTINCT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                         WHERE ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner') ORDER BY e.event_type, e.date_start, e.id""", pid, pid):
+        for line in cat.disagreements(pid, event=eid):
+            m = CONFLICT_AXIS.match(line)
+            if m: out.append((line, eid, m.group(2)))
+    return out
+
+def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
+    """The rule on conflicts, acting for the owner (RULE_ACTOR conflict, "rule:… for <owner>"), over these people's (everyone's
+    when people is None). First every conflict it resolved, examined again as it stands now, newest first on each event's
+    date or place: one it would no longer resolve so (classes_decide keeps nothing, or a value on another side) is taken
+    back (take_back), the event's value back to what it was; one the owner has spoken on since is left as it is. Then every
+    open conflict on an event's date or place: where classes_decide keeps a statement it is resolved through resolve, the
+    owner's own path, the rule's reason as the note; every other stays the owner's with the reason the rule left it. A person
+    whose open conflict questions no longer read as the catalog does is planned again first, so the question resolved is
+    the one the catalog gives; dry_run writes nothing and reads the catalog's own lines instead. Returns one row per
+    resolution examined (kind resolution: kept, why) and per conflict decided or left (kind conflict: taken, why), each
+    with the person, the question and its line; known, the questions the rule had resolved before a run that decides
+    cards first (reconsider), makes a resolution written since, inside one of those decisions, a row of kind conflict
+    taken, as one this pass wrote."""
+    from plan import q_key
+    q = _q(cx); ts = now(); cat = Catalog(cx, tree_id); out = []
+    actor = f"{RULE_ACTOR['conflict']} for {by.split(' for ', 1)[-1] if by.startswith('rule:') else by}"
+    name = lambda pid: (q.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone() or {"display_name": "?"})["display_name"]
+    want = None if people is None else set(people)
+    done = {}
+    for rq in q.execute("""SELECT * FROM research_question WHERE tree_id=? AND kind='conflict' AND closed_reason='resolved' AND json_valid(detail_json)
+                           AND json_extract(detail_json,'$.resolution.question')=id AND json_extract(detail_json,'$.resolution.by') LIKE 'rule:%'
+                           ORDER BY json_extract(detail_json,'$.resolution.at') DESC, id DESC""", (tree_id,)).fetchall():
+        if want is not None and rq["subject_person_id"] not in want: continue
+        res = rule_resolution(rq); spot = (res["event"], res["axis"])
+        if done.get(spot): continue                                      # a newer resolution on the same date or place stands: the older ones under it stand with it
+        detail = (json.loads(rq["detail_json"]) or {}).get("detail")
+        ev = q.execute("SELECT * FROM event WHERE id=?", (res["event"],)).fetchone()
+        said = owner_decided(cx, tree_id, ev, res["axis"]) if ev else "the event is gone"
+        if said:
+            done[spot] = True; out.append({"kind": "resolution", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "kept": True, "why": said}); continue
+        keep, why = classes_decide(cx, tree_id, res["event"], res["axis"])
+        holds = keep is not None and (keep == res["kept"]["assertion"] or kept_agrees(cx, keep, res))
+        if keep is not None and not holds: why = f"it would now keep another value: {why}"
+        if not holds and not dry_run: take_back(cx, tree_id, rq["id"], actor, why, ts)
+        done[spot] = holds
+        if holds and known is not None and rq["id"] not in known:        # written during this run, inside a decision: told as resolved here
+            out.append({"kind": "conflict", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "taken": True, "why": res.get("note") or why}); continue
+        out.append({"kind": "resolution", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "kept": holds, "why": why})
+    pids = list(dict.fromkeys(people)) if people is not None else \
+           [r["subject_person_id"] for r in q.execute("SELECT DISTINCT subject_person_id FROM research_question WHERE tree_id=? AND kind='conflict' AND status='open' ORDER BY subject_person_id", (tree_id,))]
+    opened = lambda pid: {(json.loads(r["detail_json"] or "{}") or {}).get("detail"): r["id"] for r in q.execute("SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", (pid,))}
+    for pid in pids:
+        lines = conflict_lines(cat, pid); now_lines = {l for l, _, _ in lines}; open_ = opened(pid)
+        if not dry_run and any(CONFLICT_AXIS.match(d or "") and d not in now_lines for d in open_):
+            plan_person(cx, tree_id, pid, by); open_ = opened(pid)    # the questions as the catalog gives them now
+        seen = set()
+        for line, eid, axis in lines:
+            if (eid, axis) in seen: continue
+            qid = open_.get(line)
+            if qid is None:
+                if not dry_run: continue                                 # not an open question: resolved, dismissed or closed with its event and axis
+                closed = q.execute("SELECT closed_reason FROM research_question WHERE subject_person_id=? AND q_key=? AND status='closed'", (pid, q_key({"kind": "conflict", "detail": line}))).fetchone()
+                if closed and closed["closed_reason"] != "gap_gone": continue
+            elif q.execute("SELECT status FROM research_question WHERE id=?", (qid,)).fetchone()["status"] != "open": seen.add((eid, axis)); continue
+            seen.add((eid, axis))
+            keep, why = classes_decide(cx, tree_id, eid, axis)
+            taken = keep is not None
+            if taken and not dry_run:
+                r = resolve(cx, tree_id, qid, keep, actor, why)
+                if "error" in r: taken, why = False, r["error"]
+            out.append({"kind": "conflict", "person": name(pid), "question": qid, "detail": line, "taken": taken, "why": why})
+    return out
+
+def kept_agrees(cx, keep, res):
+    """Whether the statement the rule would keep now gives the same value its resolution kept (another first-hand record of
+    the same date or place, on the same side)."""
+    from proof import same_value
+    r = _q(cx).execute("""SELECT pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                          LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.id=?""", (keep,)).fetchone()
+    if not r: return False
+    kept = res["kept"]["value"]
+    if res["axis"] == "date":
+        k = _q(cx).execute("""SELECT pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id WHERE a.id=?""", (res["kept"]["assertion"],)).fetchone()
+        if not k: return False
+        return same_value("date", {"start": r["date_start"] or r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]},
+                          {"start": k["date_start"] or k["date_end"], "text": k["date_text"], "qualifier": k["date_qualifier"]})
+    return bool(r["raw"] and kept and same_value("place", r["raw"], kept))
 
 def living(cx, tree_id, pid, word, by, note):
     """The owner's word on whether a person is alive, above the tier rule (docs/DATA-ARCHITECTURE.md §7 decision 3):
@@ -1414,12 +1705,17 @@ def reconsider(cx, tree_id, by, dry_run=False):
     cards close as superseded and the matcher as it stands now proposes the personas again. Then every persona-match card
     still undecided, oldest first, examined as the rule stands now: one it would now
     take is taken, recorded as the rule; a decision can open another card, so the pass repeats until nothing new is taken.
+    Then the conflicts (rule_conflicts): every conflict the rule resolved examined again, one it would no longer resolve so
+    taken back with the event's value restored, and every open conflict on an event's date or place resolved where the
+    classes favour one side without doubt (classes_decide), the rest left to the owner with the reason.
     Last, every results-page row still undecided whose person is already accepted directly on the row's own record closes
     rejected (close_result_rows): a row can outlive the record it summarizes when the record was accepted before the row's
     own card was ever written, so this is swept on every run, not only at accept-time.
-    Returns one row per decision, per card superseded, per card and per closed row: proposal, person, persona, kind (decision,
-    rematch, card or row), kept or taken, why."""
+    Returns one row per decision, per card superseded, per card, per conflict and per closed row: kind (decision, rematch,
+    card, resolution, conflict or row), the person, kept or taken, why; a card's rows the proposal and the persona, a
+    conflict's the question and its line."""
     q = _q(cx); ts = now(); out = []; gone = []
+    known = {r["id"] for r in q.execute("SELECT id FROM research_question WHERE tree_id=? AND closed_reason='resolved' AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.by') LIKE 'rule:%'", (tree_id,))}
     rows = q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' ORDER BY decided_at, id", (tree_id,)).fetchall()
     ids = [r["id"] for r in rows]
     name = lambda pay: (q.execute("SELECT display_name FROM person WHERE id=?", (pay.get("person_id"),)).fetchone() or {"display_name": "(a new person)"})["display_name"]
@@ -1442,6 +1738,7 @@ def reconsider(cx, tree_id, by, dry_run=False):
             pay = json.loads(p["payload_json"]); ok, why = rule_accepts(cx, tree_id, p)
             if ok and not dry_run: decide(cx, tree_id, p["id"], "accepted", f"{RULE_ACTOR[p['kind']]} for {by}", note=why); taken = True
             cards[p["id"]] = {"proposal": p["id"], "person": name(pay), "persona": persona(pay), "kind": "card", "taken": ok, "why": why}
+    conflicts = rule_conflicts(cx, tree_id, by, dry_run=dry_run, known=known)   # its resolutions examined again, then every open conflict on a date or a place
     rows_out = []; seen = set()
     for p in q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='undecided' AND kind='persona_match'", (tree_id,)).fetchall():
         pid = json.loads(p["payload_json"]).get("person_id")
@@ -1450,7 +1747,7 @@ def reconsider(cx, tree_id, by, dry_run=False):
         for rid, rname in close_result_rows(cx, tree_id, pid, f"rule:record-accepted for {by}", ts, dry_run=dry_run):
             rows_out.append({"proposal": rid, "person": q.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()["display_name"], "persona": rname,
                               "kind": "row", "taken": True, "why": "the record itself is accepted"})
-    return out + list(cards.values()) + rows_out
+    return out + list(cards.values()) + conflicts + rows_out
 
 def main():
     ap = argparse.ArgumentParser(description="The standing rule's decisions examined again; the owner's word on a family link, a divorce, a duplicate or whether a person is alive.")
@@ -1463,7 +1760,7 @@ def main():
     pc = sub.add_parser("place", help="a record's fact onto the event the owner means: an undated one (Catalog.unplaced), or one asserted on another event of its type, moved; an event left with no statement but rejected ones leaves the person")
     pc.add_argument("persona_fact"); pc.add_argument("--event", required=True, dest="event"); pc.add_argument("--note")
     ls = sub.add_parser("facts", help="a person's key facts, events and attributes with their ids, and every statement behind each with its id, status and record"); ls.add_argument("person")
-    r = sub.add_parser("reconsider", help="the rule re-examines every decision it made and every card still undecided; a decision it would no longer take is withdrawn, a card it would now take is taken")
+    r = sub.add_parser("reconsider", help="the rule re-examines every decision it made, every card still undecided and every conflict: a decision or a resolution it would no longer make is taken back, a card or a conflict it would now decide is decided")
     r.add_argument("--dry-run", action="store_true", help="report only")
     l = sub.add_parser("link", help="place a person in a family on your own word, on a record that stops short of naming both parties")
     l.add_argument("person"); g = l.add_mutually_exclusive_group(required=True); g.add_argument("--spouse"); g.add_argument("--parent", action="append")
@@ -1476,9 +1773,11 @@ def main():
     mg.add_argument("duplicate"); mg.add_argument("--into", dest="kept", required=True); mg.add_argument("--note", required=True, help="why these are the same person, kept on the proposal")
     lv = sub.add_parser("living", help="your own word on whether a person is alive, above the tier rule; unknown clears it so the rule decides again")
     lv.add_argument("person"); lv.add_argument("word", choices=["living", "deceased", "unknown"]); lv.add_argument("--note", required=True, help="your reason, kept on the audit row")
-    rs = sub.add_parser("resolve", help="close a conflict question with your reason, the statement whose date or place the event keeps named; the others stay as their records say")
+    rs = sub.add_parser("resolve", help="close a conflict question with your reason, the statement whose date or place the event keeps named; the others stay as their records say; over the rule's own resolution, yours stands")
     rs.add_argument("question"); rs.add_argument("--keep", required=True, help="the assertion id of the statement kept (tools/conclude.py facts lists them)"); rs.add_argument("--note", required=True, help="your reason, kept on the question and the audit row")
-    for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv, rs):
+    ro = sub.add_parser("reopen", help="a conflict the rule resolved, taken back: the event's value as it was, the question open again and yours from now on")
+    ro.add_argument("question"); ro.add_argument("--note", required=True, help="your reason, kept on the audit row")
+    for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv, rs, ro):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
@@ -1502,6 +1801,9 @@ def main():
             left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')=(SELECT json_extract(payload_json,'$.artifact_sha256') FROM proposal WHERE id=?)", (tree_id, a.proposal)).fetchone()[0]
             print(f"    {left} card(s) still waiting on this record" if left else "    nothing else waits on this record")
             for rid, rname in res["closed_rows"]: print("   ", f"{rname} (result), a results-page row for {nm(res['person'])}, closed rejected: the record itself is accepted [{rid[-6:]}]")
+            for x in res["conflicts"]:
+                if x["kind"] == "conflict" and x["taken"]: print("   ", f"the rule resolved {x['person']}'s {x['detail'].split(':', 1)[0]}: {x['why']}")
+                elif x["kind"] == "resolution" and not x["kept"]: print("   ", f"the rule took back its resolution of {x['person']}'s {x['detail'].split(':', 1)[0]}: {x['why']}")
         elif a.cmd == "fact":
             from facts import decide_fact
             pid = cat.find_person(a.person)
@@ -1540,14 +1842,21 @@ def main():
         elif a.cmd == "reconsider":
             rows = reconsider(cx, tree_id, a.by, dry_run=a.dry_run)
             for x in rows:
+                if x["kind"] in ("resolution", "conflict"):
+                    verdict = ("kept" if x["kept"] else "would take back" if a.dry_run else "taken back") if x["kind"] == "resolution" \
+                              else ("would resolve" if a.dry_run else "resolved") if x["taken"] else "left to you"
+                    print(f"{verdict:19} {x['person']} [{x['question'][-6:] if x['question'] else 'no question yet'}] {x['detail']}: {x['why']}"); continue
                 verdict = ("kept" if x["kept"] else "would withdraw" if a.dry_run else "withdrawn") if x["kind"] == "decision" \
                           else ("would close" if a.dry_run else "closed") if x["kind"] == "row" else ("would propose again" if a.dry_run else "proposed again") if x["kind"] == "rematch" \
                           else ("would take" if x["taken"] and a.dry_run else "taken" if x["taken"] else "refused")
                 print(f"{verdict:19} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
-            if not rows: print("the rule has made no decision in this tree, and no card waits")
+            if not rows: print("the rule has made no decision in this tree, and no card or conflict waits")
             else: print(f"{sum(1 for x in rows if x['kind'] == 'decision')} decision(s) examined, {sum(1 for x in rows if x['kind'] == 'rematch')} older card(s) {'it would propose again' if a.dry_run else 'proposed again'}, "
                         f"{sum(1 for x in rows if x['kind'] == 'card' and x['taken'])} card(s) {'it would take' if a.dry_run else 'taken'}, "
-                        f"{sum(1 for x in rows if x['kind'] == 'card' and not x['taken'])} refused, {sum(1 for x in rows if x['kind'] == 'row')} results row(s) {'it would close' if a.dry_run else 'closed'}")
+                        f"{sum(1 for x in rows if x['kind'] == 'card' and not x['taken'])} refused, "
+                        f"{sum(1 for x in rows if x['kind'] == 'resolution' and not x['kept'])} of {sum(1 for x in rows if x['kind'] == 'resolution')} resolution(s) {'it would take back' if a.dry_run else 'taken back'}, "
+                        f"{sum(1 for x in rows if x['kind'] == 'conflict' and x['taken'])} conflict(s) {'it would resolve' if a.dry_run else 'resolved'}, "
+                        f"{sum(1 for x in rows if x['kind'] == 'conflict' and not x['taken'])} left to you, {sum(1 for x in rows if x['kind'] == 'row')} results row(s) {'it would close' if a.dry_run else 'closed'}")
         elif a.cmd == "link":
             pid = cat.find_person(a.person)
             marriage = None
@@ -1567,6 +1876,12 @@ def main():
             if "error" in res: raise SystemExit(res["error"])
             print(f"resolved: the event's {res['axis']} is now {res['kept']['value']} ({res['kept']['record']}); set aside, as their records say: "
                   + ("; ".join(f"{s['value']} ({s['record']})" for s in res["set_aside"]) or "nothing") + f"; {len(res['questions_closed'])} question(s) closed")
+        elif a.cmd == "reopen":
+            res = reopen(cx, tree_id, a.question, a.by, a.note)
+            if "error" in res: raise SystemExit(res["error"])
+            was = res["restored"].get("date_text") if res["axis"] == "date" else res["restored"].get("place")
+            print(f"reopened: the rule's resolution taken back, the event's {res['axis']} {was or 'empty'} again; the question is " + ("open" if res["open"] else "closed: the difference no longer reads as it did")
+                  + f"; the rule leaves this {res['axis']} to you from now on")
         elif a.cmd == "living":
             pid = cat.find_person(a.person); res = living(cx, tree_id, pid, a.word, a.by, a.note)
             print(f"{cx.execute('SELECT display_name FROM person WHERE id=?', (pid,)).fetchone()[0]} [{pid[-6:]}]: living_override {res['was'] or 'none'} -> {res['now'] or 'none'}; "

@@ -1,0 +1,274 @@
+{
+ "title": "a birthplace the rule keeps once its words are answered",
+ "line": "the Massachusetts birth register's Northampton, the record of the birth itself, against the 1940 census's Pennsylvania, secondary information an informant gave: the classes favour the register without doubt, but a place is kept only as a place, so the rule waits on the owner's answer to the register's words and says so; once the words are answered, reconsider resolves the birthplace for Northampton, the event's place is the register's, the census's Pennsylvania stays as the census says it, and the written conclusion prints the resolution with its reason",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 household page: the son, the mother and the father accepted, the father's birthplace as the census gives it, Pennsylvania",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the father's birth register arrives and is accepted: Northampton, its words not yet answered",
+   "attach": {
+    "fixture": "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"
+   },
+   "as": "birth"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "birth",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "conflicts": {
+       "some": {
+        "kind": "conflict",
+        "taken": false,
+        "detail": {
+         "has": "birth place:"
+        },
+        "why": {
+         "has": [
+          "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand",
+          "is not yet resolved to a place"
+         ]
+        }
+       }
+      }
+     },
+     "why": "the classes favour the register, but the event's place is a place, never a string: the rule waits on the words"
+    },
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "birth place:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner answers the register's words: Northampton, Hampshire County, Massachusetts, the geocoder's own answer planted as the resolver caches it",
+   "place_card": {
+    "raw": "Northampton, Hampshire, Massachusetts, United States",
+    "queries": [
+     "Northampton, Hampshire, Massachusetts, United States"
+    ],
+    "candidates": [
+     {
+      "place_id": 354633096,
+      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+      "osm_type": "relation",
+      "osm_id": 1839161,
+      "lat": "42.3178989",
+      "lon": "-72.6311006",
+      "category": "boundary",
+      "type": "administrative",
+      "place_rank": 16,
+      "importance": 0.5491850742959841,
+      "addresstype": "town",
+      "name": "Northampton",
+      "display_name": "Northampton, Hampshire County, Massachusetts, United States",
+      "address": {
+       "town": "Northampton",
+       "county": "Hampshire County",
+       "state": "Massachusetts",
+       "ISO3166-2-lvl4": "US-MA",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {
+       "ele": "76",
+       "capital": "6",
+       "website": "https://www.northamptonma.gov/",
+       "wikidata": "Q49186",
+       "wikipedia": "en:Northampton, Massachusetts",
+       "population": "28549",
+       "start_date": "1654",
+       "border_type": "city",
+       "linked_place": "town",
+       "population:date": "2020",
+       "admin_level": "8"
+      },
+      "namedetails": {
+       "name": "Northampton",
+       "name:en": "Northampton",
+       "name:ko": "노샘프턴",
+       "name:ru": "Нортгемптон",
+       "_place_name:en": "Northampton",
+       "name:sr": "Нортхемптон"
+      },
+      "boundingbox": [
+       "42.2841378",
+       "42.3752541",
+       "-72.7412178",
+       "-72.5840963"
+      ]
+     }
+    ]
+   },
+   "as": "northampton"
+  },
+  {
+   "decide": {
+    "card": "$northampton.proposal",
+    "status": "accepted",
+    "choice": 0
+   },
+   "expect": [
+    {
+     "conflict_rule": {
+      "person": "I332737037257",
+      "type": "Birth",
+      "axis": "place",
+      "taken": true,
+      "why": {
+       "has": [
+        "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand, Northampton, Hampshire, Massachusetts, United States (derivative, primary, direct)",
+        "Pennsylvania rests only on secondary information (the 1940 census schedule"
+       ]
+      }
+     },
+     "why": "the words answered, the rule would now keep the register's place"
+    }
+   ]
+  },
+  {
+   "say": "reconsider resolves the birthplace for the register's Northampton",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "conflict",
+        "taken": true,
+        "detail": {
+         "has": "birth place:"
+        },
+        "why": {
+         "starts": "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand"
+        }
+       }
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737037257",
+      "type": "Birth",
+      "shown": "Northampton < Hampshire County < Massachusetts < United States"
+     },
+     "why": "the event's place is the place the register's words mean"
+    },
+    {
+     "question": {
+      "person": "I332737037257",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "birth place:",
+      "exists": false
+     }
+    },
+    {
+     "classes": {
+      "record": "c40",
+      "person": "I332737037257",
+      "event_type": "Birth",
+      "information": "secondary"
+     },
+     "why": "the census's statement stays, secondary, as the census says it"
+    },
+    {
+     "assertions_on": {
+      "record": "c40",
+      "rejected": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the written conclusion prints the resolution and its reason",
+   "proof": {
+    "person": "I332737037257",
+    "fact": "birth"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "conflicts": {
+         "some": {
+          "status": "resolved",
+          "reason": {
+           "starts": "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand"
+          }
+         }
+        },
+        "why": {
+         "none": {
+          "has": "conflict"
+         }
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the plan regenerated: nothing moves, and the catalog is whole",
+   "expect": [
+    {
+     "plan_idempotent": [
+      "I332737037257"
+     ]
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

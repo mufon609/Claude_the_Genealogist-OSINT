@@ -1,0 +1,381 @@
+{
+ "title": "the rule decides a conflict the classes decide",
+ "line": "a state death index dating the death the 11th, primary information from the record of the death itself, against the file's bare claim of the 10th: the rule resolves it as soon as the owner accepts the index, through the owner's own resolve, its reason in words from the classes and recorded as acting for the owner, the event carrying the 11th and the 10th kept as the file says it; reconsider keeps it while it holds, takes it back when the owner rejects the index's statement (the event's 10th restored from the resolution's own record of it), resolves it again once the statement stands again, and leaves it to the owner for good once the owner reopens it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "the owner accepts the index as his: the 11th against the file's 10th, and the rule decides it there and then",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "conflicts": {
+       "some": {
+        "kind": "conflict",
+        "taken": true,
+        "why": {
+         "has": [
+          "the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand, 11 Jun 1946 (derivative, primary, direct)",
+          "10 June 1946 rests only on the file's claim"
+         ]
+        }
+       }
+      }
+     },
+     "why": "the record of the death itself against the file's bare claim: the classes favour one side without doubt, and the reason says so in words"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "events": 1,
+      "canonical_date": "11 Jun 1946"
+     },
+     "why": "the kept statement's date is the event's own"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:",
+      "exists": false
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "closed",
+      "detail_has": "states the death first-hand",
+      "count": {
+       ">=": 1
+      }
+     },
+     "why": "closed resolved, the rule's reason kept on it"
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "diff_key": "kept",
+      "is": [
+       {
+        "actor": {
+         "starts": "rule:classes-favour-one-side for "
+        },
+        "diff": {
+         "kept": {
+          "value": "11 Jun 1946"
+         },
+         "was": {
+          "date_text": "10 June 1946"
+         },
+         "set_aside": {
+          "some": {
+           "value": "10 June 1946"
+          }
+         },
+         "note": {
+          "starts": "the death certificate"
+         }
+        }
+       }
+      ]
+     },
+     "why": "one audit row, the rule acting for the owner, naming the value kept, the value before and the ones set aside"
+    },
+    {
+     "assertions_on": {
+      "record": "kyd",
+      "accepted": {
+       ">=": 1
+      },
+      "rejected": 0
+     },
+     "why": "evidence untouched"
+    },
+    {
+     "assertions_on": {
+      "record": "import",
+      "rejected": 0
+     },
+     "why": "the file's own 10th stays as the file says it"
+    }
+   ]
+  },
+  {
+   "say": "the written conclusion prints the resolution and its reason",
+   "proof": {
+    "person": "I332737204849",
+    "fact": "death"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "death": {
+        "conflicts": {
+         "some": {
+          "status": "resolved",
+          "reason": {
+           "starts": "the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand"
+          }
+         }
+        },
+        "why": {
+         "none": {
+          "has": "conflict"
+         }
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider examines the resolution again: it still holds",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "resolution",
+        "kept": true,
+        "detail": {
+         "has": "death date:"
+        }
+       }
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects the index's death statement on its own",
+   "assertion": {
+    "record": "kyd",
+    "person": "I332737204849",
+    "event_type": "Death",
+    "verdict": "reject"
+   }
+  },
+  {
+   "say": "reconsider: the resolution no longer holds, so the rule takes it back and the event's day is the 10th again",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "resolution",
+        "kept": false,
+        "why": {
+         "has": "no side holds primary information about the death"
+        }
+       }
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     },
+     "why": "restored from the resolution's own record of the value before it"
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "diff_key": "withdrawn",
+      "is": [
+       {
+        "actor": {
+         "starts": "rule:classes-favour-one-side for "
+        },
+        "diff": {
+         "restored": {
+          "date_text": "10 June 1946"
+         },
+         "from": {
+          "date_text": "11 Jun 1946"
+         }
+        }
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the statement again: the plan opens the difference again",
+   "assertion": {
+    "record": "kyd",
+    "person": "I332737204849",
+    "event_type": "Death",
+    "was": "rejected",
+    "verdict": "accept"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider resolves it again",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "conflict",
+        "taken": true,
+        "detail": {
+         "has": "death date:"
+        }
+       }
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a reopen with no reason is refused",
+   "reopen_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "note": " "
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "written reason"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner reopens the rule's resolution: the 10th again, the question open, and the conflict theirs",
+   "reopen_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "note": "harness: the family bible says the 10th; I will look at the certificate itself"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "open": true
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider leaves it to the owner",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "conflict",
+        "taken": false,
+        "why": {
+         "has": "you reopened the rule's resolution of this death date"
+        }
+       }
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     }
+    },
+    {
+     "conflict_rule": {
+      "person": "I332737204849",
+      "type": "Death",
+      "axis": "date",
+      "taken": false,
+      "why": {
+       "starts": "you reopened"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the plan regenerated: nothing moves, and the catalog is whole",
+   "expect": [
+    {
+     "plan_idempotent": [
+      "I332737204849"
+     ]
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

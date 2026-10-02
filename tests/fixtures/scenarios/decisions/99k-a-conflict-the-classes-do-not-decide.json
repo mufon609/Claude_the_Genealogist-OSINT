@@ -1,0 +1,326 @@
+{
+ "title": "a conflict the classes do not decide",
+ "line": "a birthplace two secondary records give apart (an obituary's Woodburn, a Social Security claim's Auburn) beside the file's own Woodburn, Logan is the owner's: no side holds primary information; the state's birth index as FamilySearch shows it, a page whose birth the classes table reads indeterminable, changes nothing; and the same index line as the state's own file holds it, primary but giving only Logan County, which holds Auburn and is named in the file's Woodburn, Logan as well, decides between neither, so the rule still leaves the conflict to the owner, saying why",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his obituary accepted by the owner: born at Woodburn, Kentucky",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "his Social Security claim, taken by the rule: born at Auburn, Kentucky",
+   "attach": {
+    "fixture": "familysearch-social-security-claims-index-6K99-MWLL.html"
+   },
+   "as": "ssc"
+  },
+  {
+   "say": "reconsider: his obituary's Woodburn against the Social Security claim's Auburn, both secondary information, the file's Woodburn, Logan beside them: no side holds primary information, so the conflict is the owner's",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "conflict",
+        "taken": false,
+        "detail": {
+         "has": "birth place:"
+        },
+        "why": {
+         "has": [
+          "no side holds primary information about the birth, so the classes favour none",
+          "secondary information (the obituary",
+          "secondary information (the SSA application",
+          "the file's claim"
+         ]
+        }
+       }
+      }
+     },
+     "why": "every side rests on secondary information or the file's claim: nothing the rule decides"
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "birth place:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the state's birth index entry, saved as a file: born in Logan County, Kentucky",
+   "archive": {
+    "fixture": "familysearch-kentucky-vital-record-indexes-1915-QKH2-XT3L.html",
+    "source": "D03",
+    "collection": "Kentucky, Vital Record Indexes, 1911-1999",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-kentucky-vital-record-indexes-1915-1_1-QKH2-XT3L-robert-e-davidson-birth.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737100409"
+    ],
+    "rule": true
+   },
+   "as": "kyb"
+  },
+  {
+   "say": "the three places resolved by the owner's answers, the geocoder's own answers planted as the resolver caches them",
+   "place_card": {
+    "raw": "Auburn, Kentucky, United States",
+    "queries": [
+     "Auburn, Kentucky, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 130351,
+      "lat": "36.8642",
+      "lon": "-86.7103",
+      "name": "Auburn",
+      "display_name": "Auburn, Logan County, Kentucky, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "town",
+      "address": {
+       "town": "Auburn",
+       "county": "Logan County",
+       "state": "Kentucky",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "auburn"
+  },
+  {
+   "decide": {
+    "card": "$auburn.proposal",
+    "status": "accepted",
+    "choice": 0
+   }
+  },
+  {
+   "place_card": {
+    "raw": "Logan, Kentucky, United States",
+    "queries": [
+     "Logan County, Kentucky, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 1839553,
+      "lat": "36.8524",
+      "lon": "-86.8786",
+      "name": "Logan County",
+      "display_name": "Logan County, Kentucky, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "county",
+      "address": {
+       "county": "Logan County",
+       "state": "Kentucky",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "logan"
+  },
+  {
+   "decide": {
+    "card": "$logan.proposal",
+    "status": "accepted",
+    "choice": 0
+   }
+  },
+  {
+   "place_card": {
+    "raw": "Woodburn, Kentucky",
+    "queries": [
+     "Woodburn, Kentucky, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 130516,
+      "lat": "36.8406",
+      "lon": "-86.5297",
+      "name": "Woodburn",
+      "display_name": "Woodburn, Warren County, Kentucky, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "city",
+      "address": {
+       "city": "Woodburn",
+       "county": "Warren County",
+       "state": "Kentucky",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "woodburn"
+  },
+  {
+   "decide": {
+    "card": "$woodburn.proposal",
+    "status": "accepted",
+    "choice": 0
+   }
+  },
+  {
+   "say": "the state's birth index as FamilySearch shows it names no event type the classes table reads, so the table is silent on its birth (indeterminable): still the owner's",
+   "reconsider": {},
+   "expect": [
+    {
+     "classes": {
+      "record": "kyb",
+      "person": "I332737100409",
+      "event_type": "Birth",
+      "information": "indeterminable"
+     },
+     "why": "the page names its collection and no event type: data/evidence-classes.csv reads it indeterminable"
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "conflict",
+        "taken": false,
+        "detail": {
+         "has": "birth place:"
+        },
+        "why": {
+         "starts": "no side holds primary information about the birth"
+        }
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kind": "conflict",
+        "taken": true
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the same birth index line as Reclaim the Records' copy of the state's file holds it, the record of the birth itself, primary: Logan County",
+   "archive": {
+    "fixture": "ky-birth-index-1915-davidson.txt",
+    "manifest": "ky-birth-index-1915-davidson.manifest.json",
+    "source": "C06",
+    "extract": true,
+    "match": [
+     "I332737100409"
+    ],
+    "rule": true
+   },
+   "as": "rtr"
+  },
+  {
+   "say": "the owner accepts the line as his: the record of the birth gives only Logan County, which holds Auburn and is named in the file's Woodburn, Logan as well, so it decides between neither and the rule leaves the conflict to the owner",
+   "decide": {
+    "card": {
+     "record": "rtr",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "conflicts": {
+       "some": {
+        "kind": "conflict",
+        "taken": false,
+        "detail": {
+         "has": "birth place:"
+        },
+        "why": {
+         "has": [
+          "states the birth first-hand only as Logan County, Kentucky",
+          "which leaves",
+          "the classes decide between none of them"
+         ]
+        }
+       }
+      }
+     }
+    },
+    {
+     "classes": {
+      "record": "rtr",
+      "person": "I332737100409",
+      "event_type": "Birth",
+      "information": "primary",
+      "source": "derivative"
+     },
+     "why": "the state's own index of the birth register: primary information"
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "birth place:"
+     }
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "status": "closed",
+      "detail_has": "first-hand",
+      "exists": false
+     },
+     "why": "nothing resolved: a county kept while two places in it differ would close a difference the classes do not decide"
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

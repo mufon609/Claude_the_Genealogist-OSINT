@@ -13,8 +13,8 @@ For each key fact:
               authored; information: primary, secondary or indeterminable; evidence: direct or indirect; a family link's
               relationship: stated or computed), its status and whether it agrees with the tree's value
   conflicts   each conflict question on the fact: open, with the side the classes favour (the record of the event itself:
-              primary over secondary, original over derivative over authored, direct over indirect), or closed with the
-              owner's reason
+              primary over secondary, original over derivative over authored, direct over indirect), or closed with its
+              reason, the owner's or the rule's (tools/conclude.py classes_decide)
   research    the fact's checklist rows: held, searched with nothing found, cited and not fetched, blocked, or not yet
               searched
   conclusion  meets the standard (an accepted statement both direct and primary, no open conflict, every row held or
@@ -119,22 +119,30 @@ def statements(cat, pid, field):
             if field == "parents": relative = " & ".join(n for n, in q.execute("SELECT p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=? AND fm.role='partner' ORDER BY p.display_name", (fid,)))
             elif field == "spouses": relative = next((n for n, in q.execute("SELECT p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=? AND fm.role='partner' AND fm.person_id<>?", (fid, pid))), None)
             else: relative = next((n for n, in q.execute("SELECT display_name FROM person WHERE id=?", (who,))), None)
-        for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start,
-                                     pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona
-                              FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
-                              LEFT JOIN persona pe ON pe.id=coalesce(pf.persona_id, a.persona_id)
-                              LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=? ORDER BY a.asserted_at, a.id""", (kind, sid)):
-            if want and r["fact_type"] and r["fact_type"] != want: continue
-            try: notes = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
-            except ValueError: notes = {}
-            st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"],
-                  "said": re.sub(r"\s+on the record$", "", r["citation_text"] or "") if kind == "family_member" else None,
-                  "value": r["value_text"], "date": {"start": r["date_start"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_text"] else None,
-                  "place": r["place"], "apid": notes.get("apid")}
-            if notes.get("vouched"): st.update({"kind": "vouch", "classes": {"vouched": True}})
-            elif r["mime"] == "text/x-gedcom": st.update({"kind": "file", "classes": evidence_classes(cx, r["id"])})
-            else: st.update({"kind": "record", "classes": evidence_classes(cx, r["id"])})
-            out.append(st)
+        out += subject_statements(cat, kind, sid, want, relative)
+    return out
+
+def subject_statements(cat, kind, sid, want=None, relative=None):
+    """The assertions on one subject (a person, an event, a family link), each as statements() describes it; a statement of
+    another fact type than want is left out, the owner's own word (no record fact of its own) never."""
+    cx, q = cat.cx, _q(cat.cx)
+    out = []
+    for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start,
+                                 pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona
+                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                          LEFT JOIN persona pe ON pe.id=coalesce(pf.persona_id, a.persona_id)
+                          LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=? ORDER BY a.asserted_at, a.id""", (kind, sid)):
+        if want and r["fact_type"] and r["fact_type"] != want: continue
+        try: notes = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
+        except ValueError: notes = {}
+        st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"],
+              "said": re.sub(r"\s+on the record$", "", r["citation_text"] or "") if kind == "family_member" else None,
+              "value": r["value_text"], "date": {"start": r["date_start"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_text"] else None,
+              "place": r["place"], "apid": notes.get("apid")}
+        if notes.get("vouched"): st.update({"kind": "vouch", "classes": {"vouched": True}})
+        elif r["mime"] == "text/x-gedcom": st.update({"kind": "file", "classes": evidence_classes(cx, r["id"])})
+        else: st.update({"kind": "record", "classes": evidence_classes(cx, r["id"])})
+        out.append(st)
     return out
 
 # ---------------------------------------------------------------- the tree's value and agreement
@@ -224,8 +232,9 @@ def fact_of(detail):
     return None
 
 def resolution(cat, qid, detail_json):
-    """The owner's written reason on a closed conflict: kept on the question itself, in a note on it, or on the audit row
-    that closed it (tools/log_search.py --dismiss --note, tools/conclude.py resolve); None when no reason was written."""
+    """The written reason on a closed conflict, the owner's or the rule's: kept on the question itself, in a note on it, or on
+    the audit row that closed it (tools/log_search.py --dismiss --note, tools/conclude.py resolve); None when no reason was
+    written."""
     try: d = json.loads(detail_json or "{}")
     except ValueError: d = {}
     for k in ("resolution", "reason", "note", "kept"):
@@ -239,33 +248,49 @@ def resolution(cat, qid, detail_json):
             if isinstance(d.get(k), str) and d[k].strip(): return d[k].strip()
     return None
 
-def favours(field, axis, sts, cx, cache):
-    """The side the classes favour in a date or place conflict: the values the statements give (rejected ones aside),
-    the most specific first, grouped where they agree; a value that agrees with more than one side (a year against two
-    days of it, a state against two towns in it) takes no side. Each side is read by its best statement in the classes'
-    own order. Words, or None when the statements give fewer than two sides."""
-    value = lambda st: st["date"] if axis == "date" else st["place"]
-    detail = lambda v: len(v.get("start") or "") if axis == "date" else len([p for p in re.split(r"<|,", v) if p.strip()])
-    same = (lambda a, b: date_verdict(a, b)[0] == "agrees") if axis == "date" else (lambda a, b: place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees")
-    sides = []
-    for st in sorted((s for s in sts if s["status"] != "rejected" and s["kind"] != "vouch" and value(s)), key=lambda s: -detail(value(s))):
-        fits = [s for s in sides if same(value(st), s["value"])]
+def axis_value(axis, st):
+    """What a statement gives on one axis of a conflict: its date ({start, text, qualifier}) or its place as written."""
+    return st["date"] if axis == "date" else st["place"]
+
+def specificity(axis, v):
+    """How specific a value is, for the order sides are formed in: a date's length, a place's named parts."""
+    return len(v.get("start") or "") if axis == "date" else len([p for p in re.split(r"<|,", v) if p.strip()])
+
+def same_value(axis, a, b):
+    """Whether two values agree on an axis: dates by catalog.date_verdict, places by catalog.place_verdict read either way
+    (a coarser place agrees with a finer one inside it)."""
+    return date_verdict(a, b)[0] == "agrees" if axis == "date" else (place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees")
+
+def sides(axis, sts):
+    """The sides of a date or place conflict: the values the statements give (rejected ones and the owner's own word
+    aside), the most specific first, grouped where they agree; a value that agrees with more than one side (a year
+    against two days of it, a state against two towns in it) takes no side. Each side is {value, statements, best}, best
+    its best statement in the classes' own order, and the sides come in that order."""
+    out = []
+    for st in sorted((s for s in sts if s["status"] != "rejected" and s["kind"] != "vouch" and axis_value(axis, s)), key=lambda s: -specificity(axis, axis_value(axis, s))):
+        fits = [s for s in out if same_value(axis, axis_value(axis, st), s["value"])]
         if len(fits) > 1: continue
-        if not fits: fits = [{"value": value(st), "statements": []}]; sides.append(fits[0])
+        if not fits: fits = [{"value": axis_value(axis, st), "statements": []}]; out.append(fits[0])
         fits[0]["statements"].append(st)
-    if len(sides) < 2: return None
-    for s in sides: s["best"] = min(s["statements"], key=lambda x: order(x["classes"]))
-    sides.sort(key=lambda s: order(s["best"]["classes"]))
+    for s in out: s["best"] = min(s["statements"], key=lambda x: order(x["classes"]))
+    out.sort(key=lambda s: order(s["best"]["classes"]))
+    return out
+
+def favours(field, axis, sts, cx, cache):
+    """The side the classes favour in a date or place conflict (sides): each side read by its best statement in the
+    classes' own order. Words, or None when the statements give fewer than two sides."""
+    sides_ = sides(axis, sts)
+    if len(sides_) < 2: return None
     text = lambda s: s["value"]["text"] if axis == "date" else s["value"]
     who = lambda st: "the file" if st["kind"] == "file" else (st["classes"] or {}).get("original") or record_info(cx, st["sha256"], cache)["name"]
-    a, b = sides[0], sides[1]
+    a, b = sides_[0], sides_[1]
     if order(a["best"]["classes"]) == order(b["best"]["classes"]):
         return f"the classes favour neither side: {text(a)} and {text(b)} each rest at best on {words(a['best']['classes'])}"
     return f"the classes favour {text(a)} ({who(a['best'])}: {words(a['best']['classes'])}) over {text(b)} ({who(b['best'])}: {words(b['best']['classes'])})"
 
 def conflicts(cat, pid, field, sts, cache):
     """The conflict questions on this fact: every research_question of kind conflict on the person that names it, open or
-    closed by the owner (resolved with a reason, or dismissed), and any difference the catalog finds now that no question
+    closed with a reason (resolved by the owner or the rule, or dismissed), and any difference the catalog finds now that no question
     carries yet (Catalog.disagreements, Catalog.unplaced). An open date or place conflict on a birth or death carries the
     side the classes favour."""
     out, seen = [], set()

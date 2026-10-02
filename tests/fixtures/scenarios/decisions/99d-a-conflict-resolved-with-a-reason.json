@@ -1,6 +1,6 @@
 {
  "title": "a conflict resolved with a reason",
- "line": "a death index dating the death the 11th where the file and the memorial say the 10th is a conflict question; the owner keeps the index's day with a written reason: the event carries it, the question closes resolved with the reason, one audit row names the value kept and the ones set aside, every statement stays as its record says, and the same difference read from the kept side opens nothing, now or on a regeneration; keeping a statement on another event, or a rejected one, is refused",
+ "line": "a death index dating the death the 11th where the file and the memorial say the 10th, and where the owner has already accepted the death on their own word, is a conflict question the rule leaves to the owner; the owner keeps the index's day with a written reason: the event carries it, the question closes resolved with the reason, one audit row names the value kept and the ones set aside, every statement stays as its record says, and the same difference read from the kept side opens nothing, now or on a regeneration; keeping a statement on another event, or a rejected one, is refused",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -23,6 +23,26 @@
    ]
   },
   {
+   "say": "the owner accepts his death as the file gives it, on their own word: no record of it is held yet",
+   "fact": {
+    "person": "I332737204849",
+    "field": "death",
+    "note": "harness: the family's own date"
+   },
+   "expect": [
+    {
+     "last": {
+      "death": {
+       "ok": true,
+       "vouched": {
+        "len": 1
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
    "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
    "attach": {
     "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
@@ -30,7 +50,7 @@
    "as": "kyd"
   },
   {
-   "say": "accepted by the owner: the 11th against the file's 10th is a conflict question",
+   "say": "accepted by the owner: the 11th against the 10th the owner vouched for is a conflict question, and the rule leaves it to the owner",
    "decide": {
     "card": {
      "record": "kyd",
@@ -46,6 +66,23 @@
       "status": "open",
       "detail_has": "death date:"
      }
+    },
+    {
+     "last": {
+      "conflicts": {
+       "some": {
+        "kind": "conflict",
+        "taken": false,
+        "why": {
+         "has": [
+          "your own word stands on 10 June 1946",
+          "the conflict is yours"
+         ]
+        }
+       }
+      }
+     },
+     "why": "the index states the death first-hand, but the owner's own word stands on the tree's 10th: the rule never decides against it"
     }
    ]
   },

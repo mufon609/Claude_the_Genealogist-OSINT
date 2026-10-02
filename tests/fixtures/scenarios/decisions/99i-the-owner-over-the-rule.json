@@ -1,0 +1,176 @@
+{
+ "title": "the owner's resolution over the rule's",
+ "line": "a conflict the rule resolved is the owner's to resolve again: their resolve takes the rule's resolution back first and then keeps the statement they name, a refusal leaving the rule's resolution as it stood; the owner's resolution is never the rule's to touch, and every later difference on that date is the owner's",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Kentucky death index entry, died 11 Jun 1946, accepted by the owner: the rule resolves the date for the 11th",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner's resolution over it names a statement on another event: refused, and the rule's resolution stands as it was",
+   "resolve_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "over_rule": true,
+    "keep": {
+     "record": "kyd",
+     "event_type": "Birth"
+    },
+    "note": "harness: the wrong statement"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "not on the event the question is about"
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "diff_key": "withdrawn",
+      "is": []
+     },
+     "why": "nothing taken back: the refusal changes nothing"
+    }
+   ]
+  },
+  {
+   "say": "the owner keeps the file's 10th over the rule's resolution, with the reason",
+   "resolve_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "over_rule": true,
+    "keep": {
+     "record": "import",
+     "event_type": "Death"
+    },
+    "note": "harness: the family's own record of the day"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "kept": {
+       "value": "10 June 1946"
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     }
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "diff_key": "withdrawn",
+      "is": [
+       {
+        "actor": {
+         "not": {
+          "starts": "rule:"
+         }
+        },
+        "diff": {
+         "withdrawn": {
+          "starts": "the owner resolves it"
+         },
+         "restored": {
+          "date_text": "10 June 1946"
+         }
+        }
+       }
+      ]
+     },
+     "why": "the rule's resolution taken back by the owner, the value before it restored, then the owner's own kept"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "closed",
+      "detail_has": "the family's own record of the day",
+      "count": {
+       ">=": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider never touches the owner's resolution, and leaves the date to the owner",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "detail": {
+         "has": "death date:"
+        }
+       }
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     }
+    },
+    {
+     "conflict_rule": {
+      "person": "I332737204849",
+      "type": "Death",
+      "axis": "date",
+      "taken": false,
+      "why": {
+       "starts": "you resolved a difference on this death date yourself"
+      }
+     }
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
