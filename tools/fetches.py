@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """The pages waiting to be fetched by hand at every holder, and the pages that came back.
 
-usage: tools/fetches.py list [--json] [--tree slug] [--db catalog/tree.db]
+usage: tools/fetches.py next [K] [--tree slug] [--db catalog/tree.db]
+       tools/fetches.py list [--all] [--json] [--tree slug] [--db catalog/tree.db]
        tools/fetches.py collect [--folder DIR] [--by user:<you>] [--tree slug] [--db catalog/tree.db]
 
 Find a Grave forbids automation and FamilySearch answers a browser only, so a cited record at such a holder is saved one page
 at a time in the owner's own browser by the page-saves-itself method (docs/RESEARCH-WORKFLOW.md §4, tools/save_page.js),
 one tab per page; a gravestone photograph the same way in the image's own tab (tools/save_image.js), under the name the list
-prints. `list` prints every planned fetch step whose holder has no connector at all (a holder whose connector merely has
+prints. `list` prints the planned fetch steps whose holder has no connector at all (a holder whose connector merely has
 nothing to ask yet, a book cited with no title, runs through tools/run_step.py instead: a `none` run naming the field
 wanted, off this list, left for a hand on the person's screen), once per page, with the holder, the
 link to open (the memorial page itself; the holder's own search prefilled from the citation's details, a collection's own
@@ -28,12 +29,19 @@ pages carry no identity the attach reads, by the name the list printed, to the s
 name carries, archived under that holder with the page's own URL (the saved-from line the browser wrote) as locator,
 logged found, and reported unparsed until a parser claims it. A file with neither a recognised saved-from line nor a
 listed name is left in the folder.
+
+`next [K]` is the browser session's own list: the next K pages (five by default) a turn can send someone to (`openable`: a
+link to open, a step with no run since the plan last wrote its fields), one line each with the link, the file name to save
+under and the people waiting in short, a link that prefills nothing marked and put last. `list` hides the pages whose steps
+have all been run on unchanged fields (a page saved, or answered, and the plan has not changed the step since) unless --all
+brings them back, and marks a bare form: a holder's search page the citation gave nothing to prefill, whose saved page no
+parser reads and so closes nothing.
 """
 import argparse, json, os, re, shutil, subprocess, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, inbox_dir, resolve_tree
 from attach import ark_id, attach, attach_inbox, line, pointed_at
-from catalog import Catalog, fetch_target, browse_only, dbid_of
+from catalog import Catalog, fetch_target, holder_search, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
 import connectors
 
@@ -74,7 +82,8 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
 def waiting(cx, tree_id):
     """Every planned fetch step whose holder has no connector, once per page: holder, url, the people and the number of
     steps waiting on it, whether it is a lead from a held record (locator memorial_id) or the file's citation (locator
-    apid), and the file name to save under. A step whose holder has a connector never appears here, whether or not that
+    apid), whether the link is a bare form (the holder's own page, the citation gave nothing to prefill it with), and the file
+    name to save under. A step whose holder has a connector never appears here, whether or not that
     connector currently has anything to ask: it runs through tools/run_step.py, which logs a `none` run naming the field
     wanted when it has nothing to ask, so the step is answered on its fields and left for a hand on the person's screen, not
     the browser. Steps citing one census page (the household's record ids) are one page. A page at a holder whose pages carry
@@ -87,9 +96,9 @@ def waiting(cx, tree_id):
     a FamilySearch images-only collection) never appears either: nobody can save such a page the page-saves-itself way,
     so it stays on the plan with its reason and off this list, never a name with an unfilled placeholder."""
     cat = Catalog(cx, tree_id); groups = cat.page_groups(); out = {}
-    def add(s, key, link, holder, name, ark=None):
+    def add(s, key, link, holder, name, ark=None, bare=False):
         e = out.setdefault(key, {"holder_id": s["locator_source_id"], "holder": holder, "url": link, "lead": False, "people": [], "steps": 0, "step_ids": [], "rows": [],
-                                 "save_as": name, "how": "image" if s["locator_source_id"] == "E05" else "page", "ark": ark})
+                                 "save_as": name, "how": "image" if s["locator_source_id"] == "E05" else "page", "ark": ark, "bare": bare})
         e["steps"] += 1; e["step_ids"].append(s["id"]); e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url")
         if s["display_name"] not in e["people"]: e["people"].append(s["display_name"])
         rk = s["row_key"].split(":")[0]
@@ -99,7 +108,7 @@ def waiting(cx, tree_id):
                            WHERE p.tree_id=? AND sp.kind='fetch' AND sp.mode='fetch' AND sp.status='planned' ORDER BY sp.seq""", (tree_id,)):
         if s["connector"]: continue   # the runner takes it, or logs a none run naming the field it wants when it has nothing to ask (tools/run_step.py runnable)
         fields = json.loads(s["query_json"] or "{}"); url = (fields.get("url") or {}).get("value") or ""
-        hid = s["locator_source_id"]; m = MEMORIAL.search(url); piece = s["step_key"]
+        hid = s["locator_source_id"]; m = MEMORIAL.search(url); piece = s["step_key"]; bare = False
         mid = s["locator_value"] if s["locator_kind"] == "memorial_id" else (m.group(1) if m else None)
         if hid == "E01":
             if not mid: continue
@@ -117,31 +126,36 @@ def waiting(cx, tree_id):
             page = piece = min(groups.get(s["locator_value"]) or {s["locator_value"]})
             key = (hid, page) if hid == "D03" else (hid, page, s["person_id"])      # a FamilySearch page carries its ark; any other page is named for its citation and person
             t = fetch_target(s["locator_value"], url, fields); link = t["url"]; holder = f"{s['holder_name']}: {t['holder']}" if t["holder"] else s["holder_name"]
+            h = (cat.holders.get(dbid_of(s["locator_value"])) or [None])[0]; bare = bool(h) and h["HolderKind"] != "memorial" and holder_search(h, fields) is None
         else:
             key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
-        add(s, key, link, holder, save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link))
+        add(s, key, link, holder, save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link), bare=bare)
     return sorted(out.values(), key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
 
-def openable(cx, tree_id):
-    """The waiting pages a turn can send someone to: entries with a link to open, each with open_step_ids, the steps among its
-    step_ids with no run at the step's own source (log_search.step_source: the holder, or the row's first source, what a page
-    saved by hand is logged under) since the plan last wrote their fields (log_search.ran_unchanged, the reading the runner's
-    own runnable steps use per source); a run of a row source's connector on the same step (an obituary step answered at the
-    Archive's newspapers) does not stand for the holder's page. An entry with none is left out. A
-    page saved once and logged (found, none, blocked) on a step's unchanged fields is listed by `list` as still waiting, but
-    that step does not send anyone to it again until the plan changes it; a page seven people's steps share is open for the
-    people whose own step is still unrun. The record page a listing's row points at (an entry with an ark) is open for every
-    step it serves until an artifact carries that ark as a locator: the listing's own run answered the search, not the record."""
+def annotated(cx, tree_id):
+    """Every waiting page (`waiting`) with open_step_ids: the steps among its step_ids with no run at the step's own source
+    (log_search.step_source: the holder, or the row's first source, what a page saved by hand is logged under) since the plan
+    last wrote their fields (log_search.ran_unchanged, the reading the runner's own runnable steps use per source); a run of a
+    row source's connector on the same step (an obituary step answered at the Archive's newspapers) does not stand for the
+    holder's page. The record page a listing's row points at (an entry with an ark) is open for every step it serves until an
+    artifact carries that ark as a locator: the listing's own run answered the search, not the record. A page with no link has
+    none open."""
     out = []
     for e in waiting(cx, tree_id):
-        if not e["url"]: continue
+        if not e["url"]: out.append({**e, "open_step_ids": []}); continue
         if e.get("ark"):
-            if not cx.execute("SELECT 1 FROM artifact_locator WHERE kind='ark' AND value=?", (e["ark"],)).fetchone(): out.append({**e, "open_step_ids": list(e["step_ids"])})
-            continue
+            held = cx.execute("SELECT 1 FROM artifact_locator WHERE kind='ark' AND value=?", (e["ark"],)).fetchone()
+            out.append({**e, "open_step_ids": [] if held else list(e["step_ids"])}); continue
         steps = [cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,)).fetchone() for sid in e["step_ids"]]
-        open_ids = [st["id"] for st in steps if st and not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"]), step_source(st))]
-        if open_ids: out.append({**e, "open_step_ids": open_ids})
+        out.append({**e, "open_step_ids": [st["id"] for st in steps if st and not ran_unchanged(cx, st, rendered_query(st["query_json"], st["revisions_json"]), step_source(st))]})
     return out
+
+def openable(cx, tree_id):
+    """The waiting pages a turn can send someone to: the entries with a link to open and a step still open (annotated). A page
+    saved once and logged (found, none, blocked) on a step's unchanged fields is listed by `list --all` as still waiting, but
+    that step does not send anyone to it again until the plan changes it; a page seven people's steps share is open for the
+    people whose own step is still unrun."""
+    return [e for e in annotated(cx, tree_id) if e["url"] and e["open_step_ids"]]
 
 def downloads_dir():
     try: return subprocess.run(["xdg-user-dir", "DOWNLOAD"], capture_output=True, text=True, timeout=5).stdout.strip() or os.path.expanduser("~/Downloads")
@@ -187,21 +201,36 @@ def collect(cx, tree_id, slug, by, folder=None):
         r.update(attach(cx, tree_id, slug, f, steps, by, note=f"saved in the browser under the fetch list's name at {e['holder']}", kind="page", value=url)); results.append(r)
     return names + [r["file"] for r in results], (attach_inbox(cx, tree_id, slug, by, names) if names else []) + results
 
+def people_short(names, n=2): return ", ".join(names[:n]) + (f" +{len(names) - n}" if len(names) > n else "")
+
+def page_line(e):
+    """A page to save as one compact line: the link, the file name to save under, the people waiting in short, an image or a bare
+    form marked."""
+    return f"{e['url']}  {e['save_as']}  {people_short(e['people'])}" + ("  [image: tools/save_image.js]" if e["how"] == "image" else "") + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "")
+
+def next_lines(cx, tree_id, k):
+    """The next k openable pages, a line each (page_line), a bare form after every page that prefills something, and the count."""
+    rows = sorted(openable(cx, tree_id), key=lambda e: e["bare"])
+    return [page_line(e) for e in rows[:k]] + [f"{min(k, len(rows))} of {len(rows)} openable page(s); one tab each, then tools/fetches.py collect"] if rows else ["no page waiting that a turn can open"]
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("cmd", choices=["list", "collect"]); ap.add_argument("--json", action="store_true"); ap.add_argument("--tree")
+    ap = argparse.ArgumentParser(); ap.add_argument("cmd", choices=["next", "list", "collect"]); ap.add_argument("count", nargs="?", type=int, default=5, help="next: how many pages")
+    ap.add_argument("--json", action="store_true"); ap.add_argument("--all", action="store_true", help="list: the pages already run on unchanged fields too"); ap.add_argument("--tree")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     ap.add_argument("--folder", help="collect: the folder to take saved pages from, instead of the browser's own download folder")
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree)
-    if a.cmd == "list":
-        rows = waiting(cx, tree_id)
+    if a.cmd == "next": print("\n".join(next_lines(cx, tree_id, a.count)))
+    elif a.cmd == "list":
+        every = annotated(cx, tree_id); rows = every if a.all else [e for e in every if e["open_step_ids"] or not e["url"]]
         if a.json: print(dumps(rows)); return
         last = None
         for e in rows:
             if e["holder"] != last: print(f"-- {e['holder']}"); last = e["holder"]
-            print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}" + ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else ""))
-        print(f"{len(rows)} page(s) to fetch, one tab per page; then tools/fetches.py collect")
+            print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}" + ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else "")
+                  + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "") + ("  [already run on unchanged fields]" if a.all and e["url"] and not e["open_step_ids"] else ""))
+        print(f"{len(rows)} page(s) to fetch, one tab per page; then tools/fetches.py collect" + (f" ({len(every) - len(rows)} already run on unchanged fields, hidden: --all)" if len(every) > len(rows) else ""))
     else:
         cx.execute("BEGIN")
         try: names, results = collect(cx, tree_id, slug, a.by, folder=a.folder); cx.commit()

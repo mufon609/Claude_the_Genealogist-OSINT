@@ -263,26 +263,36 @@ the birth year and nativity, the residence at enlistment, the enlistment as a
 military service event, education and marital status as written.
 
 **The page saves itself.** A cited page at an assisted source is saved from
-the owner's own browser in one call and never read through the model: open
-the citation's URL in a new tab, wait for the page to load, run one script
-in the page that clones the document, removes `iframe`, `script`, `style`,
-`link` and `noscript` elements, and hands the result to the browser as a
-download named after the record's own id (`tools/save_page.js`, run in the
-page with the file name filled in); the script returns the byte count
-and whether the parser's marker and the family markup are present, and all
-three must hold before the tab is closed. Move the file from the download
-folder to `inbox/` and log the step as found with it. Measured on a Find a
-Grave memorial: one call, about half a minute from navigation to file, the
-saved page a quarter of the rendered size, nothing transcribed. If the
-browser is set to ask where to save each download, turn that off first or
-answer the dialog by hand; a dialog left open blocks every later browser
-call. Chrome lets a page start one download without a hand on it: a second
-page saved in the same tab lands nowhere, so each page gets its own tab,
-closed after the file arrives. `tools/fetches.py list` prints only the pages the page-saves-itself
-method can save: every planned fetch step at a holder without a connector,
-once, leads from held records first, with the link to open, the people
-waiting on it and the file name to save under; a browser session works down
-that list one tab per page. A FamilySearch step whose saved search has a row
+the owner's own browser in one call and never read through the model.
+`tools/fetches.py next` names the next pages (five by default): the link to
+open, the file name to save under and the people waiting, one line each; a
+link that prefills nothing (a holder's bare search form, whose saved page no
+parser reads) is marked and comes last. For each page: open a new tab, navigate
+it to the link and run `tools/save_page.js` in it with the file name filled in
+(a navigate and the script go in one batch call), read the one line it returns,
+close the tab: three calls and no screenshot. The script waits up to fifteen
+seconds for the page's own markup, then clones the document, removes `iframe`,
+`script`, `style`, `link` and `noscript` elements, hands the result to the
+browser as a download, and says `ok <kind> <bytes>B`, the kind being the one
+the parsers read: `fs-search` (a FamilySearch results page, rows or "No
+Results"), `fs-record`, `fg-memorial`, `fg-search`, `aad`. A page of none of
+those is not saved, and the line says why: `BLOCKED signin`, `BLOCKED
+challenge`, `EMPTY no-script fallback` (nothing rendered), or `UNKNOWN <title>`
+(true as the script's second argument saves it anyway). That line is the check:
+look at the page only when it says something else than ok, and never run a fetch
+loop in the page. Move the file from the download folder to `inbox/` and log
+the step as found with it. If the browser is set to ask where to save each
+download, turn that off first or answer the dialog by hand; a dialog left open
+blocks every later browser call. Chrome lets a page start one download without
+a hand on it: a second page saved in the same tab lands nowhere, so each page
+gets its own tab, closed after the file arrives. `tools/fetches.py list` prints
+the pages the page-saves-itself method can save: every planned fetch step at a
+holder without a connector, once, leads from held records first, with the link
+to open, the people waiting on it and the file name to save under, leaving out
+the pages whose steps have all been run on unchanged fields (`--all` brings
+them back) and marking a bare form; `next` takes the same pages in the same order, a
+bare form last.
+A FamilySearch step whose saved search has a row
 proposed or accepted as the step's person is listed as that row's own record
 page in the search link's place, under the record-page name with the row's ark
 filled in, and stays open until a page carrying that ark is archived: the
@@ -323,10 +333,10 @@ step wasn't already answered on those fields. Never encode a page and read
 it out through the model in slices.
 
 **When the site blocks the fetch.** When a source answers a page save or a
-search in the owner's browser with a challenge or a sign-in, the session
-notifies the owner and waits; once the owner has passed it by hand, the session
-continues. The session never passes a challenge itself, and a challenge does
-not by itself make the source assisted-only.
+search in the owner's browser with a challenge or a sign-in (the script's
+`BLOCKED` line), the session notifies the owner and waits; once the owner has
+passed it by hand, the session continues. The session never passes a challenge
+itself, and a challenge does not by itself make the source assisted-only.
 
 **The image saves itself.** A gravestone photograph on a memorial accepted as
 a person's own (by the owner or by the rule) is a fetch step of its own under
@@ -335,7 +345,10 @@ URL as its locator and the page's words (the memorial, the photograph's id,
 its caption and type) as its fields; `tools/fetches.py list` prints it with
 the file name to save under and says it is an image. Open the image's own URL
 in a new tab and run `tools/save_image.js` in it with the name filled in: the
-tab fetches its own bytes and hands them to the browser as a download;
+tab fetches its own bytes and hands them to the browser as a download, and the
+script's one line says `ok image <type> <bytes>B` or `BLOCKED <why>` (nothing is
+saved when the answer is not an image: a challenge or a sign-in comes back as a
+page);
 `collect` moves it to `inbox/` and attaches it to its step by that name (an
 image carries no identity in its bytes), archived under the gravestone row
 (E05, tier 1) with the image's URL as locator, logged found, never parsed. It

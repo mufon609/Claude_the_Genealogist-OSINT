@@ -1,16 +1,39 @@
-// The page saves itself (docs/RESEARCH-WORKFLOW.md §4). Run in the page's own tab with the file name filled in; the
-// browser downloads the page's markup, scripts and styles removed, and the call returns the byte count and whether the
-// parsers' markers are present. One download per tab: Chrome lets a page start one without a hand on it.
-(function (name) {
-  const doc = document.documentElement.cloneNode(true);
-  doc.querySelectorAll("iframe, script, style, link, noscript").forEach(e => e.remove());
-  const html = "<!-- saved from " + location.href + " -->\n" + doc.outerHTML;
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([html], {type: "text/html"})); a.download = name;
+// The page saves itself (docs/RESEARCH-WORKFLOW.md §4). Run in the page's own tab with the file name filled in (a second argument,
+// true, saves a page of no known kind anyway). It waits up to 15 s for the page's own markup, saves the document with its iframes,
+// scripts, styles, links and noscript removed as a download, and returns one line: ok <kind> <bytes>B, BLOCKED signin | challenge,
+// EMPTY <why>, or UNKNOWN <title> (not saved). Kinds: fs-search (FamilySearch results rows, or its "No Results"), fs-record,
+// fg-memorial, fg-search, aad. One download per tab: Chrome lets a page start one without a hand on it.
+(async function (name, force) {
+  const KINDS = {
+    "fs-search": h => /<tr[^>]*\bdata-testid="\/ark:\/61903\/1:1:/.test(h) || />No Results Found</.test(h),
+    "fs-record": h => /data-testid="documentInformationCitation"[\s\S]{0,400}?familysearch\.org\/ark:\/61903\/1:1:/.test(h),
+    "fg-memorial": h => /<body[^>]*\bid="memorial-summary"/.test(h),
+    "fg-search": h => /<body[^>]*\bid="memorial-list"/.test(h),
+    "aad": h => /Access to Archival Databases \(AAD\)/.test(h)
+  };
+  const snap = () => {
+    const d = document.documentElement.cloneNode(true);
+    d.querySelectorAll("iframe, script, style, link, noscript").forEach(e => e.remove());
+    return "<!-- saved from " + location.href + " -->\n" + d.outerHTML;
+  };
+  const block = () => document.querySelector("input[type=password]") ? "signin"
+    : /just a moment|attention required|access denied|verify you are human|captcha/i.test(document.title) ||
+      document.querySelector("#challenge-form, .cf-turnstile, iframe[src*='challenges.cloudflare'], iframe[src*='captcha']") ? "challenge" : null;
+  const stop = Date.now() + 15000;
+  let html, kind, b;
+  for (;;) {
+    html = snap(); kind = Object.keys(KINDS).find(k => KINDS[k](html)); b = block();
+    if (kind || b === "signin" || Date.now() > stop) break;
+    await new Promise(r => setTimeout(r, 500));
+  }
+  if (!kind && b) return "BLOCKED " + b;
+  if (!kind && !force) {
+    const text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (text.length < 200) return "EMPTY " + (/javascript/i.test(text) || document.querySelector("noscript") ? "no-script fallback" : "no content");
+    return "UNKNOWN " + document.title.slice(0, 60) + " " + html.length + "B, not saved: true as the second argument saves it";
+  }
+  const blob = new Blob([html], {type: "text/html"}), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click();
-  return {bytes: html.length,
-          memorial: /<body[^>]*\bid="memorial-summary"/.test(html), memorial_family: /member-family/.test(html),
-          findagrave_search: /<body[^>]*\bid="memorial-list"/.test(html),
-          familysearch: /documentInformationCitation/.test(html) && /ark:\/61903\/1:1:/.test(html),
-          aad: /Access to Archival Databases \(AAD\)/.test(html)};
-})("FILENAME.html");
+  return "ok " + (kind || "unknown") + " " + blob.size + "B" + (kind === "fg-memorial" && !/member-family/.test(html) ? ", no family block" : "");
+})("FILENAME.html")
