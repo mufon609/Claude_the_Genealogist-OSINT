@@ -137,7 +137,9 @@ unnamed fetch's own naming
 citations that carried it (the New Jersey and New York marriage indexes) are
 both blocked as `scanned_index` holders; the merge's reach by name and year;
 a memorial's listed relative whose one fit moves to another person between two
-acceptances (`conclude.link_family` withdraws the earlier undecided trace). When a real document
+acceptances (`conclude.link_family` withdraws the earlier undecided trace); a
+merge folding a family whose child the kept family already holds, and a merge
+completed (`conclude.complete_merge`) folding two same-partner families. When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under

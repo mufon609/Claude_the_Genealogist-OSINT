@@ -27,6 +27,8 @@ from catalog import Catalog, US_STATES, US_NAMES, year
 from footprint import footprint
 from connectors import answers
 
+ONCE = ("Birth", "Death", "Burial", "Cremation")   # what a life holds once: two of one type are a conflict question; residences, censuses, occupations and the like repeat
+
 # statewide civil registration windows (year from) and the registry row that covers them
 VITAL = {"pennsylvania": {"birth": (1906, "C03"), "death": (1906, "C03"), "marriage": (1885, "C03")},
          "massachusetts": {"birth": (1841, "C05"), "death": (1841, "C05"), "marriage": (1841, "C05")},
@@ -108,7 +110,7 @@ def build(cat: Catalog, pid: str):
     for label, e in (("birth", birth), ("death", death)):
         if not e or not e["year"]: questions.append({"kind": "missing_fact", "detail": f"{label} date"})
         elif not e["place"]: questions.append({"kind": "missing_fact", "detail": f"{label} place"})
-    for etype, n in collections.Counter(e["type"] for e in ev).items():
+    for etype, n in collections.Counter(e["type"] for e in ev if e["type"] in ONCE).items():
         if n > 1: questions.append({"kind": "conflict", "detail": f"more than one {etype.lower()} event"})
     for said in cat.disagreements(pid): questions.append({"kind": "conflict", "detail": said})   # an accepted record says something else than the tree
     for said in cat.unplaced(pid): questions.append({"kind": "conflict", "detail": said})         # an accepted record's undated fact fits none of several events of its type: assert_facts guessed at none of them

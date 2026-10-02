@@ -872,6 +872,65 @@ def _event_place_keys(q, eid, place_id):
     return {r[0].strip().lower() for r in q.execute("""SELECT ps.raw FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
                      JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected'""", (eid,)).fetchall()}
 
+def _fold_event(q, eid, into, moved):
+    """An event's statements moved onto another of the same person, type and value; the event itself is left as it is."""
+    ev = q.execute("SELECT event_type, date_start FROM event WHERE id=?", (eid,)).fetchone()
+    n = q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='event' AND subject_id=?", (into, eid)).rowcount
+    moved["events_folded"] += 1; moved["event_assertions_folded"] += n
+    moved["folded_events"].append({"event_type": ev["event_type"], "date_start": ev["date_start"], "into_event_id": into, "assertions": n})
+
+def _fold_family(q, fid, other, moved):
+    """A family whose partners are exactly another's, folded into that one: each child's membership moves there, or, the
+    child already being the other family's, joins it, the statements moving with it either way; the family's own events
+    move; the partner memberships' statements fold onto the other family's own and the partner rows go, so the family row
+    is left emptied for the audit trail."""
+    for cid, in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='child'", (fid,)).fetchall():
+        if q.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role='child'", (other, cid)).fetchone():
+            q.execute("DELETE FROM family_member WHERE family_id=? AND person_id=? AND role='child'", (fid, cid))
+        else: q.execute("UPDATE family_member SET family_id=? WHERE family_id=? AND person_id=? AND role='child'", (other, fid, cid))
+        q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='family_member' AND subject_id=?", (dumps([other, cid, "child"]), dumps([fid, cid, "child"])))
+        moved["family_children_moved"] += 1
+    moved["family_events_moved"] += q.execute("UPDATE event_participant SET family_id=? WHERE family_id=?", (other, fid)).rowcount
+    for pid_, in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,)).fetchall():
+        q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='family_member' AND subject_id=?", (dumps([other, pid_, "partner"]), dumps([fid, pid_, "partner"])))
+    q.execute("DELETE FROM family_member WHERE family_id=? AND role='partner'", (fid,))
+    moved["families_folded"] += 1
+    moved["folded_families"].append({"family_id": fid, "into_family_id": other})
+
+def _partner_families(q, pid):
+    """The families a person is a partner in, each with its set of partners."""
+    return [(fid, {r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,)).fetchall()})
+            for fid, in q.execute("SELECT DISTINCT family_id FROM family_member WHERE person_id=? AND role='partner' ORDER BY family_id", (pid,)).fetchall()]
+
+def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
+    """A merge made before a merge folded equal events and same-partner families, completed: the kept person's events of one
+    type whose dates agree to the day and whose places agree or are absent fold into the one carrying the most statements
+    (the earliest id on a tie), each folded event's participant returned to the duplicate's row, as a merge now leaves the
+    duplicate's own; the kept person's partner families with the same partners fold into the earliest (_fold_family).
+    Nothing else moves, and a merge already complete folds nothing. One audit row. Returns what folded."""
+    q = _q(cx); ts = now()
+    moved = {"events_folded": 0, "event_assertions_folded": 0, "families_folded": 0, "family_children_moved": 0, "family_events_moved": 0,
+             "folded_events": [], "folded_families": []}
+    groups = {}
+    for eid, et, ds, place_id in q.execute("""SELECT e.id, e.event_type, e.date_start, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                               WHERE ep.person_id=? AND e.date_start IS NOT NULL ORDER BY e.id""", (kept_id,)).fetchall():
+        n = q.execute("SELECT COUNT(*) FROM assertion WHERE subject_kind='event' AND subject_id=?", (eid,)).fetchone()[0]
+        groups.setdefault((et, ds), []).append((-n, eid, place_id))
+    for evs in groups.values():
+        evs.sort(); _, keep, keep_place = evs[0]
+        for _, eid, place_id in evs[1:]:
+            a, b = _event_place_keys(q, eid, place_id), _event_place_keys(q, keep, keep_place)
+            if a and b and not (a & b): continue
+            _fold_event(q, eid, keep, moved)
+            q.execute("UPDATE event_participant SET person_id=? WHERE event_id=? AND person_id=?", (dup_id, eid, kept_id))
+    fams = _partner_families(q, kept_id)
+    for i, (fid, partners) in enumerate(fams):
+        into = next((f for f, ps in fams[:i] if ps == partners and q.execute("SELECT 1 FROM family_member WHERE family_id=? AND role='partner'", (f,)).fetchone()), None)
+        if into: _fold_family(q, fid, into, moved)
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "update", "person", dup_id, dumps({"merge_completed": kept_id, "note": note, **moved})))
+    return {"duplicate": dup_id, "kept": kept_id, "completed": True, **moved}
+
 def merge(cx, tree_id, dup_id, kept_id, by, note):
     """Close a duplicate_person question (RESEARCH-WORKFLOW §2; the worked example's "merging the two Thomas entries closes
     the question"): the duplicate's persona links, assertions, event and family memberships, plan steps, search log rows and
@@ -888,14 +947,16 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     events of one value. A differing value stays a second event, as before. A duplicate's own family, once its membership
     has moved, whose partners are then exactly the kept person's own family's partners is folded the same way: its
     children's memberships and its own events move to that family, its partner memberships and their assertions fold onto
-    the kept family's own, and the duplicate's family row is left emptied, with the duplicate, for the audit trail. Returns
-    what moved."""
+    the kept family's own, and the duplicate's family row is left emptied, with the duplicate, for the audit trail (a child of
+    both joins the kept family's own membership). A pair already merged is completed instead (complete_merge). Returns what
+    moved.""" 
     q = _q(cx)
     dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
     kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
     if not dup or not kept: raise ValueError("no such person in this tree")
     if dup["tree_id"] != tree_id or kept["tree_id"] != tree_id: raise ValueError("both persons must be in this tree")
     if dup_id == kept_id: raise ValueError("a person cannot be merged into themself")
+    if dup["merged_into"] == kept_id: return complete_merge(cx, tree_id, dup_id, kept_id, by, note)
     if dup["merged_into"]: raise ValueError(f"{dup['display_name']} is already merged into another person")
     if kept["merged_into"]: raise ValueError(f"{kept['display_name']} is itself merged into another person")
     ts = now()
@@ -921,9 +982,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
                 if dup_places and kept_places and not (dup_places & kept_places): continue
                 fold_into = kept_eid; break
         if fold_into:
-            n = q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='event' AND subject_id=?", (fold_into, eid)).rowcount
-            moved["events_folded"] += 1; moved["event_assertions_folded"] += n
-            moved["folded_events"].append({"event_type": dup_event["event_type"], "date_start": dup_event["date_start"], "into_event_id": fold_into, "assertions": n})
+            _fold_event(q, eid, fold_into, moved)
             continue                                          # the duplicate's own event and its participant stay as they are
         if q.execute("SELECT 1 FROM event_participant WHERE event_id=? AND role=? AND person_id=? AND family_id IS ?", (eid, role, kept_id, fam)).fetchone(): continue
         q.execute("UPDATE event_participant SET person_id=? WHERE id=?", (kept_id, ep_id))
@@ -940,22 +999,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     for fid in partner_fams:
         partners = {r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,)).fetchall()}
         if kept_id not in partners: continue
-        other = None
-        for cand, in q.execute("SELECT DISTINCT family_id FROM family_member WHERE person_id=? AND role='partner' AND family_id<>?", (kept_id, fid)).fetchall():
-            cand_partners = {r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (cand,)).fetchall()}
-            if cand_partners == partners: other = cand; break
-        if not other: continue
-        for cid, in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='child'", (fid,)).fetchall():
-            if q.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role='child'", (other, cid)).fetchone(): continue
-            q.execute("UPDATE family_member SET family_id=? WHERE family_id=? AND person_id=? AND role='child'", (other, fid, cid))
-            q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='family_member' AND subject_id=?", (dumps([other, cid, "child"]), dumps([fid, cid, "child"])))
-            moved["family_children_moved"] += 1
-        moved["family_events_moved"] += q.execute("UPDATE event_participant SET family_id=? WHERE family_id=?", (other, fid)).rowcount
-        for pid_, in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,)).fetchall():
-            q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='family_member' AND subject_id=?", (dumps([other, pid_, "partner"]), dumps([fid, pid_, "partner"])))
-        q.execute("DELETE FROM family_member WHERE family_id=? AND role='partner'", (fid,))
-        moved["families_folded"] += 1
-        moved["folded_families"].append({"family_id": fid, "into_family_id": other})
+        other = next((f for f, ps in _partner_families(q, kept_id) if f != fid and ps == partners), None)
+        if other: _fold_family(q, fid, other, moved)
 
     moved["assertions"] = q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='person' AND subject_id=?", (kept_id, dup_id)).rowcount
 
@@ -1219,8 +1264,14 @@ def main():
             print(f"{cx.execute('SELECT display_name FROM person WHERE id=?', (pid,)).fetchone()[0]} [{pid[-6:]}]: living_override {res['was'] or 'none'} -> {res['now'] or 'none'}; "
                   f"the default now reads {res['status']} ({res['reason']}); the plan next: tools/plan.py")
         else:
-            res = merge(cx, tree_id, cat.find_person(a.duplicate), cat.find_person(a.kept), a.by, a.note)
-            print(f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s), {res['assertions']} assertion(s), "
+            kept_id = cat.find_person(a.kept)
+            six = re.search(r"\[([A-Z0-9]{6})\]\s*$", a.duplicate)          # a duplicate already merged into this person is named among those merged into them, by name or six characters
+            already = [i for i, n in cx.execute("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into=?", (tree_id, kept_id)) if n == a.duplicate or (six and i.endswith(six.group(1)))]
+            res = merge(cx, tree_id, already[0] if len(already) == 1 else cat.find_person(a.duplicate), kept_id, a.by, a.note)
+            if res.get("completed"):
+                print(f"{a.duplicate} already merged into {a.kept}; completed: {res['events_folded']} event(s) folded ({res['event_assertions_folded']} statement(s) moved), "
+                      f"{res['families_folded']} family(ies) folded ({res['family_children_moved']} child membership(s), {res['family_events_moved']} family event(s))")
+            else: print(f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s), {res['assertions']} assertion(s), "
                   f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s), "
                   f"{res['plan_steps_moved']} plan step(s) moved ({res['plan_steps_dropped']} dropped as already on the kept person's plan, "
                   f"{res['log_rows_repointed']} log row(s) repointed onto it), {res['questions_moved']} question(s) moved "

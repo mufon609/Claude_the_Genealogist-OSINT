@@ -163,6 +163,106 @@
    ]
   },
   {
+   "say": "a merge made before a merge folded equal events leaves the kept person a second Birth of the same day; the same merge named again completes it",
+   "event": {
+    "person": "I332737059537",
+    "type": "Birth",
+    "date": "2 Oct 1846",
+    "date_start": "1846-10-02"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737059537",
+      "type": "Birth",
+      "events": 2
+     }
+    }
+   ]
+  },
+  {
+   "merge": {
+    "duplicate": "I332737068288",
+    "kept": "I332737059537"
+   },
+   "expect": [
+    {
+     "last": {
+      "completed": true,
+      "events_folded": 1,
+      "families_folded": 0
+     },
+     "why": "the pair already merged is completed, not merged again: the second Birth of the same day folds into the one carrying the statements"
+    },
+    {
+     "event": {
+      "person": "I332737059537",
+      "type": "Birth",
+      "events": 1
+     }
+    },
+    {
+     "count": {
+      "events_of": "I332737068288",
+      "is": 3
+     },
+     "why": "the folded event's participant returns to the duplicate's row, beside its own two"
+    }
+   ]
+  },
+  {
+   "say": "named once more, the merge has nothing left to fold",
+   "merge": {
+    "duplicate": "I332737068288",
+    "kept": "I332737059537"
+   },
+   "expect": [
+    {
+     "last": {
+      "completed": true,
+      "events_folded": 0,
+      "families_folded": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "his plan regenerated: no conflict question between equal values, and none for stays",
+   "plan": [
+    "I332737059537"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737059537",
+      "status": "open",
+      "detail_has": "more than one birth event",
+      "exists": false
+     },
+     "why": "one Birth event once the merge is complete"
+    },
+    {
+     "event": {
+      "person": "I332737059537",
+      "type": "Residence",
+      "events": {
+       ">=": 2
+      }
+     },
+     "why": "he holds several stays"
+    },
+    {
+     "question": {
+      "person": "I332737059537",
+      "status": "open",
+      "detail_has": "more than one residence event",
+      "exists": false
+     },
+     "why": "residences repeat: several stays are never a conflict question, as two Births of one person are"
+    }
+   ]
+  },
+  {
    "say": "the catalog whole",
    "expect": [
     {
