@@ -747,8 +747,56 @@ Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the
-evidence; a `conflict` closes only when a person dismisses it. Accepting grows
+evidence; a `conflict` closes only when a person resolves it with a written
+reason or dismisses it. Accepting grows
 the baseline, which generates new questions.
+
+### The proof standard
+
+**Accepted.** Automated decisions follow the Genealogical Proof Standard
+(Board for Certification of Genealogists): reasonably exhaustive research,
+complete and accurate citations, analysis and correlation of the evidence,
+resolution of conflicting evidence, and a soundly reasoned written
+conclusion. The standard governs conclusions, a person's key facts; the
+standing rule's decision that a record is about a person is linkage, the
+ground those conclusions stand on, and rests on the same analysis. All of it
+is words, never numbers (`CLAUDE.md` hard rule 1).
+
+- **Classes, as data.** Each record kind and field carries a source class
+  (original: the record made at the event, its image; derivative: an index,
+  abstract or transcript; authored: a compiled genealogy, a memorial page, a
+  family tree), an information class for each fact (primary: from someone with
+  first-hand knowledge, the record's own event; secondary: the rest, a birth
+  date on a death record, an age on a census; indeterminable), and for each
+  relationship whether the record states it or the indexer computed it (a
+  census states each person's relationship to the head; FamilySearch's
+  "mother" and "sister" groupings are its own), with the original a
+  derivative comes from, so records copied from one original are one source.
+  The table is `data/evidence-classes.csv`, read when needed; a class never
+  becomes a weight.
+- **What the rule counts.** A point counts double only when the statement it
+  rests on is primary information or the owner's own word. A relationship the
+  indexer computed counts one point. A stated relationship counts only when
+  the related persona is accepted on the record or fits its tree relative on
+  something besides that relationship. A claim whose own citation is the
+  record under decision never counts. Given names that differ in a middle
+  name or initial disagree. Records from one original count once.
+- **Conflicts.** A difference with an accepted value is a conflict question,
+  never an overwrite; a birth place, secondary on nearly every record kind
+  and never a point, never vetoes. The owner closes a conflict with a written
+  reason naming the value kept (`tools/conclude.py resolve`); the proof
+  summary proposes the side the classes favour (the record of the event
+  itself, primary over secondary, original over derivative over authored).
+  The rule resolves none.
+- **Reasonably exhaustive research.** A key fact's research is its checklist
+  rows, each held, searched with nothing found at every source, cited and not
+  yet fetched, or blocked. It is stated with the conclusion, not a gate.
+- **The written conclusion.** `tools/proof.py "<person>"` writes, for each
+  key fact, the value, the evidence grouped by original record with its class
+  words and its citation, what agrees, each conflict and how it was resolved,
+  the research by row, and who decided; a fact resting on indirect evidence or
+  an open conflict says that an argument is still owed. Pure code: the model
+  reads only what code cannot, a handwritten image or a newspaper's text.
 
 ## 8. The loop
 

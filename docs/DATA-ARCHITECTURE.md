@@ -296,6 +296,21 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    retained in the archive under ACL. The one thing the default decides today
    is the search mode: a search step on a living or unknown person is
    assisted, never auto.
+4. **FamilySearch: the owner's browser, never its API.** Its record and search
+   pages are saved one at a time by the page-saves-itself method and every
+   decision on them is automated from the saved page
+   (`docs/RESEARCH-WORKFLOW.md` §4, §5–7).
+5. **The Genealogical Proof Standard, in code.** Conclusions meet the GPS and
+   the standing rule's linkage rests on the same analysis: source,
+   information and evidence classified in words from a data table, a proof
+   summary per key fact written by code, conflicts closed with a written
+   reason (`docs/RESEARCH-WORKFLOW.md` §5–7, "The proof standard"). No class
+   becomes a number.
+6. **Tokens are a cost the design answers to.** A session pays for every byte
+   a tool prints and every browser round trip: a tool prints what the next
+   action needs and the whole on request, the browser saves pages with a
+   script that verifies itself, and the files every session loads hold the
+   rules, not the catalogue.
 
 ## 8. Wrong source data, variants and aliases
 
