@@ -356,10 +356,23 @@ def collection_state(name):
     first = (name or "").split(",")[0].strip()
     return first if first.lower() in US_STATES else None
 
+ABBREVIATION = ((re.compile(r"\bmt\b\.?"), "mount"), (re.compile(r"\bst\b\.?"), "saint"))   # a place name's abbreviated word stands for the word: Mt. Holly is Mount Holly
+ADMINISTRATIVE = re.compile(r"\b(?:village|borough|city|town) of\b|\b(?:town|borough|city|ward \d+|\d+(?:st|nd|rd|th) ward)\b")   # the unit's own word beside its name: Hempstead Town, Village of Lindenhurst, Northampton Ward 1
+
+def _place_part(p, administrative=False):
+    """One piece of a place string normalised for comparison: the country written as usa, a jurisdiction word dropped (a
+    county, a township, a district), an abbreviated word written out, a two-letter US state code (with or without its
+    period) expanded to the state, and with administrative, the unit's own word (Town, Village of, Borough, City, Ward N)
+    dropped too."""
+    s = COUNTRY.sub("usa", p.lower())
+    for rx, word in ABBREVIATION: s = rx.sub(word, s)
+    s = re.sub(r"\b(county|co\.?|township|twp\.?|magisterial district \d+|district \d+)\b", " ", s)
+    if administrative: s = ADMINISTRATIVE.sub(" ", s)
+    s = re.sub(r"\s+", " ", s).strip().rstrip(".").strip()
+    return US_STATE.get(s, s)
+
 def _place_verdict_once(record, tree, supply=None):
-    norm = lambda s: re.sub(r"\b(county|co\.?|township|twp\.?|magisterial district \d+|district \d+)\b", " ", COUNTRY.sub("usa", s.lower()))   # a jurisdiction word is not a place part
-    expand = lambda p: US_STATE.get(p, p)                             # a two-letter US state code stands for the state it abbreviates
-    part = lambda p: expand(norm(p).strip().rstrip(".").strip())      # one piece normalised; "Ky." is the code with a period
+    part = _place_part
     parts = lambda s: [(part(p), p.strip(" .")) for p in re.split(r"<|,", s) if part(p)]   # (normalised, as written)
     tparts = [p for p, _ in parts(tree)]
     below = [p for p in tparts if p != "usa"]
@@ -388,10 +401,28 @@ def _dated_agree(record, dated_names):
                 if tail and tail == key(name): return f"as {name}, a name it held {vf or '?'}–{vt or '?'}"
     return None
 
+def _same_granular(record, tree):
+    """The note when two US place strings name one place at another granularity, else None: with the administrative word
+    dropped from every part (Hempstead Town is Hempstead, Village of Lindenhurst is Lindenhurst, Northampton Ward 1 is
+    Northampton), both name the same state as their last part, the same place as their first, and every part of the shorter
+    is a part of the longer in the same order, so a county one side leaves out is no difference ("Northampton, Massachusetts"
+    and "Northampton, Hampshire, Massachusetts"). A name that differs in a letter or a word is never the same place here:
+    North Hampton is not Northampton, Norriton not Norristown."""
+    def parts(s):
+        out = [_place_part(p, administrative=True) for p in re.split(r"<|,", s)]
+        return [p for p in out if p and p != "usa"]
+    r, t = parts(record), parts(tree)
+    if not r or not t or r[-1] not in US_STATES or r[-1] != t[-1] or r[0] != t[0]: return None
+    short, long_ = (r, t) if len(r) <= len(t) else (t, r)
+    it = iter(long_)
+    if not all(p in it for p in short): return None
+    return "the same place, written at another granularity"
+
 def place_verdict(record, tree, record_state=None, dated_names=None):
     """(verdict, note): agrees when every part the record states, at or below the country, is a part of the tree's resolved
-    chain — 'Town < County < State < Country' — matched whole after normalisation (a jurisdiction word stripped, a
-    two-letter US state code expanded to its name, with or without a period), never as a substring of another word: 'Kent'
+    chain — 'Town < County < State < Country' — matched whole after normalisation (a jurisdiction word stripped, an
+    abbreviated word written out (Mt. is Mount, St. is Saint), a two-letter US state code expanded to its name, with or
+    without a period), never as a substring of another word: 'Kent'
     is not Kentucky and 'Frank' is not Franklin. The country is not a part to count on either side. A record with more
     parts below the country than the tree's own chain is read from the state backward, so what it names ahead of the
     tree's own finest part (the town when the tree holds only the state; a cemetery or building ahead of its town) is
@@ -403,8 +434,10 @@ def place_verdict(record, tree, record_state=None, dated_names=None):
     disagrees — unless the record names a county alone: it then takes the state of the record's own event place
     (record_state, collection_state on the record's own collection) for the comparison, the note saying so; or unless the
     record names a dated former name of the tree's own place (dated_names, place_name rows with a valid_from or valid_to:
-    Tonan, a village Morioka absorbed in 1992) — it then agrees on that name, the note naming the period it held it. The
-    string itself is never changed, only compared. absent when either side has none."""
+    Tonan, a village Morioka absorbed in 1992) — it then agrees on that name, the note naming the period it held it; or
+    unless the two name one US place at another granularity (_same_granular: an administrative word such as Town, Village
+    of, Borough, City or Ward N, or a county one side leaves out, with the rest of the name and the state agreeing) — it
+    then agrees, the note saying so. The string itself is never changed, only compared. absent when either side has none."""
     if not record or not tree: return "absent", None
     v, note = _place_verdict_once(record, tree)
     if v == "disagrees" and record_state and re.search(r"\bcounty\b", record, re.I) and not re.search(r"<|,", record):
@@ -413,6 +446,9 @@ def place_verdict(record, tree, record_state=None, dated_names=None):
     if v == "disagrees" and dated_names:
         note3 = _dated_agree(record, dated_names)
         if note3: return "agrees", note3
+    if v == "disagrees":
+        note4 = _same_granular(record, tree)
+        if note4: return "agrees", note4
     return v, note
 
 

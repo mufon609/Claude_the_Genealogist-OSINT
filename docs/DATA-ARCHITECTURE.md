@@ -357,6 +357,19 @@ accepts one once on a fact row, the same click that accepts a place now.
 Matching reads `place_name` too, so a record's place agrees with the tree's
 when both resolve to one place or one is a dated name of the other.
 
+A place written at another granularity is the same place, not a conflict
+(`catalog.place_verdict`): an abbreviated word is the word (Mt. is Mount,
+St. is Saint), and two US places that differ only in the unit's own word
+(Township, Town, Village of, Borough, City, Ward N) or in a county one side
+leaves out agree when the rest of the name and the state agree, so
+"Northampton" and "Northampton Ward 1", "Hempstead" and "Hempstead Town",
+"Lindenhurst" and "Village of Lindenhurst", "Mt. Holly" and "Mount Holly
+Township" raise no conflict question. A name that differs in a letter or a
+word ("North Hampton" and "Northampton", "Norriton" and "Norristown") still
+differs: whether it is a variant is the owner's question. This governs
+comparing only; resolving a string to a place keeps its own rule, under
+which a village nested in its same-named town stays undecided.
+
 ### Gazetteers for the places the geocoder does not know
 
 `tools/resolve_places.py` asks OpenStreetMap's Nominatim first. When it

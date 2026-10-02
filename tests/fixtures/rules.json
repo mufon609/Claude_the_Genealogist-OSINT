@@ -243,6 +243,54 @@
    "tree": "Simpson County < Tennessee < United States",
    "verdict": "disagrees",
    "note": null
+  },
+  {
+   "record": "Northampton Ward 1, Hampshire, Massachusetts, United States",
+   "tree": "Northampton < Hampshire County < Massachusetts < United States",
+   "verdict": "agrees",
+   "note": "the same place, written at another granularity"
+  },
+  {
+   "record": "Hempstead, Hempstead Town, Nassau, New York, United States",
+   "tree": "Hempstead, Hempstead, Nassau, New York, USA",
+   "verdict": "agrees",
+   "note": "the same place, written at another granularity"
+  },
+  {
+   "record": "Lindenhurst, Suffolk, New York, United States",
+   "tree": "Village of Lindenhurst < Suffolk County < New York < United States",
+   "verdict": "agrees",
+   "note": "the same place, written at another granularity"
+  },
+  {
+   "record": "Northampton, Hampshire, Massachusetts, United States",
+   "tree": "Northampton, Massachusetts, USA",
+   "verdict": "agrees",
+   "note": "the same place, written at another granularity"
+  },
+  {
+   "record": "Mt. Holly",
+   "tree": "Mount Holly Township < Burlington County < New Jersey < United States",
+   "verdict": "agrees",
+   "note": null
+  },
+  {
+   "record": "North Hampton, Massachusetts",
+   "tree": "Northampton < Hampshire County < Massachusetts < United States",
+   "verdict": "disagrees",
+   "note": null
+  },
+  {
+   "record": "Norriton Township, Montgomery, Pennsylvania, United States",
+   "tree": "Norristown < Montgomery County < Pennsylvania < United States",
+   "verdict": "disagrees",
+   "note": null
+  },
+  {
+   "record": "Kansas City, Missouri",
+   "tree": "Kansas City < Wyandotte County < Kansas < United States",
+   "verdict": "disagrees",
+   "note": null
   }
  ],
  "place_verdict_with_record_state": [
