@@ -232,6 +232,24 @@ def a_sync_sources(w, x):
     w.cx.commit()
     return {"printed": run(tool("initdb.py"), "--db", w.db, "--sync-sources").strip()}
 
+def a_proof(w, x):
+    """tools/proof.py's written conclusion for a person (proof.build, one fact when `fact` names it): its whole, each fact
+    also under `fact.<name>`, and the text it prints."""
+    from catalog import Catalog
+    from proof import build, render
+    r = build(Catalog(w.cx, w.tid), w.person(x["person"]), only=x.get("fact"))
+    return {**r, "fact": {f["fact"]: f for f in r["facts"]}, "text": render(r, full=bool(x.get("fact")))}
+
+def a_dismiss(w, x):
+    """A conflict question closed by the owner (tools/log_search.py --dismiss): the person's one open question of kind
+    conflict whose detail carries `detail_has`, closed with the owner's `note`."""
+    from log_search import dismiss
+    pid = w.person(x["person"])
+    rows = [r for r in w.cx.execute("SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", (pid,)) if x["detail_has"] in (r[1] or "")]
+    if len(rows) != 1: raise KeyError(f"{len(rows)} open conflict questions carry {x['detail_has']!r}, expected exactly one")
+    dismiss(w.cx, w.tid, BY, rows[0][0], x.get("note"))
+    return {"question": rows[0][0]}
+
 def a_attach(w, x):
     """A fixture dropped into the inbox as a save would leave it and attached: the record's sha and the attach's report."""
     from attach import attach_inbox
@@ -516,7 +534,7 @@ def a_question(w, x):
     w.cx.commit()
     return {"question": qid}
 
-ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
+ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "proof": a_proof, "dismiss": a_dismiss, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,

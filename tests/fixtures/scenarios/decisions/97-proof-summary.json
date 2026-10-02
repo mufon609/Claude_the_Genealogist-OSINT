@@ -1,6 +1,6 @@
 {
- "title": "the proof standard's classes",
- "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from",
+ "title": "the proof standard's classes and its written conclusion",
+ "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from; tools/proof.py writes the conclusion per key fact: the father's sex meets the standard, his birth owes an argument while its birthplace conflict is open (the classes favouring the birth register), his son's parents owe one on computed evidence alone, and his wife's marriage stated by her obituary beside the census's computed one still owes one on secondary information; the birthplace conflict closed by the owner with a written reason leaves only the research",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -105,6 +105,311 @@
       "original": "birth register"
      },
      "why": "the record's fields say Birth though its heading says Death: the birth register's own birth, read from its index, is primary information and direct evidence"
+    }
+   ]
+  },
+  {
+   "say": "the obituary page the file cites on the mother, held as bytes the harness never parses",
+   "seed": {
+    "file": "obituary-stand-in.html",
+    "saved_from": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355",
+    "source": "H04",
+    "collection": "U.S., Newspapers.com™ Obituary Index, 1800s-current",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355"
+    }
+   },
+   "as": "ob"
+  },
+  {
+   "say": "the deceased, as the model reads her: the file's own claims typed",
+   "transcribe": {
+    "record": "ob",
+    "form": {
+     "name": "Helen Sara Brant",
+     "sex": "F",
+     "role": "deceased",
+     "year": "1986",
+     "age": "76"
+    },
+    "about": [
+     "I332737037573"
+    ],
+    "by": "llm:harness"
+   },
+   "as": "dead"
+  },
+  {
+   "say": "her husband, named as a survivor: a relationship the notice states",
+   "transcribe": {
+    "record": "ob",
+    "form": {
+     "name": "Frederick Michael Ahearn",
+     "role": "husband",
+     "residence": "Boca Raton, Florida"
+    },
+    "relations": [
+     {
+      "persona": "$dead.persona",
+      "kind": "spouse",
+      "text": "husband"
+     }
+    ],
+    "by": "llm:harness"
+   }
+  },
+  {
+   "say": "her card accepted; the husband taken by the rule beside her",
+   "decide": {
+    "card": {
+     "record": "ob",
+     "person": "I332737037573"
+    },
+    "status": "accepted",
+    "note": "harness: the deceased's own identity"
+   }
+  },
+  {
+   "say": "the father's written conclusion, every key fact",
+   "proof": {
+    "person": "I332737037257"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "evidence": {
+         "first": {
+          "original": "birth register",
+          "status": "accepted",
+          "classes": {
+           "source": "derivative",
+           "information": "primary",
+           "evidence": "direct"
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "the birth register's own birth leads his birth's evidence: primary information and direct evidence, before the census's"
+    },
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "evidence": {
+         "some": {
+          "original": "1940 census schedule",
+          "status": "accepted",
+          "classes": {
+           "information": "secondary",
+           "evidence": "indirect"
+          },
+          "says": [
+           "says Pennsylvania"
+          ]
+         }
+        }
+       }
+      }
+     },
+     "why": "the census age read as a birth year is secondary and indirect, and its birthplace says Pennsylvania"
+    },
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "conflicts": {
+         "some": {
+          "status": "open",
+          "favours": {
+           "has": [
+            "the classes favour Northampton",
+            "birth register: derivative, primary, direct",
+            "over Pennsylvania"
+           ]
+          }
+         }
+        },
+        "research": {
+         "some": {
+          "row": "birth record",
+          "instance": "1907",
+          "state": "held"
+         }
+        },
+        "verdict": "an argument is still owed",
+        "why": [
+         "a conflict is open"
+        ]
+       }
+      }
+     },
+     "why": "the birthplace conflict is open, so an argument is still owed whatever the evidence; the summary proposes the birth register's side, the record of the event itself"
+    },
+    {
+     "last": {
+      "fact": {
+       "sex": {
+        "verdict": "meets the standard",
+        "why": []
+       },
+       "name": {
+        "verdict": "research still open",
+        "why": [
+         "not yet searched: death record 2001"
+        ]
+       }
+      }
+     },
+     "why": "his sex rests on the birth register's primary, direct statement, no conflict, and its row held: it meets the standard; his name has the same evidence but its death record row is not yet searched"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "birth: 22 May 1907",
+        "  birth register (Massachusetts, State Vital Records, 1638-1927): derivative, primary, direct; accepted; agrees",
+        "  conclusion: an argument is still owed: a conflict is open",
+        "  conclusion: meets the standard"
+       ]
+      }
+     },
+     "why": "the written form says the same in words"
+    }
+   ]
+  },
+  {
+   "say": "the son's parents, one fact with its citations",
+   "proof": {
+    "person": "I332737036054",
+    "fact": "parents"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "parents": {
+        "evidence": {
+         "first": {
+          "original": "1940 census schedule",
+          "classes": {
+           "relationship": "computed",
+           "evidence": "indirect"
+          }
+         }
+        },
+        "verdict": "an argument is still owed",
+        "why": {
+         "has": "it rests only on indirect evidence"
+        }
+       }
+      }
+     },
+     "why": "his parents rest on FamilySearch's own relatives table alone: a computed relationship, indirect evidence, so an argument is still owed"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "computed; accepted [Mother; Father]",
+        "Citing digital folder 005456604, image 109.",
+        "conclusion: an argument is still owed: it rests only on indirect evidence"
+       ]
+      }
+     },
+     "why": "one fact prints every record with its citation, the page's own Cite This Record with its film and image"
+    }
+   ]
+  },
+  {
+   "say": "the mother's spouse: a relationship the census computed beside one the obituary states",
+   "proof": {
+    "person": "I332737037573",
+    "fact": "spouses"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "spouses": {
+        "evidence": [
+         {
+          "original": "1940 census schedule",
+          "classes": {
+           "relationship": "computed",
+           "evidence": "indirect"
+          }
+         },
+         {
+          "said": [
+           "husband"
+          ],
+          "classes": {
+           "source": "original",
+           "relationship": "stated",
+           "evidence": "direct"
+          }
+         }
+        ],
+        "verdict": "an argument is still owed",
+        "why": [
+         "it rests only on secondary or indeterminable information"
+        ]
+       }
+      }
+     },
+     "why": "the obituary as the model read it states the husband (direct evidence), the census's own table computes him (indirect); neither gives the marriage first hand, so an argument is still owed"
+    }
+   ]
+  },
+  {
+   "say": "the owner closes the father's birthplace conflict with a written reason",
+   "dismiss": {
+    "person": "I332737037257",
+    "detail_has": "birth place",
+    "note": "harness: the birth register is the record of the birth itself; the census informant gave the state they lived in"
+   }
+  },
+  {
+   "say": "the father's birth once more",
+   "proof": {
+    "person": "I332737037257",
+    "fact": "birth"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "conflicts": {
+         "some": {
+          "status": "dismissed",
+          "reason": {
+           "starts": "harness: the birth register is the record of the birth itself"
+          }
+         }
+        },
+        "verdict": "research still open",
+        "why": {
+         "none": {
+          "has": "conflict"
+         }
+        }
+       }
+      }
+     },
+     "why": "the conflict closed with the owner's reason is no longer open: his birth's direct primary evidence owes no argument, and what is left is the research its rows have not yet done"
+    },
+    {
+     "last": {
+      "text": {
+       "has": "conflict dismissed: birth place"
+      }
+     }
     }
    ]
   }

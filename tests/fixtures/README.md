@@ -110,7 +110,9 @@ Actions: `plan` (`"all"` or people), `migrate` (`tools/initdb.py --migrate` on t
 line; `{"reset_to": version}` first forgets every later version's own row, since a scratch catalog is born with every
 migration already recorded applied, so a correction is met the way an older catalog upgraded through it would),
 `sync_sources` (`tools/initdb.py --sync-sources` on the scratch catalog itself: the registry's rows and every
-collection's tier, its printed line), `attach`
+collection's tier, its printed line), `proof` (`tools/proof.py`'s summary of a `person`, one `fact` when named: its
+whole, each fact also under `fact.<name>`, and its `text`), `dismiss` (a person's one open conflict question whose
+detail carries `detail_has`, closed by the owner through `tools/log_search.py --dismiss` with a `note`), `attach`
 (`fixture` into the inbox and `tools/attach_inbox.py`, `about` for the
 owner's word), `archive` (a `fixture`, or a stand-in: `stand_in: "image"`, or a page with only a `saved_from` line,
 `suffix` to make other bytes of the same page; `source`, `collection`, `locator`, or a `manifest`; `extract`, `match`

@@ -1,0 +1,409 @@
+#!/usr/bin/env python3
+"""The written conclusion of the Genealogical Proof Standard for a person's key facts (docs/RESEARCH-WORKFLOW.md §5-7,
+"The proof standard"), written by code from the catalog: read-only, no model.
+
+usage: tools/proof.py "<person>" [--fact name|sex|birth|death|parents|spouses|children] [--json] [--tree slug] [--db catalog/tree.db]
+
+For each key fact:
+  value       the value the tree holds, its basis (accepted, claim, rejected) and who decided it: the owner, a session
+              acting for the owner, the rule, or the owner's own word (a vouch); the tree file's own claim and how many of
+              its citations are held
+  evidence    the records behind it, grouped by the original they were copied from (data/evidence-classes.csv: records
+              copied from one original are one source), each with its class words (source: original, derivative or
+              authored; information: primary, secondary or indeterminable; evidence: direct or indirect; a family link's
+              relationship: stated or computed), its status and whether it agrees with the tree's value
+  conflicts   each conflict question on the fact: open, with the side the classes favour (the record of the event itself:
+              primary over secondary, original over derivative over authored, direct over indirect), or closed with the
+              owner's reason
+  research    the fact's checklist rows: held, searched with nothing found, cited and not fetched, blocked, or not yet
+              searched
+  conclusion  meets the standard (an accepted statement both direct and primary, no open conflict, every row held or
+              searched); an argument is still owed, with the reasons (only indirect evidence, only secondary information,
+              no statement both, an open conflict); research still open; or no record accepted.
+The default prints a few lines per fact, the best records first; --fact prints one fact with every record and its
+citation (Evidence Explained style: a FamilySearch page's own "Cite This Record" with its film and image, else the
+collection, holder, locator and date retrieved); --json the whole. No class is ever a number: records are ordered by
+their class words, never scored.
+"""
+import argparse, json, os, re, sqlite3, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from treelib import ROOT, connect, resolve_tree
+from catalog import Catalog, date_verdict, evidence_classes, key, place_verdict, same_surname, split_name
+from facts import KEY_FACTS, fact_subjects
+
+INFORMATION = ("primary", "secondary", "indeterminable", None)    # the order the classes favour a side in, best first
+SOURCE = ("original", "derivative", "authored", None)
+EVIDENCE = ("direct", "indirect", None)
+STATUS = ("accepted", "undecided", "rejected")
+SHOWN = 3                                                          # records a fact's default lines name before "and more"
+ROW_STATES = ("held", "searched, nothing found", "cited, not fetched", "blocked", "not yet searched")
+FACT_ROWS = {                                                      # the checklist rows whose records state each key fact (docs/RESEARCH-CHECKLIST.md)
+    "name": ("birth record", "death record"),
+    "sex": ("birth record",),
+    "birth": ("birth record", "church register (baptisms, marriages, burials)", "census household", "Social Security (SSDI / SS-5)", "WWI draft card", "WWII draft card", "naturalization"),
+    "death": ("death record", "obituary", "cemetery / family plot", "Social Security (SSDI / SS-5)"),
+    "parents": ("birth record", "church register (baptisms, marriages, burials)", "census household", "death record", "Social Security (SSDI / SS-5)"),
+    "spouses": ("marriage record", "census household", "obituary"),
+    "children": ("census household", "obituary", "will / probate"),
+}
+
+def order(c):
+    """The classes' own order for favouring a side: the record of the event itself (primary information) first, then the
+    source (original over derivative over authored), then the evidence (direct over indirect). A sort key of words, never
+    shown and never a score."""
+    c = c or {}
+    return (INFORMATION.index(c.get("information")) if c.get("information") in INFORMATION else 3,
+            SOURCE.index(c.get("source")) if c.get("source") in SOURCE else 3,
+            EVIDENCE.index(c.get("evidence")) if c.get("evidence") in EVIDENCE else 2)
+
+def words(c):
+    """A statement's classes as the words a line prints: source, information, evidence, and a family link's relationship."""
+    if not c: return ""
+    if c.get("vouched"): return "your own word"
+    return ", ".join(x for x in (c.get("source"), c.get("information"), c.get("evidence"), c.get("relationship")) if x)
+
+def decider(by, notes):
+    """Who made a decision, in words, from the assertion's own record of it."""
+    if (notes or {}).get("vouched"): return "your own word"
+    by = by or ""
+    if by.startswith("rule:"): return "the rule"
+    if by.startswith("user:"): return "the owner"
+    if by.startswith("agent:") and " for user:" in by: return "a session for the owner"
+    return by or "unknown"
+
+def _q(cx):
+    q = cx.cursor(); q.row_factory = sqlite3.Row; return q
+
+# ---------------------------------------------------------------- the records
+def record_info(cx, sha, cache, entry=None):
+    """What a line says about an archived record: its short name, its locator and its citation (Evidence Explained style),
+    the citation naming entry, the person as the record writes them, where the record's own citation does not."""
+    if (sha, entry) in cache: return cache[(sha, entry)]
+    q = _q(cx)
+    a = q.execute("""SELECT ar.sha256, ar.mime, ar.locator_kind, ar.locator_value, ar.retrieved_at, ar.original_filename, c.name AS collection, s.name AS source, s.id AS source_id
+                     FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?""", (sha,)).fetchone()
+    e = q.execute("""SELECT e.structured_json, x.name, x.kind FROM extraction e JOIN extractor x ON x.id=e.extractor_id
+                     WHERE e.artifact_sha256=? AND e.superseded_by IS NULL AND e.status<>'failed' ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
+    try: parsed = json.loads(e["structured_json"]) if e and e["structured_json"] else {}
+    except ValueError: parsed = {}
+    parsed = parsed if isinstance(parsed, dict) else {}
+    locs = {r["kind"]: r["value"] for r in q.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=?", (sha,))}
+    own = re.sub(r"^[^•]*•\s*", "", parsed.get("collection") or "").strip() if e and e["name"] == "familysearch-record" else ""
+    name = own or (a["collection"] if a else None) or (a["source"] if a else None) or sha[:12]
+    if "memorial_id" in locs: name = f"Find a Grave memorial {locs['memorial_id']}"
+    url = (f"https://www.familysearch.org/{locs['ark']}" if "ark" in locs else f"https://www.findagrave.com/memorial/{locs['memorial_id']}/" if "memorial_id" in locs
+           else a["locator_value"] if a and a["locator_kind"] == "url" else f"Ancestry record {a['locator_value']}" if a and a["locator_kind"] == "apid" else (a["original_filename"] if a else None))
+    retrieved = (a["retrieved_at"] or "")[:10] if a else ""
+    if e and e["name"] == "familysearch-record" and parsed.get("citation"):
+        doc = {str(k).lower(): v for k, v in parsed.get("document") or []}
+        film = ", ".join(f"{label} {doc[k]}" for k, label in (("microfilm number", "microfilm"), ("digital folder number", "digital folder"), ("image number", "image")) if doc.get(k))
+        cite = parsed["citation"].strip() + (f" Citing {film}." if film else "")
+    else:
+        reader = f"; read by {e['name']}" if e and e["kind"] in ("llm", "human") else ""
+        cite = f"\"{name}\", {a['source'] if a else 'unknown holder'} ({url or 'no locator'}" + (f" : accessed {retrieved}" if retrieved else "") + ")" + \
+               (f", entry for {entry}" if entry else "") + reader + "."
+    cache[(sha, entry)] = {"sha256": sha, "name": name, "locator": url, "citation": cite}
+    return cache[(sha, entry)]
+
+def statements(cat, pid, field):
+    """Every assertion behind one key fact: what it says (a date and a place, a name, a sex, the link's own words and the
+    relative it names), its status, who decided it, and its classes (catalog.evidence_classes). The tree file's own
+    claims and their citations are kept apart as kind file; the owner's own word as kind vouch."""
+    cx, q = cat.cx, _q(cat.cx)
+    want = {"name": "Name", "sex": "Sex"}.get(field)
+    out = []
+    for kind, sid in fact_subjects(cx, pid, field):
+        relative = None
+        if kind == "family_member":
+            fid, who, role = json.loads(sid)
+            if field == "parents": relative = " & ".join(n for n, in q.execute("SELECT p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=? AND fm.role='partner' ORDER BY p.display_name", (fid,)))
+            elif field == "spouses": relative = next((n for n, in q.execute("SELECT p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=? AND fm.role='partner' AND fm.person_id<>?", (fid, pid))), None)
+            else: relative = next((n for n, in q.execute("SELECT display_name FROM person WHERE id=?", (who,))), None)
+        for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start,
+                                     pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona
+                              FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                              LEFT JOIN persona pe ON pe.id=coalesce(pf.persona_id, a.persona_id)
+                              LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=? ORDER BY a.asserted_at, a.id""", (kind, sid)):
+            if want and r["fact_type"] and r["fact_type"] != want: continue
+            try: notes = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
+            except ValueError: notes = {}
+            st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"],
+                  "said": re.sub(r"\s+on the record$", "", r["citation_text"] or "") if kind == "family_member" else None,
+                  "value": r["value_text"], "date": {"start": r["date_start"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_text"] else None,
+                  "place": r["place"], "apid": notes.get("apid")}
+            if notes.get("vouched"): st.update({"kind": "vouch", "classes": {"vouched": True}})
+            elif r["mime"] == "text/x-gedcom": st.update({"kind": "file", "classes": evidence_classes(cx, r["id"])})
+            else: st.update({"kind": "record", "classes": evidence_classes(cx, r["id"])})
+            out.append(st)
+    return out
+
+# ---------------------------------------------------------------- the tree's value and agreement
+def tree_value(cat, pid, field, ev, fam):
+    """(the value the tree holds in words, what statements are compared against)."""
+    if field == "name": n = cat.person(pid)["name"]; return n, n
+    if field == "sex": s = cat.person(pid)["sex"]; return s, s
+    if field in ("birth", "death"):
+        e = cat.canonical_event(ev, field.title())
+        if not e: return None, None
+        place = e["place"]["text"] if e["place"] else None
+        start = next((r[0] for r in cat.q("SELECT date_start FROM event WHERE id=?", e["id"])), None)
+        qual = next((r[0] for r in cat.q("SELECT date_qualifier FROM event WHERE id=?", e["id"])), None)
+        return ", ".join(x for x in (e["date_text"], place) if x) or None, {"date": {"start": start, "text": e["date_text"], "qualifier": qual}, "place": place}
+    names = [n for _, n in fam[field]]
+    return (" & ".join(names) if field == "parents" else ", ".join(names)) or None, names
+
+def agreement(field, st, tree):
+    """Whether a statement agrees with the tree's value, in words: agrees (with a note: the year only, a coarser place, a
+    spelling variant), or what it says instead. None where there is nothing to compare."""
+    if tree is None: return None
+    if field == "name" and st["value"]:
+        (rg, rs, _), (tg, ts, _) = split_name(st["value"]), split_name(tree)
+        rgiven, tgiven = [key(x) for x in (rg or "").split() if key(x)], [key(x) for x in (tg or "").split() if key(x)]
+        sur = same_surname(key(rs), key(ts))
+        if not (rgiven and tgiven and rgiven[0] == tgiven[0] and sur): return f"says {st['value']}"
+        notes = [] if sur == "agrees" else [f"the surname {sur}" if sur != "variant" else "the surname a spelling variant"]
+        if rgiven != tgiven:
+            fits = all(any(t == r or (len(r) == 1 and t.startswith(r)) for t in tgiven) for r in rgiven)
+            notes.append(f"given names {rg}" if not fits else "fewer given names" if len(rgiven) < len(tgiven) else "a given name as its initial")
+        return "agrees" + (f": {', '.join(notes)}" if notes else "")
+    if field == "sex" and st["value"]:
+        v = {"male": "M", "female": "F"}.get(st["value"].strip().lower(), st["value"].strip()[:1].upper())
+        return "agrees" if v == tree else f"says {st['value']}"
+    if field in ("birth", "death"):
+        notes, says = [], []
+        if st["date"]:
+            v, n = date_verdict(st["date"], tree["date"])
+            if v == "disagrees": says.append(st["date"]["text"])
+            elif v == "agrees" and n: notes.append(n.split(";")[0])
+        if st["place"]:
+            v, n = place_verdict(st["place"], tree["place"])
+            if v == "disagrees": says.append(st["place"])
+            elif v == "agrees" and n: notes.append(n)
+        if not (st["date"] or st["place"]): return None
+        return f"says {', '.join(says)}" if says else ("agrees" + (f": {'; '.join(notes)}" if notes else ""))
+    return None
+
+# ---------------------------------------------------------------- the groups by original
+def groups(cx, field, sts, tree, cache):
+    """The record statements grouped by the original they were copied from (the classes' original, else the record itself),
+    best first: accepted before undecided before rejected, then by the classes' own order. Each group carries its records,
+    its best statement's classes, its status, what it says against the tree, and who decided."""
+    by = {}
+    for st in sts:
+        if st["kind"] != "record": continue
+        c = st["classes"] or {}
+        g = by.setdefault(c.get("original") or st["sha256"], {"original": c.get("original"), "records": [], "statements": []})
+        if st["sha256"] not in g["records"]: g["records"].append(st["sha256"])
+        st["agrees"] = agreement(field, st, tree)
+        g["statements"].append(st)
+    out = []
+    for g in by.values():
+        live = [s for s in g["statements"] if s["status"] != "rejected"] or g["statements"]
+        best = min(live, key=lambda s: (STATUS.index(s["status"]), order(s["classes"])))
+        names = list(dict.fromkeys(record_info(cx, sha, cache)["name"] for sha in g["records"]))
+        says = list(dict.fromkeys(s["agrees"] for s in live if s["agrees"]))
+        records = {}
+        for s in g["statements"]:
+            rec = record_info(cx, s["sha256"], cache, s["persona"])
+            records.setdefault(rec["citation"], rec)
+        out.append({"original": g["original"], "label": (f"{g['original']} ({'; '.join(names)})" if g["original"] else "; ".join(names)),
+                    "records": list(records.values()), "status": best["status"], "classes": best["classes"],
+                    "says": says, "said": list(dict.fromkeys(re.sub(r" of .*$", "", s["said"]) for s in live if s["said"])), "relatives": list(dict.fromkeys(s["relative"] for s in live if s["relative"])),
+                    "decided_by": list(dict.fromkeys(s["by"] for s in g["statements"] if s["status"] == "accepted")),
+                    "statements": [{k: s[k] for k in ("id", "status", "by", "said", "relative", "value", "date", "place", "agrees", "classes")} for s in g["statements"]]})
+    out.sort(key=lambda g: (STATUS.index(g["status"]), order(g["classes"])))
+    return out
+
+# ---------------------------------------------------------------- conflicts
+def fact_of(detail):
+    """The key fact a conflict question is about, from its own words."""
+    d = (detail or "").lower()
+    if d.startswith("birth") or "birth event" in d: return "birth"
+    if d.startswith("death") or "death event" in d: return "death"
+    if "marriage" in d: return "spouses"
+    return None
+
+def resolution(cat, qid, detail_json):
+    """The owner's written reason on a closed conflict: kept on the question itself, in a note on it, or on the audit row
+    that closed it (tools/log_search.py --dismiss --note, tools/conclude.py resolve); None when no reason was written."""
+    try: d = json.loads(detail_json or "{}")
+    except ValueError: d = {}
+    for k in ("resolution", "reason", "note", "kept"):
+        if isinstance(d.get(k), str) and d[k].strip(): return d[k].strip()
+    n = cat.q("SELECT body FROM note WHERE entity_kind='research_question' AND entity_id=? ORDER BY created_at DESC LIMIT 1", qid)
+    if n: return n[0][0]
+    for diff, in cat.q("SELECT diff_json FROM audit_log WHERE entity_kind='research_question' AND entity_id=? ORDER BY at DESC", qid):
+        try: d = json.loads(diff or "{}")
+        except ValueError: continue
+        for k in ("note", "reason", "resolution"):
+            if isinstance(d.get(k), str) and d[k].strip(): return d[k].strip()
+    return None
+
+def favours(field, axis, sts, cx, cache):
+    """The side the classes favour in a date or place conflict: the values the statements give (rejected ones aside),
+    the most specific first, grouped where they agree; a value that agrees with more than one side (a year against two
+    days of it, a state against two towns in it) takes no side. Each side is read by its best statement in the classes'
+    own order. Words, or None when the statements give fewer than two sides."""
+    value = lambda st: st["date"] if axis == "date" else st["place"]
+    detail = lambda v: len(v.get("start") or "") if axis == "date" else len([p for p in re.split(r"<|,", v) if p.strip()])
+    same = (lambda a, b: date_verdict(a, b)[0] == "agrees") if axis == "date" else (lambda a, b: place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees")
+    sides = []
+    for st in sorted((s for s in sts if s["status"] != "rejected" and s["kind"] != "vouch" and value(s)), key=lambda s: -detail(value(s))):
+        fits = [s for s in sides if same(value(st), s["value"])]
+        if len(fits) > 1: continue
+        if not fits: fits = [{"value": value(st), "statements": []}]; sides.append(fits[0])
+        fits[0]["statements"].append(st)
+    if len(sides) < 2: return None
+    for s in sides: s["best"] = min(s["statements"], key=lambda x: order(x["classes"]))
+    sides.sort(key=lambda s: order(s["best"]["classes"]))
+    text = lambda s: s["value"]["text"] if axis == "date" else s["value"]
+    who = lambda st: "the file" if st["kind"] == "file" else (st["classes"] or {}).get("original") or record_info(cx, st["sha256"], cache)["name"]
+    a, b = sides[0], sides[1]
+    if order(a["best"]["classes"]) == order(b["best"]["classes"]):
+        return f"the classes favour neither side: {text(a)} and {text(b)} each rest at best on {words(a['best']['classes'])}"
+    return f"the classes favour {text(a)} ({who(a['best'])}: {words(a['best']['classes'])}) over {text(b)} ({who(b['best'])}: {words(b['best']['classes'])})"
+
+def conflicts(cat, pid, field, sts, cache):
+    """The conflict questions on this fact: every research_question of kind conflict on the person that names it, open or
+    closed by the owner (resolved with a reason, or dismissed), and any difference the catalog finds now that no question
+    carries yet (Catalog.disagreements, Catalog.unplaced). An open date or place conflict on a birth or death carries the
+    side the classes favour."""
+    out, seen = [], set()
+    for qid, status, reason, detail_json in cat.q("SELECT id, status, closed_reason, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict'", pid):
+        try: detail = json.loads(detail_json or "{}").get("detail") or ""
+        except ValueError: detail = ""
+        seen.add(detail)
+        if fact_of(detail) != field: continue
+        if status == "closed" and reason not in ("resolved", "dismissed"): continue      # gone with its gap, or answered: no longer a conflict
+        out.append({"detail": detail, "status": "open" if status == "open" else reason, "reason": resolution(cat, qid, detail_json) if status == "closed" else None})
+    for detail in cat.disagreements(pid) + cat.unplaced(pid):
+        if detail not in seen and fact_of(detail) == field: out.append({"detail": detail, "status": "open", "reason": None})
+    for c in out:
+        if c["status"] == "open" and field in ("birth", "death"):
+            axis = "place" if re.match(r"^\w+ place\b", c["detail"]) else "date"
+            c["favours"] = favours(field, axis, sts, cat.cx, cache)
+    return out
+
+# ---------------------------------------------------------------- research
+def research(cat, pid, field, rows):
+    """The fact's checklist rows (FACT_ROWS), each with its state: held; searched, nothing found (every step on the row has
+    a none run at each of its sources); blocked (a step blocked, or a run that was); cited, not fetched; not yet searched.
+    A row the era rules out (n/a) is left out."""
+    out = []
+    for r in rows:
+        if r["record"] not in FACT_ROWS[field] or r["status"] == "n/a": continue
+        name = {"row": r["record"], "instance": r.get("instance")}
+        if r["status"] == "held": out.append({**name, "state": "held"}); continue
+        steps = cat.q("SELECT id, kind, mode, sources_json, locator_source_id FROM search_plan WHERE person_id=? AND row_key=? AND status<>'skipped'", pid, f"{r['record']}:{r.get('instance') or ''}")
+        searched, blocked = bool(steps), False
+        for sid, kind, mode, sources, holder in steps:
+            runs = cat.q("SELECT source_id, outcome FROM search_log WHERE plan_step_id=?", sid)
+            if mode == "blocked" or any(o == "blocked" for _, o in runs): blocked = True
+            want = {holder} if kind == "fetch" and holder else set(json.loads(sources or "[]"))
+            if not (want and want <= {s for s, o in runs if o == "none"}): searched = False
+        state = "searched, nothing found" if searched else "blocked" if blocked else "cited, not fetched" if r["status"] == "cited" else "not yet searched"
+        out.append({**name, "state": state})
+    return out
+
+def rows_text(rows):
+    """Checklist rows in words, one record's instances together: "census household 1920, 1940"."""
+    by = {}
+    for r in rows: by.setdefault(r["row"], []).append(r.get("instance"))
+    return ", ".join(rec + (" " + ", ".join(str(i) for i in insts if i) if any(insts) else "") for rec, insts in by.items())
+
+# ---------------------------------------------------------------- the conclusion
+def conclusion(basis, accepted, vouched, open_conflicts, rows):
+    """(verdict, reasons): the written conclusion's own words."""
+    if basis is None: return "no claim", []
+    if basis == "rejected": return "rejected", []
+    if not accepted:
+        return "no record accepted", (["it rests on your own word"] if vouched else ["it rests on the file's claim"])
+    owed = []
+    cls = [s["classes"] or {} for s in accepted]
+    if not any(c.get("evidence") == "direct" for c in cls): owed.append("it rests only on indirect evidence")
+    if not any(c.get("information") == "primary" for c in cls):
+        owed.append("it rests only on secondary information" if all(c.get("information") == "secondary" for c in cls) else "it rests only on secondary or indeterminable information")
+    if not owed and not any(c.get("evidence") == "direct" and c.get("information") == "primary" for c in cls): owed.append("no statement is both direct and primary")
+    if open_conflicts: owed.append(f"{'a conflict is' if open_conflicts == 1 else f'{open_conflicts} conflicts are'} open")
+    if owed: return "an argument is still owed", owed
+    left = {}
+    for r in rows:
+        if r["state"] not in ("held", "searched, nothing found"): left.setdefault(r["state"], []).append(r)
+    if left: return "research still open", [f"{state}: {rows_text(rs)}" for state, rs in left.items()]
+    return "meets the standard", []
+
+def build(cat, pid, only=None):
+    """The proof summary of a person's key facts (one when only names it), as a dict: the person, then per fact its value,
+    basis, deciders, the file's claim, the evidence groups, the conflicts, the research and the conclusion."""
+    from checklist import build as checklist
+    ev, fam = cat.events(pid), cat.family(pid)
+    basis = cat.key_fact_basis(pid, ev)
+    rows = checklist(cat, pid)["checklist"]
+    rows = rows["A"] + rows["B"]
+    cache, facts = {}, []
+    for field in KEY_FACTS:
+        if only and field != only: continue
+        value, tree = tree_value(cat, pid, field, ev, fam)
+        sts = statements(cat, pid, field)
+        gs = groups(cat.cx, field, sts, tree, cache)
+        files = [s for s in sts if s["kind"] == "file" and s["status"] != "rejected"]
+        apids = list(dict.fromkeys(s["apid"] for s in files if s["apid"]))
+        held = [a for a in apids if cat.held_for(a, pid)]
+        vouched = [s for s in sts if s["kind"] == "vouch" and s["status"] == "accepted"]
+        accepted = [s for s in sts if s["kind"] == "record" and s["status"] == "accepted"]
+        cf = conflicts(cat, pid, field, sts, cache)
+        rs = research(cat, pid, field, rows)
+        verdict, why = conclusion(basis[field], accepted, vouched, sum(1 for c in cf if c["status"] == "open"), rs)
+        facts.append({"fact": field, "value": value, "basis": basis[field],
+                      "decided_by": list(dict.fromkeys(s["by"] for s in sts if s["status"] == "accepted")),
+                      "file": {"claims": bool(files), "citations": len(apids), "held": len(held)} if files else None,
+                      "vouched": bool(vouched), "evidence": gs, "conflicts": cf, "research": rs, "verdict": verdict, "why": why})
+    p = cat.person(pid)
+    return {"person": {"id": pid, "name": p["name"]}, "facts": facts}
+
+# ---------------------------------------------------------------- the written form
+def render(r, full=False):
+    """The summary as text: a few lines per fact by default, every record with its citation when full."""
+    out = [f"{r['person']['name']} [{r['person']['id'][-6:]}]"]
+    for f in r["facts"]:
+        head = f"{f['fact']}: {f['value'] or '(none)'}  {f['basis'] or 'no claim'}"
+        if f["decided_by"]: head += f" ({', '.join(f['decided_by'])})"
+        if f["file"]: head += "; the file claims it" + (f", citing {f['file']['citations']} record(s), {f['file']['held']} held" if f["file"]["citations"] else ", citing none")
+        out.append(head)
+        shown = f["evidence"] if full else f["evidence"][:SHOWN]
+        for g in shown:
+            who = f" [{'; '.join(g['said'])}{': ' + ', '.join(g['relatives']) if g['relatives'] and f['fact'] in ('spouses', 'children') else ''}]" if g["said"] else ""
+            says = f"; {'; '.join(g['says'])}" if g["says"] else ""
+            out.append(f"  {g['label']}: {words(g['classes'])}; {g['status']}{says}{who}")
+            if full:
+                for rec in g["records"]: out.append(f"      {rec['citation']}")
+                for s in g["statements"]:
+                    if s["status"] == "rejected": out.append(f"      a statement rejected [{s['id'][-6:]}]")
+        rest = f["evidence"][len(shown):]
+        if rest:
+            n = {st: sum(1 for g in rest if g["status"] == st) for st in STATUS}
+            out.append("  and " + ", ".join(f"{v} more {k}" for k, v in n.items() if v))
+        for c in f["conflicts"]:
+            line = f"  conflict {c['status']}: {c['detail']}"
+            if c.get("reason"): line += f"; reason: {c['reason']}"
+            if c.get("favours"): line += f"; {c['favours']}"
+            out.append(line)
+        if f["research"]:
+            by = {s: [] for s in ROW_STATES}
+            for x in f["research"]: by[x["state"]].append(x)
+            by = {s: rs for s, rs in by.items() if rs}
+            out.append("  research: " + "; ".join(f"{state}: {rows_text(rs)}" for state, rs in by.items()))
+        out.append(f"  conclusion: {f['verdict']}" + (f": {'; '.join(f['why'])}" if f["why"] else ""))
+    return "\n".join(out)
+
+def main():
+    ap = argparse.ArgumentParser(description="The proof standard's written conclusion for a person's key facts: read-only, written by code.")
+    ap.add_argument("person"); ap.add_argument("--fact", choices=KEY_FACTS); ap.add_argument("--json", action="store_true"); ap.add_argument("--tree")
+    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    a = ap.parse_args()
+    cx = connect(a.db); tree_id, _ = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
+    r = build(cat, cat.find_person(a.person), only=a.fact)
+    print(json.dumps(r, ensure_ascii=False, indent=1) if a.json else render(r, full=bool(a.fact)))
+
+if __name__ == "__main__":
+    main()
