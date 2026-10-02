@@ -310,10 +310,6 @@ the owner's.
 
 Waiting on events the repo cannot drive.
 
-- **FamilySearch API access** — Innovator Program approval after the
-  application is submitted; the application text is written when the owner
-  wants to submit it. Approval moves most Layer 1–2 searches from assisted to
-  automatic.
 - **NARA Catalog API key** — issued by email on request.
 - **Pennsylvania death and birth certificates** — no free holder: Power
   Library shows the PA State Archives collections left the site and PHMC

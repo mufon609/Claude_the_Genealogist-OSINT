@@ -89,7 +89,7 @@ source and never turned into a score; the decision on a fact stays three-state.
 
 | Source | Programmatic access | Verdict |
 |---|---|---|
-| FamilySearch | REST, OAuth2, free, **closed to public** — Innovator Program application required | Apply early; it is the single largest free index. Sandbox on approval. |
+| FamilySearch | REST, OAuth2, closed to the public (Innovator Program) | **Not used**, the owner's decision. Its record and search pages are saved in the owner's browser by the page-saves-itself method and read by the `familysearch-record` and `familysearch-search` parsers; the decisions on them are automated from the saved page. |
 | Ancestry | **Skipped.** No API, ToS bans scraping, record pages need a membership. The project's point is the records Ancestry charges for, found free. | User-exported GEDCOM is the only path in; cited records are fetched from free holders (`holders.csv`). |
 | Find a Grave | **None.** Ancestry-owned; ToS bans automation. | Store memorial IDs; user-initiated fetch only. |
 | Find a Grave photographs | None; each image saved in the owner's browser one at a time (`tools/save_image.js`) | Registry row E05 (T1): a memorial's photographs typed Grave by the page are fetch steps under the cemetery row of the person accepted as its subject, read by the transcription path into a card. |

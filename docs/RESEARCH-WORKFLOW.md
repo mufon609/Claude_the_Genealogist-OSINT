@@ -873,5 +873,6 @@ row is then held, and the assertion comes from extraction and review.
   the review needs the record.
 - The first screen is the person: claims, evidence, verdicts, then their
   questions and the plan for each.
-- FamilySearch Innovator Program approval is what turns most Layer 1–2
-  searches from assisted into automatic.
+- FamilySearch is reached through the owner's browser only, never its API
+  (the owner's decision): its pages are saved one at a time and every
+  decision on them is automated from the saved page.
