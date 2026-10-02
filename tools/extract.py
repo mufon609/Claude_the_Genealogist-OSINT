@@ -42,11 +42,11 @@ and every table. Re-running inserts a new extraction, marks the old one
 superseded, and rejects the old one's undecided proposals with the note
 superseded: they rested on personas that are no longer current. A persona the
 old extraction had decided (accepted or rejected as a person) carries its
-decision to the new persona of the same name and role on the same page: the
-decision was about the record, and the bytes have not changed; an accepted link
-then asserts the new extraction's facts and links the same way the decision did,
-adding only what the record did not already assert. Everything else is
-matched again.
+decision to the new persona of the same entry on the page (catalog.persona_key:
+its record id, else its role, row and name): the decision was about that entry
+of the record, and the bytes have not changed; an accepted link then asserts
+the new extraction's facts and links the same way the decision did, adding only
+what the record did not already assert. Everything else is matched again.
 
 Page structure assumed for an Ancestry index page: the record's fields are rows
 of a table with a label cell (th, or the first cell) and a value cell; a table
@@ -150,6 +150,7 @@ from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 from conclude import assert_facts, link_family
+from catalog import is_identity, page_entries
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.6.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
@@ -1194,23 +1195,32 @@ def extract(cx, sha, by):
     return eid, w.n
 
 def carry_links(cx, old, eid, sha, by, ts):
-    """A decided person-persona link on a superseded extraction moves to the new persona of the same name and role; an accepted
-    one asserts the new facts and links onto the person as the decision did. An undecided link is not a decision, so it does
-    not carry: the matcher proposes that persona again. Returns how many links were carried."""
-    n = 0
+    """A decided person-persona link on a superseded extraction moves to the new reading's persona of the same entry of the
+    page (catalog.persona_key: its record id, else its role, row and name). An old persona whose entry no new persona carries
+    (an older parser that wrote no identity, or wrote it otherwise) moves to the one new persona of its name and role only
+    when it is also the one persona of that name and role on its own reading, and never from one record id to another;
+    otherwise the link stays behind and the matcher proposes the persona again: a card coming back is safe, a link on another
+    row is not. An accepted link asserts the new facts and links onto the person as the decision did. An undecided link is
+    not a decision, so it does not carry. Returns how many links were carried."""
+    n, carried = 0, []
+    new = page_entries(cx, sha, eid)
+    one_of = lambda entries, name, role: [e for e in entries if e[2] == name and e[3] == role]
     for o in old:
-        for pp in cx.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at, pe.name_text, pe.role_in_record, p.tree_id
+        was = page_entries(cx, sha, o)
+        key_of = {pid: key for pid, _, _, _, key in was}
+        for pp in cx.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at, pe.name_text, pe.role_in_record, p.tree_id, pe.id
                                 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
                                 WHERE pe.extraction_id=? AND pp.status IN ('accepted','rejected')""", (o,)).fetchall():
-            new = cx.execute("SELECT id FROM persona WHERE extraction_id=? AND name_text=? AND role_in_record=?", (eid, pp[5], pp[6])).fetchone()
-            if not new: continue
-            cx.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (pp[0], new[0], pp[1], pp[2], pp[3], pp[4])); n += 1
-    for o in old:                                                # links first, so the family relations see every accepted persona
-        for pp in cx.execute("""SELECT pp.person_id, pp.proposal_id, pe.name_text, pe.role_in_record, p.tree_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
-                                JOIN person p ON p.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted'""", (o,)).fetchall():
-            new = cx.execute("SELECT id FROM persona WHERE extraction_id=? AND name_text=? AND role_in_record=?", (eid, pp[2], pp[3])).fetchone()
-            if not new: continue
-            assert_facts(cx, pp[4], pp[0], new[0], pp[1], by, ts); link_family(cx, pp[4], pp[0], new[0], sha, pp[1], by, ts)
+            k = key_of[pp[8]]
+            to = [pid for pid, _, _, _, key in new if key == k]
+            if not to:
+                before, after = one_of(was, pp[5], pp[6]), one_of(new, pp[5], pp[6])
+                if len(before) == 1 and len(after) == 1 and not (is_identity(k) and is_identity(after[0][4])): to = [after[0][0]]
+            for pid in to:
+                cx.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (pp[0], pid, pp[1], pp[2], pp[3], pp[4])); n += 1
+                if pp[1] == "accepted": carried.append((pp[7], pp[0], pid, pp[2]))
+    for tree_id, person_id, pid, prop_id in carried:            # links first, so the family relations see every accepted persona
+        assert_facts(cx, tree_id, person_id, pid, prop_id, by, ts); link_family(cx, tree_id, person_id, pid, sha, prop_id, by, ts)
     return n
 
 def stale(cx):

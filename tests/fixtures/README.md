@@ -40,6 +40,7 @@ as it is.
 | `familysearch-search-kentucky-birth-index-robert-edgar-davidson.html` | FamilySearch record search results, the Kentucky Birth Index 1911-1999 for Robert Edgar Davidson, a hundred rows of Davidsons born from 1911 to 1999, as the archive holds it | `rule:familysearch-search` | FamilySearch terms |
 | `va-gravesite-search-davidson-raymond-2007.html` | The VA Nationwide Gravesite Locator's results page for Davidson, Raymond, died 2007, as the connector's posted search received it: two decedents, the second Raymond E Davidson (1939–2007) | `rule:va-gravesite` | public record, Department of Veterans Affairs |
 | `va-gravesite-search-davidson-raymond-page1.html` | The same locator's first page for Davidson, Raymond with no year: ten of 22 decedents and the links to the next pages, as the connector received it on a scratch run | `rule:va-gravesite` | public record, Department of Veterans Affairs |
+| `va-gravesite-search-davidson-raymond-e.html` | The same locator's page for Davidson, Raymond E, as the archive holds it: five decedents, two of them written Raymond E Davidson, the first (1939–2007) the harness's Raymond Earl Davidson and the second (1930–2021) another man | `rule:va-gravesite` | public record, Department of Veterans Affairs |
 
 ## From connector runs
 
@@ -178,13 +179,14 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 `kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `note`, `rationale`), `rule` (`taken`, `why`),
 `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, and with `record` its `statements` on them by status), `disagreements`, `question`,
-`assertions_on`, `links` (a person's link statuses on a record's personas), `is_subject`, `citations_held`,
+`assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
 `living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row,
 `tier` as `catalog.tier_sql` reads it and `collection_tier` its collection's own), `artifact_where`, `classes` (a
 record's statements on a person's events of an `event_type`, or on a family `link`, read by
 `catalog.evidence_classes`: some statement's `source`, `information`, `evidence`, `relationship`, `original`),
-`conflict_rule` (the rule's test on a conflict, `conclude.classes_decide`, on a person's event of a `type` and its `axis`,
+`statement` (which reading a record's statements on a person's events of an `event_type` are read through,
+`catalog.statement_of`: `current` or `earlier` each), `conflict_rule` (the rule's test on a conflict, `conclude.classes_decide`, on a person's event of a `type` and its `axis`,
 date or place: `taken` and the reason, `why`), `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside

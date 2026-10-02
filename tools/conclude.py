@@ -61,7 +61,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - rule_accepts: whether the rule takes a proposal, and why or why not, in words.
 - reconsider, withdraw: the rule's decisions examined again; one it would no longer take, taken back; a card it would now take, taken.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
-- same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that name and role on the record.
+- same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
+  id, else its role, row and name), never to another row of the same name.
 - decide_place: the owner's answer on a place string the resolver left undecided, which real place its words mean or that they are
   not a place, applied wherever the same words appear.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
@@ -72,7 +73,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
-from catalog import Catalog, source_tier, split_name, tier_sql
+from catalog import Catalog, page_entries, source_tier, split_name, tier_sql
 from catalog import date_verdict, holds, place_verdict, same_surname
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
@@ -168,13 +169,15 @@ class _q:
         c = self.cx.cursor(); c.row_factory = sqlite3.Row; return c.execute(sql, args)
 
 def same_personas(cx, persona_id):
-    """Every persona on the same record with the same name and role as this one, across every extraction of the record, itself
-    included: a decision is about the record, whose bytes do not change between readings, so it applies to each reading's
-    persona of that name and role, and a withdrawal or a rejection resets them all. The earlier readings' links are history;
+    """Every persona of the same entry of the record as this one (catalog.persona_key: its record id, else its role, row and
+    name), across every extraction of the record, itself included: a decision is about one entry of the record, whose bytes do
+    not change between readings, so it applies to each reading's persona of that entry, and a withdrawal or a rejection resets
+    them all. Another row of the same name is another entry and never takes it. The earlier readings' links are history;
     readers of accepted links join on current extractions only."""
-    q = _q(cx)
-    pe = q.execute("SELECT artifact_sha256, name_text, role_in_record FROM persona WHERE id=?", (persona_id,)).fetchone()
-    return [r["id"] for r in q.execute("SELECT id FROM persona WHERE artifact_sha256=? AND name_text IS ? AND role_in_record IS ?", (pe["artifact_sha256"], pe["name_text"], pe["role_in_record"]))]
+    sha = cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()[0]
+    entries = page_entries(cx, sha)
+    k = next(key for pid, _, _, _, key in entries if pid == persona_id)
+    return [pid for pid, _, _, _, key in entries if key == k]
 
 def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record
@@ -723,7 +726,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         person_id = create_person(cx, tree_id, persona_id, ts)
         q.execute("UPDATE proposal SET payload_json=json_set(payload_json,'$.person_id',?) WHERE id=?", (person_id, prop_id))
     if person_id:
-        for pe_id in same_personas(cx, persona_id):                # the decision is about the record: every reading's persona of this name and role takes it
+        for pe_id in same_personas(cx, persona_id):                # the decision is about this entry of the record: every reading's persona of it takes it
             q.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (person_id, pe_id, status, prop_id, by, ts))
     answered = []
     if status == "accepted":
@@ -1655,7 +1658,7 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
     n = q.execute("UPDATE assertion SET status='undecided' WHERE tree_id=? AND status='accepted' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id)).rowcount
     q.execute("UPDATE alias SET status='undecided' WHERE tree_id=? AND status='accepted' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id))
     q.execute("UPDATE proposal SET status='undecided', decided_by=NULL, decided_at=NULL, decision_note=? WHERE id=?", (f"the rule took its decision back: {why}", prop_id))
-    ids = same_personas(cx, pay["persona_id"])                       # every reading's persona of this name and role on the record, the re-reads' included
+    ids = same_personas(cx, pay["persona_id"])                       # every reading's persona of this entry of the record, the re-reads' included
     q.execute(f"UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE person_id=? AND persona_id IN ({','.join('?' * len(ids))})", (pay["person_id"], *ids))
     q.execute("UPDATE research_question SET closed_reason='gap_gone', answered_by_proposal_id=NULL WHERE answered_by_proposal_id=?", (prop_id,))
     for pid in dict.fromkeys([pay.get("person_id"), pay.get("subject_person_id")]):
