@@ -45,7 +45,7 @@
      "kind": "parent",
      "to": 1,
      "value": "Father",
-     "computed": true
+     "computed": false
     }
    ],
    "why": "the father the index gives by his surname alone: a persona with the name as written, never dropped"
@@ -58,7 +58,7 @@
      "kind": "parent",
      "to": 1,
      "value": "Mother",
-     "computed": true
+     "computed": false
     }
    ],
    "why": "the mother, her maiden surname alone, the same; the Other People row the index writes UNKNOWN still names nobody"

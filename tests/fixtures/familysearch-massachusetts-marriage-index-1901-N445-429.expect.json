@@ -36,7 +36,7 @@
      "kind": "parent",
      "to": 1,
      "value": "Father",
-     "computed": true
+     "computed": false
     }
    ],
    "why": "the groom's father, given by one name only: a persona with the name as written, never dropped"
@@ -49,10 +49,10 @@
      "kind": "spouse",
      "to": 1,
      "value": "Wife",
-     "computed": true
+     "computed": false
     }
    ],
-   "why": "the bride, her own details open; the page gives her only in FamilySearch's Spouses and Children table, so Wife is marked computed"
+   "why": "the bride, her own details open; the page gives her only in FamilySearch's Spouses and Children table, and a marriage record names the couple, so Wife is stated, not computed"
   },
   "5": {
    "name": "Dennis",

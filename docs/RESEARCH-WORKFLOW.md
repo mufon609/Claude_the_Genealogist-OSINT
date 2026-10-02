@@ -548,7 +548,7 @@ memorial's subject, and in the parsed page every photograph with the type the
 page gives it; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
-`rule:familysearch-record@0.5.0` (one persona per person the page names, in
+`rule:familysearch-record@0.6.0` (one persona per person the page names, in
 the page's own role word, a relative given one name only (Thomas, Davidson)
 included with the name as written, a row with no name in it (", [1918]") or
 the index's UNKNOWN none; one fact per field as written, a member's own
@@ -560,11 +560,15 @@ same as the shown value, and beneath an Event Date that shows a time of day
 the date it keeps is the event's own date, the time a fact under its own
 label; each person's relationship to the household's head as the record's own
 column states it, when the page shows who the head is, and a parent a field
-names (Father's Name) toward the subject, as stated relations; every grouping
-FamilySearch's relatives tables make around the page's own person (Mother,
-Sister, Husband, the couple of the parents listed) written too, marked
-`computed` in the relation's region, the site's inference and not the
-record's statement; the relatives its fields name as personas; verified on
+names (Father's Name) toward the subject, and, on a record of one event (a
+birth, a marriage, a death, a naturalization), the relatives table's rows for
+the subject's parents, spouse and children, the people the record names in
+those roles, as stated relations (`computed: false` in the region); every
+other grouping FamilySearch's relatives tables make around the page's own
+person (on a census every one, since a census states only the relationship to
+the head; a sibling, a grandparent, the couple of the parents listed) written
+too, marked `computed: true`, the site's inference and not the record's
+statement; the relatives its fields name as personas; verified on
 real pages), an Ancestry index page to `rule:ancestry-index@0.1.0` (built to
 Ancestry's page structure, not yet verified on a real page), a FamilySearch search results page to
 `rule:familysearch-search@0.1.0` (one persona per row with the record's ark as

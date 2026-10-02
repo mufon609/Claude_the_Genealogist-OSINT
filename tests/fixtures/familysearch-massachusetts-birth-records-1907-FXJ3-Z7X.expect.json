@@ -32,7 +32,7 @@
      "kind": "parent",
      "to": 1,
      "value": "Father",
-     "computed": true
+     "computed": false
     }
    ]
   },
@@ -45,10 +45,10 @@
      "kind": "parent",
      "to": 1,
      "value": "Mother",
-     "computed": true
+     "computed": false
     }
    ],
-   "why": "the parents its relatives table names, as written; the page gives them only in FamilySearch's table, no field of the record's own, so Father and Mother toward the child are marked computed"
+   "why": "the parents its relatives table names, as written; the page gives them only in FamilySearch's table, no field of the record's own, and a birth record names the child's parents, so Father and Mother toward the child are stated, not computed"
   }
  }
 }

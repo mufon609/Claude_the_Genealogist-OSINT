@@ -43,7 +43,7 @@ WWII Army enlistment,Military Service,,,primary,,,,
 WWII Army enlistment,Residence,,,primary,,,,
 compiled genealogy / family history,*,,authored,,,,,
 familysearch-record,*,,derivative,,,,,
-familysearch-record,relation [Parents and Siblings],,,,indirect,computed,,"FamilySearch's own relatives table. On a birth, death or marriage record it restates the record's own roles (father, mother, bride, groom), which a genealogist could read as stated."
+familysearch-record,relation [Parents and Siblings],,,,indirect,computed,,"FamilySearch's own relatives table, for a reading that does not mark its relations: the reader marks each one itself (familysearch-record 0.6.0 on), stated for the parents, spouse and children a record of one event names, computed for a census grouping, a sibling, a grandparent or the parents' couple."
 familysearch-record,relation [Spouses and Children],,,,indirect,computed,,
 familysearch-record,relation [Extended Family],,,,indirect,computed,,
 familysearch-record,relation [Other People on This Record],,,,indirect,computed,,
