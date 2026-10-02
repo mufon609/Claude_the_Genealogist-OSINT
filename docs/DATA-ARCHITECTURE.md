@@ -355,6 +355,38 @@ accepts one once on a fact row, the same click that accepts a place now.
 Matching reads `place_name` too, so a record's place agrees with the tree's
 when both resolve to one place or one is a dated name of the other.
 
+### Gazetteers for the places the geocoder does not know
+
+`tools/resolve_places.py` asks OpenStreetMap's Nominatim first. When it
+leaves a string open (no unique full match, a bare name, or a review the
+overrides force), a gazetteer that knows the string's places is asked next:
+
+| Strings naming | Gazetteer | Asked | Licence |
+|---|---|---|---|
+| Germany, Poland, Silesia | GOV, genealogy.net's historical gazetteer (SOAP, no key) | `searchByName` under the string's own name and under the current name of every geocoder candidate that keeps the string's name as its own (Dłużec, whose old name OpenStreetMap records as Langneundorf); `searchRelatedByName` for each other part | CC BY-SA |
+| Ireland | Wikidata, its own API | `wbsearchentities` under the string's name; `wbgetentities` for the candidates; their containing units followed up P131 (`wbgetclaims`) to the country (P17) | CC0 |
+
+A gazetteer candidate is checked as a geocoder candidate is: every part the
+string gives (a Kreis, a town, a county, a land, the region, the country)
+must be a unit the candidate lies within, in any period of its history, so
+"Freiberg" verifies the Berthelsdorf that lay in the Amtshauptmannschaft
+Freiberg and no other. GOV offers only its populated places; its parishes,
+churches, registry offices and administrative units of the same name are
+the settlement's offices and containers. The acceptance rule is the same
+one: the string is accepted only when exactly one gazetteer candidate
+verifies on every part, the string gives more than its name, and the
+candidate has exactly one geocoder twin, the same place by an identifier
+both keep (Wikidata's item id; GOV's id through Wikidata's P2503 or the
+Polish SIMC register), with no other geocoder candidate verifying fully. The
+twin places it in today's hierarchy; the gazetteer's id goes onto the place
+(`gov_id`, `wikidata_id`) and GOV's names of it become `place_name` rows
+with their language and dates (Lang Neundorf until 1945, Dłużec from 1945).
+Anything else is the card: every gazetteer candidate offered with its
+checks, on its twin's entry where it has one, after the geocoder's own. A
+twin the owner chooses there carries the gazetteer's answer onto the place
+on the next run. Every answer is cached under `derivatives/geocode/` at one
+request a second, as Nominatim's are.
+
 ### Schema
 
 ```

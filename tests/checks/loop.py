@@ -163,14 +163,21 @@ def a_run_connector(w, x):
     return {"outcome": r.get("outcome"), "requests": r.get("requests"), "logged_query": json.loads(logged[0]) if logged else {}}
 
 def a_resolve(w, x):
-    """tools/resolve_places.py on the strings named (--only, one run each) with the geocoder's answers planted in its cache
-    and Wikidata's in its own, so no request goes out; the strings must already be the tree's."""
+    """tools/resolve_places.py on the strings named (--only, one run each) with the geocoder's answers planted in its cache,
+    Wikidata's items in its own, and the gazetteers' answers (GOV's and Wikidata's searches, each fixture a list of the
+    resolver's own cache records) under the paths the resolver reads them from, so no request goes out; the strings must
+    already be the tree's."""
     import hashlib
-    from resolve_places import cache_dir, wikidata_cache_dir
+    from resolve_places import cache_dir, gazetteer_cache_path, wikidata_cache_dir
     os.makedirs(cache_dir(), exist_ok=True); os.makedirs(wikidata_cache_dir(), exist_ok=True)
     for query, cands in x.get("cache", {}).items():
         with open(os.path.join(cache_dir(), hashlib.sha1(query.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump({"query": query, "fetched_at": w.treelib.now(), "results": cands}, fh)
     for qid, fixture in x.get("wikidata", {}).items(): shutil.copy(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
+    for fixture in x.get("gazetteer", []):
+        with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
+        for rec in records:
+            path = gazetteer_cache_path(rec["service"], rec["args"]); os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as fh: json.dump(rec, fh, ensure_ascii=False)
     w.cx.commit()
     out = "".join(run(tool("resolve_places.py"), "--db", w.db, "--tree", w.slug, "--by", BY, "--only", raw) for raw in x["only"])   # one string at a time: the tree's other strings never reach the network
     return {"printed": out}
@@ -263,12 +270,22 @@ def e_fetched_rows(w, x, want):
     return (v is True) if x.get("held") else (v is not True), v
 
 def e_place(w, x, want):
-    row = w.cx.execute("SELECT id, name, place_type, wikidata_id FROM place WHERE name=?", (x["name"],)).fetchone()
+    row = w.cx.execute("SELECT id, name, place_type, wikidata_id, gov_id FROM place WHERE name=?", (x["name"],)).fetchone()
     got = dict(row) if row else None
     if got and "dated_name" in x:
         d = w.cx.execute("SELECT valid_from, valid_to FROM place_name WHERE place_id=? AND name=?", (row["id"], x["dated_name"])).fetchone()
         got["dated"] = list(d) if d else None
-    return row is not None and has(got, {k: v for k, v in x.items() if k in ("place_type", "wikidata_id", "dated")}), got
+    if got: got["chain"] = chain_names(w.cx, row["id"])
+    return row is not None and has(got, {k: v for k, v in x.items() if k in ("place_type", "wikidata_id", "gov_id", "dated", "chain")}), got
+
+def chain_names(cx, pid):
+    """A place and every place enclosing it, by name, the place first."""
+    out = []
+    while pid:
+        r = cx.execute("SELECT name, parent_id FROM place WHERE id=?", (pid,)).fetchone()
+        if not r: break
+        out.append(r[0]); pid = r[1]
+    return out
 
 def e_place_card(w, x, want):
     """The resolver's own card for a string: its candidates as offered."""

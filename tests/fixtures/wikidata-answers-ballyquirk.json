@@ -1,0 +1,184 @@
+[
+ {
+  "service": "wikidata:search",
+  "args": [
+   "Ballyquirk"
+  ],
+  "fetched_at": "2026-10-02T17:18:09Z",
+  "answer": "{\"searchinfo\":{\"search\":\"Ballyquirk\"},\"search\":[{\"id\":\"Q104315082\",\"title\":\"Q104315082\",\"pageid\":99748286,\"concepturi\":\"http://www.wikidata.org/entity/Q104315082\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q104315082\",\"display\":{\"label\":{\"value\":\"Ballyquirk\",\"language\":\"en\"},\"description\":{\"value\":\"townland in Lorrha West, County Tipperary, Ireland\",\"language\":\"en\"}},\"label\":\"Ballyquirk\",\"description\":\"townland in Lorrha West, County Tipperary, Ireland\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Ballyquirk\"}},{\"id\":\"Q104266206\",\"title\":\"Q104266206\",\"pageid\":99713080,\"concepturi\":\"http://www.wikidata.org/entity/Q104266206\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q104266206\",\"display\":{\"label\":{\"value\":\"Ballyquirk\",\"language\":\"en\"},\"description\":{\"value\":\"townland in Gowran, County Kilkenny, Ireland\",\"language\":\"en\"}},\"label\":\"Ballyquirk\",\"description\":\"townland in Gowran, County Kilkenny, Ireland\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Ballyquirk\"}},{\"id\":\"Q104305769\",\"title\":\"Q104305769\",\"pageid\":99741600,\"concepturi\":\"http://www.wikidata.org/entity/Q104305769\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q104305769\",\"display\":{\"label\":{\"value\":\"Ballyquirk\",\"language\":\"en\"},\"description\":{\"value\":\"townland in Killeagh, County Cork, Ireland\",\"language\":\"en\"}},\"label\":\"Ballyquirk\",\"description\":\"townland in Killeagh, County Cork, Ireland\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Ballyquirk\"}},{\"id\":\"Q104312015\",\"title\":\"Q104312015\",\"pageid\":99745483,\"concepturi\":\"http://www.wikidata.org/entity/Q104312015\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q104312015\",\"display\":{\"label\":{\"value\":\"Ballyquirk\",\"language\":\"en\"},\"description\":{\"value\":\"townland in Newcastle Rural, County Limerick, Ireland\",\"language\":\"en\"}},\"label\":\"Ballyquirk\",\"description\":\"townland in Newcastle Rural, County Limerick, Ireland\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Ballyquirk\"}},{\"id\":\"Q4852275\",\"title\":\"Q4852275\",\"pageid\":4634816,\"concepturi\":\"http://www.wikidata.org/entity/Q4852275\",\"repository\":\"wikidata\",\"url\":\"//www.wikidata.org/wiki/Q4852275\",\"display\":{\"label\":{\"value\":\"Ballyquirk Castle\",\"language\":\"en\"}},\"label\":\"Ballyquirk Castle\",\"match\":{\"type\":\"label\",\"language\":\"en\",\"text\":\"Ballyquirk Castle\"}}],\"success\":1}"
+ },
+ {
+  "service": "wikidata:entities",
+  "args": [
+   "Q104266206",
+   "Q104305769",
+   "Q104312015",
+   "Q104315082"
+  ],
+  "fetched_at": "2026-10-02T17:33:21Z",
+  "answer": "{\"entities\":{\"Q104266206\":{\"type\":\"item\",\"id\":\"Q104266206\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}},\"descriptions\":{\"en\":{\"language\":\"en\",\"value\":\"townland in Gowran, County Kilkenny, Ireland\"}},\"claims\":{\"P31\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P31\",\"hash\":\"a8e5f9812373093cec8d032da15e815eb014a45c\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":2151232,\"id\":\"Q2151232\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104266206$2A9A9717-5F38-4AF7-B2B2-A0E87B9ABB68\",\"rank\":\"normal\"}],\"P17\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P17\",\"hash\":\"f4ccb05f7faebc2073ed81093902b84d250e6695\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104266206$2D51ECFD-8E86-4616-9E1E-BACA5E3687F9\",\"rank\":\"normal\"}],\"P5097\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"4ea52f79b52b500faaeb35a6c7f0b1f6a60da648\",\"datavalue\":{\"value\":\"26836\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104266206$C3489417-98EC-4AF1-B3FC-885112D695AA\",\"rank\":\"normal\"}],\"P625\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P625\",\"hash\":\"b69c910c336a7cb9e63f375691406520026d6c42\",\"datavalue\":{\"value\":{\"latitude\":52.654207,\"longitude\":-7.080563,\"altitude\":null,\"precision\":1.0e-6,\"globe\":\"http://www.wikidata.org/entity/Q2\"},\"type\":\"globecoordinate\"},\"datatype\":\"globe-coordinate\"},\"type\":\"statement\",\"id\":\"Q104266206$DB98526C-8498-47D2-A4CE-5AD7649E4B20\",\"rank\":\"normal\"}],\"P7959\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P7959\",\"hash\":\"30fea6baa2c0ca9d4472d4182817f34371760641\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":180231,\"id\":\"Q180231\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104266206$E62497C5-5D63-4E20-8B1E-EEC881B63A7C\",\"rank\":\"normal\"}],\"P1705\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P1705\",\"hash\":\"c348a3b6c32fcdef7fb68699b09b5e205f943d06\",\"datavalue\":{\"value\":{\"text\":\"Baile U\\u00ed Chuirc\",\"language\":\"ga\"},\"type\":\"monolingualtext\"},\"datatype\":\"monolingualtext\"},\"type\":\"statement\",\"id\":\"Q104266206$cd3df104-818a-4a05-94e3-3f21a0bd1567\",\"rank\":\"normal\",\"references\":[{\"hash\":\"5a1895dcb5f1ead5a07b8301aaae3e9286a3a180\",\"snaks\":{\"P248\":[{\"snaktype\":\"value\",\"property\":\"P248\",\"hash\":\"ed79faab0453d32e0b2d09225ce0cf0baae6ebc2\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":7200284,\"id\":\"Q7200284\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}],\"P5097\":[{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"4ea52f79b52b500faaeb35a6c7f0b1f6a60da648\",\"datavalue\":{\"value\":\"26836\",\"type\":\"string\"},\"datatype\":\"external-id\"}]},\"snaks-order\":[\"P248\",\"P5097\"]}]}],\"P402\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P402\",\"hash\":\"f0690cabaf96c27c460e8faec70ba6ff66df1b84\",\"datavalue\":{\"value\":\"5122538\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104266206$C4AA6DFE-E97B-4AE7-905A-FF0892D5BE41\",\"rank\":\"normal\"}],\"P1343\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P1343\",\"hash\":\"9bd1d71c1260d4f47eeb81cc4cf22eb5dbccaebd\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":5302862,\"id\":\"Q5302862\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"qualifiers\":{\"P1810\":[{\"snaktype\":\"value\",\"property\":\"P1810\",\"hash\":\"16f2b7b3f2ecfefc50c2fb587186665f6383f5fb\",\"datavalue\":{\"value\":\"Balliquirk\",\"type\":\"string\"},\"datatype\":\"string\"}],\"P361\":[{\"snaktype\":\"value\",\"property\":\"P361\",\"hash\":\"08f02e24dc3966f65629ff30f5237f6762d67726\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":60555188,\"id\":\"Q60555188\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}]},\"qualifiers-order\":[\"P1810\",\"P361\"],\"id\":\"Q104266206$fb752905-4455-ba41-5e94-942c30e48bff\",\"rank\":\"normal\",\"references\":[{\"hash\":\"02ec8d3a963c553fca172f3dae2605c5a60d69c2\",\"snaks\":{\"P854\":[{\"snaktype\":\"value\",\"property\":\"P854\",\"hash\":\"ff74febd4d8ace9102b7dd2fbe40f53ca6f96cb7\",\"datavalue\":{\"value\":\"https://www.downsurvey.ie/down-survey-maps/?c=Kilkenny\",\"type\":\"string\"},\"datatype\":\"url\"}]},\"snaks-order\":[\"P854\"]}]}],\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"a39489d010d0aade2bfc1a651156d2c4c7f38db8\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":180231,\"id\":\"Q180231\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104266206$a5c0400c-4462-02d6-34cd-fa63c9515fa5\",\"rank\":\"normal\"},{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"adab8a564427c4a2469b65ab4e96bbebcd4e394a\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":59719866,\"id\":\"Q59719866\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104266206$D8BA26EA-D669-420B-AA4F-119F97126987\",\"rank\":\"normal\"}]}},\"Q104305769\":{\"type\":\"item\",\"id\":\"Q104305769\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}},\"descriptions\":{\"en\":{\"language\":\"en\",\"value\":\"townland in Killeagh, County Cork, Ireland\"}},\"claims\":{\"P31\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P31\",\"hash\":\"a8e5f9812373093cec8d032da15e815eb014a45c\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":2151232,\"id\":\"Q2151232\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104305769$BE718332-F66D-446D-8F3F-42C9FDDEFAD6\",\"rank\":\"normal\"}],\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"98492892abb539fc6b87dde9369cb39209cca057\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":59724949,\"id\":\"Q59724949\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104305769$8CAA1342-4BB2-4098-8228-0EC74993040A\",\"rank\":\"normal\"}],\"P17\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P17\",\"hash\":\"f4ccb05f7faebc2073ed81093902b84d250e6695\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104305769$69F777F7-70FD-4D57-8D2F-D06B75A2B060\",\"rank\":\"normal\"}],\"P5097\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"04d798e5c925b76a9cb4b3d066736228a579b1ed\",\"datavalue\":{\"value\":\"13640\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104305769$5D17C96F-EBFF-43FF-AB34-40093C8A8FCB\",\"rank\":\"normal\"}],\"P625\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P625\",\"hash\":\"023d459103ed49f171f45d3930cafe55d885e000\",\"datavalue\":{\"value\":{\"latitude\":51.934731,\"longitude\":-8.016767,\"altitude\":null,\"precision\":1.0e-6,\"globe\":\"http://www.wikidata.org/entity/Q2\"},\"type\":\"globecoordinate\"},\"datatype\":\"globe-coordinate\"},\"type\":\"statement\",\"id\":\"Q104305769$1B4F029B-3E99-4568-AA24-B427619C5170\",\"rank\":\"normal\"}],\"P7959\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P7959\",\"hash\":\"05110b6fadf4507edf15db9d8d06a4e72628b987\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":162475,\"id\":\"Q162475\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104305769$2A394492-6360-483C-905E-87EF0D2C32C0\",\"rank\":\"normal\"}],\"P1705\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P1705\",\"hash\":\"ee713bdc71d2a9679894ec56830adec1b854ae20\",\"datavalue\":{\"value\":{\"text\":\"Baile U\\u00ed Choirc\",\"language\":\"ga\"},\"type\":\"monolingualtext\"},\"datatype\":\"monolingualtext\"},\"type\":\"statement\",\"id\":\"Q104305769$6e0fdbb6-39dd-49df-920d-04b778908dba\",\"rank\":\"normal\",\"references\":[{\"hash\":\"05914f8c35e622e61ebd9e7ccf5dd4344cbdd08f\",\"snaks\":{\"P248\":[{\"snaktype\":\"value\",\"property\":\"P248\",\"hash\":\"ed79faab0453d32e0b2d09225ce0cf0baae6ebc2\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":7200284,\"id\":\"Q7200284\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}],\"P5097\":[{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"04d798e5c925b76a9cb4b3d066736228a579b1ed\",\"datavalue\":{\"value\":\"13640\",\"type\":\"string\"},\"datatype\":\"external-id\"}]},\"snaks-order\":[\"P248\",\"P5097\"]}]}],\"P402\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P402\",\"hash\":\"67c9914a988513fb9f02db94b7a97fde18df565e\",\"datavalue\":{\"value\":\"6205110\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104305769$9B561CE2-3CC4-4F63-8F8F-C6BFE4EB2C96\",\"rank\":\"normal\"}]}},\"Q104312015\":{\"type\":\"item\",\"id\":\"Q104312015\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}},\"descriptions\":{\"en\":{\"language\":\"en\",\"value\":\"townland in Newcastle Rural, County Limerick, Ireland\"}},\"claims\":{\"P31\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P31\",\"hash\":\"a8e5f9812373093cec8d032da15e815eb014a45c\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":2151232,\"id\":\"Q2151232\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104312015$84870259-8142-4140-921A-5BE9A777D87F\",\"rank\":\"normal\"}],\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"6c6b83ac8a72234cf2a4c94a2a8f8560f50a0c11\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":59726169,\"id\":\"Q59726169\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104312015$16B4D7E3-9D9A-4835-8C5B-3C4F9B3D4108\",\"rank\":\"normal\"}],\"P17\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P17\",\"hash\":\"f4ccb05f7faebc2073ed81093902b84d250e6695\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104312015$918AB054-331D-491B-8283-6331CC9C146A\",\"rank\":\"normal\"}],\"P5097\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"c7eb0bd4fd88b27b83c6a58ac9cf4068d4514700\",\"datavalue\":{\"value\":\"31890\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104312015$7410F0F7-A1F2-435A-B3A6-29FEBBA445A9\",\"rank\":\"normal\"}],\"P625\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P625\",\"hash\":\"85258fa646da2edaa3b89df6438ae202a7a3ba27\",\"datavalue\":{\"value\":{\"latitude\":52.422532,\"longitude\":-9.062008,\"altitude\":null,\"precision\":1.0e-6,\"globe\":\"http://www.wikidata.org/entity/Q2\"},\"type\":\"globecoordinate\"},\"datatype\":\"globe-coordinate\"},\"type\":\"statement\",\"id\":\"Q104312015$47F385E3-3302-48F1-845A-41528E64A50A\",\"rank\":\"normal\"}],\"P7959\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P7959\",\"hash\":\"747bf6f56cfadbb931c2c0d867abc4d55a44cea8\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":178283,\"id\":\"Q178283\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104312015$E389DDB4-2D21-4E01-89BD-87E9B14AEF06\",\"rank\":\"normal\"}],\"P1705\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P1705\",\"hash\":\"ee713bdc71d2a9679894ec56830adec1b854ae20\",\"datavalue\":{\"value\":{\"text\":\"Baile U\\u00ed Choirc\",\"language\":\"ga\"},\"type\":\"monolingualtext\"},\"datatype\":\"monolingualtext\"},\"type\":\"statement\",\"id\":\"Q104312015$06b186eb-7266-46c9-b884-c295faacdd4e\",\"rank\":\"normal\",\"references\":[{\"hash\":\"e2eb590c2b5a0cc4e3e223d1db39c05815a9ae77\",\"snaks\":{\"P248\":[{\"snaktype\":\"value\",\"property\":\"P248\",\"hash\":\"ed79faab0453d32e0b2d09225ce0cf0baae6ebc2\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":7200284,\"id\":\"Q7200284\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}],\"P5097\":[{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"c7eb0bd4fd88b27b83c6a58ac9cf4068d4514700\",\"datavalue\":{\"value\":\"31890\",\"type\":\"string\"},\"datatype\":\"external-id\"}]},\"snaks-order\":[\"P248\",\"P5097\"]}]}],\"P402\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P402\",\"hash\":\"742259be2d6d887c3ea4506a14559a267fd01606\",\"datavalue\":{\"value\":\"5847975\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104312015$05C15A47-77CC-4098-BDD4-C7CD39E4784C\",\"rank\":\"normal\"}]}},\"Q104315082\":{\"type\":\"item\",\"id\":\"Q104315082\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}},\"descriptions\":{\"en\":{\"language\":\"en\",\"value\":\"townland in Lorrha West, County Tipperary, Ireland\"}},\"claims\":{\"P31\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P31\",\"hash\":\"a8e5f9812373093cec8d032da15e815eb014a45c\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":2151232,\"id\":\"Q2151232\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104315082$B9E939EE-C6ED-4EBA-8587-F6E3222EA93E\",\"rank\":\"normal\"}],\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"39dac51c3d62b1efc6928e57e522f773a1765755\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":59726522,\"id\":\"Q59726522\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104315082$2222EA84-16BA-4CC8-875B-50711E98E582\",\"rank\":\"normal\"}],\"P17\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P17\",\"hash\":\"f4ccb05f7faebc2073ed81093902b84d250e6695\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q104315082$1A33037A-94EE-48C8-A261-9BD23080B742\",\"rank\":\"normal\"}],\"P625\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P625\",\"hash\":\"d6602bb7dd38b5c135b0b9d118ccc582fc76da9f\",\"datavalue\":{\"value\":{\"latitude\":53.072513,\"longitude\":-8.14288,\"altitude\":null,\"precision\":1.0e-6,\"globe\":\"http://www.wikidata.org/entity/Q2\"},\"type\":\"globecoordinate\"},\"datatype\":\"globe-coordinate\"},\"type\":\"statement\",\"id\":\"Q104315082$C540674F-DF5D-40ED-B2B4-5F52F9B84E92\",\"rank\":\"normal\"}],\"P7959\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P7959\",\"hash\":\"56fe22486a30684f3e892b4f1abfb0f0669dd4e1\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":184618,\"id\":\"Q184618\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"qualifiers\":{\"P276\":[{\"snaktype\":\"value\",\"property\":\"P276\",\"hash\":\"28d7644116e9e2e35782d3c8ebbe0ded2237ea7a\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":1076424,\"id\":\"Q1076424\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}]},\"qualifiers-order\":[\"P276\"],\"id\":\"Q104315082$A11DA0ED-93EE-478B-BCBE-83F752A01F72\",\"rank\":\"normal\"}],\"P5097\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"f25d50f259e4d68351ccf612b8c0457afad06b14\",\"datavalue\":{\"value\":\"46025\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104315082$73c398e2-4bf8-e0e8-5b89-0cb1d7f3007c\",\"rank\":\"normal\"}],\"P646\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P646\",\"hash\":\"7bb452308b91b7f3b915d1578c27cb584025c8d2\",\"datavalue\":{\"value\":\"/m/0bbz7yv\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104315082$8C5094D5-46D7-4047-B26F-C0EA9EC15D9C\",\"rank\":\"normal\"}],\"P18\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P18\",\"hash\":\"8f20bfcc70558fb222b7e2672962e2a8be881ea7\",\"datavalue\":{\"value\":\"Ballyquirk Castle (geograph 2331736).jpg\",\"type\":\"string\"},\"datatype\":\"commonsMedia\"},\"type\":\"statement\",\"id\":\"Q104315082$19F9922B-62B4-4ECF-AC76-CB778BC1333A\",\"rank\":\"normal\"}],\"P1705\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P1705\",\"hash\":\"c348a3b6c32fcdef7fb68699b09b5e205f943d06\",\"datavalue\":{\"value\":{\"text\":\"Baile U\\u00ed Chuirc\",\"language\":\"ga\"},\"type\":\"monolingualtext\"},\"datatype\":\"monolingualtext\"},\"type\":\"statement\",\"id\":\"Q104315082$8bd16ab8-4d0a-4350-890e-8588f6ab5b39\",\"rank\":\"normal\",\"references\":[{\"hash\":\"be7b850bd076ca8cc9661eda8e5fff82eaa03a17\",\"snaks\":{\"P248\":[{\"snaktype\":\"value\",\"property\":\"P248\",\"hash\":\"ed79faab0453d32e0b2d09225ce0cf0baae6ebc2\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":7200284,\"id\":\"Q7200284\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}],\"P5097\":[{\"snaktype\":\"value\",\"property\":\"P5097\",\"hash\":\"f25d50f259e4d68351ccf612b8c0457afad06b14\",\"datavalue\":{\"value\":\"46025\",\"type\":\"string\"},\"datatype\":\"external-id\"}]},\"snaks-order\":[\"P248\",\"P5097\"]}]}],\"P402\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P402\",\"hash\":\"34a5211e8afd3b808ff7791d04b6c1d56abd10d5\",\"datavalue\":{\"value\":\"5349128\",\"type\":\"string\"},\"datatype\":\"external-id\"},\"type\":\"statement\",\"id\":\"Q104315082$EA6FF03F-55E9-4D7C-86F0-B155A06A0546\",\"rank\":\"normal\"}]}}},\"success\":1}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q180231",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:33:22Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"4b9cb467a8fac6f12114506905408d4a9b712660\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":159736,\"id\":\"Q159736\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q180231$64b306ea-4499-99e6-e119-89ca7129db59\",\"rank\":\"normal\"},{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"959013d2ee6c282f121777268b5fbe60846fad6c\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":7565274,\"id\":\"Q7565274\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q180231$916B3FF3-61F4-4E84-812E-E36E56CAF4C7\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q59719866",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:33:24Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"a39489d010d0aade2bfc1a651156d2c4c7f38db8\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":180231,\"id\":\"Q180231\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q59719866$2B81E01F-2C78-46EB-A8D0-B7F9658FF0BA\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q59724949",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:33:25Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"bc9c46b3631faea47deea77e0d9d630df97fd606\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":162475,\"id\":\"Q162475\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q59724949$2C308AF2-5CB1-4DE1-82F2-BD55BD6A1B34\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q59726169",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:33:26Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"f6323e0595cb3b7ee2c3d29ea08c3c6c24e31341\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":178283,\"id\":\"Q178283\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q59726169$B06FAC76-3279-4003-9105-FBA2FA9C929F\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q59726522",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:33:27Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"b23951b6ec5484a5a9d62984dce06197eb3b6b37\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":1076424,\"id\":\"Q1076424\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q59726522$29642BE4-7C34-423D-9CEE-C5DCA4E1F24F\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q159736",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:35:42Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"2b1bf58978688bd7afd4505327180ae0ee659fd4\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"qualifiers\":{\"P580\":[{\"snaktype\":\"value\",\"property\":\"P580\",\"hash\":\"7a30acd82481b1f8dd96516d9c6485b67d90c699\",\"datavalue\":{\"value\":{\"time\":\"+1937-12-29T00:00:00Z\",\"timezone\":0,\"before\":0,\"after\":0,\"precision\":11,\"calendarmodel\":\"http://www.wikidata.org/entity/Q1985727\"},\"type\":\"time\"},\"datatype\":\"time\"}]},\"qualifiers-order\":[\"P580\"],\"id\":\"Q159736$8444811b-4dcc-c498-c60d-31a784a39db3\",\"rank\":\"preferred\"},{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"61bcf514f1333403bbe94c7e48c55a28d0328e09\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":31747,\"id\":\"Q31747\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"qualifiers\":{\"P580\":[{\"snaktype\":\"value\",\"property\":\"P580\",\"hash\":\"c24890c9f7e85c4cf68134fd4c53102e6029d197\",\"datavalue\":{\"value\":{\"time\":\"+1922-12-06T00:00:00Z\",\"timezone\":0,\"before\":0,\"after\":0,\"precision\":11,\"calendarmodel\":\"http://www.wikidata.org/entity/Q1985727\"},\"type\":\"time\"},\"datatype\":\"time\"}],\"P582\":[{\"snaktype\":\"value\",\"property\":\"P582\",\"hash\":\"9205a26b02a3309e13774f1b6f69cdaa49306682\",\"datavalue\":{\"value\":{\"time\":\"+1937-12-29T00:00:00Z\",\"timezone\":0,\"before\":0,\"after\":0,\"precision\":11,\"calendarmodel\":\"http://www.wikidata.org/entity/Q1985727\"},\"type\":\"time\"},\"datatype\":\"time\"}]},\"qualifiers-order\":[\"P580\",\"P582\"],\"id\":\"Q159736$d55fc540-4048-ed26-8bb1-59f406e3d43a\",\"rank\":\"normal\"},{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"b4b682b7f2d6755230b8faae9aefe8c7949c1c93\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":57695350,\"id\":\"Q57695350\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"qualifiers\":{\"P580\":[{\"snaktype\":\"value\",\"property\":\"P580\",\"hash\":\"886894a9f7a8d6e8106502a03f1e18b37748228b\",\"datavalue\":{\"value\":{\"time\":\"+1801-01-01T00:00:00Z\",\"timezone\":0,\"before\":0,\"after\":0,\"precision\":11,\"calendarmodel\":\"http://www.wikidata.org/entity/Q1985727\"},\"type\":\"time\"},\"datatype\":\"time\"}],\"P582\":[{\"snaktype\":\"value\",\"property\":\"P582\",\"hash\":\"88c49a979a2f005d7c631e071789b0b3ea233bd3\",\"datavalue\":{\"value\":{\"time\":\"+1922-12-06T00:00:00Z\",\"timezone\":0,\"before\":0,\"after\":0,\"precision\":11,\"calendarmodel\":\"http://www.wikidata.org/entity/Q1985727\"},\"type\":\"time\"},\"datatype\":\"time\"}]},\"qualifiers-order\":[\"P580\",\"P582\"],\"id\":\"Q159736$d100e647-4946-e7bc-1d4e-cc0a39ffad2a\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q162475",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:34:02Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"5c13df4ea1c99bf7b264f2744efa7a880fd02a48\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":131438,\"id\":\"Q131438\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"q162475$D801925D-9A42-4D34-AB81-DC836EB96A9E\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q178283",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:35:46Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"5c13df4ea1c99bf7b264f2744efa7a880fd02a48\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":131438,\"id\":\"Q131438\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"q178283$2FF0B0AB-1224-466E-8C04-C26C55ACC627\",\"rank\":\"normal\"},{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"4d38e6627c390b0d4f2c8c3990382c6f21605f73\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":6840838,\"id\":\"Q6840838\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q178283$BF00FDA6-2E70-400C-9137-5F03D61459E4\",\"rank\":\"deprecated\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q1076424",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:35:49Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"a9e1f343bf6882483b91ee6077a93ed678c4ac12\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":184618,\"id\":\"Q184618\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"q1076424$09ac0ebe-462b-4bdb-6e87-988ec2f589ec\",\"rank\":\"normal\"},{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"4d38e6627c390b0d4f2c8c3990382c6f21605f73\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":6840838,\"id\":\"Q6840838\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q1076424$9F0A5C34-6239-45A0-8B0B-0480D73948EB\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q7565274",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:35:52Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"2b1bf58978688bd7afd4505327180ae0ee659fd4\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q7565274$F4774BD1-FDA3-4462-A2EB-1B10E815CDAC\",\"rank\":\"normal\",\"references\":[{\"hash\":\"9b6033a0a0fc3d0000b1c77fe93c161cbcbad1a6\",\"snaks\":{\"P143\":[{\"snaktype\":\"value\",\"property\":\"P143\",\"hash\":\"342852c6ea3be834528dad2b0808c542dc83626d\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":19826574,\"id\":\"Q19826574\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}]},\"snaks-order\":[\"P143\"]}]}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q31747",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:35:55Z",
+  "answer": "{\"claims\":{}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q131438",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:33:17Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"2b1bf58978688bd7afd4505327180ae0ee659fd4\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"qualifiers\":{\"P580\":[{\"snaktype\":\"value\",\"property\":\"P580\",\"hash\":\"c24890c9f7e85c4cf68134fd4c53102e6029d197\",\"datavalue\":{\"value\":{\"time\":\"+1922-12-06T00:00:00Z\",\"timezone\":0,\"before\":0,\"after\":0,\"precision\":11,\"calendarmodel\":\"http://www.wikidata.org/entity/Q1985727\"},\"type\":\"time\"},\"datatype\":\"time\"}]},\"qualifiers-order\":[\"P580\"],\"id\":\"Q131438$681eb3c7-4529-c2a0-0d5f-457363c64f74\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q184618",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:35:59Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"5c13df4ea1c99bf7b264f2744efa7a880fd02a48\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":131438,\"id\":\"Q131438\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q184618$03d76aa1-4438-c17a-5781-90de0c30b498\",\"rank\":\"normal\"}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q6840838",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:36:02Z",
+  "answer": "{\"claims\":{\"P131\":[{\"mainsnak\":{\"snaktype\":\"value\",\"property\":\"P131\",\"hash\":\"2b1bf58978688bd7afd4505327180ae0ee659fd4\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":27,\"id\":\"Q27\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"},\"type\":\"statement\",\"id\":\"Q6840838$2F7EFC69-B7EB-4BA3-A371-D9FA9702B81C\",\"rank\":\"normal\",\"references\":[{\"hash\":\"9b6033a0a0fc3d0000b1c77fe93c161cbcbad1a6\",\"snaks\":{\"P143\":[{\"snaktype\":\"value\",\"property\":\"P143\",\"hash\":\"342852c6ea3be834528dad2b0808c542dc83626d\",\"datavalue\":{\"value\":{\"entity-type\":\"item\",\"numeric-id\":19826574,\"id\":\"Q19826574\"},\"type\":\"wikibase-entityid\"},\"datatype\":\"wikibase-item\"}]},\"snaks-order\":[\"P143\"]}]}]}}"
+ },
+ {
+  "service": "wikidata:claims",
+  "args": [
+   "Q57695350",
+   "P131"
+  ],
+  "fetched_at": "2026-10-02T17:36:06Z",
+  "answer": "{\"claims\":{}}"
+ },
+ {
+  "service": "wikidata:labels",
+  "args": [
+   "Q27",
+   "Q31747",
+   "Q131438",
+   "Q159736",
+   "Q162475",
+   "Q178283",
+   "Q180231",
+   "Q184618",
+   "Q1076424",
+   "Q2151232",
+   "Q6840838",
+   "Q7565274",
+   "Q57695350",
+   "Q59719866",
+   "Q59724949",
+   "Q59726169",
+   "Q59726522",
+   "Q104266206",
+   "Q104305769",
+   "Q104312015",
+   "Q104315082"
+  ],
+  "fetched_at": "2026-10-02T17:36:09Z",
+  "answer": "{\"entities\":{\"Q27\":{\"type\":\"item\",\"id\":\"Q27\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ireland\"}}},\"Q31747\":{\"type\":\"item\",\"id\":\"Q31747\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Irish Free State\"}}},\"Q131438\":{\"type\":\"item\",\"id\":\"Q131438\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Munster\"}}},\"Q159736\":{\"type\":\"item\",\"id\":\"Q159736\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Leinster\"}}},\"Q162475\":{\"type\":\"item\",\"id\":\"Q162475\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"County Cork\"}}},\"Q178283\":{\"type\":\"item\",\"id\":\"Q178283\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"County Limerick\"}}},\"Q180231\":{\"type\":\"item\",\"id\":\"Q180231\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"County Kilkenny\"}}},\"Q184618\":{\"type\":\"item\",\"id\":\"Q184618\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"County Tipperary\"}}},\"Q1076424\":{\"type\":\"item\",\"id\":\"Q1076424\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"North Tipperary\"}}},\"Q2151232\":{\"type\":\"item\",\"id\":\"Q2151232\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"townland\"}}},\"Q6840838\":{\"type\":\"item\",\"id\":\"Q6840838\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Mid-West Region\"}}},\"Q7565274\":{\"type\":\"item\",\"id\":\"Q7565274\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"South-East Region, Ireland\"}}},\"Q57695350\":{\"type\":\"item\",\"id\":\"Q57695350\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ireland\"}}},\"Q59719866\":{\"type\":\"item\",\"id\":\"Q59719866\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Gowran\"}}},\"Q59724949\":{\"type\":\"item\",\"id\":\"Q59724949\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Killeagh\"}}},\"Q59726169\":{\"type\":\"item\",\"id\":\"Q59726169\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Newcastle Rural\"}}},\"Q59726522\":{\"type\":\"item\",\"id\":\"Q59726522\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Lorrha West\"}}},\"Q104266206\":{\"type\":\"item\",\"id\":\"Q104266206\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}}},\"Q104305769\":{\"type\":\"item\",\"id\":\"Q104305769\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}}},\"Q104312015\":{\"type\":\"item\",\"id\":\"Q104312015\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}}},\"Q104315082\":{\"type\":\"item\",\"id\":\"Q104315082\",\"labels\":{\"en\":{\"language\":\"en\",\"value\":\"Ballyquirk\"}}}},\"success\":1}"
+ }
+]

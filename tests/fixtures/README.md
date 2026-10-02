@@ -45,6 +45,20 @@ as it is.
 A connector's response is read with the notes its manifest carries (the item, the pages chosen, what was searched for, the
 step's kind), as the extractor reads it on arrival.
 
+## Gazetteer answers
+
+The place resolver's answers from GOV and Wikidata, fetched on a scratch copy of the live catalog on 2 October 2026 with the
+project's User-Agent, planted by the `resolve` action of the loop's scenarios so no request goes out. GOV's data is CC BY-SA
+(genealogy.net), Wikidata's CC0.
+
+| File | What it holds |
+|---|---|
+| `gov-answers-langneundorf-berthelsdorf.json` | GOV's SOAP answers as the resolver caches them: `searchByName` for Langneundorf, Dłużec and Berthelsdorf, and `searchRelatedByName` for Dłużec within Schlesien and Berthelsdorf within Sachsen, Freiberg, Germany, Deutschland and Deutsches Reich |
+| `wikidata-answers-ballyquirk.json` | Wikidata's API answers as the resolver caches them: the search for Ballyquirk, the four townlands' items, the units they lie in followed up P131, and the labels of them all |
+| `wikidata-Q5321228-dluzec.json` | Wikidata's item for Dłużec (Lwówek Śląski), with its GOV id (P2503) and SIMC, as Special:EntityData serves it |
+| `wikidata-Q104305769-ballyquirk.json` | Wikidata's item for the townland Ballyquirk in Killeagh, County Cork |
+| `wikidata-Q502553-berthelsdorf-herrnhut.json`, `wikidata-Q27479092-berthelsdorf-weissenborn.json`, `wikidata-Q827807-berthelsdorf-liebstadt.json`, `wikidata-Q65183687-berthelsdorf-hainichen.json` | Wikidata's items for four Saxon Berthelsdorfs the geocoder answers with, read for their GOV ids (P2503); only the Weißenborn one carries one |
+
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record
 ids are FamilySearch record pages.
@@ -168,11 +182,13 @@ data gives, `fetch: {header, rows}` or `{body}`, one answer per request as `fetc
 network at all; `dry` for a dry run, `again` for a run by the step's id at every connector), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
 `none_when`; `field` names the place-like field it asks under, "place" when absent, "census place" for a fetch step's own),
-`resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache` and Wikidata's
-answers planted), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
+`resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache`, Wikidata's items under `wikidata`
+and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
+written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in
 order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`), `locator_known`, `steps_by_collection`,
-`fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place`, `place_card`, `event_place`. The fakes are code because they exercise the connectors' contract;
+`fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
+`wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' contract;
 what they are asked with and answer with is in the scenario. `connectors.json` holds the same for the offline connector
 checks in `tools/check.py`: the names, titles and bodies they are run against.
 

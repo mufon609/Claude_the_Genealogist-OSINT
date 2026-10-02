@@ -1,0 +1,931 @@
+{
+ "title": "places through the gazetteers that know them",
+ "line": "where the geocoder leaves a German, Silesian or Irish string open, GOV or Wikidata is asked and each candidate checked on every part of the string; a Silesian village by its German name resolves to today's place through the one GOV candidate and its geocoder twin, with GOV's dated names; Berthelsdorf stays a card with every candidate offered, a stated Kreis narrowing them; an Irish townland resolves when the string names its county and stays a card with its namesakes when it does not",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the seed's Silesian birthplace by its German name, as the owner's records write it",
+   "place_string": {
+    "raw": "Langneundorf, Silesa, , Germany"
+   }
+  },
+  {
+   "say": "the seed's two strings for the Schwenkfelder exiles' Berthelsdorf, one naming Saxony alone, one naming the Kreis Freiberg too",
+   "place_string": {
+    "raw": "Berthelsdorf, Sachsen, Allemagne"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Berthelsdorf, Freiberg, Sachsen, Germany"
+   }
+  },
+  {
+   "say": "the harness's Irish townland with its county named; the harness file's own string names Ireland alone",
+   "place_string": {
+    "raw": "Ballyquirk, Cork, Ireland"
+   }
+  },
+  {
+   "say": "the resolver run with the geocoder's, GOV's and Wikidata's real answers planted in their caches",
+   "resolve": {
+    "only": [
+     "Langneundorf, Silesa, , Germany",
+     "Berthelsdorf, Sachsen, Allemagne",
+     "Berthelsdorf, Freiberg, Sachsen, Germany",
+     "Ballyquirk, Cork, Ireland",
+     "Ballyquirk, Ireland"
+    ],
+    "cache": {
+     "Langneundorf, Lower Silesia": [
+      {
+       "place_id": 134131079,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 6061393,
+       "lat": "51.0858097",
+       "lon": "15.7061151",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 16,
+       "importance": 0.32771111640952466,
+       "addresstype": "village",
+       "name": "Dłużec",
+       "display_name": "Dłużec, gmina Lwówek Śląski, Lwówek Śląski County, Lower Silesian Voivodeship, Poland",
+       "address": {
+        "village": "Dłużec",
+        "municipality": "gmina Lwówek Śląski",
+        "county": "Lwówek Śląski County",
+        "state": "Lower Silesian Voivodeship",
+        "ISO3166-2-lvl4": "PL-02",
+        "country": "Poland",
+        "country_code": "pl"
+       },
+       "extratags": {
+        "wikidata": "Q5321228",
+        "teryt:typ": "wieś",
+        "wikipedia": "pl:Dłużec (województwo dolnośląskie)",
+        "teryt:simc": "0190785",
+        "name:prefix": "wieś",
+        "linked_place": "village",
+        "admin_level": "8"
+       },
+       "namedetails": {
+        "name": "Dłużec",
+        "name:pl": "Dłużec",
+        "_place_name:pl": "Dłużec",
+        "old_name:de": "Langneundorf"
+       },
+       "boundingbox": [
+        "51.0635869",
+        "51.1030465",
+        "15.6820214",
+        "15.7519589"
+       ]
+      }
+     ],
+     "Berthelsdorf, Sachsen, Germany": [
+      {
+       "place_id": 134148787,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 418714,
+       "lat": "51.0302053",
+       "lon": "14.7621622",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 20,
+       "importance": 0.4072594434730916,
+       "addresstype": "village",
+       "name": "Berthelsdorf",
+       "display_name": "Berthelsdorf, Herrnhut, Görlitz, Saxony, 02747, Germany",
+       "address": {
+        "village": "Berthelsdorf",
+        "city": "Herrnhut",
+        "county": "Görlitz",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "02747",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": {
+        "wikidata": "Q502553",
+        "wikipedia": "de:Berthelsdorf",
+        "population": "1695",
+        "linked_place": "village",
+        "openGeoDB:name": "Berthelsdorf",
+        "openGeoDB:type": "Gemeinde",
+        "openGeoDB:is_in": "Löbau-Zittau,Dresden,Sachsen,Bundesrepublik Deutschland,Europe",
+        "openGeoDB:layer": "6",
+        "openGeoDB:loc_id": "14396",
+        "openGeoDB:version": "0.2.6.11 / 2007-12-04 / http://fa-technik.adfc.de/code/opengeodb/dump/",
+        "openGeoDB:location": "political_structure",
+        "openGeoDB:sort_name": "BERTHELSDORF",
+        "openGeoDB:population": "1863",
+        "openGeoDB:auto_update": "population,place,name,is_in",
+        "openGeoDB:is_in_loc_id": "276",
+        "openGeoDB:postal_codes": "02747",
+        "old_de:regionalschluessel": "146265215040",
+        "openGeoDB:license_plate_code": "ZI",
+        "openGeoDB:telephone_area_code": "035873",
+        "old_de:amtlicher_gemeindeschluessel": "14626040",
+        "openGeoDB:community_identification_number": "14286030",
+        "openGeoDB:combination_of_public_administration": "Verwaltungsgemeinschaft Herrnhut",
+        "admin_level": "10"
+       },
+       "namedetails": {
+        "ref": "14626180120",
+        "name": "Berthelsdorf",
+        "name:de": "Berthelsdorf",
+        "name:ba": "Бертельсдорф",
+        "name:ru": "Бертельсдорф"
+       },
+       "boundingbox": [
+        "51.0032584",
+        "51.0517162",
+        "14.7364244",
+        "14.7831173"
+       ]
+      },
+      {
+       "place_id": 131792703,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "node",
+       "osm_id": 206233537,
+       "lat": "50.8662383",
+       "lon": "13.3620127",
+       "category": "place",
+       "type": "village",
+       "place_rank": 19,
+       "importance": 0.23468656939839805,
+       "addresstype": "village",
+       "name": "Berthelsdorf",
+       "display_name": "Berthelsdorf, Weißenborn/Erzgebirge, Lichtenberg-Weißenborn, Mittelsachsen, Saxony, 09600, Germany",
+       "address": {
+        "village": "Berthelsdorf",
+        "municipality": "Lichtenberg-Weißenborn",
+        "county": "Mittelsachsen",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "09600",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": {
+        "is_in": "Weißenborn,Freiberg,Chemnitz,Sachsen,Bundesrepublik Deutschland,Europe",
+        "website": "https://weissenborn-erzgebirge.de/",
+        "wikidata": "Q27479092",
+        "wikipedia": "de:Berthelsdorf (Weißenborn)"
+       },
+       "namedetails": {
+        "name": "Berthelsdorf",
+        "name:de": "Berthelsdorf",
+        "official_name": "Berthelsdorf/Erzgeb."
+       },
+       "boundingbox": [
+        "50.8462383",
+        "50.8862383",
+        "13.3420127",
+        "13.3820127"
+       ]
+      },
+      {
+       "place_id": 132228270,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "node",
+       "osm_id": 254984317,
+       "lat": "50.8566468",
+       "lon": "13.8393874",
+       "category": "place",
+       "type": "village",
+       "place_rank": 19,
+       "importance": 0.21584611680957558,
+       "addresstype": "village",
+       "name": "Berthelsdorf",
+       "display_name": "Berthelsdorf, Liebstadt, Bad Gottleuba-Berggießhübel, Sächsische Schweiz-Osterzgebirge, Saxony, 01825, Germany",
+       "address": {
+        "village": "Berthelsdorf",
+        "town": "Liebstadt",
+        "municipality": "Bad Gottleuba-Berggießhübel",
+        "county": "Sächsische Schweiz-Osterzgebirge",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "01825",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": {
+        "is_in": "Liebstadt,Sächsische Schweiz-Osterzgebirge,Dresden,Sachsen,Bundesrepublik Deutschland,Europe",
+        "wikidata": "Q827807",
+        "wikipedia": "de:Berthelsdorf (Liebstadt)",
+        "population": "90",
+        "population:date": "2011-05-09"
+       },
+       "namedetails": {
+        "name": "Berthelsdorf"
+       },
+       "boundingbox": [
+        "50.8366468",
+        "50.8766468",
+        "13.8193874",
+        "13.8593874"
+       ]
+      },
+      {
+       "place_id": 131896373,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "node",
+       "osm_id": 3117149756,
+       "lat": "50.9548092",
+       "lon": "13.1139299",
+       "category": "place",
+       "type": "neighbourhood",
+       "place_rank": 24,
+       "importance": 0.21584611680957558,
+       "addresstype": "neighbourhood",
+       "name": "Berthelsdorf",
+       "display_name": "Berthelsdorf, Hainichen, Lichtenau, Mittelsachsen, Saxony, 09661, Germany",
+       "address": {
+        "neighbourhood": "Berthelsdorf",
+        "town": "Hainichen",
+        "city": "Hainichen",
+        "municipality": "Lichtenau",
+        "county": "Mittelsachsen",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "09661",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": {
+        "wikidata": "Q65183687"
+       },
+       "namedetails": {
+        "name": "Berthelsdorf"
+       },
+       "boundingbox": [
+        "50.9448092",
+        "50.9648092",
+        "13.1039299",
+        "13.1239299"
+       ]
+      },
+      {
+       "place_id": 131410139,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 8214657,
+       "lat": "50.7690887",
+       "lon": "12.5079345",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 18,
+       "importance": 0.16005000152590218,
+       "addresstype": "city_district",
+       "name": "Berthelsdorf",
+       "display_name": "Berthelsdorf, Mülsen, Langenweißbach, Zwickau, Saxony, 08134, Germany",
+       "address": {
+        "city_district": "Berthelsdorf",
+        "village": "Mülsen",
+        "municipality": "Langenweißbach",
+        "county": "Zwickau",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "08134",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": {
+        "admin_level": "9"
+       },
+       "namedetails": {
+        "name": "Berthelsdorf"
+       },
+       "boundingbox": [
+        "50.7617613",
+        "50.7762564",
+        "12.4986586",
+        "12.5208521"
+       ]
+      },
+      {
+       "place_id": 134206243,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "node",
+       "osm_id": 252013321,
+       "lat": "51.0475029",
+       "lon": "14.2208048",
+       "category": "place",
+       "type": "suburb",
+       "place_rank": 19,
+       "importance": 0.14672105058365753,
+       "addresstype": "suburb",
+       "name": "Berthelsdorf",
+       "display_name": "Berthelsdorf, Neustadt in Sachsen, Sächsische Schweiz-Osterzgebirge, Saxony, 01844, Germany",
+       "address": {
+        "suburb": "Berthelsdorf",
+        "town": "Neustadt in Sachsen",
+        "county": "Sächsische Schweiz-Osterzgebirge",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "01844",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": null,
+       "namedetails": {
+        "name": "Berthelsdorf"
+       },
+       "boundingbox": [
+        "51.0275029",
+        "51.0675029",
+        "14.2008048",
+        "14.2408048"
+       ]
+      }
+     ],
+     "Berthelsdorf, Herrnhut, Sachsen, Germany": [
+      {
+       "place_id": 134256215,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 418714,
+       "lat": "51.0302053",
+       "lon": "14.7621622",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 20,
+       "importance": 0.4072594434730916,
+       "addresstype": "village",
+       "name": "Berthelsdorf",
+       "display_name": "Berthelsdorf, Herrnhut, Görlitz, Saxony, 02747, Germany",
+       "address": {
+        "village": "Berthelsdorf",
+        "city": "Herrnhut",
+        "county": "Görlitz",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "02747",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": {
+        "wikidata": "Q502553",
+        "wikipedia": "de:Berthelsdorf",
+        "population": "1695",
+        "linked_place": "village",
+        "openGeoDB:name": "Berthelsdorf",
+        "openGeoDB:type": "Gemeinde",
+        "openGeoDB:is_in": "Löbau-Zittau,Dresden,Sachsen,Bundesrepublik Deutschland,Europe",
+        "openGeoDB:layer": "6",
+        "openGeoDB:loc_id": "14396",
+        "openGeoDB:version": "0.2.6.11 / 2007-12-04 / http://fa-technik.adfc.de/code/opengeodb/dump/",
+        "openGeoDB:location": "political_structure",
+        "openGeoDB:sort_name": "BERTHELSDORF",
+        "openGeoDB:population": "1863",
+        "openGeoDB:auto_update": "population,place,name,is_in",
+        "openGeoDB:is_in_loc_id": "276",
+        "openGeoDB:postal_codes": "02747",
+        "old_de:regionalschluessel": "146265215040",
+        "openGeoDB:license_plate_code": "ZI",
+        "openGeoDB:telephone_area_code": "035873",
+        "old_de:amtlicher_gemeindeschluessel": "14626040",
+        "openGeoDB:community_identification_number": "14286030",
+        "openGeoDB:combination_of_public_administration": "Verwaltungsgemeinschaft Herrnhut",
+        "admin_level": "10"
+       },
+       "namedetails": {
+        "ref": "14626180120",
+        "name": "Berthelsdorf",
+        "name:de": "Berthelsdorf",
+        "name:ba": "Бертельсдорф",
+        "name:ru": "Бертельсдорф"
+       },
+       "boundingbox": [
+        "51.0032584",
+        "51.0517162",
+        "14.7364244",
+        "14.7831173"
+       ]
+      }
+     ],
+     "Berthelsdorf, Freiberg, Sachsen, Germany": [
+      {
+       "place_id": 132334926,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "node",
+       "osm_id": 2470201451,
+       "lat": "50.8776189",
+       "lon": "13.3613452",
+       "category": "information",
+       "type": "board",
+       "place_rank": 30,
+       "importance": 5.171663996333284e-05,
+       "addresstype": "information",
+       "name": "Hüttenteich Berthelsdorf",
+       "display_name": "Hüttenteich Berthelsdorf, Berthelsdorfer Straße, Langenrinne, Zug, Berthelsdorf, Weißenborn/Erzgebirge, Lichtenberg-Weißenborn, Mittelsachsen, Saxony, 09600, Germany",
+       "address": {
+        "information": "Hüttenteich Berthelsdorf",
+        "road": "Berthelsdorfer Straße",
+        "neighbourhood": "Langenrinne",
+        "suburb": "Zug",
+        "village": "Berthelsdorf",
+        "municipality": "Lichtenberg-Weißenborn",
+        "county": "Mittelsachsen",
+        "state": "Saxony",
+        "ISO3166-2-lvl4": "DE-SN",
+        "postcode": "09600",
+        "country": "Germany",
+        "country_code": "de"
+       },
+       "extratags": {
+        "tourism": "information",
+        "operator": "Landestalsperrenverwaltung des Freistaates Sachsen"
+       },
+       "namedetails": {
+        "name": "Hüttenteich Berthelsdorf"
+       },
+       "boundingbox": [
+        "50.8775689",
+        "50.8776689",
+        "13.3612952",
+        "13.3613952"
+       ]
+      }
+     ],
+     "Ballyquirk, Ireland": [
+      {
+       "place_id": 286531652,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 5847975,
+       "lat": "52.4226206",
+       "lon": "-9.0601096",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 20,
+       "importance": 0.13339469520103758,
+       "addresstype": "locality",
+       "name": "Ballyquirk",
+       "display_name": "Ballyquirk, Newcastle Rural, The Municipal District of Newcastle West, County Limerick, Munster, Ireland",
+       "address": {
+        "locality": "Ballyquirk",
+        "city_district": "Newcastle Rural",
+        "city": "The Municipal District of Newcastle West",
+        "municipality": "County Limerick",
+        "county": "County Limerick",
+        "ISO3166-2-lvl6": "IE-LK",
+        "state_district": "Munster",
+        "ISO3166-2-lvl5": "IE-M",
+        "country": "Ireland",
+        "country_code": "ie"
+       },
+       "extratags": {
+        "place": "locality",
+        "locality": "townland",
+        "wikidata": "Q104312015",
+        "logainm:ref": "31890",
+        "logainm:url": "http://www.logainm.ie/31890.aspx",
+        "admin_level": "10"
+       },
+       "namedetails": {
+        "name": "Ballyquirk",
+        "name:en": "Ballyquirk",
+        "name:ga": "Baile Uí Choirc"
+       },
+       "boundingbox": [
+        "52.4170176",
+        "52.4282629",
+        "-9.0747165",
+        "-9.0495184"
+       ]
+      },
+      {
+       "place_id": 275577399,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 5122538,
+       "lat": "52.6544155",
+       "lon": "-7.0821416",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 20,
+       "importance": 0.13337882734416723,
+       "addresstype": "locality",
+       "name": "Ballyquirk",
+       "display_name": "Ballyquirk, Gowran, The Municipal District of Castlecomer, County Kilkenny, Leinster, Ireland",
+       "address": {
+        "locality": "Ballyquirk",
+        "city_district": "Gowran",
+        "region": "The Municipal District of Castlecomer",
+        "county": "County Kilkenny",
+        "ISO3166-2-lvl6": "IE-KK",
+        "state_district": "Leinster",
+        "ISO3166-2-lvl5": "IE-L",
+        "country": "Ireland",
+        "country_code": "ie"
+       },
+       "extratags": {
+        "place": "locality",
+        "locality": "townland",
+        "wikidata": "Q104266206",
+        "logainm:ref": "26836",
+        "logainm:url": "http://www.logainm.ie/26836.aspx",
+        "admin_level": "10"
+       },
+       "namedetails": {
+        "name": "Ballyquirk",
+        "name:en": "Ballyquirk",
+        "name:ga": "Baile Uí Chuirc"
+       },
+       "boundingbox": [
+        "52.6450959",
+        "52.6635384",
+        "-7.0918749",
+        "-7.0642322"
+       ]
+      },
+      {
+       "place_id": 286339633,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 5349128,
+       "lat": "53.0710743",
+       "lon": "-8.1409656",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 20,
+       "importance": 0.13337833447775996,
+       "addresstype": "locality",
+       "name": "Ballyquirk",
+       "display_name": "Ballyquirk, Lorrha West, The Municipal District of Nenagh, County Tipperary, Munster, Ireland",
+       "address": {
+        "locality": "Ballyquirk",
+        "city_district": "Lorrha West",
+        "region": "The Municipal District of Nenagh",
+        "county": "County Tipperary",
+        "ISO3166-2-lvl6": "IE-TA",
+        "state_district": "Munster",
+        "ISO3166-2-lvl5": "IE-M",
+        "country": "Ireland",
+        "country_code": "ie"
+       },
+       "extratags": {
+        "place": "locality",
+        "locality": "townland",
+        "wikidata": "Q104315082",
+        "logainm:ref": "46025",
+        "logainm:url": "http://www.logainm.ie/46025.aspx",
+        "admin_level": "10"
+       },
+       "namedetails": {
+        "name": "Ballyquirk",
+        "name:en": "Ballyquirk",
+        "name:ga": "Baile Uí Chuirc"
+       },
+       "boundingbox": [
+        "53.0585201",
+        "53.0836398",
+        "-8.1736910",
+        "-8.1254566"
+       ]
+      },
+      {
+       "place_id": 286370635,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 6205110,
+       "lat": "51.9343946",
+       "lon": "-8.0177122",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 20,
+       "importance": 0.13337833447775996,
+       "addresstype": "locality",
+       "name": "Ballyquirk",
+       "display_name": "Ballyquirk, Killeagh, The Municipal District of East Cork, County Cork, Munster, Ireland",
+       "address": {
+        "locality": "Ballyquirk",
+        "city_district": "Killeagh",
+        "city": "The Municipal District of East Cork",
+        "county": "County Cork",
+        "ISO3166-2-lvl6": "IE-CO",
+        "state_district": "Munster",
+        "ISO3166-2-lvl5": "IE-M",
+        "country": "Ireland",
+        "country_code": "ie"
+       },
+       "extratags": {
+        "place": "locality",
+        "locality": "townland",
+        "wikidata": "Q104305769",
+        "logainm:ref": "13640",
+        "logainm:url": "http://www.logainm.ie/13640.aspx",
+        "admin_level": "10"
+       },
+       "namedetails": {
+        "name": "Ballyquirk",
+        "name:en": "Ballyquirk",
+        "name:ga": "Baile Uí Choirc"
+       },
+       "boundingbox": [
+        "51.9284887",
+        "51.9402502",
+        "-8.0256323",
+        "-8.0096276"
+       ]
+      }
+     ],
+     "Ballyquirk, Cork, Ireland": [
+      {
+       "place_id": 286370635,
+       "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+       "osm_type": "relation",
+       "osm_id": 6205110,
+       "lat": "51.9343946",
+       "lon": "-8.0177122",
+       "category": "boundary",
+       "type": "administrative",
+       "place_rank": 20,
+       "importance": 0.13337833447775996,
+       "addresstype": "locality",
+       "name": "Ballyquirk",
+       "display_name": "Ballyquirk, Killeagh, The Municipal District of East Cork, County Cork, Munster, Ireland",
+       "address": {
+        "locality": "Ballyquirk",
+        "city_district": "Killeagh",
+        "city": "The Municipal District of East Cork",
+        "county": "County Cork",
+        "ISO3166-2-lvl6": "IE-CO",
+        "state_district": "Munster",
+        "ISO3166-2-lvl5": "IE-M",
+        "country": "Ireland",
+        "country_code": "ie"
+       },
+       "extratags": {
+        "place": "locality",
+        "locality": "townland",
+        "wikidata": "Q104305769",
+        "logainm:ref": "13640",
+        "logainm:url": "http://www.logainm.ie/13640.aspx",
+        "admin_level": "10"
+       },
+       "namedetails": {
+        "name": "Ballyquirk",
+        "name:en": "Ballyquirk",
+        "name:ga": "Baile Uí Choirc"
+       },
+       "boundingbox": [
+        "51.9284887",
+        "51.9402502",
+        "-8.0256323",
+        "-8.0096276"
+       ]
+      }
+     ]
+    },
+    "wikidata": {
+     "Q5321228": "wikidata-Q5321228-dluzec.json",
+     "Q104305769": "wikidata-Q104305769-ballyquirk.json",
+     "Q502553": "wikidata-Q502553-berthelsdorf-herrnhut.json",
+     "Q27479092": "wikidata-Q27479092-berthelsdorf-weissenborn.json",
+     "Q827807": "wikidata-Q827807-berthelsdorf-liebstadt.json",
+     "Q65183687": "wikidata-Q65183687-berthelsdorf-hainichen.json"
+    },
+    "gazetteer": [
+     "gov-answers-langneundorf-berthelsdorf.json",
+     "wikidata-answers-ballyquirk.json"
+    ]
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": "Langneundorf, Silesa, , Germany",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "how": {
+        "starts": "gazetteer: GOV object_188280"
+       }
+      }
+     },
+     "why": "to the geocoder the string is a bare name, its one answer Dłużec (old name Langneundorf); GOV's one candidate verifies on the name and on Silesia, and the geocoder answer's SIMC is GOV's own for it, so that answer places it"
+    },
+    {
+     "place": {
+      "name": "Dłużec",
+      "gov_id": "object_188280",
+      "wikidata_id": "Q5321228",
+      "dated_name": "Lang Neundorf",
+      "dated": [
+       null,
+       "1945"
+      ],
+      "chain": [
+       "Dłużec",
+       "Lwówek Śląski County",
+       "Lower Silesian Voivodeship",
+       "Poland"
+      ]
+     },
+     "why": "today's place in today's hierarchy, with GOV's id and its German name until 1945 as a dated name"
+    },
+    {
+     "place_string": {
+      "raw": "Berthelsdorf, Sachsen, Allemagne",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "the overrides hold this string for the owner's review, and several Berthelsdorfs verify besides"
+    },
+    {
+     "place_card": {
+      "raw": "Berthelsdorf, Sachsen, Allemagne",
+      "candidates": {
+       "some": {
+        "kind": "gazetteer",
+        "source": "gov",
+        "id": "BEROR2JO71JA",
+        "verified": true
+       }
+      }
+     },
+     "why": "the Herrnhut Berthelsdorf is offered, verified on Saxony and Germany; the geocoder's answer for it carries no GOV id, so it stands on its own"
+    },
+    {
+     "place_card": {
+      "raw": "Berthelsdorf, Sachsen, Allemagne",
+      "candidates": {
+       "some": {
+        "kind": "gazetteer",
+        "source": "gov",
+        "id": "BERORFJO60NW",
+        "verified": true
+       }
+      }
+     },
+     "why": "so is another Saxon Berthelsdorf: several verify, and the owner chooses"
+    },
+    {
+     "place_card": {
+      "raw": "Berthelsdorf, Sachsen, Allemagne",
+      "candidates": {
+       "some": {
+        "osm": {
+         "any": true
+        },
+        "gazetteer": {
+         "source": "gov",
+         "id": "BERGEBJO60QU",
+         "verified": true
+        }
+       }
+      }
+     },
+     "why": "the Berthelsdorf near Freiberg is offered on the geocoder's own entry for it, its twin by the GOV id Wikidata gives that entry's item"
+    },
+    {
+     "place_card": {
+      "raw": "Berthelsdorf, Sachsen, Allemagne",
+      "candidates": {
+       "some": {
+        "kind": "gazetteer",
+        "id": "BERORFJO70TW",
+        "verified": false
+       }
+      }
+     },
+     "why": "a Silesian Berthelsdorf never in Saxony is offered unverified"
+    },
+    {
+     "place_string": {
+      "raw": "Berthelsdorf, Freiberg, Sachsen, Germany",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "the overrides hold this string for the owner's review"
+    },
+    {
+     "place_card": {
+      "raw": "Berthelsdorf, Freiberg, Sachsen, Germany",
+      "candidates": {
+       "some": {
+        "kind": "gazetteer",
+        "id": "BERGEBJO60QU",
+        "verified": true,
+        "checks": {
+         "Freiberg": true
+        }
+       }
+      }
+     },
+     "why": "the Kreis the string states narrows GOV's candidates to the Berthelsdorf that lay in the Amtshauptmannschaft Freiberg"
+    },
+    {
+     "place_card": {
+      "raw": "Berthelsdorf, Freiberg, Sachsen, Germany",
+      "candidates": {
+       "some": {
+        "kind": "gazetteer",
+        "id": "BEROR2JO71JA",
+        "verified": false,
+        "checks": {
+         "Freiberg": false
+        }
+       }
+      }
+     },
+     "why": "the Herrnhut Berthelsdorf, which the overrides' note suspects, never lay in Freiberg"
+    },
+    {
+     "place_string": {
+      "raw": "Ballyquirk, Cork, Ireland",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "how": "unique full match"
+      }
+     },
+     "why": "with its county named the geocoder's unique full match accepts the townland; no gazetteer is asked"
+    },
+    {
+     "place": {
+      "name": "Ballyquirk",
+      "wikidata_id": "Q104305769"
+     },
+     "why": "the townland in Killeagh, County Cork"
+    },
+    {
+     "place_string": {
+      "raw": "Ballyquirk, Ireland",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "with no county named, four townlands verify"
+    },
+    {
+     "place_card": {
+      "raw": "Ballyquirk, Ireland",
+      "candidates": {
+       "some": {
+        "gazetteer": {
+         "source": "wikidata",
+         "id": "Q104315082",
+         "verified": true
+        }
+       }
+      }
+     },
+     "why": "Wikidata's candidates are offered on the geocoder's own entries for them, the Tipperary namesake among them"
+    },
+    {
+     "place_card": {
+      "raw": "Ballyquirk, Ireland",
+      "candidates": {
+       "some": {
+        "gazetteer": {
+         "source": "wikidata",
+         "id": "Q104305769",
+         "verified": true,
+         "checks": {
+          "Ireland": true
+         }
+        }
+       }
+      }
+     },
+     "why": "and the Cork townland, the one its county names"
+    },
+    {
+     "place_card": {
+      "raw": "Ballyquirk, Ireland",
+      "candidates": {
+       "none": {
+        "gazetteer": {
+         "id": "Q4852275"
+        }
+       }
+      }
+     },
+     "why": "Ballyquirk Castle, which Wikidata's search also finds, is not a place of the name and is not offered"
+    },
+    {
+     "place_card": {
+      "raw": "Ballyquirk, Ireland",
+      "candidates": {
+       "none": {
+        "kind": "gazetteer"
+       }
+      }
+     },
+     "why": "every Wikidata candidate is one of the geocoder's own, so none stands on its own"
+    }
+   ]
+  }
+ ]
+}
