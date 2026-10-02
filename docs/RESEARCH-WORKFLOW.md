@@ -667,7 +667,14 @@ takes such a proposal, and when another persona on the same page fits that
 candidate, or is already accepted as them, the near one is not proposed at
 all: one decision is put once, and the near persona stays a hint on the page.
 A persona of the same name that disagrees on both its dates is not a likely
-identity either: it stays a hint on the page, never a card.
+identity either: it stays a hint on the page, never a card. Nor is one born
+more than the matcher's window of three years from the candidate: another
+generation of the same name (a daughter named for her mother, a son for his
+father) is never put to the elder, so the persona goes on to the fitting
+check and the new-person route like anyone the tree does not hold (Annie
+Lukens, born 1899 in her parents' 1900 household, is no near match for her
+mother Anna Marie, born 1863), and a results-page row of that kind stays a
+row on the page.
 A row of a results page, a schedule row or a name in running text that agrees
 on the name alone is a hint on the page too, never a card: its own record is
 the document. One proposal per persona: `persona_match`

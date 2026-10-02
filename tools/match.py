@@ -71,7 +71,8 @@ from treelib import ROOT, connect, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.4.1")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.5.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+WINDOW = 3                                  # the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
 LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
 MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -208,10 +209,12 @@ def compare(cat, persona, cand, chosen):
              or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
     both_dates = any(d.startswith("birth date disagrees") for d in disagree) and any(d.startswith("death date disagrees") for d in disagree)   # disagreeing on both is not a likely identity either
+    ry, cy = year((persona["birth"] or {}).get("start")), year((cand["birth"] or {}).get("start"))
+    far = ry is not None and cy is not None and abs(ry - cy) > WINDOW   # born outside the matcher's own window: another generation, never a likely identity
     has_relation = any(chosen.get(o) for _, o, _, _ in persona["relations"])   # the persona relates to a persona already resolved on this record
     unlinked = not any(cat.family(cand["id"])[g] for g in ("parents", "spouses", "children", "siblings"))   # a person of the tree with no family link yet
     fitting = clean and (surname_ok or married) and has_relation and (rel_ok or unlinked)   # the fitting check (docs/RESEARCH-WORKFLOW.md §5-7): the same stated relationship to the same accepted person, or the surname on a person with no family link yet; a given name disagreeing does not refuse it
-    near = not fits and not any(d.startswith("sex") for d in disagree) and not both_dates and ((given_ok and (surname_ok or married or same)) or fitting)   # the same name, something else disagrees, or the fitting check's relationship route: a card, never a rule decision
+    near = not fits and not far and not any(d.startswith("sex") for d in disagree) and not both_dates and ((given_ok and (surname_ok or married or same)) or fitting)   # the same name, something else disagrees, or the fitting check's relationship route: a card, never a rule decision
     return fits, agree, disagree, absent, near
 
 def _date(row):
@@ -271,7 +274,7 @@ def by_name_and_year(cat, cx, tree_id, persona):
         if y is not None:
             years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
                      WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]
-            if years and not any(abs(cy - y) <= 3 for cy in years): continue
+            if years and not any(abs(cy - y) <= WINDOW for cy in years): continue
         out.append(pid)
     return out
 
@@ -296,7 +299,7 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
         if y is not None:
             years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
                      WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]
-            if years and not any(abs(cy - y) <= 3 for cy in years): continue
+            if years and not any(abs(cy - y) <= WINDOW for cy in years): continue
         out.append(pid)
     return out
 

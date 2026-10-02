@@ -1,0 +1,51 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,60901::42584762"
+  }
+ },
+ "extractor": "familysearch-record",
+ "sequence": {
+  "1": {
+   "name": "Robert Edgar Davidson",
+   "role": "subject",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "19 February 1915",
+     "place": "Auburn, Kentucky"
+    },
+    {
+     "type": "Death",
+     "date": "5 April 2004"
+    }
+   ],
+   "why": "the claims index's own subject, born on the day at Auburn, the birthplace his obituary gives as Woodburn"
+  }
+ },
+ "some": [
+  {
+   "name": "John Y Davidson",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1
+    }
+   ],
+   "why": "the father the claim names, a parent of the subject"
+  },
+  {
+   "name": "Lena Bell",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1
+    }
+   ],
+   "why": "the mother under her birth surname, a parent of the subject"
+  }
+ ]
+}
