@@ -16,7 +16,8 @@ def read(cx, eid):
     for pid, seq, name, role, sex, region in cx.execute("SELECT id, sequence, name_text, role_in_record, sex, region_json FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
         facts = [(t, v, d, p, json.loads(r or "{}")) for t, v, d, p, r in cx.execute("""SELECT f.fact_type, f.value_text, f.date_text, ps.raw, f.region_json FROM persona_fact f
                                                                                    LEFT JOIN place_string ps ON ps.id=f.place_string_id WHERE f.persona_id=? ORDER BY f.id""", (pid,))]
-        rels = [(k, v, cx.execute("SELECT sequence FROM persona WHERE id=?", (o,)).fetchone()[0]) for k, v, o in cx.execute("SELECT kind, value_text, related_persona_id FROM persona_relation WHERE persona_id=?", (pid,))]
+        rels = [(k, v, cx.execute("SELECT sequence FROM persona WHERE id=?", (o,)).fetchone()[0], json.loads(r or "{}"))
+                for k, v, o, r in cx.execute("SELECT kind, value_text, related_persona_id, region_json FROM persona_relation WHERE persona_id=?", (pid,))]
         out.append({"seq": seq, "name": name, "role": role or "", "sex": sex or "", "region": region or "", "facts": facts, "relations": rels})
     return out
 
@@ -35,7 +36,10 @@ def fact_matches(f, want):
 def has_fact(p, want): return any(fact_matches(f, want) for f in p["facts"])
 
 def has_relation(p, want):
-    return any(k == want["kind"] and o == want["to"] and ("value" not in want or v == want["value"]) for k, v, o in p["relations"])
+    """A relation from the persona against a relation pattern: kind, to (the sequence it points at), value as written, computed (true:
+    its region marks the site's own inference; false: the record states it)."""
+    return any(k == want["kind"] and o == want["to"] and ("value" not in want or v == want["value"]) and ("computed" not in want or bool(r.get("computed")) == want["computed"])
+               for k, v, o, r in p["relations"])
 
 def persona_matches(p, want):
     """A persona against a persona pattern: name, name_has, role, sex, region, facts, no_facts, relations."""
@@ -80,7 +84,7 @@ def compare(ps, parsed, want, fail):
     for seq, kinds in (want.get("toward") or {}).items():
         counts = {}
         for p in ps:
-            for k, v, o in p["relations"]:
+            for k, v, o, _ in p["relations"]:
                 if o == int(seq) and p["seq"] != int(seq): counts[k] = counts.get(k, 0) + 1
         only = kinds.get("only"); expected = {k: v for k, v in kinds.items() if k != "only"}
         fail(all(counts.get(k, 0) == v for k, v in expected.items()) and (not only or set(counts) <= set(expected)),
@@ -130,7 +134,7 @@ def check(keep, show):
             for p in ps:
                 print(f"  {brief(p)}  {p['region'][:80]}")
                 for t, v, dt, pl, rg in p["facts"]: print(f"       {t:16} {' | '.join(x for x in (v, dt, pl) if x)}{'  (alternate)' if rg.get('alternate') else ''}")
-                for k, v, o in p["relations"]: print(f"       -> {k} ({v}) of #{o}")
+                for k, v, o, rg in p["relations"]: print(f"       -> {k} ({v}) of #{o}{'  (computed)' if rg.get('computed') else ''}")
         if ext[2] == "complete" and ext[0] == want["extractor"]:
             try: compare(ps, json.loads(ext[3] or "{}"), want, fails)
             except Exception as e: fails.append(f"the reader raised {type(e).__name__}: {e}")

@@ -43,7 +43,8 @@
    "relations": [
     {
      "kind": "parent",
-     "to": 1
+     "to": 1,
+     "computed": true
     }
    ]
   },
@@ -53,7 +54,8 @@
    "relations": [
     {
      "kind": "parent",
-     "to": 1
+     "to": 1,
+     "computed": true
     }
    ],
    "why": "the two names the record's own Parents and Siblings table gives, with no role word of their own, both read as parent relations toward the subject: a NUMIDENT record's own Parents and Siblings table names only the parents"

@@ -31,7 +31,15 @@
      "alternate": true
     }
    ],
-   "why": "the record's principal is the son, found through his own search; his birth calculated from age 17 on the 1950 record; his Name field shows Fred M Ahearn and keeps Fred M. Ahearn, Jr. collapsed beneath it, a name of its own marked alternate"
+   "why": "the record's principal is the son, found through his own search; his birth calculated from age 17 on the 1950 record; his Name field shows Fred M Ahearn and keeps Fred M. Ahearn, Jr. collapsed beneath it, a name of its own marked alternate; his own Relationship to Head of Household, Son, relates him to the head, his father, whose own details say Head: the record's statement",
+   "relations": [
+    {
+     "kind": "child",
+     "to": 2,
+     "value": "Son",
+     "computed": false
+    }
+   ]
   },
   "2": {
    "name": "Fred M Ahern",
@@ -53,15 +61,17 @@
     {
      "kind": "parent",
      "to": 1,
-     "value": "Father"
+     "value": "Father",
+     "computed": true
     },
     {
      "kind": "spouse",
      "to": 3,
-     "value": "Parents"
+     "value": "Parents",
+     "computed": true
     }
    ],
-   "why": "the household's father indexed Ahern, the surname's other spelling on the one page, his Name field keeping Fred M. Ahearn collapsed beneath it; Father toward the principal, the couple relation between the household's parents"
+   "why": "the household's father indexed Ahern, the surname's other spelling on the one page, his Name field keeping Fred M. Ahearn collapsed beneath it; Father toward the principal and the couple of the two parents are FamilySearch's groupings around the page's person, computed"
   },
   "3": {
    "name": "Helen B Ahearn",
@@ -78,7 +88,8 @@
     {
      "kind": "parent",
      "to": 1,
-     "value": "Mother"
+     "value": "Mother",
+     "computed": true
     }
    ]
   },
@@ -97,7 +108,8 @@
     {
      "kind": "sibling",
      "to": 1,
-     "value": "Brother"
+     "value": "Brother",
+     "computed": true
     }
    ],
    "why": "a brother the file does not hold, born after the 1940 census, in another state"

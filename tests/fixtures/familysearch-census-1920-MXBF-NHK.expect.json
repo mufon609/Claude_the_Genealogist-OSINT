@@ -21,7 +21,15 @@
      "place": "Massachusetts"
     }
    ],
-   "why": "the principal's birth calculated from her age 9 on the 1920 record"
+   "why": "the principal's birth calculated from her age 9 on the 1920 record; Daughter of the head, her father, by the record's own column",
+   "relations": [
+    {
+     "kind": "child",
+     "to": 2,
+     "value": "Daughter",
+     "computed": false
+    }
+   ]
   },
   "2": {
    "name": "James J Ahearn",
@@ -31,7 +39,8 @@
     {
      "kind": "parent",
      "to": 1,
-     "value": "Father"
+     "value": "Father",
+     "computed": true
     }
    ]
   },
@@ -43,7 +52,8 @@
     {
      "kind": "sibling",
      "to": 1,
-     "value": "Sister"
+     "value": "Sister",
+     "computed": true
     }
    ]
   },
@@ -61,7 +71,8 @@
    "relations": [
     {
      "kind": "other",
-     "to": 1
+     "to": 1,
+     "computed": true
     }
    ],
    "why": "the mother's row, its relationship cell blank: her age and birthplace still land in Birth, not shifted one column; a member with a blank relationship word relates as other, not skipped"
@@ -80,7 +91,8 @@
    "relations": [
     {
      "kind": "other",
-     "to": 1
+     "to": 1,
+     "computed": true
     }
    ]
   },
@@ -98,7 +110,8 @@
    "relations": [
     {
      "kind": "other",
-     "to": 1
+     "to": 1,
+     "computed": true
     }
    ]
   }

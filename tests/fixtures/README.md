@@ -68,7 +68,8 @@ with, one reader for every page, so a page of another family needs a page and a 
 A persona pattern: `name` (as written, exact), `name_has` (words the name contains, any case), `role` (the page's own word,
 `""` for none), `sex`, `region` (texts the persona's `region_json` contains), `facts` (fact patterns each of which some fact
 of the persona matches), `no_facts` (fact patterns none may match), `relations` (`kind`, `to` the sequence it points at,
-`value` as written when it matters). A fact pattern: `type`, and any of `value`, `value_starts`, `date`, `place` (matched
+`value` as written when it matters, `computed`: true when its `region_json` marks it the site's own inference, false when
+the record states it). A fact pattern: `type`, and any of `value`, `value_starts`, `date`, `place` (matched
 as a prefix of the place string as written), `alternate` (true: the fact holds a value the page keeps collapsed beneath the
 one it shows, as its `region_json` marks it; false: it does not). A `why` on any pattern is printed with the failure and says what the page
 taught. `tools/check.py --show` prints what each reading wrote, for writing a sidecar.

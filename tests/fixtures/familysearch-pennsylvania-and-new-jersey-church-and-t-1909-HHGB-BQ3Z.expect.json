@@ -34,7 +34,14 @@
     {
      "kind": "parent",
      "to": 1,
-     "value": "Father"
+     "value": "Father",
+     "computed": false
+    },
+    {
+     "kind": "spouse",
+     "to": 3,
+     "value": "Parents",
+     "computed": true
     }
    ],
    "facts": [
@@ -43,7 +50,7 @@
      "value": "Abram C Brandt"
     }
    ],
-   "why": "the relatives table's own row, which carries the sex; the Father's Name field states the same person and joins this persona as a second Name fact, not a persona of its own"
+   "why": "the relatives table's own row, which carries the sex; the Father's Name field states the same person and joins this persona as a second Name fact, not a persona of its own, and makes the father relation the record's own statement; the couple the table lists together is the site's inference"
   },
   "3": {
    "name": "Charlotte D. Lukens Brandt",
@@ -56,7 +63,8 @@
     {
      "kind": "parent",
      "to": 1,
-     "value": "Mother"
+     "value": "Mother",
+     "computed": false
     }
    ],
    "facts": [
@@ -65,7 +73,7 @@
      "value": "Charlotte D. Lukens Brandt"
     }
    ],
-   "why": "the same, from the relatives table's own row and the Mother's Name field"
+   "why": "the same, from the relatives table's own row and the Mother's Name field, which states her relation"
   }
  }
 }

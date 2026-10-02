@@ -547,14 +547,20 @@ memorial's subject, and in the parsed page every photograph with the type the
 page gives it; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
-`rule:familysearch-record@0.2.0` (one persona per person the page names, in
+`rule:familysearch-record@0.3.0` (one persona per person the page names, in
 the page's own role word, one fact per field as written; every value a field
 keeps collapsed beneath the one it shows, FamilySearch's edit history, read
 too, as a fact of its own whose region marks it alternate, unless it says the
 same as the shown value, and beneath an Event Date that shows a time of day
 the date it keeps is the event's own date, the time a fact under its own
-label; one relation per stated relationship, the relatives its fields name as
-personas; verified on real pages), an Ancestry index page to `rule:ancestry-index@0.1.0` (built to
+label; each person's relationship to the household's head as the record's own
+column states it, when the page shows who the head is, and a parent a field
+names (Father's Name) toward the subject, as stated relations; every grouping
+FamilySearch's relatives tables make around the page's own person (Mother,
+Sister, Husband, the couple of the parents listed) written too, marked
+`computed` in the relation's region, the site's inference and not the
+record's statement; the relatives its fields name as personas; verified on
+real pages), an Ancestry index page to `rule:ancestry-index@0.1.0` (built to
 Ancestry's page structure, not yet verified on a real page), a FamilySearch search results page to
 `rule:familysearch-search@0.1.0` (one persona per row with the record's ark as
 its identity), an AAD enlistment results page to `rule:aad-search@0.1.0` and a

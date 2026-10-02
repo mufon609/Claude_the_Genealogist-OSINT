@@ -27,7 +27,15 @@
      "alternate": true
     }
    ],
-   "why": "the Event Place shows FamilySearch's own place, Norriton Township, and keeps Norristown collapsed beneath it, the place the original's Norristown borough Ward 6 names: both are read, the collapsed one a Residence of its own on the census date, marked alternate"
+   "why": "the Event Place shows FamilySearch's own place, Norriton Township, and keeps Norristown collapsed beneath it, the place the original's Norristown borough Ward 6 names: both are read, the collapsed one a Residence of its own on the census date, marked alternate",
+   "relations": [
+    {
+     "kind": "child",
+     "to": 2,
+     "value": "Daughter",
+     "computed": false
+    }
+   ]
   },
   "2": {
    "name": "Milton Lukens",
@@ -40,7 +48,85 @@
      "alternate": true
     }
    ],
-   "why": "each household member's own details table keeps the same collapsed place, read the same way"
+   "why": "each household member's own details table keeps the same collapsed place, read the same way; he is the head by his own details, Father and the parents' couple FamilySearch's groupings around Charlotte, computed",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father",
+     "computed": true
+    },
+    {
+     "kind": "spouse",
+     "to": 3,
+     "value": "Parents",
+     "computed": true
+    }
+   ]
+  },
+  "3": {
+   "name": "Annie M Lukens",
+   "role": "mother",
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 2,
+     "value": "Wife",
+     "computed": false
+    },
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother",
+     "computed": true
+    }
+   ],
+   "why": "Wife of the head by the record's own column, stated; Mother of Charlotte only by FamilySearch's grouping, computed"
+  },
+  "7": {
+   "name": "James G Lukens",
+   "role": "brother",
+   "relations": [
+    {
+     "kind": "child",
+     "to": 2,
+     "value": "Son",
+     "computed": false
+    },
+    {
+     "kind": "sibling",
+     "to": 1,
+     "value": "Brother",
+     "computed": true
+    }
+   ],
+   "why": "Son of the head, stated; Charlotte's Brother, computed"
+  },
+  "11": {
+   "name": "Mary Bolton",
+   "role": "maternal grandmother",
+   "relations": [
+    {
+     "kind": "other",
+     "to": 2,
+     "value": "Mother-in-law",
+     "computed": false
+    },
+    {
+     "kind": "other",
+     "to": 1,
+     "value": "Maternal Grandmother",
+     "computed": true
+    }
+   ],
+   "why": "the head's Mother-in-law as the census states it, beside the Maternal Grandmother FamilySearch works out for Charlotte"
+  }
+ },
+ "toward": {
+  "2": {
+   "child": 8,
+   "spouse": 1,
+   "other": 1
   }
  }
 }

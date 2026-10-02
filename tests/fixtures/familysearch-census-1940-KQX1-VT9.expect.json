@@ -31,7 +31,15 @@
      "place": "Caln Township, Chester, Pennsylvania"
     }
    ],
-   "why": "the principal's birth calculated from age 7 on the 1940 record; Residence Date 1935 / Same House read as the record's own place, not a place called Same House; the record's own residence 1940"
+   "why": "the principal's birth calculated from age 7 on the 1940 record; Residence Date 1935 / Same House read as the record's own place, not a place called Same House; the record's own residence 1940; his own Relationship to Head of Household, Son, toward his father, whose own details say Head",
+   "relations": [
+    {
+     "kind": "child",
+     "to": 3,
+     "value": "Son",
+     "computed": false
+    }
+   ]
   },
   "2": {
    "name": "Helen Ahern",
@@ -47,15 +55,17 @@
     {
      "kind": "parent",
      "to": 1,
-     "value": "Mother"
+     "value": "Mother",
+     "computed": true
     },
     {
      "kind": "spouse",
      "to": 3,
-     "value": "Parents"
+     "value": "Parents",
+     "computed": true
     }
    ],
-   "why": "the mother's birth calculated from her age, Mother stated toward the principal, the couple relation between the household's mother and father"
+   "why": "the mother's birth calculated from her age, Mother toward the principal and the couple of the household's mother and father FamilySearch's groupings, computed"
   },
   "3": {
    "name": "Frederick Ahern",
@@ -71,7 +81,8 @@
     {
      "kind": "parent",
      "to": 1,
-     "value": "Father"
+     "value": "Father",
+     "computed": true
     }
    ]
   },
@@ -89,7 +100,8 @@
     {
      "kind": "sibling",
      "to": 1,
-     "value": "Sister"
+     "value": "Sister",
+     "computed": true
     }
    ]
   }

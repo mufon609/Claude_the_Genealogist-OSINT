@@ -7,7 +7,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.3.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.2.0; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.3.0; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -27,11 +27,13 @@ personas, and the matcher is not run. One extraction per run over the artifact, 
                    (Birth Date + Birth Place) are one fact. region_json is the
                    field label. Dates go through treelib's date grammar only;
                    places become place_string rows, Undecided, as written.
-  persona_relation one row per stated relationship, from the persona whose
-                   role it is to the persona it is toward: a household member
-                   to the head (kind child, "Son"), a named relative to the
-                   subject (kind parent, "Father's name"), value_text as
-                   written.
+  persona_relation one row per relationship the page gives, from the persona
+                   whose role it is to the persona it is toward: a household
+                   member to the head (kind child, "Son"), a named relative to
+                   the subject (kind parent, "Father's name"), value_text as
+                   written; region_json carries the label it was read under,
+                   and computed: true on one the site worked out for its own
+                   display rather than one the record states.
 extraction.structured_json holds the raw parsed page: every label/value pair
 and every table. Re-running inserts a new extraction, marks the old one
 superseded, and rejects the old one's undecided proposals with the note
@@ -93,7 +95,13 @@ table as its facts, its record ark in region_json, and one relation from the
 member to the subject with the role word as written (relation_kind); a NUMIDENT
 record's own Parents and Siblings table carries no role word at all, and its
 two rows are read as parent relations, that collection's application naming
-only the parents there. The page's own ark, from
+only the parents there. Those tables are FamilySearch's grouping around the
+page's own person, its inference, not the record's statement: each such
+relation, and the couple of the two parents a table lists, is marked computed.
+What the record states is written beside them: each person's Relationship to
+Head of Household (the subject's field, a member's own details) as a relation to
+the head, when the page shows who the head is, and a parent a field names
+(Father's Name) toward the subject. The page's own ark, from
 the print header, is written to artifact_locator as kind ark.
 
 Connector responses (JSON, archived by tools/run_step.py) have their own extractors, claimed by the response's shape:
@@ -123,7 +131,7 @@ from treelib import ROOT, connect, dumps, now, object_path, parse_gedcom_date, s
 from conclude import assert_facts, link_family
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.3.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.2.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.3.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -563,9 +571,12 @@ class Writer:
                            VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), persona_id, ftype, value, date, d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"],
                                                               self.place_string(place), dumps({"labels": list(labels), **({"alternate": list(alternate)} if alternate else {})})))
         self.n["facts"] += 1
-    def relation(self, a, b, kind, as_written, label):
+    def relation(self, a, b, kind, as_written, label, computed=False):
+        """One relationship the page gives, from the persona whose role it is to the persona it is toward, its region the label it
+        was read under; computed marks one the site worked out for its own display (FamilySearch's relatives tables) rather than
+        one the record states, still written: it is what the page says."""
         self.cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
-                        (ulid(), a, b, kind, as_written, dumps({"label": label}))); self.n["relations"] += 1
+                        (ulid(), a, b, kind, as_written, dumps({"label": label, **({"computed": True} if computed else {})}))); self.n["relations"] += 1
 
 STATE_CENSUS_ROW = re.compile(r"\b(new york|massachusetts)\b[^•]*\bstate census\b", re.I)
 
@@ -850,10 +861,15 @@ def calc_census_birth(by_type, is_census):
         slot["date"] = (f"CAL {slot['date'][0]}", slot["date"][1])
 
 def write_record(w, parsed):
-    """The FamilySearch record's subject with its facts, then one persona per household member with its own facts and a
-    relation to the subject. A parent the fields also name (Father's Name, Mother's Name) is not written twice: the
-    relatives table's own row, which carries the sex, stands for that parent, and the field's own statement joins it as a
-    second Name fact, so nothing the page says is lost."""
+    """The FamilySearch record's subject with its facts, then one persona per person the relatives tables name, with its own
+    facts. The relationships, both kinds the page gives: each person's relationship to the household's head as the record's own
+    column states it (Relationship to Head of Household, in the subject's fields and in each member's own details table, when
+    the page shows who the head is), the word as written; a parent a field names (Father's Name, Mother's Name) toward the
+    subject, as the record states it; and every grouping the relatives tables make around the page's own person (Father, Sister,
+    Husband, Maternal Grandmother, and the couple of the two parents they list) marked computed in its region, FamilySearch's
+    inference rather than the record's statement, kept because it is what the page says. A parent the fields also name is not
+    written twice: the relatives table's own row, which carries the sex, stands for that parent, and the field's own statement
+    joins it as a second Name fact, so nothing the page says is lost."""
     fields = parsed["fields"]; f = dict(fields)
     kind_word = (parsed.get("collection") or "").split("•")[0].strip().lower()                     # "Census • United States, Census, 1950"
     is_census = kind_word == "census"
@@ -877,12 +893,22 @@ def write_record(w, parsed):
             mb.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
         pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url")})
         write_facts(w, pid, mb)
-        w.relation(pid, subject, relation_kind(m["role"], m["section"], parsed.get("collection")), m["role"], m["section"])
-        members_written.append((pid, m["role"].lower(), m["section"]))
+        members_written.append((pid, m["role"].lower(), m["section"], m))
+    to_head = lambda rows: next((v for l, v in rows if l.lower().strip() == "relationship to head of household" and (v or "").strip()), None)
+    heads = [subject] if household_kind(to_head(fields)) == "head" else [pid for pid, _, _, m in members_written if household_kind(to_head(m["fields"])) == "head"]
+    head = heads[0] if len(heads) == 1 else None                     # the household's head, by the record's own column: the subject, or the one member whose own details say Head
+    stated = [(pid, head, household_kind(word), word) for pid, word in [(subject, to_head(fields))] + [(pid, to_head(m["fields"])) for pid, _, _, m in members_written]
+              if head and word and pid != head and household_kind(word) != "head"]   # each person's relationship to the head, as the record's own column states it
+    in_fields = {label for label, who, _ in named if label in ("father", "mother") and len(who.split()) >= 2}
+    for pid, role, section, m in members_written:
+        kind = relation_kind(m["role"], section, parsed.get("collection"))
+        if role in in_fields: w.relation(pid, subject, kind, m["role"], role); continue      # the parent a field names (Father's Name): the record states it
+        w.relation(pid, subject, kind, m["role"], section, computed=True)                    # FamilySearch's grouping around the page's own person: its inference, not the record's statement
+    for a, b, kind, word in stated: w.relation(a, b, kind, word, "Relationship to Head of Household")
     seq0 = 2 + len(members_written)
     for label, who, others in named:                                 # a relative the record names in a field: Father's Name, Mother's Name, Spouse
         if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Doe") names nobody
-        table_row = next((pid for pid, role, _ in members_written if label in ("father", "mother") and role == label), None)
+        table_row = next((pid for pid, role, _, _ in members_written if label in ("father", "mother") and role == label), None)
         if table_row:                                                # the same parent, already written from the relatives table: the field's own words join that persona, not a second one
             w.fact(table_row, "Name", who, labels=[label])
             for other in others: w.fact(table_row, "Name", other, labels=[label], alternate=[label])
@@ -891,9 +917,9 @@ def write_record(w, parsed):
         w.fact(pid, "Name", who, labels=[label])
         for other in others: w.fact(pid, "Name", other, labels=[label], alternate=[label])   # the name the field keeps collapsed beneath the one it shows
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
-    parents = [(pid, role, sec) for pid, role, sec in members_written if role in ("father", "mother")]
-    if len(parents) == 2 and parents[0][1] != parents[1][1]:      # a census household lists the subject's father and mother together: the household's couple
-        w.relation(parents[0][0], parents[1][0], "spouse", "Parents", parents[0][2])
+    parents = [(pid, role, sec) for pid, role, sec, _ in members_written if role in ("father", "mother")]
+    if len(parents) == 2 and parents[0][1] != parents[1][1]:      # the relatives table lists the subject's father and mother together: a couple the site infers, the record states none
+        w.relation(parents[0][0], parents[1][0], "spouse", "Parents", parents[0][2], computed=True)
 
 def context_for(cx, sha):
     """What the runner recorded about a connector response: the manifest notes (the hit as the source described it) and the step
