@@ -162,7 +162,7 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon, watch):
     if not bl["complete"]: out.append(f"  {pid_name(cx, pid)}: {len(bl['undecided'])} key fact(s) still undecided: {', '.join(bl['undecided'])}")
     if w["documents"]: out.append(f"  {pid_name(cx, pid)}: {w['documents']} document(s) still waiting for a decision")
     if w["conflicts"]: out.append(f"  {pid_name(cx, pid)}: {w['conflicts']} conflict question(s) open")
-    if w["needs_hand"]: out.append(f"  {pid_name(cx, pid)}: {w['needs_hand']} step(s) still need a hand (assisted, not yet run)")
+    if w["needs_hand"]: out.append(f"  {pid_name(cx, pid)}: {w['needs_hand']} planned step(s) only a hand can take: a page to save in the browser, an assisted search, a film browsed by hand")
     for r in collect_results + left_results:
         if r.get("left"): out.append("  " + line(r))
     here, elsewhere = 0, 0

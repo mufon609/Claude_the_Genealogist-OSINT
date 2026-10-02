@@ -611,7 +611,7 @@ def split_disagree(cx, cand, persona, disagree):
     """Partition compare()'s disagreements into those grounded in an Accepted assertion on the very event or link compared
     (a veto) and those against a bare claim (named in the decision note instead, never a veto): a birth or death date or
     place is checked against the event's own Accepted assertions, not the tree's displayed value, which may itself be an
-    unaccepted claim; every other kind of disagreement (name, sex, relationship) still vetoes as before."""
+    unaccepted claim; every other kind of disagreement (name, sex, relationship) vetoes."""
     vetoes, claims = [], []
     for d in disagree:
         field = next((f for f in FIELD_EVENT if d.startswith(f)), None)
@@ -944,7 +944,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     A duplicate's own event of a type the kept person also has, its date agreeing to the day and its place agreeing or
     absent, is folded: its assertions move onto the kept person's own event of that type, and the duplicate's event and its
     participant are left as they are, on the duplicate's row, so the kept person never carries two Birth or two Death
-    events of one value. A differing value stays a second event, as before. A duplicate's own family, once its membership
+    events of one value. A differing value stays a second event. A duplicate's own family, once its membership
     has moved, whose partners are then exactly the kept person's own family's partners is folded the same way: its
     children's memberships and its own events move to that family, its partner memberships and their assertions fold onto
     the kept family's own, and the duplicate's family row is left emptied, with the duplicate, for the audit trail (a child of

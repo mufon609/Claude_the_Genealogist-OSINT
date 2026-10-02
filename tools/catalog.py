@@ -699,7 +699,7 @@ class Catalog:
         citation whose accepted persona for person_id is the record's own subject (is_subject), for a one-person checklist
         row (an obituary, a death or birth record, a cemetery record, naturalization, a draft card, Social Security): a
         record that merely names the person, without being their own, stays cited, never held. Household rows (census,
-        church, passenger lists) pass subject_only=False and keep counting every member as before."""
+        church, passenger lists) pass subject_only=False and count every member."""
         out = []
         for cname, notes, sha, tier, cid in self.q(f"""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, {tier_sql()}, COALESCE(c.id, ac.id) FROM assertion a
                 LEFT JOIN collection c ON json_valid(a.notes) AND c.id=json_extract(a.notes,'$.collection_id')
@@ -713,8 +713,9 @@ class Catalog:
         return out
     def waiting(self, pid):
         """What waits on a person, in plain counts: documents to decide (proposals about them: a persona proposed as them, a new
-        person on a record fetched for them), steps that run on their own (a connector can take them), steps that need a hand
-        (a page saved in the owner's browser, an assisted search), conflicts open, and leads (a relative a memorial merely
+        person on a record fetched for them), planned steps that run on their own (a connector can take them), planned steps
+        only a hand can take (a page saved in the owner's browser, an assisted search, a film browsed by hand), whether run
+        before or not, conflicts open, and leads (a relative a memorial merely
         lists, tools/plan.py's listed_relative_leads, row_key "listed relative:<memorial id>": not a document, since the
         matcher never proposes one and the rule could never take it). Nothing here is a score."""
         docs = self.q("""SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
@@ -722,8 +723,7 @@ class Catalog:
         leads = self.q("SELECT COUNT(*) FROM search_plan WHERE person_id=? AND status='planned' AND row_key LIKE 'listed relative:%'", pid)[0][0]
         conn = {sid for sid, s in self.sources.items() if s.get("connector")}
         runs, hand = 0, 0
-        for kind, mode, holder, sources in self.q("SELECT kind, mode, locator_source_id, sources_json FROM search_plan WHERE person_id=? AND status='planned'", pid):
-            srcs = json.loads(sources or "[]")
+        for kind, mode, holder in self.q("SELECT kind, mode, locator_source_id FROM search_plan WHERE person_id=? AND status='planned' AND row_key NOT LIKE 'listed relative:%'", pid):   # a lead is counted as a lead alone
             if (kind == "fetch" and mode == "fetch" and holder in conn) or (kind == "search" and mode == "auto"): runs += 1
             elif (kind == "fetch" and mode == "fetch") or (kind == "search" and mode == "assisted"): hand += 1
         conflicts = self.q("SELECT COUNT(*) FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", pid)[0][0]

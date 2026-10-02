@@ -225,7 +225,7 @@ def _matches_collection(r, coll):
     (data/holders.csv): a page fetched at a holder belongs to the citation whose holder collection it came from, never to
     another citation of the same row that merely shares the same holder (the Kentucky and Ohio death indexes are both at
     FamilySearch, D03, but are not each other's record). A step with no citation of its own (a search step) or a page with
-    no collection field has nothing to check and matches as before."""
+    no collection field has nothing to check here and matches; _steps_by_collection narrows it by the row's kind."""
     if not r["locator_value"] or not coll: return True
     dbid = dbid_of(r["locator_value"])
     return any(h["HolderSourceId"] == r["locator_source_id"] and h["HolderCollection"] == coll for h in (holders().get(dbid) or []))

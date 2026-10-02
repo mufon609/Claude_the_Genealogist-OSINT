@@ -67,7 +67,7 @@ def citation_fields(cat, collection, cited, name, year=None, person_id=None):
     every 'Label: value' part of the page text under its label, the rest of the page text under 'citation', the memorial URL.
     A labelled part that is a place (its label ending "place") carries every accurate name for it, the citation's own string
     first (Catalog.place_search_names, as a search step's own place field does), when that string is itself a resolved place
-    in the tree; unresolved, it is the citation's bare string alone, as before."""
+    in the tree; unresolved, it is the citation's bare string alone."""
     f = lambda v: {"value": v, "basis": "citation"}
     out = {"collection": f(collection)}
     if name: out["name"] = f(name)
