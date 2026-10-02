@@ -606,7 +606,9 @@ def decide_place(cx, tree_id, p, status, by, note, choice):
     words mean (accepted, with the candidate chosen from the proposal by its index), or that they are not a place (rejected,
     the reason kept in the string's notes). The answer is about the words, so it applies to every fact carrying the same
     string: an accepted string takes its place_id from the candidate's hierarchy (resolve_places.Store, the candidate read
-    back from the geocoder's cached answer to the proposal's own queries), its status and resolver the acting user, and the
+    back from the geocoder's cached answer to the proposal's own queries; a gazetteer's own candidate with no geocoder twin,
+    a GOV or Wikidata place the geocoder does not know, becomes a place of its own name and position under the string's
+    country, carrying the gazetteer's id and dated names), its status and resolver the acting user, and the
     resolver's apply_to_events fills every event whose strings are all resolved; a rejected string stays rejected wherever it
     appears and no event takes it. One audit row on the string, the proposal decided. Returns what was written, or an error."""
     from resolve_places import Store, apply_to_events, nominatim
@@ -621,9 +623,18 @@ def decide_place(cx, tree_id, p, status, by, note, choice):
         cands = pay.get("candidates") or []
         try: cand = cands[int(choice)]
         except (TypeError, ValueError, IndexError): return {"error": "choose one of the resolver's candidates for these words, or say they are not a place"}
-        full = next((c for qy in pay.get("queries") or [] for c in nominatim(qy) if f"{c.get('osm_type')}/{c.get('osm_id')}" == cand.get("osm")), None)
-        if full is None: return {"error": f"the geocoder's answer naming {cand.get('display_name')} is not in the cache and the geocoder did not give it again"}
-        leaf = Store(cx).hierarchy(full); place = cand.get("display_name")
+        if cand.get("kind") == "gazetteer":                                  # a gazetteer's own place, no geocoder twin: its name and position under the string's country
+            from resolve_places import write_gazetteer
+            st = Store(cx); country = (pay.get("parsed") or {}).get("country")
+            names = cand.get("names") or []
+            name = next((n["name"] for n in names if not n.get("valid_to")), None) or (names[0]["name"] if names else cand.get("display_name", raw).split(" (")[0])
+            ptype = cand.get("type") if cand.get("type") in ("town", "village", "hamlet", "city") else "village"
+            leaf = st.place(name, ptype, st.place(country, "country", None) if country else None, cand.get("lat"), cand.get("lon"), cand["id"] if cand.get("source") == "wikidata" else None)
+            write_gazetteer(cx, leaf, cand); place = cand.get("display_name")
+        else:
+            full = next((c for qy in pay.get("queries") or [] for c in nominatim(qy) if f"{c.get('osm_type')}/{c.get('osm_id')}" == cand.get("osm")), None)
+            if full is None: return {"error": f"the geocoder's answer naming {cand.get('display_name')} is not in the cache and the geocoder did not give it again"}
+            leaf = Store(cx).hierarchy(full); place = cand.get("display_name")
         if not q.execute("SELECT 1 FROM place_name WHERE place_id=? AND name=?", (leaf, raw)).fetchone():
             q.execute("INSERT INTO place_name (id,place_id,name,is_primary) VALUES (?,?,?,?)", (ulid(), leaf, raw, False))
         q.execute("UPDATE place_string SET place_id=?, status='accepted', resolver=?, resolved_at=?, notes=? WHERE id=?",

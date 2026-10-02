@@ -191,6 +191,16 @@ def a_apply_places(w, x):
     from resolve_places import apply_to_events
     return {"applied": apply_to_events(w.cx, w.tid, BY, w.treelib.now())}
 
+def a_decide_place(w, x):
+    """The owner's choice on a place card found by its string (`raw`): the candidate whose gazetteer id is `gazetteer` (a
+    gazetteer's own candidate, or the one attached to a geocoder candidate), through conclude.decide."""
+    from conclude import decide
+    row = w.cx.execute("SELECT id, payload_json FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.raw')=?", (w.tid, x["raw"])).fetchone()
+    if not row: raise KeyError(f"no open place card for {x['raw']!r}")
+    cands = json.loads(row[1])["candidates"]
+    i = next(i for i, c in enumerate(cands) if (c.get("kind") == "gazetteer" and c.get("id") == x["gazetteer"]) or (c.get("gazetteer") or {}).get("id") == x["gazetteer"])
+    return decide(w.cx, w.tid, row[0], "accepted", BY, note=x.get("note", "harness: the owner chooses"), choice=i)
+
 def a_step_query(w, x):
     """A step's fields rewritten, as the plan writes new fields on it."""
     st = w.step(x["step"]); w.cx.execute("UPDATE search_plan SET query_json=? WHERE id=?", (json.dumps(x["query"]), st["id"])); return {"step": st["id"]}
@@ -204,7 +214,7 @@ def a_fetch_list(w, x):
     if x.get("search_links"): rows = [e for e in rows if e["holder_id"] == "D03" and "/search/record/results" in (e.get("url") or "")]
     return {"names": [e["save_as"] for e in rows]}
 
-ACTIONS.update({"step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
+ACTIONS.update({"decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 
 # ---------------------------------------------------------------- expectations

@@ -926,6 +926,42 @@
      "why": "every Wikidata candidate is one of the geocoder's own, so none stands on its own"
     }
    ]
+  },
+  {
+   "say": "the owner chooses, on the Freiberg string's card, GOV's own Erzgebirge village, which the geocoder does not know: a place of its own under Germany",
+   "decide_place": {
+    "raw": "Berthelsdorf, Freiberg, Sachsen, Germany",
+    "gazetteer": "BERGEBJO60QU"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "kind": "place_resolution",
+      "status": "accepted"
+     }
+    },
+    {
+     "place_string": {
+      "raw": "Berthelsdorf, Freiberg, Sachsen, Germany",
+      "status": "accepted",
+      "has_place": true
+     },
+     "why": "the words now mean the place chosen"
+    },
+    {
+     "place": {
+      "name": "Berthelsdorf/Erzgeb.",
+      "gov_id": "BERGEBJO60QU",
+      "place_type": "village",
+      "chain": [
+       "Berthelsdorf/Erzgeb.",
+       "Germany"
+      ]
+     },
+     "why": "a place of its own name under Germany, carrying GOV's id, its position and GOV's names of it"
+    }
+   ]
   }
  ]
 }

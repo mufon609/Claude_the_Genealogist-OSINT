@@ -199,7 +199,7 @@ data gives, `fetch: {header, rows}` or `{body}`, one answer per request as `fetc
 network at all; `dry` for a dry run, `again` for a run by the step's id at every connector), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
 `none_when`; `field` names the place-like field it asks under, "place" when absent, "census place" for a fetch step's own),
-`resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache`, Wikidata's items under `wikidata`
+`decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in

@@ -399,7 +399,9 @@ with their language and dates (Lang Neundorf until 1945, Dłużec from 1945).
 Anything else is the card: every gazetteer candidate offered with its
 checks, on its twin's entry where it has one, after the geocoder's own. A
 twin the owner chooses there carries the gazetteer's answer onto the place
-on the next run. Every answer is cached under `derivatives/geocode/` at one
+on the next run; a gazetteer's own candidate the owner chooses (a place the
+geocoder does not know) becomes a place of its own name and position under
+the string's country, with the gazetteer's id and dated names. Every answer is cached under `derivatives/geocode/` at one
 request a second, as Nominatim's are.
 
 ### Schema
