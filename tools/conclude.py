@@ -1827,7 +1827,8 @@ def main():
             res = place(cx, tree_id, a.persona_fact, a.event, a.by, a.note)
             if "error" in res: raise SystemExit(res["error"])
             who = cx.execute("SELECT display_name FROM person WHERE id=?", (res["person"],)).fetchone()[0]
-            print(f"persona fact {a.persona_fact[-6:]} placed on event {res['event']}: {res['status']}, {who} [{res['person'][-6:]}]; plan regenerated")
+            moved = f" (moved from event {res['moved_from']}" + ("; that event, left with no statement but rejected ones, leaves the person" if res.get("retired") else "") + ")" if res.get("moved_from") else ""
+            print(f"persona fact {a.persona_fact[-6:]} placed on event {res['event']}{moved}: {res['status']}, {who} [{res['person'][-6:]}]; plan regenerated")
         elif a.cmd == "facts":
             from facts import KEY_FACTS, evidence_rows, fact_status
             pid = cat.find_person(a.person); print(cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0], f"[{pid[-6:]}]")
