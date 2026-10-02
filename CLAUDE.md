@@ -1,8 +1,8 @@
 # CLAUDE.md
 
-Operating rules for an AI contributor in this repo. Read `MEMORY.md` next;
-it holds the cross-cutting working patterns. `README.md` says what the
-project is and where things are.
+Operating rules for an AI contributor in this repo. Read `MEMORY.md` before
+changing code or docs; it holds the cross-cutting working patterns.
+`README.md` says what the project is and where things are.
 
 ## What this is
 
@@ -91,122 +91,69 @@ around it.
 
 ## Working the repo
 
+Every tool, one line each: `schema/README.md`'s table; each tool's docstring
+and `--help` have the rest. The ones a session uses:
+
 ```
-python3 tools/initdb.py --force              # a fresh catalog; the live one holds decisions and is migrated, never rebuilt
-python3 tools/initdb.py --migrate            # after a pull that moves the schema, once backed up: every tool refuses a catalog behind the code's schema
-python3 tools/tree.py create <slug> --name "…"
-python3 tools/tree.py home "<person>"          # the person the overview starts from
-python3 tools/ingest_gedcom.py inbox/<file>.ged
-python3 tools/resolve_places.py             # Nominatim, cached; --reset undoes AI resolutions only
-python3 tools/backfill_aliases.py
-python3 tools/checklist.py "<person>"       # read-only checklist + gaps (footprint on top); --json, --all
-python3 tools/footprint.py "<person>"       # read-only Layer 0 on its own
-python3 tools/plan.py --all                 # materialize questions + steps (idempotent)
-python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --step/--outcome to log a run; --dismiss <question>
-python3 tools/log_search.py --reopen <step id> --note "…"   # a step marked done in error: planned again, the note saying why
-python3 tools/attach_inbox.py               # every inbox file to the fetch steps its own identity fulfils: archived once, logged, extracted, matched
-python3 tools/attach_inbox.py <file> --about "<person>"   # on your word about whom it concerns: a record no step cites, or a family-held photograph or scan
-python3 tools/fetches.py list               # every page waiting to be saved in the browser, at every holder, with its link and file name; `collect` brings the saved pages in
-python3 tools/cards.py "<person>"           # every Undecided proposal about the person as a decision card; --all, --json
-python3 tools/conclude.py decide <proposal id> accept|reject --note "…"   # the decision on a card, as the screen's Add / Ignore
+python3 tools/check.py                      # green in one command; a failure in full, --verbose every check
+python3 tools/initdb.py --migrate           # after a pull that moves the schema, once backed up: every tool refuses a catalog behind it
+python3 tools/initdb.py --sync-sources      # after any change to data/data-sources.csv (--sync-event-types for the event types)
+python3 tools/turns.py [--turns N]          # the loop: the next person at the edge, their turn, the next; pauses on pages to save in the browser
+python3 tools/fetches.py next [K]           # the pages to save, one line each (`list` for all); then `tools/fetches.py collect`
+python3 tools/turns.py --resume             # after the browser session: the paused turn, then on
+python3 tools/cards.py "<person>"           # the records waiting for a decision, one card each; --full every field
+python3 tools/conclude.py decide <proposal id> accept|reject --note "…"
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
-python3 tools/conclude.py assertion <id> accept|reject|undecided --note "…"   # one statement of one record on its own; ids from the person screen's evidence rows or the assertion table
-python3 tools/conclude.py place <persona fact id> --event <event id> --note "…"   # a record's undated fact onto the event you mean, when the person has several of its type (the plan raises it as a conflict)
-python3 tools/conclude.py merge "<duplicate>" --into "<person>" --note "…"   # a duplicate closed: everything moves onto the kept person; naming a pair already merged completes it (equal events and same-partner families fold)
-python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial or search, FamilySearch record or search, AAD, the VA gravesite locator, Ancestry index; HTML) or a connector's response (JSON)
-python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
-python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
-python3 tools/conclude.py reconsider         # the standing rule re-examines its own decisions and the cards it refused; one it would no longer take is a card again, one it would now take is taken; --dry-run
-python3 tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…"   # your own word on a family link a record stops short of; --parent, --marriage; `divorce` likewise
-python3 tools/conclude.py living "<person>" living|deceased|unknown --note "…"   # your own word on whether a person is alive, above the tier rule; `unknown` clears it
-python3 tools/cite.py "<person>" --row "census household:1950" --holder D05 --field "surname=…" --field "enumeration district=…" --field "page=…"   # a record you cite on your own word, nothing in the file: a fetch step the runner asks the holder for
-python3 tools/queue.py                        # the next person at the edge of the confirmed tree, in the overview's order; --all lists everyone, with why each is next or passed over
-python3 tools/turn.py "<person>"              # one person's plan run end to end: the plan, every step a connector can run, the rule's decisions; pauses on the pages to save in the browser
-python3 tools/turn.py --resume                # after the browser session: collect, attach what collect left, reconsider, the plan again; the turn's report
-python3 tools/turns.py [--turns N]            # the loop without a hand on it: the queue's next person, their turn, the next; stops when a turn pauses on pages to save, when the queue names nobody, or after N turns; a person named again with nothing new held is passed over
-python3 tools/turns.py --resume [--turns N]   # after the browser session: the paused turn resumed, then on to the next person
-python3 tools/backup.py verify                # every archived object hashed against its sha256; `bag <dir> --target <drive>` writes a BagIt bag with the catalog dumped to SQL; `check <bag>`
-python3 tools/initdb.py --sync-sources       # after any change to data/data-sources.csv: source rows up to the registry on an existing catalog
-python3 tools/initdb.py --sync-event-types   # after any change to schema/seed_event_type.sql: the new types on an existing catalog
-python3 tools/check.py                        # green in one command: every tool compiles, every parser read against its saved page on a scratch catalog
-python3 tools/tree.py show
-python3 tools/tree.py overview                # the tree as confirmed, from the home person upward, and its edge
-python3 app/person/server.py --by user:<you>  # person screen on http://127.0.0.1:8765/
-DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # scratch run: its own archive/, inbox/, derivatives/, trees/*/imports
+python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "…"   # a conflict closed with the reason
+python3 tools/proof.py "<person>"           # each key fact against the proof standard: evidence and its classes, research, conflicts
+python3 tools/tree.py overview              # the tree as confirmed, from the home person upward, and its edge
+python3 app/person/server.py --by user:<you>   # the person screen on http://127.0.0.1:8765/
+DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # a scratch run, for testing code
 ```
 
 ## Working a person
 
-One person, one document at a time. The live catalog is where research
-decisions are made; a scratch copy is for testing code, never for decisions.
+The loop (`docs/RESEARCH-WORKFLOW.md` §8) does a person's work end to end;
+by hand it is the same steps. Research decisions are made on the live
+catalog; a scratch copy is for testing code, never for decisions.
 
-1. `python3 tools/tree.py overview` prints the tree as confirmed: the home
-   person and everyone reached from them by a parents link the owner
-   accepted, generation by generation, and at the edge the parents the file
-   claims but nobody has accepted. Take the person at that edge: a parent or
-   spouse the file claims whose link is not yet accepted, or a confirmed
-   person with an open question. Never a person two links away from anyone
-   confirmed. `python3 tools/checklist.py --all` lists everyone with whether
-   their baseline is reviewed.
-2. `python3 tools/checklist.py "<person>"`: the seven key facts (`name`,
-   `sex`, `birth`, `death`, `parents`, `spouses`, `children`) with their
-   basis. Decide each with `tools/conclude.py fact`: accept what a held
-   record supports or what you know yourself (a vouch, recorded as your
-   word), reject what is wrong, leave the rest undecided. A key fact the
-   file makes no claim about (no spouse named) has nothing to decide and
-   counts as decided. Searches open only when every key fact is decided;
-   fetching cited records is open now.
-   A name two people share is refused; name the person by the six
-   characters the listing shows: `"Noi Davidson [MEXW2C]"`.
-3. `python3 tools/plan.py "<person>"`, then `python3 tools/log_search.py
-   --list "<person>"`: the fetch steps for records the file cites and the
-   search steps for missing rows, each with its source and mode.
-4. Auto steps: `python3 tools/run_step.py <step id>` (or `--all --dry-run`
-   first). Assisted steps carry the source's own search prefilled: open it
-   in the browser, save the page by the page-saves-itself method, or a
-   gravestone photograph by the image-saves-itself method
-   (`docs/RESEARCH-WORKFLOW.md` §4), then `python3 tools/fetches.py
-   collect` or `python3 tools/attach_inbox.py <file>`. When the site blocks
-   a save or a search (a challenge, a sign-in), notify the owner and wait;
-   continue once they have passed it by hand. Never pass it yourself, and a
-   block does not by itself make the source assisted-only.
-5. `python3 tools/cards.py "<person>"`: every record waiting for a decision,
-   one card each. Decide with `tools/conclude.py decide <id> accept|reject`.
-   What an accept writes, on a trusted record and on a page anyone can edit,
-   and which of the record's relatives follow it, is
-   `docs/RESEARCH-WORKFLOW.md` §0 and §5–7. A family link the record states
-   is asserted when both people it relates are accepted on it, so a child's
-   parents fact is decided by the parents' own cards on the same record, each
-   their own turn.
-6. `python3 tools/checklist.py "<person>"` again: what is held, what is
-   still missing, what the plan does next. A turn can end with a key fact
-   still undecided that only a relative's card on the same record closes
-   (a child's parents, a wife's spouse): those cards are the next turns, and
-   a six-of-seven is not a failure. When the person's rows are held or
-   exhausted, move to the next person at the edge.
-   `python3 tools/conclude.py facts "<person>"` lists every fact with its
-   event id and every statement behind it with its assertion id.
+1. `tools/queue.py` names the next person at the edge of the confirmed tree:
+   a parent or spouse the file claims whose link is not yet accepted, or a
+   confirmed person with an open question; never a person two links away
+   from anyone confirmed. `tools/turn.py "<person>"` runs their plan: every
+   step a connector can run, the rule's decisions, the plan again.
+2. A turn pauses on pages a connector cannot fetch: save the ones
+   `tools/fetches.py next` names in the owner's browser by the
+   page-saves-itself method (§4), then `--resume`. When a site blocks a save
+   or a search (a challenge, a sign-in), notify the owner and wait; continue
+   once they have passed it by hand. Never pass it yourself, and a block does
+   not by itself make the source assisted-only.
+3. What is left is the owner's: the cards (`tools/cards.py`, decided with
+   `tools/conclude.py decide`), the key facts (`name`, `sex`, `birth`,
+   `death`, `parents`, `spouses`, `children`, decided with
+   `tools/conclude.py fact`; one the file makes no claim about counts as
+   decided; searches open only when every key fact is decided), and the
+   conflicts (`tools/conclude.py resolve`). What an accept writes is §0 and
+   §5–7. A family link the record states is asserted when both people it
+   relates are accepted on it, so a child's parents fact is decided by the
+   parents' own cards on the same record, each their own turn: a turn that
+   ends six of seven is not a failure.
+4. `tools/proof.py "<person>"` says, per key fact, whether the conclusion
+   meets the proof standard or what argument is still owed.
 
-Report what was decided and on what record, in words; never a score.
+A name two people share is refused; name the person by the six characters
+the listing shows: `"Noi Davidson [MEXW2C]"`. Report what was decided and on
+what record, in words; never a score.
 
 Every tool that writes takes `--by`. The owner acting is `user:<name>`; a
 session acting on the owner's behalf is `agent:<session> for user:<name>`,
 so the audit trail says who did what. A writing tool run without `--by`
 records the shell user as the owner, except the runner and the planner, which
-record themselves (`agent:run_step`, `rule:plan@0.1.0`). The read-only tools (`checklist`,
-`cards`, `footprint`, `backup verify`) and the registry syncs take no `--by`.
-One default, the owner's to change: a search step on a living or unknown
-person is assisted rather than automatic, so a person runs it. Living is by
-tier: a person's generation from the home person along the tree's family
-links, accepted or claimed, the nearest path counting. The home person's
-generation and their parents' are living; the grandparents' is unknown
-until the owner confirms the person (`tools/conclude.py living`) and is
-treated as living meanwhile; everyone beyond, and anyone no chain of links
-reaches, is deceased. Held death evidence makes a person deceased at any
-tier, and the owner's word (`living_override`) stands above everything. The
-same structure for every tree. Nothing else differs for them: a record
-fetched for a relative that names them attaches to them as to anyone, and
-the records the file cites on them are fetched like any other.
+record themselves (`agent:run_step`, `rule:plan@0.1.0`). The read-only tools
+and the registry syncs take no `--by`. Living status is the tier rule
+(`docs/DATA-ARCHITECTURE.md` §7 decision 3), the same for every tree: a
+search step on a living or unknown person is assisted, never automatic, and
+the owner's word (`tools/conclude.py living`) stands above everything.
 
 - Stdlib Python only, so far. Portable SQL (SQLite now, Postgres later).
 - Verify after every change: `PRAGMA integrity_check`, `foreign_key_check`,

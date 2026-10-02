@@ -118,9 +118,9 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicates, unlinked same-surname persons, records on relatives ranked by the family members they share. |
 | `tools/plan.py "<person>" / --all` | Materialize questions and steps into `research_question` and `search_plan`, idempotently: a fetch step per citation or lead, a search step per missing row. |
 | `tools/log_search.py` | A run (found / none / blocked / error) logged on a step, per source; `--dismiss` a question, `--reopen` a step done in error, `--list` a person's plan. |
-| `tools/attach_inbox.py [file ...]` | Every inbox file to the steps its own identity fulfils: archived once, logged, extracted and matched; a step is done only when the page is the record it cites. |
+| `tools/attach_inbox.py [file ...] [--about "<person>"]` | Every inbox file to the steps its own identity fulfils: archived once, logged, extracted and matched; a step is done only when the page is the record it cites. `--about` takes one file on the owner's word: a record no step cites, or a family-held photograph or scan. |
 | `tools/attach.py` | The attach path `attach_inbox.py`, `fetches.py collect` and the person screen share. |
-| `tools/fetches.py list / collect` | Every page waiting to be saved in the owner's browser, with its link and the file name to save under; `collect` brings the saved pages in by their own identity. |
+| `tools/fetches.py next [K] / list / collect` | The pages waiting to be saved in the owner's browser, with the link and the file name to save under: `next` the next K, one line each, `list` all of them; `collect` brings the saved pages in by their own identity. |
 | `tools/run_step.py <step id> / --all` | A step run through the connectors under `tools/connectors/` its sources have, every response archived and logged, then extracted and matched. |
 | `tools/cite.py "<person>" --row … --holder … --field …` | A record the owner cites on their own word: a fetch step with the citation's details, asked at the holder like a record the file cites. |
 | `tools/queue.py [--all]` | Read-only. The next person at the edge of the confirmed tree a turn can act on, and why each other person is passed over. |
