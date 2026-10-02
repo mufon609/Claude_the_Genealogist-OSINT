@@ -468,6 +468,19 @@ def a_older_matcher(w, x):
     w.cx.execute(f"UPDATE proposal SET generated_by=? WHERE id IN ({','.join('?' * len(ids))})", (older, *ids))
     return {"cards": ids, "version": MATCHER[2]}
 
+def a_persona_link(w, x):
+    """A person's decision on a persona of a record that no card carries today (a memorial's listed relative, which an older
+    matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name) on the record's
+    current reading, as conclude.decide writes it."""
+    q = """SELECT pe.id FROM persona pe JOIN extraction e ON e.id=pe.extraction_id WHERE pe.artifact_sha256=? AND e.superseded_by IS NULL AND pe.role_in_record=?"""
+    args = [w.sha(x["record"]), x["role"]]
+    if "persona" in x: q += " AND pe.name_text=?"; args.append(x["persona"])
+    rows = w.cx.execute(q, args).fetchall()
+    if len(rows) != 1: raise KeyError(f"{len(rows)} personas for {short(x)}")
+    w.cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,NULL,?,?)",
+                 (w.person(x["person"]), rows[0][0], x["status"], x.get("by", BY), w.treelib.now()))
+    return {"persona": rows[0][0]}
+
 def a_merge(w, x):
     from conclude import merge
     return merge(w.cx, w.tid, w.person(x["duplicate"]), w.person(x["kept"]), BY, x.get("note", "harness: same identity"))
@@ -501,7 +514,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "attach": a_attach, "archive": 
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
-           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "older_matcher": a_older_matcher, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 
@@ -761,9 +774,15 @@ def e_reach(w, x, want):
     return all(w.person(p) in reach for p in x.get("has", [])) and all(w.person(p) not in reach for p in x.get("lacks", [])), got
 
 def e_trusted(w, x, want):
+    """Whether a membership, or a person's events of a type ({"person", "type"}), rest on trusted ground for the rule, stating
+    a date or a place when `stating` says so."""
     from conclude import trusted_evidence
-    m = x["membership"]; ids = [w.treelib.dumps([w.value(m["family"]), w.person(m["person"]), m["role"]])]
-    v = bool(trusted_evidence(w.cx, w.tid, "family_member", ids, without=tuple(x.get("without", ()))))
+    if "event" in x:
+        ev = x["event"]; kind = "event"
+        ids = [r[0] for r in w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=?", (w.person(ev["person"]), ev["type"]))]
+    else:
+        m = x["membership"]; kind = "family_member"; ids = [w.treelib.dumps([w.value(m["family"]), w.person(m["person"]), m["role"]])]
+    v = bool(trusted_evidence(w.cx, w.tid, kind, ids, stating=x.get("stating"), without=tuple(x.get("without", ()))))
     return v == x.get("is", True), v
 
 def e_plan_idempotent(w, x, want):

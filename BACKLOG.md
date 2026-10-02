@@ -105,24 +105,6 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
-### C2. A listed relative's trace link can overwrite the owner's rejection
-
-`tools/conclude.py link_family`'s person_of, on a page anyone can edit,
-places a listed relative who fits exactly one tree person by name and year
-and writes the trace link with `INSERT OR REPLACE INTO person_persona`. The
-lookup before it returns only an accepted link, so a person_persona row
-the owner set to rejected for that persona and that person is missed,
-the fallback fits the same person again, and the replace turns the
-rejection into undecided: a human decision overwritten. Treat a person who
-rejected the persona as no fit, and write the trace link only where no row
-exists (`INSERT ... ON CONFLICT DO NOTHING` or a lookup first). Beside it:
-when the tree's people change between two acceptances so the unique fit
-shifts to another person, the earlier undecided trace link stays beside
-the new one; withdraw the earlier undecided link when a new one is
-written for the same persona. Harness: a rejected link on the wife's
-persona survives a second acceptance of the memorial; a fit that shifts
-leaves one undecided link.
-
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
@@ -149,12 +131,13 @@ through the relative it names; the spouse fit where the other party
 carries another name; the fitting check on garbled initials and on a
 short-form given name; a results row outliving its own record; a
 namesake's kin shown as a hint; the SAR page at a holder without a parser
-and its two-entry listing; the found half of the runner's listing run; a
-step runnable again once
-the plan writes the field a connector wanted; the unnamed fetch's own naming
+and its two-entry listing; the found half of the runner's listing run; the
+unnamed fetch's own naming
 (`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
 citations that carried it (the New Jersey and New York marriage indexes) are
-both blocked as `scanned_index` holders; the merge's reach by name and year. When a real document
+both blocked as `scanned_index` holders; the merge's reach by name and year;
+a memorial's listed relative whose one fit moves to another person between two
+acceptances (`conclude.link_family` withdraws the earlier undecided trace). When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under

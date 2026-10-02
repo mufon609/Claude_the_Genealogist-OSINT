@@ -79,15 +79,19 @@ IN_LAW = {"mother-in-law": "parent", "father-in-law": "parent", "son-in-law": "s
 RULE_ACTOR = {"persona_match": "rule:agrees-with-accepted", "new_person": "rule:creates-named-relative"}   # the rule as the decider, by what it did
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).
 
-def trusted_evidence(cx, tree_id, kind, ids, day=False, without=()):
+def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()):
     """Whether an accepted assertion on any of these subjects rests on a trusted source (T1–T3) or on the owner's own word (a
     vouch, or the file's uncited claim the owner accepted, which is the same thing: no record, their knowledge); an accepted
-    fact that rests only on a source anyone can edit does not count for the rule. day: the assertion must itself state a full
-    date (its persona fact's; the event's own for a vouch with no fact). without: proposal ids whose assertions do not count
-    (a rule decision under reconsideration and every rule decision after it)."""
+    fact that rests only on a source anyone can edit does not count for the rule. stating "date" or "place": the assertion
+    must itself state one (its persona fact's; the event's own for a vouch with no fact), so a record that states an event
+    with no date or no place, asserted on the person's one event of the type, is never ground for a date or a place another
+    source gave that event. day: the assertion must itself state a full date. without: proposal ids whose assertions do not
+    count (a rule decision under reconsideration and every rule decision after it)."""
     q = _q(cx)
     skip = f"AND NOT (json_valid(a.notes) AND coalesce(json_extract(a.notes,'$.proposal'),'') IN ({','.join('?' * len(without))}))" if without else ""
     full = "AND length(coalesce(pf.date_start, CASE WHEN pf.id IS NULL THEN ev.date_start END)) = 10" if day else ""
+    full += {"date": " AND coalesce(pf.date_start, pf.date_end, CASE WHEN pf.id IS NULL THEN coalesce(ev.date_start, ev.date_end) END) IS NOT NULL",
+             "place": " AND coalesce(pf.place_string_id, CASE WHEN pf.id IS NULL THEN ev.place_id END) IS NOT NULL"}.get(stating, "")
     for sid in ids:
         if q.execute(f"""SELECT 1 FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                          LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN event ev ON a.subject_kind='event' AND ev.id=a.subject_id
@@ -132,7 +136,8 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     with none, an event is created as usual. An attribute fact (Occupation, Inscription, Religion, ...) asserts the person's attribute of that type
     with the same value, created when there is none. A fact the same record already asserts on the same subject with the same
     type, date, value and place is not asserted again, so a re-extraction adds only what is new; one the rule withdrew turns
-    Accepted again on a trusted record and stays as it is on an editable page. Returns how many were written."""
+    Accepted again on a trusted record and stays as it is on an editable page; one a person rejected stays rejected, whatever
+    reads the record again. Returns how many were written."""
     q = _q(cx)
     n = 0
     sha = q.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()["artifact_sha256"]
@@ -144,8 +149,9 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
         old = q.execute("""SELECT a.id, a.status FROM assertion a JOIN persona_fact q ON q.id=a.persona_fact_id WHERE a.subject_kind=? AND a.subject_id=? AND a.artifact_sha256=?
                            AND q.fact_type=? AND coalesce(q.date_text,'')=coalesce(?,'') AND coalesce(q.value_text,'')=coalesce(?,'') AND coalesce(q.place_string_id,'')=coalesce(?,'')""",
                         (kind, sid, sha, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])).fetchone()
-        if old and (old["status"] == status or status == "undecided"): return          # the statement is there; on an editable page it stays as it stands
-        if old: q.execute("UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=?, notes=? WHERE id=?", (by, ts, dumps({"proposal": prop_id}), old["id"])); n += 1; return   # the record's statement, withdrawn earlier, stands again
+        if old:                                                                         # the statement is there: withdrawn (undecided), it stands again on a trusted record; accepted or a person's rejection, it stays as it is
+            if old["status"] == "undecided" and status == "accepted": q.execute("UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=?, notes=? WHERE id=?", (by, ts, dumps({"proposal": prop_id}), old["id"])); n += 1
+            return
         q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), tree_id, kind, sid, f["id"], sha, cite, status, by, ts, dumps({"proposal": prop_id}))); n += 1
     for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id, et.kind
@@ -188,7 +194,7 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     q = _q(cx); ts = now()
     pf = q.execute("SELECT pf.*, pe.artifact_sha256 FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pf.id=?", (pf_id,)).fetchone()
     if not pf: return {"error": "no such persona fact"}
-    pp = q.execute("SELECT person_id FROM person_persona WHERE persona_id=? AND status='accepted'", (pf["persona_id"],)).fetchone()
+    pp = q.execute("SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?", (pf["persona_id"], tree_id)).fetchone()
     if not pp: return {"error": "this persona is not accepted to a person"}
     person_id = pp["person_id"]
     if q.execute("SELECT 1 FROM assertion WHERE persona_fact_id=?", (pf_id,)).fetchone(): return {"error": "this fact already has an assertion"}
@@ -318,9 +324,12 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
     memorial's listed relative, docs/RESEARCH-WORKFLOW.md §0) is still placed when their name and birth year plainly fit
     exactly one person of the tree (match.fits_by_name_and_year): the listed persona is linked to that person Undecided (so
     the membership traces to the persona, and their own record decides their identity later) and the membership follows the
-    same path as any other relation above. Fitting nobody or several writes nothing, as a sibling of no placed parents gives
-    none today. Returns the links written: person, role, the other person, the page's own word, whether the membership is
-    new, and "undecided" for a sibling placement or a link from a page anyone can edit."""
+    same path as any other relation above. A person whose link to the listed persona is rejected is no fit; fitting nobody or
+    several writes nothing, as a sibling of no placed parents gives none. The trace link is written only where no row stands,
+    and an earlier trace of the same decision to a person the persona no longer fits alone is withdrawn. A membership
+    statement already there moves only from undecided to accepted (withdrawn, it stands again): a person's own decision on
+    it, accepted or rejected, stays. Returns the links written: person, role, the other person, the page's own word, whether
+    the membership is new, and "undecided" for a sibling placement or a link from a page anyone can edit."""
     q = _q(cx)
     out = []
     identity = editable(cx, sha)   # a page anyone can edit: the memberships it states stand, but their assertions do not
@@ -336,10 +345,12 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
             listed_personas = {p["id"]: p for p in personas_of(cx, eid)}
         pr = listed_personas.get(x)
         if not pr: return None
-        fits = [c for c in fits_by_name_and_year(cat, cx, tree_id, pr) if c != pid]
+        rejected = {r["person_id"] for r in q.execute("SELECT person_id FROM person_persona WHERE persona_id=? AND status='rejected'", (x,))}
+        fits = [c for c in fits_by_name_and_year(cat, cx, tree_id, pr) if c != pid and c not in rejected]
         if len(fits) != 1: return None
         other_pid = fits[0]
-        q.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,'undecided',?,?,?)", (other_pid, x, prop_id, by, ts))
+        q.execute("DELETE FROM person_persona WHERE persona_id=? AND person_id<>? AND status='undecided' AND proposal_id=?", (x, other_pid, prop_id))   # this decision's earlier trace to a person the persona no longer fits alone
+        q.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,'undecided',?,?,?)", (other_pid, x, prop_id, by, ts))
         return other_pid
     def member(fid, who, role):
         if q.execute("SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, who, role)).fetchone(): return False
@@ -348,8 +359,9 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
         sid, cite = dumps([fid, who, role]), f"{as_written} on the record"
         notes = {"proposal": prop_id, **({"placed": placed} if placed else {})}
         old = q.execute("SELECT id, status FROM assertion WHERE subject_kind='family_member' AND subject_id=? AND artifact_sha256=? AND citation_text=?", (sid, sha, cite)).fetchone()
-        if old and old["status"] == status: return
-        if old: q.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, notes=? WHERE id=?", (status, by, ts, dumps(notes), old["id"]))
+        if old:
+            if old["status"] == "undecided" and status == "accepted": q.execute("UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=?, notes=? WHERE id=?", (by, ts, dumps(notes), old["id"]))
+            else: return
         else: q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
                             VALUES (?,?,'family_member',?,?,?,?,?,?,?,?)""", (ulid(), tree_id, sid, persona_id, sha, cite, status, by, ts, dumps(notes)))
         out.append({"family": fid, "person": who, "role": role, "of": other, "as": as_written, "new": new, "undecided": status != "accepted", "placed": placed})
@@ -731,13 +743,13 @@ def rule_accepts(cx, tree_id, prop, without=()):
         group, other_cand, other_name = rel
         return True, f"a claimed relationship: {REL_OF[group]} {other_name}, already accepted on this record, and your tree already links them so, claimed or accepted; the name and birth year agree, so the record's own name fact documents it" + claim_note
     points, rel_points = [], []
-    ok = lambda t, day=False: bool(cand["events"].get(t)) and trusted_evidence(cx, tree_id, "event", [cand["events"][t]], day=day, without=without)   # the event compared, not any of the type
+    ok = lambda t, what, day=False: bool(cand["events"].get(t)) and trusted_evidence(cx, tree_id, "event", [cand["events"][t]], day=day, stating=what, without=without)   # the event compared, not any of the type, on a statement of the date or place compared
     full = lambda t: len(((persona.get(t) or {}).get("start") or "")) == 10 and "year only" not in next((a for a in agree if a.startswith(f"{t} date agrees")), "")
     for a in agree:
-        if a.startswith("birth date agrees") and ok("Birth"): points += ["birth date to the day", "and the day"] if full("birth") and ok("Birth", day=True) else ["birth date"]      # a date agreeing to the day, on a trusted statement of the day, counts double
-        if a.startswith("death date agrees") and ok("Death"): points += ["death date to the day", "and the day"] if full("death") and ok("Death", day=True) else ["death date"]
-        if a.startswith("death place agrees") and ok("Death"): points.append("death place")
-        if a.startswith("burial place agrees") and ok("Burial"): points.append("burial place")
+        if a.startswith("birth date agrees") and ok("Birth", "date"): points += ["birth date to the day", "and the day"] if full("birth") and ok("Birth", "date", day=True) else ["birth date"]      # a date agreeing to the day, on a trusted statement of the day, counts double
+        if a.startswith("death date agrees") and ok("Death", "date"): points += ["death date to the day", "and the day"] if full("death") and ok("Death", "date", day=True) else ["death date"]
+        if a.startswith("death place agrees") and ok("Death", "place"): points.append("death place")
+        if a.startswith("burial place agrees") and ok("Burial", "place"): points.append("burial place")
     named = set()                                                  # a relative counts once, however many rows of the record relate the two
     for kind, other_pid, _, other_name in relations:
         j = joined(kind, other_pid)

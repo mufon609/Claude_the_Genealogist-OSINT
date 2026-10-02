@@ -1,0 +1,138 @@
+{
+ "title": "a listed relative the owner rejected",
+ "line": "a memorial's listed persona the owner rejected as a tree person stays rejected: the rule's second acceptance of the memorial treats that person as no fit and writes no trace link, and a re-read carries the rejection to the new reading's persona",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial arrives: the rule takes its subject, and his wife's listed persona, fitting her alone, is traced to her undecided",
+   "attach": {
+    "fixture": "findagrave-memorial-78019650.html"
+   },
+   "as": "mem",
+   "expect": [
+    {
+     "card": {
+      "record": "mem",
+      "person": "I332737038183",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737039686",
+      "role": "spouse",
+      "is": [
+       "undecided"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects the wife's listed persona as her, as a card an older matcher put up for it would leave the link",
+   "persona_link": {
+    "record": "mem",
+    "person": "I332737039686",
+    "role": "spouse",
+    "status": "rejected"
+   },
+   "expect": [
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737039686",
+      "role": "spouse",
+      "is": [
+       "rejected"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the identity taken back, and taken again by reconsider: a second acceptance of the memorial",
+   "withdraw": {
+    "card": {
+     "record": "mem",
+     "person": "I332737038183"
+    }
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "mem",
+      "person": "I332737038183",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737039686",
+      "role": "spouse",
+      "is": [
+       "rejected"
+      ]
+     },
+     "why": "the person who rejected the persona is no fit: the rejection is not turned back into an undecided trace"
+    }
+   ]
+  },
+  {
+   "say": "the page read again while the rule's decision stands",
+   "reread": {
+    "record": "mem"
+   },
+   "expect": [
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737039686",
+      "role": "spouse",
+      "is": [
+       "rejected",
+       "rejected"
+      ]
+     },
+     "why": "the re-read carries the rejection to the new reading's persona, and the acceptance it carries leaves it standing"
+    },
+    {
+     "links": {
+      "record": "mem",
+      "person": "I332737037573",
+      "role": "child",
+      "is": [
+       "undecided",
+       "undecided"
+      ]
+     },
+     "why": "the daughter, whom nobody rejected, is traced on each reading's persona"
+    }
+   ]
+  },
+  {
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

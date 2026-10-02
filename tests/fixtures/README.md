@@ -125,7 +125,9 @@ literal id or `{person, type, index}`, that person's nth event of the type in th
 `collect`, `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
 carries, written by the harness itself for a path only a planted event exercises), `place_card` (a place answer's card
 with the geocoder's
-`candidates` planted in the cache), `older_matcher`, `merge`, `cite`, `question` (a research_question row patched by
+`candidates` planted in the cache), `older_matcher`, `persona_link` (a person's link to a record's persona of a `role`, and
+`persona` name, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
+decided), `merge`, `cite`, `question` (a research_question row patched by
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
 a regeneration to be checked against a prior state, such as a legacy truncated key).
 
@@ -136,7 +138,8 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 `assertions_on`, `links` (a person's link statuses on a record's personas), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
 `living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact`,
-`artifact_where`, `extractor`, `person_persona`, `reach`, `trusted`, `plan_idempotent`, `no_repeats`, `whole`, `file`,
+`artifact_where`, `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
+trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
 an expectation is printed with its failure.
 

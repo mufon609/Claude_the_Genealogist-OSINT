@@ -416,6 +416,36 @@
       "basis": "accepted"
      },
      "why": "he has one Death event already, the file's own claim; the record's own Death, with no date, asserts that same event rather than guessing a second one, and the key fact's basis is the accepted one"
+    },
+    {
+     "trusted": {
+      "event": {
+       "person": "I332737100409",
+       "type": "Death"
+      }
+     },
+     "why": "his Death event now rests on a trusted record, the Ohio index"
+    },
+    {
+     "trusted": {
+      "event": {
+       "person": "I332737100409",
+       "type": "Death"
+      },
+      "stating": "date",
+      "is": false
+     },
+     "why": "but the index states no date: the date on the event is the file's, so the rule never counts a death date agreeing with it as a point"
+    },
+    {
+     "trusted": {
+      "event": {
+       "person": "I332737100409",
+       "type": "Death"
+      },
+      "stating": "place"
+     },
+     "why": "the index states the place of death, so a death place agreeing with it is ground"
     }
    ]
   },
@@ -436,6 +466,33 @@
       "basis": "claim"
      },
      "why": "the Ohio index's own statement on the shared event is rejected; the file's own statement stands on it as it always did, and is the value again"
+    }
+   ]
+  },
+  {
+   "say": "the record read again after that rejection: the rejected statement stays rejected, whatever reads the record again",
+   "reread": {
+    "record": "ohio",
+    "match": null,
+    "rule": true
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737100409",
+      "type": "Death",
+      "canonical_date": "5 April 2004",
+      "basis": "claim"
+     },
+     "why": "the owner's rejection of the index's statement is not turned back by the re-read carrying his accepted link"
+    },
+    {
+     "assertions_on": {
+      "record": "ohio",
+      "rejected": {
+       ">=": 1
+      }
+     }
     }
    ]
   },

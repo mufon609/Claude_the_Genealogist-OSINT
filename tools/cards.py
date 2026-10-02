@@ -212,7 +212,7 @@ def hints_on(cx, tree_id, sha, person_id):
     for e in cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL AND status<>'failed'", (sha,)).fetchall():
         for pe in personas_of(cx, e["id"]):
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pe["id"])).fetchone(): continue
-            if cx.execute("SELECT 1 FROM person_persona WHERE persona_id=?", (pe["id"],)).fetchone(): continue
+            if cx.execute("SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND o.tree_id=?", (pe["id"], tree_id)).fetchone(): continue
             _, agree, disagree, absent, _ = compare(cat, pe, cand, {})
             surname = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
             beyond = any(a.startswith(("birth date agrees", "death date agrees", "birth place agrees", "burial place agrees", "death place agrees", "residence place agrees")) for a in agree)
