@@ -405,6 +405,49 @@
      "Philadelphia, United States"
     ]
    }
+  },
+  {
+   "raw": "Annville, Lebanon, Pennsylvania",
+   "parsed": {
+    "components": [
+     "Annville",
+     "Lebanon",
+     "Pennsylvania"
+    ],
+    "country": "United States",
+    "queries": [
+     "Annville, Lebanon, Pennsylvania, United States",
+     "Annville, Lebanon County, Pennsylvania, United States",
+     "Annville, Pennsylvania, United States",
+     "Annville, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Atlanta, Georgia",
+   "parsed": {
+    "components": [
+     "Atlanta",
+     "Georgia"
+    ],
+    "country": "United States",
+    "queries": [
+     "Atlanta, Georgia, United States",
+     "Atlanta, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Rome, Italy",
+   "parsed": {
+    "components": [
+     "Rome"
+    ],
+    "country": "Italy",
+    "queries": [
+     "Rome, Italy"
+    ]
+   }
   }
  ]
 }

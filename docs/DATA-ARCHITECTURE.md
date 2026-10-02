@@ -313,6 +313,17 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    action needs and the whole on request, the browser saves pages with a
    script that verifies itself, and the files every session loads hold the
    rules, not the catalogue.
+7. **Any family, not this one.** The tool serves whatever tree is imported:
+   no code names a family's people, places or denominations. What records
+   exist where and who holds them is reference data (`data/jurisdictions.csv`,
+   `data/countries.csv`, `data/data-sources.csv`, `data/holders.csv`,
+   `data/evidence-classes.csv`),
+   grown as a family's places need it; a place the data does not know yet gets
+   its rows with no source, saying what is missing, never another family's
+   holders. Settings that belong to one tree (its home person, its living
+   overrides) live with that tree. The harness runs on the owner's own
+   export by the owner's ruling (no invented people or records), and the
+   walker names nobody, so another family's export and pages can stand in.
 
 ## 8. Wrong source data, variants and aliases
 

@@ -23,26 +23,19 @@ Read-only. For one person it reports:
 import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, resolve_tree
-from catalog import Catalog, US_STATES, US_NAMES, year
+from catalog import Catalog, US_STATES, US_NAMES, jurisdictions, year
 from footprint import footprint
 from connectors import answers
 
 ONCE = ("Birth", "Death", "Burial", "Cremation")   # what a life holds once: two of one type are a conflict question; residences, censuses, occupations and the like repeat
 
-# statewide civil registration windows (year from) and the registry row that covers them
-VITAL = {"pennsylvania": {"birth": (1906, "C03"), "death": (1906, "C03"), "marriage": (1885, "C03")},
-         "massachusetts": {"birth": (1841, "C05"), "death": (1841, "C05"), "marriage": (1841, "C05")},
-         "kentucky": {"birth": (1911, "C06"), "death": (1911, "C06"), "marriage": (1852, "C06")},
-         "tennessee": {"birth": (1908, "C07"), "death": (1908, "C07"), "marriage": (1780, "C07")},
-         "new york": {"birth": (1881, "C08"), "death": (1881, "C08"), "marriage": (1881, "C08")},
-         "new jersey": {"birth": (1848, "C09"), "death": (1848, "C09"), "marriage": (1848, "C09")},
-         "ohio": {"birth": (1908, "C10"), "death": (1908, "C10"), "marriage": (1800, "C10")}}
-STATE_CENSUS = {"new york": [1855, 1865, 1875, 1892, 1905, 1915, 1925], "massachusetts": [1855, 1865]}
-CHURCH = {"pennsylvania": ["I01", "I02", "I03"], "ireland": ["I08"], "netherlands": ["I07"], "germany": ["I04", "I05", "I06"], "poland": ["I09"]}
-CIVIL_ABROAD = {"ireland": 1864, "netherlands": 1811, "germany": 1876, "poland": 1874}   # civil registration begins; before that: parish registers
+# where which records exist and who holds them, by state or country: reference data (data/jurisdictions.csv), never a family's own places
+J = jurisdictions()
+VITAL, STATE_CENSUS, CHURCH, CIVIL_ABROAD, LAND, PASSENGER = J["vital"], J["state_census"], J["church"], J["civil"], J["land"], J["passenger"]
+ANY_STATE = lambda kind: list(dict.fromkeys(v[kind][1] for v in VITAL.values() if kind in v and v[kind][1]))   # a record whose state is unknown: every state's holder of that kind the data knows
 # what a citation's collection name must match for a row to count as cited/held
 MATCH = {"census": lambda y: rf"^{y} United States Federal Census", "state_census": lambda st, y: rf"State Census.*{y}",
-         "marriage": r"Marriage", "church": r"Church|Mennonite|Presbyterian|Parish|Catholic|Reformed",
+         "marriage": r"Marriage", "church": r"Church|Parish|Catholic|Reformed|Mennonite|Presbyterian|Lutheran|Methodist|Baptist|Episcopal|Moravian|Quaker|Friends|Congregational|Evangelical|Synagogue|Jewish|Orthodox",
          "probate": r"Wills|Probate", "obituary": r"Obituar", "cemetery": r"Grave|Cemetery|Burial|Gravesites",
          "passenger": r"Passenger|Immigration|Emigration|Hamburg", "pension": r"Pension", "deed": r"Land|Deed|Warrant",
          "directory": r"Directories", "compiled": r"Histories|History Books|Genealog|Cyclopedia|Surname|Membership",
@@ -192,11 +185,11 @@ def build(cat: Catalog, pid: str):
             row("A", "census household", MATCH["census"](y), ["D05" if y == 1950 else "D01", "D03"], note,
                 ("household", fields(year=ROW(y), place=PLACES(near["place"], near["basis"], year=y) if near else None)),
                 household=True, instance=str(y))
-        for st_, years in STATE_CENSUS.items():
+        for st_, (years, holders) in STATE_CENSUS.items():
             if st_ in states:
                 for y in years:
                     if b <= y <= (d or 9999):
-                        row("A", f"{st_.title()} state census", MATCH["state_census"](st_, y), ["C08" if st_ == "new york" else "C05"], "household off-decade",
+                        row("A", f"{st_.title()} state census", MATCH["state_census"](st_, y), holders, "household off-decade",
                             ("household", fields(year=ROW(y), state=ROW(st_))), household=True, instance=str(y))
     # A: marriage per family
     for f in fam["families"]:
@@ -214,7 +207,7 @@ def build(cat: Catalog, pid: str):
         cited = any(c[0] and re.search(MATCH["marriage"], c[0]) for c in mcits)
         r = {"record": "marriage record", "instance": f["spouse"], "status": "held" if f"marriage record:{f['spouse'] or ''}" in fetched else ("cited" if cited else "missing"), "via": None,
              "settles": "date, place, both sets of parents, maiden name",
-             "sources": [src[1]] if src[1] else (CHURCH.get(m_country, []) if m_country and m_country != "united states" else ["C03", "C05", "C06", "C07", "C08", "C09"]), "na_reason": None,
+             "sources": [src[1]] if src[1] else (CHURCH.get(m_country, []) if m_country and m_country != "united states" else ANY_STATE("marriage")), "na_reason": None,
              "citations": [{"apid": c[1], "collection": c[0], "collection_id": c[3], "on": [] if c in own or c in (m["citations"] if m else []) else [[f["spouse"], "spouse"]]}
                            for c in mcits if c[1] and c[0] and re.search(MATCH["marriage"], c[0])]}
         if m_country and m_country != "united states": r["settles"] += f"; married in {m_country.title()}: church register"
@@ -230,14 +223,15 @@ def build(cat: Catalog, pid: str):
             ("obituary", fields(death_year=F(d, db), place=dplace)))   # Legacy.com (H05) covers US obituaries from 1999 on (data/data-sources.csv), searched first for a death in its window
     if known_death and b and known_death - b >= 21: row("A", "will / probate", MATCH["probate"], ["J03"], "heirs, spouse, children", ("probate", fields(death_year=F(d, db))))
     row("A", "cemetery / family plot", MATCH["cemetery"], ["E01", "E03"], "burial, dates, who is buried together", ("subject_record", fields(death_year=F(d, db) if known_death else None)))   # a memorial is about one person: held through the person's own, the plot's relatives are leads on it
-    church_src = CHURCH.get(home_state or "", ["I03"]) if in_us or not countries else CHURCH.get(next(iter(countries), ""), [])   # no place at all: the tree's US default
+    church_src = CHURCH.get(home_state or "", []) if in_us or not countries else CHURCH.get(next(iter(countries), ""), [])   # a place with no church row names no holder
     row("A", "church register (baptisms, marriages, burials)", MATCH["church"], church_src, "parents, sponsors, dates, religion", ("household", fields()), household=True)
     if foreign_born and in_us:
-        row("A", "passenger / emigration list", MATCH["passenger"], ["G01", "G04"] if (b or 0) < 1800 else ["G01", "G03"], "origin, who travelled together", ("household", fields(arrival_after=F(b, bb))), household=True)
+        lists = list(dict.fromkeys(s for j, lo, hi, rows in PASSENGER if j in ("*", home_state) and (lo is None or (b or 0) >= lo) and (hi is None or (b or 0) <= hi) for s in rows))
+        row("A", "passenger / emigration list", MATCH["passenger"], lists, "origin, who travelled together", ("household", fields(arrival_after=F(b, bb))), household=True)
     if sex == "M" and b and (1818 <= b <= 1847 or 1725 <= b <= 1765):
         row("A", "pension file", MATCH["pension"], ["F03", "F04"], "marriage date/place, widow, children", ("subject_record", fields()), household=True)
-    if in_us and b and (d or 9999) - b >= 21 and home_state == "pennsylvania":
-        row("A", "land deed / warrant", MATCH["deed"], ["J02"], "spouse (dower), heirs", ("subject_record", fields()), household=True)
+    if in_us and b and (d or 9999) - b >= 21 and home_state in LAND:
+        row("A", "land deed / warrant", MATCH["deed"], LAND[home_state], "spouse (dower), heirs", ("subject_record", fields()), household=True)
     towns, tb = [], "accepted"                                     # the localities the person's events name, for a directory's title
     for e in ev:
         if not (e.get("place") and e["place"]["text"]): continue
@@ -264,7 +258,7 @@ def build(cat: Catalog, pid: str):
         if win and yr and yr < win[0]:
             row("B", label, MATCH[f"{kind}_record"], [win[1]], "exact date and place, parents", ("subject_record", fields(year=F(yr, yb), state=F(st_, stb))),
                 na=f"{st_.title()} statewide from {win[0]}; use church/town records", instance=str(yr)); continue
-        row("B", label, MATCH[f"{kind}_record"], [win[1]] if win else ["C03", "C05", "C06", "C07", "C08", "C09", "C10"],
+        row("B", label, MATCH[f"{kind}_record"], [win[1]] if win else ANY_STATE(kind),   # no state known: every state's holder the data knows, searched in turn
             "parents, informant, exact date and place" if kind == "death" else "exact date and place, parents", ("subject_record", fields(year=F(yr, yb), state=F(st_, stb))), instance=str(yr) if yr else None)
     if known_death and known_death >= 1936: row("B", "Social Security (SSDI / SS-5)", MATCH["social_security"], ["C01", "C02"], "birth, parents (SS-5)", ("subject_record", fields(death_year=F(d, db))))
     if foreign_born and in_us and (b or 0) >= 1790: row("B", "naturalization", MATCH["naturalization"], ["G02"], "birthplace, arrival, origin", ("subject_record", fields()))

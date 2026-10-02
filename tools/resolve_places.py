@@ -50,6 +50,7 @@ import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
+from catalog import country_words
 
 RESOLVER = ("rule", "nominatim-resolver", "0.2.0")
 def cache_dir():
@@ -57,10 +58,7 @@ def cache_dir():
     return os.path.join(derivatives_dir(), "geocode", "nominatim")
 ENDPOINT = "https://nominatim.openstreetmap.org/search"
 
-COUNTRY_SYN = {"usa": "United States", "u.s.a.": "United States", "us": "United States", "united states": "United States",
-               "united states of america": "United States", "allemagne": "Germany", "deutschland": "Germany",
-               "germany": "Germany", "netherlands": "Netherlands", "ireland": "Ireland", "japan": "Japan",
-               "poland": "Poland", "england": "United Kingdom", "great britain and ireland": "Ireland", "canada": "Canada"}
+COUNTRY_SYN = country_words()   # data/countries.csv: a country's name and the words records write for it; read from a string's last part only
 DROP = {"north america", "british colonies", "europe", "colonial america", "unknown"}   # words for no place more specific than the rest of the string ("UNKNOWN, Germany" is Germany)
 US_STATES = {"alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia",
              "hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts",
@@ -103,7 +101,7 @@ def parse(raw):
         toks.append(t); prev = t
     for t in toks:
         tl = t.lower().rstrip(".")
-        if tl in COUNTRY_SYN: p["country"] = COUNTRY_SYN[tl]; continue
+        if tl in COUNTRY_SYN and t is toks[-1]: p["country"] = COUNTRY_SYN[tl]; continue   # the country a record writes last; earlier, a country's name is a place of that name (Lebanon, Pennsylvania)
         if tl in DROP: continue
         if tl in HISTORIC_REGION: p["region"] = HISTORIC_REGION[tl]; continue
         if tl in US_ABBR: t = US_ABBR[tl]

@@ -213,6 +213,30 @@ row's own 1901-1903/1916-1929 range. A citation in that range, or in the
 backlog describes for the New York marriage index; none exists in this
 tree yet.
 
+## 5a. Where records exist (`jurisdictions.csv`)
+
+The checklist builds a person's rows from reference data, never from one
+family's places: `data/jurisdictions.csv` says, by US state or country (lower
+case; `*` for anywhere), which records exist from when and which registry rows
+hold them. Kinds: `vital_birth`, `vital_death`, `vital_marriage` (the year
+statewide registration begins, the holder), `state_census` (its years, the
+holder), `church` (the holders of church registers there), `civil` (a
+country's civil registration from that year, parish registers before),
+`land` (land warrants and deeds), `passenger` (the lists for a person born in
+the year window, `from`/`to`). A place with no row of a kind gets that row
+with no source, and the row says the data is missing: the fix for a new
+family's places is a row here (with a registry row in `data-sources.csv` for
+a new holder), never code. The table holds the places this tree's research
+has needed so far. A record whose state is unknown is searched at every
+state's holder of its kind the table knows.
+
+`data/countries.csv` lists every country's name and the words records write
+for it (Deutschland and Allemagne for Germany, USA for the United States); the
+place resolver and the checklist read a country from a place string's last
+part only, since a country's name earlier in a string is a town or county of
+that name (Lebanon, Pennsylvania; Poland, Ohio). A country's name that is also
+a US state (Georgia) is read as the state.
+
 ## 6. Deferred work
 
 Lives in `BACKLOG.md`. Rows whose `Status` is `blocked-apply` or `todo` with a

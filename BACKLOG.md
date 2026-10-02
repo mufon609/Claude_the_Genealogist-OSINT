@@ -227,6 +227,15 @@ page, decided in the first and undecided in the second, and scope every
 reader that joins `person_persona` or `search_plan` by artifact or persona to
 its tree.
 
+### C10. The turn's report and the person screen do not show the rule's conflict decisions
+
+`conclude.rule_conflicts` decides a conflict the evidence classes settle and
+writes its reason on the question and in the audit log, and `tools/proof.py`
+prints it; `tools/turn.py`'s report and the person screen's decision summary
+name neither the decision nor its reason, so the owner meets it only in the
+proof summary. Name each one where the rule's other decisions are named, with
+`tools/conclude.py reopen` beside it.
+
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card
@@ -311,6 +320,17 @@ cached, the surname's rows kept as the derivative, one persona per row; the
 place codes need their own table from the release's documentation before a
 place is read.
 
+### C17. One connector for CONTENTdm collections
+
+The Tennessee Virtual Archive (death certificates, marriages, births), Ohio
+Memory and the Alabama archives (L04) all run CONTENTdm, whose JSON search
+(`/digital/api/search/collection/<alias>/searchterm/<term>/...`) answers a
+declared tool. Tennessee's death certificates are titled by certificate number,
+reached by name only through annual index volumes (1950–1974 found), so the
+step is two hops: the index volume for the name, then the certificate by
+number. Build one connector for the shape when a reviewed person's
+Tennessee or Ohio step needs it.
+
 ### C18. A year-filed index read by byte range, and asked with the event's year
 
 The Kentucky indexes (and the New Jersey one) are one sorted file per year,
@@ -325,16 +345,54 @@ holder (`data/holders.csv`); decide whether a year-filed index may take the
 year of the person's accepted event of that type, and if so put it first for
 those citations.
 
-### C17. One connector for CONTENTdm collections
+### C19. Reasonably exhaustive data for every place a family names
 
-The Tennessee Virtual Archive (death certificates, marriages, births), Ohio
-Memory and the Alabama archives (L04) all run CONTENTdm, whose JSON search
-(`/digital/api/search/collection/<alias>/searchterm/<term>/...`) answers a
-declared tool. Tennessee's death certificates are titled by certificate number,
-reached by name only through annual index volumes (1950–1974 found), so the
-step is two hops: the index volume for the name, then the certificate by
-number. Build one connector for the shape when a reviewed person's
-Tennessee or Ohio step needs it.
+`data/jurisdictions.csv` holds the places this tree's research has needed:
+seven states' statewide registration, two states' censuses, five countries'
+church holders and civil registration. Any other place gets its rows with no
+holder. Fill the table for every US state (statewide birth, death and marriage
+registration years, state censuses, the holders that index them) and for the
+countries emigrants came from, from the FamilySearch Research Wiki and the
+state archives, each row citing where its years come from, with a registry
+row for each new holder; then a family from anywhere gets a full checklist.
+
+### C20. Place overrides belong to the tree
+
+`data/place-overrides.json` holds this tree's own strings (the Berthelsdorf
+review, the Silesian notes) in a file every tree reads. Read a tree's own
+overrides from `trees/<slug>/` beside a shared file of corrections true for
+any tree (a place string meaning no place), and move this tree's entries
+there; the place scenarios plant their own.
+
+### C21. Citations from exports other than Ancestry's
+
+The planner turns a citation into a fetch step through Ancestry's own record
+id (`_APID`) and `data/holders.csv`'s map of Ancestry collections to free
+holders. A GEDCOM exported from FamilySearch, MyHeritage, Gramps or by hand
+cites its sources otherwise, so its citations make no fetch steps and only the
+checklist's searches remain. Read the citation forms those exports write (a
+FamilySearch ark in a citation, a URL, a source title with a page), and route
+each to its holder.
+
+### C22. A second family in the harness
+
+The harness runs on a cut of the owner's export, by the owner's ruling (no
+invented people or records), so nothing proves the tools on a family with
+other places, other denominations and another export's citations. With the
+owner's choice of a real second tree (another family's export they hold, or a
+published public-domain one), add a scenario that ingests it beside the
+harness tree, builds its checklists and plans, and shows nothing of the first
+family reaching the second (the tree-isolation entry above).
+
+### C23. reconsider settles over several runs
+
+On the live catalog `tools/conclude.py reconsider` reaches its fixed point
+only on its third run: its card pass takes cards on ground the next run's
+re-examination (each decision on the ground that stood before it) refuses,
+such as the relatives an obituary names accepted through one another. Make
+the card pass judge a card on the ground before it the way the re-examination
+does, so one run is the fixed point; until then the live run repeats
+reconsider until a run changes nothing.
 
 ## Externally blocked
 

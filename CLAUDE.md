@@ -104,7 +104,7 @@ python3 tools/turns.py --resume             # after the browser session: the pau
 python3 tools/cards.py "<person>"           # the records waiting for a decision, one card each; --full every field
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
-python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "…"   # a conflict closed with the reason
+python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "…"   # a conflict closed with the reason; `reopen <question id>` takes back one the rule decided
 python3 tools/proof.py "<person>"           # each key fact against the proof standard: evidence and its classes, research, conflicts
 python3 tools/tree.py overview              # the tree as confirmed, from the home person upward, and its edge
 python3 app/person/server.py --by user:<you>   # the person screen on http://127.0.0.1:8765/
@@ -133,7 +133,8 @@ catalog; a scratch copy is for testing code, never for decisions.
    `death`, `parents`, `spouses`, `children`, decided with
    `tools/conclude.py fact`; one the file makes no claim about counts as
    decided; searches open only when every key fact is decided), and the
-   conflicts (`tools/conclude.py resolve`). What an accept writes is §0 and
+   conflicts the rule leaves (`tools/conclude.py resolve`; the rule decides
+   one only when the evidence classes favour a side without doubt). What an accept writes is §0 and
    §5–7. A family link the record states is asserted when both people it
    relates are accepted on it, so a child's parents fact is decided by the
    parents' own cards on the same record, each their own turn: a turn that

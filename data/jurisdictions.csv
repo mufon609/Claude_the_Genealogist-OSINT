@@ -1,0 +1,37 @@
+jurisdiction,kind,from,to,years,sources,note
+pennsylvania,vital_birth,1906,,,C03,statewide birth registration
+pennsylvania,vital_death,1906,,,C03,statewide death registration
+pennsylvania,vital_marriage,1885,,,C03,county marriage licences
+massachusetts,vital_birth,1841,,,C05,
+massachusetts,vital_death,1841,,,C05,
+massachusetts,vital_marriage,1841,,,C05,
+kentucky,vital_birth,1911,,,C06,
+kentucky,vital_death,1911,,,C06,
+kentucky,vital_marriage,1852,,,C06,
+tennessee,vital_birth,1908,,,C07,
+tennessee,vital_death,1908,,,C07,
+tennessee,vital_marriage,1780,,,C07,county marriage records
+new york,vital_birth,1881,,,C08,outside New York City
+new york,vital_death,1881,,,C08,outside New York City
+new york,vital_marriage,1881,,,C08,outside New York City
+new jersey,vital_birth,1848,,,C09,
+new jersey,vital_death,1848,,,C09,
+new jersey,vital_marriage,1848,,,C09,
+ohio,vital_birth,1908,,,C10,
+ohio,vital_death,1908,,,C10,
+ohio,vital_marriage,1800,,,C10,county marriage records
+new york,state_census,,,1855;1865;1875;1892;1905;1915;1925,C08,
+massachusetts,state_census,,,1855;1865,C05,
+pennsylvania,church,,,,I01;I02;I03,"the Schwenkfelder, Mennonite and Presbyterian holders the registry knows in Pennsylvania"
+ireland,church,,,,I08,
+netherlands,church,,,,I07,
+germany,church,,,,I04;I05;I06,
+poland,church,,,,I09,
+ireland,civil,1864,,,,civil registration begins; parish registers before
+netherlands,civil,1811,,,,
+germany,civil,1876,,,,
+poland,civil,1874,,,,
+pennsylvania,land,,,,J02,land warrants and deeds
+*,passenger,,1799,,G01,"the person's birth year, arrival unknown"
+pennsylvania,passenger,,1799,,G04,Silesian Schwenkfelder arrivals 1731-1737
+*,passenger,1800,,,G01;G03,

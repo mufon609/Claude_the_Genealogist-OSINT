@@ -465,6 +465,36 @@ def served_as():
                 if holder and words.strip(): out.append((holder.strip(), words.strip(), r["ID"], tier))
     return out
 
+def country_words():
+    """data/countries.csv: every country's name and the other words records write for it, lower case, to its name as the
+    place resolver writes it ("deutschland" and "allemagne" to Germany, "usa" to United States); a name that is also a US
+    state (Georgia) is left out, the state being what an American record means. Longest words first, for phrases."""
+    out = {}
+    with open(os.path.join(ROOT, "data", "countries.csv"), encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            for w in [r["country"]] + [x for x in (r["synonyms"] or "").split(";") if x]:
+                w = w.strip().lower()
+                if w and w not in US_STATES: out[w] = r["country"]
+    return dict(sorted(out.items(), key=lambda kv: -len(kv[0])))
+
+def jurisdictions():
+    """data/jurisdictions.csv, the reference knowledge of where which records exist and who holds them, by US state or country
+    (lower case; * for anywhere): {vital: {state: {birth|death|marriage: (from year, registry row)}}, state_census: {state:
+    (years, rows)}, church: {place: rows}, civil: {country: from year}, land: {state: rows}, passenger: [(place, from, to,
+    rows)]}, a passenger row's years being the person's birth years. A place with no row of a kind has none: the checklist
+    names the missing data, never another place's holders."""
+    out = {"vital": {}, "state_census": {}, "church": {}, "civil": {}, "land": {}, "passenger": []}
+    yr = lambda v: int(v) if v else None
+    with open(os.path.join(ROOT, "data", "jurisdictions.csv"), encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            j, k, rows = r["jurisdiction"].strip().lower(), r["kind"].strip(), [x for x in (r["sources"] or "").split(";") if x]
+            if k.startswith("vital_"): out["vital"].setdefault(j, {})[k[6:]] = (yr(r["from"]), rows[0] if rows else None)
+            elif k == "state_census": out["state_census"][j] = ([int(y) for y in r["years"].split(";") if y], rows)
+            elif k in ("church", "land"): out[k][j] = rows
+            elif k == "civil": out["civil"][j] = yr(r["from"])
+            elif k == "passenger": out["passenger"].append((j, yr(r["from"]), yr(r["to"]), rows))
+    return out
+
 def collection_tier(source_id, name, served=None):
     """The trust tier a collection takes from the data, or None: the tier of the registry row whose ServedAs names the
     collection's holder and words its name carries, any case (served_as). A collection no row names takes nothing, and its
@@ -827,8 +857,9 @@ class Catalog:
         toks = [t.strip().lower() for t in text.split(",") if t.strip()]
         st = next((t for t in toks if t in US_STATES), None) or next((n for n in US_STATES if f" {n} " in low), None)
         if st or any(f" {n} " in low for n in US_NAMES): country = "united states"
-        else: country = next((c for c in ("ireland", "germany", "netherlands", "poland", "japan", "england", "allemagne", "silesia", "schlesien") if f" {c} " in low), None)
-        country = {"allemagne": "germany", "silesia": "poland", "schlesien": "poland", "england": "united kingdom"}.get(country, country)
+        else:                                                         # the country a record writes last; a country's name earlier in the string is a town or county of that name (Lebanon, Poland, Peru)
+            last = toks[-1] if toks else ""
+            country = (COUNTRIES.get(last) or ("Poland" if last in ("silesia", "schlesien") else None) or "").lower() or None   # Silesia, written as a country, lies mostly in today's Poland
         return {"text": text, "resolved": False, "country": country, "state": st}
     def _place_chain(self, place_id):
         chain, pid, region = [], place_id, {"country": None, "state": None}
@@ -1058,3 +1089,4 @@ class Catalog:
             cits += self.citations("event", eid, pid, subject_only=subject_only)
         return cits
 
+COUNTRIES = country_words()

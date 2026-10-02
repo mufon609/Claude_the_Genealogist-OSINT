@@ -608,7 +608,8 @@ class Writer:
         self.cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
                         (ulid(), a, b, kind, as_written, dumps({"label": label, **({"computed": bool(computed)} if computed is not None else {})}))); self.n["relations"] += 1
 
-STATE_CENSUS_ROW = re.compile(r"\b(new york|massachusetts)\b[^•]*\bstate census\b", re.I)
+from catalog import jurisdictions
+STATE_CENSUS_ROW = re.compile(r"\b(" + "|".join(map(re.escape, jurisdictions()["state_census"])) + r")\b[^•]*\bstate census\b", re.I)   # the states data/jurisdictions.csv gives a state census
 
 def household_row(parsed):
     """The checklist row a household record fills, from its parsed form: a FamilySearch census page (its collection's kind word
