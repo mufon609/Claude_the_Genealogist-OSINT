@@ -1,0 +1,283 @@
+{
+ "title": "the sides of a conflict",
+ "line": "places are compared as what their words resolve to, so the Kentucky index's Logan County stands with the Social Security claim's Auburn in it; a side holds only statements that all agree, so the county does not join the file's Woodburn, Logan to Auburn; a record saved as a file is named by its collection, not as the file; and the remarriage the owner cites for a divorce is no date of the divorce",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his obituary accepted by the owner: born at Woodburn, Kentucky",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "his Social Security claim, taken by the rule: born at Auburn, Kentucky",
+   "attach": {
+    "fixture": "familysearch-social-security-claims-index-6K99-MWLL.html"
+   },
+   "as": "ssc"
+  },
+  {
+   "say": "the state's birth index entry, saved as a file: born in Logan County, Kentucky",
+   "archive": {
+    "fixture": "familysearch-kentucky-vital-record-indexes-1915-QKH2-XT3L.html",
+    "source": "D03",
+    "collection": "Kentucky, Vital Record Indexes, 1911-1999",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-kentucky-vital-record-indexes-1915-1_1-QKH2-XT3L-robert-e-davidson-birth.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737100409"
+    ],
+    "rule": true
+   },
+   "as": "kyb"
+  },
+  {
+   "say": "the three places resolved by the owner's answers, the geocoder's own answers planted as the resolver caches them",
+   "place_card": {
+    "raw": "Auburn, Kentucky, United States",
+    "queries": [
+     "Auburn, Kentucky, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 130351,
+      "lat": "36.8642",
+      "lon": "-86.7103",
+      "name": "Auburn",
+      "display_name": "Auburn, Logan County, Kentucky, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "town",
+      "address": {
+       "town": "Auburn",
+       "county": "Logan County",
+       "state": "Kentucky",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "auburn"
+  },
+  {
+   "decide": {
+    "card": "$auburn.proposal",
+    "status": "accepted",
+    "choice": 0
+   }
+  },
+  {
+   "place_card": {
+    "raw": "Logan, Kentucky, United States",
+    "queries": [
+     "Logan County, Kentucky, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 1839553,
+      "lat": "36.8524",
+      "lon": "-86.8786",
+      "name": "Logan County",
+      "display_name": "Logan County, Kentucky, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "county",
+      "address": {
+       "county": "Logan County",
+       "state": "Kentucky",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "logan"
+  },
+  {
+   "decide": {
+    "card": "$logan.proposal",
+    "status": "accepted",
+    "choice": 0
+   }
+  },
+  {
+   "place_card": {
+    "raw": "Woodburn, Kentucky",
+    "queries": [
+     "Woodburn, Kentucky, United States"
+    ],
+    "candidates": [
+     {
+      "osm_type": "relation",
+      "osm_id": 130516,
+      "lat": "36.8406",
+      "lon": "-86.5297",
+      "name": "Woodburn",
+      "display_name": "Woodburn, Warren County, Kentucky, United States",
+      "category": "boundary",
+      "type": "administrative",
+      "addresstype": "city",
+      "address": {
+       "city": "Woodburn",
+       "county": "Warren County",
+       "state": "Kentucky",
+       "country": "United States",
+       "country_code": "us"
+      },
+      "extratags": {}
+     }
+    ]
+   },
+   "as": "woodburn"
+  },
+  {
+   "decide": {
+    "card": "$woodburn.proposal",
+    "status": "accepted",
+    "choice": 0
+   },
+   "expect": [
+    {
+     "disagreements": {
+      "person": "I332737100409",
+      "is": {
+       "some": {
+        "has": [
+         "birth place:",
+         "Social Security",
+         "Kentucky, Vital Record Indexes",
+         "against U.S., Obituary Collection"
+        ]
+       }
+      }
+     },
+     "why": "Auburn and the county it lies in on one side, the obituary's Woodburn on the other: one difference, the index named by its own collection, not as the imported file"
+    },
+    {
+     "disagreements": {
+      "person": "I332737100409",
+      "is": {
+       "none": {
+        "has": [
+         "Social Security",
+         "against Kentucky, Vital Record Indexes"
+        ]
+       }
+      }
+     },
+     "why": "Logan County holds Auburn: the claim and the index are never on opposite sides"
+    },
+    {
+     "disagreements": {
+      "person": "I332737100409",
+      "is": {
+       "some": {
+        "has": "against the file: Auburn"
+       }
+      }
+     },
+     "why": "the file's Woodburn, Logan agrees with the county but not with Auburn: it stands on a side of its own, never with Auburn"
+    }
+   ]
+  },
+  {
+   "say": "the 1959 marriage index image of his wife's remarriage, read by the model: the groom's row, the spouse's surname by four letters",
+   "seed": {
+    "stand_in": "image",
+    "source": "C08",
+    "collection": "New York State Marriage Index, 1881-1967 (Reclaim the Records, Internet Archive)",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "url",
+     "value": "https://ia601400.us.archive.org/BookReader/BookReaderImages.php?zip=/13/items/New_York_State_Marriage_Index_1959/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2.zip&file=Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_0986.jp2&id=New_York_State_Marriage_Index_1959&scale=1&rotate=0"
+    }
+   },
+   "as": "nys"
+  },
+  {
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hahnle, Chris M",
+     "sex": "M",
+     "role": "groom",
+     "marriage_date": "14 Aug 1959",
+     "marriage_place": "Huntington, Suffolk County, New York",
+     "as_written": {
+      "Spouse surname, first four letters": "DAVI"
+     }
+    },
+    "by": "llm:harness"
+   }
+  },
+  {
+   "say": "the owner's word: the couple divorced between 1950 and 1959, the remarriage cited as the evidence",
+   "divorce": {
+    "a": "I332737100409",
+    "b": "I332737100400",
+    "date": "BET 1950 AND 1959",
+    "evidence": [
+     {
+      "record": "nys",
+      "persona": "Hahnle, Chris M",
+      "fact_type": "Marriage",
+      "citation": "Ruth's remarriage, 14 Aug 1959"
+     }
+    ],
+    "note": "married in the 1950 census; Ruth remarried in August 1959"
+   },
+   "expect": [
+    {
+     "disagreements": {
+      "person": "I332737100409",
+      "is": {
+       "none": {
+        "has": "divorce date:"
+       }
+      }
+     },
+     "why": "a statement of another kind of event, the remarriage, is the divorce's evidence, never a value of its date"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "file",
+   "value": "familysearch-kentucky-vital-record-indexes-1915-1_1-QKH2-XT3L-robert-e-davidson-birth.html"
+  }
+ },
+ "extractor": "familysearch-record",
+ "some": [
+  {
+   "name": "Robert E Davidson",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "19 Feb 1915",
+     "place": "Logan, Kentucky"
+    }
+   ],
+   "why": "the birth the state's index gives him, the county alone with the state"
+  },
+  {
+   "name": "Lena Bell",
+   "why": "his mother, under her birth surname"
+  }
+ ]
+}

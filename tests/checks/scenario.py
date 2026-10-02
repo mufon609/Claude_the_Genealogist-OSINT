@@ -481,6 +481,19 @@ def a_file_family(w, x):
                         VALUES (?,?,'family_member',?,?,?,'undecided',?,?,?)""", (w.treelib.ulid(), w.tid, w.treelib.dumps([fid, pid, role]), w.env["import"]["sha"], "Ancestry member tree (no citation)", EXTRACTOR_TAG, ts, w.treelib.dumps({"uncited": True})))
     return {"family": fid}
 
+def a_divorce(w, x):
+    """The owner's word ending a marriage (tools/conclude.py divorce): a Divorce event between `a` and `b` dated `date`, each
+    piece of `evidence` a record's fact named by `record`, the persona's name as written (`persona`) and the `fact_type`,
+    with its `citation` words."""
+    from conclude import divorce
+    ev = []
+    for e in x["evidence"]:
+        pf = w.cx.execute("""SELECT pf.id FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pe.artifact_sha256=? AND pe.name_text=? AND pf.fact_type=?""",
+                          (w.sha(e["record"]), e["persona"], e["fact_type"])).fetchone()
+        if not pf: raise KeyError(f"no {e['fact_type']} fact of {e['persona']} on that record")
+        ev.append((w.sha(e["record"]), pf[0], e.get("citation", "harness")))
+    return {"event": divorce(w.cx, w.tid, w.person(x["a"]), w.person(x["b"]), x["date"], ev, x.get("by", BY), x.get("note", "harness"))}
+
 def a_resolve_conflict(w, x):
     """A conflict question closed through tools/conclude.py resolve: the person's one open conflict whose detail has
     `detail_has`, the statement kept a literal or bound assertion id, or {record, event_type} for that record's statement
@@ -572,7 +585,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
-           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "resolve_conflict": a_resolve_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 

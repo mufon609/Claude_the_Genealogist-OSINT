@@ -634,11 +634,14 @@ class Catalog:
         differing value (event: that one event's lines alone, for tools/conclude.py resolve), naming every statement on each side and the
         tree's own value. Every Accepted assertion is compared against the event's own date (as dates) or shown place, and
         against every other statement on the event that is not rejected (undecided claims included: the file's own claim, a
-        page anyone can edit); place is compared with Catalog.place_verdict, so a coarser or finer record, or one naming a
-        dated former name, agrees rather than disagreeing. A record cited under two collection names but one locator (the same
-        certificate indexed twice) is one statement, not two. Statements whose values agree with each other (transitively,
-        among only those already found disagreeing with something) are grouped as one side, so six comparisons that all turn
-        on the same 11th-against-10th read as one question, not six. The tree's value is never changed by a record; the
+        page anyone can edit), each a statement of the event's own type (a remarriage cited as a divorce's evidence is no
+        value of the divorce); place is compared with Catalog.place_verdict, as the place its words are resolved to when they
+        are (Auburn, Kentucky is in Logan County), so a coarser or finer record, or one naming a dated former name, agrees
+        rather than disagreeing. A record cited under two collection names but one locator (the same certificate indexed
+        twice) is one statement, not two, and "the file" is the imported file alone. Statements whose values all agree with
+        one another (among only those already found disagreeing with something) are grouped as one side, so six comparisons
+        that all turn on the same 11th-against-10th read as one question, not six, while a coarse statement agreeing with two
+        that differ (a county holding two towns) joins neither to the other. The tree's value is never changed by a record; the
         difference is a conflict question, and the shown value stays what Catalog.place chooses. A name an accepted record
         gives the person with a middle name or initial that differs from the one the tree's own name carries (match.
         middle_differs: John A. against John D) is a line too, one per record."""
@@ -659,20 +662,20 @@ class Catalog:
             tree_place = place_now["text"] if place_now else None
             kind = e[1].lower()
             rows = self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)),
-                                    ar.locator_value, a.status, a.id, ar.locator_kind
+                                    ar.locator_value, a.status, a.id, ar.sha256 IN (SELECT artifact_sha256 FROM tree_import), CASE WHEN ps.status='accepted' THEN ps.place_id END
                              FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                              JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
-                             WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", e[0])
+                             WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND pf.fact_type=? ORDER BY a.asserted_at, a.id""", e[0], e[1])
             groups, order = {}, []                            # one group per record identity (its locator), whatever collection name cites it
             for f in rows:
                 gk = f[5] or f[7]
                 if gk not in groups:
-                    groups[gk] = {"collections": [], "locator": f[5], "is_file": f[8] == "file", "status": "undecided", "date": None, "place": None, "state": None}
+                    groups[gk] = {"collections": [], "locator": f[5], "is_file": bool(f[8]), "status": "undecided", "date": None, "place": None, "place_cmp": None, "state": None}
                     order.append(gk)
                 g = groups[gk]
                 if f[4] and f[4] not in g["collections"]: g["collections"].append(f[4])
                 if (f[0] is not None or f[1] is not None) and len(f[1] or "") > len(g["date"][1] if g["date"] else ""): g["date"] = (f[0], f[1], f[2])  # the same record's own most specific date wins (a full date over a bare year)
-                if f[3] is not None and g["place"] is None: g["place"] = f[3]
+                if f[3] is not None and g["place"] is None: g["place"] = f[3]; g["place_cmp"] = self._place_chain(f[9])["text"] if f[9] else f[3]   # compared as the place its words are resolved to, when they are: Auburn, Kentucky is in Logan County
                 g["state"] = g["state"] or collection_state(f[4])
                 if f[6] == "accepted": g["status"] = "accepted"
             def label(gk):
@@ -682,7 +685,7 @@ class Catalog:
                 return f"{name} ({g['locator']})" if g["locator"] else name
             for axis in ("date", "place"):
                 value_of = (lambda gk: ({"start": groups[gk]["date"][1], "text": groups[gk]["date"][0], "qualifier": groups[gk]["date"][2]} if groups[gk]["date"] else None)) if axis == "date" \
-                            else (lambda gk: groups[gk]["place"])
+                            else (lambda gk: groups[gk]["place_cmp"])
                 text_of = (lambda gk: groups[gk]["date"][0]) if axis == "date" else (lambda gk: groups[gk]["place"])
                 tree_val = {"start": e[3], "text": e[2], "qualifier": e[4]} if axis == "date" else tree_place
                 tree_text = e[2] if axis == "date" else tree_place
@@ -710,13 +713,13 @@ class Catalog:
                 def find(x):
                     while parent[x] != x: x = parent[x]
                     return x
-                for i, a in enumerate(nodes):                  # group by mutual agreement, among only the statements already in some disagreement
-                    av, asa = (tree_val, None) if a == "tree" else (value_of(a), groups[a]["state"])
+                vs = lambda n: (tree_val, None) if n == "tree" else (value_of(n), groups[n]["state"])
+                agrees = {(a, b) for i, a in enumerate(nodes) for b in nodes[i + 1:] if cmp(*vs(a), *vs(b))[0] == "agrees"}
+                together = lambda a, b: (a, b) in agrees or (b, a) in agrees
+                for i, a in enumerate(nodes):                  # group by mutual agreement, among only the statements already in some disagreement; every member of a side agrees with every other, so a coarse statement agreeing with two that differ (a county holding two towns) joins neither to the other
                     for b in nodes[i + 1:]:
-                        bv, bsa = (tree_val, None) if b == "tree" else (value_of(b), groups[b]["state"])
-                        if cmp(av, asa, bv, bsa)[0] == "agrees":
-                            ra, rb = find(a), find(b)
-                            if ra != rb: parent[ra] = rb
+                        ra, rb = find(a), find(b)
+                        if ra != rb and together(a, b) and all(together(x, y) for x in nodes if find(x) == ra for y in nodes if find(y) == rb): parent[ra] = rb
                 seen = set()
                 for a, b in pairs:
                     ra, rb = find(a), find(b)

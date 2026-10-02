@@ -1266,7 +1266,7 @@ def resolve(cx, tree_id, qid, keep, by, note):
     set_aside = []
     for r in q.execute("""SELECT a.id, a.citation_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM assertion a
                           JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
-                          WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND a.id<>?""", (ev["id"], keep)):
+                          WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND a.id<>? AND pf.fact_type=?""", (ev["id"], keep, ev["event_type"])):
         v = {"start": r["date_start"] or r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if axis == "date" else r["raw"]
         if (v["start"] if axis == "date" else v) and differs(v): set_aside.append({"assertion": r["id"], "record": r["citation_text"], "value": r["date_text"] if axis == "date" else r["raw"]})
     was = {"date_text": ev["date_text"], "date_start": ev["date_start"], "date_end": ev["date_end"], "date_qualifier": ev["date_qualifier"]} if axis == "date" else {"place_id": ev["place_id"], "place": (cat.place(ev["id"], ev["place_id"]) or {}).get("text")}

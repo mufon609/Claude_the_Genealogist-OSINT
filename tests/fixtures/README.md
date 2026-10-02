@@ -32,6 +32,7 @@ as it is.
 | `familysearch-massachusetts-marriage-search-no-results-annie-e-scannell.html` | FamilySearch record search results, the Massachusetts, State Vital Records collection for Annie E Scannell, saved in the browser as the search her cited marriage index citation (no ark of the holder's) was looked for by hand; the site answered "No Results", saved from the search's own URL as any results page is, 19 Sept 2026 | `rule:familysearch-search` | FamilySearch terms |
 | `aad-enlistment-247275.html` | The AAD enlistment record 247275, Robert C Davidson, saved in the browser | `rule:aad-enlistment` | public record, National Archives |
 | `familysearch-kentucky-death-index-1946-QKC9-LBLM.html` | FamilySearch record ark:/61903/1:1:QKC9-LBLM, Kentucky, Vital Record Indexes, the death of John Y Davidson in Simpson County on 11 Jun 1946 (the file and his memorial say the 10th), his birth calculated from his age, as the archive holds it | `rule:familysearch-record` | public record; FamilySearch terms |
+| `familysearch-kentucky-vital-record-indexes-1915-QKH2-XT3L.html` | FamilySearch record ark:/61903/1:1:QKH2-XT3L, Kentucky, Vital Record Indexes, Robert E Davidson's birth, 19 Feb 1915 in Logan County, his mother Lena Bell; saved as a file, archived under its file name as the archive holds it | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-massachusetts-marriage-index-1901-N445-429.html` | FamilySearch record ark:/61903/1:1:N445-429, Massachusetts, State Vital Records, the marriage of James J. Ahern and Annie E. Scannell at Amherst, 26 Jun 1901 (the file says Northampton, citing this record), with his mother Alice McGee, as the archive holds it | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-obituary-collection-2004-QL71-6HG3.html` | FamilySearch record ark:/61903/1:1:QL71-6HG3, U.S., Obituary Collection, Robert Edgar Davidson's obituary in the Bucyrus Telegraph Forum, 2004: born 19 Feb 1915 at Woodburn, Kentucky, his parents, his brothers and sisters, his children and their families by name alone; archived under the file's own citation (Ancestry's 1,7545::2520318), as the archive holds it | `rule:familysearch-record` | FamilySearch terms |
 | `familysearch-tennessee-marriage-index-1895-VNXD-RXW.html` | FamilySearch record ark:/61903/1:1:VNXD-RXW, Tennessee, State Marriage Index, John Davidson and Lena Bell, 25 Dec 1895, Robertson County: two names, the date and the county, nothing else, as the archive holds it | `rule:familysearch-record` | public record; FamilySearch terms |
@@ -159,7 +160,9 @@ literal id or `{person, type, index}`, that person's nth event of the type in th
 carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
 owner's own export that the cut leaves out, because another scenario reads its people without it, written as the
 import writes it: `xref` the family's own id in the export, `partners` and `children`, each membership the file's
-uncited claim, undecided), `resolve_conflict` (a conflict question closed through `tools/conclude.py resolve`: the
+uncited claim, undecided), `divorce` (the owner's word ending a marriage through `tools/conclude.py divorce`: `a`, `b`,
+`date`, each `evidence` a record's fact by `record`, `persona` as written and `fact_type`, with `citation`, and `note`),
+`resolve_conflict` (a conflict question closed through `tools/conclude.py resolve`: the
 `person`'s one open conflict whose detail has `detail_has`, `keep` a bound assertion id or `{record, event_type}` for
 that record's statement on the person's event of the type, `note`; a refusal comes back as its `error`), `place_card` (a place answer's card
 with the geocoder's
