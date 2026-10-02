@@ -229,19 +229,6 @@ page, decided in the first and undecided in the second, and scope every
 reader that joins `person_persona` or `search_plan` by artifact or persona to
 its tree.
 
-### C10. A statement on the wrong event cannot be moved
-
-`tools/conclude.py place` writes an accepted record's undated fact onto the
-event the owner means only while the fact carries no assertion. Robert Edgar
-Davidson carries a second Death event dated "09:50 PM", created from an older
-reading of his Ohio Death Index page that took the page's time of death for a
-date; that reading's statement is rejected, the current reading's undated
-Death statement sits on the same event, and the plan's "more than one death
-event" conflict stays open with no tool that closes it. Let `place` move a
-statement from one of the person's events of its type to another, with one
-audit row, and decide how an event no remaining statement supports leaves the
-person's events.
-
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card

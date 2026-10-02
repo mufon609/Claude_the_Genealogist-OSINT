@@ -36,7 +36,7 @@ proposed again by the matcher as it stands.
 usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
        tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
        tools/conclude.py assertion <assertion id> accept|reject|undecided [--note "…"]   one statement of one record, on its own
-       tools/conclude.py place <persona fact id> --event <event id> [--note "…"]   a record's undated fact onto the event it belongs to (Catalog.unplaced)
+       tools/conclude.py place <persona fact id> --event <event id> [--note "…"]   a record's fact onto the event it belongs to: an undated one (Catalog.unplaced), or one asserted on the wrong event, moved
        tools/conclude.py facts "<person>"                                          every fact with its event id and every statement behind it with its id
        tools/conclude.py reconsider [--dry-run]                                   the rule re-examines its decisions and the cards it refused
        tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…" [--marriage "14 AUG 1959"]
@@ -280,26 +280,42 @@ def assert_family_events(cx, tree_id, fid, persona_ids, sha, prop_id, by, ts):
     return n
 
 def place(cx, tree_id, pf_id, event_id, by, note):
-    """The owner's answer to Catalog.unplaced: a record's undated fact, accepted onto a person with several events of its
-    type and left unasserted by assert_facts, written onto the one event the owner means. The assertion is written the way
-    assert_facts writes any other: accepted from a record nobody can edit at will, undecided from a page anyone can. Refused
-    when the persona fact does not exist or its persona is not accepted to a person, the fact already carries an assertion,
-    the event is not this tree's or is of another type than the fact, or the event belongs to another person. One audit row.
-    Returns what was written, or an error."""
+    """The owner's word on which of a person's events a record's fact belongs to: an undated fact, accepted onto a person with
+    several events of its type and left unasserted by assert_facts (Catalog.unplaced), written onto the event the owner
+    means, the way assert_facts writes any other statement (accepted from a record nobody can edit at will, undecided from a
+    page anyone can); or a fact already asserted on another of the person's events of its type, moved to this one, its status
+    kept. An event a move leaves with no statement but rejected ones (an event an older reading made of a misread value) leaves
+    the person's events: its participant row goes, the event and its statements stay for the audit trail. Refused when the
+    persona fact does not exist or its persona is not accepted to a person, the event is not this tree's, is of another type
+    than the fact or belongs to another person, or the fact's statement is already on it. One audit row per change. Returns
+    what was written, or an error."""
     q = _q(cx); ts = now()
     pf = q.execute("SELECT pf.*, pe.artifact_sha256 FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pf.id=?", (pf_id,)).fetchone()
     if not pf: return {"error": "no such persona fact"}
     pp = q.execute("SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?", (pf["persona_id"], tree_id)).fetchone()
     if not pp: return {"error": "this persona is not accepted to a person"}
     person_id = pp["person_id"]
-    if q.execute("SELECT 1 FROM assertion WHERE persona_fact_id=?", (pf_id,)).fetchone(): return {"error": "this fact already has an assertion"}
     ev = q.execute("SELECT id, event_type FROM event WHERE id=? AND tree_id=?", (event_id, tree_id)).fetchone()
     if not ev: return {"error": "no such event in this tree"}
     if ev["event_type"] != pf["fact_type"]: return {"error": f"the event is {ev['event_type']}, the fact is {pf['fact_type']}"}
     if not q.execute("SELECT 1 FROM event_participant WHERE event_id=? AND person_id=?", (event_id, person_id)).fetchone(): return {"error": "the event belongs to another person"}
-    a = q.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (pf["artifact_sha256"],)).fetchone()
-    cite = a["name"] or a["original_filename"] or pf["artifact_sha256"][:12]
-    status = "undecided" if editable(cx, pf["artifact_sha256"]) else "accepted"
+    had = q.execute("SELECT id, subject_id, status FROM assertion WHERE persona_fact_id=? AND subject_kind='event'", (pf_id,)).fetchone()
+    if had and had["subject_id"] == event_id: return {"error": "the fact's statement is already on this event"}
+    if had:                                                              # on another of the person's events of its type: moved, its status kept
+        if not q.execute("SELECT 1 FROM event_participant ep JOIN event e ON e.id=ep.event_id WHERE e.id=? AND ep.person_id=? AND e.event_type=?",
+                         (had["subject_id"], person_id, pf["fact_type"])).fetchone():
+            return {"error": "the fact's statement is on an event that is not this person's of its type"}
+        q.execute("UPDATE assertion SET subject_id=?, notes=json_set(coalesce(notes,'{}'),'$.placed_by_owner',?) WHERE id=?", (event_id, note, had["id"]))
+        q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                  (ulid(), tree_id, ts, by, "update", "assertion", had["id"], dumps({"persona_fact": pf_id, "from_event": had["subject_id"], "event": event_id, "person": person_id, "note": note})))
+        retired = None
+        if not q.execute("SELECT 1 FROM assertion WHERE subject_kind='event' AND subject_id=? AND status<>'rejected'", (had["subject_id"],)).fetchone():
+            q.execute("DELETE FROM event_participant WHERE event_id=? AND person_id=?", (had["subject_id"], person_id)); retired = had["subject_id"]
+            q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                      (ulid(), tree_id, ts, by, "update", "event", retired, dumps({"left_person": person_id, "why": "no statement but rejected ones supports it once the record's own was placed elsewhere", "note": note})))
+        plan_person(cx, tree_id, person_id, by)
+        return {"ok": True, "assertion": had["id"], "status": had["status"], "person": person_id, "event": event_id, "moved_from": had["subject_id"], "retired": retired}
+    cite, status = _citation(cx, pf["artifact_sha256"])
     aid = ulid()
     q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
                   VALUES (?,?,'event',?,?,?,?,?,?,?,?)""", (aid, tree_id, event_id, pf_id, pf["artifact_sha256"], cite, status, by, ts, dumps({"note": note})))
@@ -1427,7 +1443,7 @@ def main():
     fc.add_argument("person"); fc.add_argument("field"); fc.add_argument("verdict", choices=["accept", "reject", "undecided"]); fc.add_argument("--note")
     ac = sub.add_parser("assertion", help="one statement of one record on one subject, decided on its own (a fact decision touches every statement behind the fact)")
     ac.add_argument("assertion"); ac.add_argument("verdict", choices=["accept", "reject", "undecided"]); ac.add_argument("--note")
-    pc = sub.add_parser("place", help="a record's undated fact, accepted onto a person with several events of its type, written onto the one the owner means (Catalog.unplaced)")
+    pc = sub.add_parser("place", help="a record's fact onto the event the owner means: an undated one (Catalog.unplaced), or one asserted on another event of its type, moved; an event left with no statement but rejected ones leaves the person")
     pc.add_argument("persona_fact"); pc.add_argument("--event", required=True, dest="event"); pc.add_argument("--note")
     ls = sub.add_parser("facts", help="a person's key facts, events and attributes with their ids, and every statement behind each with its id, status and record"); ls.add_argument("person")
     r = sub.add_parser("reconsider", help="the rule re-examines every decision it made and every card still undecided; a decision it would no longer take is withdrawn, a card it would now take is taken")

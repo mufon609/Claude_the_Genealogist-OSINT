@@ -693,7 +693,10 @@ created from the record's date when the person has none of that type; an undated
 asserts the person's one event of that type, and with several, none of them:
 the fact is raised as a `conflict` question naming the record and the type
 (`Catalog.unplaced`) until the owner places it on the event they mean
-(`tools/conclude.py place`); an attribute the record
+(`tools/conclude.py place`, which also moves a statement asserted on the
+wrong event of the type; an event left with no statement but rejected ones,
+one an older reading made of a misread value, leaves the person's events and
+stays for the audit trail); an attribute the record
 states (an occupation, an inscription) asserts the person's attribute of that
 type, created with the record's value when the person has none; a fact about
 the record or the page (its id, an age at death) asserts nothing. Where the
