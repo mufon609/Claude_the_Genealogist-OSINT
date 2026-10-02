@@ -1,16 +1,17 @@
 """Reclaim The Records' Kentucky death index and birth index, 1911-1989, on the Internet Archive: free, no key, Public Domain
-Mark, released from the Kentucky Office of Vital Statistics' own print files (data/DATA-SOURCES.md §4, registry row C06). Two
-items, one plain-text file per year, its name read off the Archive's metadata API (archive.org/metadata/<item>):
+Mark, the state vital statistics program's own printouts, each page headed KENTUCKY STATE DEPARTMENT FOR HUMAN RESOURCES
+(data/DATA-SOURCES.md §4, registry row C06). Two items, one plain-text file per year, its name read off the Archive's metadata
+API (archive.org/metadata/<item>):
   reclaim-the-records-kentucky-death-index-01911-1989  Reclaim_The_Records_-_Kentucky_Death_Index_-_0<year>.TXT, 3-5 MB a year
   reclaim-the-records-kentucky-birth-index-01911-1989  Reclaim_The_Records_-_Kentucky_Birth_Index_-_0<year>-BRCI<yy>.TXT, 7-11 MB
 Each file is the printout as the state's program wrote it: every line opens with one carriage-control byte (SUB for a line,
-"i" for a page's last, VT and SOH and DC1 around the page headings), a HIPAA notice and a heading on every page, then fixed-width
+"i" at a page's end, VT and SOH and DC1 around the page headings), a HIPAA notice and a heading on every page, then fixed-width
 rows sorted by surname and given name. A death row: surname, given name, middle initial, age (U/1 under a year), the county of
 death as a five-letter code (SMPSN), the county of residence written out (SIMPSON, or a state or town for one who lived
 elsewhere), the date of death, the certificate's volume, its number and its filing year. A birth row: surname, first and
 middle names, the date of birth, the birth number (volume-number-year), the county of birth by the same code, the mother's
-maiden name (given, middle initial, surname), the sex, the date filed. The later death items (1990-2004 and 2013-2022 scanned
-pages; 2005-2010 a shorter row with no age, residence or certificate) are another layout and are not read here.
+maiden name (given, middle initial, surname), the sex, the date filed. The later death items are not read here: 1990-2004
+and 2011-2022 are scanned pages, and 2005-2010 text files of a shorter row with no age, residence or certificate.
 
 The files are sorted, but the runner sends no byte range, so a year's file is asked whole, once per step and year, and kept
 as it came (record False, archived under C06 with its own URL as locator); rows() reads it here. For each surname the step
