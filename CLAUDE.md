@@ -84,8 +84,9 @@ around it.
    comments, no compensating checks. Comments describe current code, never
    history (see `MEMORY.md`).
 9. **Commit each finished piece of code or doc work**, directly to `main`,
-   with the tools green (`python3 tools/check.py`), without waiting to be asked. Research decisions
-   live in the catalog and never enter git.
+   with the tools green (`python3 tools/check.py`), and push it to `origin`,
+   without waiting to be asked. Research decisions live in the catalog and
+   never enter git.
 10. **Working notes are a report**, returned to the user, never committed.
 
 ## Working the repo
@@ -220,4 +221,10 @@ the records the file cites on them are fetched like any other.
   its prefecture) stays Undecided with both offered. Never widen past that.
 - External services: Nominatim public endpoint at 1 req/s with cache;
   Ancestry and Find a Grave have no API and forbid scraping — assisted
-  fetch only.
+  fetch only. FamilySearch is the owner's browser only, never its API (the
+  owner's decision).
+- Other sources, always: the owner's standing instruction is "ALWAYS
+  CONSIDER WHAT OTHER SOURCES WE COULD USE AND INTEGRATE." Whatever gap a
+  piece of work meets, ask which free source could fill it, and record a
+  candidate in `data/data-sources.csv` (with `data/DATA-SOURCES.md`'s
+  reasoning) or a connector entry in `BACKLOG.md`.
