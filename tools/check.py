@@ -57,8 +57,9 @@ def rules():
 
 def connectors_offline():
     """The connectors' requests from a step's fields and their reading of saved responses, with no network: the Archive's
-    title search for a cited book and the VA gravesite locator's posted search, then the newspaper and death index
-    connectors. What they are asked with and read against comes from tests/fixtures/connectors.json."""
+    title search for a cited book and the VA gravesite locator's posted search, then the newspaper connectors, the New Jersey
+    death index and the Kentucky death and birth indexes. What they are asked with and read against comes from
+    tests/fixtures/connectors.json and the slices it names."""
     from connectors import ia, ia_books, va_graves
     from treelib import parse_gedcom_date
     with open(os.path.join(FIXTURES, "connectors.json"), encoding="utf-8") as fh: C = json.load(fh)
@@ -211,6 +212,57 @@ def connectors_offline():
     ok2 = cx2.execute("PRAGMA integrity_check").fetchone()[0]; fk2 = cx2.execute("PRAGMA foreign_key_check").fetchall()
     say(ok2 == "ok" and not fk2, f"scratch catalog: integrity {ok2}, foreign keys {len(fk2)}")
     cx2.close(); shutil.rmtree(d, ignore_errors=True)
+    from connectors import ky_vital_index as ky
+    K = C["ky_index"]; KD, KB = K["death"], K["birth"]
+    q = lambda d, **kw: {**{k: {"value": d[k], "basis": "accepted"} for k in ("given", "surname", "year", "state", "birth_year")}, **{k: {"value": v, "basis": "accepted"} for k, v in kw.items()}}
+    rq = ky.requests(q(KD))
+    say(len(rq) == 1 and rq[0]["url"] == KD["url"] and rq[0]["kind"] == "text" and rq[0]["record"] is False and rq[0]["index"] == "death" and rq[0]["surnames"] == [KD["surname"]],
+        f"a Kentucky death search with an accepted year asks that year's death file whole, once, not itself the record: {rq}")
+    claim = {**q(KD), "year": {"value": KD["year"], "basis": "claim"}}
+    say([r["year"] for r in ky.requests(claim)] == KD["claim_years"], f"a claimed year is asked with the year either side: {[r['year'] for r in ky.requests(claim)]}")
+    rb = ky.requests(q(KB))
+    say(len(rb) == 1 and rb[0]["url"] == KB["url"] and rb[0]["index"] == "birth", f"a year equal to the birth year is the birth row's, asked of the birth file: {rb}")
+    say(ky.requests({**q(KD), "state": {"value": K["other_state"], "basis": "accepted"}}) == [] and "Kentucky" in (ky.wants({**q(KD), "state": {"value": K["other_state"], "basis": "accepted"}}) or ""),
+        "a death in another state asks nothing, the note saying a Kentucky death is wanted")
+    out_yr = {**q(KD), "year": {"value": K["outside_year"], "basis": "accepted"}}
+    say(ky.requests(out_yr) == [] and "1911-1989" in (ky.wants(out_yr) or ""), f"a year the index does not cover asks nothing: {ky.wants(out_yr)}")
+    CI = K["citation"]; cite = {k: {"value": v, "basis": "citation"} for k, v in CI.items()}; bare = {k: v for k, v in cite.items() if k != "year"}
+    say(ky.requests(bare) == [] and "year" in (ky.wants(bare) or ""), f"a citation of the death index that names no year asks nothing, the year wanted: {ky.wants(bare)}")
+    rc = ky.requests(cite)
+    say(len(rc) == 1 and rc[0]["url"] == KD["url"] and rc[0]["surnames"] == [KD["surname"]] and rc[0]["given"] == KD["given"].split()[0], f"a citation naming its year asks that year's file for the citation's own name: {rc}")
+    other = {k: {"value": v, "basis": "citation"} for k, v in K["other_citation"].items()}
+    say(ky.requests(other) == [] and "citation of the Kentucky" in (ky.wants(other) or ""), "a citation of another collection on the same row asks nothing here")
+    married = {"variants": {"value": K["married"]["variants"], "basis": "claim"}}
+    say(ky.requests({**q(KD), **married})[0]["surnames"] == K["married"]["death_surnames"] and ky.requests({**q(KB), **married})[0]["surnames"] == [KB["surname"]],
+        "a death is asked under the other surnames the person's names carry, a birth under the birth surname alone")
+    say(answers("ky_vital_index", "death record:") and answers("ky_vital_index", "birth record:1915") and not answers("ky_vital_index", "marriage record:x"), "the Kentucky indexes answer the death and birth rows, never a marriage search")
+    with open(os.path.join(FIXTURES, K["death_fixture"]), "rb") as fh: dbody = fh.read()
+    with open(os.path.join(FIXTURES, K["birth_fixture"]), "rb") as fh: bbody = fh.read()
+    rq0 = {**rq[0], "archived_sha": "parentsha000000000000000000000000000000000000000000000000000"}
+    hs = ky.hits(rq0["url"], dbody, rq0)
+    kept = [r["given"] for r in ky.rows(hs[0]["fetch"][0]["bytes"])] if hs else []
+    say(len(hs) == 1 and kept == KD["kept"] and hs[0]["fetch"][0]["record"] is True and hs[0]["fetch"][0]["derived_from"] == rq0["archived_sha"] and hs[0]["locator"]["value"].startswith(KD["url"] + "#surname="),
+        f"one hit, the rows under the surname whose given name shares the step's first letter, the year file's sha as parent: {kept}")
+    say(hs and all(line + b"\r\n" in dbody for line in hs[0]["fetch"][0]["bytes"].split(b"\r\n") if line), "the derivative's lines are the file's own, carriage control and all")
+    say(len(ky.under(dbody, "death", KD["surname"])) == KD["kept_without_given"], "a step with no given name keeps every row under the surname")
+    say(ky.hits(rq0["url"], dbody, {**rq0, "surnames": [K["absent_surname"]]}) == [], "a surname with no row in the year gives no hit")
+    rb0 = {**rb[0], "archived_sha": rq0["archived_sha"]}
+    hb = ky.hits(rb0["url"], bbody, rb0)
+    say(hb and [r["given"] for r in ky.rows(hb[0]["fetch"][0]["bytes"])] == KB["kept"] and ky.hits(rb0["url"], dbody, rb0) == [], "the birth file's rows read by the birth layout; a death file gives a birth search nothing")
+    d, db = scratch(False)
+    cx2 = sqlite3.connect(db); cx2.execute("PRAGMA foreign_keys=ON"); cx2.row_factory = sqlite3.Row
+    whole = (K["heading"] + "\r\n").encode("latin-1") + dbody
+    w_sha, _ = ao(cx2, whole, mime="text/plain", source_id="C06", collection_id=None, locator_kind="url", locator_value=KD["url"], retrieved_by=BY, terms="Public Domain Mark 1.0", cost="free", trust_tier="T2")
+    _, nw = ext_fn(cx2, w_sha, BY)
+    say(nw.get("failed") and "whole file" in nw["failed"], f"a year file with its headings, read on its own, is refused: {nw}")
+    k_sha, _ = ao(cx2, hs[0]["fetch"][0]["bytes"], mime="text/plain", source_id="C06", collection_id=None, locator_kind="url", locator_value=hs[0]["locator"]["value"], retrieved_by=BY,
+                  terms="Public Domain Mark 1.0", cost="free", trust_tier="T2", notes=json.dumps(hs[0]["notes"]), derived_from=w_sha)
+    keid, nk = ext_fn(cx2, k_sha, BY)
+    say(nk.get("personas") == len(KD["kept"]) and cx2.execute("SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (keid,)).fetchone()[0] == "ky-death-index",
+        f"the derivative read by the death index's reader, one persona per row: {nk}")
+    ok2 = cx2.execute("PRAGMA integrity_check").fetchone()[0]; fk2 = cx2.execute("PRAGMA foreign_key_check").fetchall()
+    say(ok2 == "ok" and not fk2, f"scratch catalog: integrity {ok2}, foreign keys {len(fk2)}")
+    cx2.close(); shutil.rmtree(d, ignore_errors=True)
     return bad
 
 def save_page_kinds():
@@ -262,7 +314,7 @@ def main():
         bad_rules = rules(); bad += bool(bad_rules)
         print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
         bad_conn = connectors_offline(); bad += bool(bad_conn)
-        print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
+        print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
         bad_kinds = save_page_kinds(); bad += bool(bad_kinds)
         print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
         bad += parsers.check(a.keep, a.show)

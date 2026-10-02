@@ -1,0 +1,40 @@
+{
+ "extractor": "ky-birth-index",
+ "personas": 4,
+ "every": {
+  "role": "listed",
+  "sex": "M",
+  "facts": [
+   {"type": "Birth"},
+   {"type": "Identification Number"}
+  ]
+ },
+ "sequence": {
+  "1": {
+   "name": "PRYCE CLAY DAVIDSON",
+   "facts": [
+    {"type": "Birth", "date": "17 NOV 1915", "place": "Breathitt County, Kentucky"},
+    {"type": "Identification Number", "value": "026-12517-1942"},
+    {"type": "Unknown", "value": "File Date: 04-01-1942"},
+    {"type": "Unknown", "value": "Maiden Name of Mother: IDA N DAVIDSON"}
+   ],
+   "why": "a birth filed in 1942 stands in its birth year's file, its birth number carrying the filing year"
+  },
+  "3": {
+   "name": "ROBERT EDGAR DAVIDSON",
+   "facts": [
+    {"type": "Name", "value": "ROBERT EDGAR DAVIDSON"},
+    {"type": "Birth", "date": "19 FEB 1915", "place": "Logan County, Kentucky"},
+    {"type": "Sex", "value": "MALE"},
+    {"type": "Unknown", "value": "Maiden Name of Mother: LENA H BELL"},
+    {"type": "Identification Number", "value": "022-10737-1915"},
+    {"type": "Unknown", "value": "File Date: 02-22-1915"}
+   ],
+   "why": "the mother's maiden name is given, middle initial and surname as the index writes them"
+  }
+ },
+ "parsed": {
+  "kind": "ky_birth_index",
+  "surname": "DAVIDSON"
+ }
+}

@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "162d45343da6f8f876790b351d5864bf15d8e9bb8494302e8122548cbe45a6a6",
+  "bytes": 528,
+  "mime": "text/plain",
+  "source_id": "C06",
+  "collection": "Kentucky, U.S., Death and Birth Indexes, 1911-1989",
+  "locator": {
+    "kind": "url",
+    "value": "https://archive.org/download/reclaim-the-records-kentucky-birth-index-01911-1989/Reclaim_The_Records_-_Kentucky_Birth_Index_-_01915-BRCI15.TXT#bytes=2379813-2380340"
+  },
+  "retrieved_at": "2026-10-02T17:53:16Z",
+  "retrieved_by": "agent:w5b-ky-index for user:neural",
+  "http": {
+    "status": 206,
+    "etag": "\"64cbd6fa-9f4c60\"",
+    "last_modified": "Thu, 03 Aug 2023 16:34:02 GMT",
+    "final_url": "https://dn721803.ca.archive.org/0/items/reclaim-the-records-kentucky-birth-index-01911-1989/Reclaim_The_Records_-_Kentucky_Birth_Index_-_01915-BRCI15.TXT",
+    "content_type": "text/plain; charset=utf-8",
+    "content_range": "bytes 2379813-2380340/10439776"
+  },
+  "rights": {
+    "terms": "Public Domain Mark 1.0",
+    "redistributable": true,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "pages": 1,
+  "derived_from": {
+    "url": "https://archive.org/download/reclaim-the-records-kentucky-birth-index-01911-1989/Reclaim_The_Records_-_Kentucky_Birth_Index_-_01915-BRCI15.TXT",
+    "sha256": null,
+    "etag": "\"64cbd6fa-9f4c60\"",
+    "bytes": 10439776,
+    "range": [
+      2379813,
+      2380340
+    ]
+  },
+  "notes": "{\"connector\":\"ky_vital_index\",\"hit\":\"four lines of the 1915 birth index under DAVIDSON, PRYCE to RONALD, Robert Edgar Davidson's among them\",\"index\":\"birth\",\"step_type\":\"subject_record\",\"surname\":\"Davidson\",\"year\":1915}"
+}

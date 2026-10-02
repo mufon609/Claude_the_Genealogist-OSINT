@@ -1,0 +1,55 @@
+{
+ "extractor": "ky-death-index",
+ "personas": 5,
+ "every": {
+  "role": "listed",
+  "sex": "",
+  "facts": [
+   {"type": "Death"},
+   {"type": "Identification Number"}
+  ],
+  "why": "every row is a death in Kentucky with its certificate; the death index states no sex"
+ },
+ "sequence": {
+  "1": {
+   "name": "JIMMIE M DAVIDSON",
+   "facts": [
+    {"type": "Death", "date": "21 MAY 1946", "place": "Letcher County, Kentucky"},
+    {"type": "Age", "value": "U/1"}
+   ],
+   "no_facts": [
+    {"type": "Birth"}
+   ],
+   "why": "an age under a year (U/1) is kept as written and calculates no birth year"
+  },
+  "3": {
+   "name": "JOHN Y DAVIDSON",
+   "region": ["14205 /1946"],
+   "facts": [
+    {"type": "Name", "value": "JOHN Y DAVIDSON"},
+    {"type": "Death", "date": "11 JUN 1946", "place": "Simpson County, Kentucky"},
+    {"type": "Age", "value": "71"},
+    {"type": "Birth", "date": "CAL 1875"},
+    {"type": "Residence", "date": "11 JUN 1946", "place": "Simpson County, Kentucky"},
+    {"type": "Identification Number", "value": "14205 /1946"},
+    {"type": "Unknown", "value": "Vol: 029"}
+   ],
+   "why": "the county code SMPSN is Simpson County; the age gives a calculated birth year; the certificate keeps its filing year"
+  },
+  "5": {
+   "name": "L D DAVIDSON",
+   "facts": [
+    {"type": "Death", "date": "10 APR 1946", "place": "Pike County, Kentucky"},
+    {"type": "Unknown", "value": "Co of Residence: VIRGINIA"}
+   ],
+   "no_facts": [
+    {"type": "Residence"}
+   ],
+   "why": "a residence that is not a Kentucky county (a state here) stays under its own label, never made a county"
+  }
+ },
+ "parsed": {
+  "kind": "ky_death_index",
+  "surname": "DAVIDSON"
+ }
+}

@@ -129,6 +129,18 @@ Connector responses (JSON, archived by tools/run_step.py) have their own extract
                                  written, with a Birth (year/month/day and city/state/country as given) and a Death (year/
                                  month/day and state) and the state file number as an Unknown fact under its own label; the
                                  whole derivative's rows in structured_json.
+  rule:ky-death-index@0.1.0      a text/plain derivative of Kentucky's death index (tools/connectors/ky_vital_index.py), claimed
+                                 when every line is one of the index's own fixed-width rows under one surname (the whole year
+                                 file, with its headings and many surnames, is not claimed): one persona per row, named as
+                                 written (given, middle, surname), with the Death on its date in the county its code names
+                                 ("<County> County, Kentucky"), the age as written as an Age fact and a Birth calculated from
+                                 it (the death year less the age, qualifier calculated) when it counts years, the county of
+                                 residence as a Residence on the death date when it is a Kentucky county (else an Unknown fact
+                                 under its label), the certificate number with its filing year as an Identification Number and
+                                 the volume under its label.
+  rule:ky-birth-index@0.1.0      the same for Kentucky's birth index: the Birth on its date in its county, the sex, the
+                                 mother's maiden name and the date filed as Unknown facts under their labels, the birth number
+                                 as an Identification Number.
 """
 import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
@@ -141,8 +153,9 @@ EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("r
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
+              "ky_death_index": ("rule", "ky-death-index", "0.1.0"), "ky_birth_index": ("rule", "ky-birth-index", "0.1.0"),
               None: ("rule", "extract", "0.1.0")}
-RESULTS_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search", "va-gravesite", "nj-death-index")   # the extractors that read a results listing, one persona per row: a row's own record is the document (docs/RESEARCH-WORKFLOW.md §0), so a listing on which no row fits anyone is a none run (§4), its rows kept on the artifact as candidates
+RESULTS_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search", "va-gravesite", "nj-death-index", "ky-death-index", "ky-birth-index")   # the extractors that read a results listing, one persona per row: a row's own record is the document (docs/RESEARCH-WORKFLOW.md §0), so a listing on which no row fits anyone is a none run (§4), its rows kept on the artifact as candidates
 POINTING_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search")   # the listings that point at a record and are not one: a fitting row leaves a fetch step planned and its own page is the next fetch; the gravesite locator's and the death index's listings are the record (§4) and are not here
 NJ_DEATH_FIELDS = ["FNAME", "LNAME", "MIDDLE_NAME", "STATE_FILE_NUMBER", "BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY", "DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"]
 EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial", "naturalization": "Naturalization"}
@@ -993,9 +1006,10 @@ def parse_json(data, ctx):
     return None, {"reason": "no extractor claims this response: not a 1950 census schedule, not a loc.gov page text, not the Archive's search inside an item"}
 
 def parse_csv(data, ctx):
-    """A connector's own derived CSV text (tools/connectors/nj_death_index.py), claimed by its header row and by carrying one
-    surname's rows alone (the whole file this derives from shares the header but not that): the New Jersey death index's rows
-    under one surname. Else (None, reason)."""
+    """A connector's own derived text, carrying one surname's rows alone (the whole file it derives from does not): the New
+    Jersey death index's CSV rows (tools/connectors/nj_death_index.py), claimed by the file's own header row, or Kentucky's
+    death or birth index rows (tools/connectors/ky_vital_index.py), claimed when every line is one of that index's rows.
+    Else (None, reason)."""
     try: text = data.decode("utf-8")
     except UnicodeDecodeError as e: return None, {"reason": f"not decodable text: {e}"}
     first = text.splitlines()[0].strip() if text.splitlines() else ""
@@ -1005,6 +1019,14 @@ def parse_csv(data, ctx):
         if rows and len(surnames) == 1:
             return "nj_death_index", {"kind": "nj_death_index", "rows": rows, "surname": ctx["notes"].get("surname") or rows[0].get("LNAME"), "fields": []}
         return None, {"reason": f"the New Jersey death index's own header, but {len(surnames)} surname(s): the whole file, not one surname's derivative"}
+    from connectors.ky_vital_index import rows as ky_rows, lines as ky_lines, surname_key
+    rows = ky_rows(data)
+    if rows:
+        indexes, surnames = {r["index"] for r in rows}, {surname_key(r["surname"]) for r in rows}
+        if len(rows) == ky_lines(data) and len(indexes) == 1 and len(surnames) == 1:
+            kind = f"ky_{rows[0]['index']}_index"
+            return kind, {"kind": kind, "rows": [{k: v for k, v in r.items() if k != "raw"} for r in rows], "surname": rows[0]["surname"], "fields": []}
+        return None, {"reason": f"Kentucky's index rows, but {len(surnames)} surname(s), {len(indexes)} index(es) and {ky_lines(data) - len(rows)} other line(s): the whole file, not one surname's derivative"}
     return None, {"reason": "no extractor claims this text: not a derivative this codebase writes"}
 
 def nj_date(row, prefix):
@@ -1028,6 +1050,49 @@ def write_nj_death(w, parsed):
         w.fact(pid, "Birth", None, nj_date(r, "BIRTH"), bplace or None, labels=["BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY"])
         w.fact(pid, "Death", None, nj_date(r, "DEATH"), r.get("DEATH_STATE") or None, labels=["DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"])
         if (r.get("STATE_FILE_NUMBER") or "").strip(): w.fact(pid, "Unknown", f"State File Number: {r['STATE_FILE_NUMBER']}", labels=["STATE_FILE_NUMBER"])
+
+def ky_date(mdy):
+    """A Kentucky index date, month first with / or - (06/11/1946, 02-19-1915), in the date grammar's own words: a 00 day or
+    month (the index's word for one it does not know) leaves the month and year, or the year alone."""
+    m = re.fullmatch(r"(\d\d)[/-](\d\d)[/-](\d{4})", (mdy or "").strip())
+    if not m: return None
+    mo, d, y = int(m.group(1)), int(m.group(2)), m.group(3)
+    if not 1 <= mo <= 12: return y
+    return f"{d} {MONTHS[mo - 1]} {y}" if d else f"{MONTHS[mo - 1]} {y}"
+
+def write_ky_index(w, parsed):
+    """One persona per row of a Kentucky death or birth index derivative, named as written (given, middle, surname). A death
+    row: the Death on its date in its county, the age as written and, when it counts years, a Birth calculated from it; the
+    county of residence as a Residence on the death date when it is a Kentucky county, else under its own label; the
+    certificate number with its filing year as the identity and the volume under its label. A birth row: the Birth on its
+    date in its county, the sex, the mother's maiden name and the date filed under their labels, the birth number as the
+    identity."""
+    from connectors.ky_vital_index import county, kentucky_county
+    for seq, r in enumerate(parsed["rows"], 1):
+        name = " ".join(x for x in (r.get("given"), r.get("middle"), r.get("surname")) if x) or "(unnamed)"
+        death = r["index"] == "death"
+        number = f"{r['number']} /{r['filed']}" if death else r["number"]
+        sex = None if death else {"MALE": "M", "FEMALE": "F"}.get(r.get("sex") or "")
+        pid = w.persona(name, sex, "listed", seq, {"label": f"ky_{r['index']}_index", "number": number, "row": seq})
+        w.fact(pid, "Name", name, labels=["SURNAME", "GIVEN NAME"] if death else ["LAST", "FIRST", "MIDDLE"])
+        if death:
+            when = ky_date(r["date"])
+            w.fact(pid, "Death", None, when, county(r["place"]), ["DATE OF DEATH", "PLACE OF DEATH"])
+            if r["age"]:
+                w.fact(pid, "Age", r["age"], labels=["AGE"])
+                if r["age"].isdigit(): w.fact(pid, "Birth", None, f"CAL {int(r['date'][-4:]) - int(r['age'])}", None, ["AGE", "DATE OF DEATH"])   # the age in years at the death: the year it reached that age, calculated
+            home = kentucky_county(r["residence"])
+            if home: w.fact(pid, "Residence", None, when, f"{home} County, Kentucky", ["CO OF RESIDENCE", "DATE OF DEATH"])
+            elif r["residence"]: w.fact(pid, "Unknown", f"Co of Residence: {r['residence']}", labels=["CO OF RESIDENCE"])
+            w.fact(pid, "Identification Number", number, labels=["CERTIFICATE NUMBER"])
+            if r["vol"]: w.fact(pid, "Unknown", f"Vol: {r['vol']}", labels=["VOL"])
+        else:
+            w.fact(pid, "Birth", None, ky_date(r["date"]), county(r["county"]), ["BIRTH DATE", "COUNTY"])
+            if r.get("sex"): w.fact(pid, "Sex", r["sex"], labels=["SEX"])
+            mother = " ".join(x for x in (r.get("mother_given"), r.get("mother_middle"), r.get("mother_surname")) if x)
+            if mother: w.fact(pid, "Unknown", f"Maiden Name of Mother: {mother}", labels=["MAIDEN NAME OF MOTHER"])
+            w.fact(pid, "Identification Number", number, labels=["BIRTH NUMBER"])
+            if r.get("filed"): w.fact(pid, "Unknown", f"File Date: {r['filed']}", labels=["FILE DATE"])
 
 def write_schedule(w, parsed):
     """One persona per transcribed row the search matched (every row when nothing was matched): the name as transcribed, a
@@ -1101,6 +1166,9 @@ def extract(cx, sha, by):
     elif kind == "familysearch_search": full_text = "\n".join(f"{r['n']}: {r['name']} " + "; ".join(f"{e['label']} {e['date'] or ''} {e['place'] or ''}".strip() for e in r["events"]) + " " + "; ".join(f"{k} {', '.join(v)}" for k, v in (r["relations"] or {}).items()) + f" {r['ark']}" for r in parsed["rows"])
     elif kind == "nara1950": full_text += "".join(f"\n{r.get('row')}: {r.get('name')}" for r in parsed["schedule"].get("names") or [])
     elif kind == "nj_death_index": full_text = "\n".join(f"{r.get('FNAME')} {r.get('LNAME')} b.{r.get('BIRTH_YEAR') or '?'} d.{r.get('DEATH_YEAR') or '?'} #{r.get('STATE_FILE_NUMBER')}" for r in parsed["rows"])
+    elif kind in ("ky_death_index", "ky_birth_index"):
+        full_text = "\n".join(" ".join(x for x in (r.get("surname"), r.get("given"), r.get("middle"), r.get("age"), r.get("place") or r.get("county"), r.get("residence"), r.get("date"),
+                                                   r.get("number"), r.get("mother_given"), r.get("mother_surname"), r.get("sex")) if x) for r in parsed["rows"])
     else: full_text = parsed["full_text"]
     cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,full_text,structured_json) VALUES (?,?,?,?,'complete',?,?)",
                (eid, sha, ext_id, ts, full_text, dumps(parsed)))
@@ -1114,7 +1182,8 @@ def extract(cx, sha, by):
         cx.execute("INSERT OR IGNORE INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (sha, "ark", parsed["ark"]))
     w = Writer(cx, sha, eid)
     {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "familysearch_search": write_fs_search, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
-     "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va, "nj_death_index": write_nj_death}.get(kind, write_personas)(w, parsed)
+     "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va, "nj_death_index": write_nj_death,
+     "ky_death_index": write_ky_index, "ky_birth_index": write_ky_index}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))

@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "95da543d0e42312bc0b26c0c43de37f296aa42dfbb3314f36e7946f091b494f2",
+  "bytes": 510,
+  "mime": "text/plain",
+  "source_id": "C06",
+  "collection": "Kentucky, U.S., Death and Birth Indexes, 1911-1989",
+  "locator": {
+    "kind": "url",
+    "value": "https://archive.org/download/reclaim-the-records-kentucky-death-index-01911-1989/Reclaim_The_Records_-_Kentucky_Death_Index_-_01946.TXT#bytes=686873-687382"
+  },
+  "retrieved_at": "2026-10-02T17:53:13Z",
+  "retrieved_by": "agent:w5b-ky-index for user:neural",
+  "http": {
+    "status": 206,
+    "etag": "\"64cbf027-2eef1f\"",
+    "last_modified": "Thu, 03 Aug 2023 18:21:27 GMT",
+    "final_url": "https://dn760005.eu.archive.org/0/items/reclaim-the-records-kentucky-death-index-01911-1989/Reclaim_The_Records_-_Kentucky_Death_Index_-_01946.TXT",
+    "content_type": "text/plain; charset=utf-8",
+    "content_range": "bytes 686873-687382/3075871"
+  },
+  "rights": {
+    "terms": "Public Domain Mark 1.0",
+    "redistributable": true,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "pages": 1,
+  "derived_from": {
+    "url": "https://archive.org/download/reclaim-the-records-kentucky-death-index-01911-1989/Reclaim_The_Records_-_Kentucky_Death_Index_-_01946.TXT",
+    "sha256": "4255c574c2c38a9662f8e485deb714a1fe37e92bf3e59327fc5ef83d2fc6a02e",
+    "etag": "\"64cbf027-2eef1f\"",
+    "bytes": 3075871,
+    "range": [
+      686873,
+      687382
+    ]
+  },
+  "notes": "{\"connector\":\"ky_vital_index\",\"hit\":\"five lines of the 1946 death index under DAVIDSON, JIMMIE to L, John Y Davidson's among them\",\"index\":\"death\",\"step_type\":\"subject_record\",\"surname\":\"Davidson\",\"year\":1946}"
+}
