@@ -397,7 +397,7 @@ def resolve_in_law(cx, tree_id, y_pid, resolved_kind, x_surname):
         if partner: return ("spouse", partner)
     return None
 
-def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
+def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=None):
     """Family links from the record's own relations, for a matched person as for a new one: where the record says this persona
     is the child, parent or spouse of a persona already accepted as a person in this tree, the membership exists (created when
     the tree lacks it, in a family of the right shape) and carries an Accepted assertion on the artifact, or an Undecided one
@@ -406,8 +406,9 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
     evidence on the child's membership; a spouse relation on both partners', and the family facts the two partners' personas
     state (a Marriage and its date) are asserted on that family's event (assert_family_events). A sibling stated on the record places the person
     as a child of the other's accepted parents with an Undecided assertion regardless of tier (the record states the sibling,
-    not the parents), and only when the other is an accepted child of exactly one family; otherwise a sibling gives no
-    membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law) is resolved through
+    not the parents), and only when the other is an accepted child of exactly one family and neither partner of it died,
+    on accepted evidence, before the person was born (died_before; the reason goes into held_back when a list is given);
+    otherwise a sibling gives no membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law) is resolved through
     the relative it names (resolve_in_law) to the child, parent or spouse link it actually gives, written and evidenced the
     same way as a link the record states outright; a resolution that lands on a sibling goes through the sibling rule above,
     Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. On a page
@@ -479,6 +480,10 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
         if not other or other == pid: continue
         if kind == "sibling":
             home = sibling_home(cx, tree_id, other)
+            gone = died_before(cx, tree_id, home, pid, persona_id) if home else None
+            if gone:                                                           # a parent of that home was dead before this one was born: a half sibling, perhaps, never placed under the couple
+                if held_back is not None: held_back.append(f"not placed beside {q.execute('SELECT display_name FROM person WHERE id=?', (other,)).fetchone()['display_name']} as a child of the same parents: {gone}; a half sibling, perhaps")
+                continue
             if home: assert_(home, pid, "child", other, f"{as_written} of {q.execute('SELECT display_name FROM person WHERE id=?', (other,)).fetchone()['display_name']}", member(home, pid, "child"), status="undecided", placed="sibling")
             continue
         if kind == "spouse":
@@ -501,6 +506,33 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
             else: fid = one("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", (parent,)) or new_family(cx, tree_id, parent, ts); new = member(fid, child, "child")
         assert_(fid, child, "child", parent, as_written, new, status="undecided" if identity else "accepted")
     return out
+
+def died_before(cx, tree_id, fid, pid, persona_id):
+    """Why a person cannot be placed as a child of a family's couple, or None: a partner's death, accepted on a trusted record
+    or the owner's word and stating its date, that comes before the person's earliest birth the tree or the record under
+    decision gives (a mother's before it, a father's more than a year before it: a child can be born after the father's
+    death, never after the mother's). The words name the parent, the death and the birth."""
+    q = _q(cx)
+    births = [r["date_start"] for r in q.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                                   WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,))]
+    births += [r["date_start"] for r in q.execute("SELECT date_start FROM persona_fact WHERE persona_id=? AND fact_type='Birth' AND date_start IS NOT NULL", (persona_id,))]
+    if not births: return None
+    born = min(births)
+    for partner, name, sex in q.execute("""SELECT fm.person_id, p.display_name, p.sex FROM family_member fm JOIN person p ON p.id=fm.person_id
+                                          WHERE fm.family_id=? AND fm.role='partner' AND fm.person_id<>?""", (fid, pid)).fetchall():
+        for e in q.execute("""SELECT e.id, e.date_text, e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                              WHERE ep.person_id=? AND e.event_type='Death' AND e.date_start IS NOT NULL""", (partner,)).fetchall():
+            if not trusted_evidence(cx, tree_id, "event", [e["id"]], stating="date"): continue
+            died = e["date_start"]
+            if len(died) == 10 and len(born) == 10:
+                y, rest = int(died[:4]), died[4:]
+                before = (died < born) if sex != "M" else (f"{y + 1:04d}{rest}" < born)
+            else:
+                before = int(died[:4]) < int(born[:4]) - (1 if sex == "M" else 0)
+            if before:
+                text = q.execute("SELECT date_text FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start=? LIMIT 1", (pid, born)).fetchone()
+                return f"{name}'s accepted death ({e['date_text']}) comes before the birth ({text['date_text'] if text else born})"
+    return None
 
 def sibling_home(cx, tree_id, pid):
     """The one family a person is an accepted child of, where a sibling stated on a record can be placed; None when the link
@@ -651,7 +683,11 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
                           AND json_extract(notes,'$.placed') IS NULL AND {TRUSTED_ARTIFACT}""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; a sibling placement, and a fact or family link a page anyone can edit states, stay undecided
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts); n += m
         alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
-        members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
+        held_back = []
+        members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts, held_back=held_back)
+        if held_back:                                              # what the record states and the decision did not write, said in the decision itself
+            note = "; ".join([note] + held_back) if note else "; ".join(held_back)
+            q.execute("UPDATE proposal SET decision_note=? WHERE id=?", (note, prop_id))
     for pid in dict.fromkeys([person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"]):   # a spouse joined on the record: the marriage it dates is now on their family too
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
     released = release_household(cx, tree_id, person_id, pay["artifact_sha256"], by) if status == "rejected" and person_id and not identity else []   # a step the record held for this person is planned again

@@ -708,8 +708,12 @@ person's event is (a marriage index accepted for one partner waits for the
 other's acceptance on it, which writes it); a sibling
 stated on the record places the person as a child of the other's accepted
 parents with an Undecided assertion (the record states the sibling, not the
-parents), and only when the other is an accepted child of one family;
-otherwise a sibling gives no membership. On a page anyone can edit (T4) the
+parents), and only when the other is an accepted child of one family and
+neither of that family's partners died, on accepted evidence, before the
+person was born (a mother before the birth, a father more than a year
+before it): a half sibling is possible, a placement under the couple is not,
+and the decision's note says why nothing was placed; otherwise a sibling
+gives no membership. On a page anyone can edit (T4) the
 decision is an identity: the persona link is Accepted, and the family
 memberships the page states are created where the tree lacks them, each with
 an Undecided assertion, the way a sibling placement already is, for the

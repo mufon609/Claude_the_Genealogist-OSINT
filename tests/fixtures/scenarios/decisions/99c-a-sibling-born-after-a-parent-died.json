@@ -1,0 +1,154 @@
+{
+ "title": "a sibling born after a parent died",
+ "line": "a brother an obituary names is not placed as a child of the couple when the mother's accepted death comes before his birth, and the decision says so: a half sibling is possible, a placement under her is not",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's own word on the parents' names and on the mother's death, 30 October 1918",
+   "fact": {
+    "person": "I332737204852",
+    "fields": [
+     "name",
+     "death"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "fact": {
+    "person": "I332737204849",
+    "fields": [
+     "name"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "his obituary, the file's own citation, accepted by the owner: his brother Joe Davidson, whom the tree does not hold, is created by the rule; the parents are not yet accepted on it, so there is no home to place him in",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Joe Davidson",
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "obit",
+      "person": "I332737204852",
+      "status": "undecided"
+     },
+     "why": "her name rests on the owner's word: the stated child is one point on a link the file claims, two are needed; the owner decides"
+    }
+   ]
+  },
+  {
+   "say": "the birth year his Find a Grave index entry gives him (1925), planted: no harness record dates his birth",
+   "event": {
+    "person": {
+     "created": "Joe Davidson"
+    },
+    "type": "Birth",
+    "date": "1925",
+    "date_start": "1925"
+   }
+  },
+  {
+   "say": "the parents accepted on the obituary by the owner: the son's place in their family now stands on it",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the brother's creation taken back and taken again by reconsider: the placement beside him is examined now",
+   "withdraw": {
+    "card": {
+     "record": "obit",
+     "persona": "Joe Davidson"
+    }
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Joe Davidson",
+      "status": "accepted",
+      "note": {
+       "has": [
+        "not placed beside Robert Edgar Davidson as a child of the same parents",
+        "Lena Howard Bell's accepted death (30 October 1918) comes before the birth (1925)"
+       ]
+      }
+     },
+     "why": "the decision says what it did not write and why"
+    },
+    {
+     "memberships": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "rows_total": 0
+     },
+     "why": "no membership in the couple's family: a mother dead seven years before his birth"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
