@@ -11,6 +11,15 @@ fact must trace to an archived copy of the record it came from. A fresh
 tree must be able to distrust every earlier conclusion. The user researches
 people; everything else exists to serve that.
 
+**The goal.** In the owner's words: "Humans should be working off of defined
+logical rules, so there is no reason why we cannot implement these policies in
+code. Automation should be the goal as long as it is built off an accurate and
+trusted foundation of documents." and "The human should only be used if there
+are serious doubts." The work is a loop: the next person at the edge of the
+confirmed tree, the records that should exist for them, fetched, read and
+decided by the owner's written rules, then the next person; where a source
+forbids automation, the loop pauses for the owner's browser.
+
 ## Where decisions live
 
 | Question | Read |
@@ -18,13 +27,15 @@ people; everything else exists to serve that.
 | Layers, archive, trees, trust boundaries, aliases, decision model | `docs/DATA-ARCHITECTURE.md` |
 | Baseline → questions → search ladder → review | `docs/RESEARCH-WORKFLOW.md` |
 | Per-person checklist, gaps, search foundation, the screen | `docs/RESEARCH-CHECKLIST.md` |
-| What the imported tree holds; agent duties | `docs/SOURCE-PROFILE.md` |
+| What the imported tree holds; how the work splits across the tools | `docs/SOURCE-PROFILE.md` |
 | Source registry, free holders of cited collections, the reasoning | `data/data-sources.csv`, `data/holders.csv`, `data/DATA-SOURCES.md` |
 | Tables, invariants, tools | `schema/README.md`, `schema/catalog.sql` |
 | Deferred work | `BACKLOG.md` |
-| What past sessions were asked to build (a record, not decisions); the audit's terms of reference | `docs/briefs/`, `docs/AUDIT-PROMPT.md` |
+| The audit's terms of reference | `docs/AUDIT-PROMPT.md` |
 
-Anything marked accepted in those docs stands. Do not reopen it in code.
+Anything marked accepted in those docs stands. Do not reopen it in code;
+propose a change as a `BACKLOG.md` entry with the reason, never by building
+around it.
 
 ## Hard rules
 
@@ -35,47 +46,33 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
    insert-only. Corrections are new rows; removals are tombstones. Errors in
    records are never corrected in evidence; they become aliases.
 3. **A person accepts documents, and a document's facts come with it.**
-   Imports and AI output arrive Undecided. Conclusions need an Accepted
+   Imports and AI output arrive Undecided; a conclusion needs an Accepted
    assertion. The one decision is "is this record about this person"; yes
-   accepts everything the record states, and a discrepancy with the tree's
-   value becomes a conflict question, never a silent overwrite or a silent
-   drop. The owner's standing rule accepts a document from a source nobody can
-   edit at will that agrees with facts the owner already accepted on such
-   sources, recorded as acting on their word and reversible; a stated
-   relationship to a relative the file only claims counts one point when
-   that relative's own persona on the record fits on more than a name; a disagreement
-   with a value the owner has not accepted does not stop it — the record is
-   still taken and the difference is the same conflict question. A relative
-   such a record names in a stated relationship to someone it has just
-   accepted is taken the same way when the name agrees and a birth year
-   agrees where both have one, and is created as a new person when nobody
-   in the tree fits them, when the record is a primary record (T1–T2) or an
-   obituary once read.
-   A page anyone can
-   edit (Find a Grave, member trees) identifies a person but never builds
-   their facts: accepting a memorial writes the persona link, and the family
-   memberships the page states are created where the tree lacks them with an
-   undecided assertion each, the way a sibling placement already is; every
-   fact the page types (name, dates, places, the inscription field) is
-   written as an undecided assertion too, what the page says, never accepted
-   and never ground for the rule, so a person's facts come from primary
-   documents only. The rule may take the identity on such a
-   page when the name agrees and at least three of birth date to the day,
-   death date to the day, burial place, and a stated parent or spouse who is
-   that relative in the tree agree with the tree, claimed or accepted. A
-   memorial's gravestone photographs are primary sources: each is a fetch
-   step, saved in the owner's browser one at a time, archived under the
-   registry's gravestone-photograph row (tier 1), and read by the
-   transcription path into a card like any other image. Anything less certain
-   is a card for the owner.
-4. **Trees are isolated.** No automatic reuse of evidence across trees.
-5. **One person per screen.** Foundation → checklist → tasks → results →
-   review. No queue screens, no navigation by data type, no hints on a
-   person whose baseline is not reviewed. Leads (follow-up work the evidence
-   produced) and hints (documents that overlap the person but do not identify
-   them) are defined in `docs/RESEARCH-WORKFLOW.md` §0 and live on the
-   person. Define the screen's goal in one sentence and confirm it before
-   building.
+   accepts everything the record states, and a difference with the tree's
+   value is a conflict question, never a silent overwrite or a silent drop.
+   The owner's standing rule takes that decision for a document from a source
+   nobody can edit at will that agrees with what the owner accepted on such
+   sources, recorded as acting on their word and reversible; a person's own
+   decision is never undone by the rule or by a re-read. A page anyone can
+   edit (Find a Grave, member trees) identifies a person and never builds
+   their facts. A memorial's gravestone photographs are primary sources.
+   Anything less certain is a card for the owner. The full statement (the
+   rule's points, the relatives it takes or creates, editable pages and the
+   leads they make) is `docs/RESEARCH-WORKFLOW.md` §0 and §5–7.
+4. **Trees are isolated.** No automatic reuse of evidence across trees:
+   every import gets its own extraction and personas, even for identical
+   bytes (`docs/DATA-ARCHITECTURE.md`, trust boundaries).
+5. **One person per screen.** The work on a person runs foundation →
+   checklist → tasks → results → review; the screen's layout is
+   `docs/RESEARCH-CHECKLIST.md` §6b. No queue screens, no navigation by data
+   type: an unresolved place, an uncited fact or a record to fetch surfaces
+   only as a question about the person. No hints on a person whose baseline
+   is not reviewed. Leads (follow-up work the evidence produced) and hints
+   (documents that overlap the person but do not identify them) are defined
+   in `docs/RESEARCH-WORKFLOW.md` §0 and live on the person. Define the
+   screen's goal in one sentence and confirm it before building: a screen
+   that mirrors internal queues makes sense to the pipeline and to nobody
+   else.
 6. **Plain over clever.** No bells and whistles. If a feature is not in the
    design docs, ask before building it.
 7. **Data never enters git.** `archive/`, `catalog/*.db`, `derivatives/`,
@@ -105,12 +102,15 @@ python3 tools/checklist.py "<person>"       # read-only checklist + gaps (footpr
 python3 tools/footprint.py "<person>"       # read-only Layer 0 on its own
 python3 tools/plan.py --all                 # materialize questions + steps (idempotent)
 python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --step/--outcome to log a run; --dismiss <question>
+python3 tools/log_search.py --reopen <step id> --note "…"   # a step marked done in error: planned again, the note saying why
 python3 tools/attach_inbox.py               # every inbox file to the fetch steps its own identity fulfils: archived once, logged, extracted, matched
 python3 tools/fetches.py list               # every page waiting to be saved in the browser, at every holder, with its link and file name; `collect` brings the saved pages in
 python3 tools/cards.py "<person>"           # every Undecided proposal about the person as a decision card; --all, --json
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"   # the decision on a card, as the screen's Add / Ignore
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
 python3 tools/conclude.py assertion <id> accept|reject|undecided --note "…"   # one statement of one record on its own; ids from the person screen's evidence rows or the assertion table
+python3 tools/conclude.py place <persona fact id> --event <event id> --note "…"   # a record's undated fact onto the event you mean, when the person has several of its type (the plan raises it as a conflict)
+python3 tools/conclude.py merge "<duplicate>" --into "<person>" --note "…"   # a duplicate closed: everything moves onto the kept person; naming a pair already merged completes it (equal events and same-partner families fold)
 python3 tools/extract.py <sha256>            # personas + facts from an archived record page (Find a Grave memorial or search, FamilySearch record or search, AAD, the VA gravesite locator, Ancestry index; HTML) or a connector's response (JSON)
 python3 tools/match.py <extraction id>       # proposals: persona match or new person, rationale in words
 python3 tools/run_step.py <step id>          # run an auto search step through its connector; --all, --dry-run
@@ -170,21 +170,12 @@ decisions are made; a scratch copy is for testing code, never for decisions.
    block does not by itself make the source assisted-only.
 5. `python3 tools/cards.py "<person>"`: every record waiting for a decision,
    one card each. Decide with `tools/conclude.py decide <id> accept|reject`.
-   Accepting takes everything the record states about the person; a
-   difference with the tree becomes a conflict question, never an
-   overwrite; on a page anyone can edit it is an identity, the link; the
-   family links it states are memberships created where the tree lacks them,
-   undecided like its facts. A relative the record names in a stated
-   relationship to the person just accepted is taken the same way by the
-   standing rule when the name agrees and a birth year agrees where both
-   have one, or created as a new person when nobody in the tree fits them;
-   a difference with the
-   tree is the same conflict question, marked the same way whichever
-   relative it is on. The record's other personas come up as cards
-   only after that.
-   A family link the record states is asserted when both people it relates
-   are accepted on it, so a child's parents fact is decided by the parents'
-   own cards on the same record, each their own turn.
+   What an accept writes, on a trusted record and on a page anyone can edit,
+   and which of the record's relatives follow it, is
+   `docs/RESEARCH-WORKFLOW.md` §0 and §5–7. A family link the record states
+   is asserted when both people it relates are accepted on it, so a child's
+   parents fact is decided by the parents' own cards on the same record, each
+   their own turn.
 6. `python3 tools/checklist.py "<person>"` again: what is held, what is
    still missing, what the plan does next. A turn can end with a key fact
    still undecided that only a relative's card on the same record closes

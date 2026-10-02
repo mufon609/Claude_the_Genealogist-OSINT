@@ -4,12 +4,21 @@ A family-tree application with AI in the core, built data-first: every fact must
 trace to an archived copy of the record it came from, and a fresh tree must be
 able to distrust every earlier conclusion.
 
+The goal, in the owner's words: "Humans should be working off of defined logical
+rules, so there is no reason why we cannot implement these policies in code.
+Automation should be the goal as long as it is built off an accurate and trusted
+foundation of documents." and "The human should only be used if there are
+serious doubts." The work is a loop: the next person at the edge of the
+confirmed tree, the records that should exist for them, fetched, read and
+decided by the owner's written rules, then the next person; where a source
+forbids automation, the loop pauses for the owner's browser.
+
 | Where | What |
 |---|---|
 | `docs/DATA-ARCHITECTURE.md` | The design: four layers, content-addressed archive, trees/profiles, trust boundaries, aliases. Accepted decisions are recorded there. |
 | `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status). `data/holders.csv` maps cited Ancestry collections to their free holders. `data/DATA-SOURCES.md` has the reasoning. |
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
-| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `cite.py`, `queue.py`, `turn.py`, `turns.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. `tests/checks/` holds the harness (`parsers.py`, `scenario.py`, `loop.py`, `cut_gedcom.py`) and `tests/fixtures/` its saved pages, their `.expect.json` sidecars, the scenarios and the harness tree. |
+| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `cite.py`, `queue.py`, `turn.py`, `turns.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `save_page.js` and `save_image.js`, the page-saves-itself and image-saves-itself scripts the owner's browser runs; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. `tests/checks/` holds the harness (`parsers.py`, `scenario.py`, `loop.py`, `cut_gedcom.py`) and `tests/fixtures/` its saved pages, their `.expect.json` sidecars, the scenarios and the harness tree. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/` (snapshots, ignored). |
 | `inbox/` | Drop zone for files to ingest. |
 | `app/person/` | The person screen: stdlib server plus one page. |

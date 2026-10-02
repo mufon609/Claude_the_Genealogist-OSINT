@@ -48,37 +48,51 @@ the children not yet identified). A hint never becomes a fact on its own;
 research turns it into a lead or a match. Hints are shown only on a person
 whose baseline is reviewed, never as a feed.
 
-**Which documents the rule may accept on its own.** The standing rule (§5–7)
-accepts a document as the person's when it agrees with what the person already
-accepted, and everything the document states comes with it; a disagreement
-with a value that rests on no accepted assertion is not a veto — the record
-is still taken on its points, and the difference becomes a conflict question,
-never a silent overwrite. It may do so only for document kinds that identify
-a person fully, from sources nobody can edit at will (registry tiers T1–T3:
-certificates, census, obituaries, published works), and only counting
-accepted facts that themselves rest on such a source or on the owner's own
-word. A page anyone can edit (T4:
-Find a Grave, member trees) identifies a person but never builds their facts:
-accepting it, by the owner or by the rule, writes the persona link, and the
-family memberships the page states are created where the tree lacks them
-with an undecided assertion each, the way a sibling placement already is;
-every fact the page types is written as an undecided assertion too, what the
-page says, never accepted and never a ground the rule stands on; the rule
-takes such an identity when the name agrees and at
-least three of birth date to the day, death date to the day, burial place, and
-a stated parent or spouse who is that relative in the tree agree with the
-tree, claimed or accepted. A person whose accepted facts rest on T4 alone is
-marked so on their card until a trusted record about them is accepted. A
-memorial's gravestone photographs are primary sources (T1): each is a fetch
-step, saved in the owner's browser one at a time and read by the transcription
-path into a card like any other image. Every other kind is a hint until a
-person reads it. The starting list, to be refined as records are met:
+**Which documents the rule may accept on its own.** This paragraph and §5–7
+are the one full statement of the decision model and the standing rule.
+Imports and AI output arrive Undecided, and a conclusion needs an Accepted
+assertion. A person accepts documents: the one decision is whether a record
+is about this person, and yes accepts everything the record states. The
+standing rule (§5–7) takes that decision on the owner's behalf, recorded as
+acting on their word and reversible, when the document agrees with what the
+person already accepted, and everything the document states comes with it; a
+disagreement with a value that rests on no accepted assertion is not a veto —
+the record is still taken on its points, and the difference becomes a
+conflict question, never a silent overwrite or a silent drop. It may do so
+only for document kinds that identify a person fully, from sources nobody can
+edit at will (registry tiers T1–T3: certificates, census, obituaries,
+published works), and only counting accepted facts that themselves rest on
+such a source or on the owner's own word, each a statement of the very date
+or place it counts for. A person's own decision is never undone by the rule or
+by a record read again: a statement a person rejected or accepted stays as it
+is. A page anyone can edit (T4: Find a Grave, member trees) identifies a
+person but never builds their facts: accepting it, by the owner or by the
+rule, writes the persona link, and every fact the page types is written as an
+undecided assertion, what the page says, never accepted and never a ground
+the rule stands on; the rule takes such an identity when the name agrees and
+at least three of birth date to the day, death date to the day, burial place,
+and a stated parent or spouse who is that relative in the tree agree with the
+tree, claimed or accepted. A family membership such a page states is created
+where the tree lacks it, with an undecided assertion, the way a sibling
+placement already is, for a relative accepted on the same page or one whose
+given name, surname and birth year fit exactly one person of the tree; that
+relative's persona is then traced to that person with an undecided link, and
+a person who rejected that persona is no fit. The relatives a memorial lists
+are leads, never cards: the matcher proposes none of them, and each is a fetch
+step for their own memorial (§3). A person whose accepted facts rest on T4
+alone is marked so on their card until a trusted record about them is
+accepted. A memorial's gravestone photographs are primary sources (T1): each
+is a fetch step, saved in the owner's browser one at a time, archived under
+the registry's gravestone-photograph row and read by the transcription path
+into a card like any other image. Every other kind is a hint until a person
+reads it, and anything less certain than the rule is a card for the owner.
+The starting list, to be refined as records are met:
 
 | Document | What it gives | Standing |
 |---|---|---|
 | Federal or state census 1850 on | full names and ages; relationships from 1880 | automated |
 | Federal census 1790–1840 | the head's name, the rest counted | hint |
-| Find a Grave memorial | full name, dates, cemetery, linked family, gravestone photographs | the identity by the rule when the name and three of birth day, death day, burial place, a stated parent or spouse agree; the family memberships it states created where the tree lacks them, undecided like its facts; each gravestone photograph a fetch step |
+| Find a Grave memorial | full name, dates, cemetery, linked family, gravestone photographs | the identity by the rule when the name and three of birth day, death day, burial place, a stated parent or spouse agree; each relative it lists a lead, never a card; a membership it states created where the tree lacks it for a listed relative who fits exactly one person by name and birth year, undecided like its facts; each gravestone photograph a fetch step |
 | Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
 | Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
 | Naturalization petition, declaration or index | full name, birth date and place, residence, spouse | automated |
@@ -200,12 +214,16 @@ foundation fields with each field's basis, with its registry sources, one mode
 A fetch step's fields carry basis `citation`.
 Footprint records on relatives are fetch steps under the fact-level question
 they serve. A held record that names a person and links their own record makes
-a fetch step for that record on that person, once the persona is accepted as
-them: a memorial lists each family member with their own memorial, so the
-accepted parent's memorial is a lead under the parent's cemetery row, with the
-linked record's own identity (`memorial_id`) as the locator and the page's
-words as its fields (basis `record`); nothing is generated for a persona only
-proposed. Running a step (Go, Search, the log buttons) is the approval;
+a fetch step for that record: a memorial lists each family member with their
+own memorial, each step carrying the linked record's own identity
+(`memorial_id`) as the locator and the page's words as its fields (basis
+`record`). A listed persona accepted as a person makes the step under that
+person's cemetery row. Once a memorial is accepted as somebody's own, every
+relative it lists that nobody has decided otherwise is a lead: one whose given
+name, surname and birth year fit exactly one person of the tree gets the step
+under that person's cemetery row; one fitting nobody, or several, is a lead on
+the memorial's own person (row `listed relative:<memorial id>`), counted
+apart from the documents to decide. Running a step (Go, Search, the log buttons) is the approval;
 there is no approval state. Fetches are cheap and decisive, and open before the
 baseline is reviewed because the review needs them.
 
@@ -534,8 +552,9 @@ extraction's undecided proposals with the note `superseded`; a persona the
 earlier extraction had decided carries its decision to the new persona of the
 same name and role on the same page (the decision was about the record, whose
 bytes have not changed), an accepted one asserting the new facts the record
-gives and nothing it already asserted, and the matcher proposes the rest
-again. The matcher is versioned the same way (`rule:matcher@0.2.0`, raised
+gives and nothing it already asserted, a statement a person rejected staying
+rejected, and the matcher proposes the rest again. The matcher is versioned
+the same way (`rule:matcher` at the version `tools/match.py` names, raised
 with any change to what fits): `tools/conclude.py reconsider` runs it again on
 every current extraction whose undecided proposals an older matcher wrote,
 rejecting those with the note `superseded` and proposing the personas again as
@@ -610,7 +629,11 @@ The decision is about the document: is this record's persona this person.
 Accepting writes the persona link Accepted and an Accepted assertion from each
 fact the record states to the person: Name and Sex assert the person; an event
 fact asserts the person's event of that type and year, created from the
-record's date when the person has none of that type; an attribute the record
+record's date when the person has none of that type; an undated event fact
+asserts the person's one event of that type, and with several, none of them:
+the fact is raised as a `conflict` question naming the record and the type
+(`Catalog.unplaced`) until the owner places it on the event they mean
+(`tools/conclude.py place`); an attribute the record
 states (an occupation, an inscription) asserts the person's attribute of that
 type, created with the record's value when the person has none; a fact about
 the record or the page (its id, an age at death) asserts nothing. Where the
@@ -625,9 +648,12 @@ parents), and only when the other is an accepted child of one family;
 otherwise a sibling gives no membership. On a page anyone can edit (T4) the
 decision is an identity: the persona link is Accepted, and the family
 memberships the page states are created where the tree lacks them, each with
-an Undecided assertion, the way a sibling placement already is; every fact
-the page types is written as an Undecided assertion too, what the page says,
-never accepted by the decision and never ground for the rule. Where the
+an Undecided assertion, the way a sibling placement already is, for the
+relatives §0 names; every fact the page types is written as an Undecided
+assertion too, what the page says, never accepted by the decision and never
+ground for the rule. A statement already on the tree moves only from
+Undecided to Accepted when its record is accepted again (one the rule took
+back standing again): one a person rejected or accepted stays as it is. Where the
 record's date or place
 disagrees with the event's own value, the record's statement is still accepted
 as what that record says, the event keeps its value, and the difference is a
@@ -682,7 +708,10 @@ persona on that same record being already accepted as them counting as such
 a fit (accepted by the owner); a date agreeing to the day on a trusted
 statement of the day, and a relationship the tree holds on trusted evidence,
 each count double) and each rests, on the very event or link compared, on a
-trusted source or on the owner's own word, and nothing among them disagrees;
+trusted source or on the owner's own word, in a statement that itself gives
+the date or place compared (a record stating a death with no date, asserted on
+the person's one Death event, is no ground for the date another source gave
+that event), and nothing among them disagrees;
 a disagreement with a value that rests on no accepted assertion is not a
 veto here either, and becomes the same conflict question. A
 surname agreeing only one letter apart is a card, never the rule's. Claims never count, and a fact that
@@ -694,8 +723,8 @@ follow through the claimed route above; an obituary's named survivor is still on
 evidence. On a page anyone can edit that identifies a person (a
 memorial, a profile) the rule takes the identity alone, when the name agrees and at least three of birth date to the
 day, death date to the day, burial place, and a stated parent or spouse who is that relative in the tree agree with
-the tree, claimed or accepted; a relative the page lists by name and years alone has at most the stated relation and
-is a card for the owner. The proposal records the rule as the decider with its
+the tree, claimed or accepted; a relative a memorial lists is a lead, never a card (§0, §3), and one a profile lists by
+name and years alone has at most the stated relation and is a card for the owner. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the
 rule wrote rejected. A proposal the rule does not take is a card for the owner

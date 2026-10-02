@@ -180,7 +180,8 @@ tree/
   catalog/       tree.db + .active-tree             (git-ignored; dumped to SQL into a bag)
   derivatives/   thumbnails, OCR text, tiles        (regenerable, not backed up)
   trees/<slug>/  one folder per tree: README.md, imports/ (named copies of what
-                 was ingested), exports/ (GEDCOM 7 / Gramps XML snapshots)
+                 was ingested), exports/ (GEDCOM 7 / Gramps XML snapshots, once
+                 the exporters in `BACKLOG.md` are built)
   data/          source registry CSV and other reference tables
   schema/        DDL, seeds, manifest JSON Schema
   tools/         CLI tools and shared modules (`README.md` lists them; `schema/README.md`
@@ -253,10 +254,11 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
 
 ## 6. Snapshots and interchange
 
-- Weekly GEDCOM 7 export of layer 4 with a GEDZIP of redistributable media.
-  This is the portable backup and the format any other tool can read.
-- Catalog dumped to plain SQL on the same schedule and kept in a bag beside the
-  archive bags, never in git: a dump holds living-person data.
+- A GEDCOM 7 export of layer 4 with a GEDZIP of redistributable media, the
+  portable backup and the format any other tool can read, is deferred work in
+  `BACKLOG.md` with the Gramps XML exporter (decision 1): no exporter is built.
+- Catalog dumped to plain SQL and kept in a bag beside the archive bags
+  (`tools/backup.py bag`), never in git: a dump holds living-person data.
 - Archive bags are the master; GEDZIP is a convenience view.
 
 ## 7. Decisions

@@ -210,7 +210,9 @@ Layout rules that keep it clean:
 - Every row shows one of four words: held, cited, missing, n/a. No percentages.
 - The search form is never blank: a step's fields are always the foundation,
   and every field is one click to exclude on that step.
-- Anything the AI produced is Undecided and lives under the gap it answers.
+- Anything the AI produced arrives Undecided and lives under the gap it answers;
+  the standing rule may then take it on the owner's written rules
+  (`docs/RESEARCH-WORKFLOW.md` §0, §5–7), and everything else waits for the owner.
 
 ## 6a. The generator
 
@@ -257,7 +259,10 @@ collection, identity and tier, the tree's claim, each field as agrees,
 disagrees or absent, the relationships stated, what adding it closes), with
 Add and Ignore; then what is known (key facts with the documents they rest
 on, then every other fact, the per-fact buttons kept for the owner's own
-knowledge and for undoing a claim); then what the plan does next (questions,
+knowledge and for undoing a claim; beside them the living line, the status
+with its reason, and on a person whose status is unknown the two controls,
+living and deceased, that write the owner's word through
+`tools/conclude.py living` with one audit row); then what the plan does next (questions,
 the footprint, Group A, Group B collapsed) with a selected panel showing the
 step or the citations behind the row clicked, each with a link to the free holder the
 record is fetched from (the memorial page itself for Find a Grave; for a

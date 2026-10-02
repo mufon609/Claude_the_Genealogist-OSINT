@@ -27,7 +27,7 @@ record, and marriage records are exactly what name parents and maiden names.
 
 | Source family | Persons touched | Facts it supplies here | Tier |
 |---|---|---|---|
-| Burial (Find a Grave, cemetery, veterans' gravesites) | 54 | Burial 55, Death 44, Birth 41 | T3 |
+| Burial (Find a Grave, cemetery, veterans' gravesites) | 54 | Burial 55, Death 44, Birth 41 | T4 for Find a Grave; T1–T3 for the rest (§6) |
 | Compiled (family history books, Family Histories 1500–2000, SAR applications) | 52 | Birth 25, Death 10, Marriage 3 | T3 |
 | Vital (PA/MA/KY/TN/NJ/OH births, deaths, marriages, church & town) | 51 | Birth 42, Death 29, Marriage 2, Baptism 1 | T1/T2 |
 | Census 1790–1950 | 43 | Residence 94, Birth 64 | T1 |
@@ -117,7 +117,7 @@ suggestions as evidence, and any score badge.
 │ Birth  20 Sep 1880 Worcester Twp     │ PA birth certificate 1906-1917  [T1] │
 │        ● Accept ○ Reject ○ Undecided │ PA death certificate 1961       [T1] │
 │ Death  10 Oct 1961 Pottstown         │ 1910 census · 1920 census       [T1] │
-│ Burial Norristown                    │ Find a Grave                    [T3] │
+│ Burial Norristown                    │ Find a Grave                    [T4] │
 │ Marriage — (no record)               │ Family History Books            [T3] │
 │ Residence 1910 · 1920                │                                      │
 ├ Questions ─────────────────────────────────────────────────────────────────┤
@@ -136,29 +136,29 @@ This is the same screen as `docs/RESEARCH-CHECKLIST.md` §6, which is the
 authoritative description: the facts-and-sources block is its *foundation*
 region, and the questions are its checklist *tasks*.
 
-## 6. Splitting the work between agents / skills
+## 6. How the work splits across the tools
 
-The split follows the source families in section 2, because each family has
-its own access path, its own record shape, and its own way of naming relatives.
+The work splits by what each part does; the source families in section 2
+decide only which registry rows a checklist row searches.
 
-| Agent / skill | Sources (registry IDs) | Produces | Ladder rungs |
-|---|---|---|---|
-| **Owner** (deciding documents; the standing rule deciding the certain ones) | the held records | a record Accepted or Rejected as the person's, its facts with it | before anything |
-| **Footprint** | the catalog itself | for a question: ranked records already attached to relatives; duplicate check | 0 |
-| **Census** | D01–D05 | households, ages, birthplaces, co-residents → candidate parents/spouses | 1, 3 |
-| **Vital & church** | C01–C11, I01–I09 | parents' names, maiden names, exact dates; Schwenkfelder/Mennonite/Dutch/Irish registers | 1, 2 |
-| **Burial** | E01–E04 | death/burial dates, family plot links; T3, always to be confirmed elsewhere | 2 |
-| **Newspaper** | H01–H06 | obituaries: survivors, maiden names, places | 2 |
-| **Compiled & books** | L01–L03, DAR/SAR | hints (never proof); full-text search of published genealogies | 2, 5 |
-| **Probate, land, tax** | J01–J04 | heirs, relationships pre-1850 | 2 |
-| **Migration** | G01–G05, I04–I09 | origin village, arrival, naturalization; the Silesia→PA and Ireland→MA jumps | 2, 4 |
-| **Place** | N01–N07 | resolves strings, keeps jurisdiction history (Montgomery Co. 1784, Norriton 1909) | support |
-| **Names & aliases** | O01–O04 + `alias` | variants, phonetic keys, query expansion | support |
-| **Fetcher** | the free holders of cited collections (FamilySearch, Find a Grave, the National Archives; Ancestry is a citation source only) and assisted sources (Newspapers.com) | the holder's link and the citation's own details as "what to look for"; archives what the user drops in `inbox/` | all |
-| **Extractor** | archived images / index JSON | personas and facts from a record (index parse, OCR/HTR, LLM reading) | all |
-| **Matcher** | personas vs tree | proposals that answer a question | all |
-| **Research log** | every search | outcome incl. negative results | all |
+| Part | Where | Does |
+|---|---|---|
+| The owner | the person screen, `tools/conclude.py` | decides documents (is this record about this person) and every card the rule leaves; their own word on a fact, a link, a place or whether a person is alive |
+| The standing rule | `tools/conclude.py` | takes the decisions the owner's written rules make certain, on their word and reversibly (`docs/RESEARCH-WORKFLOW.md` §0, §5–7) |
+| Checklist and plan | `tools/checklist.py`, `tools/footprint.py`, `tools/plan.py` | the records that should exist and the gaps; a fetch step per citation or lead, a search step per missing row, the family footprint first |
+| Connectors | `tools/connectors/`, `tools/run_step.py` | one module per free source with an endpoint (loc.gov, the 1950 census site, the Internet Archive's newspapers, directories and books, WikiTree, the VA gravesite locator, the New Jersey death index); every response archived, every run logged |
+| The owner's browser | `tools/fetches.py`, `tools/save_page.js`, `tools/save_image.js` | the pages a source without a connector serves (FamilySearch, Find a Grave), saved one at a time and collected by their own identity; Ancestry is a citation source only |
+| Extractor | `tools/extract.py` | personas, facts and relations from an archived page or response, one parser per page kind; an image read by the model, or by a person on serious doubt |
+| Matcher | `tools/match.py` | proposals that answer a question, the rationale in words |
+| The loop | `tools/queue.py`, `tools/turn.py`, `tools/turns.py` | the next person at the edge of the confirmed tree, their plan run end to end, then the next |
+| Places and names | `tools/resolve_places.py`, `tools/backfill_aliases.py` | place strings resolved, with a place's dated names; the names records write as aliases |
+| Research log | `search_log` | every run, including nothing found |
 
-Each agent has a narrow contract: given a question and the Accepted baseline,
-return either archived records plus personas, or a logged negative. None of
-them changes a conclusion. Only the review step does.
+Burial sources by tier (`data/data-sources.csv`): Find a Grave memorials and
+BillionGraves (E01, E02) are user-contributed pages (T4), identities and
+leads, never facts; the VA gravesite locator (E03) is T2; cemetery
+transcriptions (E04) are T3; a memorial's gravestone photographs (E05) are
+primary sources (T1).
+
+No part changes a conclusion but a decision: the owner's, or the standing
+rule's on the owner's written terms.

@@ -92,10 +92,10 @@ step: for a missing marriage row, locate the Soundex block's pages in the
 year's item from the OCR word patterns (the block headers survive), fetch
 those pages through the reader as the module already does, and read them by
 eye or by the model. The same shape serves every New York marriage the tree
-is missing. Probed 11 September 2026 on the 1959 item (one item, brides and
-grooms together): the search inside finds no block header (H540 matches
-nothing; the OCR carries letters and digits one by one), so the block's pages
-cannot be found by words. The codes run in order through the item, so the
+is missing. On the 1959 item (one item, brides and grooms together) the
+search inside finds no block header (H540 matches nothing; the OCR carries
+letters and digits one by one), so the block's pages cannot be found by
+words. The codes run in order through the item, so the
 step must find the block by the page order instead: a page's code read from
 its image, the pages narrowed between two read, then the block's pages
 fetched. The one New York marriage row open on a reviewed person (Raymond
@@ -110,10 +110,9 @@ for the New Jersey marriage index's own scanned-page years alike.
 `tools/save_page.js` clones `document.documentElement` and hands the clone
 to the browser as a download; an element's shadow root attached by script
 is not cloned, so on a site that renders its page inside such roots the
-file holds only the site's no-script fallback. Seen on archive.org on
-19 Sept 2026: the two pages a paused turn listed for Carol Evers came back
-as 843 and 1,885 bytes, the body reading "Javascript is required for this
-site", and the session rightly left them out of `inbox/`. Have the script
+file holds only the site's no-script fallback. archive.org is such a site:
+its pages save as a body of a few hundred bytes reading "Javascript is
+required for this site", which never belong in `inbox/`. Have the script
 serialise every open shadow root it finds into the clone as declarative
 shadow DOM (`<template shadowrootmode="open">` with the root's markup, in
 the place of the host's children), so the saved page is what the browser
@@ -150,10 +149,13 @@ page-saves-itself method or a connector's answer), add it under
 A run that found pages naming the person on the name alone (a directory
 line, a book mention, a newspaper hit) leaves them held under the step, and
 the personas it read stay on the page with no proposal, as
-`docs/RESEARCH-WORKFLOW.md` §0 defines a hint. The person page shows them
-only as records under the step's log. Show a reviewed person's hints as the
-doc says: each with what agrees, what is missing and the page, for research
-when the leads run dry, never as a feed.
+`docs/RESEARCH-WORKFLOW.md` §0 defines a hint. The record view marks each
+such persona that is a hint for a reviewed person with what agrees and what
+is missing (`cards.hints_on`), but only once that record is opened from the
+step's log: the person page has no place where a reviewed person's hints
+across all their held records are kept, as §0 says they are. Add one, each
+hint with what agrees, what is missing and the page, for research when the
+leads run dry, never as a feed.
 
 ### C8. A connector for the Pennsylvania Newspaper Archive
 
@@ -167,9 +169,10 @@ Pennsylvania death exists on a reviewed person, so it is tested on a real
 step: a hit's record is the page's OCR text, read as the loc.gov text is
 (one persona per place the surname stands, a name and nothing else), which
 needs the extractor to claim a plain-text response by the runner's notes.
-On 11 September 2026 the site served its robots page but reset the connection
-on the search path to a declared tool (urllib and curl alike); confirm it
-answers again before building, and if it keeps refusing, the step is assisted.
+The site has reset the connection on the search path to a declared tool
+(urllib and curl alike) while serving its robots page; confirm the search
+answers a declared tool before building, and if it refuses, the step is
+assisted.
 
 ### C11. A place written one letter apart disagrees
 
@@ -200,9 +203,8 @@ and the event (`data/DATA-SOURCES.md` §4). Its registry row (I07) is the
 church row's source for a Netherlands-born person. Build the connector, with
 an extractor for the A2A record (one persona per person with a relation to
 the record's subject, the event as the fact), when such a person is reviewed
-and the step exists, so it is tested on a real step. On 11 September 2026 the
-endpoint did not answer a declared tool from this machine (the connection timed
-out, twice); confirm it answers before building.
+and the step exists, so it is tested on a real step. The endpoint has timed
+out on a declared tool from this machine; confirm it answers before building.
 
 ### C15. A record whose two personas each wait on the other
 

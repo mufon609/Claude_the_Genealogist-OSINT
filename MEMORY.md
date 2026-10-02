@@ -146,14 +146,6 @@ bookkeeping lagged. Before executing one, reconcile each sub-bullet against
 current artifacts and `git log`; strike what's done, drop what's redundant
 or unattested. Most "fix the BACKLOG" work is triage, not building.
 
-### Commit directly to main
-
-In this repo, commit straight to `main` — do not branch first. Standard
-discipline still holds: the tools and checks must be green to commit, and
-data files (archive, catalog, imports, derivatives) never enter git. Commit
-each finished piece of code or doc work without waiting to be asked; a
-research decision is never a commit.
-
 ### Commit before auditing, in multi-agent batches
 
 When cleaner subagents edit artifacts and auditor subagents verify, commit
@@ -162,17 +154,17 @@ advisory-scoped shell can run `git restore` and silently revert an
 uncommitted batch; a committed change is immune. A regression caught after
 the commit is a cheap follow-up — far cheaper than lost work.
 
-### Two sessions on one working tree
+### One clone works the tree
 
-When a director session tasks a worker session on the same clone, only the
-worker edits and commits while it works; the director reads, tasks and
-audits. Never `git add -A` on the shared tree: it stages the other session's
-half-written files (it happened, and broke the screen until the next
-commit). The worker records its catalog writes as
-`--by "agent:<session> for user:<owner>"`, stops and reports on any defect
-instead of working around it, and the director audits the commits and the
-catalog read-only at the end. A plan is put to the worker for critique before
-it becomes a task; the critique has been right every time.
+One clone, on one machine, does the work on the tree: the catalog never
+enters git, so a second clone would hold a second catalog that no merge
+reconciles. When two sessions share that clone (one directing, one working),
+only the working session edits and commits while it works, staging by
+explicit path: `git add -A` sweeps in the other session's half-written files.
+The working session records its catalog writes as
+`--by "agent:<session> for user:<owner>"` and stops and reports on any
+defect instead of working around it; a plan is put to it for critique before
+it becomes a task.
 
 ### No speculative estimates — name the work, not its size
 
@@ -236,35 +228,3 @@ rule), a BACKLOG mention when scoping a "not yet implemented" path, or a
 layering invariant (e.g. "artifact rows are insert-only; corrections are new
 rows"). Anchor on durable concepts, never transient ones (specific commits,
 dated audits, phase markers).
-
-### Define the user's goal before building a screen
-
-Write the goal of a screen in one sentence from the user's point of view
-and get it confirmed before building. Organize screens around a person (or
-a research question about a person); surface pipeline items — unresolved
-places, uncited facts, records to fetch — only as questions about that
-person. Never ship a screen whose primary navigation is a data type.
-
-**Why:** A screen that mirrors internal queues (places, names, records)
-makes sense to the pipeline and to nobody else; the user is researching
-people.
-
-### Plain over clever
-
-Fewer, plainer features that work end to end. Every human decision is
-Accepted / Rejected / Undecided; a record row is held / cited / missing /
-n/a. No numeric confidence, no percentages, no score badges, no hint queues.
-Ask before adding anything not already in the design docs.
-
-### Trees are isolated; evidence is never auto-reused across them
-
-A fresh tree must be able to distrust everything an earlier tree concluded.
-Each import gets its own extraction and personas even for identical bytes;
-cross-tree sharing is never automatic. Owner doc: `docs/DATA-ARCHITECTURE.md`,
-trust boundaries.
-
-### Accepted decisions are not reopened
-
-Architecture and workflow decisions marked accepted in `docs/` stand. Build
-to them; propose a change as a BACKLOG entry with the reason, not by
-building around them.
