@@ -548,10 +548,12 @@ memorial's subject, and in the parsed page every photograph with the type the
 page gives it; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
-`rule:familysearch-record@0.4.0` (one persona per person the page names, in
+`rule:familysearch-record@0.5.0` (one persona per person the page names, in
 the page's own role word, a relative given one name only (Thomas, Davidson)
 included with the name as written, a row with no name in it (", [1918]") or
-the index's UNKNOWN none; one fact per field as written; every value a field
+the index's UNKNOWN none; one fact per field as written, a member's own
+details read as the subject's fields are, its Event Date and Event Place the
+record's own event; every value a field
 keeps collapsed beneath the one it shows, FamilySearch's edit history, read
 too, as a fact of its own whose region marks it alternate, unless it says the
 same as the shown value, and beneath an Event Date that shows a time of day

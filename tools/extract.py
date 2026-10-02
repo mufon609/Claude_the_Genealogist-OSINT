@@ -7,7 +7,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.4.0; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.5.0; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -95,7 +95,9 @@ reading ", [1918]", a year and no name, and the index's UNKNOWN do not, and a
 relative a field names is read the same way): the name as written, the page's
 own role word (Father, Sister, Maternal
 Grandmother), sex, age and birthplace from the row, the member's own details
-table as its facts, its record ark in region_json, and one relation from the
+table as its facts (its Event Date and Event Place the record's own event, of
+the collection's kind where no Event Type row names one, as the subject's are),
+its record ark in region_json, and one relation from the
 member to the subject with the role word as written (relation_kind); a NUMIDENT
 record's own Parents and Siblings table carries no role word at all, and its
 two rows are read as parent relations, that collection's application naming
@@ -135,7 +137,7 @@ from treelib import ROOT, connect, dumps, now, object_path, parse_gedcom_date, s
 from conclude import assert_facts, link_family
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.4.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.5.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -903,7 +905,7 @@ def write_record(w, parsed):
     members_written = []
     for seq, m in enumerate([x for x in parsed["members"] if names_someone(x["name"])], 2):
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
-        mb, _ = field_facts(mf, None, m.get("alternates") or [])
+        mb, _ = field_facts(mf, EVENT_TYPES.get(kind_word), m.get("alternates") or [])   # a member's own details carry the record's event as the subject's do
         calc_census_birth(mb, is_census)
         age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
         if year and age and not (mb.get("Birth") or {}).get("date"):     # a household member's birth year, calculated from the census date

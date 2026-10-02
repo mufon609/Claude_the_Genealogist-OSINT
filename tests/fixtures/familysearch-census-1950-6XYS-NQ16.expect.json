@@ -55,6 +55,17 @@
      "type": "Name",
      "value": "Fred M. Ahearn",
      "alternate": true
+    },
+    {
+     "type": "Residence",
+     "date": "10 April 1950",
+     "place": "Suffolk, New York"
+    }
+   ],
+   "no_facts": [
+    {
+     "type": "Unknown",
+     "value_starts": "Event"
     }
    ],
    "relations": [
@@ -71,7 +82,7 @@
      "computed": true
     }
    ],
-   "why": "the household's father indexed Ahern, the surname's other spelling on the one page, his Name field keeping Fred M. Ahearn collapsed beneath it; Father toward the principal and the couple of the two parents are FamilySearch's groupings around the page's person, computed"
+   "why": "the household's father indexed Ahern, the surname's other spelling on the one page, his Name field keeping Fred M. Ahearn collapsed beneath it; Father toward the principal and the couple of the two parents are FamilySearch's groupings around the page's person, computed; his own details' Event Date and Event Place, on a 1950 page with no Event Type row, are the census's own residence, as the principal's are"
   },
   "3": {
    "name": "Helen B Ahearn",
