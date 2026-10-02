@@ -686,8 +686,10 @@ Thomas's father?" Review happens on the person's screen, on the held record.
 The decision is about the document: is this record's persona this person.
 Accepting writes the persona link Accepted and an Accepted assertion from each
 fact the record states to the person: Name and Sex assert the person; an event
-fact asserts the person's event of that type and year, created from the
-record's date when the person has none of that type; an undated event fact
+fact asserts the person's event of that type and year (within two years when
+either the record's date or the event's own is marked about, estimated or
+calculated, so "19 November 1920" lands on an event the file dates "abt 1921"),
+created from the record's date when the person has none of that type; an undated event fact
 asserts the person's one event of that type, and with several, none of them:
 the fact is raised as a `conflict` question naming the record and the type
 (`Catalog.unplaced`) until the owner places it on the event they mean

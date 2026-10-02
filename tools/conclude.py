@@ -168,7 +168,8 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record
     nobody can edit at will, Undecided from a page anyone can edit (what the page says, never accepted by the decision and never
     ground for the rule, so the person's facts come from primary documents only). Name and Sex assert the person row. An event
-    fact asserts the person's event of that type and year, created from the fact's date when there is none; an undated event
+    fact asserts the person's event of that type and year, within two years when either the fact's date or the event's own is
+    marked about, estimated or calculated, created from the fact's date when there is none; an undated event
     fact (other than Residence, its own case below) asserts the person's one event of that type when there is exactly one,
     whatever its own date, rather than guess a year; with more than one, the fact is left unasserted rather than guessed onto
     either: the checklist's own "more than one event" conflict already stands, and Catalog.unplaced raises this fact of its
@@ -200,14 +201,15 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
         if f["fact_type"] in SKIP or f["kind"] not in ("event", "attribute"): continue
         if f["kind"] == "event":
             fy = (f["date_start"] or f["date_end"] or "")[:4]           # an event corresponds by type and year; an undated fact only to an undated event
-            tol = 2 if f["date_qualifier"] in ("calculated", "about", "estimated") and fy else 0   # a year worked out from an age lands on the event within two years
+            near = ("calculated", "about", "estimated")
+            tol = lambda e: 2 if fy and (f["date_qualifier"] in near or e["date_qualifier"] in near) else 0   # a year worked out from an age, or an event the tree dates about a year, corresponds within two years, either side
             ey = lambda e: (e["date_start"] or e["date_end"] or "")[:4]
-            all_events = q.execute("""SELECT e.id, e.date_start, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
+            all_events = q.execute("""SELECT e.id, e.date_start, e.date_end, e.date_qualifier FROM event e JOIN event_participant ep ON ep.event_id=e.id
                                       WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"])).fetchall()
             if not fy and f["fact_type"] != "Residence":                 # undated: the person's one event of the type, never a guess between two or more
                 events = all_events if len(all_events) == 1 else []
             else:
-                events = [e for e in all_events if ey(e) == fy or (tol and ey(e).isdigit() and abs(int(ey(e)) - int(fy)) <= tol)]
+                events = [e for e in all_events if ey(e) == fy or (tol(e) and ey(e).isdigit() and abs(int(ey(e)) - int(fy)) <= tol(e))]
                 if not fy and f["fact_type"] == "Residence":              # a residence with no date is its own stay, never another record's: only one this record already asserts
                     events = [e for e in events if q.execute("SELECT 1 FROM assertion WHERE subject_kind='event' AND subject_id=? AND artifact_sha256=? AND persona_fact_id=?", (e["id"], sha, f["id"])).fetchone()]
             if not events and all_events and not fy and f["fact_type"] != "Residence": continue   # two or more already: the checklist's own conflict stands, no event guessed at

@@ -1,0 +1,67 @@
+{
+ "title": "an event dated about a year",
+ "line": "a record's exact date a year from an event the tree dates about that year lands on that event, within the two years either side's mark allows, and makes no second event",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a second Birth the harness plants for the head of the 1900 household, dated about 1876, the file's own year as a coarser statement gives it (the file's own about-dates sit on people no harness record dates exactly)",
+   "event": {
+    "person": "I332737204849",
+    "type": "Birth",
+    "date": "abt 1876",
+    "date_start": "1876",
+    "qualifier": "about"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Birth",
+      "events": 2
+     }
+    }
+   ]
+  },
+  {
+   "say": "the 1900 census, which dates his birth Apr 1875, accepted by the owner",
+   "attach": {
+    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+   },
+   "as": "c00"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c00",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Birth",
+      "events": 2
+     },
+     "why": "Apr 1875 lands on the event dated about 1876, within two years: no third Birth event"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}
