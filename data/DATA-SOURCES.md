@@ -93,7 +93,8 @@ such a collection takes that row's tier: a memorial indexed at FamilySearch is s
 FamilySearch's Social Security collections carry C01's and C02's own. `tools/initdb.py --sync-sources` writes every
 collection's tier from the column (`collection.trust_tier`, cleared where the column names none), and the tier read for a
 record (`catalog.tier_sql`) is its collection's where its holder's own collection carries one, the holder's otherwise. A
-collection first met after the last sync reads its holder's tier until the sync runs again.
+collection first met when a record arrives (`tools/attach.py`, `tools/run_step.py`) takes its tier from the column the
+same way when it is created.
 
 ### Evidence classes (`evidence-classes.csv`)
 

@@ -43,7 +43,7 @@ answered on these fields.
 import argparse, http.client, json, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
-from catalog import Catalog, first_value
+from catalog import Catalog, collection_tier, first_value
 from log_search import log as log_search, latest_answer, ran_unchanged, rendered_query
 from extract import extract, RESULTS_LISTINGS
 from conclude import match_record
@@ -96,7 +96,7 @@ def fetch(url, kind, conn, data=None):
 def collection_for(cx, conn):
     row = cx.execute("SELECT id FROM collection WHERE source_id=? AND name=?", (conn.SOURCE, conn.COLLECTION)).fetchone()
     if row: return row[0]
-    cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, conn.SOURCE, conn.COLLECTION, "other", conn.__name__.split(".")[-1]))
+    cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key,trust_tier) VALUES (?,?,?,?,?,?)", (cid, conn.SOURCE, conn.COLLECTION, "other", conn.__name__.split(".")[-1], collection_tier(conn.SOURCE, conn.COLLECTION)))
     return cid
 
 def connectors_for(cat, step):

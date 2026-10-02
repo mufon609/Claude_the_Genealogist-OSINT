@@ -32,7 +32,7 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
-from catalog import dbid_of, first_value, holders, holds, name_parts, person_named, split_name
+from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
 from log_search import ON_WORD, holds_record, latest_answer, log as log_search, rendered_query, ran_unchanged, step_source
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import key as name_key
@@ -457,7 +457,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     if kind == "ark" and (parsed or {}).get("collection"):                           # the record's own collection at its holder
         own = re.sub(r"^[^•]*•\s*", "", parsed["collection"]).strip()
         row = cx.execute("SELECT id, name FROM collection WHERE source_id=? AND name=?", (holder, own)).fetchone()
-        if not row: cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, holder, own, "other", own)); row = (cid, own)
+        if not row: cid = ulid(); cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key,trust_tier) VALUES (?,?,?,?,?,?)", (cid, holder, own, "other", own, collection_tier(holder, own))); row = (cid, own)   # the tier the registry gives the collection, from its first record on
         st = dict(st); st["collection_id"], cname = row[0], row[1]
     if kind in ("search", "aad_search", "fs_search"):
         query = {k: {"value": v, "basis": "run"} for k, v in parsed["query"].items()}
