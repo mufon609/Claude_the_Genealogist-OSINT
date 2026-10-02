@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The loop run without a hand on it: turn after turn from the queue, pausing for the owner's browser session.
 
-usage: tools/turns.py [--turns N] [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
-       tools/turns.py --resume [--turns N] [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
+usage: tools/turns.py [--turns N] [--detail] [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
+       tools/turns.py --resume [--turns N] [--detail] [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
 
 docs/RESEARCH-WORKFLOW.md §8: tools/queue.py names the next person at the edge of the confirmed tree and tools/turn.py runs
 one person's plan end to end; this runner asks the queue, runs the turn with turn.py's own code (plan, every connector step,
@@ -15,18 +15,22 @@ next person. The runner stops when the queue names nobody a turn can act on, whe
 held on their plan and accepted on their personas, before and after) is passed over for the rest of the run with that
 reason, so a queue that keeps naming a person with nothing left to bring in does not run them again and again.
 
-Its own state, the turns run with each person's held count before and after, and the people passed over, lives beside the
+Its own state, the turns run with each person's held count before and after, the people passed over and the files left in the inbox that a report
+has already named (each is named once per run), lives beside the
 turn's state file on the same pattern (<db>.loop-state.json; nothing here is catalog data), kept across the pause and
 cleared when the run ends. The runner writes nothing of its own: every catalog write is one of the tools' under its own
 name (plan_person as rule:plan, run_step.run as agent:run_step, collect, attach, reconsider and decide under --by). A
 connector's challenge at a holder is a run logged error, the source did not answer, and the turn goes on (the step stays
 runnable and the next turn asks the source again); a challenge in the owner's browser is the session's pause, outside this
-runner. At the end a summary in words: the turns run, the people passed over and why, and what is left for the owner (the
-queue's own pass-overs, whose open question is the owner's alone, and a paused turn's pages).
+runner. At the end a summary in words: the turns run, the people this run passed over and why, and what is left for the owner,
+as counts by kind (the people whose open question is the owner's alone: documents to decide, conflicts open, key facts
+undecided, family links the file names and nobody has accepted) and a paused turn's pages; --detail names each of those
+people with the reason, as tools/queue.py --all does.
 """
 import argparse, importlib.util, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, now, resolve_tree
+from catalog import Catalog
 import turn
 
 def queue_module():
@@ -71,7 +75,17 @@ def next_person(cx, tree_id, st):
         return e
     return None
 
-def summary(cx, tree_id, st, stopped):
+def owner_counts(cx, tree_id, owners):
+    """The people whose open question is the owner's alone (the queue's pass-overs) counted by kind, one line each, a person under
+    every kind that holds for them: documents to decide, conflicts open, key facts undecided on a confirmed person, a family
+    link the file names and nobody has accepted."""
+    cat = Catalog(cx, tree_id); waiting = {e["id"]: cat.waiting(e["id"]) for e in owners}
+    docs = [w["documents"] for w in waiting.values() if w["documents"]]; conflicts = [w["conflicts"] for w in waiting.values() if w["conflicts"]]
+    facts = [e for e in owners if e["kind"] == "open question" and cat.baseline(e["id"])["undecided"]]; links = [e for e in owners if e["kind"] != "open question"]
+    return ([f"documents to decide: {sum(docs)}, on {len(docs)} person(s)"] if docs else []) + ([f"conflicts open: {sum(conflicts)}, on {len(conflicts)} person(s)"] if conflicts else []) + \
+           ([f"key facts undecided: {len(facts)} person(s)"] if facts else []) + ([f"family links the file names, not yet accepted: {len(links)} person(s)"] if links else [])
+
+def summary(cx, tree_id, st, stopped, detail=False):
     _, owners = queue_module().edge(cx, tree_id)
     out = [f"loop: {len(st['turns'])} turn(s) run; stopped: {stopped}", "", "turns:"]
     for t in st["turns"]:
@@ -79,12 +93,16 @@ def summary(cx, tree_id, st, stopped):
         out.append(f"  {t['person']} [{t['person_id'][-6:]}]: {held}" + (", nothing new" if t.get("held_after") == t["held_before"] else ""))
     out += ["", "passed over this run:"] + ([f"  {p['person']} [{p['person_id'][-6:]}]: {p['reason']}" for p in st["passed"]] or ["  nobody"])
     out += ["", "left for the owner:"]
-    left = [f"  {e['name']} [{e['id'][-6:]}]: {e['reason']}" for e in owners]
+    left = []
+    if detail: left += [f"  {e['name']} [{e['id'][-6:]}]: {e['reason']}" for e in owners]
+    elif owners:
+        left.append(f"  {len(owners)} person(s) whose open question is the owner's alone (tools/queue.py --all names each with why; --detail here):")
+        left += [f"    {x}" for x in owner_counts(cx, tree_id, owners)]
     if turn.load_state(st["db"]) if st.get("db") else False: left.append("  a turn is paused on pages to save in the browser: tools/fetches.py list, then tools/turns.py --resume")
     out += left or ["  nothing: every confirmed person is settled, or a turn can still act on them"]
     return "\n".join(out)
 
-def run(cx, tree_id, slug, by, db, turns=None, resume=False):
+def run(cx, tree_id, slug, by, db, turns=None, resume=False, detail=False):
     """Turn after turn (turn.start) from the queue's edge, the paused turn resumed first when asked (turn.resume). Returns the
     run's state once it stops."""
     paused = turn.load_state(db); st = load_state(db)
@@ -94,11 +112,13 @@ def run(cx, tree_id, slug, by, db, turns=None, resume=False):
         st["db"] = db
         t = next((t for t in reversed(st["turns"]) if t["person_id"] == paused["person_id"] and t.get("held_after") is None), None)
         if not t: t = {"person_id": paused["person_id"], "person": paused["person"], "held_before": held_count(cx, paused["person_id"])}; st["turns"].append(t)
-        turn.resume(cx, tree_id, slug, by, db)
-        t["held_after"] = held_count(cx, paused["person_id"]); save_state(db, st)
+        reported = set(st.get("reported") or [])
+        turn.resume(cx, tree_id, slug, by, db, reported=reported)
+        t["held_after"] = held_count(cx, paused["person_id"]); st["reported"] = sorted(reported); save_state(db, st)
     else:
         if paused and paused["tree_id"] == tree_id: sys.exit(f"a turn on {paused['person']} is paused on pages to save in the browser: save them, then tools/turns.py --resume")
         st = {"tree_id": tree_id, "tree": slug, "started_at": now(), "turns": [], "passed": [], "db": db}
+    reported = set(st.get("reported") or [])                   # the files left in the inbox that a report of this run has named
     stopped = None
     while True:
         if turns is not None and len(st["turns"]) >= turns: stopped = f"{turns} turn(s) done (--turns)"; break
@@ -106,21 +126,22 @@ def run(cx, tree_id, slug, by, db, turns=None, resume=False):
         if not e: stopped = "the queue names nobody a turn can act on"; break
         t = {"person_id": e["id"], "person": e["name"], "reason": e["reason"], "held_before": held_count(cx, e["id"])}; st["turns"].append(t); save_state(db, st)
         print(f"\n== turn {len(st['turns'])}: {e['name']} [{e['id'][-6:]}]  {e['reason']}\n")
-        turn.start(cx, tree_id, slug, e["id"], by, db)
+        turn.start(cx, tree_id, slug, e["id"], by, db, reported=reported); st["reported"] = sorted(reported)
         if turn.load_state(db):
             save_state(db, st); stopped = "a turn paused on pages to save in the browser; save them, then tools/turns.py --resume"; break
         t["held_after"] = held_count(cx, e["id"]); save_state(db, st)
-    print("\n" + summary(cx, tree_id, st, stopped))
+    print("\n" + summary(cx, tree_id, st, stopped, detail))
     if not turn.load_state(db): clear_state(db)
     return st
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--resume", action="store_true"); ap.add_argument("--turns", type=int)
+    ap.add_argument("--detail", action="store_true", help="the summary names every person left for the owner, with the reason")
     ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree)
-    run(cx, tree_id, slug, a.by, a.db, turns=a.turns, resume=a.resume)
+    run(cx, tree_id, slug, a.by, a.db, turns=a.turns, resume=a.resume, detail=a.detail)
 
 if __name__ == "__main__": main()

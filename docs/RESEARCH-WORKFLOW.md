@@ -834,14 +834,16 @@ conflict is open or a key fact is undecided and a turn can still act on them:
 a step a connector can run with no run since the plan last wrote its fields,
 or a page the fetch list can name. A person whose open question is now the
 owner's alone (a card to decide, a conflict, an assisted search with no link
-to open) is passed over with the reason; `--all` lists everyone.
+to open) is passed over. The command prints the next person with the reason and
+the number passed over; `--all` lists everyone, each person passed over with the
+reason.
 
 `tools/turn.py "<person>"` runs the turn: `tools/plan.py` first, then every
 step a connector can run on this person's plan, one commit each as
 `tools/run_step.py --all` does, the standing rule deciding what comes back and
 creating the people a record names; then this person's own pages at holders
-without a connector (`tools/fetches.py list`, narrowed to their unrun steps)
-are printed with the file name to save under, and the turn pauses for the
+without a connector (`tools/fetches.py next`'s own pages, narrowed to their
+unrun steps) are printed with the file name to save under, and the turn pauses for the
 owner's browser session, its state kept beside the catalog.
 `tools/turn.py --resume` picks the paused turn up: `tools/fetches.py collect`,
 `tools/attach_inbox.py` on whatever collect's naming left behind,
@@ -849,7 +851,9 @@ owner's browser session, its state kept beside the catalog.
 to fetch runs the same tail in the same call. The turn writes nothing of its
 own: every catalog write is one of those tools' under its own name. Its
 report says what was held, what the rule decided, who was created and what is
-left for the owner, in words. A record the owner cites on their own word
+left for the owner, in words; a source that did not answer is named once, with
+the rows of the steps it was asked on, and a file left in the inbox that
+fulfils no step is named once per run, not in every report. A record the owner cites on their own word
 (`tools/cite.py`) is a fetch step on the plan a turn runs like any other.
 `tools/turns.py` is the loop run without a hand on it: it asks the queue for
 the next person, runs their turn with `tools/turn.py`'s own code, prints the
@@ -860,12 +864,16 @@ them and calls `tools/turns.py --resume`, which resumes the paused turn and
 goes on to the next person), or `--turns N` turns are done. A person the
 queue names again whose last turn held nothing new for them is passed over
 for the rest of the run with that reason. Its own state (the turns run, each
-person's held count before and after, the passed-over) lives beside the
+person's held count before and after, the passed-over, the inbox files already
+named) lives beside the
 turn's state file on the same pattern; it writes nothing of its own to the
 catalog. A connector's challenge is an error run, the source did not answer,
 and the turn goes on; a challenge in the browser is the session's pause,
 outside the runner. Its summary says, in words, the turns run, the people
-passed over and why, and what is left for the owner.
+this run passed over and why, and what is left for the owner as counts by kind
+(documents to decide, conflicts open, key facts undecided, family links the file
+names and nobody has accepted); `--detail` names each person with the reason, as
+`tools/queue.py --all` does.
 
 ## Worked example: Thomas Ahearn (1846–1902)
 

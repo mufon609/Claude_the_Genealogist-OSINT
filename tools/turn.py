@@ -25,8 +25,9 @@ The turn writes nothing of its own: every catalog write happens inside `plan_per
 `fetches.collect`, `attach_inbox`, or `reconsider`, each under its own name in `--by` as it always is; the turn
 only calls them in order and reports what came back, in words, never a score. What a turn leaves for the owner
 are the conflict questions it raised and the cards the rule did not take (docs/RESEARCH-WORKFLOW.md §8), and its
-report names every source that did not answer a connector step (a run logged error): such a step stays runnable,
-so the next turn asks that source again.
+report names every source that did not answer a connector step (a run logged error) once, with the rows of its steps and what
+it said: such a step stays runnable, so the next turn asks that source again. A file left in the inbox that fulfils no step is
+named once per run (the runner passes the files already named, tools/turns.py), not in every turn's report.
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -112,15 +113,15 @@ def finish(cx, tree_id, slug, pid, by):
     return names, collect_results, left_results, recon, plan_stats
 
 def held_lines(conn_runs, collect_results, left_results):
-    """What was fetched and archived this turn, in words: the connector runs that found something, then the pages the
-    browser session brought back."""
+    """What was fetched and archived this turn, in words: the connector runs that found something or found nothing, then the
+    pages the browser session brought back. A run that got no answer is told once, by unanswered_lines."""
     out = []
     for run in conn_runs:
         for r in run["results"]:
             if "error" in r: out.append(f"  {run['row_key']}: {r['error']}"); continue
             if r.get("outcome") == "found":
                 out.append(f"  {run['row_key']} at {r['connector']}: found, {len(r.get('artifacts') or [])} artifact(s), {len(r.get('extracted') or [])} record(s) read")
-            elif r.get("outcome"): out.append(f"  {run['row_key']} at {r['connector']}: {r['outcome']}")
+            elif r.get("outcome") and r["outcome"] != "error": out.append(f"  {run['row_key']} at {r['connector']}: {r['outcome']}")
     for r in collect_results + left_results:
         if not r.get("left"): out.append("  " + line(r))
     return out
@@ -140,22 +141,28 @@ def decided_lines(conn_runs, collect_results, left_results, recon):
     return out
 
 def unanswered_lines(cx, conn_runs):
-    """The connector runs logged error this turn, one line each naming the source that did not answer (the registry's name
-    of the run's own source) and what it said: such a run does not count as a run on the step's fields
-    (log_search.ran_unchanged), so the step stays runnable and the next turn asks the source again."""
-    out = []
+    """The connector runs logged error this turn, one line for each source that did not answer: the registry's name of the
+    runs' own source, the rows of the steps it was asked on and what it said first. Such a run does not count as a run on the
+    step's fields (log_search.ran_unchanged), so the step stays runnable and the next turn asks the source again."""
+    by = {}
     for run in conn_runs:
         for r in run["results"]:
             if r.get("outcome") != "error" or not r.get("log"): continue
             row = cx.execute("SELECT s.id, s.name FROM search_log l LEFT JOIN source s ON s.id=l.source_id WHERE l.id=?", (r["log"],)).fetchone()
             name = f"{row[1]} ({row[0]})" if row and row[0] else r.get("connector") or "the source"
-            out.append(f"  {run['row_key']}: {name} did not answer ({'; '.join(r.get('errors') or []) or 'no response'}); the step stays runnable, the next turn asks it again")
+            e = by.setdefault(name, {"rows": [], "said": []})
+            if run["row_key"] not in e["rows"]: e["rows"].append(run["row_key"])
+            e["said"] += [m for m in (r.get("errors") or []) if m not in e["said"]]
+    out = []
+    for name, e in by.items():
+        said = (e["said"][0] if e["said"] else "no response")[:200] + (f"; and {len(e['said']) - 1} more" if len(e["said"]) > 1 else "")
+        out.append(f"  {name} did not answer ({said}) on {', '.join(e['rows'])}; the step{'s stay' if len(e['rows']) > 1 else ' stays'} runnable, the next turn asks it again")
     return out
 
-def left_lines(cx, cat, pid, collect_results, left_results, recon, watch):
-    """What the turn leaves for the owner (docs/RESEARCH-WORKFLOW.md §8): this person's own open work, any file the
-    browser session brought back that fulfilled no step, and reconsider's own cards named for this turn (this person or
-    someone it created). Reconsider examines the whole tree, not one person's turn, so a card naming somebody else is
+def left_lines(cx, cat, pid, collect_results, left_results, recon, watch, reported):
+    """What the turn leaves for the owner (docs/RESEARCH-WORKFLOW.md §8): this person's own open work, any file left in the
+    inbox that fulfilled no step (named once per run: `reported` holds the files an earlier report of the run already named),
+    and reconsider's own cards named for this turn (this person or someone it created). Reconsider examines the whole tree, not one person's turn, so a card naming somebody else is
     counted, not listed: that count was already there, or wasn't, before this turn ran."""
     w = cat.waiting(pid); bl = cat.baseline(pid)
     out = []
@@ -164,7 +171,7 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon, watch):
     if w["conflicts"]: out.append(f"  {pid_name(cx, pid)}: {w['conflicts']} conflict question(s) open")
     if w["needs_hand"]: out.append(f"  {pid_name(cx, pid)}: {w['needs_hand']} planned step(s) only a hand can take: a page to save in the browser, an assisted search, a film browsed by hand")
     for r in collect_results + left_results:
-        if r.get("left"): out.append("  " + line(r))
+        if r.get("left") and r["file"] not in reported: out.append("  " + line(r)); reported.add(r["file"])
     here, elsewhere = 0, 0
     for row in recon:
         if row["kind"] != "card" or row["taken"]: continue
@@ -175,7 +182,8 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon, watch):
 
 def pid_name(cx, pid): return cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0]
 
-def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=(), pre_unanswered=()):
+def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=(), pre_unanswered=(), reported=None):
+    reported = set() if reported is None else reported
     cat = Catalog(cx, tree_id)
     after_ids = person_ids(cx, tree_id)
     created = [(i, n) for i, n in after_ids.items() if i not in before_ids]
@@ -189,13 +197,13 @@ def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left
     out += [f"  {n} [{i[-6:]}]" for i, n in created] or ["  nobody"]
     out += ["", "left:"]
     watch = {pid_name(cx, pid)} | {n for _, n in created}
-    ll = left_lines(cx, cat, pid, collect_results, left_results, recon, watch) + list(pre_unanswered) + unanswered_lines(cx, conn_runs)
+    ll = left_lines(cx, cat, pid, collect_results, left_results, recon, watch, reported) + list(pre_unanswered) + unanswered_lines(cx, conn_runs)
     out += ll or ["  nothing outstanding on this person"]
     if waits: out += ["", f"still to fetch by hand (nothing saved for {len(waits)} page(s) yet): run tools/fetches.py list"]
     out += ["", f"plan: {dumps(plan_stats)}"]
     return "\n".join(out)
 
-def start(cx, tree_id, slug, pid, by, db):
+def start(cx, tree_id, slug, pid, by, db, reported=None):
     before = person_ids(cx, tree_id)
     cx.execute("BEGIN")
     try: plan_stats = plan_person(cx, tree_id, pid, PLANNER); cx.commit()
@@ -206,23 +214,21 @@ def start(cx, tree_id, slug, pid, by, db):
     if waits:
         held, decided, unanswered = held_lines(conn_runs, [], []), decided_lines(conn_runs, [], [], []), unanswered_lines(cx, conn_runs)
         save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided, unanswered)
-        lines = [f"-- {e['holder']}\n{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  save as {e['save_as']}" +
-                 ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else "") for e in waits]
-        print(f"turn: {pid_name(cx, pid)}\n" + "\n".join(lines) + f"\n\n{len(waits)} page(s) to fetch, one tab per page; save these, then run tools/turn.py --resume")
+        print(f"turn: {pid_name(cx, pid)}\n" + "\n".join(fetches.page_line(e) for e in waits) + f"\n\n{len(waits)} page(s) to fetch, one tab per page; save these, then run tools/turn.py --resume")
         if held or decided: print("\n(so far this turn -- held:\n" + "\n".join(held or ["  nothing yet"]) + "\ndecided:\n" + "\n".join(decided or ["  nothing yet"]) + ")")
         if unanswered: print("\nnot answered:\n" + "\n".join(unanswered))
         return
     names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
-    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats))
+    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats, reported=reported))
 
-def resume(cx, tree_id, slug, by, db):
+def resume(cx, tree_id, slug, by, db, reported=None):
     st = load_state(db)
     if not st or st["tree_id"] != tree_id: sys.exit("no paused turn on this tree: tools/turn.py \"<person>\"")
     pid = st["person_id"]; before = st.get("before_ids") or person_ids(cx, tree_id)
     names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
     clear_state(db)
     print(report(cx, tree_id, pid, before, [], [], collect_results, left_results, recon, final_stats, pre_held=st.get("held") or (), pre_decided=st.get("decided") or (),
-                 pre_unanswered=st.get("unanswered") or ()))
+                 pre_unanswered=st.get("unanswered") or (), reported=reported))
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--resume", action="store_true")

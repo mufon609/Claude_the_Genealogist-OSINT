@@ -23,7 +23,8 @@ already planned with no such step, whose open question is now only the owner's (
 nobody has vouched or decided, an assisted search with no link to open, an auto step run on these fields already (a run
 logged error, the source not answering, is not such a run), a fetch logged blocked) is passed over: named, with why, but
 never named next, since running a turn on them would do nothing.
-Without --all, prints the first person found and stops (queue.py --all lists the rest).
+Without --all, prints the first person found and the number passed over (queue.py --all lists the rest, each passed-over
+person with the reason).
 """
 import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -43,40 +44,42 @@ def advanceable(cx, cat, tree_id):
     return people
 
 def edge(cx, tree_id):
-    """([{id, name, reason}], [{id, name, reason}]): the queue a turn can act on, in order, then everyone passed over
-    (named once each, first reason it surfaces under). A person with no plan yet is always actionable (a turn's own
+    """([{id, name, reason, kind}], [{id, name, reason, kind}]): the queue a turn can act on, in order, then everyone passed
+    over (named once each, first reason it surfaces under; kind says which: "parent link" or "spouse link" the file names and
+    nobody has accepted, "open question" on a confirmed person, "unlinked" for a person the file names with no accepted link to
+    anyone confirmed). A person with no plan yet is always actionable (a turn's own
     first move makes one); one already planned is actionable only while a step of theirs is one a turn can advance
     (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next."""
     cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out, passed = [], []; seen = set()
     can = advanceable(cx, cat, tree_id)
-    def add(pid, name, reason):
+    def add(pid, name, reason, kind):
         if pid in seen: return
         seen.add(pid)
         planned_before = cat.q("SELECT 1 FROM search_plan WHERE person_id=? LIMIT 1", pid)
         if planned_before and pid not in can:
-            passed.append({"id": pid, "name": name, "reason": f"nothing left for a turn to run or fetch: {reason}"})
+            passed.append({"id": pid, "name": name, "reason": f"nothing left for a turn to run or fetch: {reason}", "kind": kind})
         else:
-            out.append({"id": pid, "name": name, "reason": reason})
+            out.append({"id": pid, "name": name, "reason": reason, "kind": kind})
     for gen in ov["generations"]:
         for c in gen:
             pid = c["id"]; fam = cat.family(pid)
             if cat.link_basis(pid, "parents") != "accepted":
                 for ppid, pname in fam["parents"]:
-                    add(ppid, pname, f"parent the file names for {c['name']}, link not yet accepted")
+                    add(ppid, pname, f"parent the file names for {c['name']}, link not yet accepted", "parent link")
             for f in fam["families"]:
                 if not f["spouse_id"]: continue
                 both = (cat.basis("family_member", dumps([f["id"], pid, "partner"])) == "accepted"
                         and cat.basis("family_member", dumps([f["id"], f["spouse_id"], "partner"])) == "accepted")
-                if not both: add(f["spouse_id"], f["spouse"], f"spouse the file names for {c['name']}, link not yet accepted")
+                if not both: add(f["spouse_id"], f["spouse"], f"spouse the file names for {c['name']}, link not yet accepted", "spouse link")
             w = cat.waiting(pid); bl = cat.baseline(pid)
             if w["documents"] or w["conflicts"] or not bl["complete"]:
                 why = []
                 if not bl["complete"]: why.append(f"{len(bl['undecided'])} key fact(s) undecided")
                 if w["documents"]: why.append(f"{w['documents']} document(s) to decide")
                 if w["conflicts"]: why.append(f"{w['conflicts']} conflict(s) open")
-                add(pid, c["name"], "confirmed, with an open question: " + ", ".join(why))
+                add(pid, c["name"], "confirmed, with an open question: " + ", ".join(why), "open question")
     for c in ov["others"]:
-        add(c["id"], c["name"], "named in the file, no accepted link to anyone confirmed yet, with a document or a conflict waiting")
+        add(c["id"], c["name"], "named in the file, no accepted link to anyone confirmed yet, with a document or a conflict waiting", "unlinked")
     return out, passed
 
 def main():
@@ -86,11 +89,11 @@ def main():
     cx = connect(a.db, rows=True); tree_id, slug = resolve_tree(cx, a.tree)
     q, passed = edge(cx, tree_id)
     if a.json: print(dumps({"next": q if a.all else q[:1], "passed_over": passed})); return
-    for e in passed: print(f"passed over: {e['name']} [{e['id'][-6:]}]  {e['reason']}")
-    if not q: print("nothing at the edge: every confirmed person is settled, and the file names nobody else waiting"); return
     if a.all:
-        for e in q: print(f"{e['name']} [{e['id'][-6:]}]  {e['reason']}")
+        for e in passed: print(f"passed over: {e['name']} [{e['id'][-6:]}]  {e['reason']}")
+    if not q: print("nothing at the edge: every confirmed person is settled, and the file names nobody else waiting")
     else:
-        e = q[0]; print(f"{e['name']} [{e['id'][-6:]}]  {e['reason']}")
+        for e in (q if a.all else q[:1]): print(f"{e['name']} [{e['id'][-6:]}]  {e['reason']}")
+    if passed and not a.all: print(f"{len(passed)} passed over (tools/queue.py --all)")
 
 if __name__ == "__main__": main()
