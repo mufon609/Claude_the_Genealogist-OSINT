@@ -103,7 +103,12 @@ Earl Davidson and Noi Davidson) carries no year to choose an item by. The
 planner blocks every fetch step at a `scanned_index` holder
 (`data/holders.csv`) by the holder's kind alone, whatever record it cites;
 this page-locating step is what unblocks them, for the New York index and
-for the New Jersey marriage index's own scanned-page years alike.
+for the New Jersey marriage index's own scanned-page years alike. The same
+step serves every free index that exists only as scanned pages: the
+Pennsylvania State Archives' death index 1906–1975 and birth index 1906–1910
+(PDFs on pa.gov, no text layer; ten of the blocked Pennsylvania death steps
+fall in its years) and Reclaim the Records' Massachusetts death, marriage and
+birth indexes (PDFs whose text layer is empty).
 
 ### C2. A saved page carries its fetch-list entry in its own bytes
 
@@ -209,10 +214,10 @@ Pennsylvania death exists on a reviewed person, so it is tested on a real
 step: a hit's record is the page's OCR text, read as the loc.gov text is
 (one persona per place the surname stands, a name and nothing else), which
 needs the extractor to claim a plain-text response by the runner's notes.
-The site has reset the connection on the search path to a declared tool
-(urllib and curl alike) while serving its robots page; confirm the search
-answers a declared tool before building, and if it refuses, the step is
-assisted.
+The JSON search answers a declared tool (132 hits for Heebner 1900–1930;
+226 titles, among them the Evening Public Ledger 1914–1942, the Reading Gazette
+and Democrat 1850–78 and German-language papers; no Norristown or Pottstown
+title); it has reset connections before, so a refusal makes the step assisted.
 
 ### C9. Tree isolation has no harness, and some readers ignore the tree
 
@@ -275,8 +280,10 @@ and the event (`data/DATA-SOURCES.md` §4). Its registry row (I07) is the
 church row's source for a Netherlands-born person. Build the connector, with
 an extractor for the A2A record (one persona per person with a relation to
 the record's subject, the event as the fact), when such a person is reviewed
-and the step exists, so it is tested on a real step. The endpoint has timed
-out on a declared tool from this machine; confirm it answers before building.
+and the step exists, so it is tested on a real step. The API answers a
+declared tool (70 records for Sijtske Lieuwes, 6 for Rittinghuysen at
+Amsterdam) and has had outages: an unanswered request is an error run, asked
+again next turn.
 
 ### C14. The decision code is hard to review
 
@@ -306,16 +313,40 @@ vouch, recorded as their word), the household then read outward from her
 through its stated relationships as any accepted record is; or the card stays
 the owner's.
 
+### C16. A connector for the New York State death index
+
+Reclaim the Records' New York State death index 1880–1971 (outside New York
+City) is a CSV per year or five years on the Internet Archive (year, Soundex,
+last, first, middle initial, residence, place of death as a code, age, date,
+state file number), Soundex-ordered, public domain (`data/data-sources.csv`
+C08). It answers a death row for the Nassau and Suffolk people the plan has
+no free holder for. Build it as the New Jersey and Kentucky death-index
+connectors are built: a byte range read for the surname's Soundex block, the
+matching rows kept as the derivative, one persona per row; the place codes
+need their own table from the release's documentation before a place is read.
+
+### C17. One connector for CONTENTdm collections
+
+The Tennessee Virtual Archive (death certificates, marriages, births), Ohio
+Memory and the Alabama archives (L04) all run CONTENTdm, whose JSON search
+(`/digital/api/search/collection/<alias>/searchterm/<term>/...`) answers a
+declared tool. Tennessee's death certificates are titled by certificate number,
+reached by name only through annual index volumes (1950–1974 found), so the
+step is two hops: the index volume for the name, then the certificate by
+number. Build one connector for the shape when a reviewed person's
+Tennessee or Ohio step needs it.
+
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
 
 - **NARA Catalog API key** — issued by email on request.
-- **Pennsylvania death and birth certificates** — no free holder: Power
-  Library shows the PA State Archives collections left the site and PHMC
-  points only at Ancestry, so the steps for dbids 5164 and 60484 stay
-  `blocked`. Add the row to `data/holders.csv` when they reappear at a free
+- **Pennsylvania death and birth certificates' images** — only on Ancestry
+  (free with a Pennsylvania address through its portal), so the steps for
+  dbids 5164 and 60484 stay `blocked` for the certificate itself; the State
+  Archives' own indexes are free as scanned pages (the scanned-index entry
+  above). Add the row to `data/holders.csv` when the images reach a free
   holder.
-- **German → Polish gazetteer for Silesia (GOV / Kartenmeister)** — needed
-  to resolve Harpersdorf, Langneundorf and the Berthelsdorf question; no
-  programmatic access confirmed yet.
+- **API keys the owner would request** — DPLA, Europeana and the Google Books
+  API answer only with a key (`data/data-sources.csv` M02, M03, L05); each is
+  low yield for this tree, so none is wanted until a step needs it.
