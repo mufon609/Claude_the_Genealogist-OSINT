@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "84cace00262fe1026df28570b60833b042ac3fbd2cecb6d8e38578619d2124a5",
+  "bytes": 44668,
+  "mime": "application/json",
+  "source_id": "H07",
+  "collection": "Internet Archive newspapers",
+  "locator": {
+    "kind": "url",
+    "value": "https://be-api.us.archive.org/fts/v1/search?q=%22Helen%20Brant%22~3%20AND%20collection%3Anewspaperarchive&size=40"
+  },
+  "retrieved_at": "2026-09-12T02:07:19Z",
+  "retrieved_by": "agent:tree-9 for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://be-api.us.archive.org/fts/v1/search?q=%22Helen%20Brant%22~3%20AND%20collection%3Anewspaperarchive&size=40",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "Public domain",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T1",
+  "pages": 1,
+  "notes": "{\"query\":{\"citation\":{\"basis\":\"citation\",\"value\":\"Boca Raton News\"},\"collection\":{\"basis\":\"citation\",\"value\":\"U.S., Newspapers.com™ Obituary Index, 1800s-current\"},\"name\":{\"basis\":\"citation\",\"value\":\"Helen Sara Brant\"},\"publication date\":{\"basis\":\"citation\",\"value\":\"27 Jan 1986\"},\"publication place\":{\"basis\":\"citation\",\"value\":\"Boca Raton, Florida, USA\"},\"url\":{\"basis\":\"citation\",\"value\":\"https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355\"}},\"request\":\"search\"}"
+}

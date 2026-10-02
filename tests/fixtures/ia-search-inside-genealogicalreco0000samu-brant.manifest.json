@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "90297f8453cf40a980a2158822f5920023e4d80efbcd7fb0d2c4d4795d174fb4",
+  "bytes": 1522,
+  "mime": "application/json",
+  "source_id": "L02",
+  "collection": "Internet Archive books",
+  "locator": {
+    "kind": "url",
+    "value": "https://ia801406.us.archive.org/fulltext/inside.php?item_id=genealogicalreco0000samu&doc=genealogicalreco0000samu&path=%2F28%2Fitems%2Fgenealogicalreco0000samu&q=Brant"
+  },
+  "retrieved_at": "2026-09-11T16:36:01Z",
+  "retrieved_by": "agent:session_01TKirW4FCq42xMBAqEUHXYw for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://ia801406.us.archive.org/fulltext/inside.php?item_id=genealogicalreco0000samu&doc=genealogicalreco0000samu&path=%2F28%2Fitems%2Fgenealogicalreco0000samu&q=Brant",
+    "content_type": "application/json;charset=UTF-8"
+  },
+  "rights": {
+    "terms": "PD/ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T3",
+  "pages": 1,
+  "notes": "{\"collections\":[\"internetarchivebooks\",\"fav-hulanhai\",\"fav-upal30\"],\"connector\":\"ia_books\",\"date\":\"1923-01-01\",\"dir\":\"/28/items/genealogicalreco0000samu\",\"doc\":\"genealogicalreco0000samu\",\"given\":\"Abram C\",\"hit\":\"THE GENEALOGICAL RECORD OF THE SCHWENKFELDER FAMILIES (1923): the cited book\",\"item\":\"genealogicalreco0000samu\",\"locator\":{\"kind\":\"url\",\"value\":\"https://archive.org/details/genealogicalreco0000samu\"},\"page\":null,\"pages\":[182,743],\"q\":\"\\\"The Genealogical Record of the Schwenkfelder Families\\\"\",\"server\":\"ia801406.us.archive.org\",\"step_type\":\"name\",\"surname\":\"Brant\",\"text\":[],\"title\":\"THE GENEALOGICAL RECORD OF THE SCHWENKFELDER FAMILIES\",\"year\":1923,\"zip\":\"genealogicalreco0000samu_jp2.zip\"}"
+}

@@ -1,2 +1,4 @@
 # The Kentucky index slices are the year files' own bytes, CRLF line ends and carriage-control bytes included: never normalised.
 ky-*.txt -text
+# The New Jersey index lines are the file's own, line feeds only: never normalised.
+nj-*.csv -text

@@ -83,32 +83,31 @@ def a_clear_state(w, x):
     import turn; turn.clear_state(w.db); return {}
 
 def a_run(w, x):
-    """tools/run_step.py run on one step, the download faked: a body the data gives (a text, or CSV rows under a header), one
-    answer per request under `answers` (each for the URLs carrying `url_has`: a `body`, or an `error` the source's connection
-    raises, standing for a timeout or a challenge), or no network at all, when a request must not go out; `dry` for --dry-run,
-    `again` for a run by the step's id, every connector asked."""
+    """tools/run_step.py run on one step through its real connectors, only the network call replaced: one answer per request
+    under `answers`, each for the URLs carrying `url_has`, either a saved real response (`fixture` under tests/fixtures/, its
+    `content_type`) or an `error` the source's connection raises, the harness's stand-in for a holder that did not answer (a
+    timeout, a refusal, a challenge); a request the data does not answer fails the run. No `fetch` means no network at all,
+    when a request must not go out; `dry` for --dry-run, `again` for a run by the step's id, every connector asked. The result
+    carries each connector's run and, under `records`, the sha256 of every record the runner archived and read."""
     import run_step, urllib.error
     st = w.step(x["step"]); cat = w.catalog()
     fetch = x.get("fetch")
     def meta(url, content_type): return {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": content_type}
-    def body_of(f): return (f["header"] + "\r\n" + "\r\n".join(f["rows"]) + "\r\n").encode() if "rows" in f else f["body"].encode()
     if fetch is None or x.get("dry"):
         def fake_fetch(url, kind, c, data=None): raise AssertionError(f"a request went out: {url}")
-    elif "answers" in fetch:
+    else:
         def fake_fetch(url, kind, c, data=None):
             for ans in fetch["answers"]:
                 if ans["url_has"] not in url: continue
                 if ans.get("error"): raise urllib.error.URLError(ans["error"])
-                return body_of(ans), meta(url, ans.get("content_type", "application/json"))
+                with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))
             raise AssertionError(f"a request went out that the data does not answer: {url}")
-    else:
-        body = body_of(fetch)
-        def fake_fetch(url, kind, c, data=None): return body, meta(url, fetch.get("content_type", "text/plain"))
     with patched(run_step, "fetch", fake_fetch):
         w.cx.execute("BEGIN"); res = run_step.run(w.cx, cat, w.tid, st, BY, dry_run=bool(x.get("dry")), again=bool(x.get("again"))); w.cx.commit()
     return {"step": st["id"], "results": [{"connector": r.get("connector"), "source": r.get("source"), "asked": r.get("asked"), "answered": r.get("answered"), "outcome": r.get("outcome"),
-                                          "requests": r.get("requests"), "wants": r.get("wants"), "error": r.get("error"),
+                                          "requests": r.get("requests"), "wants": r.get("wants"), "error": r.get("error"), "errors": r.get("errors"),
                                           "proposals": (r.get("extracted") or [{}])[0].get("proposals"), "extraction": (r.get("extracted") or [{}])[0].get("extraction")} for r in res],
+            "records": [e["sha256"] for r in res for e in r.get("extracted") or [] if "extraction" in e],
             "connectors": [c.__name__.split(".")[-1] for c in run_step.connectors_for(cat, st)]}
 
 def a_run_all(w, x):

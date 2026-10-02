@@ -60,7 +60,7 @@
     "fake_run": {
      "first": "error",
      "then": "none",
-     "error": "https://faked.example/search: timed out"
+     "error": "the harness's stand-in for no answer: timed out"
     }
    },
    "as": "turn",

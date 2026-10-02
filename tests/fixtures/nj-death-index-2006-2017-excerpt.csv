@@ -1,0 +1,75 @@
+FNAME,LNAME,MIDDLE_NAME,STATE_FILE_NUMBER,BIRTH_YEAR,BIRTH_MONTH,BIRTH_DAY,BIRTH_CITY,BIRTH_STATE,BIRTH_COUNTRY,DEATH_YEAR,DEATH_MONTH,DEATH_DAY,DEATH_STATE
+SYLVIA,AHEARN,A,20060052821,1933,9,26,,New York,United States,2006,10,29,NJ
+Robert,Evers,L,20060050851,1963,4,13,,New Jersey,United States,2006,10,2,NJ
+CATHERINE,AHEARN,J,20060029474,1917,10,7,,Pennsylvania,United States,2006,6,5,NJ
+KENNETH,AHEARN,N,20060028423,1933,1,25,,Massachusetts,United States,2006,6,1,NJ
+MARY,AHEARN,R,20060009205,1925,1,6,NEW YORK,New York,United States,2006,1,22,NJ
+MARY,EVERS,P,20060007017,1961,8,25,PHILADELPHIA,Pennsylvania,United States,2006,2,12,NJ
+SELMA,EVERS,ALICE,20080019184,1910,5,3,ORANGE,New Jersey,United States,2008,4,19,NJ
+JOHANNA,EVERS,,20080010593,1907,5,1,UNKNOWN,,Germany,2008,2,15,NJ
+SHEILA,AHEARN,ELLEN,20070055810,1945,5,26,,New York,United States,2007,10,4,NJ
+LILLIAN,EVERS,M,20070051256,1931,3,16,,New Jersey,United States,2007,8,26,NJ
+GERALD,AHEARN,ROBERT,20070049440,1946,9,15,,New Jersey,United States,2007,9,27,NJ
+JOHN,EVERS,J,20070023573,1924,4,23,,New Jersey,United States,2007,4,10,NJ
+HENRY,EVERS,,20070019254,1924,8,12,,New Jersey,United States,2007,3,16,NJ
+MARY,AHEARN,J,20070006988,1925,11,13,,New Jersey,United States,2007,2,25,NJ
+ELAINE,EVERS,L,20060057992,1915,7,27,,North Dakota,United States,2006,11,6,NJ
+June,Evers,L,20120028242,1937,6,15,Plainfield,New Jersey,United States,2012,5,28,NJ
+Philip,Ahearn,G,20120009046,1943,9,14,Brooklyn,New York,United States,2012,2,16,NJ
+Helen,Evers,Hogan,20120000303,1916,9,23,West Pittston,Pennsylvania,United States,2012,1,3,NJ
+Edward,Evers,Paul,20110045260,1943,10,15,Waukesha,Wisconsin,United States,2011,8,24,NJ
+William,Ahearn,Louis,20110041826,1927,12,16,Bronx,New York,United States,2011,8,3,NJ
+Joan,Ahearn,A,20110030653,1935,9,17,Scranton,Pennsylvania,United States,2011,6,4,NJ
+Catherine,Ahearn,,20110028700,1926,8,6,Teaneck,New Jersey,United States,2011,5,23,NJ
+Francis,Evers,C,20110016462,1925,8,1,Philadelphia,Pennsylvania,United States,2011,3,17,NJ
+Lorraine,Evers,,20110005210,1922,6,9,West New York,New Jersey,United States,2011,1,24,NJ
+John,Ahearn,J,20100065998,1938,3,1,Manhattan,New York,United States,2010,12,23,NJ
+John,Ahearn,J,20100056654,1916,8,22,County Mayo,,Ireland,2010,11,9,NJ
+Frances,Evers,,20100054635,1932,8,15,Salamanca,New York,United States,2010,10,29,NJ
+Sally,Evers,Jane,20100048295,1942,9,11,Long Branch,New Jersey,United States,2010,9,24,NJ
+Veronica,Ahearn,,20130018753,1922,11,14,Bronx,New York,United States,2013,3,29,NJ
+Kevin,Ahearn,Gerard,20130013320,1961,12,22,Brooklyn,New York,United States,2013,2,28,NJ
+Gloria,Ahearn,,20120064591,1930,6,25,New York City,New York,United States,2012,12,10,NJ
+William,Ahearn,J,20120055324,1957,3,10,Jersey City,New Jersey,United States,2012,10,23,NJ
+Richard,Evers,,20120039356,1944,8,8,Newark,New Jersey,United States,2012,7,29,NJ
+Eva,Evers,,20140018650,1930,4,21,Ungvar,,Hungary,2014,4,2,NJ
+Charles,Ahearn,J,20140015681,1923,3,14,Boston,Massachusetts,United States,2014,3,20,NJ
+Fred,Ahearn,Joseph,20140010828,1926,5,12,Englewood,New Jersey,United States,2014,2,22,NJ
+Kathleen,Ahearn,Mary,20140008147,1933,3,26,Jersey City,New Jersey,United States,2014,2,10,NJ
+Melissa,Evers,,20140002613,1979,4,5,Philadelphia,Pennsylvania,United States,2014,1,13,NJ
+Mildred,Evers,,20130069142,1921,6,20,Belleville,New Jersey,United States,2013,12,27,NJ
+BARRY,EVERS, JONATHAN,20130034183,1964,6,8,Cincinnati,Ohio,United States,2013,6,18,NJ
+Kathleen,Evers,M,20170062410,1951,9,2,Newark,New Jersey,United States,2017,11,11,NJ
+Felecci,Ahearn,,20170051593,1978,4,5,,,Philippines,2017,9,14,NJ
+Josephine,Evers,M,20170047306,1920,12,7,New York,New York,United States,2017,8,20,NJ
+Maryellen,Evers,,20170044776,1966,7,11,Phila.,Pennsylvania,United States,2017,8,8,NJ
+Clete,Ahearn,,20170036303,1965,7,30,Orange,New Jersey,United States,2017,6,24,NJ
+John,Evers,L,20170000710,1929,3,10,New York,New York,United States,2017,1,5,NJ
+DENNIS,EVERS,J,20160068896,1946,2,18,Newark,New Jersey,United States,2016,12,19,NJ
+Anne,Evers,K,20160051544,1947,5,26,Newark,New Jersey,United States,2016,9,18,NJ
+Clifford,Evers,Frederick,20160049926,1936,6,10,Danbury,Connecticut,United States,2016,9,14,NJ
+Catherine,Evers,C,20160042643,1925,3,8,New York,New York,United States,2016,8,8,NJ
+FREDERICK,AHEARN,M,20160019505,1932,11,6,Coatesville,Pennsylvania,United States,2016,4,3,NJ
+Edward,Evers,A,20160017609,1924,10,11,Clifton,New Jersey,United States,2016,3,27,NJ
+Margaret,Ahearn,,20150013996,1920,6,29,Bohola,,Ireland,2015,3,6,NJ
+Robert,Evers,G,20150007353,1921,5,4,Bloomfield,New Jersey,United States,2015,2,4,NJ
+Patricia,Ahearn,Marie,20140066067,1932,10,21,Maspeth,New York,United States,2014,12,15,NJ
+John,Ahearn,T,20140062609,1930,12,24,Jersey City,New Jersey,United States,2014,11,27,NJ
+Robert,Evers,John,20140050675,1932,10,8,Jersey City ,New Jersey,United States,2014,9,23,NJ
+Alice,Evers,Joan,20140049202,1935,1,12,New York,New York,United States,2014,9,17,NJ
+Audrey,Evers,,20160013493,1936,11,22,Hackensack,New Jersey,United States,2016,3,6,NJ
+Charles,Evers,H,20160004716,1930,9,2,Unknown,New Jersey,United States,2016,1,26,NJ
+NOI,DAVIDSON,,20150061197,1929,1,15,Morioka,,Japan,2015,11,12,NJ
+William,Evers,T,20150022239,1950,3,24,Newark,New Jersey,United States,2015,4,12,NJ
+William,Evers,J,20090043094,1932,9,3,Long Branch,New Jersey,United States,2009,4,15,NJ
+JAMES,AHEARN,R,20090012014,1937,7,31,PISCATAWAY,New Jersey,United States,2009,9,26,NJ
+JOSEPH,EVERS,R,20090000293,1944,2,20,PHILADELPHIA,Pennsylvania,United States,2009,1,9,NJ
+ALICE,AHEARN,,20080057417,1922,11,6, STATEN ISLAND,New York,United States,2008,9,7,NJ
+Herbert,Ahearn ,T,20100041659,1926,8,25,Flushing,New York,United States,2010,8,17,NJ
+James,Evers,A,20100036246,1945,11,16,Newark,New Jersey,United States,2010,7,17,NJ
+Mary,Evers,M,20100029194,1925,1,30,Elizabeth,New Jersey,United States,2010,6,6,NJ
+John,Evers,,20100015028,1930,6,17,Prospect Park,New Jersey,United States,2010,3,20,NJ
+Mary Jane,Evers,,20100009838,1918,9,4,Sault Sainte Marie,Michigan,United States,2010,2,22,NJ
+Mildred,Ahearn,E,20100003002,1919,5,4,Hoboken,New Jersey,United States,2010,1,17,NJ
+Joan,Evers,,20090067237,1939,3,25,New York City,New York,United States,2009,9,29,NJ
+Donald,Ahearn,M,20090063637,1924,3,8,Bridgeport,Connecticut,United States,2009,9,7,NJ

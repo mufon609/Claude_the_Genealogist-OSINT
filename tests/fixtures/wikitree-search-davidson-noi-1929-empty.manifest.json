@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "eb0a659a87eb7d8794c5b2ee0b2a3a94dca9ffe9cbec00b7f10569512eb00a3f",
+  "bytes": 58,
+  "mime": "application/json",
+  "source_id": "B04",
+  "collection": "WikiTree profiles",
+  "locator": {
+    "kind": "url",
+    "value": "https://api.wikitree.com/api.php?action=searchPerson&LastName=Davidson&FirstName=Noi&BirthDate=1929&dateInclude=both&dateSpread=2&fields=Id%2CName%2CFirstName%2CMiddleName%2CLastNameAtBirth%2CLastNameCurrent%2CBirthDate%2CDeathDate%2CBirthLocation%2CDeathLocation%2CGender%2CFather%2CMother%2CPrivacy&limit=20&format=json&appId=tree-genealogy-dev"
+  },
+  "retrieved_at": "2026-09-13T15:05:44Z",
+  "retrieved_by": "agent:tree-16 for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://api.wikitree.com/api.php?action=searchPerson&LastName=Davidson&FirstName=Noi&BirthDate=1929&dateInclude=both&dateSpread=2&fields=Id%2CName%2CFirstName%2CMiddleName%2CLastNameAtBirth%2CLastNameCurrent%2CBirthDate%2CDeathDate%2CBirthLocation%2CDeathLocation%2CGender%2CFather%2CMother%2CPrivacy&limit=20&format=json&appId=tree-genealogy-dev",
+    "content_type": "application/json; charset=utf-8"
+  },
+  "rights": {
+    "terms": "CC BY-SA style; appId param encouraged",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T4",
+  "pages": 1,
+  "notes": "{\"query\":{\"birth_year\":{\"basis\":\"accepted\",\"tolerance\":2,\"value\":1929},\"given\":{\"basis\":\"accepted\",\"value\":\"Noi\"},\"sex\":{\"basis\":\"accepted\",\"value\":\"F\"},\"spouses\":{\"basis\":\"accepted\",\"value\":[\"Raymond Earl Davidson\"]},\"state\":{\"basis\":\"accepted\",\"value\":\"new jersey\"},\"surname\":{\"basis\":\"accepted\",\"value\":\"Davidson\"},\"variants\":{\"basis\":\"claim\",\"value\":[\"Noi Segawa Davidson\"]}},\"request\":\"search\"}"
+}

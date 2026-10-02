@@ -75,8 +75,13 @@ def connectors_offline():
     say(ia_books.requests(f(collection=C["book_untitled"]["collection"], name=C["book_untitled"]["name"])) == [], "a book citation naming no title asks nothing")
     st_ = f(**C["search_step"])
     say(ia_books.requests(st_) and "be-api.us.archive.org" in ia_books.requests(st_)[0]["url"], "a search step still asks the full-text search")
-    with open(os.path.join(FIXTURES, B["fixture"]), "rb") as fh: body = fh.read()
-    say(ia.total(body) == B["total"], f"the advanced search's total: {ia.total(body)}")
+    def saved(name):
+        with open(os.path.join(FIXTURES, name), "rb") as fh: return fh.read()
+    def asked(name):
+        """The URL a saved response was asked at, from its manifest."""
+        with open(os.path.join(FIXTURES, name.rsplit(".", 1)[0] + ".manifest.json"), encoding="utf-8") as fh: return json.load(fh)["locator"]["value"]
+    body = saved(B["fixture"]); adv = body
+    say(ia.total(body) == B["total"] and rq and rq[0]["url"] == asked(B["fixture"]), f"the advanced search is asked at the URL its saved answer was asked at, and the answer's total is read: {ia.total(body)}")
     hs = ia_books.hits(rq[0]["url"], body, rq[0]) if rq else []
     say([h["notes"]["item"] for h in hs] == B["items_in_order"], f"the copies of the cited book, in the Archive's order: {[h['notes']['item'] for h in hs]}")
     first = B["items_in_order"][0]
@@ -107,18 +112,18 @@ def connectors_offline():
     say(len(va_graves.hits(va_graves.URL, body, {"locator": "x"})) == PG["total"] and va_graves.hits(va_graves.URL, body, {"locator": "x"})[0]["fetch"] == [], "one hit per decedent, fetching nothing: the page is the record")
     D = C["dates"]
     say(parse_gedcom_date(D["read"])["date_start"] == D["read_as"] and parse_gedcom_date(D["impossible"])["date_start"] is None, "a month-first date is read, an impossible one is not")
-    SI = C["search_inside"]; item = SI["item"]
-    body_meta = json.dumps({"server": "ia800300.us.archive.org", "dir": f"/1/items/{item}", "metadata": {"identifier": item}, "files": [{"name": f"{item}_jp2.zip"}]}).encode()
-    h = ia.hit({"identifier": item, "doc": item, "title": "x", "year": 1879, "date": None, "collections": [], "page": None, "text": []}, {"q": SI["q"], "surname": SI["surname"], "given": SI["given"], "variants": SI["variants"]}, "x")
-    inside = ia.follow(h["fetch"][0], body_meta, h)
-    say([x.get("spelling") for x in inside] == SI["spellings"] and all("inside.php" in x["url"] for x in inside) and f"q={SI['spellings'][1]}" in inside[1]["url"],
-        f"the search inside is asked once per spelling, the surname first, a repeat spelling dropped: {[(x.get('spelling'), x['url'][-40:]) for x in inside]}")
-    bodies = [json.dumps({"ia": "x", "q": sp, "matches": [{"text": m["text"], "par": [{"page": m["page"]}]} for m in SI["matches"][sp]]}).encode() for sp in SI["spellings"]]
-    imgs = ia.follow(inside[0], bodies[0], h) + ia.follow(inside[1], bodies[1], h)
-    say(h["notes"]["pages"] == SI["pages"] and [x["page"] for x in imgs] == SI["pages"] and h["notes"].get("spellings_found") == SI["spellings"],
-        f"the pages of every spelling merged, each image once, the spellings found noted: {h['notes'].get('pages')}, {[x['page'] for x in imgs]}, {h['notes'].get('spellings_found')}")
-    lent = ia.hit({"identifier": "lent", "doc": "lent", "title": "x", "year": 1900, "date": None, "collections": [], "page": None, "text": []}, {"surname": C["lent"]["surname"]}, "x")
-    say(ia.follow(lent["fetch"][0], json.dumps({"server": "s", "dir": "/d", "metadata": {"access-restricted-item": "true"}, "files": []}).encode(), lent) == [] and lent["notes"].get("restricted") is True, "a book the Archive lends stops at its metadata, marked restricted")
+    SI = C["search_inside"]
+    rqv = ia_books.requests(f(collection=B["collection"], name=B["name"], citation=B["citation"], surname_variants=SI["variants"]))
+    h = next((x for x in ia_books.hits(rqv[0]["url"], adv, rqv[0]) if x["notes"]["item"] == SI["item"]), None)
+    inside = ia.follow(h["fetch"][0], saved(SI["metadata"]), h)
+    say([x.get("spelling") for x in inside] == SI["spellings"] and all("inside.php" in x["url"] for x in inside) and [x["url"] for x in inside] == [asked(SI["inside"][sp]) for sp in SI["spellings"]],
+        f"the search inside is asked once per spelling, the surname first, a repeat spelling dropped, each at the URL its saved answer was asked at: {[(x.get('spelling'), x['url'][-40:]) for x in inside]}")
+    imgs = ia.follow(inside[0], saved(SI["inside"][SI["spellings"][0]]), h) + ia.follow(inside[1], saved(SI["inside"][SI["spellings"][1]]), h)
+    say(h["notes"]["pages"] == SI["pages"] and [x["page"] for x in imgs] == SI["pages"] and h["notes"].get("spellings_found") == sorted(SI["spellings"]),
+        f"the pages of every spelling merged to three, each image once, the spellings found noted: {h['notes'].get('pages')}, {[x['page'] for x in imgs]}, {h['notes'].get('spellings_found')}")
+    LT = C["lent"]; rql = ia_books.requests(f(**LT["fields"]))
+    lent = next((x for x in ia_books.hits(rql[0]["url"], saved(LT["fixture"]), rql[0]) if x["notes"]["item"] == LT["item"]), None)
+    say(lent and ia.follow(lent["fetch"][0], saved(LT["metadata"]), lent) == [] and lent["notes"].get("restricted") is True, "a book the Archive lends stops at its metadata, marked restricted")
     from run_step import outcome_of
     say(outcome_of([{"restricted": True}], [], ["a"]) == "none" and outcome_of([{"restricted": True}, {"restricted": False}], [], ["a"]) == "found" and outcome_of([], ["x"], []) == "error" and outcome_of([], [], ["a"]) == "none",
         "a run whose every hit is a lent book is none; one read is found; no answer at all is error")
@@ -128,10 +133,13 @@ def connectors_offline():
     lg = loc_gov.requests(fq); ian = ia_newspapers.requests(fq)
     say(lg and all(x in lg[0]["url"] for x in O["loc_gov_has"]), f"a cited obituary's fields ask loc.gov by the citation's name in the paper's year and state: {lg and lg[0]['url']}")
     say(ian and ian[0]["years"] == O["years"] and O["ia_has"] in ian[0]["url"] and ian[0]["surname"] == O["surname"] and ian[0]["given"] == O["given"], f"and the Archive's newspapers within the paper's year, the citation's name split so the search inside asks the surname alone: {ian and (ian[0]['years'], ian[0]['surname'], ian[0]['url'][-60:])}")
-    fts = json.dumps({"hits": {"total": {"value": len(O["issues"])}, "hits": [{"fields": {"identifier": [i["identifier"]], "meta_title": [i["title"]], "meta_collection": ["newspaperarchive"]}, "highlight": {"text": [i["highlight"]]}} for i in O["issues"]]}}).encode()
+    fts = saved(O["fixture"])
+    say(asked(O["fixture"]) == ian[0]["url"] and ia.total(fts) == O["total"], f"the Archive's newspaper search is asked at the URL its saved answer was asked at, and the answer's total is read: {ian and ian[0]['url']}, {ia.total(fts)}")
     its = ia.items(fts)
-    say([(i["year"], i["date"]) for i in its] == [(i["year"], i["date"]) for i in O["issues"]], f"a newspaper issue's day read from its title when the search gives no year: {[(i['year'], i['date']) for i in its]}")
-    say([h["notes"]["item"] for h in ia_newspapers.hits(ian[0]["url"], fts, ian[0])] == O["hit_items"] if ian else False, "and only the issue of the paper's year is a hit")
+    say({i["identifier"]: [i["year"], i["date"]] for i in its if i["identifier"] in O["undated"]} == O["undated"], f"a newspaper issue's day read from its title when the search gives no year: {[(i['identifier'], i['year'], i['date']) for i in its if i['identifier'] in O['undated']]}")
+    say([h["notes"]["item"] for h in ia_newspapers.hits(ian[0]["url"], fts, ian[0])] == O["hit_items"] if ian else False, "and an answer holding no issue of the paper's year gives no hit, an undated one among them")
+    Y = O["in_year"]
+    say([h["notes"]["item"] for h in ia_newspapers.hits(ian[0]["url"], fts, {**ian[0], "years": Y["years"]})] == Y["items"], "the same answer asked for a year it holds issues of gives those issues, the one the search dated by its title among them")
     from run_step import spelling_variants
     SP = C["spellings"]
     say(spelling_variants(SP["surname"], SP["aliases"]) == SP["found"], f"the surname's spellings among the aliases: a slip and a variant once each, never a married name or another surname: {spelling_variants(SP['surname'], SP['aliases'])}")
@@ -164,7 +172,8 @@ def connectors_offline():
         "an obituary for a death after the newspapers end is not asked; one within them, or a lifetime overlapping them, is")
     from connectors import nj_death_index as nj
     DF = C["death_index_file"]
-    whole = (DF["header"] + "\r\n" + "\r\n".join(DF["rows"]) + "\r\n").encode()
+    with open(os.path.join(FIXTURES, DF["fixture"]), "rb") as fh: whole = fh.read()
+    header = whole.decode().splitlines()[0]
     rq = nj.requests(f(name=DF["step_name"]))
     say(rq and rq[0]["url"] == nj.CSV_URL and rq[0]["kind"] == "text" and rq[0]["surname"] == DF["surname"] and rq[0]["record"] is False, f"the whole file is asked once, the step's own surname split from its citation's name, not itself the record: {rq}")
     say(nj.requests(f(collection="x")) == [], "no name on the step, nothing asked")
@@ -174,7 +183,7 @@ def connectors_offline():
     fetch0 = hs[0]["fetch"][0]
     say(fetch0["derived_from"] == rq0["archived_sha"] and fetch0["record"] is True and "bytes" in fetch0, f"the derivative carries its parent's sha and is itself the record, computed, not fetched: {fetch0}")
     deriv_text = fetch0["bytes"].decode()
-    say(deriv_text.splitlines()[0] == DF["header"] and len(deriv_text.splitlines()) == DF["rows_under"] + 1 and DF["not_in_derivative"] not in deriv_text.lower(), f"the derivative carries the header and only the surname's rows, nobody else's: {deriv_text}")
+    say(deriv_text.splitlines()[0] == header and len(deriv_text.splitlines()) == DF["rows_under"] + 1 and DF["not_in_derivative"] not in deriv_text.lower(), f"the derivative carries the header and only the surname's rows, nobody else's: {deriv_text}")
     say(nj.hits(nj.CSV_URL, whole, {"surname": DF["absent_surname"], "archived_sha": rq0["archived_sha"]}) == [], "a surname the file carries no row under gives no hit")
     d, db = scratch(False)
     from treelib import archive_object as ao
@@ -197,17 +206,13 @@ def connectors_offline():
         say(("Birth", None, FF["birth"][0], FF["birth"][1]) in facts, f"birth date and place as the row's own columns give them: {facts}")
         say(("Death", None, FF["death"][0], FF["death"][1]) in facts, f"death date and state as written: {facts}")
         say(any(t == "Unknown" and v == FF["file_number"] for t, v, _, _ in facts), f"the state file number under its own label: {facts}")
-    yo = next((p for p in ps if p["name_text"] == DF["year_only_row_name"]), None)
-    if yo:
-        afacts = {(t, dt) for t, v, dt, pl in cx2.execute("SELECT fact_type, value_text, date_text, place_string_id FROM persona_fact WHERE persona_id=?", (yo["id"],))}
-        say(("Birth", DF["year_only"]) in afacts, f"a birth with no month or day carries the year alone: {afacts}")
     same_sha, same_new = ao(cx2, fetch0["bytes"], mime="text/plain", source_id="C09", collection_id=None, locator_kind="url", locator_value=hs[0]["locator"]["value"], retrieved_by=BY, terms="public-domain", cost="free",
                             trust_tier="T2", derived_from=parent_sha)
     say(same_sha == d_sha and not same_new, "re-deriving the same surname's rows from the same parent lands on the same artifact, archived once")
-    other = (DF["header"] + "\r\n" + "\r\n".join(DF["other_rows"]) + "\r\n").encode()
-    other_sha, _ = ao(cx2, other, mime="text/plain", source_id="C09", collection_id=None, locator_kind="url", locator_value=f"{nj.CSV_URL}#surname={DF['other_surname']}", retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", derived_from=parent_sha)
+    hs_other = nj.hits(nj.CSV_URL, whole, {"surname": DF["other_surname"], "archived_sha": parent_sha})
+    other_sha, _ = ao(cx2, hs_other[0]["fetch"][0]["bytes"], mime="text/plain", source_id="C09", collection_id=None, locator_kind="url", locator_value=hs_other[0]["locator"]["value"], retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", derived_from=parent_sha)
     eid2, n2 = ext_fn(cx2, other_sha, BY)
-    say(n2.get("personas") == len(DF["other_rows"]) and eid2 != eid, f"a different surname's derivative, a different artifact, its own extraction: {n2}")
+    say(n2.get("personas") == hs_other[0]["notes"]["rows"] == DF["other_rows"] and other_sha != d_sha and eid2 != eid, f"a different surname's derivative, a different artifact, its own extraction: {n2}")
     say(cx2.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()[0] is None, "extracting another surname's derivative never supersedes this one's own extraction")
     ok2 = cx2.execute("PRAGMA integrity_check").fetchone()[0]; fk2 = cx2.execute("PRAGMA foreign_key_check").fetchall()
     say(ok2 == "ok" and not fk2, f"scratch catalog: integrity {ok2}, foreign keys {len(fk2)}")

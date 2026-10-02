@@ -47,13 +47,33 @@ as it is.
 |---|---|---|
 | `wikitree-profile-Hubner-223.json` + `.manifest.json` | WikiTree's getProfile for Hubner-223 (David Hübner/Heebner, 1696–1784) with parents, spouses, children and siblings, fetched by the WikiTree connector on a scratch data root on 7 September 2026, not the live catalog; the manifest is its provenance | `rule:wikitree-profile` |
 | `ia-search-inside-genealogicalreco01krie-heebner.json` + `.manifest.json` | The Internet Archive's search inside the item genealogicalreco01krie (Genealogical record of the descendants of the Schwenkfelders, 1879) for Heebner, with the pages the connector chose in the manifest's notes, from the same scratch run | `rule:ia-search-inside` |
-| `ia-advancedsearch-title-schwenkfelder-families.json` | The Archive's advanced search for texts titled "The Genealogical Record of the Schwenkfelder Families", as the books connector asks it: three copies of the 1923 book. Read by the connector's offline check, not by an extractor: a search response is the query's evidence, not a record | none |
 | `locgov-ocr-sn89058321-1918-05-10-p2.json` + `.manifest.json` | loc.gov's page text for image 2 of The Commercial (Union City, Tennessee), 10 May 1918, a hit of Ollie Duke Davidson's obituary step run live on the catalog on 7 September 2026; the harness adds the step's kind (obituary), which the runner now writes on every response and did not then | `rule:loc-gov-ocr` |
 | `ky-death-index-1946-davidson.txt` + `.manifest.json` | Five lines of Reclaim The Records' Kentucky death index file for 1946 on the Internet Archive, DAVIDSON JIMMIE to DAVIDSON L, John Y Davidson's (Simpson County, 11 Jun 1946, certificate 14205) among them: the bytes exactly as one byte-range request returned them, each line's carriage-control byte kept; the manifest gives the range, the whole file's URL, size and sha256. The shape of the derivative the Kentucky connector keeps, and its offline check's year file | `rule:ky-death-index` |
 | `ky-birth-index-1915-davidson.txt` + `.manifest.json` | Four lines of the same release's Kentucky birth index file for 1915, DAVIDSON PRYCE to DAVIDSON RONALD, Robert Edgar Davidson's (Logan County, 19 Feb 1915, mother Lena H Bell) among them, fetched and kept the same way | `rule:ky-birth-index` |
 
 A connector's response is read with the notes its manifest carries (the item, the pages chosen, what was searched for, the
 step's kind), as the extractor reads it on arrival.
+
+## Saved responses the connector checks and the runner's scenarios are answered with
+
+Read by `tools/check.py`'s offline connector checks (`connectors.json` names them) and played back by the loop's `run`
+action as a holder's answer, never parsed as a page of their own. Each is a real response with its manifest beside it:
+where the archive holds the response, the manifest is the archive's own and the sha256 in it is the file's, so
+`sha256sum` against `archive/objects/sha256/…` shows the bytes are the archived ones; the one response captured for the
+harness has its own manifest saying so.
+
+| File | Where it came from |
+|---|---|
+| `nj-death-index-2006-2017-excerpt.csv` + `.manifest.json` | Reclaim The Records' New Jersey death index 2006–2017 (a 69 MB CSV on the Internet Archive; the archive holds it as sha256 `c94cb11b…`, fetched 15 September 2026): the file's header line, every line under the surname Ahearn (31) or Evers (42), and the line of state file number 20150061197 (Noi Davidson, born 15 Jan 1929 at Morioka, died 12 Nov 2015), each exactly as the file holds it, in the file's order, line feed ends; the manifest names every line number. Frederick Ahearn (M), born 6 Nov 1932 at Coatesville, died 3 Apr 2016, is the Ahearn row that fits Frederick Micheal Ahearn Jr; no Evers row is Carol's |
+| `ia-advancedsearch-title-schwenkfelder-families.json` + `.manifest.json` | The archive's own object (sha256 `986aaa76…`, 11 September 2026): the Archive's advanced search for texts titled "The Genealogical Record of the Schwenkfelder Families", as the books connector asks it; the three copies of the 1923 book |
+| `ia-metadata-genealogicalreco0000samu.json` + `.manifest.json` | The archive's object `ccf44554…` (11 September 2026): the Archive's metadata for the copy genealogicalreco0000samu, which names the server and directory its search inside and page images are read from |
+| `ia-search-inside-genealogicalreco0000samu-brant.json` + `.manifest.json` | The archive's object `90297f84…` (11 September 2026): the search inside that copy for Brant, three matches on two pages (182, 743) |
+| `ia-search-inside-genealogicalreco0000samu-brandt.json` + `.manifest.json` | **Captured for the harness**, one request on 2 October 2026 23:47 UTC with the project's User-Agent, at `https://ia801406.us.archive.org/fulltext/inside.php?item_id=genealogicalreco0000samu&doc=genealogicalreco0000samu&path=%2F28%2Fitems%2Fgenealogicalreco0000samu&q=Brandt`: the same search inside the same copy for Brandt, the spelling the book's own index gives for Brant ("Brand, Brandt — see Brant"); six matches on five pages (159, 209, 257, 743, 763) |
+| `ia-fts-newspapers-helen-brant.json` + `.manifest.json` | The archive's object `84cace00…` (12 September 2026): the Archive's full-text search of its newspapers for "Helen Brant", 119 issues of which the first 40 are the answer; three of them (St Joseph Herald Press 11 Feb 1967 and 8 Apr 1972, Corsicana Semi Weekly Light 28 Jan 1938) carry no year of their own, only the day in their title |
+| `ia-fts-books-raymond-davidson-new-york.json` + `.manifest.json` | The archive's object `660fbefc…` (13 September 2026): the Archive's full-text search of its books for "Raymond Davidson" with New York and a genealogy title; its third hit is spinneyfamilygen00phil, a book the Archive lends |
+| `ia-metadata-spinneyfamilygen00phil.json` + `.manifest.json` | The archive's object `ba021857…` (13 September 2026): the Archive's metadata for that lent book (`access-restricted-item` true) |
+| `ia-fts-newspapers-alicia-ahearn-empty.json` + `.manifest.json` | The archive's object `d6c20ff8…` (20 September 2026): the Archive's full-text search of its newspapers for "Alicia Ahearn", which holds nothing: the Archive's empty answer |
+| `wikitree-search-davidson-noi-1929-empty.json` + `.manifest.json` | The archive's object `eb0a659a…` (13 September 2026): WikiTree's searchPerson for Noi Davidson born 1929, which holds nothing: WikiTree's empty answer |
 
 ## Gazetteer answers
 
@@ -198,9 +218,10 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
 person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `turns` (`tools/turns.py` the same way: `turns` for --turns,
 `resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
-into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py`, its download a body the
-data gives, `fetch: {header, rows}` or `{body}`, one answer per request as `fetch: {answers: [{url_has, body | error}]}`, or no
-network at all; `dry` for a dry run, `again` for a run by the step's id at every connector), `run_all` (`--all` with a run that regenerates
+into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
+replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, a saved real response or the
+harness's stand-in for a holder that did not answer, or no network at all; `dry` for a dry run, `again` for a run by the step's id
+at every connector), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
 `none_when`; `field` names the place-like field it asks under, "place" when absent, "census place" for a fetch step's own),
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache`, Wikidata's items under `wikidata`

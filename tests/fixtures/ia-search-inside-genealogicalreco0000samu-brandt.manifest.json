@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "0af318a7cc7fb6f6a875f080646fd32cc7b4473676a7c7aac6ef1d99e0640bfc",
+  "bytes": 4716,
+  "mime": "application/json",
+  "source_id": "L02",
+  "collection": "Internet Archive books",
+  "locator": {
+    "kind": "url",
+    "value": "https://ia801406.us.archive.org/fulltext/inside.php?item_id=genealogicalreco0000samu&doc=genealogicalreco0000samu&path=%2F28%2Fitems%2Fgenealogicalreco0000samu&q=Brandt"
+  },
+  "retrieved_at": "2026-10-02T23:47:45Z",
+  "retrieved_by": "agent:harness-real-data for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://ia801406.us.archive.org/fulltext/inside.php?item_id=genealogicalreco0000samu&doc=genealogicalreco0000samu&path=%2F28%2Fitems%2Fgenealogicalreco0000samu&q=Brandt",
+    "content_type": "application/json;charset=UTF-8"
+  },
+  "rights": {
+    "terms": "PD/ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T3",
+  "pages": 1,
+  "notes": "{\"captured\":\"one request by the harness's author on 2 October 2026, the search inside the same copy of the same book as ia-search-inside-genealogicalreco0000samu-brant.json, for the spelling Brandt that the book's own index gives for Brant\",\"connector\":\"ia_books\",\"item\":\"genealogicalreco0000samu\",\"surname\":\"Brandt\"}"
+}
