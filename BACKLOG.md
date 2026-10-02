@@ -53,7 +53,63 @@ blocked" at the foot of this file.
 
 ## A. Priority sequence
 
-Items with ordering or coupling constraints. None open.
+Items with ordering or coupling constraints.
+
+### A1. The rule's points on the proof standard's classes
+
+`conclude.rule_accepts` counts points the way `docs/RESEARCH-WORKFLOW.md`
+"The proof standard" says it must not: it doubles any date given to the day on
+a trusted statement and any relationship the tree holds on trusted evidence,
+whatever the information class (`conclude.py` near "counts double"); it never
+reads a relationship's computed flag, so FamilySearch's own groupings are taken
+as stated links; records copied from one original each count; the kinds it
+trusts come from English words in collection titles (`IDENTIFYING`), not from
+`data/evidence-classes.csv`; a record giving only a state or a county earns a
+death-place or burial-place point; and a reading of an image by the model or a
+person reads as an original whatever the image shows
+(`catalog.evidence_classes`). Make the rule read its kinds and its points from
+the classes table: double only on primary information or the owner's word, a
+computed relationship one point and never a stated link, one original once, a
+place point only at the level of the tree's own place, a reading taking the
+class of what it read (`docs/DATA-ARCHITECTURE.md` §7 decision 9). Rehearse
+`reconsider` on a scratch copy and list what it would take back before it runs
+on the live catalog.
+**Blocked by:** a persona's identity on its page (in progress: a decision and
+its classes follow the same person through every reading).
+
+### A2. Identity is tested, not assumed
+
+`docs/DATA-ARCHITECTURE.md` §7 decision 12. The matcher compares a persona only
+with the person a record was fetched for, their family and the tree's unlinked
+people; the rule never reads the matcher's "Also fits"; nothing tests a life's
+limits; the check before the rule creates a person looks only at people with no
+family link, by exact surname (`match.by_name_and_year`); the duplicate check
+(`footprint.py`) runs only on a reviewed person and counts merged persons. Add
+to the rule the three tests of decision 12, a pass beside
+`Catalog.disagreements` raising an identity question (a new
+`research_question.kind`, by migration) naming both records, the life limits as
+data, the creation check over the whole tree with spelling variants, and the
+duplicate check before review with merged persons excluded. Live cases to
+test against: Joe Davidson, born 1925, linked undecided as a child of Lena
+Howard Bell, died 1918; Ruth M Peters and John Y Davidson, each with two
+accepted Birth events.
+**Blocked by:** A1, which changes the same function.
+
+### A3. One statement, one event
+
+`conclude.assert_facts` and `assert_family_events` assert a dated record fact
+on every event of its type in the year (`_of_year`), so one register entry is
+accepted on three 1901 Marriage events of James Joseph Ahearn and Annie E
+Scannell; and an accept whose date falls outside the year of the tree's own
+event creates a second Birth (John Y Davidson's CAL 1875 beside 24 April
+1876). The import writes one event per GEDCOM fact, so the file's own
+duplicates (William Rittenhouse's nine marriages) arrive as events. Assert a
+fact on one event (several that fit are the unplaced question, as an undated
+fact is); fold, at import and by migration, a person's or a couple's events of
+one type that agree on the year with places agreeing or absent, the way
+`conclude.complete_merge` folds a merge's; and land a calculated or about date
+on the person's one event of a type that occurs once in a life.
+**Blocked by:** a persona's identity on its page (same functions).
 
 ---
 
@@ -126,9 +182,8 @@ searches of one person, a results page with no rows). Have the save script
 write a second comment beside the saved-from line, the list entry's own key
 (the steps it serves), given when the script is run from the list, and have
 collect reach those steps first, the steps the page's identity reaches beside
-them; the inference stays for a file dropped into the inbox by hand. It
-changes the page-saves-itself method, so the owner decides it before it is
-built; then §4 first, the code after.
+them; the inference stays for a file dropped into the inbox by hand
+(`docs/DATA-ARCHITECTURE.md` §7 decision 10). Write §4 as the code lands.
 
 ### C3. A page no parser reads is logged found
 
@@ -221,11 +276,16 @@ title); it has reset connections before, so a refusal makes the step assisted.
 
 Every scenario builds one tree, so nothing shows a second tree over the same
 archive ignoring the first one's decisions (`CLAUDE.md` hard rule 4).
-`match.fetched_for` gathers `search_plan` and `person_persona` rows by
-artifact across every tree. Write a scenario with two trees and one archived
-page, decided in the first and undecided in the second, and scope every
-reader that joins `person_persona` or `search_plan` by artifact or persona to
-its tree.
+`catalog.page_groups` reads `assertion` over every tree's citations, and
+`extraction` and `persona` carry no tree: `extract.extract` supersedes the
+current extraction of a page and rejects its undecided proposals whichever
+tree they belong to, so a second tree reading a page the first holds would
+reset the first tree's cards. Decide how a page held by two trees is read
+(hard rule 4 says every import gets its own extraction; fetched pages are
+shared evidence in `docs/DATA-ARCHITECTURE.md` §4a), write a scenario with
+two trees and one archived page, decided in the first and undecided in the
+second, and scope every reader that joins `person_persona`, `proposal` or
+`search_plan` by artifact or persona to its tree.
 
 ### C10. The turn's report and the person screen do not show the rule's conflict decisions
 
@@ -282,12 +342,13 @@ again next turn.
 ### C14. The decision code is hard to review
 
 `tools/conclude.py`, `tools/cards.py` and `tools/match.py` hold lines up to
-480 characters, statements chained by semicolons (179 lines over 160
-characters in `conclude.py`), and functions up to 225 lines
+about 400 characters, statements chained by semicolons (262 lines over 160
+characters in `conclude.py`, 1,208 across the tools), and functions up to 225 lines
 (`checklist.build`, `conclude.rule_accepts`, `cards.card`), where a defect in
 a write hides in the middle of a line. Reformat them one
 statement per line at a width a review can read, behaviour unchanged and the
-checks green, a file per commit.
+checks green, a file per commit, once the rule's points on the proof
+standard's classes (section A) have landed, so the two do not collide.
 
 ### C15. A record whose two personas each wait on the other
 
@@ -341,9 +402,9 @@ opens no connection of its own. Give the runner a ranged request (a probe that
 is not a hit) and let these connectors search by range. Beside it: a fetch
 step citing such an index carries no year (a citation's own details only), so
 the connector logs none and FamilySearch stays the cited record's first
-holder (`data/holders.csv`); decide whether a year-filed index may take the
-year of the person's accepted event of that type, and if so put it first for
-those citations.
+holder (`data/holders.csv`). Such an index takes the year of the person's
+accepted event of that type (`docs/DATA-ARCHITECTURE.md` §7 decision 11): put
+it first for those citations.
 
 ### C19. Reasonably exhaustive data for every place a family names
 
@@ -369,8 +430,9 @@ there; the place scenarios plant their own.
 The planner turns a citation into a fetch step through Ancestry's own record
 id (`_APID`) and `data/holders.csv`'s map of Ancestry collections to free
 holders. A GEDCOM exported from FamilySearch, MyHeritage, Gramps or by hand
-cites its sources otherwise, so its citations make no fetch steps and only the
-checklist's searches remain. Read the citation forms those exports write (a
+cites its sources otherwise: `ingest_gedcom.py` keeps a citation's record id
+and URL only when it carries an `_APID`, so its citations make no fetch steps,
+build no footprint, and the checklist reads a record the file cites as missing. Read the citation forms those exports write (a
 FamilySearch ark in a citation, a URL, a source title with a page), and route
 each to its holder.
 
@@ -393,6 +455,90 @@ such as the relatives an obituary names accepted through one another. Make
 the card pass judge a card on the ground before it the way the re-examination
 does, so one run is the fixed point; until then the live run repeats
 reconsider until a run changes nothing.
+
+### C24. Places the resolver could settle
+
+Of 1,858 undecided place strings 1,747 have no card, and no turn runs
+`tools/resolve_places.py`, so a conflict waiting on a place's words (Noi
+Davidson's death place "NJ") never closes. The resolver knows 15 state
+abbreviations (`US_ABBR`) where `catalog.py` knows 50 and none of Mass, Penna,
+Mich; one place is carded once per spelling ("Worcester, Montgomery County,
+Pennsylvania" nine times); a string naming no place ("Same House") is carded.
+One abbreviation table for both; one card per candidate set, deciding every
+string it covers; the resolver in the turn's tail after the rule, through its
+cache and the public endpoint's rate.
+
+### C25. The proof summary's per-conflict reasoning and question ids
+
+`tools/proof.py` computes "the classes favour X over Y" once per fact and
+prints it under every conflict of that fact, so a conflict reads a preference
+between values it does not hold (Noi Davidson's Morioka against Tokushima reads
+"favour Morioka over Ogau Tonan"), and "favour" there means secondary over
+indeterminable, not the rule's "without doubt". No read-only tool prints a
+conflict's question id, which `tools/conclude.py resolve` needs. Compute the
+line per conflict from the statements on each side and print the question id
+beside each open conflict.
+
+### C26. A model's reading records what read it
+
+`docs/DATA-ARCHITECTURE.md` §1 asks for the model name, version and prompt
+hash on every AI extraction. The screen's transcription path takes the model
+name the session types, leaves the version empty, hashes the form's field
+names as the "prompt" (the same for every model), keeps no region for most
+model-read persons, and passes the screen's default identity rather than the
+reader's to the matcher (`app/person/server.py` `transcribe`, the
+`match_record` call). Record the model id and version the session states, the
+hash of the instruction text actually given, a line or region per persona
+(refused without one), and the reader as the actor of every write the reading
+makes.
+
+### C27. An import from anywhere is read as itself
+
+Beyond citations: any province, region or state makes a person US-based
+(`checklist.py` `in_us`; `resolve_places.leaf_type` types every first-level
+unit `state`), so a person born and died in Hull, England gets US census,
+draft and Social Security rows; every import is labelled an Ancestry member
+tree with Ancestry's terms (`ingest_gedcom.py`: the manifest, the default
+source B02, "Ancestry member tree (no citation)", the external id system); the
+gazetteer routing for Ireland, Germany and Poland, the Silesian place rules and
+the church denominations are written in code (`resolve_places.py`,
+`catalog.py`, `checklist.py`, `footprint.py`); a UTF-16 file ingests as no one
+and is recorded as imported; the quickstart sets no home person, so the queue
+walks the file alphabetically. Read the export's own source and terms from its
+header, a country's first-level unit as its own kind, the routing and the
+denominations from data, the file's encoding from its BOM and header, and ask
+for the home person at import.
+
+### C28. Cards the evidence has passed by
+
+27 undecided cards sit on superseded readings (some duplicate a newer card on
+the same persona), and a card is never matched again when the person's evidence
+changes, so Robert Edgar Davidson's WikiTree namesakes, which now disagree on
+both dates, are still cards, their rationale saying the death date is absent.
+Reject a card on a superseded reading as superseded when the current reading
+holds the same person (by the persona's key on its page); match a person's
+undecided cards again whenever a decision changes that person's evidence, and
+let a card that has become a hint leave.
+**Blocked by:** a persona's identity on its page (in progress).
+
+### C29. One home for each shared rule, and no dead schema
+
+Soundex is written three times (`catalog.py`, `backfill_aliases.py`,
+`footprint.py`), edit distance twice, name splitting three times, the
+nickname table twice, the suffix set twice; `initdb.py` re-implements `ulid`
+without the monotonic rule `treelib.py` promises; `turns.name_of` is dead.
+The `derivative` and `artifact_page` tables are never used, the three FTS
+tables are filled and never queried, and no tool writes `tombstone` although
+hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it.
+Keep each rule in `catalog.py`, drop what nothing reads (or give it its
+reader), and make `tombstone` the one way a removal is written.
+
+### C30. A tool run without --db opens the live catalog
+
+Every tool defaults `--db` to the repository's `catalog/tree.db`, not to
+`DATA_ROOT`'s, so a scratch run that sets `DATA_ROOT` and forgets `--db`
+writes the owner's catalog. Default `--db` to `DATA_ROOT/catalog/tree.db`
+(one constant in `treelib.py`) so a scratch run is scratch throughout.
 
 ## Externally blocked
 

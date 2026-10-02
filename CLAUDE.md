@@ -151,7 +151,9 @@ session acting on the owner's behalf is `agent:<session> for user:<name>`,
 so the audit trail says who did what. A writing tool run without `--by`
 records the shell user as the owner, except the runner and the planner, which
 record themselves (`agent:run_step`, `rule:plan@0.1.0`). The read-only tools
-and the registry syncs take no `--by`. Living status is the tier rule
+and the registry syncs take no `--by`. A session writes the catalog only
+through a tool: a correction no tool makes becomes a tool command first
+(`docs/DATA-ARCHITECTURE.md` §7 decision 13). Living status is the tier rule
 (`docs/DATA-ARCHITECTURE.md` §7 decision 3), the same for every tree: a
 search step on a living or unknown person is assisted, never automatic, and
 the owner's word (`tools/conclude.py living`) stands above everything.

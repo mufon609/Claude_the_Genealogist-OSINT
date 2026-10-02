@@ -122,11 +122,12 @@ then the default row of the source class, so a field nothing names reads indeter
 worked out or bounded from another field (qualifier calculated, estimated, before or after: an age, a newspaper's own
 date) is indirect evidence, and a relationship the reading marks computed is computed.
 
-The rows a genealogist could contest carry a note for the owner to approve: the Social Security application's birth
-date and parents (read as secondary, the applicant's own word), an obituary and its indexes (read as secondary),
-FamilySearch's relatives tables (read as computed, though on a birth, death or marriage record they restate the record's
-own roles), the NUMIDENT's own parents table (read as stated), and the Pennsylvania births and christenings index (read
-as a birth register, though it does not name each entry's original).
+Where a genealogist could contest a row, the table reads the class that leaves the decision to a person
+(`docs/DATA-ARCHITECTURE.md` §7 decision 9): the Social Security application's birth date and parents read as secondary
+(the applicant's own word), an obituary and its indexes as secondary, FamilySearch's relatives tables as computed save
+the roles a record of one event names (the reader marks those stated), and the Pennsylvania births and christenings index
+as indeterminable (it does not name each entry's original). The NUMIDENT's parents read as stated, because the
+application's own fields name them, and as secondary information like the rest of the application.
 
 ## 4. Access reality (verified Sep 2026)
 

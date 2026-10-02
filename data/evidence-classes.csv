@@ -60,7 +60,7 @@ FamilySearch: Social Program Correspondence,*,Social Security (SSDI / SS-5),,,,,
 FamilySearch: Social Program Document,*,Social Security (SSDI / SS-5),,,,,,
 "FamilySearch: United States, Social Security Death Index",*,Social Security (SSDI / SS-5),,,,,,
 "FamilySearch: United States, Social Security Numerical Identification Files (NUMIDENT), 1936-2007",relation,,,,direct,stated,,"Its Parents and Siblings table holds the two parents the application names, with no role word: read as stated, the applicant's word."
-"FamilySearch: Pennsylvania, Births and Christenings, 1709-1950",*,,,,,,,"An index of extracted church and town entries that does not name each entry's original: read as a birth register (the birth and the parents primary), which a genealogist could hold indeterminable."
+"FamilySearch: Pennsylvania, Births and Christenings, 1709-1950",*,,,indeterminable,,,,"An index of extracted church and town entries that does not name each entry's original: its information reads indeterminable, so the rule decides no conflict on it."
 familysearch-search,*,,derivative,,,,,
 ancestry-index,*,,derivative,,,,,
 nara-1950-schedule,*,census household,derivative,,,,1950 census schedule,

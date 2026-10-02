@@ -324,6 +324,47 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    overrides) live with that tree. The harness runs on the owner's own
    export by the owner's ruling (no invented people or records), and the
    walker names nobody, so another family's export and pages can stand in.
+8. **Test data is real; only a holder's silence is simulated.** The owner's
+   ruling, no invented people or records, reads at its own width: every page,
+   response body, row and record the harness reads is a real one, archived or
+   captured from the holder with its URL and the date it was fetched. A
+   holder's failure to answer (a timeout, a refusal, a challenge) carries no
+   record of anyone and may be simulated, named as the harness's stand-in.
+9. **Contested evidence classes read toward the owner.** Where genealogists
+   differ on how a record kind's field is classed, `data/evidence-classes.csv`
+   reads the class that leaves the decision to a person: secondary rather than
+   primary, indeterminable rather than primary, computed rather than stated. A
+   class matters only where the rule would decide a conflict on it, so the
+   cautious reading never lets the rule decide what a genealogist could
+   contest. A reading of an image, by the model or a person, has the source
+   class of what the image shows: an image of an index or an abstract is
+   derivative, the image of the record made at the event original.
+10. **A saved page names the steps it was saved for.** The page-saving script,
+   run from the fetch list, writes the list entry's own key beside its
+   saved-from line; collecting the page reaches those steps first, and the
+   inference from the page's own identity stays for a file dropped into the
+   inbox by hand. The owner's hand does not change: the same script, the same
+   save.
+11. **A year-filed index is asked with the year of the person's accepted
+   event.** When a citation gives no year, the connector for an index filed
+   by year looks in the year of the person's accepted event of that type. The
+   year narrows where to look and decides nothing: a row found there is
+   matched and judged by the rule like any other.
+12. **Is this the right person: identity is tested, not assumed.** Before the
+   rule takes a record, no other person of the tree fits the persona as well
+   (compared across the whole tree, spelling variants included), the person
+   holds no other persona on that reading, and nothing the record would add
+   falls outside the person's life as accepted. Every plan regeneration tests
+   each person's accepted links and statements against the limits of one
+   life: a statement dated after the death or before the birth, a parent too
+   young or too old at a child's birth, a child born after the mother's death
+   or more than ten months after the father's, one person in two places in
+   one census. The limits are data. A hit is a question about the person that
+   names both records, for the owner; nothing is changed silently.
+13. **A session writes the catalog only through a tool.** A correction no
+   tool makes becomes a tool command first, so every write carries the tool's
+   checks, its `--by` and its audit row; no session edits catalog rows by hand
+   or by ad hoc SQL.
 
 ## 8. Wrong source data, variants and aliases
 
