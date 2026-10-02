@@ -1,0 +1,221 @@
+{
+ "title": "a name alias goes with its decision",
+ "line": "the name a record writes, made an alias when the rule takes the record, goes the way the decision's statements go: undecided when the rule takes the decision back, accepted again when the owner accepts the card or the rule takes the record again, rejected when the owner rejects the rule's decision",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 page: the father accepted by the owner, his daughters taken by the rule, each name as the census writes it an alias",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737058557",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737044990",
+      "is": [
+       [
+        "Alicia M Ahearn",
+        "detail",
+        "accepted"
+       ]
+      ]
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737058557",
+      "is": [
+       [
+        "Anna R Ahearn",
+        "detail",
+        "accepted"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule takes Anna's decision back: her alias is undecided, as its statements are",
+   "withdraw": {
+    "card": {
+     "record": "c20",
+     "person": "I332737058557"
+    }
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737058557",
+      "is": [
+       [
+        "Anna R Ahearn",
+        "detail",
+        "undecided"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts her card: the alias stands again with everything the decision wrote",
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737058557"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737058557",
+      "is": [
+       [
+        "Anna R Ahearn",
+        "detail",
+        "accepted"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule takes Alicia's decision back, and a newer matcher puts the record's open cards up again",
+   "withdraw": {
+    "card": {
+     "record": "c20",
+     "person": "I332737044990"
+    }
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737044990",
+      "is": [
+       [
+        "Alicia M Ahearn",
+        "detail",
+        "undecided"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "older_matcher": {
+    "record": "c20"
+   }
+  },
+  {
+   "say": "reconsider: her card proposed again and taken again by the rule, the alias the earlier decision wrote standing again with the new one",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "latest": true,
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737044990",
+      "is": [
+       [
+        "Alicia M Ahearn",
+        "detail",
+        "accepted"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects the rule's decision on her: the alias is rejected with its statements",
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737044990",
+     "latest": true
+    },
+    "status": "rejected"
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737044990",
+      "is": [
+       [
+        "Alicia M Ahearn",
+        "detail",
+        "rejected"
+       ]
+      ]
+     }
+    },
+    {
+     "assertions_on": {
+      "record": "c20",
+      "rejected": {
+       ">=": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

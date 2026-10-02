@@ -811,17 +811,18 @@ the tree, claimed or accepted, a claim the file cites to that very page not amon
 out); a relative a memorial lists is a lead, never a card (§0, §3), and one a profile lists by
 name and years alone has at most the stated relation and is a card for the owner. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
-rule" with a Reject control: rejecting turns the link and every assertion the
-rule wrote rejected. A proposal the rule does not take is a card for the owner
+rule" with a Reject control: rejecting turns the link, every assertion and the
+name alias the rule wrote rejected. A proposal the rule does not take is a card for the owner
 with the reason it was not taken. The rule creates a person only as above,
 through the fitting check; every other `new_person` proposal is a card for
 the owner. The rule
 can take a decision back: `tools/conclude.py reconsider` examines every
 decision it made, oldest first, as the rule stands now and on the ground that
 stood before it (its own assertions and those of later rule decisions do not
-count), withdraws one it would no longer take, and the record is a card for
-the owner again with the reason; accepting that card makes everything the
-decision had written stand again. It then proposes again the cards an older
+count), withdraws one it would no longer take, its assertions and the name
+alias it wrote back to undecided, and the record is a card for the owner again
+with the reason; accepting that card makes everything the decision had written
+stand again. It then proposes again the cards an older
 matcher wrote, and examines every card still undecided
 the same way and takes one it would now take, recorded as the rule; a decision
 can open another card, so it passes again until nothing new is taken. Run it

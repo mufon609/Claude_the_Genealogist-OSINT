@@ -692,9 +692,10 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     assertion, and the facts written undecided. Every other undecided results-page row (role result) naming this person that
     points at a record the person is now accepted on directly closes rejected, "the record itself is accepted"
     (close_result_rows): the summary row is superseded by its own record, not left open beside it. Rejected: the link rejected;
-    for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link
-    and every assertion the rule wrote turn rejected, and a step held by the record for this person is planned again; one the rule took back (withdraw) is accepted with everything it had
-    written standing again. Returns what was written, or an error."""
+    for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link,
+    every assertion and the name alias the rule wrote turn rejected, and a step held by the record for this person is planned
+    again; one the rule took back (withdraw) is accepted with everything it had written standing again, its name alias
+    included. Returns what was written, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"): return decide_place(cx, tree_id, p, status, by, note, choice)
@@ -704,6 +705,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     if p["status"] != "undecided":
         if not (p["status"] == "accepted" and status == "rejected" and (p["decided_by"] or "").startswith("rule:")): return {"error": "already decided"}
         n = q.execute("UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=? WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (by, ts, tree_id, prop_id)).rowcount
+        q.execute("UPDATE alias SET status='rejected' WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id))   # the name as the record writes it goes with the record
     q.execute("UPDATE proposal SET status=?, decided_by=?, decided_at=?, decision_note=? WHERE id=?", (status, by, ts, note, prop_id))
     if p["kind"] == "new_person" and status == "accepted" and not person_id:   # created once; a decision the rule took back and that is taken again links the same person
         person_id = create_person(cx, tree_id, persona_id, ts)
@@ -715,6 +717,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     if status == "accepted":
         n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
                           AND json_extract(notes,'$.placed') IS NULL AND json_extract(notes,'$.alternate') IS NULL AND {TRUSTED_ARTIFACT}""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; a sibling placement, a value the page keeps beneath the one it shows, and a fact or family link a page anyone can edit states, stay undecided
+        q.execute("""UPDATE alias SET status='accepted', notes=json_set(notes,'$.proposal',?) WHERE tree_id=? AND entity_kind='person' AND entity_id=? AND source_artifact_sha256=?
+                     AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal') IS NOT NULL""", (prop_id, tree_id, person_id, pay["artifact_sha256"]))   # the name alias a withdrawn decision on this record left undecided stands again with this one
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts); n += m
         alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
         held_back = []
@@ -1349,14 +1353,16 @@ def living(cx, tree_id, pid, word, by, note):
 
 def withdraw(cx, tree_id, prop_id, by, why, ts):
     """The rule takes back a decision it would no longer make: the proposal and the persona link return to Undecided, every
-    assertion the decision wrote returns to Undecided (an Accept later makes them Accepted again), the questions the decision
-    answered are closed as gap_gone so the plan reopens the ones whose gap is back, and the audit row says why. The record is
-    a card for the owner again. Returns how many assertions were taken back."""
+    assertion the decision wrote returns to Undecided, and so does the name alias it wrote (an Accept later makes them
+    Accepted again), the questions the decision answered are closed as gap_gone so the plan reopens the ones whose gap is
+    back, and the audit row says why. The record is a card for the owner again. Returns how many assertions were taken
+    back."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%'", (prop_id, tree_id)).fetchone()
     if not p: raise ValueError("not a decision the rule made")
     pay = json.loads(p["payload_json"])
     n = q.execute("UPDATE assertion SET status='undecided' WHERE tree_id=? AND status='accepted' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id)).rowcount
+    q.execute("UPDATE alias SET status='undecided' WHERE tree_id=? AND status='accepted' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id))
     q.execute("UPDATE proposal SET status='undecided', decided_by=NULL, decided_at=NULL, decision_note=? WHERE id=?", (f"the rule took its decision back: {why}", prop_id))
     ids = same_personas(cx, pay["persona_id"])                       # every reading's persona of this name and role on the record, the re-reads' included
     q.execute(f"UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE person_id=? AND persona_id IN ({','.join('?' * len(ids))})", (pay["person_id"], *ids))
