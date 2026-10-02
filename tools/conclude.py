@@ -182,34 +182,22 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     q = _q(cx)
     n = 0
     sha = q.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()["artifact_sha256"]
-    a = q.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
-    cite = a["name"] or a["original_filename"] or sha[:12]
-    status = "undecided" if editable(cx, sha) else "accepted"
+    cite, status = _citation(cx, sha)
     def assert_(kind, sid, f):
         nonlocal n
-        old = q.execute("""SELECT a.id, a.status FROM assertion a JOIN persona_fact q ON q.id=a.persona_fact_id WHERE a.subject_kind=? AND a.subject_id=? AND a.artifact_sha256=?
-                           AND q.fact_type=? AND coalesce(q.date_text,'')=coalesce(?,'') AND coalesce(q.value_text,'')=coalesce(?,'') AND coalesce(q.place_string_id,'')=coalesce(?,'')""",
-                        (kind, sid, sha, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])).fetchone()
-        if old:                                                                         # the statement is there: withdrawn (undecided), it stands again on a trusted record; accepted or a person's rejection, it stays as it is
-            if old["status"] == "undecided" and status == "accepted": q.execute("UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=?, notes=? WHERE id=?", (by, ts, dumps({"proposal": prop_id}), old["id"])); n += 1
-            return
-        q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
-                      VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), tree_id, kind, sid, f["id"], sha, cite, status, by, ts, dumps({"proposal": prop_id}))); n += 1
+        n += _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id)
     for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id, et.kind
                            FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)):
         if f["fact_type"] in ("Name", "Sex"): assert_("person", person_id, f); continue
         if f["fact_type"] in SKIP or f["kind"] not in ("event", "attribute"): continue
         if f["kind"] == "event":
             fy = (f["date_start"] or f["date_end"] or "")[:4]           # an event corresponds by type and year; an undated fact only to an undated event
-            near = ("calculated", "about", "estimated")
-            tol = lambda e: 2 if fy and (f["date_qualifier"] in near or e["date_qualifier"] in near) else 0   # a year worked out from an age, or an event the tree dates about a year, corresponds within two years, either side
-            ey = lambda e: (e["date_start"] or e["date_end"] or "")[:4]
             all_events = q.execute("""SELECT e.id, e.date_start, e.date_end, e.date_qualifier FROM event e JOIN event_participant ep ON ep.event_id=e.id
                                       WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"])).fetchall()
             if not fy and f["fact_type"] != "Residence":                 # undated: the person's one event of the type, never a guess between two or more
                 events = all_events if len(all_events) == 1 else []
             else:
-                events = [e for e in all_events if ey(e) == fy or (tol(e) and ey(e).isdigit() and abs(int(ey(e)) - int(fy)) <= tol(e))]
+                events = _of_year(f, all_events)
                 if not fy and f["fact_type"] == "Residence":              # a residence with no date is its own stay, never another record's: only one this record already asserts
                     events = [e for e in events if q.execute("SELECT 1 FROM assertion WHERE subject_kind='event' AND subject_id=? AND artifact_sha256=? AND persona_fact_id=?", (e["id"], sha, f["id"])).fetchone()]
             if not events and all_events and not fy and f["fact_type"] != "Residence": continue   # two or more already: the checklist's own conflict stands, no event guessed at
@@ -225,6 +213,66 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
             events = [{"id": eid}]
         for e in events: assert_("event", e["id"], f)
     return n, sha
+
+NEAR = ("calculated", "about", "estimated")                            # a date marked so stands for a year give or take two
+
+def _of_year(f, events):
+    """The events a dated fact corresponds to: those of its year, or within two years when either the fact's date or the
+    event's own is marked about, estimated or calculated (a year worked out from an age, an event the tree dates about a
+    year)."""
+    fy = (f["date_start"] or f["date_end"] or "")[:4]
+    ey = lambda e: (e["date_start"] or e["date_end"] or "")[:4]
+    tol = lambda e: 2 if fy and (f["date_qualifier"] in NEAR or e["date_qualifier"] in NEAR) else 0
+    return [e for e in events if ey(e) == fy or (tol(e) and ey(e).isdigit() and fy.isdigit() and abs(int(ey(e)) - int(fy)) <= tol(e))]
+
+def _citation(cx, sha):
+    """(citation words, status) a record's statements are written with: the collection's name, and Accepted from a record
+    nobody can edit at will, Undecided from a page anyone can edit."""
+    a = cx.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
+    return (a[0] or a[1] or sha[:12]), ("undecided" if editable(cx, sha) else "accepted")
+
+def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id):
+    """One statement of a record's fact on a subject, written once: a statement the same record already makes on the same
+    subject with the same type, date, value and place stands again when the rule had withdrawn it (undecided, on a trusted
+    record) and otherwise stays as it is, a person's rejection included. Returns 1 when written, else 0."""
+    old = q.execute("""SELECT a.id, a.status FROM assertion a JOIN persona_fact q ON q.id=a.persona_fact_id WHERE a.subject_kind=? AND a.subject_id=? AND a.artifact_sha256=?
+                       AND q.fact_type=? AND coalesce(q.date_text,'')=coalesce(?,'') AND coalesce(q.value_text,'')=coalesce(?,'') AND coalesce(q.place_string_id,'')=coalesce(?,'')""",
+                    (kind, sid, sha, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])).fetchone()
+    if old:
+        if old["status"] == "undecided" and status == "accepted":
+            q.execute("UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=?, notes=? WHERE id=?", (by, ts, dumps({"proposal": prop_id}), old["id"])); return 1
+        return 0
+    q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), tree_id, kind, sid, f["id"], sha, cite, status, by, ts, dumps({"proposal": prop_id})))
+    return 1
+
+def assert_family_events(cx, tree_id, fid, persona_ids, sha, prop_id, by, ts):
+    """A record's family facts (a Marriage, a Divorce: the event types of kind family_event) asserted on the family the record's
+    spouse relation joins, once both partners are accepted on the record (link_family calls this then, so a fact on the
+    first partner's persona waits for the second's acceptance): each persona's fact on the family's event of that type and
+    year, the way assert_facts corresponds a person's event (within two years when either date is marked about, estimated or
+    calculated), created from the fact's date when the family has none of the type; an undated fact on the family's one
+    event of the type, and with several on none of them (the checklist's own count of marriage events stands). Accepted
+    from a record nobody can edit at will, Undecided from a page anyone can edit; written once, as assert_facts writes.
+    Returns how many were written."""
+    q = _q(cx); n = 0
+    cite, status = _citation(cx, sha)
+    for pe in persona_ids:
+        for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id
+                              FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=? AND et.kind='family_event'""", (pe,)).fetchall():
+            all_events = q.execute("""SELECT e.id, e.date_start, e.date_end, e.date_qualifier FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                      WHERE ep.family_id=? AND e.event_type=?""", (fid, f["fact_type"])).fetchall()
+            dated = bool(f["date_start"] or f["date_end"])
+            events = _of_year(f, all_events) if dated else (all_events if len(all_events) == 1 else [])
+            if not events and all_events and not dated: continue
+            if not events:
+                eid = ulid()
+                q.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at)
+                              VALUES (?,?,?,?,?,?,?,?,?,?)""", (eid, tree_id, f["fact_type"], f["date_text"], f["date_start"], f["date_end"], f["date_qualifier"], f["calendar"], ts, ts))
+                q.execute("INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'family')", (ulid(), eid, fid))
+                events = [{"id": eid}]
+            for e in events: n += _state(q, tree_id, "event", e["id"], f, sha, cite, status, by, ts, prop_id)
+    return n
 
 def place(cx, tree_id, pf_id, event_id, by, note):
     """The owner's answer to Catalog.unplaced: a record's undated fact, accepted onto a person with several events of its
@@ -355,7 +403,8 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
     the tree lacks it, in a family of the right shape) and carries an Accepted assertion on the artifact, or an Undecided one
     when the artifact is a page anyone can edit (T4): such a page identifies a person but never builds their facts, so the
     membership is created but not accepted by the decision, the way a sibling placement already is. A parent-child relation is
-    evidence on the child's membership; a spouse relation on both partners'. A sibling stated on the record places the person
+    evidence on the child's membership; a spouse relation on both partners', and the family facts the two partners' personas
+    state (a Marriage and its date) are asserted on that family's event (assert_family_events). A sibling stated on the record places the person
     as a child of the other's accepted parents with an Undecided assertion regardless of tier (the record states the sibling,
     not the parents), and only when the other is an accepted child of exactly one family; otherwise a sibling gives no
     membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law) is resolved through
@@ -440,6 +489,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts):
             if fid is None: fid = new_family(cx, tree_id, other, ts)
             status = "undecided" if identity else "accepted"
             assert_(fid, pid, "partner", other, as_written, member(fid, pid, "partner"), status=status); assert_(fid, other, "partner", pid, as_written, False, status=status)
+            assert_family_events(cx, tree_id, fid, [persona_id, y_persona], sha, prop_id, by, ts)   # the marriage the record dates, on the couple it joins: both partners now accepted on it
             continue
         child = pid if (kind == "child") == mine else other; parent = other if child == pid else pid
         fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
@@ -602,7 +652,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts); n += m
         alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
         members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
-    for pid in dict.fromkeys([person_id, pay.get("subject_person_id")]):
+    for pid in dict.fromkeys([person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"]):   # a spouse joined on the record: the marriage it dates is now on their family too
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
     released = release_household(cx, tree_id, person_id, pay["artifact_sha256"], by) if status == "rejected" and person_id and not identity else []   # a step the record held for this person is planned again
     if released: answered += answer_questions(cx, tree_id, person_id, prop_id, by)   # the plan sees the row open again

@@ -637,6 +637,21 @@ def e_event(w, x, want):
     pattern = {k: v for k, v in x.items() if k in ("events", "strings", "shown", "canonical_date", "basis")}
     return has(got, pattern), got
 
+def e_family_event(w, x, want):
+    """The events of a type on the family two people are partners in (`a`, `b`, `type`): how many, and with `record` the
+    statements that record makes on them, by status."""
+    a, b = w.person(x["a"]), w.person(x["b"])
+    fid = w.cx.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member o ON o.family_id=fm.family_id AND o.person_id=? AND o.role='partner'
+                          WHERE fm.person_id=? AND fm.role='partner'""", (b, a)).fetchone()
+    if not fid: return False, "no family joins them"
+    evs = [r[0] for r in w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.family_id=? AND e.event_type=?", (fid[0], x["type"]))]
+    st = {}
+    if x.get("record") and evs:
+        for s, in w.cx.execute(f"SELECT status FROM assertion WHERE subject_kind='event' AND subject_id IN ({','.join('?' * len(evs))}) AND artifact_sha256=?", (*evs, w.sha(x["record"]))):
+            st[s] = st.get(s, 0) + 1
+    got = {"events": len(evs), "statements": st}
+    return has(got, w.value({k: v for k, v in x.items() if k in got})), got
+
 def e_disagreements(w, x, want):
     d = w.catalog().disagreements(w.person(x["person"])); return has(d, x["is"]), d
 
@@ -897,7 +912,7 @@ def e_assertion_subject(w, x, want):
     return v is not None and v[0] == w.person(x["is"]), v and w.name_of(v[0])
 
 EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "rule": e_rule, "facts": e_facts, "alias": e_alias, "linked": e_linked, "memberships": e_memberships, "persons": e_persons,
-           "event": e_event, "disagreements": e_disagreements, "question": e_question, "assertions_on": e_assertions_on, "links": e_links, "is_subject": e_is_subject, "citations_held": e_citations_held,
+           "event": e_event, "family_event": e_family_event, "disagreements": e_disagreements, "question": e_question, "assertions_on": e_assertions_on, "links": e_links, "is_subject": e_is_subject, "citations_held": e_citations_held,
            "checklist_row": e_checklist_row, "baseline": e_baseline, "waiting": e_waiting, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "classes": e_classes, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,

@@ -1,0 +1,139 @@
+{
+ "title": "a marriage the record dates",
+ "line": "a marriage index accepted for the husband writes nothing on the couple's marriage while the wife waits; once she is accepted on it too, the marriage it dates stands accepted on the family's own Marriage event of that year, once, no second event; a marriage place the record gives otherwise than the file is a conflict question on the couple",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the Tennessee marriage index the file cites, for the couple married 25 Dec 1895",
+   "attach": {
+    "fixture": "familysearch-tennessee-marriage-index-1895-VNXD-RXW.html"
+   },
+   "as": "tn",
+   "expect": [
+    {
+     "family_event": {
+      "a": "I332737204849",
+      "b": "I332737204852",
+      "type": "Marriage",
+      "record": "tn",
+      "events": 1,
+      "statements": {}
+     },
+     "why": "the file's own Marriage event of the couple, nothing from the index yet"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the husband on it: his Marriage fact waits for the wife",
+   "decide": {
+    "card": {
+     "record": "tn",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "family_event": {
+      "a": "I332737204849",
+      "b": "I332737204852",
+      "type": "Marriage",
+      "record": "tn",
+      "events": 1,
+      "statements": {}
+     },
+     "why": "the record joins the couple only once both are accepted on it: the marriage waits for her"
+    }
+   ]
+  },
+  {
+   "say": "and the wife: the couple joined on the record, the marriage written on their own event",
+   "decide": {
+    "card": {
+     "record": "tn",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "family_event": {
+      "a": "I332737204849",
+      "b": "I332737204852",
+      "type": "Marriage",
+      "record": "tn",
+      "events": 1,
+      "statements": {
+       "accepted": 1
+      }
+     },
+     "why": "the record's marriage accepted on the couple's one Marriage event of 1895, once (the two partners' rows state the one marriage): a document's facts come with it, the marriage included"
+    }
+   ]
+  },
+  {
+   "say": "the 1901 Massachusetts marriage the file cites: James and Annie married at Amherst, where the file says Northampton",
+   "attach": {
+    "fixture": "familysearch-massachusetts-marriage-index-1901-N445-429.html"
+   },
+   "as": "ma"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "ma",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "ma",
+     "person": "I332737044799"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "family_event": {
+      "a": "I332737043939",
+      "b": "I332737044799",
+      "type": "Marriage",
+      "record": "ma",
+      "events": 3,
+      "statements": {
+       "accepted": 3
+      }
+     },
+     "why": "the file holds three Marriage events of 1901 for the couple, the family's own and one from each partner's own line: the record's marriage is a statement on each, and the checklist's count of them stands"
+    },
+    {
+     "question": {
+      "person": "I332737043939",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "marriage place:"
+     },
+     "why": "the record's Amherst against the file's Northampton on the couple's marriage: a conflict question, as for a person's own event"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

@@ -630,7 +630,8 @@ class Catalog:
         self._groups = self._held = self._holdings = self._tiers = None
     def disagreements(self, pid):
         """Where an accepted record says something else than the tree's event or than another statement on it: for each event
-        of the person and each of date and place, one line per differing value, naming every statement on each side and the
+        of the person, and of each family they are a partner in (a marriage), and each of date and place, one line per
+        differing value, naming every statement on each side and the
         tree's own value. Every Accepted assertion is compared against the event's own date (as dates) or shown place, and
         against every other statement on the event that is not rejected (undecided claims included: the file's own claim, a
         page anyone can edit); place is compared with Catalog.place_verdict, so a coarser or finer record, or one naming a
@@ -651,8 +652,9 @@ class Catalog:
                                             ORDER BY a.asserted_at, a.id""", pid):
             if middle_differs(written, rows, [s for _, s in rows]):
                 out.append(f"name: the tree against {coll}" + (f" ({loc})" if loc else "") + f": {shown} against {written}")
-        for e in self.q("""SELECT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                           WHERE ep.person_id=? ORDER BY e.event_type, e.date_start""", pid):
+        for e in self.q("""SELECT DISTINCT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                           WHERE ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner')
+                           ORDER BY e.event_type, e.date_start""", pid, pid):
             place_now = self.place(e[0], e[5])
             tree_place = place_now["text"] if place_now else None
             kind = e[1].lower()

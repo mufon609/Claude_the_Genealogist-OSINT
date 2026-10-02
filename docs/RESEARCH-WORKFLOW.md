@@ -701,7 +701,11 @@ record says the persona is the child, parent or spouse of a persona already
 accepted as a person on the same record, the family link between the two
 carries an Accepted assertion on the artifact too, created in a family of the
 right shape when the tree lacks the link: a parent-child relation is evidence
-on the child's membership, a spouse relation on both partners'; a sibling
+on the child's membership, a spouse relation on both partners', and the family
+facts the record states (a Marriage and its date and place) are asserted on that
+family's own event of the type and year, created when the family has none, as a
+person's event is (a marriage index accepted for one partner waits for the
+other's acceptance on it, which writes it); a sibling
 stated on the record places the person as a child of the other's accepted
 parents with an Undecided assertion (the record states the sibling, not the
 parents), and only when the other is an accepted child of one family;
