@@ -14,14 +14,15 @@ fits after the fitting check (rule_creates). Anything less certain than the rule
 The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7): a record of a kind that identifies a person fully, from a source
 nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with the accepted name, at least two
 accepted facts agree (birth date, death date, a burial or death place, a stated relationship to someone the record names who
-fits a relative the tree already links), each resting on a trusted source or on the owner's own word, and nothing compared
+fits a relative the tree already links on something besides that relationship, or is accepted on the record), each resting on
+a trusted source or on the owner's own word, and nothing compared
 disagrees; a date agreeing to the day, and a relationship the tree holds on trusted evidence, each count double. A page anyone
 can edit (T4: a Find a Grave memorial, a WikiTree profile) identifies a person but never builds their facts: accepting it, by
 the owner or by the rule, writes the persona link and the family links the page states, and every fact the page types is
 written as an Undecided assertion, what the page says, never accepted and never ground for the rule, so a person's facts come
 from primary documents only. The rule takes such an identity when the name agrees and at least three of birth date to the
 day, death date to the day, burial place, and a stated parent or spouse who is that relative in the tree agree with the tree,
-claimed or accepted.
+claimed or accepted; a claim whose own citation is the record under decision never counts (rests_elsewhere).
 A page anyone can edit identifies a person but writes no accepted family link: the memberships it states are created where
 the tree lacks them, each with an Undecided assertion, the way a sibling placement already is.
 The rule acts on the owner's word, is recorded as such on the proposal and in the audit log, and the owner can reject what
@@ -60,7 +61,7 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, source_tier, split_name, tier_sql
-from catalog import date_verdict, place_verdict, same_surname
+from catalog import date_verdict, holds, place_verdict, same_surname
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
 from plan import plan_person
@@ -100,6 +101,45 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()
                      (tree_id, kind, sid, *without)).fetchone(): return True
     return False
 ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
+
+def record_keys(cx, sha):
+    """What identifies a record for a citation to name it: the record ids it holds (catalog.holds, its own apid first), its
+    memorial ids and its URL."""
+    a = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    apids = set(holds(cx, sha)) | ({a[1]} if a and a[0] == "apid" and a[1] else set())
+    memorials = {v for v, in cx.execute("SELECT value FROM artifact_locator WHERE artifact_sha256=? AND kind='memorial_id'", (sha,))}
+    urls = {a[1]} if a and a[0] == "url" and a[1] else set()
+    return apids, memorials, urls
+
+def cites_record(notes, keys):
+    """Whether a statement's own citation (an imported claim's notes: its record id and URL) is the record these keys name."""
+    apids, memorials, urls = keys
+    url = notes.get("url") or ""
+    m = re.search(r"/memorial/(\d+)(?:/|$)", url)
+    return bool((notes.get("apid") and notes["apid"] in apids) or (m and m.group(1) in memorials) or (url and url in urls))
+
+def rests_elsewhere(cx, eid, sha, axis, value, day=False, keys=None):
+    """Whether the event's value that a record's value agrees with stands on some statement other than the record under
+    decision: a statement on the event that is not rejected, not the record's own and not a claim whose own citation is that
+    record (docs/RESEARCH-WORKFLOW.md, the proof standard: such a claim never counts), giving a date (to the day, with day) or
+    a place that agrees with value. A statement with no record fact of its own (the owner's word) stands for the event's own
+    date and gives no place."""
+    q = _q(cx); keys = keys or record_keys(cx, sha)
+    ev = q.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
+    for r in q.execute("""SELECT a.artifact_sha256, a.notes, a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw
+                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                          WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected'""", (eid,)):
+        if r["artifact_sha256"] == sha: continue
+        try: notes = json.loads(r["notes"] or "{}")
+        except ValueError: notes = {}
+        if isinstance(notes, dict) and cites_record(notes, keys): continue
+        if axis == "date":
+            src = ev if r["persona_fact_id"] is None else r
+            d = {"start": src["date_start"] or src["date_end"], "text": src["date_text"], "qualifier": src["date_qualifier"]}
+            if not d["start"]: continue
+            if date_verdict(value, d)[0] == "agrees" and (not day or (len(d["start"]) == 10 and "year only" not in (date_verdict(value, d)[1] or ""))): return True
+        elif r["raw"] and place_verdict(value, r["raw"])[0] == "agrees": return True
+    return False
 
 def editable(cx, sha):
     """Whether an artifact is a page anyone can edit (T4 by its own identity or its row): a decision on it is an identity, the
@@ -666,6 +706,10 @@ def rule_accepts(cx, tree_id, prop, without=()):
     A persona the record relates to the one under decision stands for the relative it fits, and its stated
     relationship to that persona, read from either side of the row, is one of the things it fits on (a husband named with an
     age beside his wife fits the tree's husband by that relation); a relative counts once, however many rows relate the two.
+    The relationship earns its point only when that persona is accepted on the record or stands for the relative on something
+    besides the relationship, a date or a place resting on more than a claim citing this very record (grounded): a couple's
+    index entry, two names and a date, is no proof of either. A date or a place an identity counts, too, must rest on more
+    than a claim whose own citation is the page under decision (rests_elsewhere), and the reason names what was left out.
     without: proposal
     ids whose assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by
     that route, as it was taken, not as an accepted name resting on no trusted source."""
@@ -705,12 +749,33 @@ def rule_accepts(cx, tree_id, prop, without=()):
         return rows + [(INV[r[0]], r[1], None, r[2]) for r in q.execute("""SELECT r.kind, r.persona_id, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.persona_id
                                                                           WHERE r.related_persona_id=? AND r.kind IN ('child','parent','spouse','sibling')""", (p["id"],))]
     fitted = {}                                                    # other persona id -> (agree, disagree) against the relative it stands for, for the relationship point below
-    for other in personas_of(cx, pay["extraction_id"]):           # a persona the record relates to this one fits a relative the tree already links: it stands for that relative here
+    others = {p["id"]: p for p in personas_of(cx, pay["extraction_id"])}
+    for other in others.values():                                 # a persona the record relates to this one fits a relative the tree already links: it stands for that relative here
         if other["id"] == persona["id"] or other["id"] in chosen: continue
         as_related = {**other, "relations": both_ways(other)}    # its relation to the persona under decision, stated from either side, is one of the things it fits on (docs/RESEARCH-WORKFLOW.md §5-7)
         for c in relatives:
             fits, agree, disagree, absent, near = compare(cat, as_related, c, {persona["id"]: cand})
             if fits or (identity and _stands_for(cat, as_related, c, {persona["id"]: cand})): chosen[other["id"]] = c; fitted[other["id"]] = (agree, disagree); break
+    keys = record_keys(cx, sha)
+    def grounded(other_pid):
+        """Whether the persona a stated relationship names earns the relationship its point: accepted on this record already,
+        or standing for the tree's relative on something besides that relationship, a date or a place (an age is a birth
+        year) that rests on more than a claim citing this very record (docs/RESEARCH-WORKFLOW.md, the proof standard). A
+        persona that fits only through its relation to the one under decision, a name and the relationship, earns nothing:
+        the relationship would be its own proof."""
+        if other_pid in accepted_on_record: return True
+        if other_pid not in fitted: return False
+        c, other = chosen[other_pid], others[other_pid]
+        for a in fitted[other_pid][0]:
+            field = next((f for f in FIELD_EVENT if a.startswith(f + " agrees")), None)
+            if field:
+                et, axis, at = FIELD_EVENT[field]
+                if c["events"].get(et) and rests_elsewhere(cx, c["events"][et], sha, axis, other[at], keys=keys): return True
+            elif a.startswith("residence place agrees"):
+                if any(e["place"] and place_verdict(other["residence place"], e["place"]["text"])[0] == "agrees" and rests_elsewhere(cx, e["id"], sha, "place", other["residence place"], keys=keys)
+                       for e in cat.events(c["id"])): return True
+            elif a.startswith("the same memorial"): return True
+        return False
     fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
     vetoes, claims = split_disagree(cx, cand, persona, disagree)
     if vetoes: return False, "disagrees: " + "; ".join(vetoes)
@@ -725,15 +790,19 @@ def rule_accepts(cx, tree_id, prop, without=()):
         return (group, oc) if oc and group and any(rid == oc["id"] for rid, _ in fam[group]) else None
     if identity:
         day = lambda t: any(a.startswith(f"{t} date agrees") and "year only" not in a for a in agree)   # both sides a full date, the same day
-        points = [w for t, w in (("birth", "birth date to the day"), ("death", "death date to the day")) if day(t)]
-        if any(a.startswith("burial place agrees") for a in agree): points.append("burial place")
+        points, own = [], []                                       # own: what agrees only with the file's claim citing this very page, never a point
+        for t, w, et in (("birth", "birth date to the day", "Birth"), ("death", "death date to the day", "Death")):
+            if day(t): (points if rests_elsewhere(cx, cand["events"][et], sha, "date", persona[t], day=True, keys=keys) else own).append(w)
+        if any(a.startswith("burial place agrees") for a in agree):
+            (points if cand["events"].get("Burial") and rests_elsewhere(cx, cand["events"]["Burial"], sha, "place", persona["burial place"], keys=keys) else own).append("burial place")
         named = set()
         for kind, other_pid, _, other_name in relations:
             j = joined(kind, other_pid) if kind != "sibling" else None     # a stated parent or spouse counts here, never a sibling
-            if j and j[1]["id"] not in named: named.add(j[1]["id"]); points.append(f"{REL_OF[j[0]]} {other_name}")
+            if j and j[1]["id"] not in named and grounded(other_pid): named.add(j[1]["id"]); points.append(f"{REL_OF[j[0]]} {other_name}")
+        own_note = ("; not counted: " + ", ".join(own) + ", which the tree has only from a claim citing this very page") if own else ""
         if len(points) < 3: return False, ("a page anyone can edit identifies a person only when the name and three of birth date to the day, death date to the day, burial place "
-                                           "and a stated parent or spouse agree: here " + (", ".join(points) + (" agree" if len(points) > 1 else " agrees") if points else "the name alone agrees"))
-        return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted" + claim_note
+                                           "and a stated parent or spouse agree: here " + (", ".join(points) + (" agree" if len(points) > 1 else " agrees") if points else "the name alone agrees") + own_note)
+        return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted" + own_note + claim_note
     if cat.basis("person", pid) != "accepted" or not trusted_evidence(cx, tree_id, "person", [pid], without=without):   # the name is a claim, or accepted on nothing the rule may count here: the route through a stated relationship
         rel = claimed_relation_match(fam, relations, accepted_on_record)
         unplaced = None if rel or fam["parents"] else next(((accepted_on_record[o], n) for k, o, _, n in relations if k == "sibling" and o in accepted_on_record), None)   # a stated sibling of someone accepted here, and the tree holds no parents to contradict it
@@ -750,10 +819,11 @@ def rule_accepts(cx, tree_id, prop, without=()):
         if a.startswith("death date agrees") and ok("Death", "date"): points += ["death date to the day", "and the day"] if full("death") and ok("Death", "date", day=True) else ["death date"]
         if a.startswith("death place agrees") and ok("Death", "place"): points.append("death place")
         if a.startswith("burial place agrees") and ok("Burial", "place"): points.append("burial place")
-    named = set()                                                  # a relative counts once, however many rows of the record relate the two
+    named, bare = set(), []                                        # a relative counts once, however many rows of the record relate the two
     for kind, other_pid, _, other_name in relations:
         j = joined(kind, other_pid)
         if not j or j[1]["id"] in named: continue
+        if not grounded(other_pid): bare.append(other_name); continue   # the relative's own persona stands for them on nothing but this relationship: no point
         group, oc = j; named.add(oc["id"])
         role = "child" if group in ("parents", "siblings") else "partner"; other_role = "child" if group in ("children", "siblings") else "partner"
         rows = [dumps([fid, who, r]) for fid, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
@@ -761,10 +831,11 @@ def rule_accepts(cx, tree_id, prop, without=()):
                 for who, r in ((pid, role), (oc["id"], other_role))]   # the membership that joins these two, read from either side: the child's under the parent, a partner's beside the other, a sibling's child row beside the other's
         if trusted_evidence(cx, tree_id, "family_member", rows, without=without):
             pt = f"{REL_OF[group]} {other_name}"; points += [pt, "and the day"]; rel_points.append(pt)   # the relationship and the person it identifies: two points
-        elif other_pid in accepted_on_record or (other_pid in fitted and any(a.startswith(("birth date agrees", "death date agrees")) or " place agrees" in a for a in fitted[other_pid][0])):
+        else:                                                      # grounded above: the relative's own persona fits on more than a name, so a link the file claims counts once
             points.append(f"{REL_OF[group]} {other_name} (a link the file claims, the relative's own persona here fitting on more than a name)")   # one point, never double, and not an obituary's ground
-    if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed"
-    if survivors_kind and not rel_points: return False, "an obituary or newspaper text is ground only through who it names: " + (", ".join(p for p in points if p != "and the day") or "the name") + " agree, but none of the accepted relatives is among the survivors it names"
+    bare_note = ("; the stated relationship to " + ", ".join(dict.fromkeys(bare)) + " is no point: the record gives nothing of them but the name and the relationship itself, and they are not accepted on it") if bare else ""
+    if len(points) < 2: return False, "agrees with the accepted name" + (f" and {points[0]}" if points else "") + " only, counting facts from trusted sources; two are needed" + bare_note
+    if survivors_kind and not rel_points: return False, "an obituary or newspaper text is ground only through who it names: " + (", ".join(p for p in points if p != "and the day") or "the name") + " agree, but none of the accepted relatives is among the survivors it names" + bare_note
     return True, "agrees with your accepted name, " + " and ".join(p for p in points if p != "and the day") + " from trusted sources; nothing disagrees against an accepted value" + claim_note
 
 def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record):

@@ -778,10 +778,17 @@ relationship to a relative the tree links by a claim alone counts one point, nev
 persona on the record fits them on more than a name (a name and an age, a name and a place), so a confirmed child in
 the claimed parents' census household is taken on name, birth year and the stated parent, and the parents then
 follow through the claimed route above; an obituary's named survivor is still one the tree holds on trusted
-evidence. On a page anyone can edit that identifies a person (a
+evidence. Any stated relationship earns its point, single or double, only when the related persona is already
+accepted on the record or fits its tree relative on something besides that relationship, a date or a place (an age
+is a birth year): a persona that fits only through its relation to the one under decision would make the
+relationship its own proof, so a couple's index entry, two names and a date, takes neither of them, and an
+obituary's survivor named with nothing else counts once the owner or the rule has accepted that survivor on it. A
+claim whose own citation is the record under decision never counts: the agreement of a date or a place, here and for
+a relative's persona, must rest on some other statement. On a page anyone can edit that identifies a person (a
 memorial, a profile) the rule takes the identity alone, when the name agrees and at least three of birth date to the
 day, death date to the day, burial place, and a stated parent or spouse who is that relative in the tree agree with
-the tree, claimed or accepted; a relative a memorial lists is a lead, never a card (§0, §3), and one a profile lists by
+the tree, claimed or accepted, a claim the file cites to that very page not among them (the reason names what it left
+out); a relative a memorial lists is a lead, never a card (§0, §3), and one a profile lists by
 name and years alone has at most the stated relation and is a card for the owner. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link and every assertion the

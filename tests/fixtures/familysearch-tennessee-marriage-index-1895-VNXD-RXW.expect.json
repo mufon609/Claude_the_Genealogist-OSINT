@@ -1,0 +1,43 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,1169::7027633"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 2,
+ "sequence": {
+  "1": {
+   "name": "John Davidson",
+   "role": "subject",
+   "facts": [
+    {
+     "type": "Marriage",
+     "date": "25 Dec 1895",
+     "place": "Robertson, Tennessee"
+    }
+   ],
+   "why": "a couple's index entry: two names, the date and the county, nothing else of either"
+  },
+  "2": {
+   "name": "Lena Bell",
+   "role": "wife",
+   "facts": [
+    {
+     "type": "Marriage",
+     "date": "25 Dec 1895"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 1,
+     "value": "Wife"
+    }
+   ]
+  }
+ }
+}

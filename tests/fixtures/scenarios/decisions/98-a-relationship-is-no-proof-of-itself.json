@@ -1,0 +1,128 @@
+{
+ "title": "a relationship is no proof of itself",
+ "line": "a couple's marriage index, two names and a date, is not taken on the couple the tree holds on a census: the wife's persona fits only through her relation to the husband under decision, so the relationship earns nothing and both stay cards; a memorial's burial place that the file has only from a claim citing that very memorial is no point of its identity",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 household accepted: the husband by the owner, his wife by the rule, the couple asserted on a census",
+   "attach": {
+    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+   },
+   "as": "c00"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c00",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c00",
+      "person": "I332737204852",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "memberships": {
+      "person": "I332737204852",
+      "is": {
+       "some": {
+        "role": "partner",
+        "status": "accepted"
+       }
+      }
+     },
+     "why": "the couple now stands on a trusted record: a relationship the rule would count double"
+    }
+   ]
+  },
+  {
+   "say": "the Tennessee marriage index the file cites: John Davidson and Lena Bell, the date and the county, nothing else",
+   "attach": {
+    "fixture": "familysearch-tennessee-marriage-index-1895-VNXD-RXW.html"
+   },
+   "as": "tn",
+   "expect": [
+    {
+     "card": {
+      "record": "tn",
+      "person": "I332737204849",
+      "status": "undecided"
+     },
+     "why": "the husband's card is the owner's: the record gives nothing of him but the name"
+    },
+    {
+     "rule": {
+      "record": "tn",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "has": [
+        "two are needed",
+        "Lena Bell is no point"
+       ]
+      }
+     },
+     "why": "the wife's persona fits the tree's wife only through her relation to the husband under decision: the relationship would be its own proof"
+    },
+    {
+     "card": {
+      "record": "tn",
+      "person": "I332737204852",
+      "status": "undecided"
+     },
+     "why": "and the same for her"
+    }
+   ]
+  },
+  {
+   "say": "a memorial whose burial place the file has only from a claim citing that memorial",
+   "attach": {
+    "fixture": "findagrave-memorial-78019650.html"
+   },
+   "as": "mem",
+   "expect": [
+    {
+     "last": {
+      "taken": [
+       [
+        "Abram C Brant",
+        {
+         "has": [
+          "identity",
+          "birth date to the day",
+          "death date to the day",
+          "not counted: burial place, which the tree has only from a claim citing this very page"
+         ]
+        }
+       ]
+      ]
+     },
+     "why": "the birth and death days agree with claims the file cites to his certificates and censuses as well; the burial place it cites to this memorial alone, so it is no point"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
