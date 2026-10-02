@@ -24,7 +24,11 @@ takes the state of the record's own collection (catalog.collection_state) for th
 unless the record names a dated former name of the tree's own place (catalog.dated_names, from tools/resolve_places.py's
 own Wikidata reading), which then agrees on that name, the note naming the period it held it; the
 place string itself is never touched. A prefix (Dr, Maj), a nickname in quotes
-and an extra middle name are not disagreements; a name written surname first
+and an extra middle name are not disagreements, but a middle name or initial
+both names carry that differs is (middle_differs: John A. against John D; an
+initial, a short form or a spelling variant of the tree's agrees, and so does
+an initial standing for another surname the person holds, Helen B. for a woman
+born Brant); such a persona never fits, at most a card; a name written surname first
 (Doe, John A.) is read as such and an initial is never a surname; the
 surname agrees when any token of the record's name after the given name is a
 surname the tree has for the candidate (a memorial writes a married woman's
@@ -67,7 +71,7 @@ from treelib import ROOT, connect, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.3.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.4.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
 LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
 MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -101,6 +105,42 @@ def name_keys(cat, pid):
         if len(parts) >= 2: keys.add((first_given(parts[0]), key(parts[-1])))
     return keys
 
+def name_words(text):
+    """The keys of a name's words in order, the right way round: a nickname in quotes left out, a surname written first
+    (Doe, John A.) put last, a leading prefix (Dr, Maj) and a trailing suffix (Jr, III) dropped."""
+    t = re.sub(r"[“\"][^”\"]*[”\"]|(?<!\w)'[^']+'(?!\w)", " ", text or "")
+    t = re.sub(r"[“”\"']", " ", t).strip()
+    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", t)
+    if m: t = f"{m.group(2)} {m.group(1)}"
+    words = [key(p) for p in t.replace(",", " ").split() if key(p)]
+    while words and words[0] in PREFIX: words.pop(0)
+    while len(words) > 1 and words[-1] in SUFFIX: words.pop()
+    return words
+
+def same_middle(a, b):
+    """Two middle-name keys are one name: one an initial of the other, the same name or a short form (same_given), or a
+    spelling variant, the same Soundex code within two edits (Sara and Sarah, Micheal and Michael)."""
+    return same_given(a, b) or (len(a) > 1 and len(b) > 1 and soundex(a) == soundex(b) and edits(a, b) <= 2)
+
+def middle_differs(written, names, surnames):
+    """(the record's middle name, the tree's) when a name as written and the person's own names in the tree (names: (given,
+    surname) rows) both carry a middle name or initial and none of the tree's agrees with the record's (same_middle), else
+    None. A word that is a surname the person holds (a married woman's birth surname written inside her name, Lena Bell
+    Davidson) is no middle name, and an initial standing for one agrees (Helen B. Ahearn for a Brant born); a name with no
+    middle on either side disagrees with nothing."""
+    keys = [key(s) for s in surnames if key(s)]
+    own = lambda w: len(w) > 1 and any(same_surname(w, s) for s in keys)
+    words = name_words(written)
+    mine = [w for w in words[1:-1] if not own(w)]
+    if not mine: return None
+    theirs = [[w for w in name_words(g)[1:] if not own(w)] for g, s in names]
+    theirs = [m for m in theirs if m]
+    if not theirs: return None
+    m = mine[0]
+    if len(m) == 1 and any(s.startswith(m) and not same_surname(s, words[-1]) for s in keys): return None   # the initial of another surname the person holds than the one the record writes
+    if any(same_middle(m, t[0]) for t in theirs): return None
+    return m, theirs[0][0]
+
 def split_persona_name(name_text):
     """(first given name key, [every later token's key]) with a leading prefix (Dr, Maj) dropped and quotes gone: a memorial writes a
     woman's name with her birth surname inside it (Jane Ann Roe Doe), so any token after the given name may be the surname
@@ -130,6 +170,9 @@ def compare(cat, persona, cand, chosen):
     if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
     elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'}" + {"variant": " as a spelling variant", "one letter apart": ", one letter apart"}.get(how, "") + f" (record {persona['name']}, tree {cand['name']})")
     else: absent.append("surname")
+    rows = [(g or "", s or "") for g, s, *_ in cat.person(cand["id"])["names"]]
+    if given_ok and middle_differs(persona["name"], rows, [s for _, s in rows]):   # both carry a middle name or initial and they differ: another person, or a slip the owner reads
+        disagree.append(f"middle name disagrees (record {persona['name']}, tree {cand['name']})")
     if persona["sex"] and cand["sex"] in ("M", "F"): (agree if persona["sex"] == cand["sex"] else disagree).append(f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)")
     else: absent.append("sex")
     dated = False
@@ -161,7 +204,7 @@ def compare(cat, persona, cand, chosen):
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
         rel_ok = rel_ok or holds
-    clean = not any(d.startswith(("sex", "birth date", "death date", "birth place", "burial place", "death place")) for d in disagree)
+    clean = not any(d.startswith(("sex", "middle name", "birth date", "death date", "birth place", "burial place", "death place")) for d in disagree)
     strong = any(a.startswith(("death date", "birth place", "burial place", "death place", "residence place")) for a in agree) \
              or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
@@ -249,6 +292,8 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
         keys = name_keys(cat, pid)
         if not any(same_given(given, k) for k, _ in keys): continue
         if not any(s in rest for _, s in keys if s): continue
+        rows = [(g or "", s or "") for g, s, *_ in cat.person(pid)["names"]]
+        if middle_differs(persona["name"], rows, [s for _, s in rows]): continue   # a middle name or initial both carry, differing: not plainly this person
         if y is not None:
             years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
                      WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]

@@ -647,7 +647,15 @@ collection is registered under (a bare county otherwise names no state at all to
 place string itself stays as written. A surname agrees as written or as a spelling variant, the same
 Soundex code within two edits (Ahearn and Ahern, Brant and Brandt), said so
 in the rationale. A given name agrees through its common short forms (Willie for
-William, Charley for Charles) and across a one-letter slip in a longer name; a
+William, Charley for Charles) and across a one-letter slip in a longer name.
+Given names that both carry a middle name or initial disagree when those
+differ (John A. against John D.): the persona never fits, it is a card for the
+owner with the middle name named as the disagreement, and once the record is
+accepted the difference is a `conflict` question on the person. A middle name
+agrees as an initial, a short form or a spelling variant of the tree's (Sarah
+for Sara, Micheal for Michael), and an initial standing for another surname
+the person holds is no middle name to compare (Helen B. for a woman born
+Brant); a middle name on one side only is no difference. A
 wife written under her husband's surname is not a surname disagreement, nor is
 any woman's the record otherwise shows married: a daughter or sister carrying
 another surname beside a son-in-law or brother-in-law of that surname on the

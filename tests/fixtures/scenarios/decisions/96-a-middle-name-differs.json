@@ -1,0 +1,166 @@
+{
+ "title": "a middle name that differs",
+ "line": "an enlistment record naming Robert C where the tree holds Robert Edgar is a card, never a fit, the middle name named as the disagreement; the owner's accept makes the difference a conflict question; Helen B. for a woman born Brant, Fred M. for Frederick Micheal and Sarah for Sara are no disagreement",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his enlistment record: Robert C Davidson, born 1915, against the tree's Robert Edgar Davidson",
+   "archive": {
+    "fixture": "aad-enlistment-247275.html",
+    "source": "F01",
+    "locator": {
+     "kind": "url",
+     "value": "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275"
+    },
+    "extract": true,
+    "match": [
+     "I332737100409"
+    ]
+   },
+   "as": "aad",
+   "expect": [
+    {
+     "card": {
+      "record": "aad",
+      "person": "I332737100409",
+      "status": "undecided",
+      "rationale": {
+       "has": [
+        "though something disagrees",
+        "Middle name disagrees (record Robert C Davidson, tree Robert Edgar Davidson)"
+       ]
+      }
+     },
+     "why": "both names carry a middle name or initial and C is not Edgar: the persona never fits, a card with the middle name as its disagreement"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the record as his: the difference is a conflict question, never an overwrite",
+   "decide": {
+    "card": {
+     "record": "aad",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "name: the tree against"
+     },
+     "why": "the record's name, accepted with the document, differs from the tree's in the middle name: a conflict question on the person"
+    },
+    {
+     "persons": {
+      "named": "Robert Edgar Davidson",
+      "given": "Robert Edgar"
+     },
+     "why": "the tree's own name stays as it was"
+    }
+   ]
+  },
+  {
+   "say": "the 1950 household of the son: Fred M. for Frederick Micheal, and his mother written Helen B., the initial of the surname she was born to",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-census-1950-6XYS-NQ16.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737036054"
+    ]
+   },
+   "as": "c50",
+   "expect": [
+    {
+     "card": {
+      "record": "c50",
+      "person": "I332737036054",
+      "rationale": {
+       "lacks": "iddle name"
+      }
+     },
+     "why": "M. is an initial of Micheal"
+    }
+   ]
+  },
+  {
+   "say": "the son accepted: his mother's card follows",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "c50",
+      "person": "I332737037573",
+      "rationale": {
+       "lacks": "iddle name"
+      }
+     },
+     "why": "B. stands for Brant, the surname the tree holds for her, not the Ahearn the record writes: no middle-name disagreement with Sara"
+    }
+   ]
+  },
+  {
+   "say": "her own christening: Helen Sarah Brandt, Sarah a spelling of Sara",
+   "archive": {
+    "fixture": "familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html",
+    "source": "D03",
+    "locator": {
+     "kind": "apid",
+     "value": "1,2451::22699845"
+    },
+    "extract": true,
+    "match": [
+     "I332737037573"
+    ]
+   },
+   "as": "bap",
+   "expect": [
+    {
+     "card": {
+      "record": "bap",
+      "person": "I332737037573",
+      "rationale": {
+       "lacks": "iddle name"
+      }
+     },
+     "why": "Sarah and Sara are one name spelled two ways"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}
