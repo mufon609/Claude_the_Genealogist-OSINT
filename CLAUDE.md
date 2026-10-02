@@ -104,6 +104,7 @@ python3 tools/plan.py --all                 # materialize questions + steps (ide
 python3 tools/log_search.py --list "<person>"   # the steps with outcomes; --step/--outcome to log a run; --dismiss <question>
 python3 tools/log_search.py --reopen <step id> --note "…"   # a step marked done in error: planned again, the note saying why
 python3 tools/attach_inbox.py               # every inbox file to the fetch steps its own identity fulfils: archived once, logged, extracted, matched
+python3 tools/attach_inbox.py <file> --about "<person>"   # on your word about whom it concerns: a record no step cites, or a family-held photograph or scan
 python3 tools/fetches.py list               # every page waiting to be saved in the browser, at every holder, with its link and file name; `collect` brings the saved pages in
 python3 tools/cards.py "<person>"           # every Undecided proposal about the person as a decision card; --all, --json
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"   # the decision on a card, as the screen's Add / Ignore

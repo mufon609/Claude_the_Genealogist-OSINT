@@ -373,7 +373,8 @@ record, and the planner never drops the step.
 **A family-held original.** A photograph or scan of something the family
 holds (an heirloom's label, a letter, a Bible page) has no record identity and
 no step. It is archived under the family-held source (M05, tier T3: a family
-statement) on the owner's word about whom it concerns, filed under the tree,
+statement) on the owner's word about whom it concerns
+(`tools/attach_inbox.py <file> --about "<person>"`), filed under the tree,
 and read one persona at a time by the owner or the model; the matcher puts the
 reading before the owner as a card for the person named. Nothing on it is taken
 by the rule.

@@ -105,6 +105,36 @@ planner blocks every fetch step at a `scanned_index` holder
 this page-locating step is what unblocks them, for the New York index and
 for the New Jersey marriage index's own scanned-page years alike.
 
+### C2. A saved page carries its fetch-list entry in its own bytes
+
+`tools/fetches.py collect` reads a saved page's identity from the bytes (the
+saved-from line `tools/save_page.js` writes), never from its file name, since
+Chrome may sanitize or de-duplicate the name the list printed
+(`docs/RESEARCH-WORKFLOW.md` §4). A FamilySearch search page, or a record page
+whose citation carries no ark of the holder's, then reaches its steps only by
+inference: the page's collection against the citation's holder collection
+and the name searched against the name the citation sits on
+(`attach._steps_by_collection`, `_fetch_steps_searched`, `steps_pointed`, the
+repeat path). That inference is where most of the loop's fixes have landed,
+each real run surfacing a new case (a name ending in a suffix, two census
+searches of one person, a results page with no rows). Have the save script
+write a second comment beside the saved-from line, the list entry's own key
+(the steps it serves), given when the script is run from the list, and have
+collect reach those steps first, the steps the page's identity reaches beside
+them; the inference stays for a file dropped into the inbox by hand. It
+changes the page-saves-itself method, so the owner decides it before it is
+built; then §4 first, the code after.
+
+### C3. A page no parser reads is logged found
+
+`tools/attach.py`'s `attach` logs a run `found` before the page is parsed and
+turns it to `none` only for a results listing whose rows fit nobody. A page at
+a holder without a parser (the SAR Patriot Research System's "No matching
+records found") is therefore `found` in `search_log` though it holds nothing
+and closes no step. Decide the word for a run whose page nobody has read (a
+`found` with a note that says unread, or an outcome of its own), so the log
+says what a program can rely on, and apply it to the rows already logged so.
+
 ### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
 
 `tools/save_page.js` clones `document.documentElement` and hands the clone
@@ -119,6 +149,16 @@ the place of the host's children), so the saved page is what the browser
 showed; the byte count and the markers it returns must still be checked
 before the tab is closed, as §4 says. Until then a page from such a site
 cannot be saved by this method.
+
+### C5. The fetch list repeats one bare search form per person
+
+A page at a holder whose pages carry no identity is listed once per citation
+and person (`tools/fetches.py waiting`). Where the holder's link prefills
+nothing, every entry is the same empty form: the SAR patriot search is listed
+twenty times under one URL, each entry a page nobody can save as an answer
+without typing the search by hand. Such a link is a search a person runs, not
+a page to save: make the step assisted with the citation's fields as what to
+look for, or list the form once with the people and fields it serves.
 
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
@@ -174,6 +214,29 @@ The site has reset the connection on the search path to a declared tool
 answers a declared tool before building, and if it refuses, the step is
 assisted.
 
+### C9. Tree isolation has no harness, and some readers ignore the tree
+
+Every scenario builds one tree, so nothing shows a second tree over the same
+archive ignoring the first one's decisions (`CLAUDE.md` hard rule 4).
+`match.fetched_for` gathers `search_plan` and `person_persona` rows by
+artifact across every tree. Write a scenario with two trees and one archived
+page, decided in the first and undecided in the second, and scope every
+reader that joins `person_persona` or `search_plan` by artifact or persona to
+its tree.
+
+### C10. A statement on the wrong event cannot be moved
+
+`tools/conclude.py place` writes an accepted record's undated fact onto the
+event the owner means only while the fact carries no assertion. Robert Edgar
+Davidson carries a second Death event dated "09:50 PM", created from an older
+reading of his Ohio Death Index page that took the page's time of death for a
+date; that reading's statement is rejected, the current reading's undated
+Death statement sits on the same event, and the plan's "more than one death
+event" conflict stays open with no tool that closes it. Let `place` move a
+statement from one of the person's events of its type to another, with one
+audit row, and decide how an event no remaining statement supports leaves the
+person's events.
+
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card
@@ -193,6 +256,15 @@ them, agrees as a spelling variant, and whether the resolver offers the
 resolved place as such a string's candidate on the same ground; then the
 matcher applies it. Until then such a record is a card.
 
+### C12. The person screen has no control for a record's unplaced fact
+
+`Catalog.unplaced` raises an accepted record's undated fact, on a person with
+several events of its type, as a conflict question, and only
+`tools/conclude.py place` answers it. Show the question on the person screen
+with the person's events of that type to choose from, writing through
+`conclude.place` with its audit row, as the living line's control writes
+through `conclude.living`.
+
 ### C13. A connector for Open Archives, the Dutch records
 
 api.openarch.nl answers a declared tool with no key: `records/search.json`
@@ -206,6 +278,16 @@ the record's subject, the event as the fact), when such a person is reviewed
 and the step exists, so it is tested on a real step. The endpoint has timed
 out on a declared tool from this machine; confirm it answers before building.
 
+### C14. The decision code is hard to review
+
+`tools/conclude.py`, `tools/cards.py` and `tools/match.py` hold lines up to
+480 characters, statements chained by semicolons (179 lines over 160
+characters in `conclude.py`), and functions up to 225 lines
+(`checklist.build`, `conclude.rule_accepts`, `cards.card`), where a defect in
+a write hides in the middle of a line. Reformat them one
+statement per line at a width a review can read, behaviour unchanged and the
+checks green, a file per commit.
+
 ### C15. A record whose two personas each wait on the other
 
 Carol Evers's card on the 1950 schedule the owner cited on their own word
@@ -214,7 +296,7 @@ model) proposes Evers, Carol Ann, daughter, as her on the name and sex alone;
 her only stated relationship is to Evers, John, the head, who is nobody in
 the tree. The rule does not take her: no accepted fact of hers agrees, and a
 stated relationship counts a point only when the relative's persona fits
-someone in the tree (`CLAUDE.md` rule 3). John Evers gets no card: a persona
+someone in the tree (`docs/RESEARCH-WORKFLOW.md` §5–7). John Evers gets no card: a persona
 is proposed as a new person only through a stated relationship to a persona
 already accepted on the record, and none is. Each waits on the other, and the
 record stays the owner's click though the owner's own citation says whose
