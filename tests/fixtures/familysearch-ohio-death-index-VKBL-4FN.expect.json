@@ -8,6 +8,7 @@
   }
  },
  "extractor": "familysearch-record",
+ "personas": 3,
  "sequence": {
   "1": {
    "name": "Robert Edgar Davidson",
@@ -35,6 +36,37 @@
     }
    ],
    "why": "the page's Event Date shows his time of death (09:50 PM) and keeps the date, 5 Apr 2004, collapsed beneath it: the time is a fact of its own kind under its own label, never a date, and the date is the Death's own, with the record's place; the birth as written, unaffected"
+  },
+  "2": {
+   "name": "Davidson",
+   "role": "father",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father",
+     "computed": true
+    }
+   ],
+   "why": "the father the index gives by his surname alone: a persona with the name as written, never dropped"
+  },
+  "3": {
+   "name": "Bell",
+   "role": "mother",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother",
+     "computed": true
+    }
+   ],
+   "why": "the mother, her maiden surname alone, the same; the Other People row the index writes UNKNOWN still names nobody"
   }
+ },
+ "none": {
+  "name_ends": [
+   "UNKNOWN"
+  ]
  }
 }

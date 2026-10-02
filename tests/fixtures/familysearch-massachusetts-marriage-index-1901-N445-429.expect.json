@@ -1,0 +1,71 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,2966::579721"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 6,
+ "sequence": {
+  "1": {
+   "name": "James J. Ahern",
+   "role": "subject",
+   "facts": [
+    {
+     "type": "Marriage",
+     "date": "26 Jun 1901",
+     "place": "Amherst, Hampshire, Massachusetts"
+    }
+   ]
+  },
+  "2": {
+   "name": "Thomas",
+   "role": "father",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Name",
+     "value": "Thomas"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father",
+     "computed": true
+    }
+   ],
+   "why": "the groom's father, given by one name only: a persona with the name as written, never dropped"
+  },
+  "4": {
+   "name": "Annie E. Scannell",
+   "role": "wife",
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 1,
+     "value": "Wife",
+     "computed": true
+    }
+   ],
+   "why": "the bride, her own details open; the page gives her only in FamilySearch's Spouses and Children table, so Wife is marked computed"
+  },
+  "5": {
+   "name": "Dennis",
+   "role": "father-in-law",
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1,
+     "value": "Father-in-law",
+     "computed": true
+    }
+   ],
+   "why": "the bride's father, one name only, kept as written; Father-in-law of the groom is the site's own working-out"
+  }
+ }
+}

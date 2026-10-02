@@ -1,0 +1,35 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E01",
+  "locator": {
+   "kind": "memorial_id",
+   "value": "143847338"
+  }
+ },
+ "extractor": "findagrave-memorial",
+ "personas": 6,
+ "sequence": {
+  "1": {
+   "name": "John Davidson",
+   "role": "memorial",
+   "facts": [
+    {
+     "type": "Name",
+     "value": "John Davidson"
+    },
+    {
+     "type": "Death",
+     "date": "8 Jan 1877",
+     "place": "Franklin, Simpson County, Kentucky"
+    }
+   ],
+   "why": "the memorial's name beside its veteran badge, a V and a hidden Veteran, read without the badge"
+  }
+ },
+ "none": {
+  "name_ends": [
+   "Veteran"
+  ]
+ }
+}

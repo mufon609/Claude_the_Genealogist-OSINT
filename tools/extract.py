@@ -4,10 +4,10 @@
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
 
 A parser claims the page by its own marker, or the extraction fails. A Find a
-Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.3.0;
+Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.3.0; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.4.0; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -52,7 +52,8 @@ Relationship column, when present, is the member's role). Anything the page
 does not carry is absent.
 
 A Find a Grave memorial (verified on a real page): the subject's name in the
-h1 bio-name; birth and death as the time/span and place elements birthDateLabel,
+h1 bio-name, without the badges beside it (a veteran's "V" and its hidden
+"Veteran"), a member's name the same; birth and death as the time/span and place elements birthDateLabel,
 birthLocationLabel, deathDateLabel ("10 Oct 1961 (aged 81)", the age becomes an
 Age fact), deathLocationLabel; the cemetery name and its address spans as the
 Burial place, the plot (plotValueLabel) as the Burial fact's value and the
@@ -89,7 +90,10 @@ states the same date or the same words as the shown value; beneath an Event Date
 that shows a time of day (09:50 PM), the date the field keeps is the event's own
 date and the time an Unknown fact under "<Event> Time". The
 household tables ("Parents and Siblings", "Extended Family") give one persona
-per member: the name, the page's own role word (Father, Sister, Maternal
+per member that names someone (a single name, Thomas or Davidson, does; a row
+reading ", [1918]", a year and no name, and the index's UNKNOWN do not, and a
+relative a field names is read the same way): the name as written, the page's
+own role word (Father, Sister, Maternal
 Grandmother), sex, age and birthplace from the row, the member's own details
 table as its facts, its record ark in region_json, and one relation from the
 member to the subject with the role word as written (relation_kind); a NUMIDENT
@@ -130,8 +134,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 from conclude import assert_facts, link_family
 
-EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.3.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.3.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.4.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -215,6 +219,12 @@ def text_of(node):
 
 def by_id(root, id_): return next((n for n in walk(root) if n["attrs"].get("id") == id_), None)
 
+def unbadged(node):
+    """The node without its badges, the elements of class badge beside a name (Find a Grave's veteran mark: a "V" and a hidden
+    "Veteran"), which are no part of the name."""
+    return {"tag": node["tag"], "attrs": node["attrs"], "children": [unbadged(c) if isinstance(c, dict) else c for c in node["children"]
+            if not (isinstance(c, dict) and "badge" in (c["attrs"].get("class") or "").split())]}
+
 def parse_memorial(text):
     """A Find a Grave memorial page: {"kind": "findagrave", "title", "fields": [[label, value]], "memorial_id", "members": [...], "source": {...},
     "photos": [{"id", "url", "caption", "type", "added_by"}]}: each photograph in the page's viewer with its full-size image, its caption and
@@ -223,7 +233,8 @@ def parse_memorial(text):
     get = lambda i: (text_of(by_id(root, i)) or None) if by_id(root, i) else None
     fields = []
     add = lambda label, value: fields.append([label, value]) if value else None
-    add("Name", get("bio-name")); add("Birth Date", get("birthDateLabel")); add("Birth Place", get("birthLocationLabel"))
+    bio = by_id(root, "bio-name")
+    add("Name", (text_of(unbadged(bio)).replace("\n", " ") or None) if bio else None); add("Birth Date", get("birthDateLabel")); add("Birth Place", get("birthLocationLabel"))
     add("Death Date", get("deathDateLabel")); add("Death Place", get("deathLocationLabel"))
     cemetery = [get(i) for i in ("cemeteryNameLabel", "cemeteryCityName", "cemeteryCountyName", "cemeteryStateName", "cemeteryCountryName")]
     add("Burial Place", ", ".join(x for x in cemetery if x)); add("Plot", get("plotValueLabel")); add("Inscription", get("inscriptionValue"))
@@ -238,7 +249,7 @@ def parse_memorial(text):
             if not h3: continue
             maiden = next((text_of(n) for n in walk(h3) if n["tag"] == "i"), None)
             years = {n["attrs"]["itemprop"]: text_of(n) for n in walk(li) if n["attrs"].get("itemprop") in ("birthDate", "deathDate")}
-            members.append({"label": label, "name": text_of(h3).replace("\n", " "), "maiden": maiden, "birth": years.get("birthDate"), "death": years.get("deathDate"),
+            members.append({"label": label, "name": text_of(unbadged(h3)).replace("\n", " "), "maiden": maiden, "birth": years.get("birthDate"), "death": years.get("deathDate"),
                             "url": a["attrs"]["href"] if a else None})
     src = by_id(root, "source"); source = {}
     if src:
@@ -853,6 +864,12 @@ def write_aad_record(w, parsed):
         if v and not re.search(r"undefined code|^#+$", v, re.I): w.fact(pid, ftype, v, labels=[title])
     if f.get("ARMY SERIAL NUMBER"): w.fact(pid, "Identification Number", f["ARMY SERIAL NUMBER"], labels=["ARMY SERIAL NUMBER"])
 
+def names_someone(name):
+    """Whether a name as written names a person: a letter left once a bracketed year and the punctuation around it are taken off
+    (a row reading ", [1918]" names nobody), and not the index's own UNKNOWN. A single name (Thomas, Davidson) names someone."""
+    bare = re.sub(r"\[[^\]]*\]", " ", name or "")
+    return bool(re.search(r"[^\W\d_]", bare)) and bare.strip(" ,.;").upper() != "UNKNOWN"
+
 def calc_census_birth(by_type, is_census):
     """A census record's own Birth Date, when it is a bare year, is the index's own estimate from the age on the census
     date, never a birth as written: qualifier calculated, like the age-derived one, so the matcher allows two years."""
@@ -884,7 +901,7 @@ def write_record(w, parsed):
         by_type.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
     write_facts(w, subject, by_type)
     members_written = []
-    for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], 2):   # a surname alone or UNKNOWN names nobody
+    for seq, m in enumerate([x for x in parsed["members"] if names_someone(x["name"])], 2):
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf, None, m.get("alternates") or [])
         calc_census_birth(mb, is_census)
@@ -899,7 +916,7 @@ def write_record(w, parsed):
     head = heads[0] if len(heads) == 1 else None                     # the household's head, by the record's own column: the subject, or the one member whose own details say Head
     stated = [(pid, head, household_kind(word), word) for pid, word in [(subject, to_head(fields))] + [(pid, to_head(m["fields"])) for pid, _, _, m in members_written]
               if head and word and pid != head and household_kind(word) != "head"]   # each person's relationship to the head, as the record's own column states it
-    in_fields = {label for label, who, _ in named if label in ("father", "mother") and len(who.split()) >= 2}
+    in_fields = {label for label, who, _ in named if label in ("father", "mother") and names_someone(who)}
     for pid, role, section, m in members_written:
         kind = relation_kind(m["role"], section, parsed.get("collection"))
         if role in in_fields: w.relation(pid, subject, kind, m["role"], role); continue      # the parent a field names (Father's Name): the record states it
@@ -907,7 +924,7 @@ def write_record(w, parsed):
     for a, b, kind, word in stated: w.relation(a, b, kind, word, "Relationship to Head of Household")
     seq0 = 2 + len(members_written)
     for label, who, others in named:                                 # a relative the record names in a field: Father's Name, Mother's Name, Spouse
-        if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Doe") names nobody
+        if not names_someone(who): continue
         table_row = next((pid for pid, role, _, _ in members_written if label in ("father", "mother") and role == label), None)
         if table_row:                                                # the same parent, already written from the relatives table: the field's own words join that persona, not a second one
             w.fact(table_row, "Name", who, labels=[label])
