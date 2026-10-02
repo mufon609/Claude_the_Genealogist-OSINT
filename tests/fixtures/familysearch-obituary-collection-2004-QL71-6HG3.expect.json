@@ -1,0 +1,64 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "B02",
+  "locator": {
+   "kind": "apid",
+   "value": "1,7545::2520318"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": {
+  "min": 15
+ },
+ "sequence": {
+  "1": {
+   "name": "Mr Robert Edgar Davidson",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "19 Feb 1915",
+     "place": "Woodburn, Kentucky"
+    },
+    {
+     "type": "Death",
+     "date": "05 Apr 2004"
+    }
+   ],
+   "why": "the obituary index's own subject, born on the day at Woodburn, the birthplace his Social Security claim gives as Auburn"
+  }
+ },
+ "some": [
+  {
+   "name": "Joe Davidson",
+   "role": "brother",
+   "relations": [
+    {
+     "kind": "sibling",
+     "to": 1
+    }
+   ],
+   "why": "a brother the obituary names with nothing else"
+  },
+  {
+   "name": "Lena Bell Davidson",
+   "role": "mother",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1
+    }
+   ]
+  },
+  {
+   "name": "John Young Davidson",
+   "role": "father",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1
+    }
+   ]
+  }
+ ]
+}

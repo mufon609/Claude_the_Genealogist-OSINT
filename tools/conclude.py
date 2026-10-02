@@ -647,18 +647,43 @@ def _grounded(cx, eid, kind, value):
         return False
     return any(place_verdict(value, r["raw"])[0] == "disagrees" for r in rows if r["persona_fact_id"] is not None and r["raw"])
 
-def split_disagree(cx, cand, persona, disagree):
+def held_against(cx, tree_id, cand_id, other_id, kind, without=()):
+    """Whether the tree holds, on an accepted statement resting on a trusted record or the owner's word (trusted_evidence),
+    the state a stated relationship of the candidate to other contradicts: for a child, the candidate's own parents; for a
+    parent, the other's parents; for a spouse, a spouse of the candidate's; for a sibling, both the candidate's parents and
+    the other's. A link the file only claims, or no link at all, holds nothing against the record."""
+    q = _q(cx)
+    rows = lambda pid, role: [dumps([f, pid, role]) for f, in q.execute("SELECT family_id FROM family_member WHERE person_id=? AND role=?", (pid, role))]
+    held = lambda pid, role: trusted_evidence(cx, tree_id, "family_member", rows(pid, role), without=without)
+    if kind == "child": return held(cand_id, "child")
+    if kind == "parent": return held(other_id, "child")
+    if kind == "spouse": return held(cand_id, "partner")
+    if kind == "sibling": return held(cand_id, "child") and held(other_id, "child")
+    return True
+
+def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=()):
     """Partition compare()'s disagreements into those grounded in an Accepted assertion on the very event or link compared
-    (a veto) and those against a bare claim (named in the decision note instead, never a veto): a birth or death date or
-    place is checked against the event's own Accepted assertions, not the tree's displayed value, which may itself be an
-    unaccepted claim; every other kind of disagreement (name, sex, relationship) vetoes."""
-    vetoes, claims = [], []
+    (a veto), those against a bare claim (named in the decision note instead, never a veto) and a birth place that differs
+    from an accepted one: a birth or death date, a death or burial place is checked against the event's own Accepted
+    assertions, not the tree's displayed value, which may itself be an unaccepted claim; a stated relationship against what
+    the tree holds of it on accepted evidence (held_against), so a family the file only claims is a claim here too; a birth
+    place, secondary on nearly every record and never a point, never vetoes, and when it differs from an accepted value the
+    difference is a conflict question once the record is taken; every other kind of disagreement (a name, a middle name, sex)
+    vetoes. Returns (vetoes, claims, conflicts)."""
+    rel = {}                                                         # a relationship line's own opening -> (kind, the related candidate), as compare() words it
+    for kind, other_pid, as_written, other_name in persona["relations"]:
+        if chosen.get(other_pid): rel[f"relationship disagrees: {as_written or kind} of {other_name},"] = (kind, chosen[other_pid])
+    vetoes, claims, conflicts = [], [], []
     for d in disagree:
         field = next((f for f in FIELD_EVENT if d.startswith(f)), None)
         eid = cand["events"].get(FIELD_EVENT[field][0]) if field else None
         if field and eid and not _grounded(cx, eid, FIELD_EVENT[field][1], persona[FIELD_EVENT[field][2]]): claims.append(d)
+        elif field == "birth place": conflicts.append(d)
+        elif d.startswith("relationship disagrees"):
+            kind, oc = next((v for k, v in rel.items() if d.startswith(k)), (None, None))
+            (vetoes if oc is None or held_against(cx, tree_id, cand["id"], oc["id"], kind, without) else claims).append(d)
         else: vetoes.append(d)
-    return vetoes, claims
+    return vetoes, claims, conflicts
 
 def claimed_relation_match(fam, relations, accepted_on_record):
     """Whether the persona's stated relationship names a persona already accepted on this very record as a person the tree
@@ -679,9 +704,11 @@ def rule_accepts(cx, tree_id, prop, without=()):
     current reading names it (a parsed page's own heading), the artifact row's collection only when the reading gives none:
     artifact rows are written once, and an older parser's title stays on them. A record from a source nobody
     can edit at will (T1–T3), of a kind that identifies a person fully: the accepted name and two facts resting on trusted
-    sources or the owner's word agree, and no birth or death date or place disagrees against the event's own Accepted
-    assertion (a disagreement with a bare claim is not a veto: it is named in the reason and the record is still taken,
-    decide() raising the difference as a conflict question); every other disagreement still vetoes. An obituary or
+    sources or the owner's word agree, and no birth or death date, death or burial place disagrees against the event's own
+    Accepted assertion and no stated relationship against a link the tree holds on accepted evidence (a disagreement with
+    a bare claim, the file's family included, is not a veto: it is named in the reason and the record is still taken,
+    decide() raising the difference as a conflict question); a birth place never vetoes, and one differing from an accepted
+    value is the same conflict question (split_disagree); every other disagreement still vetoes. An obituary or
     newspaper text is such a kind only once it is read
     (a bare citation stays a hint), and only on its own terms: at least one of the two points must be a stated relative who
     is that relative in the tree, on trusted evidence — dates and places alone are never enough for this kind, however many
@@ -777,9 +804,10 @@ def rule_accepts(cx, tree_id, prop, without=()):
             elif a.startswith("the same memorial"): return True
         return False
     fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
-    vetoes, claims = split_disagree(cx, cand, persona, disagree)
+    vetoes, claims, conflicts = split_disagree(cx, tree_id, cand, persona, disagree, chosen, without)
     if vetoes: return False, "disagrees: " + "; ".join(vetoes)
     claim_note = (" (disagrees with the tree's own claim, not yet accepted: " + "; ".join(claims) + ")") if claims else ""
+    claim_note += (" (the birth place differs from an accepted one, never a veto: a conflict question once the record is taken: " + "; ".join(conflicts) + ")") if conflicts else ""
     married = any(a.startswith("surname:") and "carries her husband's surname" in a for a in absent)   # a wife under her married name: not a disagreement, and not the surname's absence either
     if not any(a.startswith("given name agrees") for a in agree) or not (any(a.startswith("surname agrees") for a in agree) or married): return False, "the name does not agree in full"
     if any(a.startswith("surname agrees, one letter apart") for a in agree): return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"

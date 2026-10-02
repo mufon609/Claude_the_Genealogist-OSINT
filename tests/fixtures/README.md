@@ -31,6 +31,7 @@ as it is.
 | `familysearch-search-kentucky-deaths-bell-lena-howard.html` | FamilySearch record search results, the Kentucky Deaths 1911-1967 collection for Lena Howard Bell, 529 results, page 1 of 27, saved in the browser as the search a cited Kentucky death record (no ark of the holder's in the citation) was looked for by hand; the first row names her as a mother on another's record with no dates of her own | `rule:familysearch-search` | FamilySearch terms |
 | `familysearch-massachusetts-marriage-search-no-results-annie-e-scannell.html` | FamilySearch record search results, the Massachusetts, State Vital Records collection for Annie E Scannell, saved in the browser as the search her cited marriage index citation (no ark of the holder's) was looked for by hand; the site answered "No Results", saved from the search's own URL as any results page is, 19 Sept 2026 | `rule:familysearch-search` | FamilySearch terms |
 | `aad-enlistment-247275.html` | The AAD enlistment record 247275, Robert C Davidson, saved in the browser | `rule:aad-enlistment` | public record, National Archives |
+| `familysearch-obituary-collection-2004-QL71-6HG3.html` | FamilySearch record ark:/61903/1:1:QL71-6HG3, U.S., Obituary Collection, Robert Edgar Davidson's obituary in the Bucyrus Telegraph Forum, 2004: born 19 Feb 1915 at Woodburn, Kentucky, his parents, his brothers and sisters, his children and their families by name alone; archived under the file's own citation (Ancestry's 1,7545::2520318), as the archive holds it | `rule:familysearch-record` | FamilySearch terms |
 | `familysearch-tennessee-marriage-index-1895-VNXD-RXW.html` | FamilySearch record ark:/61903/1:1:VNXD-RXW, Tennessee, State Marriage Index, John Davidson and Lena Bell, 25 Dec 1895, Robertson County: two names, the date and the county, nothing else, as the archive holds it | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-social-security-claims-index-6K99-MWLL.html` | FamilySearch record ark:/61903/1:1:6K99-MWLL, United States, Social Security Applications and Claims Index, Robert Edgar Davidson, born 19 February 1915 at Auburn, Kentucky, his parents John Y Davidson and Lena Bell, as the archive holds it | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-search-kentucky-birth-index-robert-edgar-davidson.html` | FamilySearch record search results, the Kentucky Birth Index 1911-1999 for Robert Edgar Davidson, a hundred rows of Davidsons born from 1911 to 1999, as the archive holds it | `rule:familysearch-search` | FamilySearch terms |
@@ -153,7 +154,10 @@ literal id or `{person, type, index}`, that person's nth event of the type in th
 `by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's),
 `collect`, `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
-carries, written by the harness itself for a path only a planted event exercises), `place_card` (a place answer's card
+carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
+owner's own export that the cut leaves out, because another scenario reads its people without it, written as the
+import writes it: `xref` the family's own id in the export, `partners` and `children`, each membership the file's
+uncited claim, undecided), `place_card` (a place answer's card
 with the geocoder's
 `candidates` planted in the cache), `older_matcher`, `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once

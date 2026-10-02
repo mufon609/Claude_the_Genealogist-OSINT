@@ -465,6 +465,22 @@ def a_event(w, x):
     w.cx.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (w.treelib.ulid(), eid, w.person(x["person"])))
     return {"event": eid}
 
+def a_file_family(w, x):
+    """A family of the owner's own file that the harness cut leaves out (the cut keeps the families most scenarios need,
+    and one family of a person can change what another scenario reads), written as the import writes it: the family row,
+    its file id, and each membership with the file's own uncited claim, undecided. partners and children are people; xref
+    is the family's own id in the export."""
+    from ingest_gedcom import EXTRACTOR_TAG
+    fid = w.treelib.ulid(); ts = w.treelib.now()
+    w.cx.execute("INSERT INTO family (id,tree_id,rel_type,created_at,updated_at) VALUES (?,?,?,?,?)", (fid, w.tid, "unknown", ts, ts))
+    w.cx.execute("INSERT INTO external_id (id,tree_id,entity_kind,entity_id,system,value,created_at) VALUES (?,?,?,?,?,?,?)",
+                 (w.treelib.ulid(), w.tid, "family", fid, "ancestry_gedcom_xref", x["xref"], ts))
+    for i, (pid, role) in enumerate([(w.person(p), "partner") for p in x.get("partners", [])] + [(w.person(c), "child") for c in x.get("children", [])]):
+        w.cx.execute("INSERT INTO family_member (family_id,person_id,role,child_rel,seq) VALUES (?,?,?,?,?)", (fid, pid, role, "birth" if role == "child" else None, i + 1 if role == "child" else None))
+        w.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                        VALUES (?,?,'family_member',?,?,?,'undecided',?,?,?)""", (w.treelib.ulid(), w.tid, w.treelib.dumps([fid, pid, role]), w.env["import"]["sha"], "Ancestry member tree (no citation)", EXTRACTOR_TAG, ts, w.treelib.dumps({"uncited": True})))
+    return {"family": fid}
+
 def a_place_card(w, x):
     """A place_resolution card for a string of the tree, as the resolver would write it, its candidates' geocoder answers
     planted in the cache so no request goes out."""
@@ -538,7 +554,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
-           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 

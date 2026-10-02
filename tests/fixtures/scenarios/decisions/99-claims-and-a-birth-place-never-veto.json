@@ -1,0 +1,147 @@
+{
+ "title": "claims and a birth place never veto",
+ "line": "a stated sister the file places in another family, on its claim alone, is not vetoed on that relationship; a Social Security claim whose birthplace differs from the one an accepted obituary gives is taken on its points, the difference a conflict question",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the file's own family of James and Anna alone, which the harness cut leaves out",
+   "file_family": {
+    "xref": "F42",
+    "partners": [
+     "I332737043939"
+    ],
+    "children": [
+     "I332737058557"
+    ]
+   }
+  },
+  {
+   "say": "the 1920 page: Anna R, the sister of the household's daughter Alicia",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "say": "the father accepted by the owner; the rule takes the daughter on the claimed relationship",
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "rule": {
+      "record": "c20",
+      "person": "I332737058557",
+      "taken": false,
+      "why": "the name is not accepted yet"
+     },
+     "why": "the tree places Anna in another family than her stated sister's on the file's claim alone: no veto; the record waits on her own name, as any card would"
+    }
+   ]
+  },
+  {
+   "say": "his obituary, the file's own citation, accepted by the owner: born at Woodburn, Kentucky, on the day",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "trusted": {
+      "event": {
+       "person": "I332737100409",
+       "type": "Birth"
+      },
+      "stating": "place"
+     },
+     "why": "his birthplace now rests on an accepted record"
+    }
+   ]
+  },
+  {
+   "say": "his Social Security claim: born the same day, at Auburn, Kentucky",
+   "attach": {
+    "fixture": "familysearch-social-security-claims-index-6K99-MWLL.html"
+   },
+   "as": "ssc",
+   "expect": [
+    {
+     "card": {
+      "record": "ssc",
+      "person": "I332737100409",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": [
+        "birth date to the day",
+        "the birth place differs from an accepted one, never a veto"
+       ]
+      }
+     },
+     "why": "a birth place is never a point and never a veto: the claim is taken on the name and both days"
+    },
+    {
+     "question": {
+      "person": "I332737100409",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "birth place:"
+     },
+     "why": "Woodburn against Auburn: a conflict question for the owner, both statements accepted as what each record says"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

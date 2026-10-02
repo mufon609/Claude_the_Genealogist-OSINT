@@ -771,7 +771,12 @@ the date or place compared (a record stating a death with no date, asserted on
 the person's one Death event, is no ground for the date another source gave
 that event), and nothing among them disagrees;
 a disagreement with a value that rests on no accepted assertion is not a
-veto here either, and becomes the same conflict question. A
+veto here either, and becomes the same conflict question. That holds for a
+stated relationship too: it vetoes only against a link the tree holds on
+accepted evidence (a sister the file alone places in another family is no
+veto). A birth place, secondary on nearly every record and never a point,
+never vetoes at all: one that differs from an accepted value is the same
+conflict question once the record is taken on its points. A
 surname agreeing only one letter apart is a card, never the rule's. Claims never count, and a fact that
 rests only on a page anyone can edit does not count either. The one exception, on the owner's word: a stated
 relationship to a relative the tree links by a claim alone counts one point, never double, when that relative's own
