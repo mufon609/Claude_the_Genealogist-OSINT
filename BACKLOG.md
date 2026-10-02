@@ -140,20 +140,18 @@ and closes no step. Decide the word for a run whose page nobody has read (a
 `found` with a note that says unread, or an outcome of its own), so the log
 says what a program can rely on, and apply it to the rows already logged so.
 
-### C4. The page-saves-itself script captures nothing on a site that renders through shadow roots
+### C4. Confirm the shadow-root save on archive.org
 
-`tools/save_page.js` clones `document.documentElement` and hands the clone
-to the browser as a download; an element's shadow root attached by script
-is not cloned, so on a site that renders its page inside such roots the
-file holds only the site's no-script fallback. archive.org is such a site:
-its pages save as a body of a few hundred bytes reading "Javascript is
-required for this site", which never belong in `inbox/`. Have the script
-serialise every open shadow root it finds into the clone as declarative
-shadow DOM (`<template shadowrootmode="open">` with the root's markup, in
-the place of the host's children), so the saved page is what the browser
-showed; the byte count and the markers it returns must still be checked
-before the tab is closed, as §4 says. Until then a page from such a site
-cannot be saved by this method.
+`tools/save_page.js` serializes the page's open shadow roots as declarative
+shadow DOM (`getHTML` with every open root) when its plain copy comes out
+nearly empty, the way archive.org's pages do (the plain copy holds only the
+site's "Javascript is required" fallback). No browser was connected when it
+was written, so it is untested on the real site: in the next browser session,
+save one archive.org page the fetch list names (`[any page: save_page.js with
+true]`) and check its one line and the saved file's text. If the line still
+says `EMPTY` (closed shadow roots, or content drawn in a canvas), make those
+steps assisted with the page's own link and say so in
+`docs/RESEARCH-WORKFLOW.md` §4.
 
 ### C5. The fetch list repeats one bare search form per person
 

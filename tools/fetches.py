@@ -203,10 +203,13 @@ def collect(cx, tree_id, slug, by, folder=None):
 
 def people_short(names, n=2): return ", ".join(names[:n]) + (f" +{len(names) - n}" if len(names) > n else "")
 
+IDENTITY_HOLDERS = ("D03", "E01", "F01")   # FamilySearch, Find a Grave, AAD: pages save_page.js knows by their own markup; any other holder's page is saved with true
+
 def page_line(e):
     """A page to save as one compact line: the link, the file name to save under, the people waiting in short, an image or a bare
     form marked."""
-    return f"{e['url']}  {e['save_as']}  {people_short(e['people'])}" + ("  [image: tools/save_image.js]" if e["how"] == "image" else "") + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "")
+    return f"{e['url']}  {e['save_as']}  {people_short(e['people'])}" + ("  [image: tools/save_image.js]" if e["how"] == "image" else "") + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "") \
+        + ("  [any page: save_page.js with true]" if e["how"] != "image" and e["holder_id"] not in IDENTITY_HOLDERS else "")
 
 def next_lines(cx, tree_id, k):
     """The next k openable pages, a line each (page_line), a bare form after every page that prefills something, and the count."""
