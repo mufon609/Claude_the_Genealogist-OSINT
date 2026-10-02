@@ -303,9 +303,11 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
 5. **The Genealogical Proof Standard, in code.** Conclusions meet the GPS and
    the standing rule's linkage rests on the same analysis: source,
    information and evidence classified in words from a data table, a proof
-   summary per key fact written by code, conflicts closed with a written
-   reason (`docs/RESEARCH-WORKFLOW.md` §5–7, "The proof standard"). No class
-   becomes a number.
+   summary per key fact written by code, and every conflict kept, cited,
+   pointed out and decided with a written reason: by the rule when the
+   classes favour one side without doubt, by the owner otherwise
+   (`docs/RESEARCH-WORKFLOW.md` §5–7, "The proof standard"). No class becomes
+   a number.
 6. **Tokens are a cost the design answers to.** A session pays for every byte
    a tool prints and every browser round trip: a tool prints what the next
    action needs and the whole on request, the browser saves pages with a

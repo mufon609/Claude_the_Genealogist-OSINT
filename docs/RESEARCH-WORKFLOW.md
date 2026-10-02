@@ -813,13 +813,25 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   something besides that relationship. A claim whose own citation is the
   record under decision never counts. Given names that differ in a middle
   name or initial disagree. Records from one original count once.
-- **Conflicts.** A difference with an accepted value is a conflict question,
-  never an overwrite; a birth place, secondary on nearly every record kind
-  and never a point, never vetoes. The owner closes a conflict with a written
-  reason naming the value kept (`tools/conclude.py resolve`); the proof
-  summary proposes the side the classes favour (the record of the event
-  itself, primary over secondary, original over derivative over authored).
-  The rule resolves none.
+- **Conflicts: kept, cited, pointed out, then decided.** A record that
+  differs from the tree's value is still accepted for what it says: its
+  statement stays, cited to the archived record, and the difference is a
+  conflict question on the person, never an overwrite and never a silent
+  drop; a birth place, secondary on nearly every record kind and never a
+  point, never vetoes. The tree's value is decided, not inherited from
+  whichever record arrived first. The rule decides a conflict when the
+  classes favour one side without doubt: the side resting on the record of
+  the event itself, primary information from an original or a derivative of
+  one, against a side resting only on secondary information, on a page anyone
+  can edit, or on the file's bare claim. It writes that reasoning as the
+  resolution's reason, recorded as acting on the owner's word and reversible
+  like its other decisions (`reconsider` re-examines it). Every other
+  conflict (two primary sources apart, both sides secondary, a classes table
+  silent) is a card for the owner, who closes it with a written reason
+  naming the value kept (`tools/conclude.py resolve`). Either way the kept
+  value becomes the event's own, the statements set aside stay as evidence
+  with their citations, and the proof summary prints the resolution and its
+  reason.
 - **Reasonably exhaustive research.** A key fact's research is its checklist
   rows, each held, searched with nothing found at every source, cited and not
   yet fetched, or blocked. It is stated with the conclusion, not a gate.
