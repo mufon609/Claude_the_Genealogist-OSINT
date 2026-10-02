@@ -71,7 +71,7 @@ from log_search import release_household
 from backfill_aliases import classify, clean, key
 
 SKIP = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
-AUTOMATED = ("familysearch-record", "nara-1950-schedule", "va-gravesite", "nj-death-index")   # a rule parser's own name, trusted for any collection it claims; a record read by hand or by the model is gated on its collection alone, never on who read it
+AUTOMATED = ("familysearch-record", "nara-1950-schedule", "va-gravesite", "nj-death-index", "ky-death-index", "ky-birth-index")   # a rule parser's own name, trusted for any collection it claims; a record read by hand or by the model is gated on its collection alone, never on who read it
 IDENTIFYING = re.compile(r"census|\bbirths?\b|\bdeaths?\b|\bmarriages?\b|\bvital\b|certificate|social security|numident|\bdraft\b|military|veteran|gravesite|enlist|pension|memorial photograph|naturaliz", re.I)   # §0's automated kinds, and a gravestone's own inscription once read
 NAMED_SURVIVORS = re.compile(r"obituary|newspaper", re.I)   # a kind that identifies a person only through who it names, once its text is read (docs/RESEARCH-WORKFLOW.md §0: "then the named survivors decide"); the rule's ground here is a stated relative, never a date or a place alone
 EDITABLE = re.compile(r"(?:find a grave|billiongraves|member tree|family tree)(?!.*photograph)", re.I)    # a page anyone can edit, whoever indexes it; not the gravestone's own photograph, which is a primary source (T1) however it is archived
@@ -180,15 +180,18 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     with the same value, created when there is none. A fact the same record already asserts on the same subject with the same
     type, date, value and place is not asserted again, so a re-extraction adds only what is new; one the rule withdrew turns
     Accepted again on a trusted record and stays as it is on an editable page; one a person rejected stays rejected, whatever
-    reads the record again. Returns how many were written."""
+    reads the record again. A value the page keeps beneath the one it shows (FamilySearch's edit history, a fact whose region
+    marks it alternate) is written Undecided and marked so: what the page also says, kept and cited, never accepted with the
+    record and never a conflict with the value the record shows. Returns how many were written."""
     q = _q(cx)
     n = 0
     sha = q.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()["artifact_sha256"]
     cite, status = _citation(cx, sha)
     def assert_(kind, sid, f):
         nonlocal n
-        n += _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id)
-    for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id, et.kind
+        alt = "alternate" in json.loads(f["region_json"] or "{}")
+        n += _state(q, tree_id, kind, sid, f, sha, cite, "undecided" if alt else status, by, ts, prop_id, {"alternate": True} if alt else None)
+    for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id, pf.region_json, et.kind
                            FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)):
         if f["fact_type"] in ("Name", "Sex"): assert_("person", person_id, f); continue
         if f["fact_type"] in SKIP or f["kind"] not in ("event", "attribute"): continue
@@ -233,7 +236,7 @@ def _citation(cx, sha):
     a = cx.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
     return (a[0] or a[1] or sha[:12]), ("undecided" if editable(cx, sha) else "accepted")
 
-def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id):
+def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id, extra=None):
     """One statement of a record's fact on a subject, written once: a statement the same record already makes on the same
     subject with the same type, date, value and place stands again when the rule had withdrawn it (undecided, on a trusted
     record) and otherwise stays as it is, a person's rejection included. Returns 1 when written, else 0."""
@@ -242,10 +245,10 @@ def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id):
                     (kind, sid, sha, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])).fetchone()
     if old:
         if old["status"] == "undecided" and status == "accepted":
-            q.execute("UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=?, notes=? WHERE id=?", (by, ts, dumps({"proposal": prop_id}), old["id"])); return 1
+            q.execute("UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=?, notes=? WHERE id=?", (by, ts, dumps({"proposal": prop_id, **(extra or {})}), old["id"])); return 1
         return 0
     q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), tree_id, kind, sid, f["id"], sha, cite, status, by, ts, dumps({"proposal": prop_id})))
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), tree_id, kind, sid, f["id"], sha, cite, status, by, ts, dumps({"proposal": prop_id, **(extra or {})})))
     return 1
 
 def assert_family_events(cx, tree_id, fid, persona_ids, sha, prop_id, by, ts):
@@ -328,7 +331,8 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     of the kind the difference is (backfill_aliases.classify, married_name when the record shows the person married under
     it: shown_married), the record's words as written. Returns the alias id, or None when there is nothing to write."""
     q = _q(cx)
-    fact = q.execute("SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL LIMIT 1", (persona_id,)).fetchone()
+    fact = q.execute("""SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL
+                        AND (region_json IS NULL OR json_extract(region_json,'$.alternate') IS NULL) LIMIT 1""", (persona_id,)).fetchone()   # the name the page shows, never one it keeps beneath
     if not fact or not fact["value_text"]: return None
     name = q.execute("SELECT given, surname, suffix FROM person_name WHERE person_id=? AND is_primary", (person_id,)).fetchone()
     if not name: return None
@@ -410,7 +414,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     as a child of the other's accepted parents with an Undecided assertion regardless of tier (the record states the sibling,
     not the parents), and only when the other is an accepted child of exactly one family and neither partner of it died,
     on accepted evidence, before the person was born (died_before; the reason goes into held_back when a list is given);
-    otherwise a sibling gives no membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law) is resolved through
+    otherwise a sibling gives no membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law), read only when the persona under decision is the in-law, is resolved through
     the relative it names (resolve_in_law) to the child, parent or spouse link it actually gives, written and evidenced the
     same way as a link the record states outright; a resolution that lands on a sibling goes through the sibling rule above,
     Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. On a page
@@ -472,6 +476,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
         if kind == "other":
             resolved = IN_LAW.get((r["value_text"] or "").strip().lower())
             if not resolved: continue                                          # a half sibling, a grandchild, "other relative": not one of the six the rule resolves
+            if not mine: continue                                              # the other persona is the in-law of this one: the tie is resolved from its side, when it is accepted
             y_pid = person_of(y_persona)
             if not y_pid: continue
             got = resolve_in_law(cx, tree_id, y_pid, resolved, x_surname)
@@ -682,7 +687,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None):
     answered = []
     if status == "accepted":
         n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
-                          AND json_extract(notes,'$.placed') IS NULL AND {TRUSTED_ARTIFACT}""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; a sibling placement, and a fact or family link a page anyone can edit states, stay undecided
+                          AND json_extract(notes,'$.placed') IS NULL AND json_extract(notes,'$.alternate') IS NULL AND {TRUSTED_ARTIFACT}""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; a sibling placement, a value the page keeps beneath the one it shows, and a fact or family link a page anyone can edit states, stay undecided
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts); n += m
         alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
         held_back = []

@@ -1,0 +1,76 @@
+{
+ "title": "a value the page keeps beneath the one it shows",
+ "line": "FamilySearch's edit history on a record page is kept, cited and marked: accepting the 1900 census for Charlotte writes the place the page shows as accepted and the place it keeps beneath (Norristown under Norriton Township) as an undecided statement marked alternate, which raises no conflict question of its own; the record's shown place against the file's claim is the one conflict",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 Lukens household page, on the owner's word that it is Charlotte's",
+   "attach": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html",
+    "about": "I332737039686"
+   },
+   "as": "c1900"
+  },
+  {
+   "say": "the owner accepts her card on it",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "person": "I332737039686"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "event": {
+      "person": "I332737039686",
+      "type": "Residence",
+      "strings": {
+       "Norriton Township, Montgomery, Pennsylvania, United States": "accepted",
+       "Norristown, Montgomery, Pennsylvania, United States": "undecided"
+      }
+     },
+     "why": "the place the page shows is accepted with the record; the place it keeps beneath, its edit history, is kept and cited as an undecided statement"
+    }
+   ]
+  },
+  {
+   "say": "her plan regenerated",
+   "plan": [
+    "I332737039686"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737039686",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "residence place",
+      "count": 1
+     },
+     "why": "one conflict: the place the record shows against the file's claim (Norristown); the place the page keeps beneath adds none of its own"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

@@ -401,7 +401,7 @@ CREATE TABLE assertion (
   persona_fact_id TEXT REFERENCES persona_fact(id),
   persona_id      TEXT REFERENCES persona(id),
   artifact_sha256 TEXT REFERENCES artifact(sha256),
-  citation_text   TEXT,                 -- Evidence Explained style rendered citation
+  citation_text   TEXT,                 -- the record's short name (its collection); the full Evidence Explained citation is rendered from the archived record (tools/proof.py)
   status          TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
   asserted_by     TEXT NOT NULL,        -- user:<name> | ai:<extractor_id>
   asserted_at     TEXT NOT NULL,

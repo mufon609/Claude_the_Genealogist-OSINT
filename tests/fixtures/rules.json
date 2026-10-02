@@ -139,6 +139,8 @@
   }
  ],
  "automated_kinds": [
+  "ky-birth-index",
+  "ky-death-index",
   "nj-death-index"
  ],
  "place_verdict": [
