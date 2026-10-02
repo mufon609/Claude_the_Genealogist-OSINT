@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Decision cards: every Undecided proposal about a person as one card, in plain text or as data.
 
-usage: tools/cards.py "<person>" [--tree slug] [--db catalog/tree.db] [--json]
-       tools/cards.py --all [--tree slug] [--json]          # every person with an Undecided proposal
+usage: tools/cards.py "<person>" [--tree slug] [--db catalog/tree.db] [--full | --json]
+       tools/cards.py --all [--tree slug] [--full | --json]          # every person with an Undecided proposal
 
 One card per proposal, in the shape the owner approved (docs/RESEARCH-CHECKLIST.md §6b, the decision card): a one-line
 highlight of what the record is and the links it makes; the person and the fact or link with the file's claim; the record
@@ -12,13 +12,20 @@ states and who on it is already matched or accepted; what accepting closes, from
 carries one and from the checklist row otherwise; anything odd. No scores. The person screen's proposal panel shows the same
 card from card() and render() here, so the two never drift. hints_on gives the record's hints for a person, the rows that
 overlap them without identifying them, for the same screen. Nothing here writes.
+
+The command line prints what the next decision needs: a row of a results page is one line (its proposal id, the name as the
+page writes it, the collection, the year, the record's own id, what agrees and disagrees in the matcher's words); a record's
+card states the comparison once (the fields both sides speak to, agreeing or not, and what only the matcher compares), leaves
+the absent fields out, names the archived copy by its short hash, and ends with the standing rule's verdict and reason
+(conclude.rule_accepts, read-only); the record, its holder and its hash are said once for the cards of one record. --full
+prints every card whole, as render() and render_search() write it for the person screen.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, ROOT, connect, object_path, resolve_tree
 from catalog import Catalog, fetch_target, tier_sql, year, held_for, holds
 from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, same_surname
-from conclude import sibling_home
+from conclude import rule_accepts, sibling_home
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
 
@@ -199,6 +206,138 @@ def render(c):
     out.append(L("Matcher", c["rationale"] or ""))
     return "\n".join(out)
 
+YEAR = re.compile(r"\b(1[5-9]\d\d|20\d\d)\b")
+VERDICT = re.compile(r"([A-Za-z ]{3,30}?) (agrees|disagrees)\b")
+FIELD_WORDS = ("given name", "surname", "sex", "birth date", "birth place", "death date", "death place", "burial date", "burial place")
+
+def matcher_words(rationale):
+    """The matcher's comparison cut to its words, [(what, "agrees" | "disagrees")], from the sentences of its rationale after
+    the first (which names the persona and the person): "given name", "surname", "residence place", "relationship"."""
+    out = []
+    for sentence in re.split(r"\.\s+(?=[A-Z])", rationale or "")[1:]:
+        m = VERDICT.match(sentence.strip())
+        if m: out.append((m.group(1).lower(), m.group(2)))
+    return out
+
+def _said(words, verdict):
+    """The words of one verdict, the given name and surname as one "name"."""
+    got = [w for w, v in words if v == verdict]
+    if "given name" in got and "surname" in got: got = ["name"] + [w for w in got if w not in ("given name", "surname")]
+    return got
+
+def _row_id(c):
+    """The record a results-page row stands for, as its own holder names it: a FamilySearch ark's id, a memorial, an AAD record."""
+    page = c["record"].get("page") or ""; ident = " ".join(c["record"]["identity"]) if isinstance(c["record"]["identity"], list) else ""
+    m = re.search(r"ark:/61903/1:1:([\w-]+)", page) or re.search(r"rid=(\d+)", page)
+    return m.group(1) if m else (re.search(r"memorial \d+", ident) or re.search(r"row \d+", ident) or [""])[0]
+
+def _when(c):
+    """The year of the record's own event among the facts it states (a residence, a death, a marriage, a burial), a birth only
+    when nothing else is dated."""
+    stated = [f for f in c["fields"] if f["record"]]
+    for first in ("Residence", "Death date", "Marriage", "Burial date", "Birth date", ""):
+        for f in stated:
+            m = f["field"].startswith(first) and YEAR.search(f["record"])
+            if m: return ("b. " if first == "Birth date" else "") + m.group(1)
+    return None
+
+def rule_verdict(cx, tree_id, c):
+    """The standing rule's word on a card, read-only: "takes: <why>" or "does not take: <why>" (conclude.rule_accepts)."""
+    prop = cx.execute("SELECT * FROM proposal WHERE id=?", (c["id"],)).fetchone()
+    taken, why = rule_accepts(cx, tree_id, prop)
+    return ("takes: " if taken else "does not take: ") + why
+
+def row_line(c, rule, with_person=False):
+    """A results-page row as one line: the proposal id, the name as the page writes it, the collection and the year, the
+    record's own id, what agrees and disagrees in a few words, and the rule's verdict unless it is the usual one for a row (a
+    hint until a person reads the record)."""
+    coll = c["record"]["collection"] or ""; when = _when(c)
+    words = matcher_words(c["rationale"]); agrees, differs = _said(words, "agrees"), _said(words, "disagrees")
+    who = (f"for {c['person']['name']}" if c["person"] else "a new person") if with_person or not c["person"] else None
+    return "  ".join(x for x in (c["id"], c["persona"]["name"], coll + (f" {when}" if when and not coll.startswith(when) else ""), _row_id(c), who,
+                                 ("agrees: " + ", ".join(agrees)) if agrees else None, ("disagrees: " + ", ".join(differs)) if differs else None,
+                                 None if "is a hint until" in rule else f"rule {rule}") if x)
+
+def _clip(text, n=110): return text if len(text) <= n else text[:n - 1] + "…"
+
+def relation_lines(relationships):
+    """The relationships a record states, one line per heading and standing: the people under it together, with how the other
+    persona on the record stands to the tree."""
+    groups = {}
+    for rl in relationships: groups.setdefault((rl["direction"], rl["as_written"] or rl["kind"], rl["other_status"], rl["mapped"]), []).append(rl["other"])
+    return [(f"{word} of {', '.join(names)}" if direction == "is" else f"{', '.join(names)} listed under {word}") + f"  ({status})" + ("" if mapped else "  [heading not mapped]")
+            for (direction, word, status, mapped), names in groups.items()]
+
+def claim_text(p):
+    """What the file claims of a person, in words: born, died, buried."""
+    cl = p["claim"]
+    return "; ".join(x for x in [f"born {_fmt(cl['birth']['date'], cl['birth']['place'])}" if cl["birth"] else None, f"died {_fmt(cl['death']['date'], cl['death']['place'])}" if cl["death"] else None,
+                                 f"buried {_fmt(cl['burial']['date'], cl['burial']['place'])}" if cl["burial"] else None] if x) or "no dates"
+
+def render_compact(c, rule, claim=True):
+    """A record's card as the command line prints it: who it may be, the file's claim (unless the caller has said it once for
+    everyone), the comparison once (the fields both sides speak to, then what only the matcher compares), what the record
+    states when it is about nobody yet, who else is on it, what accepting closes, anything odd the comparison does not already
+    say, and the rule's verdict."""
+    w = 10; L = lambda k, v: f"{k:<{w}}{v}"; pe = c["persona"]; p = c["person"]
+    out = [f"CARD {c['id']}  [{c['kind'].replace('_', ' ')}]  {pe['name']}" + (f" ({pe['role']})" if pe["role"] else "") + (f" may be {p['name']}" if p else " is nobody in the tree yet")]
+    if p:
+        if claim: out.append(L("Claim", f"the file's: {claim_text(p)}"))
+        agrees, differs = [], []
+        for f in c["fields"]:
+            if f["verdict"] == "absent": continue
+            note = f.get("note"); note = None if not note or note.startswith("(record") else note
+            text = f"{f['field']} {f['record']}" + (f" (tree {f['tree']})" if f["tree"] not in (None, f["record"]) else "") + (f" [{note}]" if note else "")
+            (agrees if f["verdict"] == "agrees" else differs).append(text)
+        beyond = [(what, v) for what, v in matcher_words(c["rationale"]) if what not in FIELD_WORDS]
+        agrees += _said(beyond, "agrees"); differs += _said(beyond, "disagrees")
+        if agrees: out.append(L("Agrees", "; ".join(agrees)))
+        if differs: out.append(L("Differs", "; ".join(differs)))
+        if not agrees and not differs: out.append(L("Compare", "nothing the record and the tree both state"))
+    else:
+        out.append(L("Person", f"nobody yet; the record is about the family of {c['subject']}" if c["subject"] else "nobody yet"))
+        stated = [f"{f['field']} {f['record']}" for f in c["fields"] if f["record"]]
+        out.append(L("States", "; ".join(stated) if stated else "nothing beyond the name"))
+    for i, x in enumerate(relation_lines(c["relationships"])): out.append(L("Relations" if i == 0 else "", x))
+    for i, x in enumerate(c["closes"]): out.append(L("Closes" if i == 0 else "", x))
+    if not c["closes"]: out.append(L("Closes", "nothing on the plan"))
+    said = {f"{f['field']} disagrees: record {f['record']}, tree {f['tree']}" for f in c["fields"] if f["verdict"] == "disagrees"}
+    for i, x in enumerate(x for x in c["odd"] if x != "nothing" and x not in said): out.append(L("Odd" if i == 0 else "", x))
+    out.append(L("Rule", rule))
+    return "\n".join(out)
+
+def header_compact(sha, cards):
+    """The record the cards under it are of, said once: its holder, collection, own identity, tier and short hash, and the
+    holder's page when there is one."""
+    r = cards[0]["record"]; ident = ", ".join(r["identity"]) if isinstance(r["identity"], list) else r["identity"]
+    return f"== {r['holder'] or r['holder_id']}; {r['collection'] or 'collection unknown'}; {_clip(ident)}; tier {r['tier']}  ({len(cards)} card{'s' if len(cards) > 1 else ''}; record {sha[:12]})" + (f"  {_clip(r['page'], 80)}" if r.get("page") and r["page"] not in ident else "")
+
+def render_search_compact(c):
+    """The candidate card for a results page as the command line prints it: the search, then a line per row with whether it
+    fits, what agrees or disagrees and the row's own record id; what is absent and the runs' notes are left to --full."""
+    s = c["search"]; q = s["query"]; p = c["person"]
+    qs = " ".join(f"{k}={q[k]}" for k in q if q.get(k) not in (None, "", "false"))
+    out = [f"SEARCH {s['holder']} search for {p['name']}: {qs}; {s['count'] if s['count'] is not None else s['rows_on_page']} matching records, page {s['page']} of {s['pages']}, {s['rows_on_page']} rows on this page; record {c['sha256'][:12]}"]
+    for r in c["rows"]:
+        head = f"{r['n']:>2}. {r['name']}  {r['birth'] or '?'} – {r['death'] or '?'}  {r['burial'] or 'no place'}  {r['memorial_id'] or ''}"
+        agrees = _said([(m.group(1).lower(), m.group(2)) for a in r["agrees"] for m in [VERDICT.match(a)] if m], "agrees")
+        why = ("FITS: " + ", ".join(agrees)) if r["fits"] else ("no fit" + (": " + "; ".join(r["disagrees"]) if r["disagrees"] else ""))
+        out.append(head + "  " + why + (f"  [{r['proposal']}]" if r["proposal"] != "no proposal" else ""))
+    out.append("Proposed  " + (", ".join(f"row {r['n']} ({r['proposal']})" for r in c["proposed"]) if c["proposed"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
+    return "\n".join(out)
+
+def render_cli(cx, tree_id, cards, pid=None):
+    """The cards as the command line prints them by default, grouped by record: a results-page row one line, a search page its
+    rows, a record its header once and each card compact with the rule's verdict."""
+    one = next((c["person"] for c in cards if c.get("kind") != "search" and c["person"]), None) if pid else None     # a person's own cards share the file's claim: said once
+    blocks, rows = [f"{one['name']}: the file's claim: {claim_text(one)}"] if one else [], []
+    for sha, _, group in grouped(cx, tree_id, cards, pid):
+        if group[0].get("kind") == "search": blocks.append(render_search_compact(group[0])); continue
+        if all(c["persona"]["role"] == "result" for c in group): rows += [row_line(c, rule_verdict(cx, tree_id, c), pid is None) for c in group]; continue
+        blocks.append(header_compact(sha, group) + "\n\n" + "\n\n".join(render_compact(c, rule_verdict(cx, tree_id, c), not one) for c in group))
+    if rows: blocks.append(f"{len(rows)} row(s) of results pages, decide each by its proposal id (the rule's verdict is named on a row only where it is not the usual one, a hint until a person reads its record):\n" + "\n".join(rows))
+    return "\n\n".join(blocks)
+
 def hints_on(cx, tree_id, sha, person_id):
     """The hints a held record carries for a person (docs/RESEARCH-WORKFLOW.md §0): on every persona of a current extraction
     of the record that has no proposal in this tree and no link to anyone, the matcher's comparison with the person, run once
@@ -306,15 +445,18 @@ def grouped(cx, tree_id, cards, pid=None):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true")
+    ap.add_argument("--full", action="store_true", help="every card whole, as the person screen shows it")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     a = ap.parse_args()
     cx = connect(a.db, rows=True); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if not a.all and not a.who: sys.exit("give a person or --all")
-    out = cards_for(cx, tree_id, None if a.all else cat.find_person(a.who))
+    pid = None if a.all else cat.find_person(a.who)
+    out = cards_for(cx, tree_id, pid)
     if a.json: print(json.dumps(out, ensure_ascii=False, indent=1)); return
     if not out: print("no undecided proposal" + ("" if a.all else " for this person")); return
+    if not a.full: print(render_cli(cx, tree_id, out, pid)); return
     blocks = []
-    for sha, name, cards in grouped(cx, tree_id, out, None if a.all else cat.find_person(a.who)):
+    for sha, name, cards in grouped(cx, tree_id, out, pid):
         blocks.append(f"== {name}  ({len(cards)} card{'s' if len(cards) > 1 else ''}; record {sha[:12]})\n\n" + "\n\n".join(render_search(c) if c.get("kind") == "search" else render(c) for c in cards))
     print("\n\n".join(blocks))
 
