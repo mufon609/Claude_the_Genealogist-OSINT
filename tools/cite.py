@@ -12,9 +12,9 @@ holder's connector for it exactly as it asks for a record the file cites (docs/R
 holder uses the citation's own details only), and what comes back is fetched for this person and read by the extractor,
 the matcher and the standing rule like any other record. The planner never drops the step. Prints the step id.
 """
-import argparse, os, sqlite3, sys
+import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, resolve_tree
+from treelib import ROOT, connect, resolve_tree
 from catalog import Catalog
 from attach import cite_on_word
 
@@ -28,7 +28,7 @@ def main():
     for f in a.field:
         if "=" not in f: ap.error(f"--field wants 'label=value': {f}")
         k, v = f.split("=", 1); fields[k] = v
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     pid = cat.find_person(a.who)
     cx.execute("BEGIN")

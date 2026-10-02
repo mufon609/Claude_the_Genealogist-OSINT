@@ -28,9 +28,9 @@ are the conflict questions it raised and the cards the rule did not take (docs/R
 report names every source that did not answer a connector step (a run logged error): such a step stays runnable,
 so the next turn asks that source again.
 """
-import argparse, json, os, sqlite3, sys
+import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, now, resolve_tree
+from treelib import ROOT, connect, dumps, now, resolve_tree
 from catalog import Catalog
 from plan import plan_person
 import run_step
@@ -230,7 +230,7 @@ def main():
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     if bool(a.who) == bool(a.resume): sys.exit("give a person, or --resume, not both")
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree)
     if a.resume: resume(cx, tree_id, slug, a.by, a.db)
     else:

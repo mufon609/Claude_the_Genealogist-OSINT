@@ -109,10 +109,10 @@ Connector responses (JSON, archived by tools/run_step.py) have their own extract
                                  month/day and state) and the state file number as an Unknown fact under its own label; the
                                  whole derivative's rows in structured_json.
 """
-import argparse, csv, html, io, json, os, re, sqlite3, sys, urllib.parse
+import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
+from treelib import ROOT, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 from conclude import assert_facts, link_family
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.3.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
@@ -1035,7 +1035,7 @@ def main():
     ap.add_argument("--about", help="the person the record is about when no step or link names them, on the owner's word")
     a = ap.parse_args()
     sha = a.what if re.fullmatch(r"[0-9a-f]{64}", a.what) else sha256_file(a.what)
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+    cx = connect(a.db)
     cx.execute("BEGIN"); eid, n = extract(cx, sha, a.by); cx.commit()
     print("extraction", eid, dumps(n))
     if "failed" in n: return

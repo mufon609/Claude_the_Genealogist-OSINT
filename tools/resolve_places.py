@@ -28,9 +28,9 @@ Rules
     every other AI resolution and its audit trail untouched, and (since the string's
     resolver is cleared) the same run resolves it again under the current rules.
 """
-import argparse, difflib, hashlib, json, os, re, sqlite3, sys, time, urllib.parse, urllib.request
+import argparse, difflib, hashlib, json, os, re, sys, time, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, derivatives_dir, dumps, now, resolve_tree, ulid
+from treelib import ROOT, connect, derivatives_dir, dumps, now, resolve_tree, ulid
 
 RESOLVER = ("rule", "nominatim-resolver", "0.1.0")
 UA = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"
@@ -472,7 +472,7 @@ def main():
     ap.add_argument("--reset", action="store_true", help="undo AI-made resolutions (keeps human ones) before running; combine with --only to narrow to one raw string")
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+    cx = connect(a.db)
     tree_id, slug = resolve_tree(cx, a.tree)
     with open(os.path.join(ROOT, "data", "place-overrides.json"), encoding="utf-8") as fh: ov = json.load(fh)
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", RESOLVER).fetchone()

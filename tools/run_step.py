@@ -40,9 +40,9 @@ not answer, not a run on the fields: the step stays runnable at that source and 
 --dry-run prints the requests and sends nothing, saying per connector whether it would be asked and what its source last
 answered on these fields.
 """
-import argparse, http.client, json, os, re, sqlite3, sys, time, urllib.error, urllib.parse, urllib.request
+import argparse, http.client, json, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, USER_AGENT, archive_object, dumps, now, resolve_tree, ulid
+from treelib import ROOT, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, first_value
 from log_search import log as log_search, latest_answer, ran_unchanged, rendered_query
 from extract import extract, RESULTS_LISTINGS
@@ -315,7 +315,7 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("step", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--tree"); ap.add_argument("--by", default="agent:run_step")
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if a.all:
         ran = set()                                          # a rule accept during one step regenerates the plan (docs/RESEARCH-WORKFLOW.md §5-7)

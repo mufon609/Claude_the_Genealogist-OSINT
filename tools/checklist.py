@@ -20,9 +20,9 @@ Read-only. For one person it reports:
               steps for cited records exist: no search steps, no footprint,
               no duplicate or unlinked persons (docs/RESEARCH-WORKFLOW.md §2).
 """
-import argparse, collections, json, os, re, sqlite3, sys
+import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, resolve_tree
+from treelib import ROOT, connect, resolve_tree
 from catalog import Catalog, US_STATES, US_NAMES, year
 from footprint import footprint
 from connectors import answers
@@ -316,7 +316,7 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true"); ap.add_argument("--all", action="store_true")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
+    cx = connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if a.all:
         rows = []
         for pid, name in cat.q("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into IS NULL ORDER BY display_name", tree_id):

@@ -16,9 +16,9 @@ What happens
   5. PLAC strings become place_string rows; Ancestry-HQ artifacts are flagged.
 Nothing is updated in place; re-running on the same file is refused.
 """
-import argparse, collections, json, os, re, shutil, sqlite3, sys
+import argparse, collections, json, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import (ROOT, Node, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
+from treelib import (ROOT, Node, connect, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
                      parse_gedcom_date, resolve_tree, sha256_file, ulid)
 
 EXTRACTOR = ("rule", "gedcom-ingest", "0.1.0")
@@ -455,7 +455,7 @@ def main():
     ap.add_argument("--tree", help="tree slug (default: $TREE or catalog/.active-tree)")
     ap.add_argument("--keep", action="store_true", help="copy instead of moving the file out of the inbox")
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db)
+    cx = connect(a.db)
     cx.execute("PRAGMA foreign_keys=ON")
     tree_id, slug = resolve_tree(cx, a.tree)
     ing = Ingest(cx, a.path, a.source, a.by, tree_id, slug)

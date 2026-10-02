@@ -13,11 +13,11 @@ is written to search_log with the fields as rendered. The screen runs no
 search itself: an auto step runs through its connector from tools/run_step.py,
 and a record page saved in the browser comes in through inbox/.
 """
-import argparse, glob, hashlib, json, mimetypes, os, re, sqlite3, sys, threading, urllib.parse
+import argparse, glob, hashlib, json, mimetypes, os, re, sys, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
-from treelib import active_tree_slug, dumps, inbox_dir, now, ulid
+from treelib import active_tree_slug, connect, dumps, inbox_dir, now, ulid
 from catalog import Catalog, fetch_target, held_for, holdings, holds, search_target, tier_sql
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
@@ -38,7 +38,7 @@ FORM_FIELDS = ("name", "role", "sex", "age", "year", "birth_date", "birth_place"
 FORM_SHA256 = hashlib.sha256("\n".join(FORM_FIELDS).encode()).hexdigest()
 
 def db():
-    cx = sqlite3.connect(CFG["db"]); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row; return cx
+    cx = connect(CFG["db"], rows=True); return cx
 
 def tree_of(cx, slug=None):
     slug = slug or active_tree_slug()

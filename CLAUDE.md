@@ -95,6 +95,7 @@ Anything marked accepted in those docs stands. Do not reopen it in code.
 
 ```
 python3 tools/initdb.py --force              # a fresh catalog; the live one holds decisions and is migrated, never rebuilt
+python3 tools/initdb.py --migrate            # after a pull that moves the schema, once backed up: every tool refuses a catalog behind the code's schema
 python3 tools/tree.py create <slug> --name "…"
 python3 tools/tree.py home "<person>"          # the person the overview starts from
 python3 tools/ingest_gedcom.py inbox/<file>.ged

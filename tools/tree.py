@@ -10,10 +10,7 @@
 """
 import argparse, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ACTIVE_TREE_FILE, ROOT, active_tree_slug, dumps, exports_dir, imports_dir, now, tree_dir, ulid
-
-def connect(db):
-    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); return cx
+from treelib import ACTIVE_TREE_FILE, ROOT, active_tree_slug, connect, dumps, exports_dir, imports_dir, now, tree_dir, ulid
 
 def cmd_create(cx, a):
     if cx.execute("SELECT 1 FROM tree WHERE slug=?", (a.slug,)).fetchone():

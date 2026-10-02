@@ -5,10 +5,11 @@ derivatives/, inbox/, trees/<slug>/imports, trees/<slug>/exports): the
 repository by default, or the directory named by the environment variable
 DATA_ROOT, so a scratch run keeps its files apart from the owner's.
 """
-import datetime as dt, hashlib, json, os, re, time
+import datetime as dt, hashlib, json, os, re, sqlite3, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
+SCHEMA_VERSION = "0.7.3"   # schema/catalog.sql's own; a catalog whose schema_migration lacks it is behind the code (tools/initdb.py --migrate)
 USER_AGENT = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"   # sent on every request the tools make
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -214,6 +215,18 @@ def active_tree_slug(explicit=None):
             return fh.read().strip() or None
     except FileNotFoundError:
         return None
+
+def connect(db: str, rows: bool = False) -> sqlite3.Connection:
+    """The catalog a tool works on, foreign keys on, sqlite3.Row rows when asked. Refused when no catalog is there or when it is
+    behind the code's schema, so no tool reads or writes a catalog its migrations have not reached."""
+    if not os.path.exists(db): raise SystemExit(f"no catalog at {db}: create one with python3 tools/initdb.py --db {db}")
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON")
+    try: have = {v for v, in cx.execute("SELECT version FROM schema_migration")}
+    except sqlite3.OperationalError: raise SystemExit(f"{db} is not a catalog (no schema_migration table)")
+    if SCHEMA_VERSION not in have:
+        raise SystemExit(f"{db} is behind the code's schema {SCHEMA_VERSION}: back it up, then run python3 tools/initdb.py --migrate --db {db}")
+    if rows: cx.row_factory = sqlite3.Row
+    return cx
 
 def resolve_tree(cx, explicit=None):
     """Return (tree_id, slug) or exit with guidance."""

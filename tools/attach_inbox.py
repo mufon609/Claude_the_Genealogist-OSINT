@@ -10,9 +10,9 @@ the inbox and is reported. Prints one line per file: identity, steps fulfilled w
 extraction id, proposals written. Re-running changes nothing: attached files have left the inbox, and a copy of an archived
 file logs no step twice. See tools/attach.py, which the person screen shares.
 """
-import argparse, os, sqlite3, sys
+import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, inbox_dir, resolve_tree
+from treelib import ROOT, connect, inbox_dir, resolve_tree
 from attach import attach_inbox, line
 from catalog import Catalog
 
@@ -20,7 +20,7 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("files", nargs="*"); ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown")); ap.add_argument("--about", help="the person the named file is about, on the owner's word, when no step cites it")
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree)
     if a.about and not a.files: ap.error("--about names the person one file is about: name the file too")
     about = Catalog(cx, tree_id).find_person(a.about) if a.about else None

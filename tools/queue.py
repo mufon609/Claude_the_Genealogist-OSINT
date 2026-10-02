@@ -25,9 +25,9 @@ logged error, the source not answering, is not such a run), a fetch logged block
 never named next, since running a turn on them would do nothing.
 Without --all, prints the first person found and stops (queue.py --all lists the rest).
 """
-import argparse, os, sqlite3, sys
+import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, resolve_tree
+from treelib import ROOT, connect, dumps, resolve_tree
 from catalog import Catalog
 from overview import overview
 import run_step, fetches
@@ -83,7 +83,7 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--all", action="store_true"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row; tree_id, slug = resolve_tree(cx, a.tree)
+    cx = connect(a.db, rows=True); tree_id, slug = resolve_tree(cx, a.tree)
     q, passed = edge(cx, tree_id)
     if a.json: print(dumps({"next": q if a.all else q[:1], "passed_over": passed})); return
     for e in passed: print(f"passed over: {e['name']} [{e['id'][-6:]}]  {e['reason']}")

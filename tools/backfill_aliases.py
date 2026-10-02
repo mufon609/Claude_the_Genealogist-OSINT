@@ -7,9 +7,9 @@ usage: tools/backfill_aliases.py [--tree slug] [--dry-run]
 Never edits evidence. Never promotes an alias to a name. Re-runnable: existing
 alias rows are left alone (UNIQUE on entity/value).
 """
-import argparse, json, os, re, sqlite3, sys
+import argparse, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, now, resolve_tree, ulid
+from treelib import ROOT, connect, dumps, now, resolve_tree, ulid
 
 NICK = {"abram": "abraham", "fred": "frederick", "fredrick": "frederick", "bill": "william", "will": "william", "willie": "william",
         "betty": "elizabeth", "bess": "elizabeth", "eliza": "elizabeth", "lizzie": "elizabeth", "peggy": "margaret", "maggie": "margaret",
@@ -139,7 +139,7 @@ def main():
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--tree")
     ap.add_argument("--dry-run", action="store_true"); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+    cx = connect(a.db)
     tree_id, slug = resolve_tree(cx, a.tree)
     import collections; stats = collections.Counter(); report = []
     ts = now(); actor = "rule:alias-backfill@0.1.0"

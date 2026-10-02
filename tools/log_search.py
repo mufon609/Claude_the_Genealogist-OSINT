@@ -12,9 +12,9 @@ include/revise unless --query overrides them. A 'found' outcome marks the step d
 it planned so it can be retried with different fields, and the log shows it was
 tried. A dismissed question stays closed when the plan is regenerated.
 """
-import argparse, json, os, sqlite3, sys
+import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, now, resolve_tree, ulid
+from treelib import ROOT, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog
 
 def rendered_query(query_json, revisions_json):
@@ -172,7 +172,7 @@ def main():
     ap.add_argument("--artifact", action="append"); ap.add_argument("--note"); ap.add_argument("--query"); ap.add_argument("--list"); ap.add_argument("--dismiss"); ap.add_argument("--reopen", help="a step marked done in error: planned again, with --note saying why"); ap.add_argument("--tree")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); tree_id, slug = resolve_tree(cx, a.tree)
+    cx = connect(a.db); tree_id, slug = resolve_tree(cx, a.tree)
     if a.list:
         cat = Catalog(cx, tree_id); pid = cat.find_person(a.list)
         print(f"{'step id':26}  {'kind':6} {'mode':17} {'status':8} {'row':34} {'locator':20} runs (outcome@date)  -- rationale")

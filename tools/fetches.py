@@ -29,9 +29,9 @@ name carries, archived under that holder with the page's own URL (the saved-from
 logged found, and reported unparsed until a parser claims it. A file with neither a recognised saved-from line nor a
 listed name is left in the folder.
 """
-import argparse, json, os, re, shutil, sqlite3, subprocess, sys, urllib.parse
+import argparse, json, os, re, shutil, subprocess, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, inbox_dir, resolve_tree
+from treelib import ROOT, connect, dumps, inbox_dir, resolve_tree
 from attach import ark_id, attach, attach_inbox, line, pointed_at
 from catalog import Catalog, fetch_target, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
@@ -192,7 +192,7 @@ def main():
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     ap.add_argument("--folder", help="collect: the folder to take saved pages from, instead of the browser's own download folder")
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree)
     if a.cmd == "list":
         rows = waiting(cx, tree_id)

@@ -15,7 +15,7 @@ overlap them without identifying them, for the same screen. Nothing here writes.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DATA_ROOT, ROOT, object_path, resolve_tree
+from treelib import DATA_ROOT, ROOT, connect, object_path, resolve_tree
 from catalog import Catalog, fetch_target, tier_sql, year, held_for, holds
 from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, same_surname
 from conclude import sibling_home
@@ -308,7 +308,7 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.row_factory = sqlite3.Row; tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
+    cx = connect(a.db, rows=True); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if not a.all and not a.who: sys.exit("give a person or --all")
     out = cards_for(cx, tree_id, None if a.all else cat.find_person(a.who))
     if a.json: print(json.dumps(out, ensure_ascii=False, indent=1)); return

@@ -24,9 +24,9 @@ runnable and the next turn asks the source again); a challenge in the owner's br
 runner. At the end a summary in words: the turns run, the people passed over and why, and what is left for the owner (the
 queue's own pass-overs, whose open question is the owner's alone, and a paused turn's pages).
 """
-import argparse, importlib.util, json, os, sqlite3, sys
+import argparse, importlib.util, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, now, resolve_tree
+from treelib import ROOT, connect, now, resolve_tree
 import turn
 
 def queue_module():
@@ -119,7 +119,7 @@ def main():
     ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree)
     run(cx, tree_id, slug, a.by, a.db, turns=a.turns, resume=a.resume)
 

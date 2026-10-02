@@ -17,10 +17,9 @@ version this catalog lacks runs once and is recorded in schema_migration. Stdlib
 """
 import argparse, csv, datetime as dt, json, os, sqlite3, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import archive_dir
+from treelib import SCHEMA_VERSION, archive_dir
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCHEMA_VERSION = "0.7.3"
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
 def requery_questions(cx: sqlite3.Connection) -> None:

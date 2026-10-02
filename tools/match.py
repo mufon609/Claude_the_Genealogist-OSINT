@@ -61,9 +61,9 @@ a fetch step for the relative's own memorial instead, and the persona stays a
 hint on the page. The matcher is versioned like an extractor (MATCHER); every
 proposal carries the version that wrote it in generated_by.
 """
-import argparse, json, os, re, sqlite3, sys
+import argparse, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, now, ulid
+from treelib import ROOT, connect, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
@@ -409,7 +409,7 @@ def match(cx, eid, by, about=None):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("extraction"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     ap.add_argument("--about", help="the person the record is about on the owner's word, when no step or link names them: a fetch step on their plan, done with a found run naming the record")
-    a = ap.parse_args(); cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+    a = ap.parse_args(); cx = connect(a.db)
     about = None; cx.execute("BEGIN")
     if a.about:                                                 # the owner's word: a fetch step on their plan, done with a found run naming the record, so every later reading finds them
         from attach import on_word

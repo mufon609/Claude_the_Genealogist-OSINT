@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.2. The live catalog holds the owner's decisions, so a schema change now migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.3. The live catalog holds the owner's decisions, so a schema change now migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -105,7 +105,7 @@ and `tools/resolve_places.py` use `GROUP_CONCAT`. Those calls are the porting wo
 
 | Tool | Purpose |
 |---|---|
-| `tools/initdb.py` | Create the catalog and seed reference tables (`--force` to rebuild); `--sync-sources` and `--sync-event-types` bring an existing catalog's registry rows and event types up to the files; `--migrate` applies to an existing catalog whatever `schema/catalog.sql` has added since its `schema_migration` row, column by column, without touching decisions. |
+| `tools/initdb.py` | Create the catalog and seed reference tables (`--force` to rebuild); `--sync-sources` and `--sync-event-types` bring an existing catalog's registry rows and event types up to the files; `--migrate` applies to an existing catalog whatever `schema/catalog.sql` has added since its `schema_migration` row, column by column, without touching decisions; every other tool opens the catalog through `treelib.connect`, which refuses one whose `schema_migration` lacks the code's version. |
 | `tools/tree.py create|list|use|show|overview|home` | Manage trees (profiles). `overview` prints the tree as confirmed from the home person upward with its edge (`tools/overview.py`, shared with the screen); `use` sets the active tree in `catalog/.active-tree`; `home "<person>"` sets the person the overview lays the family out from; every tree-scoped tool also accepts `--tree` and `$TREE`. |
 | `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM 5.5.1 export as a T4 artifact and load it into the active tree. Files from `inbox/` are moved to `trees/<slug>/imports/<date>_<name>` (`--keep` copies instead). The same bytes may be imported into different trees; the same tree refuses a repeat. |
 | `tools/resolve_places.py` | Resolve `place_string` rows via Nominatim: parse + normalize, verify every given component against the candidate's hierarchy, auto-accept a unique full match, and also a string whose verified candidates are one territory under two names (a city and the county coterminous with it), tested on the geocoder's own boundingboxes coinciding within a small tolerance; everything else — including a place genuinely nested in a larger, differently-sized unit of the same name — stays Undecided with a tree-scoped `place_resolution` proposal carrying every verified candidate. Then fills `event.place_id` only where every supporting fact resolved to the same place (audit-logged per event). `--reset` undoes AI-made resolutions and keeps human ones. One audit row per string accepted, rejected or reset, under `--by`. Overrides in `data/place-overrides.json`. Responses cached under `derivatives/geocode/`. |

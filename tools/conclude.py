@@ -58,7 +58,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, dumps, now, parse_gedcom_date, resolve_tree, ulid
+from treelib import ROOT, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, source_tier, split_name, tier_sql
 from catalog import date_verdict, place_verdict, same_surname
 from catalog import key as surname_key
@@ -1121,7 +1121,7 @@ def main():
     for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     cx.execute("BEGIN")
     try:
