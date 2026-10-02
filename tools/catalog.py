@@ -416,12 +416,37 @@ def place_verdict(record, tree, record_state=None, dated_names=None):
     return v, note
 
 
+def served_as():
+    """The registry's ServedAs column (data/data-sources.csv): [(holder id, words, registry id, tier)], one entry per
+    collection another holder serves a row's records under (FamilySearch's own index of Find a Grave's memorials), the words
+    being what that holder's collection name carries and the tier the row's own, its first tier word."""
+    out = []
+    with open(os.path.join(ROOT, "data", "data-sources.csv"), newline="", encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            tier = (re.match(r"\s*(T\d|ref|n/a)", r.get("TrustTier") or "") or [None, None])[1]
+            for part in (r.get("ServedAs") or "").split(";"):
+                holder, _, words = part.strip().partition(":")
+                if holder and words.strip(): out.append((holder.strip(), words.strip(), r["ID"], tier))
+    return out
+
+def collection_tier(source_id, name, served=None):
+    """The trust tier a collection takes from the data, or None: the tier of the registry row whose ServedAs names the
+    collection's holder and words its name carries, any case (served_as). A collection no row names takes nothing, and its
+    records take their holder's tier (tier_sql). Written onto collection.trust_tier by tools/initdb.py --sync-sources."""
+    for holder, words, _, tier in (served_as() if served is None else served):
+        if holder == source_id and words.lower() in (name or "").lower(): return tier
+    return None
+
 def tier_sql(ar="ar", s="s"):
     """SQL for an artifact's effective trust tier, given the artifact's alias and its joined source's alias: the tier of the
-    source the artifact's own identity names (an ark is FamilySearch, a memorial id is Find a Grave), else of the source it
-    was archived under. artifact.trust_tier is the tier copied at archive time and can fall behind the registry."""
-    return f"""coalesce((SELECT s2.trust_tier FROM source s2 WHERE s2.id = CASE WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256={ar}.sha256 AND l.kind='ark') THEN 'D03'
-                                                                 WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256={ar}.sha256 AND l.kind='memorial_id') THEN 'E01' END), {s}.trust_tier)"""
+    record's own collection where the data gives that collection one (collection_tier, written by tools/initdb.py
+    --sync-sources) and the collection is its holder's own, the holder being the source the artifact's own identity names
+    (an ark is FamilySearch, a memorial id is Find a Grave) or else the one it was archived under; otherwise the tier of
+    that source. artifact.trust_tier is the tier copied at archive time and can fall behind the registry."""
+    own = f"""CASE WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256={ar}.sha256 AND l.kind='ark') THEN 'D03'
+                   WHEN EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256={ar}.sha256 AND l.kind='memorial_id') THEN 'E01' END"""
+    return f"""coalesce((SELECT c.trust_tier FROM collection c WHERE c.id={ar}.collection_id AND c.source_id=coalesce({own}, {ar}.source_id)),
+                        (SELECT s2.trust_tier FROM source s2 WHERE s2.id = {own}), {s}.trust_tier)"""
 
 def source_tier(cx, sha):
     """An artifact's effective trust tier (tier_sql), or None."""

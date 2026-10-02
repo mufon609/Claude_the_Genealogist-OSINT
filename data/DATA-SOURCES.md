@@ -85,6 +85,16 @@ source and never turned into a score; the decision on a fact stays three-state.
 | T5 | AI-inferred (our own) | Suggested match, extracted fact from OCR — must always cite the T1–T3 it came from |
 | ref | Reference data, not evidence | Gazetteers, name dictionaries, cM tables |
 
+**A record's tier.** A record takes the tier of its holder, the registry row it came from: an ark is FamilySearch's
+(D03), a memorial id Find a Grave's (E01), anything else the row it was archived under. Where a holder serves another
+row's records under a collection of its own, that row's `ServedAs` column names the holder and words the collection's
+name carries (`D03:Find a Grave` on E01, for FamilySearch's own index of the memorials), several separated by `;`, and
+such a collection takes that row's tier: a memorial indexed at FamilySearch is still a page anyone can edit (T4), and
+FamilySearch's Social Security collections carry C01's and C02's own. `tools/initdb.py --sync-sources` writes every
+collection's tier from the column (`collection.trust_tier`, cleared where the column names none), and the tier read for a
+record (`catalog.tier_sql`) is its collection's where its holder's own collection carries one, the holder's otherwise. A
+collection first met after the last sync reads its holder's tier until the sync runs again.
+
 ## 4. Access reality (verified Sep 2026)
 
 | Source | Programmatic access | Verdict |

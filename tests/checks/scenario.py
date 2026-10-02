@@ -226,6 +226,12 @@ def a_migrate(w, x):
     w.cx.commit()
     return {"printed": run(tool("initdb.py"), "--db", w.db, "--migrate").strip()}
 
+def a_sync_sources(w, x):
+    """tools/initdb.py --sync-sources on the scratch catalog itself: the registry's rows and every collection's tier from
+    data/data-sources.csv, its printed line."""
+    w.cx.commit()
+    return {"printed": run(tool("initdb.py"), "--db", w.db, "--sync-sources").strip()}
+
 def a_attach(w, x):
     """A fixture dropped into the inbox as a save would leave it and attached: the record's sha and the attach's report."""
     from attach import attach_inbox
@@ -510,7 +516,7 @@ def a_question(w, x):
     w.cx.commit()
     return {"question": qid}
 
-ACTIONS = {"plan": a_plan, "migrate": a_migrate, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
+ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
@@ -745,10 +751,11 @@ def e_place_string(w, x, want):
 
 def e_artifact(w, x, want):
     from catalog import tier_sql
-    row = w.cx.execute(f"SELECT ar.source_id, ar.mime, ar.locator_kind, ar.locator_value, ar.redistributable, ar.manifest_json, ar.derived_from, {tier_sql()} AS tier FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (w.sha(x["record"]),)).fetchone()
+    row = w.cx.execute(f"""SELECT ar.source_id, ar.mime, ar.locator_kind, ar.locator_value, ar.redistributable, ar.manifest_json, ar.derived_from, {tier_sql()} AS tier,
+                                  (SELECT c.trust_tier FROM collection c WHERE c.id=ar.collection_id) AS collection_tier FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?""", (w.sha(x["record"]),)).fetchone()
     if not row: return False, None
     got = dict(row); got["manifest"] = json.loads(got.pop("manifest_json") or "{}")
-    return has(got, w.value({k: v for k, v in x.items() if k in got})), {k: got[k] for k in ("source_id", "mime", "locator_kind", "locator_value", "redistributable", "tier")}
+    return has(got, w.value({k: v for k, v in x.items() if k in got})), {k: got[k] for k in ("source_id", "mime", "locator_kind", "locator_value", "redistributable", "tier", "collection_tier")}
 
 def e_artifact_where(w, x, want):
     row = w.cx.execute("SELECT redistributable, manifest_json FROM artifact WHERE mime=?", (x["mime"],)).fetchone()

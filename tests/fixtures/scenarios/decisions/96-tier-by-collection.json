@@ -1,0 +1,56 @@
+{
+ "title": "a record's tier by its collection",
+ "line": "the registry sync writes each collection's tier from the registry's ServedAs column: FamilySearch's NUMIDENT collection takes the tier of the Social Security applications row that names it, a census collection no row names takes none and its record reads its holder's tier",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Social Security record arrives from FamilySearch",
+   "attach": {
+    "fixture": "familysearch-social-security-numident-1956-6KML-FS23.html"
+   },
+   "as": "ssn"
+  },
+  {
+   "say": "a census page from FamilySearch",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "say": "the registry synced: the collections' tiers from data/data-sources.csv",
+   "sync_sources": {},
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": "collection tier(s) changed"
+      }
+     }
+    },
+    {
+     "artifact": {
+      "record": "ssn",
+      "collection_tier": "T2",
+      "tier": "T2"
+     },
+     "why": "the registry's Social Security applications row names FamilySearch's NUMIDENT collection in its ServedAs column, so the collection carries that row's tier and the record reads it"
+    },
+    {
+     "artifact": {
+      "record": "c40",
+      "collection_tier": {
+       "is": null
+      },
+      "tier": "T2"
+     },
+     "why": "no registry row names the census collection: it carries no tier of its own and the page reads its holder's, FamilySearch's"
+    }
+   ]
+  }
+ ]
+}

@@ -9,7 +9,8 @@ usage: tools/initdb.py [--db catalog/tree.db] [--force]
 Applies schema/catalog.sql, schema/seed_event_type.sql, schema/sqlite_extras.sql,
 then seeds `source` from data/data-sources.csv, a `human` extractor, and the
 local storage target. --sync-sources rewrites an existing catalog's source rows
-from the CSV (the registry is reference data) and touches nothing else. --migrate
+from the CSV (the registry is reference data) and each collection's trust tier from
+the registry's ServedAs column, and touches nothing else. --migrate
 brings an existing catalog's own structure up to schema/catalog.sql's current
 version, one column or index at a time, and runs any one-time data correction a
 later version needs (a column's own row-by-row fix, never a decision); each schema
@@ -86,18 +87,30 @@ def seed_sources(cx: sqlite3.Connection) -> int:
           r["Status"], r.get("Connector") or None, r.get("RecordRelease") or None, r["Notes"], ts) for r in rows])
     return len(rows)
 
+def sync_collection_tiers(cx: sqlite3.Connection) -> int:
+    """Every collection's trust_tier from the data (catalog.collection_tier: the registry row whose ServedAs names the
+    collection's holder and its name's words), cleared where the data gives none, so the column says only what the data
+    says. Returns how many collections changed."""
+    from catalog import collection_tier, served_as
+    served, n = served_as(), 0
+    for cid, sid, name, tier in cx.execute("SELECT id, source_id, name, trust_tier FROM collection").fetchall():
+        t = collection_tier(sid, name, served)
+        if t != tier: cx.execute("UPDATE collection SET trust_tier=? WHERE id=?", (t, cid)); n += 1
+    return n
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
     ap.add_argument("--force", action="store_true", help="overwrite an existing db")
-    ap.add_argument("--sync-sources", action="store_true", help="bring an existing catalog's source rows up to data/data-sources.csv; nothing else changes")
+    ap.add_argument("--sync-sources", action="store_true", help="bring an existing catalog's source rows and collection tiers up to data/data-sources.csv; nothing else changes")
     ap.add_argument("--sync-event-types", action="store_true", help="add the event types schema/seed_event_type.sql has that an existing catalog lacks; nothing else changes")
     ap.add_argument("--migrate", action="store_true", help="bring an existing catalog's structure up to schema/catalog.sql's current version; nothing decided changes")
     a = ap.parse_args()
 
     if a.sync_sources:
         cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
-        n = seed_sources(cx); cx.commit(); print(f"{a.db}: {n} source rows in step with data/data-sources.csv"); return 0
+        n = seed_sources(cx); t = sync_collection_tiers(cx); cx.commit()
+        print(f"{a.db}: {n} source rows in step with data/data-sources.csv; {t} collection tier(s) changed"); return 0
     if a.sync_event_types:
         cx = sqlite3.connect(a.db)
         before = cx.execute("SELECT COUNT(*) FROM event_type").fetchone()[0]

@@ -108,7 +108,9 @@ with `extraction` and `latest` to pick a reading; a step of the plan is `{"perso
 
 Actions: `plan` (`"all"` or people), `migrate` (`tools/initdb.py --migrate` on the scratch catalog itself, its printed
 line; `{"reset_to": version}` first forgets every later version's own row, since a scratch catalog is born with every
-migration already recorded applied, so a correction is met the way an older catalog upgraded through it would), `attach`
+migration already recorded applied, so a correction is met the way an older catalog upgraded through it would),
+`sync_sources` (`tools/initdb.py --sync-sources` on the scratch catalog itself: the registry's rows and every
+collection's tier, its printed line), `attach`
 (`fixture` into the inbox and `tools/attach_inbox.py`, `about` for the
 owner's word), `archive` (a `fixture`, or a stand-in: `stand_in: "image"`, or a page with only a `saved_from` line,
 `suffix` to make other bytes of the same page; `source`, `collection`, `locator`, or a `manifest`; `extract`, `match`
@@ -137,8 +139,8 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
-`living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact`,
-`artifact_where`, `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
+`living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row,
+`tier` as `catalog.tier_sql` reads it and `collection_tier` its collection's own), `artifact_where`, `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
 an expectation is printed with its failure.
