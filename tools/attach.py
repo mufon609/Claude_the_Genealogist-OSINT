@@ -518,7 +518,9 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
     """Every file in the inbox (or the named ones): identity from the file, the steps it fulfils, attach. A file with no
     identity or no step stays in the inbox, unless the owner says whom a record is about (about: person id): then a record
     with an identity but no step is archived under its holder, given a fetch step on that person's plan done with the found
-    run (on_word), and put before the matcher for them. Returns one result per file."""
+    run (on_word), and put before the matcher for them; and a file that is no web page and carries no record identity (a
+    photograph or scan of something the family holds) is a family-held original (attach_held). Returns one result per
+    file."""
     names = names or sorted(f for f in os.listdir(inbox_dir()) if os.path.isfile(os.path.join(inbox_dir(), f)) and not f.startswith("."))
     results = []
     for name in names:
@@ -526,6 +528,9 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
         if not os.path.isfile(path): r["left"] = "not in the inbox"; results.append(r); continue
         with open(path, "rb") as fh: data = fh.read()
         kind, value, parsed = identity(data.decode("utf-8", errors="replace")) if (mimetypes.guess_type(path)[0] or "").startswith("text/html") else identity_of_name(name)
+        if not kind and about and not (mimetypes.guess_type(path)[0] or "").startswith("text/html"):   # a family-held original, on the owner's word about whom it concerns
+            sha, new = attach_held(cx, tree_id, slug, name, about, by)
+            r.update({"identity": "family-held original", "sha256": sha, "held": True, "new": new}); results.append(r); continue
         if not kind: r["left"] = "no record identity read from the file (not a Find a Grave memorial or results page, not a FamilySearch record page, not a photograph under the name the fetch list printed)"; results.append(r); continue
         r["identity"] = f"{kind} {value}"
         steps = steps_for(cx, tree_id, kind, value, parsed)
@@ -552,6 +557,7 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
 def line(r):
     """One line per file, as the inbox tool prints it."""
     if r.get("repeat"): return f"{r['file']}: {r['identity']}; removed as a repeat: {r['repeat']}"
+    if r.get("held"): return f"{r['file']}: a family-held original, archived {r['sha256'][:12]} under M05 on the owner's word{'' if r['new'] else ' (already held)'}; read it on the person's screen, one persona at a time"
     if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in the inbox: {r['left']}"
     who = "; ".join(f"{n} ({rk.split(':')[0]}: {why or 'the step cites it'})" for _, n, rk, why in r["steps"])
     return (f"{r['file']}: {r['identity']}; {len(r['steps'])} step(s) fulfilled: {who}; artifact {r['sha256'][:12]}{'' if r['new'] else ' (already archived)'}; "

@@ -106,6 +106,56 @@
    ]
   },
   {
+   "say": "a photograph of something the family holds, dropped into the inbox with the owner's word on whom it concerns: a family-held original",
+   "attach": {
+    "stand_in": "image",
+    "as_file": "heirloom-label.jpg",
+    "about": "I332737035562"
+   },
+   "as": "held",
+   "expect": [
+    {
+     "last": {
+      "identity": "family-held original",
+      "left": null,
+      "steps": []
+     },
+     "why": "no record identity and no step: archived on the owner's word about whom it concerns"
+    },
+    {
+     "artifact": {
+      "record": "$held.sha",
+      "source_id": "M05",
+      "mime": "image/jpeg"
+     },
+     "why": "under the family-held source"
+    },
+    {
+     "file": {
+      "name": "heirloom-label.jpg",
+      "exists": false
+     },
+     "why": "filed under the tree, out of the inbox"
+    }
+   ]
+  },
+  {
+   "say": "the same file with no word on whom it concerns stays in the inbox",
+   "attach": {
+    "stand_in": "image",
+    "as_file": "unnamed-scan.jpg"
+   },
+   "expect": [
+    {
+     "last": {
+      "left": {
+       "has": "no record identity"
+      }
+     }
+    }
+   ]
+  },
+  {
    "say": "the catalog whole",
    "expect": [
     {
