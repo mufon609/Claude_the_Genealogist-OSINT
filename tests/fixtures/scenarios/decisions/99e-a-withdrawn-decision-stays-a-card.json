@@ -1,0 +1,94 @@
+{
+ "title": "a withdrawn decision stays a card",
+ "line": "a decision the rule took back is a card for the owner again, and stays one when a newer matcher supersedes that card: the undecided link the withdrawal leaves is no decision, so the persona is proposed again, and taken again where the rule still would",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 page: the father accepted by the owner, the daughter taken by the rule",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the daughter's decision taken back: a card again, her link undecided",
+   "withdraw": {
+    "card": {
+     "record": "c20",
+     "person": "I332737044990"
+    }
+   },
+   "expect": [
+    {
+     "links": {
+      "record": "c20",
+      "person": "I332737044990",
+      "is": [
+       "undecided"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the record's open cards, hers among them, marked as an older matcher's",
+   "older_matcher": {
+    "record": "c20"
+   }
+  },
+  {
+   "say": "reconsider supersedes the older cards and proposes the personas again: her undecided link does not keep her from a card",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "latest": true,
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     },
+     "why": "proposed again on the same reading and taken again by the rule, which still would"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

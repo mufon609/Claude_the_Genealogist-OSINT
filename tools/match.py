@@ -57,7 +57,9 @@ does not fit. The rationale says in plain words which fields agree, which disagr
 are absent. Nothing numeric is stored. A persona that already has a proposal is
 skipped, so re-running adds nothing; a proposal closed as superseded (a re-read's,
 or an older matcher's, tools/conclude.py reconsider) is not one, so that persona
-is proposed again. A relative a memorial merely lists (every persona on a
+is proposed again. A persona already decided, its link accepted or rejected, is
+skipped too; an undecided link is no decision (a decision the rule took back), so
+it keeps no persona from its card. A relative a memorial merely lists (every persona on a
 findagrave-memorial extraction but its own subject) gets no proposal at all,
 fit or not: the owner's word is that a memorial's family connections are leads
 to look over, not facts (docs/RESEARCH-WORKFLOW.md §0), so tools/plan.py writes
@@ -423,7 +425,7 @@ def match(cx, eid, by, about=None):
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')", (tree_id, pr["id"])).fetchone(): continue   # proposed already, unless that proposal was superseded
-            if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided already: a link carried across a re-extraction
+            if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=? AND pp.status<>'undecided'", (pr["id"], tree_id)).fetchone(): continue   # decided already, accepted or rejected (a link carried across a re-extraction); an undecided link is no decision: one the rule took back, whose older card a newer matcher superseded, is proposed again
             if subject_role and pr["role"] != subject_role: continue   # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
             if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
                 continue                                          # a row on a results page, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card: its own record is the document
