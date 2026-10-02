@@ -28,7 +28,7 @@ forbids automation, the loop pauses for the owner's browser.
 | Baseline → questions → search ladder → review | `docs/RESEARCH-WORKFLOW.md` |
 | Per-person checklist, gaps, search foundation, the screen | `docs/RESEARCH-CHECKLIST.md` |
 | What the imported tree holds; how the work splits across the tools | `docs/SOURCE-PROFILE.md` |
-| Source registry, free holders of cited collections, the reasoning | `data/data-sources.csv`, `data/holders.csv`, `data/DATA-SOURCES.md` |
+| Source registry, free holders of cited collections, where records exist, countries, evidence classes, the reasoning | `data/data-sources.csv`, `data/holders.csv`, `data/jurisdictions.csv`, `data/countries.csv`, `data/evidence-classes.csv`, `data/DATA-SOURCES.md` |
 | Tables, invariants, tools | `schema/README.md`, `schema/catalog.sql` |
 | Deferred work | `BACKLOG.md` |
 | The audit's terms of reference | `docs/AUDIT-PROMPT.md` |
