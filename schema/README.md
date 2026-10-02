@@ -39,7 +39,8 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   that answers the step's checklist row; the registry's free text never decides it. A
   connector may declare the rows it answers (`ROWS` in `tools/connectors/`: the New
   Jersey death index the death row alone, its source sitting on the birth and marriage
-  rows too), and is asked a search step only on those. A fetch step's `locator_source_id` is the
+  rows too; the Kentucky indexes the death and birth rows, not the marriage row their
+  source also sits on), and is asked a search step only on those. A fetch step's `locator_source_id` is the
   free holder of the citation's collection (`data/holders.csv`); with no holder, or with a
   `scanned_index` holder (an archive.org collection of scanned index pages with no
   page-locating step built yet), the mode is `blocked`.

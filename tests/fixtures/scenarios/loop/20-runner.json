@@ -51,7 +51,7 @@
    ]
   },
   {
-   "say": "the death index asked for her surname, its download standing in: the file's rows carry nobody under it",
+   "say": "the death indexes asked for her surname: New Jersey's, its download standing in, carries nobody under it; Kentucky's is not asked, the step naming no Kentucky death",
    "run": {
     "step": {
      "person": "I332737036894",
@@ -74,21 +74,36 @@
     {
      "last": {
       "connectors": [
+       "ky_vital_index",
        "nj_death_index"
       ],
       "results": [
+       {
+        "connector": "ky_vital_index",
+        "outcome": "none",
+        "requests": [],
+        "wants": {"has": "a Kentucky death"}
+       },
        {
         "connector": "nj_death_index",
         "outcome": "none"
        }
       ]
-     }
+     },
+     "why": "the row's two vital-records connectors are each asked; Kentucky's has nothing to ask of a step that names no Kentucky death, and reads no file"
     },
     {
      "search_log": {
       "step": "$dr.step",
       "is": [
        {
+        "source_id": "C06",
+        "outcome": "none",
+        "artifacts": [],
+        "notes": {"has": "it wants a Kentucky death"}
+       },
+       {
+        "source_id": "C09",
         "outcome": "none"
        }
       ]
