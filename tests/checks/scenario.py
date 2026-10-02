@@ -481,6 +481,24 @@ def a_file_family(w, x):
                         VALUES (?,?,'family_member',?,?,?,'undecided',?,?,?)""", (w.treelib.ulid(), w.tid, w.treelib.dumps([fid, pid, role]), w.env["import"]["sha"], "Ancestry member tree (no citation)", EXTRACTOR_TAG, ts, w.treelib.dumps({"uncited": True})))
     return {"family": fid}
 
+def a_resolve_conflict(w, x):
+    """A conflict question closed through tools/conclude.py resolve: the person's one open conflict whose detail has
+    `detail_has`, the statement kept a literal or bound assertion id, or {record, event_type} for that record's statement
+    on the person's event of the type, with `note`; a refusal comes back as {"error": ...}."""
+    from conclude import resolve
+    pid = w.person(x["person"])
+    rows = [r for r in w.cx.execute("SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", (pid,))
+            if x["detail_has"] in (r["detail_json"] or "")]
+    if len(rows) != 1: raise KeyError(f"{len(rows)} open conflict questions match, expected exactly one")
+    keep = x["keep"]
+    if isinstance(keep, dict):
+        row = w.cx.execute("""SELECT a.id FROM assertion a JOIN event e ON e.id=a.subject_id JOIN event_participant ep ON ep.event_id=e.id
+                              WHERE a.tree_id=? AND a.subject_kind='event' AND a.artifact_sha256=? AND e.event_type=? AND ep.person_id=? ORDER BY a.asserted_at""",
+                           (w.tid, w.sha(keep["record"]), keep["event_type"], pid)).fetchone()
+        if not row: raise KeyError("no such statement")
+        keep = row[0]
+    return {**resolve(w.cx, w.tid, rows[0]["id"], keep, x.get("by", BY), x.get("note", "harness")), "question_id": rows[0]["id"]}
+
 def a_place_card(w, x):
     """A place_resolution card for a string of the tree, as the resolver would write it, its candidates' geocoder answers
     planted in the cache so no request goes out."""
@@ -554,7 +572,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
-           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "resolve_conflict": a_resolve_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 

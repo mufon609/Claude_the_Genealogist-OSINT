@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.7.3
+-- tree catalog schema  v0.7.4
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -430,8 +430,9 @@ CREATE TABLE proposal (
 CREATE INDEX ix_proposal_status ON proposal(tree_id, status, kind);
 
 -- A fact-level question about a person, generated from gaps in the baseline (RESEARCH-WORKFLOW §2).
--- open until answered or dismissed; the decision that answers it is a proposal. A missing
--- checklist row is not a question: it is a unit of work, a search_plan row.
+-- open until answered, dismissed or, a conflict, resolved by the owner with a written reason naming the
+-- value kept (tools/conclude.py resolve; the resolution is in detail_json); the decision that answers it
+-- is a proposal. A missing checklist row is not a question: it is a unit of work, a search_plan row.
 CREATE TABLE research_question (
   id                      TEXT PRIMARY KEY,
   tree_id                 TEXT NOT NULL REFERENCES tree(id),
@@ -441,7 +442,7 @@ CREATE TABLE research_question (
   q_key                   TEXT NOT NULL,                -- stable key for idempotent regeneration: kind + detail
   detail_json             TEXT,
   status                  TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed')),
-  closed_reason           TEXT CHECK (closed_reason IN ('answered','dismissed','gap_gone') OR closed_reason IS NULL),
+  closed_reason           TEXT CHECK (closed_reason IN ('answered','dismissed','gap_gone','resolved') OR closed_reason IS NULL),
   answered_by_proposal_id TEXT,
   created_at              TEXT NOT NULL,
   closed_at               TEXT,

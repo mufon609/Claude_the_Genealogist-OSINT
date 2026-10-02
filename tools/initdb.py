@@ -30,6 +30,24 @@ def requery_questions(cx: sqlite3.Connection) -> None:
     for rid, detail in cx.execute("SELECT id, detail_json FROM research_question").fetchall():
         cx.execute("UPDATE research_question SET q_key=? WHERE id=?", (q_key(json.loads(detail)), rid))
 
+def allow_resolved(cx: sqlite3.Connection) -> None:
+    """research_question.closed_reason accepts 'resolved', a conflict the owner closed naming the value kept
+    (tools/conclude.py resolve). SQLite changes a CHECK only by building the table again: the table as schema/catalog.sql
+    now defines it is created beside the old, every row copied across unchanged, the old dropped and the new renamed, with
+    foreign keys off for the swap and every reference checked after it."""
+    import re
+    ddl = re.search(r"CREATE TABLE research_question \(.*?\n\);", read("schema/catalog.sql"), re.S).group(0)
+    cx.commit(); cx.execute("PRAGMA foreign_keys=OFF")
+    cx.execute(ddl.replace("CREATE TABLE research_question (", "CREATE TABLE research_question_rebuilt (", 1))
+    cols = ", ".join(r[1] for r in cx.execute("PRAGMA table_info(research_question)"))
+    cx.execute(f"INSERT INTO research_question_rebuilt ({cols}) SELECT {cols} FROM research_question")
+    cx.execute("DROP TABLE research_question")
+    cx.execute("ALTER TABLE research_question_rebuilt RENAME TO research_question")
+    cx.execute("CREATE INDEX ix_question_person ON research_question(subject_person_id, status)")
+    bad = cx.execute("PRAGMA foreign_key_check").fetchall()
+    if bad: raise SystemExit(f"research_question rebuilt with {len(bad)} broken reference(s); nothing committed")
+    cx.commit(); cx.execute("PRAGMA foreign_keys=ON")
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -39,6 +57,8 @@ MIGRATIONS = [
       "CREATE INDEX ix_person_merged_into ON person(merged_into) WHERE merged_into IS NOT NULL"]),
     ("0.7.3", "research_question.q_key recomputed from detail_json with plan.q_key, dropping the 120-character truncation an older key wrote",
      [requery_questions]),
+    ("0.7.4", "research_question.closed_reason accepts 'resolved': a conflict the owner closes with a written reason naming the value kept",
+     [allow_resolved]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

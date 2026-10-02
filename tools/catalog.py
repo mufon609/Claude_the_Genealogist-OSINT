@@ -628,10 +628,10 @@ class Catalog:
                         for r in self.q("SELECT id, name, access, status, cost, connector, coverage FROM source")}
         self.holders = holders()
         self._groups = self._held = self._holdings = self._tiers = None
-    def disagreements(self, pid):
+    def disagreements(self, pid, event=None):
         """Where an accepted record says something else than the tree's event or than another statement on it: for each event
         of the person, and of each family they are a partner in (a marriage), and each of date and place, one line per
-        differing value, naming every statement on each side and the
+        differing value (event: that one event's lines alone, for tools/conclude.py resolve), naming every statement on each side and the
         tree's own value. Every Accepted assertion is compared against the event's own date (as dates) or shown place, and
         against every other statement on the event that is not rejected (undecided claims included: the file's own claim, a
         page anyone can edit); place is compared with Catalog.place_verdict, so a coarser or finer record, or one naming a
@@ -646,15 +646,15 @@ class Catalog:
         from match import middle_differs                      # the matcher's own rule for a middle name, so a conflict is raised on exactly what made the card
         rows = [(g or "", s or "") for g, s in self.q("SELECT given, surname FROM person_name WHERE person_id=?", pid)]
         shown = (self.q("SELECT display_name FROM person WHERE id=?", pid) or [[None]])[0][0]
-        for written, coll, loc in self.q("""SELECT pf.value_text, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value FROM assertion a
+        for written, coll, loc in ([] if event else self.q("""SELECT pf.value_text, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value FROM assertion a
                                             JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                                             WHERE a.subject_kind='person' AND a.subject_id=? AND a.status='accepted' AND pf.fact_type='Name' AND pf.value_text IS NOT NULL
-                                            ORDER BY a.asserted_at, a.id""", pid):
+                                            ORDER BY a.asserted_at, a.id""", pid)):
             if middle_differs(written, rows, [s for _, s in rows]):
                 out.append(f"name: the tree against {coll}" + (f" ({loc})" if loc else "") + f": {shown} against {written}")
-        for e in self.q("""SELECT DISTINCT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                           WHERE ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner')
-                           ORDER BY e.event_type, e.date_start""", pid, pid):
+        for e in self.q(f"""SELECT DISTINCT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                           WHERE (ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner')) {'AND e.id=?' if event else ''}
+                           ORDER BY e.event_type, e.date_start""", pid, pid, *([event] if event else [])):
             place_now = self.place(e[0], e[5])
             tree_place = place_now["text"] if place_now else None
             kind = e[1].lower()

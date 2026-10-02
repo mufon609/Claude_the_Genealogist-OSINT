@@ -827,7 +827,15 @@ regenerates the person's plan in the same request, and an open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the
 evidence; a `conflict` closes only when a person resolves it with a written
-reason or dismisses it. Accepting grows
+reason or dismisses it. Resolving (`tools/conclude.py resolve <question>
+--keep <statement> --note "…"`) names the statement whose date or place the
+event keeps: that value becomes the event's own (the place only once its words
+are resolved to a place), the question closes `resolved` with the reason and
+the resolution in it, one audit row names the value kept and every statement
+set aside, and each statement stays as its record says it. The same
+difference read afterwards from the kept side is closed with it, so a
+regeneration reopens nothing, while a statement that comes later makes a
+question of its own. Accepting grows
 the baseline, which generates new questions.
 
 ### The proof standard

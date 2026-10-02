@@ -1,0 +1,236 @@
+{
+ "title": "a conflict resolved with a reason",
+ "line": "a death index dating the death the 11th where the file and the memorial say the 10th is a conflict question; the owner keeps the index's day with a written reason: the event carries it, the question closes resolved with the reason, one audit row names the value kept and the ones set aside, every statement stays as its record says, and the same difference read from the kept side opens nothing, now or on a regeneration; keeping a statement on another event, or a rejected one, is refused",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the catalog upgraded through the migration that lets a conflict close resolved",
+   "migrate": {
+    "reset_to": "0.7.3"
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "ends": "schema 0.7.4"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "accepted by the owner: the 11th against the file's 10th is a conflict question",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "his memorial, the identity taken: it says the 10th as well, undecided as a page anyone can edit says it",
+   "attach": {
+    "fixture": "findagrave-memorial-130509402.html"
+   },
+   "as": "mem",
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "events": 1,
+      "strings": {
+       "Simpson County, Kentucky, USA": "undecided"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "keeping a statement that is not on the death: refused",
+   "resolve_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "keep": {
+     "record": "kyd",
+     "event_type": "Birth"
+    },
+    "note": "harness: the wrong statement"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "not on the event the question is about"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the index's birth statement rejected on its own: keeping a rejected statement is refused",
+   "assertion": {
+    "record": "kyd",
+    "person": "I332737204849",
+    "event_type": "Birth",
+    "verdict": "reject"
+   },
+   "as": "rej"
+  },
+  {
+   "resolve_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "keep": "$rej.assertion",
+    "note": "harness: a rejected statement"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "rejected"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner keeps the index's day, with the reason",
+   "resolve_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "keep": {
+     "record": "kyd",
+     "event_type": "Death"
+    },
+    "note": "the state's own index of the death certificate; the memorial copies the file"
+   },
+   "as": "res",
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "axis": "date",
+      "kept": {
+       "value": "11 Jun 1946"
+      },
+      "set_aside": {
+       "some": {
+        "value": "10 Jun 1946"
+       }
+      },
+      "questions_closed": {
+       "len": 2
+      }
+     },
+     "why": "the question itself, and the same difference as it now reads, the tree and the index against the file and the memorial"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946",
+      "events": 1
+     },
+     "why": "the event carries the kept day"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:",
+      "exists": false
+     },
+     "why": "closed, and the same difference read from the kept side opens no other"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "closed",
+      "detail_has": "the state's own index of the death certificate",
+      "count": 2
+     },
+     "why": "both closed resolved, with the owner's reason kept on them"
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "id": "$res.question_id",
+      "is": {
+       "some": {
+        "diff": {
+         "kept": {
+          "value": "11 Jun 1946"
+         },
+         "set_aside": {
+          "some": {
+           "value": "10 June 1946"
+          }
+         },
+         "note": "the state's own index of the death certificate; the memorial copies the file"
+        }
+       }
+      }
+     },
+     "why": "one audit row naming the value kept and the ones set aside"
+    },
+    {
+     "assertions_on": {
+      "record": "mem",
+      "undecided": {
+       ">=": 1
+      },
+      "rejected": 0
+     },
+     "why": "evidence untouched: the memorial's statements stay as the page says them"
+    }
+   ]
+  },
+  {
+   "say": "the plan regenerated: nothing reopens",
+   "expect": [
+    {
+     "plan_idempotent": [
+      "I332737204849"
+     ]
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:",
+      "exists": false
+     }
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

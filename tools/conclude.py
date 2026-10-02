@@ -43,6 +43,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
        tools/conclude.py link "<person>" --parent "<other>" [--parent "<other>"] --record <sha256> --note "…"
        tools/conclude.py divorce "<a>" "<b>" --date "BET 1950 AND 1959" --evidence <sha256>[:<persona fact id>][:<citation>] … --note "…"
        tools/conclude.py merge "<duplicate>" --into "<person>" --note "…"          close a duplicate_person question: the duplicate's row stays, out of every listing
+       tools/conclude.py resolve <question id> --keep <assertion id> --note "…"    close a conflict question: the event keeps that statement's date or place
        common: [--tree slug] [--db catalog/tree.db] [--by user:<you>]
 
 - decide: a person's (or the rule's) decision on a proposal, with everything that follows from it; a command too, as is a
@@ -56,6 +57,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
   not a place, applied wherever the same words appear.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
 - place: the owner's answer to Catalog.unplaced, a record's undated fact written onto the event the owner means.
+- resolve: the owner's answer to a conflict question, the statement whose date or place the event keeps, with the reason.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -1226,6 +1228,80 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
               (ulid(), tree_id, ts, by, "update", "person", dup_id, dumps({"merged_into": kept_id, "proposal": prop_id, "note": note, **moved})))
     return {"proposal": prop_id, "duplicate": dup_id, "kept": kept_id, **moved}
 
+CONFLICT_AXIS = re.compile(r"^(.+?) (date|place): ")              # a conflict line's own opening: the event type, lowercased, and the axis (Catalog.disagreements)
+
+def resolve(cx, tree_id, qid, keep, by, note):
+    """The owner closes a conflict question with a written reason naming the value kept (docs/RESEARCH-WORKFLOW.md, the proof
+    standard): the kept statement's date, or its place, becomes the event's own value (the event row's date fields, or its
+    place_id), the question closes 'resolved' with the resolution in its detail, and one audit row names the value kept and
+    every statement set aside. Evidence is untouched: each statement stays as it was, the ones set aside still accepted as
+    what their records say. The difference then reads from the event's new value, the kept side now beside the tree: every
+    line the catalog gives for that event and axis afterwards is that same difference, and is recorded closed 'resolved'
+    under its own key, for every partner of a family's event too, so a regeneration reopens nothing; a statement that comes
+    later makes another line, a question of its own. Refused when the note is empty, the question is not an open conflict
+    about an event's date or place, the statement is rejected, is not on the event the question is about, or gives no value
+    on that axis, or the place it gives is not yet resolved to a place. Returns what was done, or an error."""
+    from plan import q_key
+    q = _q(cx); ts = now(); cat = Catalog(cx, tree_id)
+    if not (note or "").strip(): return {"error": "a resolution needs your written reason (--note)"}
+    rq = q.execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
+    if not rq or rq["kind"] != "conflict" or rq["status"] != "open": return {"error": "not an open conflict question in this tree"}
+    detail = (json.loads(rq["detail_json"] or "{}") or {}).get("detail") or ""
+    m = CONFLICT_AXIS.match(detail)
+    if not m: return {"error": "this conflict is not about one event's date or place: no statement to keep (dismiss it with tools/log_search.py --dismiss)"}
+    etype, axis = m.group(1), m.group(2)
+    a = q.execute("""SELECT a.id, a.status, a.subject_kind, a.subject_id, a.artifact_sha256, a.citation_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier,
+                            pf.calendar, ps.raw, ps.place_id FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                     WHERE a.id=? AND a.tree_id=?""", (keep, tree_id)).fetchone()
+    if not a: return {"error": "no such statement in this tree"}
+    if a["status"] == "rejected": return {"error": "the statement to keep is rejected"}
+    ev = q.execute("SELECT * FROM event WHERE id=? AND tree_id=?", (a["subject_id"], tree_id)).fetchone() if a["subject_kind"] == "event" else None
+    pid = rq["subject_person_id"]
+    if not ev or ev["event_type"].lower() != etype or detail not in cat.disagreements(pid, event=ev["id"]): return {"error": "the statement is not on the event the question is about"}
+    if axis == "date" and not (a["date_start"] or a["date_end"]): return {"error": "the statement gives no date to keep"}
+    if axis == "place" and not a["raw"]: return {"error": "the statement gives no place to keep"}
+    if axis == "place" and not a["place_id"]: return {"error": f"the place the statement gives, “{a['raw']}”, is not yet resolved to a place: answer its words first, then keep it"}
+    kept_value = {"start": a["date_start"] or a["date_end"], "text": a["date_text"], "qualifier": a["date_qualifier"]} if axis == "date" else a["raw"]
+    differs = lambda v: (date_verdict(kept_value, v)[0] if axis == "date" else place_verdict(kept_value, v)[0]) == "disagrees"
+    set_aside = []
+    for r in q.execute("""SELECT a.id, a.citation_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM assertion a
+                          JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                          WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND a.id<>?""", (ev["id"], keep)):
+        v = {"start": r["date_start"] or r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if axis == "date" else r["raw"]
+        if (v["start"] if axis == "date" else v) and differs(v): set_aside.append({"assertion": r["id"], "record": r["citation_text"], "value": r["date_text"] if axis == "date" else r["raw"]})
+    was = {"date_text": ev["date_text"], "date_start": ev["date_start"], "date_end": ev["date_end"], "date_qualifier": ev["date_qualifier"]} if axis == "date" else {"place_id": ev["place_id"], "place": (cat.place(ev["id"], ev["place_id"]) or {}).get("text")}
+    own = {"start": ev["date_start"] or ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]} if axis == "date" else was["place"]
+    if (own["start"] if axis == "date" else own) and differs(own):     # the event's own value, which the kept one replaces
+        set_aside.insert(0, {"assertion": None, "record": "the tree's own value", "value": ev["date_text"] if axis == "date" else was["place"]})
+    if axis == "date":
+        q.execute("UPDATE event SET date_text=?, date_start=?, date_end=?, date_qualifier=?, calendar=coalesce(?, calendar), updated_at=? WHERE id=?",
+                  (a["date_text"], a["date_start"], a["date_end"], a["date_qualifier"], a["calendar"], ts, ev["id"]))
+    else: q.execute("UPDATE event SET place_id=?, updated_at=? WHERE id=?", (a["place_id"], ts, ev["id"]))
+    resolution = {"kept": {"assertion": keep, "record": a["citation_text"], "value": a["date_text"] if axis == "date" else a["raw"]}, "set_aside": set_aside,
+                  "event": ev["id"], "axis": axis, "was": was, "note": note, "by": by, "at": ts, "question": qid}
+    people = [pid] + [r["person_id"] for r in q.execute("""SELECT fm.person_id FROM event_participant ep JOIN family_member fm ON fm.family_id=ep.family_id AND fm.role='partner'
+                                                            WHERE ep.event_id=? AND fm.person_id<>?""", (ev["id"], pid))]
+    closed = [qid]
+    q.execute("UPDATE research_question SET status='closed', closed_reason='resolved', closed_at=?, detail_json=? WHERE id=?",
+              (ts, dumps({**json.loads(rq["detail_json"] or "{}"), "resolution": resolution}), qid))
+    for person in dict.fromkeys(people):                               # the same difference, read now from the kept side, and the partner's own question on a family's event
+        lines = [detail] + [l for l in cat.disagreements(person, event=ev["id"]) if l.startswith(f"{etype} {axis}:")]
+        for line in dict.fromkeys(lines):
+            qd = {"kind": "conflict", "detail": line}; key = q_key(qd)
+            row = q.execute("SELECT id, status, closed_reason FROM research_question WHERE subject_person_id=? AND q_key=?", (person, key)).fetchone()
+            body = dumps({**qd, "resolution": resolution})
+            if row and row["id"] == qid: continue
+            if row and (row["status"] == "open" or row["closed_reason"] == "gap_gone"):
+                q.execute("UPDATE research_question SET status='closed', closed_reason='resolved', closed_at=?, detail_json=? WHERE id=?", (ts, body, row["id"])); closed.append(row["id"])
+            elif not row and line != detail:
+                nid = ulid(); closed.append(nid)
+                q.execute("INSERT INTO research_question (id,tree_id,subject_person_id,kind,q_key,detail_json,status,closed_reason,created_at,closed_at) VALUES (?,?,?,?,?,?,'closed','resolved',?,?)",
+                          (nid, tree_id, person, "conflict", key, body, ts, ts))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "update", "research_question", qid, dumps({**resolution, "questions_closed": closed})))
+    for person in dict.fromkeys(people): plan_person(cx, tree_id, person, by)
+    return {"ok": True, "question": qid, "event": ev["id"], "axis": axis, "kept": resolution["kept"], "set_aside": set_aside, "was": was, "questions_closed": closed}
+
 def living(cx, tree_id, pid, word, by, note):
     """The owner's word on whether a person is alive, above the tier rule (docs/DATA-ARCHITECTURE.md §7 decision 3):
     person.living_override set to living or deceased, or cleared by unknown so the rule decides again; one audit row. Returns
@@ -1362,7 +1438,9 @@ def main():
     mg.add_argument("duplicate"); mg.add_argument("--into", dest="kept", required=True); mg.add_argument("--note", required=True, help="why these are the same person, kept on the proposal")
     lv = sub.add_parser("living", help="your own word on whether a person is alive, above the tier rule; unknown clears it so the rule decides again")
     lv.add_argument("person"); lv.add_argument("word", choices=["living", "deceased", "unknown"]); lv.add_argument("--note", required=True, help="your reason, kept on the audit row")
-    for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv):
+    rs = sub.add_parser("resolve", help="close a conflict question with your reason, the statement whose date or place the event keeps named; the others stay as their records say")
+    rs.add_argument("question"); rs.add_argument("--keep", required=True, help="the assertion id of the statement kept (tools/conclude.py facts lists them)"); rs.add_argument("--note", required=True, help="your reason, kept on the question and the audit row")
+    for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv, rs):
         x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
@@ -1446,6 +1524,11 @@ def main():
                 parts = e.split(":", 2); ev.append((parts[0], parts[1] or None if len(parts) > 1 else None, parts[2] if len(parts) > 2 else "the record's own words"))
             eid = divorce(cx, tree_id, cat.find_person(a.a), cat.find_person(a.b), a.date, ev, a.by, a.note)
             print(f"divorce event {eid} between {a.a} and {a.b}")
+        elif a.cmd == "resolve":
+            res = resolve(cx, tree_id, a.question, a.keep, a.by, a.note)
+            if "error" in res: raise SystemExit(res["error"])
+            print(f"resolved: the event's {res['axis']} is now {res['kept']['value']} ({res['kept']['record']}); set aside, as their records say: "
+                  + ("; ".join(f"{s['value']} ({s['record']})" for s in res["set_aside"]) or "nothing") + f"; {len(res['questions_closed'])} question(s) closed")
         elif a.cmd == "living":
             pid = cat.find_person(a.person); res = living(cx, tree_id, pid, a.word, a.by, a.note)
             print(f"{cx.execute('SELECT display_name FROM person WHERE id=?', (pid,)).fetchone()[0]} [{pid[-6:]}]: living_override {res['was'] or 'none'} -> {res['now'] or 'none'}; "

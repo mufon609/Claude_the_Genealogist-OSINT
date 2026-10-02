@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.3. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.4. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |

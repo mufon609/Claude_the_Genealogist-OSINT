@@ -1,0 +1,29 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,3077::604036"
+  }
+ },
+ "extractor": "familysearch-record",
+ "sequence": {
+  "1": {
+   "name": "John Y Davidson",
+   "role": "subject",
+   "facts": [
+    {
+     "type": "Death",
+     "date": "11 Jun 1946",
+     "place": "Simpson, Kentucky"
+    },
+    {
+     "type": "Birth",
+     "date": "CAL 1875"
+    }
+   ],
+   "why": "the death on the 11th, where the file and his memorial say the 10th; the birth calculated from his age"
+  }
+ }
+}
