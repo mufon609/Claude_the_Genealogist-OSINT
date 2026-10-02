@@ -762,6 +762,20 @@ def e_artifact_where(w, x, want):
     got = {"redistributable": row["redistributable"], "manifest": json.loads(row["manifest_json"] or "{}")} if row else None
     return row is not None and has(got, x["is"]), got
 
+def e_classes(w, x, want):
+    """The classes of a record's statements about a person, in words (catalog.evidence_classes): the statements on the
+    person's events of `event_type`, or on a family link (`link`: parents, spouses or children), that the record carries;
+    some statement's classes match the pattern given (source, information, evidence, relationship, original)."""
+    from catalog import evidence_classes
+    from facts import fact_subjects
+    pid = w.person(x["person"]); sha = w.sha(x["record"])
+    subs = fact_subjects(w.cx, pid, x["link"]) if x.get("link") else \
+           [("event", e) for e, in w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=?", (pid, x["event_type"]))]
+    ids = [a for k, s in subs for a, in w.cx.execute("SELECT id FROM assertion WHERE subject_kind=? AND subject_id=? AND artifact_sha256=? ORDER BY asserted_at, id", (k, s, sha))]
+    got = [{k: c[k] for k in ("source", "information", "evidence", "relationship", "original")} for c in (evidence_classes(w.cx, a) for a in ids)]
+    pattern = {k: v for k, v in x.items() if k in ("source", "information", "evidence", "relationship", "original")}
+    return any(has(g, pattern) for g in got), got
+
 def e_extractor(w, x, want):
     sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server
     row = w.cx.execute("SELECT x.kind, x.name, x.model_id, x.prompt_sha256 FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (w.value(x["extraction"]),)).fetchone()
@@ -852,7 +866,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "event": e_event, "disagreements": e_disagreements, "question": e_question, "assertions_on": e_assertions_on, "links": e_links, "is_subject": e_is_subject, "citations_held": e_citations_held,
            "checklist_row": e_checklist_row, "baseline": e_baseline, "waiting": e_waiting, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
-           "artifact_where": e_artifact_where, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
+           "artifact_where": e_artifact_where, "classes": e_classes, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject}
 

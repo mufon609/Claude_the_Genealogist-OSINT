@@ -140,7 +140,9 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 `assertions_on`, `links` (a person's link statuses on a record's personas), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
 `living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row,
-`tier` as `catalog.tier_sql` reads it and `collection_tier` its collection's own), `artifact_where`, `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
+`tier` as `catalog.tier_sql` reads it and `collection_tier` its collection's own), `artifact_where`, `classes` (a
+record's statements on a person's events of an `event_type`, or on a family `link`, read by
+`catalog.evidence_classes`: some statement's `source`, `information`, `evidence`, `relationship`, `original`), `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
 an expectation is printed with its failure.

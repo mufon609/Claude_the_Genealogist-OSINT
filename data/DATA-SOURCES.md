@@ -95,6 +95,38 @@ collection's tier from the column (`collection.trust_tier`, cleared where the co
 record (`catalog.tier_sql`) is its collection's where its holder's own collection carries one, the holder's otherwise. A
 collection first met after the last sync reads its holder's tier until the sync runs again.
 
+### Evidence classes (`evidence-classes.csv`)
+
+A tier classifies the source; a class classifies each piece of information a record gives. The Genealogical Proof
+Standard reads every statement by three classes (`docs/RESEARCH-WORKFLOW.md` §5–7, "The proof standard"), all words,
+never numbers: the **source** (original: the record made at the event, or its image; derivative: an index, abstract or
+transcript; authored: a compiled genealogy, a memorial page, a family tree), the **information** of that one field
+(primary: from someone with first-hand knowledge, the record's own event; secondary: the rest; indeterminable), and the
+**evidence** (direct: the field states the fact; indirect: it is worked out from something else). A family link's
+statement is also **stated** by the record or **computed** by its indexer, and a derivative names the **original** it was
+copied from, so records copied from one original count as one source. A T2 index can hold primary information (a birth
+register's own birth) and a T1 image secondary (the age on a census page): the two scales answer different questions.
+
+One row per record kind and field: `kind`, `field`, `reads_as`, the five classes, and `notes`. A record reads as several
+kinds, most specific first (`catalog.record_kinds`): a FamilySearch record page as its own collection, its Event Type
+and its collection's kind word (`FamilySearch: <words>`), then `familysearch-record`; a record read by the model or a
+person as its registry row, the checklist rows of the steps it was fetched for (`census household`, `death record`, the
+checklist's own words), then `reading`; any other page as its parser. A kind's `reads_as` adds the kind it is a case of
+(`FamilySearch: Death` reads as `death record`). The field is the fact type as `persona_fact.fact_type` stores it,
+`<type> [<label>]` for one field label of its `region_json`, `relation` or `relation:<kind>` for a family link, and
+`relation [<heading>]` for a relationship whose label ends with that heading (FamilySearch's relatives tables). Each
+class is read from the most specific row that gives it, kind before field, then the rows every record shares (`*`),
+then the default row of the source class, so a field nothing names reads indeterminable (`catalog.evidence_classes`).
+`{year}` in an original's name is the record's own year. Two readings are the reading's own, not the table's: a date
+worked out or bounded from another field (qualifier calculated, estimated, before or after: an age, a newspaper's own
+date) is indirect evidence, and a relationship the reading marks computed is computed.
+
+The rows a genealogist could contest carry a note for the owner to approve: the Social Security application's birth
+date and parents (read as secondary, the applicant's own word), an obituary and its indexes (read as secondary),
+FamilySearch's relatives tables (read as computed, though on a birth, death or marriage record they restate the record's
+own roles), the NUMIDENT's own parents table (read as stated), and the Pennsylvania births and christenings index (read
+as a birth register, though it does not name each entry's original).
+
 ## 4. Access reality (verified Sep 2026)
 
 | Source | Programmatic access | Verdict |

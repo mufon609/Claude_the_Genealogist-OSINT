@@ -1,0 +1,112 @@
+{
+ "title": "the proof standard's classes",
+ "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 household page arrives through the inbox",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "say": "the son accepted on it",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the mother accepted: the mother-son link",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the father accepted: the couple and the father-son link",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "classes": {
+      "record": "c40",
+      "person": "I332737037257",
+      "event_type": "Birth",
+      "source": "derivative",
+      "information": "secondary",
+      "evidence": "indirect",
+      "original": "1940 census schedule"
+     },
+     "why": "a census index's birth is a year worked from the father's age on the census day: a derivative, secondary information, indirect evidence, copied from the 1940 schedule"
+    },
+    {
+     "classes": {
+      "record": "c40",
+      "person": "I332737036054",
+      "event_type": "Residence",
+      "information": "primary"
+     },
+     "why": "the census's own residence is the one thing it records first hand"
+    },
+    {
+     "classes": {
+      "record": "c40",
+      "person": "I332737036054",
+      "link": "parents",
+      "relationship": "computed",
+      "evidence": "indirect"
+     },
+     "why": "the son's father and mother stand in FamilySearch's own Parents and Siblings table, computed from the household, not stated by the census"
+    }
+   ]
+  },
+  {
+   "say": "the father's birth record arrives",
+   "attach": {
+    "fixture": "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"
+   },
+   "as": "birth"
+  },
+  {
+   "say": "his card accepted on it",
+   "decide": {
+    "card": {
+     "record": "birth",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "classes": {
+      "record": "birth",
+      "person": "I332737037257",
+      "event_type": "Birth",
+      "source": "derivative",
+      "information": "primary",
+      "evidence": "direct",
+      "original": "birth register"
+     },
+     "why": "the record's fields say Birth though its heading says Death: the birth register's own birth, read from its index, is primary information and direct evidence"
+    }
+   ]
+  }
+ ]
+}
