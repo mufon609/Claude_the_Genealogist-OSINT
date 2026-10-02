@@ -297,27 +297,28 @@
          "first": {
           "original": "1940 census schedule",
           "classes": {
-           "relationship": "computed",
-           "evidence": "indirect"
+           "relationship": "stated",
+           "evidence": "direct",
+           "information": "secondary"
           }
          }
         },
         "verdict": "an argument is still owed",
         "why": {
-         "has": "it rests only on indirect evidence"
+         "has": "it rests only on secondary information"
         }
        }
       }
      },
-     "why": "his parents rest on FamilySearch's own relatives table alone: a computed relationship, indirect evidence, so an argument is still owed"
+     "why": "the census states him the head's son: a stated relationship, direct evidence, but a census's relationships are secondary information, so an argument is still owed"
     },
     {
      "last": {
       "text": {
        "has": [
-        "computed; accepted [Mother; Father]",
+        "stated; accepted [Mother; Father; Son]",
         "Citing digital folder 005456604, image 109.",
-        "conclusion: an argument is still owed: it rests only on indirect evidence"
+        "conclusion: an argument is still owed: it rests only on secondary information"
        ]
       }
      },
