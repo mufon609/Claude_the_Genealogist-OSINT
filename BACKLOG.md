@@ -321,9 +321,24 @@ last, first, middle initial, residence, place of death as a code, age, date,
 state file number), Soundex-ordered, public domain (`data/data-sources.csv`
 C08). It answers a death row for the Nassau and Suffolk people the plan has
 no free holder for. Build it as the New Jersey and Kentucky death-index
-connectors are built: a byte range read for the surname's Soundex block, the
-matching rows kept as the derivative, one persona per row; the place codes
-need their own table from the release's documentation before a place is read.
+connectors are built: the year's file read once through the runner and
+cached, the surname's rows kept as the derivative, one persona per row; the
+place codes need their own table from the release's documentation before a
+place is read.
+
+### C18. A year-filed index read by byte range, and asked with the event's year
+
+The Kentucky indexes (and the New Jersey one) are one sorted file per year,
+3 to 11 MB, and the Archive serves byte ranges: a binary search by surname
+finds a name in about a dozen small requests where the connector now reads the
+whole year's file, because the runner sends no Range header and a connector
+opens no connection of its own. Give the runner a ranged request (a probe that
+is not a hit) and let these connectors search by range. Beside it: a fetch
+step citing such an index carries no year (a citation's own details only), so
+the connector logs none and FamilySearch stays the cited record's first
+holder (`data/holders.csv`); decide whether a year-filed index may take the
+year of the person's accepted event of that type, and if so put it first for
+those citations.
 
 ### C17. One connector for CONTENTdm collections
 
