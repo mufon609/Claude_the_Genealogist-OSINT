@@ -127,7 +127,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/queue.py [--all]` | Read-only. The next person at the edge of the confirmed tree a turn can act on, and why each other person is passed over. |
 | `tools/turn.py "<person>" / --resume` | One person's plan run end to end; pauses on the pages to save in the browser, and `--resume` collects them and runs the rule again. |
 | `tools/turns.py [--turns N] / --resume` | The loop without a hand on it: the queue's next person, their turn, the next, until a turn pauses, nobody is left or N turns are done. |
-| `tools/extract.py <sha256 or path>` | Personas, facts and relations from an archived page or a connector's response, one parser per page kind; a page no parser claims is a failed extraction. |
+| `tools/extract.py <sha256 or path>` | Personas, facts and relations from an archived page or a connector's response, one parser per page kind; a page no parser claims is a failed extraction. `--stale` reads again every page an older version of its parser read. |
 | `tools/match.py <extraction id>` | Every persona compared with the persons the record was fetched for and their relatives: one `persona_match` or `new_person` proposal each, its rationale in words. |
 | `tools/conclude.py` | The decision on a document and what it writes, the standing rule and `reconsider`, and the owner's word: `decide`, `fact`, `assertion`, `place`, `link`, `divorce`, `merge`, `living`. |
 | `tools/facts.py` | A person's key facts as the screen and `conclude.py fact` decide them, and a vouch on the owner's own knowledge. |

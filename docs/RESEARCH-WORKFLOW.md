@@ -590,7 +590,9 @@ to `rule:loc-gov-ocr@0.1.0`, the Archive's search inside an item to
 `rule:wikitree-profile@0.1.0`; a page no parser claims gets a failed extraction
 by `rule:extract@0.1.0` and is reported. The raw parsed page is in
 `extraction.structured_json`. Re-running an
-extractor, at any version, supersedes its earlier extraction and rejects that
+extractor, at any version, supersedes its earlier extraction (`tools/extract.py
+--stale` re-reads every page an older version of its parser read, after a
+parser changes) and rejects that
 extraction's undecided proposals with the note `superseded`; a persona the
 earlier extraction had decided carries its decision to the new persona of the
 same name and role on the same page (the decision was about the record, whose
