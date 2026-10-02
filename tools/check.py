@@ -3,18 +3,19 @@
 reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
-usage: tools/check.py [--show] [--keep]
+usage: tools/check.py [--verbose] [--show] [--keep]
 
 Each check runs on a scratch catalog under a temporary data root, never the owner's. The expectations are data beside
 the fixtures (tests/fixtures/README.md): <stem>.expect.json beside each page for tests/checks/parsers.py, the scenarios
 under tests/fixtures/scenarios/ for tests/checks/scenario.py and tests/checks/loop.py, tests/fixtures/rules.json for the
 pure rules here and tests/fixtures/connectors.json for the offline connector checks here; the harness tree is
-tests/fixtures/harness.ged, the owner's own export cut down. One line per check, ok or FAIL with every reason; exit
-status 1 on any failure. --show prints what each reading and each scenario step did, for writing a sidecar; --keep
-leaves the scratch directories in place and prints their paths. Nothing in the harness names a person: another family's
+tests/fixtures/harness.ged, the owner's own export cut down. A failing check prints its FAIL line with every reason and
+the run ends with one line, `green: N checks` or the failure count; exit status 1 on any failure. --verbose prints the
+ok line of every check too; --show prints what each reading and each scenario step did, for writing a sidecar (and the ok
+lines); --keep leaves the scratch directories in place and prints their paths. Nothing in the harness names a person: another family's
 export, pages and sidecars run through it unchanged.
 """
-import argparse, json, os, shutil, sqlite3, sys
+import argparse, contextlib, json, os, re, shutil, sqlite3, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -208,6 +209,24 @@ def connectors_offline():
     cx2.close(); shutil.rmtree(d, ignore_errors=True)
     return bad
 
+def save_page_kinds():
+    """The browser script recognises every saved page the parsers read: the markers in tools/save_page.js's own table, read out
+    of the file and run on each fixture page, name the kind its parser family expects (a FamilySearch results page or record,
+    a Find a Grave memorial or search, an AAD page); the gravesite locator's pages are a connector's, never saved by the script."""
+    with open(os.path.join(ROOT, "tools", "save_page.js"), encoding="utf-8") as fh: js = fh.read()
+    table = {m.group(1): [p.replace("\\/", "/") for p in re.findall(r"/((?:\\.|[^/\\\n])+)/\.test\(h\)", m.group(2))] for m in re.finditer(r'^\s*"([a-z-]+)": h => (.+?),?$', js, re.M)}
+    expect = [("familysearch-search-", "fs-search"), ("familysearch-massachusetts-marriage-search-", "fs-search"), ("familysearch-", "fs-record"), ("findagrave-memorial-", "fg-memorial"),
+              ("findagrave-search-", "fg-search"), ("aad-", "aad")]
+    bad = []
+    for f in sorted(os.listdir(FIXTURES)):
+        want = next((k for prefix, k in expect if f.startswith(prefix)), None)
+        if not f.endswith(".html") or not want: continue
+        with open(os.path.join(FIXTURES, f), encoding="utf-8", errors="replace") as fh: text = fh.read()
+        got = next((k for k, ps in table.items() if any(re.search(p, text) for p in ps)), None)
+        if got != want: bad.append(f"{f}: tools/save_page.js says {got}, the parser family is {want}")
+    if sorted(table) != sorted({k for _, k in expect}): bad.append(f"the script's kinds {sorted(table)} are not the fixtures' {sorted({k for _, k in expect})}")
+    return bad
+
 def compiles():
     """Every tool, the screen's server and the check modules compile; the first thing green means."""
     import py_compile
@@ -218,19 +237,34 @@ def compiles():
         except py_compile.PyCompileError as e: bad.append(f"{f}: {e.msg.splitlines()[0]}")
     return bad
 
+class OkLines:
+    """stdout that counts the `ok` lines of the checks and prints them only when asked; every other line (a FAIL with its
+    reasons, --show's detail, a kept scratch path) prints as it comes."""
+    def __init__(self, out, verbose): self.out, self.verbose, self.ok, self.failed, self.pending = out, verbose, 0, 0, ""
+    def write(self, text):
+        self.pending += text
+        while "\n" in self.pending:
+            line, self.pending = self.pending.split("\n", 1)
+            self.ok += line.startswith("ok   "); self.failed += line.startswith("FAIL")
+            if self.verbose or not line.startswith("ok   "): self.out.write(line + "\n")
+    def flush(self): self.out.flush()
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--show", action="store_true"); ap.add_argument("--keep", action="store_true"); a = ap.parse_args()
-    bad = 0
-    bad_files = compiles(); bad += bool(bad_files)
-    print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
-    bad_rules = rules(); bad += bool(bad_rules)
-    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
-    bad_conn = connectors_offline(); bad += bool(bad_conn)
-    print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
-    bad += parsers.check(a.keep, a.show)
-    bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
-    bad += loop.check(a.keep, a.show)
-    print("green" if not bad else f"{bad} failure(s)")
+    ap = argparse.ArgumentParser(); ap.add_argument("--show", action="store_true"); ap.add_argument("--keep", action="store_true"); ap.add_argument("--verbose", action="store_true"); a = ap.parse_args()
+    bad = 0; lines = OkLines(sys.stdout, a.verbose or a.show)
+    with contextlib.redirect_stdout(lines):
+        bad_files = compiles(); bad += bool(bad_files)
+        print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
+        bad_rules = rules(); bad += bool(bad_rules)
+        print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+        bad_conn = connectors_offline(); bad += bool(bad_conn)
+        print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
+        bad_kinds = save_page_kinds(); bad += bool(bad_kinds)
+        print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
+        bad += parsers.check(a.keep, a.show)
+        bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
+        bad += loop.check(a.keep, a.show)
+    print(f"green: {lines.ok} checks" if not bad else f"{bad} failure(s) of {lines.ok + lines.failed} checks")
     sys.exit(1 if bad else 0)
 
 if __name__ == "__main__": main()
