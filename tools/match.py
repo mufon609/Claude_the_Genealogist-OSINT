@@ -71,7 +71,7 @@ from treelib import ROOT, connect, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.4.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.4.1")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
 LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
 MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
@@ -124,10 +124,10 @@ def same_middle(a, b):
 
 def middle_differs(written, names, surnames):
     """(the record's middle name, the tree's) when a name as written and the person's own names in the tree (names: (given,
-    surname) rows) both carry a middle name or initial and none of the tree's agrees with the record's (same_middle), else
-    None. A word that is a surname the person holds (a married woman's birth surname written inside her name, Lena Bell
-    Davidson) is no middle name, and an initial standing for one agrees (Helen B. Ahearn for a Brant born); a name with no
-    middle on either side disagrees with nothing."""
+    surname) rows) both carry a middle name or initial and none of the record's agrees with any of the tree's (same_middle:
+    John Georgi Young agrees with John Y), else None. A word that is a surname the person holds (a married woman's birth
+    surname written inside her name, Lena Bell Davidson) is no middle name, and an initial standing for one agrees (Helen
+    B. Ahearn for a Brant born); a name with no middle on either side disagrees with nothing."""
     keys = [key(s) for s in surnames if key(s)]
     own = lambda w: len(w) > 1 and any(same_surname(w, s) for s in keys)
     words = name_words(written)
@@ -136,10 +136,9 @@ def middle_differs(written, names, surnames):
     theirs = [[w for w in name_words(g)[1:] if not own(w)] for g, s in names]
     theirs = [m for m in theirs if m]
     if not theirs: return None
-    m = mine[0]
-    if len(m) == 1 and any(s.startswith(m) and not same_surname(s, words[-1]) for s in keys): return None   # the initial of another surname the person holds than the one the record writes
-    if any(same_middle(m, t[0]) for t in theirs): return None
-    return m, theirs[0][0]
+    if any(len(m) == 1 and s.startswith(m) and not same_surname(s, words[-1]) for m in mine for s in keys): return None   # the initial of another surname the person holds than the one the record writes
+    if any(same_middle(m, x) for m in mine for t in theirs for x in t): return None   # one of the record's middle names is one of the tree's: John Georgi Young for John Y
+    return mine[0], theirs[0][0]
 
 def split_persona_name(name_text):
     """(first given name key, [every later token's key]) with a leading prefix (Dr, Maj) dropped and quotes gone: a memorial writes a

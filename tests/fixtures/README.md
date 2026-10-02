@@ -9,6 +9,7 @@ as it is.
 |---|---|---|---|
 | `findagrave-memorial-78019650.html` | Find a Grave memorial 78019650, Abram C Brant (1880–1961), saved by the page-saves-itself method | `rule:findagrave-memorial` | user-contributed page, Find a Grave terms |
 | `findagrave-memorial-143847338.html` | Find a Grave memorial 143847338, John Davidson (1822–1877) of Franklin, Kentucky, a Union veteran, the page's veteran badge (a "V" and a hidden "Veteran") beside his name, as the archive holds it | `rule:findagrave-memorial` | user-contributed page, Find a Grave terms |
+| `findagrave-memorial-130509402.html` | Find a Grave memorial 130509402, John Georgi Young Davidson (1876–1946), whom the file writes John Y, with the parents, wife, siblings and children it lists, as the archive holds it | `rule:findagrave-memorial` | user-contributed page, Find a Grave terms |
 | `findagrave-search-davidson-robert-1915-2004.html` | Find a Grave memorial search, Robert Davidson 1915–2004, Ohio, saved by the owner | `rule:findagrave-search` | Find a Grave terms |
 | `familysearch-census-1940-KQX1-VT9.html` | FamilySearch record ark:/61903/1:1:KQX1-VT9, United States Census 1940, the Ahearn household of Caln Township, Chester County, Pennsylvania | `rule:familysearch-record` | public record; FamilySearch terms |
 | `familysearch-census-1900-M9HX-SWP.html` | FamilySearch record ark:/61903/1:1:M9HX-SWP, United States Census 1900, the Davidson household of Adairville, Logan County, Kentucky | `rule:familysearch-record` | public record; FamilySearch terms |

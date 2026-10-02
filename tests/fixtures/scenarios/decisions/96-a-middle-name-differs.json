@@ -1,6 +1,6 @@
 {
  "title": "a middle name that differs",
- "line": "an enlistment record naming Robert C where the tree holds Robert Edgar is a card, never a fit, the middle name named as the disagreement; the owner's accept makes the difference a conflict question; Helen B. for a woman born Brant, Fred M. for Frederick Micheal and Sarah for Sara are no disagreement",
+ "line": "an enlistment record naming Robert C where the tree holds Robert Edgar is a card, never a fit, the middle name named as the disagreement; the owner's accept makes the difference a conflict question; Helen B. for a woman born Brant, Fred M. for Frederick Micheal, Sarah for Sara and John Georgi Young for John Y are no disagreement",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -148,6 +148,25 @@
       }
      },
      "why": "Sarah and Sara are one name spelled two ways"
+    }
+   ]
+  },
+  {
+   "say": "his father's memorial names him John Georgi Young Davidson, two middle names where the file writes John Y",
+   "attach": {
+    "fixture": "findagrave-memorial-130509402.html"
+   },
+   "as": "mem",
+   "expect": [
+    {
+     "card": {
+      "record": "mem",
+      "person": "I332737204849",
+      "rationale": {
+       "lacks": "iddle name"
+      }
+     },
+     "why": "Young, the second of the record's middle names, is the tree's Y: no middle-name disagreement"
     }
    ]
   },

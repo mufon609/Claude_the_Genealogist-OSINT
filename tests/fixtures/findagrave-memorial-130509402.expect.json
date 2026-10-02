@@ -1,0 +1,41 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E01",
+  "locator": {
+   "kind": "memorial_id",
+   "value": "130509402"
+  }
+ },
+ "extractor": "findagrave-memorial",
+ "personas": {
+  "min": 8
+ },
+ "sequence": {
+  "1": {
+   "name": "John Georgi Young Davidson",
+   "role": "memorial",
+   "region": [
+    "130509402"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "24 Apr 1876"
+    },
+    {
+     "type": "Death",
+     "date": "10 Jun 1946"
+    }
+   ],
+   "why": "the memorial's subject under two middle names, the second the Young the file writes as Y"
+  }
+ },
+ "some": [
+  {
+   "name": "Lena Howard A. Bell Davidson",
+   "role": "spouse",
+   "why": "the wife the memorial lists, with her years"
+  }
+ ]
+}
