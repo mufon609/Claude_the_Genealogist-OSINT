@@ -1,0 +1,46 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,7602::47389682"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 11,
+ "sequence": {
+  "1": {
+   "name": "Charlotte A Lukens",
+   "role": "daughter",
+   "facts": [
+    {
+     "type": "Residence",
+     "date": "1900",
+     "place": "Norriton Township, Montgomery, Pennsylvania",
+     "alternate": false
+    },
+    {
+     "type": "Residence",
+     "date": "1900",
+     "place": "Norristown, Montgomery, Pennsylvania",
+     "alternate": true
+    }
+   ],
+   "why": "the Event Place shows FamilySearch's own place, Norriton Township, and keeps Norristown collapsed beneath it, the place the original's Norristown borough Ward 6 names: both are read, the collapsed one a Residence of its own on the census date, marked alternate"
+  },
+  "2": {
+   "name": "Milton Lukens",
+   "role": "father",
+   "facts": [
+    {
+     "type": "Residence",
+     "date": "1900",
+     "place": "Norristown, Montgomery, Pennsylvania",
+     "alternate": true
+    }
+   ],
+   "why": "each household member's own details table keeps the same collapsed place, read the same way"
+  }
+ }
+}

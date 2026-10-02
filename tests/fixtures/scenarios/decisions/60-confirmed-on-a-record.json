@@ -1,6 +1,6 @@
 {
  "title": "a person confirmed on a primary record",
- "line": "the owner accepts one primary record and the rule follows: the gravesite locator's one card among namesakes is taken though the burial town differs from a bare claim, a second census takes the son on name, birth year and the claimed parent whose persona fits, the parents follow; a record attached on the owner's word with no step citing it is a fetch step done with a found run that a regeneration keeps and a re-read supersedes; a record's undated death asserts the file's one dated event, never a second; a rule decision's re-run is logged under the session that acted; a step nothing generates is dropped and named in the audit row; the rule judges a record by the collection its current reading gives, never the archive row's stale banner",
+ "line": "the owner accepts one primary record and the rule follows: the gravesite locator's one card among namesakes is taken though the burial town differs from a bare claim, a second census takes the son on name, birth year and the claimed parent whose persona fits, the parents follow; a record attached on the owner's word with no step citing it is a fetch step done with a found run that a regeneration keeps and a re-read supersedes; a record's undated burial asserts the file's one burial event, never a second, and a record's death the file's one event of that date, the date its Event Date keeps beneath the time of day it shows standing as the record's statement of the date; a rule decision's re-run is logged under the session that acted; a step nothing generates is dropped and named in the audit row; the rule judges a record by the collection its current reading gives, never the archive row's stale banner",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -393,7 +393,7 @@
    ]
   },
   {
-   "say": "the owner accepts him on it: the record's undated death asserts the one Death event he already has, beside the file's dated claim",
+   "say": "the owner accepts him on it: the record's death, its date kept beneath the time of day its Event Date shows, asserts the one Death event he already has, the file's claim of the same day",
    "decide": {
     "card": {
      "record": "ohio",
@@ -415,7 +415,7 @@
       "events": 1,
       "basis": "accepted"
      },
-     "why": "he has one Death event already, the file's own claim; the record's own Death, with no date, asserts that same event rather than guessing a second one, and the key fact's basis is the accepted one"
+     "why": "he has one Death event already, the file's own claim; the record's own Death of the same day asserts that same event rather than a second one, and the key fact's basis is the accepted one"
     },
     {
      "trusted": {
@@ -432,10 +432,9 @@
        "person": "I332737100409",
        "type": "Death"
       },
-      "stating": "date",
-      "is": false
+      "stating": "date"
      },
-     "why": "but the index states no date: the date on the event is the file's, so the rule never counts a death date agreeing with it as a point"
+     "why": "the index states the date, kept collapsed beneath the time of day the field shows: a death date agreeing with it is ground"
     },
     {
      "trusted": {
@@ -652,6 +651,18 @@
       }
      },
      "why": "the matcher's re-run after a rule decision is logged under the session that acted, not the owner alone"
+    },
+    {
+     "event": {
+      "person": "I332737099805",
+      "type": "Burial",
+      "events": 1,
+      "strings": {
+       "BG WILLIAM C DOYLE VET'S MEM CEM, Wrightstown, New Jersey": "accepted",
+       "Arneytown, Burlington County, New Jersey, United States of America": "undecided"
+      }
+     },
+     "why": "the locator's burial carries no date: it asserts his one Burial event, the file's own, rather than guessing a second one, its cemetery accepted beside the file's claimed town"
     }
    ]
   },

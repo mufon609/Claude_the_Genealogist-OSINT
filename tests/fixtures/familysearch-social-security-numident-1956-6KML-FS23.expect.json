@@ -12,7 +12,30 @@
  "sequence": {
   "1": {
    "name": "Raymond Earl Davidson",
-   "role": "subject"
+   "role": "subject",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "12 October 1939",
+     "alternate": false
+    },
+    {
+     "type": "Death",
+     "date": "27 January 2007",
+     "alternate": false
+    }
+   ],
+   "no_facts": [
+    {
+     "type": "Birth",
+     "alternate": true
+    },
+    {
+     "type": "Death",
+     "alternate": true
+    }
+   ],
+   "why": "the birth and death dates keep the same dates collapsed beneath them, written short (12 Oct 1939, 27 Jan 2007): a collapsed value that says what the shown one says is no fact of its own"
   },
   "2": {
    "name": "Robert Davidson",

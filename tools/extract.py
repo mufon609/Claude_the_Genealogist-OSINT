@@ -7,7 +7,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.3.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.1.0; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.2.0; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -78,7 +78,14 @@ Relationship to Head of Household, Father's Birthplace, Mother's Birthplace,
 Event Type, Event Date, Event Place, Event Place (Original), and the sheet and
 line). Event Date and Event Place become one fact of the event's type (a Census
 event is a Residence); Event Place (Original) and the parents' birthplaces stay
-as Unknown facts under their labels; identifiers stay in structured_json. The
+as Unknown facts under their labels; identifiers stay in structured_json. A
+field's value is read as shown, and each value the field keeps collapsed beneath
+it (a display:none panel, FamilySearch's edit history: Norristown beneath
+Norriton Township, Fred M. Ahearn, Jr. beneath Fred M Ahearn) is read too, as a
+fact of its own whose region_json names its labels under "alternate", unless it
+states the same date or the same words as the shown value; beneath an Event Date
+that shows a time of day (09:50 PM), the date the field keeps is the event's own
+date and the time an Unknown fact under "<Event> Time". The
 household tables ("Parents and Siblings", "Extended Family") give one persona
 per member: the name, the page's own role word (Father, Sister, Maternal
 Grandmother), sex, age and birthplace from the row, the member's own details
@@ -116,7 +123,7 @@ from treelib import ROOT, connect, dumps, now, object_path, parse_gedcom_date, s
 from conclude import assert_facts, link_family
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.3.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.1.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.2.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -258,19 +265,41 @@ def visible(node):
     return {"tag": node["tag"], "attrs": node["attrs"], "children": [visible(c) if isinstance(c, dict) else c for c in node["children"]
             if not (isinstance(c, dict) and re.search(r"display:\s*none", c["attrs"].get("style") or ""))]}
 
-def label_rows(table):
-    """[[label, value]] from a table whose rows pair a th with a td, the value as shown."""
-    return [[text_of(r[0]), text_of(visible(r[1])).replace("\n", " ")] for r in rows_of(table) if len(r) >= 2 and r[0]["tag"] == "th" and text_of(r[0])]
+def collapsed(node):
+    """The values a field keeps in its collapsed part, the display:none panel beneath the value shown (FamilySearch's edit
+    history: each other value the field holds), in page order: the whole text of each outermost element carrying text of its
+    own, one value each."""
+    out, taken = [], set()
+    for n in walk(node):
+        if n is node or id(n) in taken or not re.search(r"display:\s*none", n["attrs"].get("style") or ""): continue
+        for x in walk(n):
+            if id(x) in taken: continue
+            if any(isinstance(s, str) and s.strip() for s in x["children"]):
+                taken.update(id(y) for y in walk(x))
+                if text_of(x): out.append(text_of(x).replace("\n", " "))
+        taken.update(id(y) for y in walk(n))
+    return out
+
+def label_rows(table, alternates=None):
+    """[[label, value]] from a table whose rows pair a th with a td, the value as shown; each value the field keeps collapsed
+    beneath it is appended to alternates as [label, value] when a list is given."""
+    out = []
+    for r in rows_of(table):
+        if len(r) < 2 or r[0]["tag"] != "th" or not text_of(r[0]): continue
+        out.append([text_of(r[0]), text_of(visible(r[1])).replace("\n", " ")])
+        if alternates is not None: alternates += [[out[-1][0], v] for v in collapsed(r[1])]
+    return out
 
 def parse_record(text):
     """A FamilySearch record page: {"kind": "familysearch", "title", "name", "collection", "ark", "citation", "document": [[label, value]],
-    "fields": [[label, value]], "members": [{"section", "name", "role", "sex", "age", "birthplace", "url", "fields"}]}."""
+    "fields": [[label, value]], "alternates": [[label, value]], "members": [{"section", "name", "role", "sex", "age", "birthplace", "url",
+    "fields", "alternates"}]}: a field's value as shown in fields, every value it keeps collapsed beneath that in alternates."""
     t = Tree(); t.feed(text); root = t.root
     main = next((n for n in walk(root) if n["tag"] == "main"), root)
     head = lambda tag: next((text_of(n) for n in walk(main) if n["tag"] == tag), None)
     collection = next((text_of(n) for n in walk(main) if n["tag"] == "h2" and not text_of(n).startswith("Mentioned in the Record of")), None)   # a citation fetched on a relative names the record's own subject in a leading h2 of its own; the collection is the h2 after it
     out = {"kind": "familysearch", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "name": head("h1"), "collection": collection,
-           "ark": None, "citation": None, "document": [], "fields": [], "members": []}
+           "ark": None, "citation": None, "document": [], "fields": [], "alternates": [], "members": []}
     m = next((re.search(r"ark:/61903/1:1:[A-Z0-9-]+", text_of(n)) for n in walk(root) if n["tag"] == "h3" and "ark:/61903/1:1:" in text_of(n)), None)
     if m: out["ark"] = m.group(0)
     cite = next((n for n in walk(main) if n["attrs"].get("data-testid") == "documentInformationCitation"), None)
@@ -282,7 +311,7 @@ def parse_record(text):
         seen.add(id(n)); rows = rows_of(n)
         if section.startswith("Document Information"): out["document"] += label_rows(n)
         elif not out["fields"] and (section.startswith("Cite This Record") or not section) and label_rows(n) and not (rows and any(len(r) == 5 for r in rows)):
-            out["fields"] = label_rows(n)                                    # the record's own fields: the first label/value table, before any section heading
+            out["fields"] = label_rows(n, out["alternates"])                 # the record's own fields: the first label/value table, before any section heading
         elif rows and any(len(r) >= 5 and r[0]["tag"] == "th" for r in rows):   # household or relatives: a member row, then a row holding its details table
             member = None
             for r in rows:
@@ -295,11 +324,11 @@ def parse_record(text):
                         role, cells = text_of(cells[0]).strip(), cells[1:]       # a relationship column of its own, after the name: sex, age and birthplace are the three cells after it, whatever it says, blank included
                     cell = lambda i: text_of(cells[i]) if i < len(cells) else ""
                     member = {"section": section, "name": name, "role": role, "sex": cell(0), "age": cell(1), "birthplace": cell(2),
-                              "url": a["attrs"].get("href") if a else None, "fields": []}
+                              "url": a["attrs"].get("href") if a else None, "fields": [], "alternates": []}
                     out["members"].append(member)
                 elif len(r) == 1 and member is not None:
                     for tbl in (x for x in walk(r[0]) if x["tag"] == "table"):
-                        seen.add(id(tbl)); member["fields"] += label_rows(tbl)
+                        seen.add(id(tbl)); member["fields"] += label_rows(tbl, member["alternates"])
     return out
 
 SEARCH_PARAMS = ("firstname", "lastname", "birthyear", "birthyearfilter", "deathyear", "deathyearfilter", "linkedToName", "includeMaidenName", "location", "orderby", "page")
@@ -526,11 +555,13 @@ class Writer:
         self.cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)",
                         (pid, self.eid, self.sha, name, sex, role, seq, dumps(region)))
         self.n["personas"] += 1; return pid
-    def fact(self, persona_id, ftype, value=None, date=None, place=None, labels=()):
+    def fact(self, persona_id, ftype, value=None, date=None, place=None, labels=(), alternate=None):
+        """One persona fact, its region the field labels it was read from; alternate names those of them whose value the page keeps
+        collapsed beneath the one it shows."""
         d = parse_gedcom_date(date) if date else {"date_start": None, "date_end": None, "date_qualifier": None, "calendar": "gregorian"}
         self.cx.execute("""INSERT INTO persona_fact (id,persona_id,fact_type,value_text,date_text,date_start,date_end,date_qualifier,calendar,place_string_id,region_json)
                            VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), persona_id, ftype, value, date, d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"],
-                                                              self.place_string(place), dumps({"labels": list(labels)})))
+                                                              self.place_string(place), dumps({"labels": list(labels), **({"alternate": list(alternate)} if alternate else {})})))
         self.n["facts"] += 1
     def relation(self, a, b, kind, as_written, label):
         self.cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
@@ -554,54 +585,82 @@ def household_row(parsed):
     st = STATE_CENSUS_ROW.search(coll)
     return f"{st.group(1).title()} state census:{ym.group(1)}" if st else f"census household:{ym.group(1)}"
 
-def field_facts(fields, default_etype=None):
+def same_statement(a, b):
+    """Whether two values of one field say the same thing: the same date however it is written (12 Oct 1939, 12 October 1939), or
+    the same words apart from case and punctuation."""
+    da, db = parse_gedcom_date(a), parse_gedcom_date(b)
+    if da["date_start"] and db["date_start"]: return (da["date_start"], da["date_end"], da["date_qualifier"]) == (db["date_start"], db["date_end"], db["date_qualifier"])
+    words = lambda s: re.sub(r"\W+", " ", (s or "").lower()).split()
+    return words(a) == words(b)
+
+def field_facts(fields, default_etype=None, alternates=()):
     """Group label/value rows into facts: {fact_type: {"date": (value, label), "place": (value, label), "values": [(value, label)]}}, and the
-    relatives named in fields as [(label word, name)]. A date and a place of one type are one fact; a second date or place of the same
-    type gets its own slot keyed by label. "Event Date" and "Event Place" take the type named by "Event Type" (Census is a Residence)."""
-    by_type, named = {}, {}
+    relatives named in fields as [(label word, name, [the name's collapsed values])]. A date and a place of one type are one fact; a second
+    date or place of the same type gets its own slot keyed by label. "Event Date" and "Event Place" take the type named by "Event Type"
+    (Census is a Residence). Each value a field keeps collapsed beneath the one shown (alternates, [[label, value]]) is read the same way
+    into a slot of its own, marked alternate and pointing at the shown value's slot ("of"), unless it says the same thing as the shown
+    value; beneath an Event Date that shows a time of day, the first collapsed value that is a date is the event's own date."""
+    by_type, named, named_alt = {}, {}, {}
     etype = next((EVENT_TYPES.get(v.lower().strip()) for l, v in fields if l.lower().strip() == "event type"), None) or default_etype   # a page with no Event Type row takes its collection's kind
     has_place = any(l.lower().strip() == "event place" and (v or "").strip() for l, v in fields)
     has_event = bool(etype) and any(l.lower().strip() in ("event date", "event place", "event place (original)") and (v or "").strip() for l, v in fields)
-    for label, value in fields:
-        if not value or SKIP.search(label): continue
+    new = lambda: {"date": None, "place": None, "values": []}
+    def put(label, value, alt=None):
+        if not value or SKIP.search(label): return
+        slot_of = lambda k: by_type.setdefault(k, new()) if alt is None else by_type.setdefault(f"{k}#alt{alt}", {**new(), "alternate": True, "of": k})
         key = label.lower().strip()
         if key == "event place (original)" and not has_place: key = "event place"      # the place as written, when the page gives no standardized one
         is_event = etype and key in ("event date", "event place")
         if is_event and key == "event date" and TIME_ONLY.fullmatch(value.strip()):    # a time of day is a fact of its own kind, never a date
-            by_type.setdefault("Unknown", {"date": None, "place": None, "values": []})["values"].append((value, f"{etype} Time"))
-            continue
+            slot_of("Unknown")["values"].append((value, f"{etype} Time")); return
         if is_event: label = f"{etype} {key.split()[1].title()}"; key = label.lower()
         rel = re.fullmatch(r"(father|mother|spouse|husband|wife|informant|child)(?:'s)?(?: name)?", key)
-        if rel: named[rel.group(1)] = value; continue
+        if rel:
+            if alt is None: named[rel.group(1)] = value
+            else: named_alt.setdefault(rel.group(1), []).append(value)
+            return
         if key == "birth year (estimated)":                              # the index's own estimate from the age: a calculated birth year
-            slot = by_type.setdefault("Birth", {"date": None, "place": None, "values": []})
+            slot = slot_of("Birth")
             if slot["date"] is None and re.search(r"\d{4}", value): slot["date"] = (f"CAL {re.search(r'\d{4}', value).group(0)}", label)   # the first year of an estimate; a range is one year in the index's practice
-            continue
+            return
         ftype, part = fact_for(label)
         if ftype is None: ftype, part = "Unknown", "value"
         m = re.fullmatch(r"(home|residence) in (\d{4})", key)        # "Home in 1900": the label carries the year, and the stay is its own fact beside the record's own residence
         own = has_event and ftype == etype and not is_event and part in ("date", "place")   # a residence the record dates beside its own event (Residence Date 1935 on a 1940 census): its own stay
-        slot = by_type.setdefault(ftype + "#" + label if m else ftype + "#own" if own else ftype, {"date": None, "place": None, "values": []})
+        slot = slot_of(ftype + "#" + label if m else ftype + "#own" if own else ftype)
         if m and slot["date"] is None: slot["date"] = (m.group(2), label)
         if part == "place" and re.fullmatch(r"\s*same (house|place)\s*", value, re.I):   # the census's shorthand: the same dwelling as on the census date, not a place name
-            slot["same"] = label; continue
+            slot["same"] = label; return
         if part == "value": slot["values"].append((value, label))
         elif slot[part] is None: slot[part] = (value, label)
-        else: by_type.setdefault(ftype + "#" + label, {"date": None, "place": None, "values": []})[part] = (value, label)
-    return by_type, list(named.items())
+        else: slot_of(ftype + "#" + label)[part] = (value, label)
+    for label, value in fields: put(label, value)
+    shown = {}
+    for label, value in fields: shown.setdefault(label.lower().strip(), value or "")
+    for n, (label, value) in enumerate(alternates, 1):
+        key = label.lower().strip(); was = shown.get(key, "")
+        if etype and key == "event date" and TIME_ONLY.fullmatch(was.strip()) and parse_gedcom_date(value)["date_start"] and not (by_type.get(etype) or {}).get("date"):
+            by_type.setdefault(etype, new())["date"] = (value, f"{etype} Date"); continue   # the date the field keeps beneath the time of day it shows
+        if not same_statement(value, was): put(label, value, n)
+    return by_type, [(word, value, named_alt.get(word, [])) for word, value in named.items()]
 
 def write_facts(w, pid, by_type):
     """One fact per slot; a Residence dated by its label with no place of its own ("Home in 1935: Same House") takes the record's
-    own residence place, since that is what the shorthand says."""
-    home = next((s["place"] for k, s in by_type.items() if k.split("#")[0] == "Residence" and s["place"] and not s.get("same")), None)
+    own residence place, since that is what the shorthand says. A collapsed value's slot is a fact of its own, its region naming the
+    labels it holds as alternate, with the shown slot's date or place beside it, so it states the same event in other words."""
+    home = next((s["place"] for k, s in by_type.items() if k.split("#")[0] == "Residence" and s["place"] and not s.get("same") and not s.get("alternate")), None)
     for ftype, slot in by_type.items():
         base = ftype.split("#")[0]
+        alternate = [x[1] for x in (slot["date"], slot["place"]) if x] if slot.get("alternate") else None
+        if slot.get("alternate"):
+            of = by_type.get(slot["of"]) or {}
+            slot = {**slot, "date": slot["date"] or of.get("date"), "place": slot["place"] or of.get("place")}
         if slot.get("same") and home and not slot["place"]: slot["place"] = (home[0], slot["same"])
         if slot["date"] or slot["place"]:
             w.fact(pid, base, None, slot["date"][0] if slot["date"] else None, slot["place"][0] if slot["place"] else None,
-                   [x[1] for x in (slot["date"], slot["place"]) if x])
+                   [x[1] for x in (slot["date"], slot["place"]) if x], alternate=alternate)
         for value, label in slot["values"]:
-            w.fact(pid, base, value if base != "Unknown" else f"{label}: {value}", labels=[label])
+            w.fact(pid, base, value if base != "Unknown" else f"{label}: {value}", labels=[label], alternate=[label] if slot.get("alternate") else None)
 
 def write_personas(w, parsed):
     """The subject from the field table, relatives named in fields, household members; facts and relations for each."""
@@ -615,7 +674,7 @@ def write_personas(w, parsed):
     write_facts(w, subject, by_type)
     personas = {name.lower(): subject}
     seq = 2
-    for word, value in named:
+    for word, value, _ in named:                                     # an Ancestry index carries no collapsed values
         role_word, kind = RELATIVE_LABELS[word]
         pid = w.persona(value, None, role_word, seq, {"label": word}); seq += 1
         w.fact(pid, "Name", value, labels=[word]); w.relation(pid, subject, kind, word, word)
@@ -798,7 +857,7 @@ def write_record(w, parsed):
     fields = parsed["fields"]; f = dict(fields)
     kind_word = (parsed.get("collection") or "").split("•")[0].strip().lower()                     # "Census • United States, Census, 1950"
     is_census = kind_word == "census"
-    by_type, named = field_facts(fields, EVENT_TYPES.get(kind_word))
+    by_type, named = field_facts(fields, EVENT_TYPES.get(kind_word), parsed.get("alternates") or [])
     calc_census_birth(by_type, is_census)
     name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
     role = (f.get("Relationship to Head of Household") or "subject").lower()
@@ -811,7 +870,7 @@ def write_record(w, parsed):
     members_written = []
     for seq, m in enumerate([x for x in parsed["members"] if len((x["name"] or "").split()) >= 2 and (x["name"] or "").strip().upper() != "UNKNOWN"], 2):   # a surname alone or UNKNOWN names nobody
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
-        mb, _ = field_facts(mf)
+        mb, _ = field_facts(mf, None, m.get("alternates") or [])
         calc_census_birth(mb, is_census)
         age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
         if year and age and not (mb.get("Birth") or {}).get("date"):     # a household member's birth year, calculated from the census date
@@ -821,13 +880,16 @@ def write_record(w, parsed):
         w.relation(pid, subject, relation_kind(m["role"], m["section"], parsed.get("collection")), m["role"], m["section"])
         members_written.append((pid, m["role"].lower(), m["section"]))
     seq0 = 2 + len(members_written)
-    for label, who in named:                                         # a relative the record names in a field: Father's Name, Mother's Name, Spouse
+    for label, who, others in named:                                 # a relative the record names in a field: Father's Name, Mother's Name, Spouse
         if len(who.split()) < 2: continue                            # a surname alone (a death index's "Father's Name: Doe") names nobody
         table_row = next((pid for pid, role, _ in members_written if label in ("father", "mother") and role == label), None)
         if table_row:                                                # the same parent, already written from the relatives table: the field's own words join that persona, not a second one
-            w.fact(table_row, "Name", who, labels=[label]); continue
+            w.fact(table_row, "Name", who, labels=[label])
+            for other in others: w.fact(table_row, "Name", other, labels=[label], alternate=[label])
+            continue
         pid = w.persona(who, None, label, seq0, {"label": label}); seq0 += 1
         w.fact(pid, "Name", who, labels=[label])
+        for other in others: w.fact(pid, "Name", other, labels=[label], alternate=[label])   # the name the field keeps collapsed beneath the one it shows
         w.relation(pid, subject, {"father": "parent", "mother": "parent", "spouse": "spouse", "husband": "spouse", "wife": "spouse", "child": "child"}.get(label, "other"), label.title(), label)
     parents = [(pid, role, sec) for pid, role, sec in members_written if role in ("father", "mother")]
     if len(parents) == 2 and parents[0][1] != parents[1][1]:      # a census household lists the subject's father and mother together: the household's couple

@@ -14,20 +14,22 @@ def read(cx, eid):
     """What an extraction wrote: personas in sequence, each with its facts and the relations from it."""
     out = []
     for pid, seq, name, role, sex, region in cx.execute("SELECT id, sequence, name_text, role_in_record, sex, region_json FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
-        facts = [(t, v, d, p) for t, v, d, p in cx.execute("""SELECT f.fact_type, f.value_text, f.date_text, ps.raw FROM persona_fact f LEFT JOIN place_string ps ON ps.id=f.place_string_id
-                                                              WHERE f.persona_id=? ORDER BY f.id""", (pid,))]
+        facts = [(t, v, d, p, json.loads(r or "{}")) for t, v, d, p, r in cx.execute("""SELECT f.fact_type, f.value_text, f.date_text, ps.raw, f.region_json FROM persona_fact f
+                                                                                   LEFT JOIN place_string ps ON ps.id=f.place_string_id WHERE f.persona_id=? ORDER BY f.id""", (pid,))]
         rels = [(k, v, cx.execute("SELECT sequence FROM persona WHERE id=?", (o,)).fetchone()[0]) for k, v, o in cx.execute("SELECT kind, value_text, related_persona_id FROM persona_relation WHERE persona_id=?", (pid,))]
         out.append({"seq": seq, "name": name, "role": role or "", "sex": sex or "", "region": region or "", "facts": facts, "relations": rels})
     return out
 
 def fact_matches(f, want):
-    """A fact (type, value, date, place) against a fact pattern: type, value, value_starts, date, place (a prefix)."""
-    t, v, d, place = f
+    """A fact (type, value, date, place, region) against a fact pattern: type, value, value_starts, date, place (a prefix), alternate (true:
+    the fact's region marks a value the page keeps collapsed beneath the one it shows; false: it does not)."""
+    t, v, d, place, region = f
     if t != want["type"]: return False
     if "value" in want and (v or "") != want["value"]: return False
     if "value_starts" in want and not (v or "").startswith(want["value_starts"]): return False
     if "date" in want and (d or "") != want["date"]: return False
     if "place" in want and not (place or "").startswith(want["place"]): return False
+    if "alternate" in want and bool(region.get("alternate")) != want["alternate"]: return False
     return True
 
 def has_fact(p, want): return any(fact_matches(f, want) for f in p["facts"])
@@ -84,7 +86,7 @@ def compare(ps, parsed, want, fail):
         fail(all(counts.get(k, 0) == v for k, v in expected.items()) and (not only or set(counts) <= set(expected)),
              f"relations toward persona {seq} by kind expected {expected}{' and no other kind' if only else ''}; got {counts}")
     none = want.get("none") or {}
-    for place in none.get("place", []): fail(not any((pl or "") == place for p in ps for _, _, _, pl in p["facts"]), f"no fact carries {place!r} as a place")
+    for place in none.get("place", []): fail(not any((f[3] or "") == place for p in ps for f in p["facts"]), f"no fact carries {place!r} as a place")
     for end in none.get("name_ends", []): fail(not any(p["name"].endswith(end) for p in ps), f"no name ends with {end!r}")
     if "parsed" in want: fail(shape(parsed, want["parsed"]), f"the parsed page is not as expected{why(want['parsed'])}: {json.dumps({k: parsed.get(k) for k in want['parsed'] if k != 'why'}, ensure_ascii=False)[:400]}")
 
@@ -127,7 +129,7 @@ def check(keep, show):
             print(f"== {name}: {ext[0]}@{ext[1]} {ext[2]} {n}")
             for p in ps:
                 print(f"  {brief(p)}  {p['region'][:80]}")
-                for t, v, dt, pl in p["facts"]: print(f"       {t:16} {' | '.join(x for x in (v, dt, pl) if x)}")
+                for t, v, dt, pl, rg in p["facts"]: print(f"       {t:16} {' | '.join(x for x in (v, dt, pl) if x)}{'  (alternate)' if rg.get('alternate') else ''}")
                 for k, v, o in p["relations"]: print(f"       -> {k} ({v}) of #{o}")
         if ext[2] == "complete" and ext[0] == want["extractor"]:
             try: compare(ps, json.loads(ext[3] or "{}"), want, fails)

@@ -25,14 +25,16 @@
     },
     {
      "type": "Death",
-     "place": "United States"
+     "date": "5 Apr 2004",
+     "place": "United States",
+     "alternate": false
     },
     {
      "type": "Birth",
      "date": "19 Feb 1915"
     }
    ],
-   "why": "the time of death the page mislabels Event Date is never read as the Death date; it is written as a fact of its own kind under its own label; the Death event still carries the record's own place; the birth as written, unaffected"
+   "why": "the page's Event Date shows his time of death (09:50 PM) and keeps the date, 5 Apr 2004, collapsed beneath it: the time is a fact of its own kind under its own label, never a date, and the date is the Death's own, with the record's place; the birth as written, unaffected"
   }
  }
 }

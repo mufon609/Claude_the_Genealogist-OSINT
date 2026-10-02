@@ -19,9 +19,19 @@
      "type": "Birth",
      "date": "CAL 1933",
      "place": "Pennsylvania"
+    },
+    {
+     "type": "Name",
+     "value": "Fred M Ahearn",
+     "alternate": false
+    },
+    {
+     "type": "Name",
+     "value": "Fred M. Ahearn, Jr.",
+     "alternate": true
     }
    ],
-   "why": "the record's principal is the son, found through his own search; his birth calculated from age 17 on the 1950 record"
+   "why": "the record's principal is the son, found through his own search; his birth calculated from age 17 on the 1950 record; his Name field shows Fred M Ahearn and keeps Fred M. Ahearn, Jr. collapsed beneath it, a name of its own marked alternate"
   },
   "2": {
    "name": "Fred M Ahern",
@@ -32,6 +42,11 @@
      "type": "Birth",
      "date": "CAL 1908",
      "place": "Massachusetts"
+    },
+    {
+     "type": "Name",
+     "value": "Fred M. Ahearn",
+     "alternate": true
     }
    ],
    "relations": [
@@ -46,7 +61,7 @@
      "value": "Parents"
     }
    ],
-   "why": "the household's father indexed Ahern, the surname's other spelling on the one page; Father stated toward the principal, the couple relation between the household's parents"
+   "why": "the household's father indexed Ahern, the surname's other spelling on the one page, his Name field keeping Fred M. Ahearn collapsed beneath it; Father toward the principal, the couple relation between the household's parents"
   },
   "3": {
    "name": "Helen B Ahearn",
