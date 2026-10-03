@@ -690,18 +690,21 @@ def e_event(w, x, want):
     return has(got, pattern), got
 
 def e_family_event(w, x, want):
-    """The events of a type on the family two people are partners in (`a`, `b`, `type`): how many, and with `record` the
-    statements that record makes on them, by status."""
+    """The events of a type on the family two people are partners in (`a`, `b`, `type`): how many, each one's date as
+    written (`dates`, in date order), and with `record` the statements that record makes on them, by status, and how many
+    it makes on each (`per_event`, in the same order; every statement on each without `record`)."""
     a, b = w.person(x["a"]), w.person(x["b"])
     fid = w.cx.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member o ON o.family_id=fm.family_id AND o.person_id=? AND o.role='partner'
                           WHERE fm.person_id=? AND fm.role='partner'""", (b, a)).fetchone()
     if not fid: return False, "no family joins them"
-    evs = [r[0] for r in w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.family_id=? AND e.event_type=?", (fid[0], x["type"]))]
+    rows = w.cx.execute("SELECT e.id, e.date_text FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.family_id=? AND e.event_type=? ORDER BY e.date_start, e.id", (fid[0], x["type"])).fetchall()
+    evs = [r[0] for r in rows]
     st = {}
     if x.get("record") and evs:
         for s, in w.cx.execute(f"SELECT status FROM assertion WHERE subject_kind='event' AND subject_id IN ({','.join('?' * len(evs))}) AND artifact_sha256=?", (*evs, w.sha(x["record"]))):
             st[s] = st.get(s, 0) + 1
-    got = {"events": len(evs), "statements": st}
+    on = lambda e: w.cx.execute("SELECT COUNT(*) FROM assertion WHERE subject_kind='event' AND subject_id=?" + (" AND artifact_sha256=?" if x.get("record") else ""), (e, w.sha(x["record"])) if x.get("record") else (e,)).fetchone()[0]
+    got = {"events": len(evs), "statements": st, "dates": [r[1] for r in rows], "per_event": [on(e) for e in evs]}
     return has(got, w.value({k: v for k, v in x.items() if k in got})), got
 
 def e_disagreements(w, x, want):
@@ -944,6 +947,14 @@ def e_no_repeats(w, x, want):
     n = w.cx.execute("SELECT count(*) FROM (SELECT 1 FROM assertion WHERE persona_fact_id IS NOT NULL GROUP BY subject_kind, subject_id, persona_fact_id, artifact_sha256, coalesce(notes,'') HAVING count(*)>1)").fetchone()[0]
     return n == 0, n
 
+def e_one_event(w, x, want):
+    """One statement, one event: no record fact stated on two events of its type that a person or a family holds (an event no
+    one holds, left by a fold or a move, aside)."""
+    n = w.cx.execute("""SELECT count(*) FROM (SELECT a.persona_fact_id FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN event e ON e.id=a.subject_id AND e.event_type=pf.fact_type
+                        WHERE a.subject_kind='event' AND EXISTS (SELECT 1 FROM event_participant ep WHERE ep.event_id=a.subject_id)
+                        GROUP BY a.persona_fact_id HAVING count(DISTINCT a.subject_id)>1)""").fetchone()[0]
+    return n == 0, n
+
 def e_whole(w, x, want):
     v = whole(w.cx); return v is None, v
 
@@ -992,7 +1003,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "checklist_row": e_checklist_row, "baseline": e_baseline, "waiting": e_waiting, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
-           "no_repeats": e_no_repeats, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
+           "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject}
 
 def load(folder):

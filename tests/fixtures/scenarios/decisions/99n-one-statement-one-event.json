@@ -1,0 +1,164 @@
+{
+ "title": "one statement, one event",
+ "line": "a record's fact asserts one event of its type: on a person with one Birth it lands there whatever its date, the difference a conflict question and never a second Birth; between two events equally close it asserts neither and the choice is a question for the owner, answered with tools/conclude.py place",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 census, which dates the head's birth Apr 1875, accepted by the owner for John Y Davidson, whom the file has born 24 April 1876",
+   "attach": {
+    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+   },
+   "as": "c00"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c00",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Birth",
+      "events": 1,
+      "canonical_date": "24 April 1876"
+     },
+     "why": "a life holds one birth: the census's Apr 1875 lands on his one Birth, which keeps its own date, and makes no second"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "24 April 1876 against Apr 1875"
+     },
+     "why": "the year apart is the conflict question the catalog raises on the one event"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "more than one birth event",
+      "exists": false
+     }
+    }
+   ]
+  },
+  {
+   "say": "a second Birth the harness plants beside the file's, the file's year alone, the shape an older import left of a file's repeated fact (the import now folds such a pair, so only a planted event stands for it)",
+   "event": {
+    "person": "I332737204849",
+    "type": "Birth",
+    "date": "1876",
+    "date_start": "1876"
+   },
+   "as": "second_birth",
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Birth",
+      "events": 2
+     }
+    }
+   ]
+  },
+  {
+   "say": "his Kentucky death index entry, which calculates his birth from his age: CAL 1875, a year from 1876 and from 24 April 1876 alike",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Birth",
+      "events": 2
+     },
+     "why": "no third Birth made of the calculated year"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "dates it CAL 1875, which fits 2 of your 2 birth events equally"
+     },
+     "why": "two events equally close: the record's birth asserts neither, and the choice is the owner's, named as a question with the events to choose from"
+    },
+    {
+     "one_event": true
+    }
+   ]
+  },
+  {
+   "say": "the owner places the index's birth on the file's own Birth, 24 April 1876",
+   "place": {
+    "record": "kyd",
+    "person": "I332737204849",
+    "fact_type": "Birth",
+    "event": {
+     "person": "I332737204849",
+     "type": "Birth",
+     "index": 1
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "status": "accepted"
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "fits 2 of your 2 birth events equally",
+      "exists": false
+     },
+     "why": "placed, the question is answered"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "more than one birth event"
+     },
+     "why": "the planted Birth still stands beside it"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

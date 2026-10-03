@@ -179,7 +179,7 @@ a regeneration to be checked against a prior state, such as a legacy truncated k
 Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
 `kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `note`, `rationale`), `rule` (`taken`, `why`),
 `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
-`surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, and with `record` its `statements` on them by status), `disagreements`, `question`,
+`surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, each one's date as written in date order, `dates`, how many statements each carries, `per_event`, in the same order, and with `record` its `statements` on them by status and `per_event` that record's alone), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
 `living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row,
@@ -189,7 +189,8 @@ record's statements on a person's events of an `event_type`, or on a family `lin
 `statement` (which reading a record's statements on a person's events of an `event_type` are read through,
 `catalog.statement_of`: `current` or `earlier` each), `conflict_rule` (the rule's test on a conflict, `conclude.classes_decide`, on a person's event of a `type` and its `axis`,
 date or place: `taken` and the reason, `why`), `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
-trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `whole`, `file`,
+trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `one_event` (no record fact
+stated on two events of its type that a person or a family holds), `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
 an expectation is printed with its failure.
 

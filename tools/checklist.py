@@ -23,11 +23,9 @@ Read-only. For one person it reports:
 import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, resolve_tree
-from catalog import Catalog, US_STATES, US_NAMES, jurisdictions, year
+from catalog import Catalog, ONCE, US_STATES, US_NAMES, jurisdictions, year
 from footprint import footprint
 from connectors import answers
-
-ONCE = ("Birth", "Death", "Burial", "Cremation")   # what a life holds once: two of one type are a conflict question; residences, censuses, occupations and the like repeat
 
 # where which records exist and who holds them, by state or country: reference data (data/jurisdictions.csv), never a family's own places
 J = jurisdictions()
@@ -108,7 +106,7 @@ def build(cat: Catalog, pid: str):
     for etype, n in collections.Counter(e["type"] for e in ev if e["type"] in ONCE).items():
         if n > 1: questions.append({"kind": "conflict", "detail": f"more than one {etype.lower()} event"})
     for said in cat.disagreements(pid): questions.append({"kind": "conflict", "detail": said})   # an accepted record says something else than the tree
-    for said in cat.unplaced(pid): questions.append({"kind": "conflict", "detail": said})         # an accepted record's undated fact fits none of several events of its type: assert_facts guessed at none of them
+    for said in cat.unplaced(pid): questions.append({"kind": "conflict", "detail": said})         # an accepted record's fact whose event is the owner's choice: assert_facts guessed at none of them
     for f in fam["families"]:
         if len(f["marriages"]) > 1: questions.append({"kind": "conflict", "detail": f"{len(f['marriages'])} marriage events with {f['spouse']}"})
     fp = footprint(cat, pid) if reviewed else {"summary": {"relatives": 0, "records": 0, "shared": 0}, "duplicates": [], "unlinked": [], "records": [], "collections": [], "gated": True}

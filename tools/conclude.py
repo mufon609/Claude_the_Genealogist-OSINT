@@ -44,7 +44,7 @@ resolve, or a reopen, stands above the rule's.
 usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]          the decision on a card, as the screen's Add / Ignore
        tools/conclude.py fact "<person>" <name|sex|birth|death|parents|spouses|children|event:<id>> accept|reject|undecided [--note "…"]
        tools/conclude.py assertion <assertion id> accept|reject|undecided [--note "…"]   one statement of one record, on its own
-       tools/conclude.py place <persona fact id> --event <event id> [--note "…"]   a record's fact onto the event it belongs to: an undated one (Catalog.unplaced), or one asserted on the wrong event, moved
+       tools/conclude.py place <persona fact id> --event <event id> [--note "…"]   a record's fact onto the event it belongs to: one whose event is your choice (Catalog.unplaced), or one asserted on the wrong event, moved
        tools/conclude.py facts "<person>"                                          every fact with its event id and every statement behind it with its id
        tools/conclude.py reconsider [--dry-run]                                   the rule re-examines its decisions and the cards it refused
        tools/conclude.py link "<person>" --spouse "<other>" --record <sha256> --note "…" [--marriage "14 AUG 1959"]
@@ -65,8 +65,9 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
   id, else its role, row and name), never to another row of the same name.
 - decide_place: the owner's answer on a place string the resolver left undecided, which real place its words mean or that they are
   not a place, applied wherever the same words appear.
-- assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
-- place: the owner's answer to Catalog.unplaced, a record's undated fact written onto the event the owner means.
+- assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link; one statement on one event.
+- place: the owner's answer to Catalog.unplaced, a record's fact written onto the event the owner means.
+- fold, fold_plan: a person's or a family's events of one type that are one event folded into one, as a merge and tools/initdb.py's migration of an older catalog fold them.
 - resolve: the answer to a conflict question, the statement whose date or place the event keeps, with the reason: the owner's,
   or the rule's (rule_conflicts, classes_decide); take_back and reopen: a resolution of the rule's taken back.
 """
@@ -74,14 +75,13 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, page_entries, source_tier, split_name, tier_sql
-from catalog import date_verdict, holds, place_verdict, same_surname
+from catalog import ONCE, RECORD_FACTS, date_verdict, fuller_date, holds, place_verdict, same_event, same_surname
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
 from plan import plan_person
 from log_search import release_household
 from backfill_aliases import classify, clean, key
 
-SKIP = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
 AUTOMATED = ("familysearch-record", "nara-1950-schedule", "va-gravesite", "nj-death-index", "ky-death-index", "ky-birth-index")   # a rule parser's own name, trusted for any collection it claims; a record read by hand or by the model is gated on its collection alone, never on who read it
 IDENTIFYING = re.compile(r"census|\bbirths?\b|\bdeaths?\b|\bmarriages?\b|\bvital\b|certificate|social security|numident|\bdraft\b|military|veteran|gravesite|enlist|pension|memorial photograph|naturaliz", re.I)   # §0's automated kinds, and a gravestone's own inscription once read
 NAMED_SURVIVORS = re.compile(r"obituary|newspaper", re.I)   # a kind that identifies a person only through who it names, once its text is read (docs/RESEARCH-WORKFLOW.md §0: "then the named survivors decide"); the rule's ground here is a stated relative, never a date or a place alone
@@ -182,21 +182,24 @@ def same_personas(cx, persona_id):
 def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record
     nobody can edit at will, Undecided from a page anyone can edit (what the page says, never accepted by the decision and never
-    ground for the rule, so the person's facts come from primary documents only). Name and Sex assert the person row. An event
-    fact asserts the person's event of that type and year, within two years when either the fact's date or the event's own is
-    marked about, estimated or calculated, created from the fact's date when there is none; an undated event
-    fact (other than Residence, its own case below) asserts the person's one event of that type when there is exactly one,
-    whatever its own date, rather than guess a year; with more than one, the fact is left unasserted rather than guessed onto
-    either: the checklist's own "more than one event" conflict already stands, and Catalog.unplaced raises this fact of its
-    own, naming the record and the type, until the person is left with one event of the type and the record is decided again;
-    with none, an event is created as usual. An attribute fact (Occupation, Inscription, Religion, ...) asserts the person's attribute of that type
-    with the same value, created when there is none. A fact the same record already asserts on the same subject with the same
-    type, date, value and place is not asserted again, so a re-extraction adds only what is new; one the rule withdrew turns
+    ground for the rule, so the person's facts come from primary documents only). Name and Sex assert the person row. One
+    statement, one event (docs/RESEARCH-WORKFLOW.md §5–7): an event fact asserts the one event of its type that
+    Catalog.event_for chooses among the person's: the one event of a type a life holds once whatever its date or place, the
+    one event of another type for an undated fact, else the event whose own date agrees most closely with the fact's among
+    those whose places agree with it; created from the fact's date when the person has none that fits, but never beside
+    another of a type a life holds once; and left unasserted when the choice is the owner's (two or more equally close, an
+    undated fact among several, a fact of a type a life holds once fitting none of several), which Catalog.unplaced raises
+    as a conflict question naming the record and the events, for tools/conclude.py place to answer. A residence with no date
+    is its own stay, never another record's. An attribute fact (Occupation, Inscription, Religion, ...) asserts the person's
+    attribute of that type with the same value, chosen the same way among several of that value, created when there is
+    none. A fact the record already states on one of the person's events (Catalog.stated_on: an earlier reading's statement,
+    or one the owner placed) stays there, and a fact the same record already asserts on the same subject with the same type,
+    date, value and place is not asserted again, so a re-extraction adds only what is new; one the rule withdrew turns
     Accepted again on a trusted record and stays as it is on an editable page; one a person rejected stays rejected, whatever
     reads the record again. A value the page keeps beneath the one it shows (FamilySearch's edit history, a fact whose region
     marks it alternate) is written Undecided and marked so: what the page also says, kept and cited, never accepted with the
     record and never a conflict with the value the record shows. Returns how many were written."""
-    q = _q(cx)
+    q = _q(cx); cat = Catalog(cx, tree_id)
     n = 0
     sha = q.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()["artifact_sha256"]
     cite, status = _citation(cx, sha)
@@ -205,43 +208,23 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
         alt = "alternate" in json.loads(f["region_json"] or "{}")
         n += _state(q, tree_id, kind, sid, f, sha, cite, "undecided" if alt else status, by, ts, prop_id, {"alternate": True} if alt else None)
     for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id, pf.region_json, et.kind
-                           FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)):
+                           FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)).fetchall():
         if f["fact_type"] in ("Name", "Sex"): assert_("person", person_id, f); continue
-        if f["fact_type"] in SKIP or f["kind"] not in ("event", "attribute"): continue
-        if f["kind"] == "event":
-            fy = (f["date_start"] or f["date_end"] or "")[:4]           # an event corresponds by type and year; an undated fact only to an undated event
-            all_events = q.execute("""SELECT e.id, e.date_start, e.date_end, e.date_qualifier FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                                      WHERE ep.person_id=? AND e.event_type=?""", (person_id, f["fact_type"])).fetchall()
-            if not fy and f["fact_type"] != "Residence":                 # undated: the person's one event of the type, never a guess between two or more
-                events = all_events if len(all_events) == 1 else []
-            else:
-                events = _of_year(f, all_events)
-                if not fy and f["fact_type"] == "Residence":              # a residence with no date is its own stay, never another record's: only one this record already asserts
-                    events = [e for e in events if q.execute("SELECT 1 FROM assertion WHERE subject_kind='event' AND subject_id=? AND artifact_sha256=? AND persona_fact_id=?", (e["id"], sha, f["id"])).fetchone()]
-            if not events and all_events and not fy and f["fact_type"] != "Residence": continue   # two or more already: the checklist's own conflict stands, no event guessed at
-        else:                                                            # an attribute corresponds by type and value
-            events = q.execute("""SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                                   WHERE ep.person_id=? AND e.event_type=? AND coalesce(e.description,'')=coalesce(?,'')""", (person_id, f["fact_type"], f["value_text"])).fetchall()
-        if not events:
+        if f["fact_type"] in RECORD_FACTS or f["kind"] not in ("event", "attribute"): continue
+        eid = cat.stated_on(sha, f, person=person_id)
+        if eid is None and not (f["fact_type"] == "Residence" and not (f["date_start"] or f["date_end"])):
+            events = cat.owner_events(f["fact_type"], person=person_id)
+            if f["kind"] == "attribute": events = [e for e in events if (e["value"] or "") == (f["value_text"] or "")]
+            eid, choice = cat.event_for(f, events, once=f["fact_type"] in ONCE or f["kind"] == "attribute")
+            if choice: continue                                          # the owner's choice: Catalog.unplaced raises it
+        if eid is None:
             eid = ulid()
             q.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,description,created_at,updated_at)
                           VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (eid, tree_id, f["fact_type"], f["date_text"], f["date_start"], f["date_end"], f["date_qualifier"], f["calendar"],
                                                               f["value_text"] if f["kind"] == "attribute" else None, ts, ts))
             q.execute("INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')", (ulid(), eid, person_id))
-            events = [{"id": eid}]
-        for e in events: assert_("event", e["id"], f)
+        assert_("event", eid, f)
     return n, sha
-
-NEAR = ("calculated", "about", "estimated")                            # a date marked so stands for a year give or take two
-
-def _of_year(f, events):
-    """The events a dated fact corresponds to: those of its year, or within two years when either the fact's date or the
-    event's own is marked about, estimated or calculated (a year worked out from an age, an event the tree dates about a
-    year)."""
-    fy = (f["date_start"] or f["date_end"] or "")[:4]
-    ey = lambda e: (e["date_start"] or e["date_end"] or "")[:4]
-    tol = lambda e: 2 if fy and (f["date_qualifier"] in NEAR or e["date_qualifier"] in NEAR) else 0
-    return [e for e in events if ey(e) == fy or (tol(e) and ey(e).isdigit() and fy.isdigit() and abs(int(ey(e)) - int(fy)) <= tol(e))]
 
 def _citation(cx, sha):
     """(citation words, status) a record's statements are written with: the collection's name, and Accepted from a record
@@ -267,42 +250,43 @@ def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id, extra=N
 def assert_family_events(cx, tree_id, fid, persona_ids, sha, prop_id, by, ts):
     """A record's family facts (a Marriage, a Divorce: the event types of kind family_event) asserted on the family the record's
     spouse relation joins, once both partners are accepted on the record (link_family calls this then, so a fact on the
-    first partner's persona waits for the second's acceptance): each persona's fact on the family's event of that type and
-    year, the way assert_facts corresponds a person's event (within two years when either date is marked about, estimated or
-    calculated), created from the fact's date when the family has none of the type; an undated fact on the family's one
-    event of the type, and with several on none of them (the checklist's own count of marriage events stands). Accepted
-    from a record nobody can edit at will, Undecided from a page anyone can edit; written once, as assert_facts writes.
-    Returns how many were written."""
-    q = _q(cx); n = 0
+    first partner's persona waits for the second's acceptance): each persona's fact on the one event of the family that
+    Catalog.event_for chooses, as assert_facts chooses a person's (the event whose date agrees most closely, among those
+    whose places agree; the one event for an undated fact), the fact the record already states on one of the family's events
+    staying there, created from the fact's date when the family has none that fits, and left unasserted when the choice is
+    the owner's (Catalog.unplaced). Accepted from a record nobody can edit at will, Undecided from a page anyone can edit;
+    written once, as assert_facts writes. Returns how many were written."""
+    q = _q(cx); n = 0; cat = Catalog(cx, tree_id)
     cite, status = _citation(cx, sha)
     for pe in persona_ids:
         for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id
                               FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=? AND et.kind='family_event'""", (pe,)).fetchall():
-            all_events = q.execute("""SELECT e.id, e.date_start, e.date_end, e.date_qualifier FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                                      WHERE ep.family_id=? AND e.event_type=?""", (fid, f["fact_type"])).fetchall()
-            dated = bool(f["date_start"] or f["date_end"])
-            events = _of_year(f, all_events) if dated else (all_events if len(all_events) == 1 else [])
-            if not events and all_events and not dated: continue
-            if not events:
+            eid = cat.stated_on(sha, f, family=fid)
+            if eid is None:
+                eid, choice = cat.event_for(f, cat.owner_events(f["fact_type"], family=fid))
+                if choice: continue                                      # the owner's choice: Catalog.unplaced raises it
+            if eid is None:
                 eid = ulid()
                 q.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at)
                               VALUES (?,?,?,?,?,?,?,?,?,?)""", (eid, tree_id, f["fact_type"], f["date_text"], f["date_start"], f["date_end"], f["date_qualifier"], f["calendar"], ts, ts))
                 q.execute("INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'family')", (ulid(), eid, fid))
-                events = [{"id": eid}]
-            for e in events: n += _state(q, tree_id, "event", e["id"], f, sha, cite, status, by, ts, prop_id)
+            n += _state(q, tree_id, "event", eid, f, sha, cite, status, by, ts, prop_id)
     return n
 
 def place(cx, tree_id, pf_id, event_id, by, note):
-    """The owner's word on which of a person's events a record's fact belongs to: an undated fact, accepted onto a person with
-    several events of its type and left unasserted by assert_facts (Catalog.unplaced), written onto the event the owner
-    means, the way assert_facts writes any other statement (accepted from a record nobody can edit at will, undecided from a
-    page anyone can); or a fact already asserted on another of the person's events of its type, moved to this one, its status
-    kept. An event a move leaves with no statement but rejected ones (an event an older reading made of a misread value) leaves
-    the person's events: its participant row goes, the event and its statements stay for the audit trail. Refused when the
-    persona fact does not exist or its persona is not accepted to a person, the event is not this tree's, is of another type
-    than the fact or belongs to another person, or the fact's statement is already on it. One audit row per change. Returns
-    what was written, or an error."""
-    q = _q(cx); ts = now()
+    """The owner's word on which of a person's events, or of a family's they are a partner in, a record's fact belongs to: a
+    fact accepted onto the person and left unasserted because the choice was theirs (Catalog.unplaced: an undated fact among
+    several events of its type, a dated one fitting two or more equally, one of a type a life holds once fitting none of
+    several), written onto the event the owner means, the way assert_facts writes any other statement (accepted from a
+    record nobody can edit at will, undecided from a page anyone can); or a fact already asserted on another of those events
+    of its type (its own statement, or the record's same statement through an earlier reading, Catalog.stated_on), moved to
+    this one, its status kept. An event a move leaves with no statement but rejected ones (an event an older reading made of a
+    misread value) leaves the person's or the family's events: its participant row goes, the event and its statements stay
+    for the audit trail. Refused when the persona fact does not exist or its persona is not accepted to a person, the event
+    is not this tree's, is of another type than the fact or belongs to another person or family, or the fact's statement is
+    already on it. One audit row per change; the plans of the person, and of the other partner on a family's event, are
+    regenerated. Returns what was written, or an error."""
+    q = _q(cx); ts = now(); cat = Catalog(cx, tree_id)
     pf = q.execute("SELECT pf.*, pe.artifact_sha256 FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pf.id=?", (pf_id,)).fetchone()
     if not pf: return {"error": "no such persona fact"}
     pp = q.execute("SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?", (pf["persona_id"], tree_id)).fetchone()
@@ -311,22 +295,30 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     ev = q.execute("SELECT id, event_type FROM event WHERE id=? AND tree_id=?", (event_id, tree_id)).fetchone()
     if not ev: return {"error": "no such event in this tree"}
     if ev["event_type"] != pf["fact_type"]: return {"error": f"the event is {ev['event_type']}, the fact is {pf['fact_type']}"}
-    if not q.execute("SELECT 1 FROM event_participant WHERE event_id=? AND person_id=?", (event_id, person_id)).fetchone(): return {"error": "the event belongs to another person"}
-    had = q.execute("SELECT id, subject_id, status FROM assertion WHERE persona_fact_id=? AND subject_kind='event'", (pf_id,)).fetchone()
+    mine = """SELECT ep.person_id, ep.family_id FROM event_participant ep JOIN event e ON e.id=ep.event_id WHERE e.id=? AND e.event_type=?
+              AND (ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner'))"""
+    owner = q.execute(mine, (event_id, pf["fact_type"], person_id, person_id)).fetchone()
+    if not owner: return {"error": "the event belongs to another person"}
+    had = q.execute("SELECT id, subject_id, status FROM assertion WHERE persona_fact_id=? AND subject_kind='event' ORDER BY asserted_at, id", (pf_id,)).fetchone()
+    if not had:                                                          # the record's same statement, written through an earlier reading of it
+        on = cat.stated_on(pf["artifact_sha256"], pf, person=person_id) if owner["person_id"] else cat.stated_on(pf["artifact_sha256"], pf, family=owner["family_id"])
+        had = q.execute("""SELECT a.id, a.subject_id, a.status FROM assertion a JOIN persona_fact x ON x.id=a.persona_fact_id WHERE a.subject_kind='event' AND a.subject_id=? AND a.artifact_sha256=?
+                           AND x.fact_type=? AND coalesce(x.date_text,'')=coalesce(?,'') AND coalesce(x.value_text,'')=coalesce(?,'') AND coalesce(x.place_string_id,'')=coalesce(?,'')
+                           ORDER BY a.asserted_at, a.id""", (on, pf["artifact_sha256"], pf["fact_type"], pf["date_text"], pf["value_text"], pf["place_string_id"])).fetchone() if on else None
     if had and had["subject_id"] == event_id: return {"error": "the fact's statement is already on this event"}
-    if had:                                                              # on another of the person's events of its type: moved, its status kept
-        if not q.execute("SELECT 1 FROM event_participant ep JOIN event e ON e.id=ep.event_id WHERE e.id=? AND ep.person_id=? AND e.event_type=?",
-                         (had["subject_id"], person_id, pf["fact_type"])).fetchone():
-            return {"error": "the fact's statement is on an event that is not this person's of its type"}
+    people = [person_id] + ([r["person_id"] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner' AND person_id<>?", (owner["family_id"], person_id))] if owner["family_id"] else [])
+    if had:                                                              # on another of the person's events of its type, or the family's: moved, its status kept
+        was = q.execute(mine, (had["subject_id"], pf["fact_type"], person_id, person_id)).fetchone()
+        if not was: return {"error": "the fact's statement is on an event that is not this person's of its type"}
         q.execute("UPDATE assertion SET subject_id=?, notes=json_set(coalesce(notes,'{}'),'$.placed_by_owner',?) WHERE id=?", (event_id, note, had["id"]))
         q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                   (ulid(), tree_id, ts, by, "update", "assertion", had["id"], dumps({"persona_fact": pf_id, "from_event": had["subject_id"], "event": event_id, "person": person_id, "note": note})))
         retired = None
         if not q.execute("SELECT 1 FROM assertion WHERE subject_kind='event' AND subject_id=? AND status<>'rejected'", (had["subject_id"],)).fetchone():
-            q.execute("DELETE FROM event_participant WHERE event_id=? AND person_id=?", (had["subject_id"], person_id)); retired = had["subject_id"]
+            q.execute("DELETE FROM event_participant WHERE event_id=? AND (person_id=? OR family_id=?)", (had["subject_id"], was["person_id"], was["family_id"])); retired = had["subject_id"]
             q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-                      (ulid(), tree_id, ts, by, "update", "event", retired, dumps({"left_person": person_id, "why": "no statement but rejected ones supports it once the record's own was placed elsewhere", "note": note})))
-        plan_person(cx, tree_id, person_id, by)
+                      (ulid(), tree_id, ts, by, "update", "event", retired, dumps({"left_person": was["person_id"], "left_family": was["family_id"], "why": "no statement but rejected ones supports it once the record's own was placed elsewhere", "note": note})))
+        for p_ in people: plan_person(cx, tree_id, p_, by)
         return {"ok": True, "assertion": had["id"], "status": had["status"], "person": person_id, "event": event_id, "moved_from": had["subject_id"], "retired": retired}
     cite, status = _citation(cx, pf["artifact_sha256"])
     aid = ulid()
@@ -334,7 +326,7 @@ def place(cx, tree_id, pf_id, event_id, by, note):
                   VALUES (?,?,'event',?,?,?,?,?,?,?,?)""", (aid, tree_id, event_id, pf_id, pf["artifact_sha256"], cite, status, by, ts, dumps({"note": note})))
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
               (ulid(), tree_id, ts, by, "insert", "assertion", aid, dumps({"persona_fact": pf_id, "event": event_id, "person": person_id, "status": status, "note": note})))
-    plan_person(cx, tree_id, person_id, by)
+    for p_ in people: plan_person(cx, tree_id, p_, by)
     return {"ok": True, "assertion": aid, "status": status, "person": person_id, "event": event_id}
 
 def shown_married(cx, tree_id, person_id, sha, written, canon_surname):
@@ -1110,19 +1102,121 @@ def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tree_id, ts, by, "accept", "event", eid, dumps({"divorce": [a, b], "date": date_text, "note": note})))
     return eid
 
-def _event_place_keys(q, eid, place_id):
-    """What an event's place stands for, for a merge's own agreement check: the resolved place, or, unresolved, every raw
-    string a non-rejected assertion gives it. Empty counts as absent, agreeing with anything."""
-    if place_id: return {place_id}
-    return {r[0].strip().lower() for r in q.execute("""SELECT ps.raw FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
-                     JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected'""", (eid,)).fetchall()}
-
 def _fold_event(q, eid, into, moved):
-    """An event's statements moved onto another of the same person, type and value; the event itself is left as it is."""
+    """An event's statements and notes moved onto another of the same owner and type, their statuses unchanged; a statement
+    of a record fact the other already carries, or a second vouch, stays where it is, so nothing is stated twice on one
+    event. The event itself is left as it is. Returns (the statements moved, the statements left)."""
     ev = q.execute("SELECT event_type, date_start FROM event WHERE id=?", (eid,)).fetchone()
-    n = q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='event' AND subject_id=?", (into, eid)).rowcount
-    moved["events_folded"] += 1; moved["event_assertions_folded"] += n
-    moved["folded_events"].append({"event_type": ev["event_type"], "date_start": ev["date_start"], "into_event_id": into, "assertions": n})
+    vouch = lambda notes: bool(notes and notes.startswith("{") and json.loads(notes).get("vouched"))
+    there = q.execute("SELECT persona_fact_id, notes FROM assertion WHERE subject_kind='event' AND subject_id=?", (into,)).fetchall()
+    facts, vouched = {r["persona_fact_id"] for r in there if r["persona_fact_id"]}, any(vouch(r["notes"]) for r in there)
+    go, stay = [], []
+    for a in q.execute("SELECT id, persona_fact_id, notes FROM assertion WHERE subject_kind='event' AND subject_id=? ORDER BY asserted_at, id", (eid,)).fetchall():
+        (stay if (a["persona_fact_id"] in facts if a["persona_fact_id"] else vouched and vouch(a["notes"])) else go).append(a["id"])
+    for aid in go: q.execute("UPDATE assertion SET subject_id=? WHERE id=?", (into, aid))
+    q.execute("UPDATE note SET entity_id=? WHERE entity_kind='event' AND entity_id=?", (into, eid))
+    moved["events_folded"] += 1; moved["event_assertions_folded"] += len(go)
+    moved["folded_events"].append({"event_type": ev["event_type"], "date_start": ev["date_start"], "into_event_id": into, "assertions": len(go), **({"left": stay} if stay else {})})
+    return go, stay
+
+def owner_on_event(cx, tree_id, eid, axis):
+    """How the owner has spoken on this event's own date or place, by the event itself: 'resolved' (a conflict on it the
+    owner resolved), 'reopened' (a resolution of the rule's on it the owner took back), else None."""
+    q = _q(cx)
+    for r in q.execute("""SELECT json_extract(detail_json,'$.resolution.by') AS by FROM research_question WHERE tree_id=? AND kind='conflict' AND closed_reason='resolved'
+                          AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.event')=? AND json_extract(detail_json,'$.resolution.axis')=?""", (tree_id, eid, axis)):
+        if not str(r["by"] or "").startswith("rule:"): return "resolved"
+    if q.execute("""SELECT 1 FROM audit_log WHERE tree_id=? AND entity_kind='research_question' AND actor NOT LIKE 'rule:%' AND json_valid(diff_json)
+                    AND json_extract(diff_json,'$.reopened') IS NOT NULL AND json_extract(diff_json,'$.event')=? AND json_extract(diff_json,'$.axis')=?""", (tree_id, eid, axis)).fetchone():
+        return "reopened"
+    return None
+
+def fold_plan(cx, tree_id, owner):
+    """The folds a person's events, or a family's, call for (fold); owner is ("person", id) or ("family", id). Events of one
+    type are one event when catalog.same_event says so (places agreeing or one absent, and the type held once in a life or
+    the dates one), an event joining a group when it is one with every event already in it, taken in the order the kept
+    event is chosen: the event whose date or place the owner has spoken on (owner_on_event), then one a standing resolution
+    of the rule's names, then the most accepted statements, the most statements, the earliest. One entry per group of two
+    or more: {"type", "kept": event, "folded": [events], "refused": words when more than one event of the group carries the
+    owner's word, so that a fold would set one value the owner resolved aside, else None}; each event is
+    Catalog.owner_events' with its place_id, its statements counted, and the axes the owner ("owner") and the rule ("rule")
+    have decided on it."""
+    q = _q(cx); cat = Catalog(cx, tree_id)
+    col = "person_id" if owner[0] == "person" else "family_id"
+    kinds = {}
+    for etype, kind in q.execute(f"""SELECT e.event_type, et.kind FROM event e JOIN event_participant ep ON ep.event_id=e.id JOIN event_type et ON et.name=e.event_type
+                                     WHERE ep.{col}=? GROUP BY e.event_type HAVING count(DISTINCT e.id)>1 ORDER BY e.event_type""", (owner[1],)).fetchall():
+        kinds[etype] = kind
+    out = []
+    for etype, kind in kinds.items():
+        evs = cat.owner_events(etype, **{owner[0]: owner[1]})
+        for e in evs:
+            r = q.execute("""SELECT e.place_id, (SELECT count(*) FROM assertion a WHERE a.subject_kind='event' AND a.subject_id=e.id) AS n,
+                                    (SELECT count(*) FROM assertion a WHERE a.subject_kind='event' AND a.subject_id=e.id AND a.status='accepted') AS accepted FROM event e WHERE e.id=?""", (e["id"],)).fetchone()
+            e.update(place_id=r["place_id"], statements=r["n"], accepted=r["accepted"],
+                     owner={ax for ax in ("date", "place") if owner_on_event(cx, tree_id, e["id"], ax)},
+                     rule={a for a, in q.execute("""SELECT json_extract(detail_json,'$.resolution.axis') FROM research_question WHERE tree_id=? AND kind='conflict' AND closed_reason='resolved'
+                                                     AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.event')=? AND json_extract(detail_json,'$.resolution.by') LIKE 'rule:%'""", (tree_id, e["id"]))})
+        groups = []
+        for e in sorted(evs, key=lambda e: (not e["owner"], not e["rule"], -e["accepted"], -e["statements"], e["id"])):
+            g = next((g for g in groups if all(same_event(etype, kind, m, e) for m in g)), None)
+            if g is None: groups.append([e])
+            else: g.append(e)
+        for g in groups:
+            if len(g) < 2: continue
+            spoke = [m["id"] for m in g if m["owner"]]
+            out.append({"type": etype, "kept": g[0], "folded": g[1:],
+                        "refused": f"the {etype.lower()} events {', '.join(spoke)} of {owner[0]} {owner[1]} each carry a date or place the owner resolved or reopened: folding them would set one of those values aside" if len(spoke) > 1 else None})
+    return out
+
+def _take_lacking(q, kept, other, ts):
+    """What the kept event of a fold takes from an event folded into it: a date where it has none, or one that agrees with its
+    own and says more (catalog.fuller_date: 26 Jun 1901 over 1901, 24 April 1876 over CAL 1875), and a place where it has
+    none, never on an axis the owner or the rule has decided on it; a date that disagrees stays the kept event's own.
+    Returns what changed, each with its value before; kept is brought up to date."""
+    k = q.execute("SELECT date_text, date_start, date_end, date_qualifier, calendar, place_id FROM event WHERE id=?", (kept["id"],)).fetchone()
+    o = q.execute("SELECT date_text, date_start, date_end, date_qualifier, calendar, place_id FROM event WHERE id=?", (other["id"],)).fetchone()
+    decided, sets = kept["owner"] | kept["rule"], {}
+    if "date" not in decided and fuller_date({"start": k["date_start"], "end": k["date_end"], "qualifier": k["date_qualifier"]},
+                                             {"start": o["date_start"], "end": o["date_end"], "qualifier": o["date_qualifier"]}):
+        sets.update({c: o[c] for c in ("date_text", "date_start", "date_end", "date_qualifier", "calendar")})
+        kept.update(text=o["date_text"], start=o["date_start"], end=o["date_end"], qualifier=o["date_qualifier"])
+    if "place" not in decided and not k["place_id"] and o["place_id"]:
+        sets["place_id"] = o["place_id"]; kept["place_id"] = o["place_id"]
+    if not sets: return {}
+    q.execute(f"UPDATE event SET {', '.join(f'{c}=?' for c in sets)}, updated_at=? WHERE id=?", (*sets.values(), ts, kept["id"]))
+    return {c: {"was": k[c], "now": v} for c, v in sets.items()}
+
+def fold(cx, tree_id, owner, actor=None, retire=None, moved=None):
+    """A person's events, or a family's, of one type that are one event folded into one (docs/RESEARCH-WORKFLOW.md §5–7, one
+    statement, one event; the groups and the kept event as fold_plan gives them), the same fold a merge makes of a
+    duplicate's events: each folded event's statements and notes move onto the kept event as they are (_fold_event), the
+    kept event takes what it lacks from it (_take_lacking), and the folded event leaves the owner's events (retire(event id),
+    by default its participant row removed: the event row and anything left on it stay for the audit trail). A date the
+    events give apart, on a type a life holds once, stays the kept event's own and the folded one's statements give the
+    other, so the difference is the conflict question Catalog.disagreements raises. A group fold_plan refuses is left as it
+    is and named in moved's folds_refused. actor: one audit row per event folded, naming what moved, under that actor.
+    Returns one entry per event folded: the owner, the type, the kept and folded events' ids and values, the statements
+    moved and left, and what the kept event took."""
+    q = _q(cx); ts = now()
+    moved = moved if moved is not None else {"events_folded": 0, "event_assertions_folded": 0, "folded_events": []}
+    col = "person_id" if owner[0] == "person" else "family_id"
+    done = []
+    for g in fold_plan(cx, tree_id, owner):
+        if g["refused"]: moved.setdefault("folds_refused", []).append(g["refused"]); continue
+        kept = g["kept"]
+        for m in g["folded"]:
+            was = {"date": kept["text"], "place_id": kept["place_id"]}
+            go, stay = _fold_event(q, m["id"], kept["id"], moved)
+            took = _take_lacking(q, kept, m, ts)
+            if retire: retire(m["id"])
+            else: q.execute(f"DELETE FROM event_participant WHERE event_id=? AND {col}=?", (m["id"], owner[1]))
+            row = {owner[0]: owner[1], "type": g["type"], "kept": {"event": kept["id"], "date": was["date"], "place_id": was["place_id"]},
+                   "folded": {"event": m["id"], "date": m["text"], "place_id": m["place_id"]}, "moved": go, "left": stay, "took": took}
+            if actor: q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                                (ulid(), tree_id, ts, actor, "update", "event", m["id"], dumps({"folded_into": kept["id"], **row})))
+            done.append(row)
+    return done
 
 def _fold_family(q, fid, other, moved):
     """A family whose partners are exactly another's, folded into that one: each child's membership moves there, or, the
@@ -1147,31 +1241,24 @@ def _partner_families(q, pid):
     return [(fid, {r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,)).fetchall()})
             for fid, in q.execute("SELECT DISTINCT family_id FROM family_member WHERE person_id=? AND role='partner' ORDER BY family_id", (pid,)).fetchall()]
 
+def _back_to(q, dup_id, kept_id):
+    """A merge's retire for fold: the folded event's participant returned to the duplicate's row, out of the kept person's
+    events, as a merge leaves the duplicate's own."""
+    return lambda eid: q.execute("UPDATE event_participant SET person_id=? WHERE event_id=? AND person_id=?", (dup_id, eid, kept_id))
+
 def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
-    """A merge made before a merge folded equal events and same-partner families, completed: the kept person's events of one
-    type whose dates agree to the day and whose places agree or are absent fold into the one carrying the most statements
-    (the earliest id on a tie), each folded event's participant returned to the duplicate's row, as a merge now leaves the
-    duplicate's own; the kept person's partner families with the same partners fold into the earliest (_fold_family).
-    Nothing else moves, and a merge already complete folds nothing. One audit row. Returns what folded."""
+    """A merge made before a merge folded events and same-partner families, completed: the kept person's events folded as a
+    merge folds them (fold), each folded event's participant returned to the duplicate's row (_back_to); the kept person's
+    partner families with the same partners folded into the earliest (_fold_family), and that family's events folded the
+    same way. Nothing else moves, and a merge already complete folds nothing. One audit row. Returns what folded."""
     q = _q(cx); ts = now()
     moved = {"events_folded": 0, "event_assertions_folded": 0, "families_folded": 0, "family_children_moved": 0, "family_events_moved": 0,
              "folded_events": [], "folded_families": []}
-    groups = {}
-    for eid, et, ds, place_id in q.execute("""SELECT e.id, e.event_type, e.date_start, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                                               WHERE ep.person_id=? AND e.date_start IS NOT NULL ORDER BY e.id""", (kept_id,)).fetchall():
-        n = q.execute("SELECT COUNT(*) FROM assertion WHERE subject_kind='event' AND subject_id=?", (eid,)).fetchone()[0]
-        groups.setdefault((et, ds), []).append((-n, eid, place_id))
-    for evs in groups.values():
-        evs.sort(); _, keep, keep_place = evs[0]
-        for _, eid, place_id in evs[1:]:
-            a, b = _event_place_keys(q, eid, place_id), _event_place_keys(q, keep, keep_place)
-            if a and b and not (a & b): continue
-            _fold_event(q, eid, keep, moved)
-            q.execute("UPDATE event_participant SET person_id=? WHERE event_id=? AND person_id=?", (dup_id, eid, kept_id))
+    fold(cx, tree_id, ("person", kept_id), retire=_back_to(q, dup_id, kept_id), moved=moved)
     fams = _partner_families(q, kept_id)
     for i, (fid, partners) in enumerate(fams):
         into = next((f for f, ps in fams[:i] if ps == partners and q.execute("SELECT 1 FROM family_member WHERE family_id=? AND role='partner'", (f,)).fetchone()), None)
-        if into: _fold_family(q, fid, into, moved)
+        if into: _fold_family(q, fid, into, moved); fold(cx, tree_id, ("family", into), moved=moved)
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
               (ulid(), tree_id, ts, by, "update", "person", dup_id, dumps({"merge_completed": kept_id, "note": note, **moved})))
     return {"duplicate": dup_id, "kept": kept_id, "completed": True, **moved}
@@ -1186,15 +1273,16 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     onto the survivor rather than lost. A dropped step or question is named in the audit row by its key, row (a step's) and
     rationale, and why it was dropped, the way plan.py's own audit row names what it drops.
 
-    A duplicate's own event of a type the kept person also has, its date agreeing to the day and its place agreeing or
-    absent, is folded: its assertions move onto the kept person's own event of that type, and the duplicate's event and its
-    participant are left as they are, on the duplicate's row, so the kept person never carries two Birth or two Death
-    events of one value. A differing value stays a second event. A duplicate's own family, once its membership
-    has moved, whose partners are then exactly the kept person's own family's partners is folded the same way: its
-    children's memberships and its own events move to that family, its partner memberships and their assertions fold onto
-    the kept family's own, and the duplicate's family row is left emptied, with the duplicate, for the audit trail (a child of
-    both joins the kept family's own membership). A pair already merged is completed instead (complete_merge). Returns what
-    moved.""" 
+    The duplicate's events join the kept person's, and the kept person's events of one type that are then one event are
+    folded (fold, docs/RESEARCH-WORKFLOW.md §5–7: places agreeing or one absent, and the type held once in a life or the
+    dates one): the statements move onto the kept event, and each folded event and its participant are left on the
+    duplicate's row (_back_to), so the kept person never carries two Birth or two Death events; a date the two give apart is
+    the conflict question the catalog raises. A duplicate's own family, once its membership has moved, whose partners are
+    then exactly the kept person's own family's partners is folded the same way: its children's memberships and its own
+    events move to that family, its partner memberships and their assertions fold onto the kept family's own, the family's
+    events that are then one event fold too, and the duplicate's family row is left emptied, with the duplicate, for the
+    audit trail (a child of both joins the kept family's own membership). A pair already merged is completed instead
+    (complete_merge). Returns what moved."""
     q = _q(cx)
     dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
     kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
@@ -1216,22 +1304,10 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         moved["persona_links"] += 1
 
     for ep_id, eid, role, fam in q.execute("SELECT id, event_id, role, family_id FROM event_participant WHERE person_id=?", (dup_id,)).fetchall():
-        dup_event = q.execute("SELECT event_type, date_start, place_id FROM event WHERE id=?", (eid,)).fetchone()
-        fold_into = None
-        if dup_event and dup_event["date_start"]:
-            dup_places = _event_place_keys(q, eid, dup_event["place_id"])
-            for kept_eid, kept_ds, kept_place_id in q.execute("""SELECT e.id, e.date_start, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                                                                 WHERE ep.person_id=? AND e.event_type=?""", (kept_id, dup_event["event_type"])).fetchall():
-                if kept_ds != dup_event["date_start"]: continue
-                kept_places = _event_place_keys(q, kept_eid, kept_place_id)
-                if dup_places and kept_places and not (dup_places & kept_places): continue
-                fold_into = kept_eid; break
-        if fold_into:
-            _fold_event(q, eid, fold_into, moved)
-            continue                                          # the duplicate's own event and its participant stay as they are
         if q.execute("SELECT 1 FROM event_participant WHERE event_id=? AND role=? AND person_id=? AND family_id IS ?", (eid, role, kept_id, fam)).fetchone(): continue
         q.execute("UPDATE event_participant SET person_id=? WHERE id=?", (kept_id, ep_id))
         moved["event_participants"] += 1
+    fold(cx, tree_id, ("person", kept_id), retire=_back_to(q, dup_id, kept_id), moved=moved)
 
     partner_fams = set()
     for fid, role in q.execute("SELECT family_id, role FROM family_member WHERE person_id=?", (dup_id,)).fetchall():
@@ -1245,7 +1321,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         partners = {r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,)).fetchall()}
         if kept_id not in partners: continue
         other = next((f for f, ps in _partner_families(q, kept_id) if f != fid and ps == partners), None)
-        if other: _fold_family(q, fid, other, moved)
+        if other: _fold_family(q, fid, other, moved); fold(cx, tree_id, ("family", other), moved=moved)
 
     moved["assertions"] = q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='person' AND subject_id=?", (kept_id, dup_id)).rowcount
 
@@ -1386,12 +1462,9 @@ def owner_decided(cx, tree_id, ev, axis):
     the event, so a dismissal on any of the person's events of the type counts). The rule then leaves every conflict on it
     to the owner. None when the owner has not."""
     q = _q(cx); what = f"{ev['event_type'].lower()} {axis}"
-    for r in q.execute("""SELECT json_extract(detail_json,'$.resolution.by') AS by FROM research_question WHERE tree_id=? AND kind='conflict' AND closed_reason='resolved'
-                          AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.event')=? AND json_extract(detail_json,'$.resolution.axis')=?""", (tree_id, ev["id"], axis)):
-        if not str(r["by"] or "").startswith("rule:"): return f"you resolved a difference on this {what} yourself: every later one is yours"
-    if q.execute("""SELECT 1 FROM audit_log WHERE tree_id=? AND entity_kind='research_question' AND actor NOT LIKE 'rule:%' AND json_valid(diff_json)
-                    AND json_extract(diff_json,'$.reopened') IS NOT NULL AND json_extract(diff_json,'$.event')=? AND json_extract(diff_json,'$.axis')=?""", (tree_id, ev["id"], axis)).fetchone():
-        return f"you reopened the rule's resolution of this {what}: it is yours"
+    spoke = owner_on_event(cx, tree_id, ev["id"], axis)
+    if spoke == "resolved": return f"you resolved a difference on this {what} yourself: every later one is yours"
+    if spoke == "reopened": return f"you reopened the rule's resolution of this {what}: it is yours"
     people = [r["person_id"] for r in q.execute("""SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL
                                                    UNION SELECT fm.person_id FROM event_participant ep JOIN family_member fm ON fm.family_id=ep.family_id AND fm.role='partner' WHERE ep.event_id=?""", (ev["id"], ev["id"]))]
     for r in q.execute(f"SELECT detail_json FROM research_question WHERE kind='conflict' AND closed_reason='dismissed' AND subject_person_id IN ({','.join('?' * len(people))})", people):
@@ -1765,7 +1838,7 @@ def main():
     fc.add_argument("person"); fc.add_argument("field"); fc.add_argument("verdict", choices=["accept", "reject", "undecided"]); fc.add_argument("--note")
     ac = sub.add_parser("assertion", help="one statement of one record on one subject, decided on its own (a fact decision touches every statement behind the fact)")
     ac.add_argument("assertion"); ac.add_argument("verdict", choices=["accept", "reject", "undecided"]); ac.add_argument("--note")
-    pc = sub.add_parser("place", help="a record's fact onto the event the owner means: an undated one (Catalog.unplaced), or one asserted on another event of its type, moved; an event left with no statement but rejected ones leaves the person")
+    pc = sub.add_parser("place", help="a record's fact onto the event the owner means: one whose event is the owner's choice (Catalog.unplaced), or one asserted on another event of its type, moved; an event left with no statement but rejected ones leaves the person or the family")
     pc.add_argument("persona_fact"); pc.add_argument("--event", required=True, dest="event"); pc.add_argument("--note")
     ls = sub.add_parser("facts", help="a person's key facts, events and attributes with their ids, and every statement behind each with its id, status and record"); ls.add_argument("person")
     r = sub.add_parser("reconsider", help="the rule re-examines every decision it made, every card still undecided and every conflict: a decision or a resolution it would no longer make is taken back, a card or a conflict it would now decide is decided")
