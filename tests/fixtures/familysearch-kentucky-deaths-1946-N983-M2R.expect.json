@@ -1,0 +1,62 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "apid",
+   "value": "1,3077::604036"
+  }
+ },
+ "extractor": "familysearch-record",
+ "sequence": {
+  "1": {
+   "name": "John Young Davidson",
+   "role": "subject",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Death",
+     "date": "1946",
+     "place": "Franklin, Simpson, Kentucky"
+    }
+   ],
+   "why": "the death as the page indexes it, the year alone: the certificate's own day is on its image"
+  },
+  "2": {
+   "name": "Ellen McCreary",
+   "role": "mother",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Mother",
+     "computed": false
+    }
+   ]
+  },
+  "3": {
+   "name": "Y J Davidson",
+   "role": "father",
+   "relations": [
+    {
+     "kind": "parent",
+     "to": 1,
+     "value": "Father",
+     "computed": false
+    }
+   ]
+  },
+  "4": {
+   "name": "Lena Howard Davidson",
+   "role": "wife",
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 1,
+     "value": "Wife",
+     "computed": false
+    }
+   ]
+  }
+ }
+}

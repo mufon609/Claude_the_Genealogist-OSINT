@@ -151,6 +151,19 @@ def unspread_links(cx: sqlite3.Connection) -> None:
                    (ulid(), tree, ts, actor, "delete", "person_persona", json.dumps([row["person_id"], row["persona_id"]]),
                     json.dumps({"removed": row, "spread_from": src, "why": "a decision on another entry of the page, spread by name and role; never a decision of its own"})))
 
+def same_records(cx: sqlite3.Connection) -> None:
+    """The same_record table, insert-only like the rest of the evidence layer, and code's joins of the copies the archive
+    already holds written once (conclude.join_copies, the joins every reading writes from now on), under the migration's own
+    actor. Nothing decided changes: a decision on one copy reaches the others when tools/conclude.py reconsider carries it."""
+    from conclude import join_copies
+    ddl = read("schema/catalog.sql"); extras = read("schema/sqlite_extras.sql")
+    script = ddl[ddl.index("CREATE TABLE same_record"):ddl.index("CREATE INDEX ix_same_record_b")] + "CREATE INDEX ix_same_record_b ON same_record(b_sha256, b_entry);\n" + \
+             extras[extras.index("CREATE TRIGGER trg_same_record_no_update"):]
+    for word in ("TABLE", "INDEX", "TRIGGER"): script = script.replace(f"CREATE {word} ", f"CREATE {word} IF NOT EXISTS ")   # a catalog born with the table, replaying its migrations, keeps it
+    cx.executescript(script)
+    for sha, in cx.execute("SELECT DISTINCT artifact_sha256 FROM extraction WHERE status<>'failed' AND superseded_by IS NULL ORDER BY artifact_sha256").fetchall():
+        join_copies(cx, sha, "migration:0.7.9")
+
 def fold_events(cx: sqlite3.Connection) -> None:
     """The catalog's one-time fold of the events an older import and older decisions wrote apart (docs/RESEARCH-WORKFLOW.md
     §5–7, one statement, one event): every listed person's events of one type, and every family's, that are one event
@@ -190,6 +203,8 @@ MIGRATIONS = [
      [rebuild_questions]),
     ("0.7.8", "search_log.outcome accepts 'unread': a web page archived that no parser reads is held on its step's log, the step stays planned; the runs an older attach logged found for such a page are corrected",
      [unread_runs]),
+    ("0.7.9", "same_record: two archived copies of one record joined on what they share of the record itself, code's joins of the copies already held written once; tools/conclude.py reconsider then carries each decision to every copy",
+     [same_records]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

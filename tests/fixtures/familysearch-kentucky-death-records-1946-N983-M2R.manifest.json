@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "940de305ee595e8d9972828e6cafe543d1068c26fdf66100164ef32a11df855a",
+  "bytes": 1177187,
+  "mime": "image/jpeg",
+  "source_id": "D03",
+  "collection": "Kentucky, U.S., Death Index, 1911-2000",
+  "locator": {
+    "kind": "apid",
+    "value": "1,3077::604036"
+  },
+  "retrieved_at": "2026-09-15T22:02:05Z",
+  "retrieved_by": "agent:larch for user:neural",
+  "rights": {
+    "terms": "FS ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "original_filename": "familysearch-kentucky-death-records-1946-N983-M2R.jpg",
+  "pages": 1,
+  "notes": "the certificate image behind ark:/61903/1:1:N983-M2R, served by FamilySearch's deepzoom scale endpoint at its ceiling (1852x1756; width=4000 asked), saved in the owner's browser by the image-saves-itself method under the fetch list's name for this step; read by the transcription path"
+}

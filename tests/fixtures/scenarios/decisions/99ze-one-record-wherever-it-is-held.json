@@ -1,0 +1,354 @@
+{
+ "title": "one record, wherever it is held",
+ "line": "John Y Davidson's 1946 Kentucky death certificate, held four ways: FamilySearch's page of it (the death as 1946), the certificate's image read by the model (the 11th, state file 14205), FamilySearch's index entry (the 11th) and the state index's own line (certificate 14205 of 1946). The page, the image and the index entry were archived under the file's one citation and the line gives the certificate's number: one record. The owner decides the page once; the image's reading, the index entry and the line take that decision with no card of their own; the certificate's own day, stated first-hand on the image, settles the file's 10th; the screen and the written conclusion cite the record once with its copies beneath it; and the owner's word that the line is another record gives back what the decision carried to it, the line a card again that the rule leaves to the owner, its day being the same certificate's",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "FamilySearch's page of the certificate, archived under the file's citation: the death as 1946, his parents and his wife",
+   "archive": {
+    "fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html",
+    "source": "D03",
+    "collection": "Kentucky, Deaths, 1911-1967",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ],
+    "rule": true
+   },
+   "as": "page",
+   "expect": [
+    {
+     "card": {
+      "record": "page",
+      "person": "I332737204849",
+      "status": "undecided"
+     },
+     "why": "his name is the file's claim: the owner decides the page"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the page as his",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     },
+     "why": "the page gives the year alone, which agrees with the file's 10th"
+    }
+   ]
+  },
+  {
+   "say": "the certificate's image, archived under the same citation",
+   "seed": {
+    "fixture": "familysearch-kentucky-death-records-1946-N983-M2R.jpg",
+    "source": "D03",
+    "collection": "Kentucky, U.S., Death Index, 1911-2000",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    }
+   },
+   "as": "image"
+  },
+  {
+   "say": "the model reads the deceased from the image, typed by the harness from its own words: John Young Davidson, 71, died the 11th day of June 1946 at Franklin, Simpson County, state file 14205",
+   "transcribe": {
+    "record": "image",
+    "form": {
+     "name": "John Young Davidson",
+     "role": "deceased",
+     "sex": "M",
+     "age": "71",
+     "year": 1946,
+     "death_date": "11 Jun 1946",
+     "death_place": "Franklin, Simpson, Ky.",
+     "number": "14205",
+     "bbox": [
+      290,
+      660,
+      1310,
+      32
+     ],
+     "image_is": "record"
+    },
+    "by": "llm:harness"
+   },
+   "as": "read",
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "proposals": 0,
+      "card": null
+     },
+     "why": "the image is a copy of the record the owner has decided: its reading gets no card of its own"
+    },
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "image",
+      "role": "deceased",
+      "is": [
+       "accepted"
+      ]
+     },
+     "why": "the decision on the page's entry is the record's: the image's deceased takes it"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     },
+     "why": "the image's day is the certificate's own, first-hand: the rule settles the file's 10th for it"
+    }
+   ]
+  },
+  {
+   "say": "FamilySearch's index entry of the same death, archived under the same citation as the archive holds it",
+   "archive": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html",
+    "source": "D03",
+    "collection": "Kentucky, Vital Record Indexes, 1911-1999",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ],
+    "rule": true
+   },
+   "as": "kyd",
+   "expect": [
+    {
+     "cards": {
+      "record": "kyd",
+      "count": 0
+     },
+     "why": "archived under the same citation: a copy of the record, decided with it"
+    },
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "kyd",
+      "is": [
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the same death as the line of the state's own index file holds it, Reclaim the Records' copy, certificate 14205 of 1946",
+   "archive": {
+    "fixture": "ky-death-index-1946-davidson.txt",
+    "manifest": "ky-death-index-1946-davidson.manifest.json",
+    "source": "C06",
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ],
+    "rule": true
+   },
+   "as": "line",
+   "expect": [
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "line",
+      "sequence": 3,
+      "is": [
+       "accepted"
+      ]
+     },
+     "why": "the line gives the certificate's number and year, which the image's reading gives: a copy of the record, decided with it"
+    },
+    {
+     "cards": {
+      "record": "line",
+      "count": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the screen cites the record once: the page, the image and the line are statements of the record the index entry's sha256 keys, the copy that sorts first",
+   "person_view": {
+    "person": "I332737204849"
+   },
+   "expect": [
+    {
+     "last": {
+      "review": {
+       "death": {
+        "evidence": {
+         "some": {
+          "sha256": "$line.sha",
+          "record": "$kyd.sha"
+         }
+        }
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "review": {
+       "death": {
+        "evidence": {
+         "some": {
+          "sha256": "$image.sha",
+          "record": "$kyd.sha"
+         }
+        }
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "review": {
+       "death": {
+        "evidence": {
+         "some": {
+          "sha256": "$page.sha",
+          "record": "$kyd.sha"
+         }
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the written conclusion of his death: one death certificate, four copies beneath it, and the conflict the rule settled",
+   "proof": {
+    "person": "I332737204849",
+    "fact": "death"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "death": {
+        "evidence": [
+         {
+          "original": "death certificate",
+          "status": "accepted",
+          "records": {
+           "len": 4
+          }
+         }
+        ],
+        "conflicts": {
+         "some": {
+          "status": "resolved",
+          "reason": {
+           "has": "states the death first-hand, 11 Jun 1946 (original, primary, direct)"
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "one record is one source wherever it is held: cited once, its copies beneath it"
+    }
+   ]
+  },
+  {
+   "say": "the owner's word: the line is not this record",
+   "copies": {
+    "a": {
+     "record": "line",
+     "number": "14205"
+    },
+    "b": "image",
+    "same": false,
+    "note": "harness: the line is kept apart to see what the decision carried to it given back"
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "len": 1
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "line",
+      "person": "I332737204849",
+      "status": "undecided"
+     },
+     "why": "what the decision carried to the line is given back: its entry is a card again"
+    },
+    {
+     "rule": {
+      "record": "line",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "has": "the death date, which the tree holds only from the death certificate, the original this record was copied from"
+      }
+     },
+     "why": "kept apart, it is still the same person's record of the same death: the certificate's day is no corroboration of itself"
+    }
+   ]
+  },
+  {
+   "say": "reconsider carries nothing across the owner's word",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kind": "carried"
+       }
+      }
+     }
+    },
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "image",
+      "role": "deceased",
+      "is": [
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

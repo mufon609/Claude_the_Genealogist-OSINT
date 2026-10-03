@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.7.8
+-- tree catalog schema  v0.7.9
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -263,6 +263,31 @@ CREATE TABLE persona_relation (
   region_json         TEXT
 );
 CREATE INDEX ix_persona_relation_persona ON persona_relation(persona_id);
+
+-- Two archived copies of one record (docs/DATA-ARCHITECTURE.md §7 decision 15): the document made at an event, held as
+-- FamilySearch's index page of it, its image, a state index's line. A copy is a whole file (entry '') or one row of a listing
+-- holding many records each under its own number (entry: that row's catalog.persona_key as JSON); a record is every copy
+-- these rows join, directly or through another copy (catalog.record_copies). Code joins two copies on what they share of
+-- the record itself, for every tree (tree_id NULL; basis citation: archived under one record id; entry: one FamilySearch
+-- entry id on both readings; number: one certificate number of one year), where an entry of both readings agrees by name;
+-- the owner's word joins two copies or keeps two apart in one tree (basis owner), standing above code's on that pair, the
+-- latest word last. Insert-only.
+CREATE TABLE same_record (
+  id          TEXT PRIMARY KEY,
+  tree_id     TEXT REFERENCES tree(id),
+  a_sha256    TEXT NOT NULL REFERENCES artifact(sha256),
+  a_entry     TEXT NOT NULL DEFAULT '',
+  b_sha256    TEXT NOT NULL REFERENCES artifact(sha256),
+  b_entry     TEXT NOT NULL DEFAULT '',
+  same        BOOLEAN NOT NULL,
+  basis       TEXT NOT NULL CHECK (basis IN ('citation','entry','number','owner')),
+  shared      TEXT,                 -- what the two share, in words: "apid 1,3077::604036", "number 14205 of 1946"
+  decided_by  TEXT NOT NULL,
+  decided_at  TEXT NOT NULL,
+  notes       TEXT
+);
+CREATE INDEX ix_same_record_a ON same_record(a_sha256, a_entry);
+CREATE INDEX ix_same_record_b ON same_record(b_sha256, b_entry);
 
 -- =============================================================================
 -- LAYER 4 - CONCLUSIONS  (scoped to a tree; layers 1-3 are shared by all trees)

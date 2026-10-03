@@ -159,7 +159,7 @@ import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
-from conclude import assert_facts, link_family
+from conclude import assert_facts, carry, join_copies, link_family
 from catalog import is_identity, page_entries
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
@@ -1236,6 +1236,8 @@ def extract(cx, sha, by):
      "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va, "nj_death_index": write_nj_death,
      "ky_death_index": write_ky_index, "ky_birth_index": write_ky_index}.get(kind, write_personas)(w, parsed)
     w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
+    w.n["copies_joined"] = len(join_copies(cx, sha, by, ts))      # the other copies of this record the archive holds (same_record), and the decisions on them
+    w.n["decisions_carried"] = len(carry(cx, by, sha))
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
     return eid, w.n

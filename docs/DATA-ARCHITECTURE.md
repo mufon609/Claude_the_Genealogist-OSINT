@@ -154,6 +154,7 @@ Core tables (the full map by layer is in `schema/README.md`):
 | `source`, `collection` | Registry seeded from `data/data-sources.csv`; a collection is a named record set inside a source and holds the vendor id (Ancestry dbid). |
 | `artifact`, `artifact_page`, `tombstone` | One row per archived hash, mirroring the manifest; pages inside it; withdrawn artifacts and why. |
 | `extraction`, `persona`, `persona_fact` | One run of one extractor over an artifact; what one record says about one individual; the claims on that persona with region coordinates. |
+| `same_record` | Two archived copies of one record joined (decision 15), insert-only: on what they share of the record itself, by code for every tree, or on the owner's word in one tree. |
 | `tree`, `tree_import` | A workspace of conclusions; which artifact was imported into which tree. |
 | `person`, `person_name`, `family`, `family_member`, `event`, `event_participant` | Layer-4 conclusions. |
 | `assertion` | The evidence link from a conclusion to a persona fact, persona or artifact, with the three-state status. |
@@ -225,6 +226,7 @@ So:
 |---|---|
 | `artifact` bytes and manifests (facts about files) | `person`, `family`, `event` |
 | `collection` names and vendor ids | `assertion`, `person_persona` (every act of trust) |
+| code's `same_record` joins (two files sharing a record id or a certificate number) | the owner's word that two copies are, or are not, one record |
 | `place_string` raw text | `proposal`, tree-level `note`, `external_id` for tree entities |
 | `event_type`, `source` registry | `tree_import` |
 
@@ -393,7 +395,23 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    What makes two copies one record is what they share of the record itself (a
    certificate number, the citation they were archived under, the same entry by
    role and name), never the kind of record alone, which two different
-   documents share.
+   documents share. Code joins two copies (`same_record`) as each is read: archived
+   under one record id, one FamilySearch entry id on both (each person of one
+   FamilySearch record has their own), or one certificate number of one year (a
+   reader of an image writes the number the record gives itself), always where an
+   entry of each reading agrees with one of the other's by name, and never a page
+   anyone can edit with a record, nor a row of a search's results; the owner's word
+   joins two or keeps two apart (`tools/conclude.py copies`, `apart`), above code.
+   A record's entry is the same person on every copy: by its record id, else by
+   name, the reader's role words being their own (a page's subject is an image's
+   deceased). The record is put to the owner once, and a decision on any copy's
+   entry carries to every copy's persona of it under that one decision
+   (`conclude.carry`, which `tools/conclude.py reconsider` runs for every joined
+   record). Two records the code cannot show to be copies of one document but of
+   the same kind about the same person's same event (a state index's line and
+   FamilySearch's index of one certificate, two papers' obituaries of one death)
+   still count once for the rule (the owner, 3 Oct 2026: count once), though the
+   profile cites them as two.
 
 ## 8. Wrong source data, variants and aliases
 

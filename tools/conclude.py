@@ -15,7 +15,7 @@ certain than the rule below is a card for the owner.
 The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7, rule_accepts): a record of a kind data/evidence-classes.csv gives
 the automated standing, from a source nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with
 the accepted name, the facts that agree make two points on the tree's own statements (ground: a date to the day or a
-relationship counting double whatever its information class, a statement copied from the record's own original no ground) and nothing compared disagrees against an accepted value. A page anyone can edit (T4: a Find a Grave
+relationship counting double whatever its information class, a statement of any copy of the record, or of the same person's record of the same event from the same original, no ground) and nothing compared disagrees against an accepted value. A page anyone can edit (T4: a Find a Grave
 memorial, a WikiTree profile) identifies a person but never builds their facts: accepting it, by the owner or by the rule,
 writes the persona link and the memberships the page states, Undecided, and every fact the page types as an Undecided
 assertion; the rule takes such an identity on the name and three of birth day, death day, burial place, a stated parent or
@@ -54,6 +54,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
        tools/conclude.py merge "<duplicate>" --into "<person>" --note "…"          close a duplicate_person question: the duplicate's row stays, out of every listing
        tools/conclude.py resolve <question id> --keep <assertion id> --note "…"    close a conflict question: the event keeps that statement's date or place
        tools/conclude.py reopen <question id> --note "…"                           a conflict the rule resolved, taken back and yours from now on
+       tools/conclude.py copies <file>[@<number>] <file>[@<number>] --note "…"    two archived files (a listing's row by its number) one record on your word
+       tools/conclude.py apart <file>[@<number>] <file>[@<number>] --note "…"     two records on your word, above what code found: what one carried to the other given back
        common: [--tree slug] [--db catalog/tree.db] [--by user:<you>]
 
 - decide: a person's (or the rule's) decision on a proposal, with everything that follows from it; a command too, as is a
@@ -68,6 +70,10 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
   id, else its role, row and name), never to another row of the same name.
+- join_copies, carry, copies_on_word: one record is one source wherever it is held (docs/DATA-ARCHITECTURE.md §7 decision 15):
+  code's joins of two archived copies of one record (same_record), each decision carried to every copy's persona of its
+  entry, and the owner's word joining two copies or keeping two apart; record_self and copy_cards, the record under
+  decision as the rule counts it, once, and as every copy holds it.
 - decide_place: the owner's answer on a place string the resolver left undecided, which real place its words mean or that they are
   not a place, applied wherever the same words appear, and to every other string whose card offers the same places (the same
   question put another way), each its own audit row; --alone answers one string only.
@@ -80,7 +86,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
-from catalog import Catalog, current_entry, page_entries, source_tier, split_name, tier_sql
+from catalog import Catalog, current_entry, page_entries, persona_key, source_tier, split_name, tier_sql
 from catalog import ONCE, RECORD_FACTS, date_span, date_verdict, evidence_classes, fuller_date, holds, life_limits, parent_limit, place_verdict, record_kinds, record_original, record_standing, relation_classes, same_event, same_surname
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
@@ -119,14 +125,28 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()
     return False
 ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
 
-def record_keys(cx, sha):
+def record_keys(cx, sha, copies=()):
     """What identifies a record for a citation to name it: the record ids it holds (catalog.holds, its own apid first), its
-    memorial ids and its URL."""
-    a = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
-    apids = set(holds(cx, sha)) | ({a[1]} if a and a[0] == "apid" and a[1] else set())
-    memorials = {v for v, in cx.execute("SELECT value FROM artifact_locator WHERE artifact_sha256=? AND kind='memorial_id'", (sha,))}
-    urls = {a[1]} if a and a[0] == "url" and a[1] else set()
+    memorial ids and its URL, and the same of every other copy of the record given (same_record)."""
+    apids, memorials, urls = set(), set(), set()
+    for s in dict.fromkeys([sha, *copies]):
+        a = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (s,)).fetchone()
+        apids |= set(holds(cx, s)) | ({a[1]} if a and a[0] == "apid" and a[1] else set())
+        memorials |= {v for v, in cx.execute("SELECT value FROM artifact_locator WHERE artifact_sha256=? AND kind='memorial_id'", (s,))}
+        urls |= {a[1]} if a and a[0] == "url" and a[1] else set()
     return apids, memorials, urls
+
+def record_self(cx, tree_id, sha, persona_id, pid):
+    """What the record under decision is, for the rule's one-source test (ground, rests_elsewhere): copies, every file that is
+    a copy of it (same_record, the file itself among them); original, the words of the original its classes name
+    (catalog.record_original); year, its own year; and owners, the people it is the record of: the person under decision
+    when the persona is the record's own (no relation of its own to another persona on it), else the people accepted on its
+    own persons, on any copy."""
+    from catalog import copy_entry, record_copies, record_owners
+    shas = {c[0] for c in record_copies(cx, tree_id, *copy_entry(cx, persona_id))} | {sha}
+    own = not cx.execute("SELECT 1 FROM persona_relation WHERE persona_id=?", (persona_id,)).fetchone()
+    owners = {pid} if own and pid else set().union(*(record_owners(cx, tree_id, s) for s in shas))
+    return {"copies": shas, "original": record_original(cx, sha), "year": record_kinds(cx, sha)[1], "owners": owners}
 
 def cites_record(notes, keys):
     """Whether a statement's own citation (an imported claim's notes: its record id and URL) is the record these keys name."""
@@ -135,9 +155,9 @@ def cites_record(notes, keys):
     m = re.search(r"/memorial/(\d+)(?:/|$)", url)
     return bool((notes.get("apid") and notes["apid"] in apids) or (m and m.group(1) in memorials) or (url and url in urls))
 
-def rests_elsewhere(cx, eid, sha, axis, value, day=False, keys=None):
+def rests_elsewhere(cx, eid, sha, axis, value, day=False, keys=None, copies=()):
     """Whether the event's value that a record's value agrees with stands on some statement other than the record under
-    decision: a statement on the event that is not rejected, not the record's own and not a claim whose own citation is that
+    decision: a statement on the event that is not rejected, not the record's own (on any of its copies) and not a claim whose own citation is that
     record (docs/RESEARCH-WORKFLOW.md, the proof standard: such a claim never counts), giving a date (to the day, with day) or
     a place that agrees with value. A statement with no record fact of its own (the owner's word) stands for the event's own
     date and gives no place."""
@@ -146,7 +166,7 @@ def rests_elsewhere(cx, eid, sha, axis, value, day=False, keys=None):
     for r in q.execute("""SELECT a.artifact_sha256, a.notes, a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw
                           FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected'""", (eid,)):
-        if r["artifact_sha256"] == sha: continue
+        if r["artifact_sha256"] == sha or r["artifact_sha256"] in copies: continue
         try: notes = json.loads(r["notes"] or "{}")
         except ValueError: notes = {}
         if isinstance(notes, dict) and cites_record(notes, keys): continue
@@ -163,17 +183,28 @@ def coarser(note):
     county against a town)."""
     return (note or "").startswith("the record gives only")
 
-def ground(cx, tree_id, kind, ids, sha, original, axis=None, value=None, tree=None, without=()):
-    """The tree's statements the standing rule may stand on for one point about the record under decision (sha): accepted
-    assertions on these subjects (the event compared, or the memberships joining two people) resting on a trusted source
-    (T1–T3) or on the owner's own word (a vouch, or the file's uncited claim the owner accepted), never the record itself, a
-    claim whose own citation is it, or a statement copied from the same original (catalog.evidence_classes; original is the
-    record's own, record_original): records copied from one original are one source. With axis, the statement must give a
-    date or a place that agrees with value, a place at the level of the tree's own (tree), a vouch standing for the event's
-    own date and place. without: proposal ids whose assertions do not count (reconsider). Returns (statements, originals):
-    each statement {day: it gives value's very day, information: its information class in words, or the owner's own word},
-    and the originals whose statements were left out as one source with the record."""
-    q = _q(cx); keys = record_keys(cx, sha); cat = Catalog(cx, tree_id); out, shared = [], []
+def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, without=()):
+    """The tree's statements the standing rule may stand on for one point about the record under decision (sha; rec, what it
+    is: record_self): accepted assertions on these subjects (the event compared, or the memberships joining two people)
+    resting on a trusted source (T1–T3) or on the owner's own word (a vouch, or the file's uncited claim the owner accepted),
+    never the record itself on any of its copies (same_record: one record is one source wherever it is held), a claim whose
+    own citation is it, or a statement from the same original about the same person's same event: a record whose classes
+    name the same original (catalog.evidence_classes, record_original), the record of the same person (record_owners) and,
+    where both give one, of the same year, which the code cannot show to be another copy of it and still counts once with it
+    (two indexes of one certificate, two papers' obituaries of one death), never by the kind alone, which two people's
+    records share. With axis, the statement must give a date or a place that agrees with value, a place at the level of the
+    tree's own (tree), a vouch standing for the event's own date and place. without: proposal ids whose assertions do not
+    count (reconsider). Returns (statements, shared): each statement {day: it gives value's very day, information: its
+    information class in words, or the owner's own word}, and in words what was left out as one source with the record."""
+    from catalog import record_owners
+    q = _q(cx); keys = record_keys(cx, sha, rec["copies"]); cat = Catalog(cx, tree_id); out, shared = [], []
+    seen = {}
+    def same_original(s, c):
+        """Whether a statement's record (s), whose classes are c, is the same person's record of the same event as the one under decision."""
+        if not (rec["original"] and c and c.get("original") == rec["original"]): return False
+        if s not in seen: seen[s] = (record_owners(cx, tree_id, s), record_kinds(cx, s)[1])
+        owners, yr = seen[s]
+        return bool(owners & rec["owners"]) and (not yr or not rec["year"] or yr == rec["year"])
     skip = f"AND NOT (json_valid(a.notes) AND coalesce(json_extract(a.notes,'$.proposal'),'') IN ({','.join('?' * len(without))}))" if without else ""
     for sid in ids:
         for r in q.execute(f"""SELECT a.id, a.artifact_sha256, a.notes, a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw,
@@ -201,8 +232,9 @@ def ground(cx, tree_id, kind, ids, sha, original, axis=None, value=None, tree=No
                 if not raw or place_verdict(value, raw, dated_names=names)[0] != "agrees": continue
                 v, note = place_verdict(raw, tree, dated_names=names)
                 if v != "agrees" or coarser(note): continue             # a statement coarser than the tree's own place is no ground for it
+            if r["artifact_sha256"] in rec["copies"]: shared.append("another copy of this record"); continue
             c = None if notes.get("vouched") else evidence_classes(cx, r["id"])
-            if original and c and c.get("original") == original: shared.append(original); continue
+            if same_original(r["artifact_sha256"], c): shared.append(f"the {rec['original']}, the original this record was copied from"); continue
             out.append({"id": r["id"], "day": day, "information": "your own word" if word else (c or {}).get("information") or "indeterminable"})
     return out, list(dict.fromkeys(shared))
 
@@ -232,6 +264,141 @@ def same_personas(cx, persona_id):
     entries = page_entries(cx, sha)
     k = next(key for pid, _, _, _, key in entries if pid == persona_id)
     return [pid for pid, _, _, _, key in entries if key == k]
+
+# ---------------------------------------------------------------- one record, wherever it is held
+def _number(cx, persona_id, region_key, reading):
+    """(the number's digits, its year) a numbered entry gives its record (catalog.NUMBERS): the year the index files it under
+    ("14205 /1946"), else the year of the entry's own dated event, else the reading's record year."""
+    digits, _, filed = region_key[1].partition("/")
+    yr = filed.strip() or next((d[:4] for d, in cx.execute("""SELECT date_start FROM persona_fact WHERE persona_id=? AND fact_type IN ('Death','Birth','Marriage')
+                                                               AND length(date_start)>=4 AND coalesce(date_qualifier,'') NOT IN ('calculated','estimated') ORDER BY rowid""", (persona_id,))), None) \
+         or record_kinds(cx, cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()[0], reading)[1]
+    return re.sub(r"\D", "", digits).lstrip("0"), yr
+
+def join_copies(cx, sha, by, ts=None):
+    """Code's joins of one archived file to the other copies of its record (docs/DATA-ARCHITECTURE.md §7 decision 15,
+    same_record), each written once and shared by every tree: archived under one record id (an Ancestry apid or a
+    FamilySearch ark, the artifact's own or one artifact_locator gives it); one FamilySearch entry id on both readings (each
+    person of a FamilySearch record has one, so the bride's page and the groom's of one marriage are one record); one
+    certificate number of one year (a state index's line and the certificate's image whose reading gives the number), the
+    two numbered entries agreeing by name. A join by record id stands only where an entry of each current reading agrees with
+    one of the other's by name (catalog.entry_on), and code never joins a page anyone can edit to a record nobody can, nor a
+    row of a search's results, whose own record is the document (docs/RESEARCH-WORKFLOW.md §0). Returns the rows written:
+    (other sha256, basis, shared)."""
+    from catalog import NUMBERS, copy_entry, current_reading, entry_on, names_agree
+    q = _q(cx); ts = ts or now(); out = []
+    mine = current_reading(cx, sha)
+    if not mine: return out
+    tier = editable(cx, sha)
+    def known(a, b):
+        return q.execute("""SELECT 1 FROM same_record WHERE tree_id IS NULL AND ((a_sha256=? AND a_entry=? AND b_sha256=? AND b_entry=?) OR (a_sha256=? AND a_entry=? AND b_sha256=? AND b_entry=?))""",
+                         (*a, *b, *b, *a)).fetchone()
+    def write(a, b, basis, shared):
+        if a == b or known(a, b): return
+        q.execute("""INSERT INTO same_record (id,tree_id,a_sha256,a_entry,b_sha256,b_entry,same,basis,shared,decided_by,decided_at) VALUES (?,NULL,?,?,?,?,1,?,?,?,?)""",
+                  (ulid(), *a, *b, basis, shared, by, ts))
+        q.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
+                  (ulid(), ts, by, "insert", "same_record", a[0], dumps({"copy": a, "of": b, "basis": basis, "shared": shared})))
+        out.append((b[0], basis, shared))
+    ROWS = "coalesce(role_in_record,'')<>'result'"                 # a search's results row points at a record and is none
+    people = q.execute(f"SELECT id, name_text, role_in_record, sequence, region_json FROM persona WHERE extraction_id=? AND {ROWS} ORDER BY sequence, id", (mine,)).fetchall()
+    keyed = [(p, persona_key(p["role_in_record"], p["sequence"], p["name_text"], p["region_json"])) for p in people]
+    def other_reading(o):
+        r = current_reading(cx, o)
+        return r if r and o != sha and editable(cx, o) == tier else None
+    locs = {tuple(r) for r in q.execute("""SELECT locator_kind, locator_value FROM artifact WHERE sha256=? AND locator_kind IN ('apid','ark') AND locator_value IS NOT NULL
+                                           UNION SELECT kind, value FROM artifact_locator WHERE artifact_sha256=? AND kind IN ('apid','ark')""", (sha, sha))}
+    for kind, value in sorted(locs):
+        for o, in q.execute("""SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=? UNION SELECT artifact_sha256 FROM artifact_locator WHERE kind=? AND value=?
+                               ORDER BY 1""", (kind, value, kind, value)).fetchall():
+            theirs = other_reading(o)
+            if theirs and any(t and q.execute(f"SELECT 1 FROM persona WHERE id=? AND {ROWS}", (t,)).fetchone() for t in (entry_on(cx, p["id"], theirs) for p in people)):
+                write((sha, ""), (o, ""), "citation", f"{kind} {value}")
+    for p, k in keyed:
+        if k[0] == "ark":
+            for o, in q.execute("SELECT DISTINCT artifact_sha256 FROM persona WHERE region_json LIKE ? AND artifact_sha256<>? ORDER BY 1", (f"%{k[1].rsplit(':', 1)[-1]}%", sha)).fetchall():
+                theirs = other_reading(o)
+                hit = theirs and next((r for r in q.execute(f"SELECT name_text, role_in_record, sequence, region_json FROM persona WHERE extraction_id=? AND {ROWS}", (theirs,))
+                                       if persona_key(r["role_in_record"], r["sequence"], r["name_text"], r["region_json"]) == k), None)
+                if hit and names_agree(p["name_text"], hit["name_text"]): write((sha, ""), (o, ""), "entry", f"entry {k[1]}")
+        elif k[0] in NUMBERS:
+            digits, yr = _number(cx, p["id"], k, mine)
+            if not (digits and yr): continue
+            for o, in q.execute("SELECT DISTINCT artifact_sha256 FROM persona WHERE region_json LIKE ? AND artifact_sha256<>? ORDER BY 1", (f"%{digits}%", sha)).fetchall():
+                theirs = other_reading(o)
+                if not theirs: continue
+                for r in q.execute(f"SELECT id, name_text, role_in_record, sequence, region_json FROM persona WHERE extraction_id=? AND {ROWS}", (theirs,)).fetchall():
+                    rk = persona_key(r["role_in_record"], r["sequence"], r["name_text"], r["region_json"])
+                    if rk[0] in NUMBERS and _number(cx, r["id"], rk, theirs) == (digits, yr) and names_agree(p["name_text"], r["name_text"]):
+                        write(copy_entry(cx, p["id"]), copy_entry(cx, r["id"]), "number", f"number {digits} of {yr}")
+    return out
+
+def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
+    """A decision on one copy's entry of a record carried to every other copy's persona of that entry (docs/DATA-ARCHITECTURE.md
+    §7 decision 15): the record's copies (catalog.record_copies, every copy of a record the file or one of its rows is a copy
+    of), and on each the persona of the same entry (catalog.entry_on: its record id, else its name, a record's own person
+    being a page's subject and an image's deceased alike), every reading's persona of it taking the decision's link, under
+    the decision's own proposal, so a rejection or a withdrawal reaches it as it reaches the copy decided. An accepted one
+    asserts the copy's facts and family links onto the person as the decision did (assert_facts, write_name_alias,
+    link_family, the decision's own actor and proposal), so the reading of an image with no card of its own is decided with
+    the page. A link on a copy that carries the same decision follows its status; one a person or the rule decided otherwise
+    on that copy is never undone, and is said so. settle: the people whose evidence changed have their plans regenerated,
+    their conflicts gone over by the rule and their cards matched again, as a decision does (decide does that itself, so it
+    carries with settle off). Returns one row per link carried: tree, proposal, person, persona, copy, status, and kept for a
+    copy decided otherwise."""
+    from catalog import copy_entry, current_reading, entry_on, record_copies
+    q = _q(cx); ts = now(); rows = []
+    trees = trees or [t for t, in q.execute("SELECT id FROM tree ORDER BY id")]
+    nodes = [(sha, "")] + [tuple(n) for n in q.execute("""SELECT a_sha256, a_entry FROM same_record WHERE a_sha256=? AND a_entry<>'' UNION
+                                                          SELECT b_sha256, b_entry FROM same_record WHERE b_sha256=? AND b_entry<>''""", (sha, sha))]
+    def on_copy(node):
+        """The personas of a copy's current reading: the whole reading, or the one row a listing's copy is."""
+        r = current_reading(cx, node[0])
+        if not r: return r, []
+        ps = [p for p, in q.execute("SELECT id FROM persona WHERE extraction_id=? ORDER BY sequence, id", (r,))]
+        return r, ps if not node[1] else [p for p in ps if copy_entry(cx, p) == tuple(node)]
+    for tree_id in trees:
+        touched = {}
+        done = set()
+        for node in nodes:
+            copies = record_copies(cx, tree_id, *node)
+            if len(copies) < 2 or tuple(copies[0]) in done: continue
+            done.update(tuple(c) for c in copies)
+            readings = {c: on_copy(c) for c in copies}
+            for c in copies:
+                for p in readings[c][1]:
+                    for src in q.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at FROM person_persona pp JOIN person o ON o.id=pp.person_id
+                                            WHERE pp.persona_id=? AND o.tree_id=? AND pp.status IN ('accepted','rejected') AND pp.proposal_id IS NOT NULL""", (p, tree_id)).fetchall():
+                        for d in copies:
+                            if d == c or not readings[d][0]: continue
+                            target = entry_on(cx, p, readings[d][0])
+                            if not target or target not in readings[d][1]: continue
+                            had = q.execute("SELECT status, proposal_id FROM person_persona WHERE person_id=? AND persona_id=?", (src["person_id"], target)).fetchone()
+                            if had and had["status"] != "undecided" and had["proposal_id"] != src["proposal_id"]:
+                                if had["status"] != src["status"]: rows.append({"tree": tree_id, "proposal": src["proposal_id"], "person": src["person_id"], "persona": target, "copy": d[0], "status": src["status"], "kept": had["status"]})
+                                continue
+                            if had and had["status"] == src["status"] and had["proposal_id"] == src["proposal_id"]: continue
+                            rows.append({"tree": tree_id, "proposal": src["proposal_id"], "person": src["person_id"], "persona": target, "copy": d[0], "status": src["status"], "kept": None})
+                            if dry_run: continue
+                            for pe in same_personas(cx, target):
+                                old = q.execute("SELECT status, proposal_id FROM person_persona WHERE person_id=? AND persona_id=?", (src["person_id"], pe)).fetchone()
+                                if old and old["status"] != "undecided" and old["proposal_id"] != src["proposal_id"]: continue
+                                q.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)",
+                                          (src["person_id"], pe, src["status"], src["proposal_id"], src["decided_by"], src["decided_at"]))
+                            n = 0
+                            if src["status"] == "accepted":
+                                n = assert_facts(cx, tree_id, src["person_id"], target, src["proposal_id"], src["decided_by"], ts)[0]
+                                write_name_alias(cx, tree_id, src["person_id"], target, d[0], src["proposal_id"], src["decided_by"], ts)
+                                link_family(cx, tree_id, src["person_id"], target, d[0], src["proposal_id"], src["decided_by"], ts)
+                            q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                                      (ulid(), tree_id, ts, by, "update", "proposal", src["proposal_id"],
+                                       dumps({"carried": {"from": p, "to": target, "copy": d[0], "of": c[0]}, "status": src["status"], "person": src["person_id"], "assertions": n})))
+                            touched.setdefault(src["person_id"], src["proposal_id"])
+        if settle and touched and not dry_run:
+            for pid, prop in touched.items(): answer_questions(cx, tree_id, pid, prop, by)
+            rule_conflicts(cx, tree_id, by, people=list(touched))
+            rematch_people(cx, tree_id, by, list(touched))
+    return rows
 
 def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record
@@ -812,6 +979,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         if held_back:                                              # what the record states and the decision did not write, said in the decision itself
             note = "; ".join([note] + held_back) if note else "; ".join(held_back)
             q.execute("UPDATE proposal SET decision_note=? WHERE id=?", (note, prop_id))
+    if person_id: carry(cx, by, pay["artifact_sha256"], trees=[tree_id], settle=False)   # the decision is the record's: every other copy's persona of this entry takes it
     for pid in dict.fromkeys([person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"]):   # a spouse joined on the record: the marriage it dates is now on their family too
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
     released = release_household(cx, tree_id, person_id, pay["artifact_sha256"], by) if status == "rejected" and person_id and not identity else []   # a step the record held for this person is planned again
@@ -927,17 +1095,83 @@ def _on(statements):
     """What the statements a point stands on are, in words: primary information, secondary information, your own word."""
     return " and ".join(dict.fromkeys(s["information"] if s["information"] == "your own word" else f"{s['information']} information" for s in statements))
 
+def copy_cards(cx, tree_id, prop):
+    """A proposal as each copy of its record holds it (docs/DATA-ARCHITECTURE.md §7 decision 15): itself, then, for every
+    other copy (same_record), the same proposal with the persona of the same entry on that copy's current reading in its place
+    (catalog.entry_on), each with the file it stands on."""
+    from catalog import copy_entry, current_reading, entry_on, record_copies
+    pay = json.loads(prop["payload_json"]); out = [(prop, pay["artifact_sha256"])]
+    cur = current_entry(cx, pay["persona_id"]) or pay["persona_id"]
+    for c in record_copies(cx, tree_id, *copy_entry(cx, cur))[1:]:
+        r = current_reading(cx, c[0])
+        other = entry_on(cx, cur, r) if r else None
+        if other and (not c[1] or copy_entry(cx, other) == tuple(c)):
+            out.append(({**dict(prop), "payload_json": dumps({**pay, "persona_id": other, "artifact_sha256": c[0], "extraction_id": r})}, c[0]))
+    return out
+
+def copy_named(cx, text):
+    """A copy of a record as the owner names it: an archived file by its sha256 (or the first twelve or more of its characters)
+    or its file name, and a listing's one row by the number after @ (ky-death-index-1946-davidson.txt@14205). (sha256,
+    entry), or an error in words."""
+    from catalog import NUMBERS, copy_entry, current_reading
+    name, _, number = text.partition("@")
+    hits = [r[0] for r in cx.execute("SELECT sha256 FROM artifact WHERE sha256 LIKE ? OR original_filename=?", (name.lower() + "%" if re.fullmatch(r"[0-9a-fA-F]{12,64}", name) else "-", name))]
+    if len(hits) != 1: return f"{name}: {'no archived file' if not hits else str(len(hits)) + ' archived files'} by that name"
+    if not number: return (hits[0], "")
+    e = current_reading(cx, hits[0])
+    rows = [p for p, r, role, seq, region in cx.execute("SELECT id, name_text, role_in_record, sequence, region_json FROM persona WHERE extraction_id=?", (e,))
+            if persona_key(role, seq, r, region)[0] in NUMBERS and number in persona_key(role, seq, r, region)[1]] if e else []
+    return copy_entry(cx, rows[0]) if len(rows) == 1 else f"{text}: {'no row' if not rows else str(len(rows)) + ' rows'} of that number on the file's reading"
+
+def copies_on_word(cx, tree_id, a, b, same, by, note):
+    """The owner's word on two archived copies, in this tree only (same_record, basis owner), standing above anything code
+    found for the pair: one record (same), and every decision on either carried to the other (carry); or not one record, and
+    what a decision on one had carried to the other given back: the link on the copy and its statements under that decision
+    undecided again, the people's plans, conflicts and cards gone over again, and the copy matched again, its entry a card
+    for the owner or the rule's. a, b: (sha256, entry). Returns the rows carried, or the links given back."""
+    from catalog import current_reading, record_copies
+    q = _q(cx); ts = now()
+    q.execute("""INSERT INTO same_record (id,tree_id,a_sha256,a_entry,b_sha256,b_entry,same,basis,shared,decided_by,decided_at,notes) VALUES (?,?,?,?,?,?,?,'owner',NULL,?,?,?)""",
+              (ulid(), tree_id, *a, *b, 1 if same else 0, by, ts, note))
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+              (ulid(), tree_id, ts, by, "insert", "same_record", a[0], dumps({"copy": a, "of": b, "same": same, "note": note})))
+    if same: return carry(cx, by, a[0], trees=[tree_id])
+    back, people = [], {}
+    for x in (a, b):
+        mine = {c[0] for c in record_copies(cx, tree_id, *x)}
+        for pp in q.execute("""SELECT pp.person_id, pp.persona_id, pp.proposal_id, json_extract(p.payload_json,'$.artifact_sha256') AS on_sha FROM person_persona pp
+                               JOIN persona pe ON pe.id=pp.persona_id JOIN proposal p ON p.id=pp.proposal_id
+                               WHERE pe.artifact_sha256=? AND p.tree_id=? AND pp.status<>'undecided'""", (x[0], tree_id)).fetchall():
+            if pp["on_sha"] in mine: continue                       # a decision on this record's own copies stays
+            q.execute("UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE person_id=? AND persona_id=?", (pp["person_id"], pp["persona_id"]))
+            q.execute("UPDATE assertion SET status='undecided' WHERE tree_id=? AND artifact_sha256=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, x[0], pp["proposal_id"]))
+            back.append({"person": pp["person_id"], "persona": pp["persona_id"], "proposal": pp["proposal_id"], "copy": x[0]}); people.setdefault(pp["person_id"], pp["proposal_id"])
+    for pid, prop in people.items(): answer_questions(cx, tree_id, pid, prop, by)
+    if people: rule_conflicts(cx, tree_id, by, people=list(people)); rematch_people(cx, tree_id, by, list(people))
+    for sha in dict.fromkeys(b_["copy"] for b_ in back):           # the copy given back is matched again for the people it was given back from: its entry a card for the owner, or the rule's
+        match_record(cx, current_reading(cx, sha), by, about=list(dict.fromkeys(b_["person"] for b_ in back if b_["copy"] == sha)))
+    return back
+
 def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a proposal, and why, in words: (True, reason) or (False, why not), as
     docs/RESEARCH-WORKFLOW.md §5–7 states the rule ("The standing rule", and "What the rule counts" in the proof standard):
     the record taken on its points (rule_points), and then identity tested, not assumed (identity_refused): nobody else of
     the tree fits the persona as well, the person holds no other persona on this reading of the record, and nothing the
     record would add falls outside the person's life as accepted. A test that fails is a refusal with its reason, and the
-    card stays the owner's."""
-    ok, why = rule_points(cx, tree_id, prop, without)
-    if not ok: return ok, why
-    refused = identity_refused(cx, tree_id, prop, without)
-    return (False, refused) if refused else (True, why)
+    card stays the owner's. The record is every copy of it (copy_cards): it is taken on the points of the copy that earns
+    them, and refused when any copy's persona of the entry disagrees against an accepted value or fails the identity
+    tests, the reason naming that copy."""
+    cards = copy_cards(cx, tree_id, prop)
+    seen = [rule_points(cx, tree_id, p, without) for p, _ in cards]
+    on = lambda i: "" if not i else " (on " + (cx.execute("SELECT coalesce(original_filename, substr(sha256,1,12)) FROM artifact WHERE sha256=?", (cards[i][1],)).fetchone()[0]) + ", a copy of this record)"
+    taken = next((i for i, (ok, _) in enumerate(seen) if ok), None)
+    if taken is None: return seen[0]
+    veto = next((i for i, (ok, why) in enumerate(seen) if not ok and why.startswith("disagrees: ")), None)
+    if veto is not None: return False, seen[veto][1] + on(veto)
+    for i, (p, _) in enumerate(cards):
+        refused = identity_refused(cx, tree_id, p, without)
+        if refused: return False, refused + on(i)
+    return True, seen[taken][1] + on(taken)
 
 def rule_points(cx, tree_id, prop, without=()):
     """Whether the record of a proposal is one the standing rule takes on its points, and why, in words: (True, reason) or
@@ -1010,7 +1244,8 @@ def rule_points(cx, tree_id, prop, without=()):
         for c in relatives:
             fits, agree, disagree, absent, near = compare(cat, as_related, c, {persona["id"]: cand}, birth_place=False)   # a birth place, never a veto, never unfits a relative either: the rule's decisions do not turn on a finer place another decision brought
             if fits or (identity and _stands_for(cat, as_related, c, {persona["id"]: cand})): chosen[other["id"]] = c; fitted[other["id"]] = (agree, disagree); break
-    keys = record_keys(cx, sha)
+    rec = record_self(cx, tree_id, sha, persona["id"], pid)        # the record under decision, every copy of it one source with it
+    keys = record_keys(cx, sha, rec["copies"])
     def grounded(other_pid):
         """Whether the persona a stated relationship names earns the relationship its point: accepted on this record already,
         or standing for the tree's relative on something besides that relationship, a date or a place (an age is a birth
@@ -1024,9 +1259,9 @@ def rule_points(cx, tree_id, prop, without=()):
             field = next((f for f in FIELD_EVENT if a.startswith(f + " agrees")), None)
             if field:
                 et, axis, at = FIELD_EVENT[field]
-                if c["events"].get(et) and rests_elsewhere(cx, c["events"][et], sha, axis, other[at], keys=keys): return True
+                if c["events"].get(et) and rests_elsewhere(cx, c["events"][et], sha, axis, other[at], keys=keys, copies=rec["copies"]): return True
             elif a.startswith("residence place agrees"):
-                if any(e["place"] and place_verdict(other["residence place"], e["place"]["text"])[0] == "agrees" and rests_elsewhere(cx, e["id"], sha, "place", other["residence place"], keys=keys)
+                if any(e["place"] and place_verdict(other["residence place"], e["place"]["text"])[0] == "agrees" and rests_elsewhere(cx, e["id"], sha, "place", other["residence place"], keys=keys, copies=rec["copies"])
                        for e in cat.events(c["id"])): return True
             elif a.startswith("the same memorial"): return True
         return False
@@ -1047,9 +1282,9 @@ def rule_points(cx, tree_id, prop, without=()):
         day = lambda t: any(a.startswith(f"{t} date agrees") and "year only" not in a for a in agree)   # both sides a full date, the same day
         points, own = [], []                                       # own: what agrees only with the file's claim citing this very page, never a point
         for t, w, et in (("birth", "birth date to the day", "Birth"), ("death", "death date to the day", "Death")):
-            if day(t): (points if rests_elsewhere(cx, cand["events"][et], sha, "date", persona[t], day=True, keys=keys) else own).append(w)
+            if day(t): (points if rests_elsewhere(cx, cand["events"][et], sha, "date", persona[t], day=True, keys=keys, copies=rec["copies"]) else own).append(w)
         if any(a.startswith("burial place agrees") for a in agree):
-            (points if cand["events"].get("Burial") and rests_elsewhere(cx, cand["events"]["Burial"], sha, "place", persona["burial place"], keys=keys) else own).append("burial place")
+            (points if cand["events"].get("Burial") and rests_elsewhere(cx, cand["events"]["Burial"], sha, "place", persona["burial place"], keys=keys, copies=rec["copies"]) else own).append("burial place")
         named = set()
         for kind, other_pid, computed, other_name in relations:
             j = joined(kind, other_pid) if kind != "sibling" and not computed else None     # a stated parent or spouse counts here, never a sibling
@@ -1069,13 +1304,12 @@ def rule_points(cx, tree_id, prop, without=()):
         if unplaced: return True, f"a stated sibling: sibling {unplaced[1]}, already accepted on this record, and your tree holds no parents for {cand['name']}, so nothing contradicts it; the name and birth year agree, so the record's own name fact documents it, and they are placed beside {unplaced[1]} as a child of the same parents, undecided, where the tree holds those" + claim_note
         group, other_cand, other_name = rel
         return True, f"a claimed relationship: {REL_OF[group]} {other_name}, already accepted on this record, and your tree already links them so, claimed or accepted; the name and birth year agree, so the record's own name fact documents it" + claim_note
-    orig = record_original(cx, sha)                                # records copied from one original count once
     points, rel_points, left = [], [], []                          # points: (words, how many it counts); left: what agrees and earns nothing, said in the reason
-    one_source = lambda what, shared: left.append(f"{what}, which the tree holds only from the {' and the '.join(shared)}, the original this record was copied from")
+    one_source = lambda what, shared: left.append(f"{what}, which the tree holds only from {' and '.join(dict.fromkeys(shared))}")   # one record is one source wherever it is held, and the same person's record of one event counts once
     for t, et in (("birth", "Birth"), ("death", "Death")):
         line = next((a for a in agree if a.startswith(f"{t} date agrees")), None)
         if not line or not cand["events"].get(et): continue
-        gs, shared = ground(cx, tree_id, "event", [cand["events"][et]], sha, orig, axis="date", value=persona[t], without=without)
+        gs, shared = ground(cx, tree_id, "event", [cand["events"][et]], sha, rec, axis="date", value=persona[t], without=without)
         if not gs:
             if shared: one_source(f"the {t} date", shared)
             continue
@@ -1086,7 +1320,7 @@ def rule_points(cx, tree_id, prop, without=()):
         if not line or not cand["events"].get(et): continue
         coarse = re.search(r"the record gives only ([^;)]+)", line)
         if coarse: left.append(f"the {label}, which the record gives only as {coarse.group(1)}, coarser than the tree's {cand[label]}"); continue
-        gs, shared = ground(cx, tree_id, "event", [cand["events"][et]], sha, orig, axis="place", value=persona[label], tree=cand[label], without=without)
+        gs, shared = ground(cx, tree_id, "event", [cand["events"][et]], sha, rec, axis="place", value=persona[label], tree=cand[label], without=without)
         if gs: points.append((label, 1))
         elif shared: one_source(f"the {label}", shared)
     named, bare = set(), []                                        # a relative counts once, however many rows of the record relate the two: the stated row before one the indexer computed
@@ -1099,7 +1333,7 @@ def rule_points(cx, tree_id, prop, without=()):
         rows = [dumps([fid, who, r]) for fid, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
                                                                 WHERE fm.person_id=? AND fm.role=?""", (oc["id"], other_role, pid, role))
                 for who, r in ((pid, role), (oc["id"], other_role))]   # the membership that joins these two, read from either side: the child's under the parent, a partner's beside the other, a sibling's child row beside the other's
-        gs, shared = ground(cx, tree_id, "family_member", rows, sha, orig, without=without)
+        gs, shared = ground(cx, tree_id, "family_member", rows, sha, rec, without=without)
         pt = f"{REL_OF[group]} {other_name}"
         if computed: points.append((f"{pt}, once (the record's indexer, not the record, states it" + ("" if gs else "; a link the file claims") + ")", 1))
         elif gs:
@@ -2024,8 +2258,8 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
     n = q.execute("UPDATE assertion SET status='undecided' WHERE tree_id=? AND status='accepted' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id)).rowcount
     q.execute("UPDATE alias SET status='undecided' WHERE tree_id=? AND status='accepted' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?", (tree_id, prop_id))
     q.execute("UPDATE proposal SET status='undecided', decided_by=NULL, decided_at=NULL, decision_note=? WHERE id=?", (f"the rule took its decision back: {why}", prop_id))
-    ids = same_personas(cx, pay["persona_id"])                       # every reading's persona of this entry of the record, the re-reads' included
-    q.execute(f"UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE person_id=? AND persona_id IN ({','.join('?' * len(ids))})", (pay["person_id"], *ids))
+    ids = same_personas(cx, pay["persona_id"])                       # every reading's persona of this entry of the record, the re-reads' included, and every other copy's the decision was carried to
+    q.execute(f"UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE person_id=? AND (persona_id IN ({','.join('?' * len(ids))}) OR proposal_id=?)", (pay["person_id"], *ids, prop_id))
     q.execute("UPDATE research_question SET closed_reason='gap_gone', answered_by_proposal_id=NULL WHERE answered_by_proposal_id=?", (prop_id,))
     for pid in dict.fromkeys([pay.get("person_id"), pay.get("subject_person_id")]):
         if pid: plan_person(cx, tree_id, pid, by)
@@ -2129,8 +2363,9 @@ def superseded_lines(rows):
     return [f"card superseded, {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}" for x in rows if x["kind"] == "rematch"]
 
 def reconsider(cx, tree_id, by, dry_run=False):
-    """Every decision the rule made, in the order it took them, examined again as the rule stands now, on the ground that stood
-    before it: the assertions of that decision, of every rule decision after it and of every decision already withdrawn do not
+    """Every decision on one copy of a record carried first to every other copy the archive holds of it (carry: one record is
+    one source wherever it is held). Then every decision the rule made, in the order it took them, examined again as the rule
+    stands now, on the ground that stood before it: the assertions of that decision, of every rule decision after it and of every decision already withdrawn do not
     count, so each rests only on the owner's decisions and on earlier rule decisions that survived. The order is the second the
     decision was taken, then its accept row in the audit log (a ULID, minted in order to the millisecond, written as the decision
     takes effect: decide), the card's own id where no such row exists; within one second a card the rule took after one it
@@ -2144,10 +2379,18 @@ def reconsider(cx, tree_id, by, dry_run=False):
     taken back with the event's value restored, and every open conflict on an event's date or place resolved where the
     classes favour one side without doubt (classes_decide), the rest left to the owner with the reason; the cards of the
     people whose date or place that changed are matched again last (rematch_people). Returns one row per decision, per
-    card superseded or rewritten, per card and per conflict: kind (decision, rematch, rationale, card, resolution or
-    conflict), the person, kept or taken, why; a card's rows the proposal and the persona, a conflict's the question and
+    card superseded or rewritten, per card and per conflict, and per decision carried to a copy: kind (decision, rematch,
+    rationale, card, resolution, conflict or carried), the person, kept or taken, why; a card's rows the proposal and the persona, a conflict's the question and
     its line. A dry run examines the cards a run would leave: not the ones it would supersede."""
     q = _q(cx); ts = now(); out = []; gone = []
+    name = lambda pid: (q.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone() or {"display_name": "(a new person)"})["display_name"]
+    for sha, in q.execute("SELECT a_sha256 FROM same_record UNION SELECT b_sha256 FROM same_record ORDER BY 1").fetchall():   # a decision on one copy of a record is the record's: carried to every copy first
+        for c in carry(cx, by, sha, trees=[tree_id], dry_run=dry_run):
+            if not any(o["kind"] == "carried" and o["proposal"] == c["proposal"] and o["persona_id"] == c["persona"] for o in out):
+                out.append({"proposal": c["proposal"], "person": name(c["person"]), "persona": q.execute("SELECT name_text FROM persona WHERE id=?", (c["persona"],)).fetchone()["name_text"],
+                            "persona_id": c["persona"], "kind": "carried", "taken": not c["kept"],
+                            "why": (f"decided {c['status']} on another copy of the record; {q.execute('SELECT coalesce(original_filename, substr(sha256,1,12)) FROM artifact WHERE sha256=?', (c['copy'],)).fetchone()[0]} "
+                                    + (f"holds it {c['kept']} on a decision of its own, which stands" if c["kept"] else "takes it"))})
     known = {r["id"] for r in q.execute("SELECT id FROM research_question WHERE tree_id=? AND closed_reason='resolved' AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.by') LIKE 'rule:%'", (tree_id,))}
     rows = q.execute("""SELECT p.* FROM proposal p WHERE p.tree_id=? AND p.status='accepted' AND p.decided_by LIKE 'rule:%'
                         ORDER BY p.decided_at, coalesce((SELECT max(a.id) FROM audit_log a WHERE a.entity_kind='proposal' AND a.entity_id=p.id AND a.action='accept'), p.id), p.id""", (tree_id,)).fetchall()
@@ -2213,7 +2456,11 @@ def main():
     rs.add_argument("question"); rs.add_argument("--keep", required=True, help="the assertion id of the statement kept (tools/conclude.py facts lists them)"); rs.add_argument("--note", required=True, help="your reason, kept on the question and the audit row")
     ro = sub.add_parser("reopen", help="a conflict the rule resolved, taken back: the event's value as it was, the question open again and yours from now on")
     ro.add_argument("question"); ro.add_argument("--note", required=True, help="your reason, kept on the audit row")
-    for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv, rs, ro):
+    cp = sub.add_parser("copies", help="your word that two archived files (or a listing's row, file@number) are copies of one record: one citation, one decision, every decision on either carried to the other")
+    cp.add_argument("a"); cp.add_argument("b"); cp.add_argument("--note", required=True, help="what the two share of the record, kept on the row")
+    sp = sub.add_parser("apart", help="your word that two archived files are not copies of one record, above anything code found: what a decision on one carried to the other is given back")
+    sp.add_argument("a"); sp.add_argument("b"); sp.add_argument("--note", required=True, help="why they are two records, kept on the row")
+    for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv, rs, ro, cp, sp):
         x.add_argument("--tree"); x.add_argument("--db", default=DB); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
@@ -2282,6 +2529,17 @@ def main():
                 if st is None and eid is None: print(f"  {label:11} no claim"); continue
                 print(f"  {label[:60]:60} {st or '-':9}" + (f"  event:{eid}" if eid else ""))
                 for e in evidence_rows(cx, pid, field): print(f"      {e['id']} {e['status']:9} {e['tier'] or '-':5} {(e['citation'] or '')[:60]}" + (" (your own word)" if e["vouched"] else " (the file's uncited claim)" if e["uncited"] else "") + ("" if e["held"] else "  not held"))
+        elif a.cmd in ("copies", "apart"):
+            x, y = copy_named(cx, a.a), copy_named(cx, a.b)
+            for c in (x, y):
+                if isinstance(c, str): raise SystemExit(c)
+            if x == y: raise SystemExit("one copy named twice")
+            rows = copies_on_word(cx, tree_id, x, y, a.cmd == "copies", a.by, a.note)
+            print(f"{a.a} and {a.b}: " + ("one record on your word" if a.cmd == "copies" else "two records on your word"))
+            for r_ in rows:
+                who = cx.execute("SELECT display_name FROM person WHERE id=?", (r_["person"],)).fetchone()[0]
+                print("   ", (f"carried: {who} on {r_['copy'][:12]}, {r_['status']}" + (f", kept {r_['kept']} as decided there" if r_.get("kept") else "")) if a.cmd == "copies"
+                      else f"given back: {who} on {r_['copy'][:12]}, undecided again")
         elif a.cmd == "reconsider":
             rows = reconsider(cx, tree_id, a.by, dry_run=a.dry_run)
             for x in rows:
@@ -2289,13 +2547,15 @@ def main():
                     verdict = ("kept" if x["kept"] else "would take back" if a.dry_run else "taken back") if x["kind"] == "resolution" \
                               else ("would resolve" if a.dry_run else "resolved") if x["taken"] else "left to you"
                     print(f"{verdict:19} {x['person']} [{x['question'][-6:] if x['question'] else 'no question yet'}] {x['detail']}: {x['why']}"); continue
-                verdict = ("kept" if x["kept"] else "would withdraw" if a.dry_run else "withdrawn") if x["kind"] == "decision" \
+                verdict = ("would carry" if a.dry_run else "carried") if x["kind"] == "carried" and x["taken"] else "kept apart" if x["kind"] == "carried" \
+                          else ("kept" if x["kept"] else "would withdraw" if a.dry_run else "withdrawn") if x["kind"] == "decision" \
                           else ("would supersede" if a.dry_run else "superseded") if x["kind"] == "rematch" \
                           else ("would rewrite" if a.dry_run else "rewritten") if x["kind"] == "rationale" \
                           else ("would take" if x["taken"] and a.dry_run else "taken" if x["taken"] else "refused")
                 print(f"{verdict:19} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
             if not rows: print("the rule has made no decision in this tree, and no card or conflict waits")
-            else: print(f"{sum(1 for x in rows if x['kind'] == 'decision')} decision(s) examined, {sum(1 for x in rows if x['kind'] == 'rematch')} card(s) {'it would supersede' if a.dry_run else 'superseded'} and their records matched again, "
+            else: print(f"{sum(1 for x in rows if x['kind'] == 'carried' and x['taken'])} decision(s) {'it would carry' if a.dry_run else 'carried'} to another copy of their record, "
+                        f"{sum(1 for x in rows if x['kind'] == 'decision')} decision(s) examined, {sum(1 for x in rows if x['kind'] == 'rematch')} card(s) {'it would supersede' if a.dry_run else 'superseded'} and their records matched again, "
                         f"{sum(1 for x in rows if x['kind'] == 'rationale')} rationale(s) {'it would rewrite' if a.dry_run else 'rewritten'}, "
                         f"{sum(1 for x in rows if x['kind'] == 'card' and x['taken'])} card(s) {'it would take' if a.dry_run else 'taken'}, "
                         f"{sum(1 for x in rows if x['kind'] == 'card' and not x['taken'])} refused, "

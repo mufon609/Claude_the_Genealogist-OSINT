@@ -21,6 +21,10 @@ Write each person the record names as one persona:
   the `age` and the record's `year` and leave `birth_date` empty: the path writes the
   birth as calculated from them (qualifier `calculated`, so the matcher allows two
   years). A date the record itself states goes in `birth_date`, never marked calculated.
+- **The record's own number.** `number`, on the persona the record is about, when the
+  record gives itself one (a certificate's state file number, a register's entry number),
+  as written: it is what tells another copy of the same record (a state index's line) it
+  is this one.
 - **The relation to the head.** The relationship the record states, in its own words,
   from this person toward a persona already written on the same record
   (`relations`: the `persona_id`, the `kind`, the words as `text`). Write the head first.

@@ -449,6 +449,22 @@ def match(cx, eid, by, about=None):
                (ulid(), ts, by, "insert", "proposal", eid, dumps({"proposals": len(written)})))
     return written
 
+def on_another_copy(cx, tree_id, persona_id, ignore=()):
+    """Whether a persona's entry of its record is proposed or decided on another copy of the record (same_record,
+    catalog.entry_on): one record is one source wherever it is held (docs/DATA-ARCHITECTURE.md §7 decision 15), so its entry
+    is put to the owner once, and a decision on it reaches every copy (conclude.carry). ignore: proposal ids taken as not
+    written."""
+    from catalog import copy_entry, current_reading, entry_on, record_copies
+    copies = record_copies(cx, tree_id, *copy_entry(cx, persona_id))
+    unless = f" AND p.id NOT IN ({','.join('?' * len(ignore))})" if ignore else ""
+    for sha, _ in copies[1:]:
+        r = current_reading(cx, sha)
+        other = entry_on(cx, persona_id, r) if r else None
+        if other and (cx.execute("SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND o.tree_id=? AND pp.status<>'undecided'", (other, tree_id)).fetchone()
+                      or cx.execute("SELECT 1 FROM proposal p WHERE p.tree_id=? AND json_extract(p.payload_json,'$.persona_id')=? AND NOT (p.status='rejected' AND p.decision_note='superseded')" + unless,
+                                    (tree_id, other, *ignore)).fetchone()): return True
+    return False
+
 def proposals(cx, eid, about=None, ignore=()):
     """What the matcher proposes on an extraction as the catalog stands, written by match and by nothing else: one dict per
     persona it proposes, in the page's order, {tree_id, persona_id, name, kind, person_id (None for a new person),
@@ -506,6 +522,7 @@ def proposals(cx, eid, about=None, ignore=()):
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')" + unless, (tree_id, pr["id"], *ignore)).fetchone(): continue   # proposed already, unless that proposal was superseded
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=? AND pp.status<>'undecided'", (pr["id"], tree_id)).fetchone(): continue   # decided already, accepted or rejected (a link carried across a re-extraction); an undecided link is no decision: one the rule took back, whose older card a newer matcher superseded, is proposed again
+            if on_another_copy(cx, tree_id, pr["id"], ignore): continue   # its entry on another copy of the record is proposed or decided there: one record, one decision
             if subject_role and pr["role"] != subject_role: continue   # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
             if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
                 continue                                          # a row on a results page that is itself the record, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card

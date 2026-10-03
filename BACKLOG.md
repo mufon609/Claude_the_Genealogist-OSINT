@@ -486,38 +486,6 @@ the model, with a person where the image is in doubt), which the queue counts as
 work a turn can do. Show it on a real image the harness holds, then read the
 seven live and decide them like Helen's and Frederick's.
 
-### C25. One record is one source, wherever it is held
-
-`docs/DATA-ARCHITECTURE.md` §7 decision 15 (the owner: "if you find the same
-source on multiple sites it should still be 1 citation on the profile with
-multiple sources"). The catalog has no record above the archived file: each copy
-(a FamilySearch index page, the image, a state index's line) is its own
-artifact with its own reading, cards, decisions and statements, the person
-screen lists every statement apart (`facts.evidence_rows`), and the only "same
-record" is `original` in `data/evidence-classes.csv`, named by kind and year
-("death certificate"), which two different documents share: the rule's
-one-original test reads a parent's birth register beside the child's as one
-source, and two obituaries of one person in two papers as one.
-
-Give a record an identity of its own in the evidence layer, insert-only like
-the rest: a record row, and each archived copy joined to it on what the copies
-share of the record itself (the citation they were archived under, a
-certificate or file number a reading gives, the same entry by role and name),
-read by code where it can be and on the owner's word otherwise, never by kind
-alone. Then: the profile and `tools/proof.py` cite each record once with its
-copies beneath it; a decision on one copy's entry is recorded on the record's
-entry and carries to every copy's persona of it, so the reading of an image
-with no card of its own is decided with the page; the rule counts a record once
-by that identity (`conclude.ground`'s one-original test) and reads each copy's
-statements as statements of the record; the reader's role words map to one
-role for the record's own person (`subject` on a page, `deceased` on an image).
-Show it on John Y Davidson's 1946 Kentucky death certificate, held as
-FamilySearch's index page (`familysearch-kentucky-deaths-1946-N983-M2R.html`,
-the death as 1946, accepted as his) and as the certificate's image read by the
-model (`familysearch-kentucky-death-records-1946-N983-M2R.jpg`, 11 Jun 1946),
-both archived under the file's citation `1,3077::604036`: one record, its day
-of death the certificate's own, his death date conflict decided on it.
-
 ### C27. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the

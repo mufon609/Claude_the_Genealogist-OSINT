@@ -736,6 +736,87 @@ def current_entry(cx, persona_id):
     k = persona_key(row[2], row[3], row[4], row[5])
     return next((pid for pid, _, _, _, key in page_entries(cx, row[1], eid) if key == k), None)
 
+# ---------------------------------------------------------------- one record, wherever it is held
+NUMBERS = ("state_file_number", "number")         # a persona_key that is the number a record gives itself (a certificate's, a state file's)
+OWN_ROLES = ("subject", "deceased", "principal", "self")   # the words readers give a record's own person: a page's subject, an image's deceased
+
+def current_reading(cx, sha):
+    """The current reading of an archived file (the latest extraction not superseded, not failed), or None."""
+    r = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND status<>'failed' AND superseded_by IS NULL ORDER BY ran_at DESC, id DESC LIMIT 1", (sha,)).fetchone()
+    return r[0] if r else None
+
+def copy_entry(cx, persona_id):
+    """The copy of a record a persona stands on (docs/DATA-ARCHITECTURE.md §7 decision 15, same_record): (sha256, entry),
+    entry '' for the whole file, or, on a listing that holds many records each under its own number (a state index's lines),
+    the row's persona_key as JSON."""
+    row = cx.execute("SELECT artifact_sha256, extraction_id, role_in_record, sequence, name_text, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
+    if not row: return None
+    k = persona_key(*row[2:])
+    if k[0] in NUMBERS and sum(1 for *_, key in page_entries(cx, row[0], row[1]) if key[0] in NUMBERS) > 1: return (row[0], json.dumps(list(k)))
+    return (row[0], "")
+
+def joined_copies(cx, tree_id, node):
+    """The copies same_record joins directly to one copy (sha256, entry) in a tree: code's joins, shared by every tree, and the
+    owner's word in this tree, which stands above code's on the same pair, the latest of it last."""
+    word = {}
+    for a, ae, b, be, same, t in cx.execute("""SELECT a_sha256, a_entry, b_sha256, b_entry, same, tree_id FROM same_record
+                                               WHERE ((a_sha256=? AND a_entry=?) OR (b_sha256=? AND b_entry=?)) AND (tree_id IS NULL OR tree_id IS ?)
+                                               ORDER BY tree_id IS NOT NULL, decided_at, id""", (*node, *node, tree_id)):
+        other = (b, be) if (a, ae) == tuple(node) else (a, ae)
+        if t is None: word.setdefault(other, bool(same))
+        else: word[other] = bool(same)
+    return [o for o, same in word.items() if same]
+
+def record_copies(cx, tree_id, sha, entry=""):
+    """Every copy of the record one copy is of, itself first: [(sha256, entry)], joined to it by same_record directly or
+    through another copy. A file joined to nothing is a record of its own."""
+    seen, todo = [(sha, entry)], [(sha, entry)]
+    while todo:
+        for o in joined_copies(cx, tree_id, todo.pop()):
+            if o not in seen: seen.append(o); todo.append(o)
+    return seen
+
+def record_of(cx, tree_id, sha, persona_id=None):
+    """The record a file, or one persona's entry on it, is a copy of, as one key that groups its statements and is never
+    shown: the copy (sha256, entry) that sorts first."""
+    return min(record_copies(cx, tree_id, *(copy_entry(cx, persona_id) if persona_id else (sha, ""))))
+
+def names_agree(a, b):
+    """Whether two names as written are one person's name on one record: the same letters (Y J and Y.J.), or the same first
+    given name and a surname written alike or as a spelling variant, middle names agreeing as written or as an initial
+    where both give one (John Y and John Young)."""
+    if key(a) and key(a) == key(b): return True
+    (ga, sa, _), (gb, sb, _) = split_name(a), split_name(b)
+    wa, wb = [key(w) for w in (ga or "").split() if key(w)], [key(w) for w in (gb or "").split() if key(w)]
+    if not (wa and wb and wa[0] == wb[0] and same_surname(key(sa), key(sb))): return False
+    ma, mb = wa[1:], wb[1:]
+    return not (ma and mb) or any(x == y or (len(x) == 1 and y.startswith(x)) or (len(y) == 1 and x.startswith(y)) for x in ma for y in mb)
+
+def entry_on(cx, persona_id, extraction_id):
+    """The persona of the same entry of a record on another copy's reading, or None: the one of the same record id (an ark,
+    a number), else the one there whose name agrees (names_agree), the role words two readers give one person being their
+    own (a page's subject, an image's deceased); where two there agree on the name, the one of the same role, a record's own
+    person's words (OWN_ROLES) read as one. A sex both give that differs is no entry of the person."""
+    me = cx.execute("SELECT name_text, role_in_record, sequence, region_json, sex FROM persona WHERE id=?", (persona_id,)).fetchone()
+    if not me: return None
+    k = persona_key(me[1], me[2], me[0], me[3])
+    there = cx.execute("SELECT id, name_text, role_in_record, sequence, region_json, sex FROM persona WHERE extraction_id=? ORDER BY sequence, id", (extraction_id,)).fetchall()
+    if is_identity(k):
+        same = [r[0] for r in there if persona_key(r[2], r[3], r[1], r[4]) == k]
+        if same: return same[0]
+    fits = [r for r in there if names_agree(me[0], r[1]) and not (me[4] in ("M", "F") and r[5] in ("M", "F") and me[4] != r[5])]
+    role = lambda w: "own" if (w or "").lower() in OWN_ROLES else (w or "").lower()
+    if len(fits) > 1: fits = [r for r in fits if role(r[2]) == role(me[1])]
+    return fits[0][0] if len(fits) == 1 else None
+
+def record_owners(cx, tree_id, sha):
+    """The people of a tree accepted on a record's own persons in its current reading: the personas no relation of theirs ties
+    to another (catalog.Catalog.is_subject), a listing's every row."""
+    e = current_reading(cx, sha)
+    return {r[0] for r in cx.execute("""SELECT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
+                                        WHERE pe.extraction_id=? AND pp.status='accepted' AND p.tree_id=?
+                                        AND NOT EXISTS (SELECT 1 FROM persona_relation r WHERE r.persona_id=pe.id)""", (e, tree_id))} if e else set()
+
 # ---------------------------------------------------------------- the proof standard's classes, in words
 EVIDENCE = None                                  # data/evidence-classes.csv, read once per process by evidence_table
 INDIRECT_DATES = ("calculated", "estimated", "before", "after")   # a date the reading worked out or bounded from another field: the record does not state it
@@ -941,7 +1022,7 @@ class Catalog:
         value of the divorce); place is compared with Catalog.place_verdict, as the place its words are resolved to when they
         are (Auburn, Kentucky is in Logan County), so a coarser or finer record, or one naming a dated former name, agrees
         rather than disagreeing, and two statements that are each a part of the event's own place are no disagreement between themselves (a death index's state and an obituary's town, written without the state, are parts of one place). A record cited under two collection names but one locator (the same certificate indexed
-        twice) is one statement, not two, and "the file" is the imported file alone. Statements whose values all agree with
+        twice, an index page and the certificate's image: same_record) is one statement, not two, and "the file" is the imported file alone. Statements whose values all agree with
         one another (among only those already found disagreeing with something) are grouped as one side, so six comparisons
         that all turn on the same 11th-against-10th read as one question, not six, while a coarse statement agreeing with two
         that differ (a county holding two towns) joins neither to the other. The tree's value is never changed by a record; the
@@ -965,17 +1046,19 @@ class Catalog:
             tree_place = place_now["text"] if place_now else None
             kind = e[1].lower()
             rows = self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)),
-                                    ar.locator_value, a.status, a.id, ar.sha256 IN (SELECT artifact_sha256 FROM tree_import), CASE WHEN ps.status='accepted' THEN ps.place_id END
+                                    ar.locator_value, a.status, a.id, ar.sha256 IN (SELECT artifact_sha256 FROM tree_import), CASE WHEN ps.status='accepted' THEN ps.place_id END,
+                                    ar.sha256, pf.persona_id
                              FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                              JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                              WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND pf.fact_type=? ORDER BY a.asserted_at, a.id""", e[0], e[1])
-            groups, order = {}, []                            # one group per record identity (its locator), whatever collection name cites it
+            groups, order = {}, []                            # one group per record (record_of: its copies wherever they are held), whatever collection name cites it
             for f in rows:
-                gk = f[5] or f[7]
+                gk = record_of(self.cx, self.tree_id, f[10], f[11])
                 if gk not in groups:
                     groups[gk] = {"collections": [], "locator": f[5], "is_file": bool(f[8]), "status": "undecided", "date": None, "place": None, "place_cmp": None, "state": None}
                     order.append(gk)
                 g = groups[gk]
+                g["locator"] = g["locator"] or f[5]
                 if f[4] and f[4] not in g["collections"]: g["collections"].append(f[4])
                 if (f[0] is not None or f[1] is not None) and len(f[1] or "") > len(g["date"][1] if g["date"] else ""): g["date"] = (f[0], f[1], f[2])  # the same record's own most specific date wins (a full date over a bare year)
                 if f[3] is not None and g["place"] is None: g["place"] = f[3]; g["place_cmp"] = self._place_chain(f[9])["text"] if f[9] else f[3]   # compared as the place its words are resolved to, when they are: Auburn, Kentucky is in Logan County

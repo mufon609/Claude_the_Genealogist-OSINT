@@ -781,8 +781,11 @@ file as it stood at the reading. The reader is the actor of everything the
 reading writes, the matcher's proposals included. Every persona carries a
 `line` or a `bbox` on the image (refused without one, the refusal naming the
 persona), and the extraction keeps what the image is, `image_is`: `record`, the
-record made at the event, or `index`, an index or abstract of it. A refused
-reading writes nothing.
+record made at the event, or `index`, an index or abstract of it. The number the
+record gives itself (a certificate's state file number) is written as `number` on
+the persona it is the record of, and joins the image to another copy giving the
+same number of the same year (a state index's line). A refused reading writes
+nothing.
 
 `tools/match.py` runs on every extraction as it is written, one person at a
 time. For each person whose step the record fulfils, every persona is
@@ -858,7 +861,21 @@ is plain words, which fields agree, which disagree, which are absent; no score
 is stored or shown. A proposal carries the step's question when the step has
 one, so it **answers a question**: "Is the James Ahearn in this 1870 household
 Thomas's father?" Review happens on the person's screen, on the held record.
-The decision is about the document: is this record's persona this person.
+The decision is about the document: is this record's persona this person. A
+record is every copy the archive holds of it (`docs/DATA-ARCHITECTURE.md` §7
+decision 15, `same_record`: FamilySearch's index page, the image, a state
+index's line), so its entry is put to the owner once, on whichever copy first
+carried a card for it; a decision on any copy's entry carries to every copy's
+persona of that entry under the one decision (`conclude.carry`: the link, the
+copy's facts and family links, as the decision wrote them on the copy decided),
+the reading of an image with no card of its own decided with the page, and a
+rejection or a withdrawal reaches every copy the same way. A copy decided
+otherwise on its own, by a person or the rule, keeps its own decision. The rule
+judges the record as every copy holds it: taken on the points of the copy that
+earns them, refused when any copy's persona of the entry disagrees against an
+accepted value or fails the identity tests. A copy archived after the decision
+takes it as it is read, and `tools/conclude.py reconsider` carries every
+decision to every joined copy first.
 Accepting writes the persona link Accepted and an Accepted assertion from each
 fact the record states to the person: Name and Sex assert the person; a fact
 about the record or the page (its id, an age at death) asserts nothing; every
@@ -1063,7 +1080,8 @@ name alias the rule wrote rejected. A proposal the rule does not take is a card 
 with the reason it was not taken. The rule creates a person only as above,
 through the fitting check; every other `new_person` proposal is a card for
 the owner. The rule
-can take a decision back: `tools/conclude.py reconsider` examines every
+can take a decision back: `tools/conclude.py reconsider`, once it has carried
+every decision to every copy of its record (above), examines every
 decision it made, in the order the rule took them (the second it decided, then
 its accept row in the audit log, which `decide` writes as the decision takes
 effect), as the rule stands now and on the ground that stood before it (its own
@@ -1150,7 +1168,8 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   relationship whether the record states it or the indexer computed it (a
   census states each person's relationship to the head; FamilySearch's
   "mother" and "sister" groupings are its own), with the original a
-  derivative comes from, so records copied from one original are one source
+  derivative comes from, the words a record is named by. Which files are copies
+  of one record is `same_record`'s, never those words alone
   (`docs/DATA-ARCHITECTURE.md` §7 decision 15: one record, cited once, its copies
   beneath it).
   The table is `data/evidence-classes.csv`, read when needed; a class never
@@ -1169,9 +1188,13 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   indexer computed counts once at most, is never an obituary's survivor and
   never an accepted family link. A place the record gives coarser than the
   tree's own (a state or a county against a town) agrees, is said in the
-  reason, and earns nothing. Records
-  copied from one original count once: a statement from the same original as
-  the record under decision is no ground for its point. A stated relationship
+  reason, and earns nothing. A record
+  counts once wherever it is held: a statement from any copy of the record
+  under decision (`same_record`) is no ground for its point, nor is one from a
+  record of the same original about the same person's same event that the code
+  cannot show to be its copy (the state's index line and FamilySearch's index of
+  one certificate, two papers' obituaries of one death: the owner's ruling,
+  count once), never one from another person's record of the same kind. A stated relationship
   counts only when the related persona is accepted on the record or fits its
   tree relative on something besides that relationship (a couple's index
   entry, two names and a date, takes neither of them); a link the file alone
@@ -1202,8 +1225,8 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   rows, each held, searched with nothing found at every source, cited and not
   yet fetched, or blocked. It is stated with the conclusion, not a gate.
 - **The written conclusion.** `tools/proof.py "<person>"` writes, for each
-  key fact, the value, the evidence grouped by original record with its class
-  words and its citation, what agrees, each conflict with its question id (the
+  key fact, the value, the evidence, each record once with its copies beneath
+  it, with its class words and its citation, what agrees, each conflict with its question id (the
   one `tools/conclude.py resolve` and `reopen` take) and how it was resolved,
   the research by row, and who decided; a fact resting on indirect evidence or
   an open conflict says that an argument is still owed. An open conflict on an

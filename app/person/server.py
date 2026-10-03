@@ -25,7 +25,7 @@ from log_search import dismiss as dismiss_question, log as log_search, rendered_
 from extract import Writer
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
-from conclude import decide as decide_document, living, match_record, record_says, rule_conflict_decisions, rule_conflict_line
+from conclude import carry, decide as decide_document, join_copies, living, match_record, record_says, rule_conflict_decisions, rule_conflict_line
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
 from overview import overview, people, person_card
 from resolve_places import place_groups
@@ -146,14 +146,16 @@ def model_version(model_id):
 
 def place_on_image(body):
     """The region of a persona on the image, from the form's `line` (counted from the top of the page, from 1) and `bbox`
-    ([x, y, width, height] in the image's pixels), with `page` when the image holds more than one: {"label": "transcription",
-    "line"?, "bbox"?, "page"?}; None when the form gives neither a line nor a bbox."""
+    ([x, y, width, height] in the image's pixels), with `page` when the image holds more than one, and the record's own `number`
+    (a certificate's state file number) on the persona it is the record of: {"label": "transcription", "line"?, "bbox"?,
+    "page"?, "number"?}; None when the form gives neither a line nor a bbox."""
     region = {"label": "transcription"}; line, bbox, page = body.get("line"), body.get("bbox"), body.get("page")
     if re.fullmatch(r"[0-9]+", str(line).strip()) and int(line) > 0: region["line"] = int(line)
     if isinstance(bbox, (list, tuple)) and len(bbox) == 4 and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in bbox) \
        and min(bbox) >= 0 and bbox[2] > 0 and bbox[3] > 0: region["bbox"] = list(bbox)
     if len(region) == 1: return None
     if re.fullmatch(r"[0-9]+", str(page).strip()) and int(page) > 0: region["page"] = int(page)
+    if str(body.get("number") or "").strip(): region["number"] = str(body["number"]).strip()   # the number the record gives itself, on the persona it is the record of: what joins the image to another copy of the record (same_record)
     return region
 
 def transcribe(cx, sha, body, by=None, about=None):
@@ -209,6 +211,7 @@ def transcribe(cx, sha, body, by=None, about=None):
             w.relation(pid, r["persona_id"], r.get("kind") or "other", (r.get("text") or "").strip() or None, "transcription")
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, reader, "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
+    join_copies(cx, sha, reader, ts); carry(cx, reader, sha)      # the image is a copy of a record the archive may hold already: its persona takes the decision made there
     written, taken = match_record(cx, eid, reader, about=about)
     return {"ok": True, "extraction": eid, "persona": pid, "proposals": len(written), "accepted_by_rule": len(taken)}
 

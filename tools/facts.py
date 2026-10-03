@@ -8,7 +8,7 @@ regenerates the person's plan.
 """
 import json, re
 from treelib import dumps, now, ulid
-from catalog import fetch_target, held_for, holdings, tier_sql
+from catalog import fetch_target, held_for, holdings, record_of, tier_sql
 from conclude import answer_questions, rematch_people
 
 KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
@@ -38,10 +38,15 @@ def fact_status(cx, pid, field):
     return "undecided"
 
 def evidence_rows(cx, pid, field):
+    """The statements behind one key fact as the person screen shows them, each with the record it is a statement of: record,
+    the key of that record (catalog.record_of: one record is one source wherever it is held, so the screen cites it once
+    with its copies beneath), the same for every copy of it."""
     hs = holdings(cx)
     out = []
+    tree_id = cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0]
     for k, i in fact_subjects(cx, pid, field):
-        for r in cx.execute(f"""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, {tier_sql()} AS trust_tier FROM assertion a
+        for r in cx.execute(f"""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, {tier_sql()} AS trust_tier,
+                                       coalesce((SELECT persona_id FROM persona_fact WHERE id=a.persona_fact_id), a.persona_id) AS persona FROM assertion a
                                LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id WHERE a.subject_kind=? AND a.subject_id=?""", (k, i)):
             n = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
             apid = n.get("apid"); uncited = bool(n.get("uncited")); vouched = bool(n.get("vouched"))
@@ -51,7 +56,9 @@ def evidence_rows(cx, pid, field):
                 loc = cx.execute("SELECT locator_value, manifest_json FROM artifact WHERE sha256=?", (r["artifact_sha256"],)).fetchone()
                 m = re.search(r"scheduleId\W+(\d+)", (loc["locator_value"] or "") + " " + (loc["manifest_json"] or "")) if loc else None
                 ident = f"schedule {m.group(1)}" if m else ""
+            rec = record_of(cx, tree_id, r["artifact_sha256"], r["persona"]) if r["artifact_sha256"] else None
             out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid, "sha256": r["artifact_sha256"], "ident": ident,
+                        "record": f"{rec[0]}{rec[1]}" if rec else None,
                         **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": visible})
     return out
 

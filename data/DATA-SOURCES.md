@@ -113,7 +113,9 @@ transcript; authored: a compiled genealogy, a memorial page, a family tree), the
 (primary: from someone with first-hand knowledge, the record's own event; secondary: the rest; indeterminable), and the
 **evidence** (direct: the field states the fact; indirect: it is worked out from something else). A family link's
 statement is also **stated** by the record or **computed** by its indexer, and a derivative names the **original** it was
-copied from, so records copied from one original count as one source. A T2 index can hold primary information (a birth
+copied from: the words a record is named by in a proof. Which files are copies of one record is `same_record`'s
+(`docs/DATA-ARCHITECTURE.md` §7 decision 15), never the original's words alone, which two people's records share; the rule
+counts once a record of the same original about the same person's same event. A T2 index can hold primary information (a birth
 register's own birth) and a T1 image secondary (the age on a census page): the two scales answer different questions.
 
 One row per record kind and field: `kind`, `field`, `reads_as`, `standing`, the five classes, and `notes`. A record reads

@@ -357,6 +357,15 @@ def a_withdraw(w, x):
     for i in ids: withdraw(w.cx, w.tid, i, x.get("by", BY), x.get("why", "harness: taken back"), w.treelib.now())
     return {"card": ids[0] if len(ids) == 1 else None, "cards": ids}
 
+def a_copies(w, x):
+    """The owner's word on two archived copies through tools/conclude.py's copies_on_word: `a` and `b` bound records (a
+    listing's row as {record, number}), `same` true for one record and false for two, `note`; the rows it carried or gave
+    back."""
+    from conclude import copies_on_word, copy_named
+    node = lambda v: copy_named(w.cx, f"{w.sha(v['record'])}@{v['number']}") if isinstance(v, dict) else (w.sha(v), "")
+    rows = copies_on_word(w.cx, w.tid, node(x["a"]), node(x["b"]), x.get("same", True), BY, x["note"]); w.cx.commit()
+    return {"rows": rows}
+
 def a_reconsider(w, x):
     """reconsider on the tree: its rows, and how many audit rows it wrote (none for a run that changes nothing)."""
     from conclude import reconsider
@@ -690,7 +699,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
-           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+           "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed, "copies": a_copies}
 
 ACTIONS["legacy_card"] = a_legacy_card
 

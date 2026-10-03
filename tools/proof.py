@@ -8,10 +8,11 @@ For each key fact:
   value       the value the tree holds, its basis (accepted, claim, rejected) and who decided it: the owner, a session
               acting for the owner, the rule, or the owner's own word (a vouch); the tree file's own claim and how many of
               its citations are held
-  evidence    the records behind it, grouped by the original they were copied from (data/evidence-classes.csv: records
-              copied from one original are one source), each with its class words (source: original, derivative or
-              authored; information: primary, secondary or indeterminable; evidence: direct or indirect; a family link's
-              relationship: stated or computed), its status and whether it agrees with the tree's value
+  evidence    the records behind it, each record once with its copies beneath it (same_record: one record is one source
+              wherever it is held), named by the original its classes give (data/evidence-classes.csv), each with its class
+              words (source: original, derivative or authored; information: primary, secondary or indeterminable; evidence:
+              direct or indirect; a family link's relationship: stated or computed), its status and whether it agrees with
+              the tree's value
   conflicts   each conflict question on the fact, with its question id (tools/conclude.py resolve and reopen take it): open, with
               the rule's own reading of it (tools/conclude.py classes_decide, over every statement on that event's date or
               place): the side it would keep, the record of the event itself against sides resting only on secondary or
@@ -30,7 +31,7 @@ are ordered by their class words, never scored.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
-from catalog import Catalog, date_verdict, evidence_classes, key, place_verdict, same_surname, split_name
+from catalog import Catalog, date_verdict, evidence_classes, key, place_verdict, record_of, same_surname, split_name
 from facts import KEY_FACTS, fact_subjects
 
 INFORMATION = ("primary", "secondary", "indeterminable", None)    # the order the classes favour a side in, best first
@@ -131,14 +132,14 @@ def subject_statements(cat, kind, sid, want=None, relative=None):
     cx, q = cat.cx, _q(cat.cx)
     out = []
     for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start,
-                                 pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona
+                                 pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona, pe.id AS persona_id
                           FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           LEFT JOIN persona pe ON pe.id=coalesce(pf.persona_id, a.persona_id)
                           LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=? ORDER BY a.asserted_at, a.id""", (kind, sid)):
         if want and r["fact_type"] and r["fact_type"] != want: continue
         try: notes = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
         except ValueError: notes = {}
-        st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"],
+        st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"], "persona_id": r["persona_id"],
               "said": re.sub(r"\s+on the record$", "", r["citation_text"] or "") if kind == "family_member" else None,
               "value": r["value_text"], "date": {"start": r["date_start"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_text"] else None,
               "place": r["place"], "apid": notes.get("apid")}
@@ -195,15 +196,18 @@ def agreement(field, st, tree):
     return None
 
 # ---------------------------------------------------------------- the groups by original
-def groups(cx, field, sts, tree, cache):
-    """The record statements grouped by the original they were copied from (the classes' original, else the record itself),
-    best first: accepted before undecided before rejected, then by the classes' own order. Each group carries its records,
-    its best statement's classes, its status, what it says against the tree, and who decided."""
+def groups(cx, tree_id, field, sts, tree, cache):
+    """The record statements grouped by the record they are statements of (catalog.record_of: one record is one source
+    wherever it is held, so a record is cited once with its copies beneath it, and two records of one kind, two people's
+    death certificates, are two), named by the original its classes give, best first: accepted before undecided before
+    rejected, then by the classes' own order. Each group carries its copies, its best statement's classes, its status, what
+    it says against the tree, and who decided."""
     by = {}
     for st in sts:
         if st["kind"] != "record": continue
         c = st["classes"] or {}
-        g = by.setdefault(c.get("original") or st["sha256"], {"original": c.get("original"), "records": [], "statements": []})
+        g = by.setdefault(record_of(cx, tree_id, st["sha256"], st["persona_id"]), {"original": c.get("original"), "records": [], "statements": []})
+        g["original"] = g["original"] or c.get("original")
         if st["sha256"] not in g["records"]: g["records"].append(st["sha256"])
         st["agrees"] = agreement(field, st, tree)
         g["statements"].append(st)
@@ -383,7 +387,7 @@ def build(cat, pid, only=None):
         if only and field != only: continue
         value, tree = tree_value(cat, pid, field, ev, fam)
         sts = statements(cat, pid, field)
-        gs = groups(cat.cx, field, sts, tree, cache)
+        gs = groups(cat.cx, cat.tree_id, field, sts, tree, cache)
         files = [s for s in sts if s["kind"] == "file" and s["status"] != "rejected"]
         apids = list(dict.fromkeys(s["apid"] for s in files if s["apid"]))
         held = [a for a in apids if cat.held_for(a, pid)]

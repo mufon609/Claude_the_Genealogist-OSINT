@@ -52,3 +52,9 @@ END;
 CREATE TRIGGER trg_persona_fact_no_delete BEFORE DELETE ON persona_fact BEGIN
   SELECT RAISE(ABORT, 'persona_fact rows are never deleted; re-run the extraction');
 END;
+CREATE TRIGGER trg_same_record_no_update BEFORE UPDATE ON same_record BEGIN
+  SELECT RAISE(ABORT, 'same_record rows are immutable; the owner''s later word on a pair stands over an earlier one');
+END;
+CREATE TRIGGER trg_same_record_no_delete BEFORE DELETE ON same_record BEGIN
+  SELECT RAISE(ABORT, 'same_record rows are never deleted; the owner keeps two copies apart with a row of their own');
+END;
