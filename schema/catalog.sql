@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.7.9
+-- tree catalog schema  v0.8.0
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -428,8 +428,9 @@ CREATE TABLE assertion (
   artifact_sha256 TEXT REFERENCES artifact(sha256),
   citation_text   TEXT,                 -- the record's short name (its collection); the full Evidence Explained citation is rendered from the archived record (tools/proof.py)
   status          TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
-  asserted_by     TEXT NOT NULL,        -- user:<name> | ai:<extractor_id>
-  asserted_at     TEXT NOT NULL,
+  asserted_by     TEXT NOT NULL,        -- who set the status it now has: user:<name>, agent:<session> for user:<name>, rule:<name> for <whoever ran it>, or the import's extractor
+  asserted_at     TEXT NOT NULL,        -- when that status was set
+  person_decided  BOOLEAN NOT NULL DEFAULT FALSE,   -- the status is a person's own decision on this statement (a key fact or this statement decided, a vouch, a card's rejection: docs/RESEARCH-WORKFLOW.md §5–7); a record's acceptance, a re-read, a carry, a withdrawal or the import never sets it, and none of them changes a statement that carries it
   notes           TEXT,
   CHECK (persona_fact_id IS NOT NULL OR persona_id IS NOT NULL OR artifact_sha256 IS NOT NULL)
 );

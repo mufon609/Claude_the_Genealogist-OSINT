@@ -246,7 +246,7 @@ detail carries `detail_has`, closed by the owner through `tools/log_search.py --
 (`fixture` into the inbox and `tools/attach_inbox.py`, or `stand_in: "image"` under `as_file`, `about` for the
 owner's word), `archive` (a `fixture`; `source`, `collection`, `locator`, or a
 `manifest`; `extract`, `match` (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same,
-for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `conclude.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it),
+for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `conclude.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it, recorded as the rule acting for the harness unless `by` names who),
 `reconsider` (`dry`; its `rows`, and `wrote`, the audit rows the run wrote), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
 `tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `place` (a persona fact
 placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact; `event` is a
@@ -291,7 +291,9 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 record's statements on a person's events of an `event_type`, or on a family `link`, read by
 `catalog.evidence_classes`: some statement's `source`, `information`, `evidence`, `relationship`, `original`),
 `statement` (which reading a record's statements on a person's events of an `event_type` are read through,
-`catalog.statement_of`: `current` or `earlier` each), `conflict_rule` (the rule's test on a conflict, `conclude.classes_decide`, on a person's event of a `type` and its `axis`,
+`catalog.statement_of`: `current` or `earlier` each), `states` (a record's statements on a `person`, on their events of an
+`event_type`, on the person themselves with `kind` person, or on their own family links with `kind` family_member, in the
+order written: each one's `status`, who set it, `by`, and `person_decided`, whether that was a person's own decision on it), `conflict_rule` (the rule's test on a conflict, `conclude.classes_decide`, on a person's event of a `type` and its `axis`,
 date or place: `taken` and the reason, `why`), `extractor` (a reading's extractor row, `kind`, `name`, `model_id`, `version`,
 `prompt_is_instruction` for the sha256 of `app/person/read_record.md`, and what the extraction kept: `image_is`, `year`,
 `regions` of its personas), `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on

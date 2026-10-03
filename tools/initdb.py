@@ -184,6 +184,65 @@ def fold_events(cx: sqlite3.Connection) -> None:
     for tree, owner, groups in plans:
         if groups: fold(cx, tree, owner, actor=actor)
 
+def person_decisions(cx: sqlite3.Connection) -> list:
+    """A person's own decisions on statements (docs/RESEARCH-WORKFLOW.md §5–7) as the audit log records them, the latest on
+    each statement last: (assertion id, status, actor, at, kind). A key fact decided (tools/conclude.py fact): the statements
+    it vouched; otherwise the ones it stamped, every one behind the fact that already held an accept it repeats, and for a
+    reject or an undecided every one behind the fact that existed then. One statement decided (tools/conclude.py assertion).
+    A session's hand decision on named statements (set_back undecided, restored accepted). A card rejected by a person: the
+    statements the rejection stamped. The owner's word on a link or a divorce (a vouched statement no fact decision names),
+    at its writing. A person is user:<name> or agent:<session> for user:<name>."""
+    from facts import fact_subjects
+    person = lambda actor: actor.startswith("user:") or (actor.startswith("agent:") and " for user:" in actor)
+    def born(ulid_):                                                  # when a statement was written, from its own id
+        ms = 0
+        for ch in ulid_[:10]: ms = ms * 32 + _B32.index(ch)
+        return dt.datetime.fromtimestamp(ms / 1000, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    out = []
+    for r in cx.execute("SELECT actor, at, entity_id, diff_json FROM audit_log WHERE entity_kind='person' ORDER BY id").fetchall():
+        actor, at, pid, d = r[0], r[1], r[2], json.loads(r[3] or "{}")
+        if not person(actor) or not isinstance(d, dict): continue
+        if d.get("fact"):
+            if d.get("vouched"): out += [(a, d["status"], actor, at, "fact") for a in d["vouched"]]; continue
+            for kind, sid in fact_subjects(cx, pid, d["fact"]):
+                for a, status, by, by_at in cx.execute("SELECT id, status, asserted_by, asserted_at FROM assertion WHERE subject_kind=? AND subject_id=?", (kind, sid)).fetchall():
+                    if (by, by_at) == (actor, at) or (born(a) <= at and (d["status"] != "accepted" or (status == "accepted" and by_at < at))): out.append((a, d["status"], actor, at, "fact"))
+        out += [(a, "undecided", actor, at, "set back") for a in d.get("set_back", [])] + [(a, "accepted", actor, at, "restored") for a in d.get("restored", [])]
+    for actor, at, a, d in cx.execute("SELECT actor, at, entity_id, diff_json FROM audit_log WHERE entity_kind='assertion' AND json_valid(diff_json) AND json_extract(diff_json,'$.now') IS NOT NULL ORDER BY id").fetchall():
+        if person(actor): out.append((a, json.loads(d)["now"], actor, at, "assertion"))
+    for actor, at, prop in cx.execute("""SELECT actor, at, entity_id FROM audit_log WHERE entity_kind='proposal' AND action='reject' AND json_valid(diff_json)
+                                         AND json_extract(diff_json,'$.kind') IS NOT NULL AND json_extract(diff_json,'$.closed') IS NULL ORDER BY id""").fetchall():
+        if person(actor): out += [(a, "rejected", actor, at, "card rejected") for a, in cx.execute("""SELECT id FROM assertion WHERE json_valid(notes) AND json_extract(notes,'$.proposal')=?
+                                                                                                     AND asserted_by=? AND asserted_at=?""", (prop, actor, at))]
+    named = {x[0] for x in out}
+    out += [(a, status, by, at, "owner's word") for a, status, by, at in cx.execute("SELECT id, status, asserted_by, asserted_at FROM assertion WHERE json_valid(notes) AND json_extract(notes,'$.vouched')").fetchall()
+            if a not in named]
+    return sorted(out, key=lambda x: x[3])
+
+def person_decided(cx: sqlite3.Connection) -> None:
+    """assertion.person_decided, and the catalog's one-time record of the statements whose status a person's own decision on
+    them set (person_decisions): each statement whose status is still the one its latest person decision gave it, with no
+    later stamp but a person decision's, is marked; its asserted_by and asserted_at become that decision's when they name
+    no person decision on it (an accept the decision repeated without stamping it). One audit row per statement marked,
+    under the migration's own actor. A statement a machine has changed since keeps its status, unmarked: listing those is
+    the owner's review, not a correction. Nothing decided changes."""
+    if "person_decided" not in [r[1] for r in cx.execute("PRAGMA table_info(assertion)")]:
+        cx.execute("ALTER TABLE assertion ADD COLUMN person_decided BOOLEAN NOT NULL DEFAULT FALSE")
+    decisions = person_decisions(cx); stamps = {(a, actor, at) for a, _, actor, at, _ in decisions}
+    latest = {a: (status, actor, at, kind) for a, status, actor, at, kind in decisions}
+    ts = now()
+    for a, (status, actor, at, kind) in latest.items():
+        row = cx.execute("SELECT tree_id, status, asserted_by, asserted_at FROM assertion WHERE id=?", (a,)).fetchone()
+        if not row or row[1] != status: continue
+        mine = (a, row[2], row[3]) in stamps
+        if row[3] > at and not mine: continue                            # set since by something other than a person's decision on it
+        if mine: cx.execute("UPDATE assertion SET person_decided=TRUE WHERE id=?", (a,))
+        else: cx.execute("UPDATE assertion SET person_decided=TRUE, asserted_by=?, asserted_at=? WHERE id=?", (actor, at, a))
+        cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                   (ulid(), row[0], ts, "migration:0.8.0", "update", "assertion", a,
+                    json.dumps({"person_decided": True, "decision": {"kind": kind, "by": actor, "at": at, "status": status},
+                                **({} if mine else {"stamp": {"was": [row[2], row[3]], "now": [actor, at]}})})))
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -205,6 +264,8 @@ MIGRATIONS = [
      [unread_runs]),
     ("0.7.9", "same_record: two archived copies of one record joined on what they share of the record itself, code's joins of the copies already held written once; tools/conclude.py reconsider then carries each decision to every copy",
      [same_records]),
+    ("0.8.0", "assertion.person_decided: a statement whose status a person's own decision on it set, which no acceptance of its record, re-read, carry or withdrawal changes; the statements the audit log shows a person decided marked",
+     [person_decided]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

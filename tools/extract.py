@@ -1248,8 +1248,9 @@ def carry_links(cx, old, eid, sha, by, ts):
     (an older parser that wrote no identity, or wrote it otherwise) moves to the one new persona of its name and role only
     when it is also the one persona of that name and role on its own reading, and never from one record id to another;
     otherwise the link stays behind and the matcher proposes the persona again: a card coming back is safe, a link on another
-    row is not. An accepted link asserts the new facts and links onto the person as the decision did. An undecided link is
-    not a decision, so it does not carry. Returns how many links were carried."""
+    row is not. An accepted link asserts the new facts and links onto the person as the decision did, a statement whose status
+    a person decided on its own (assertion.person_decided) keeping it. An undecided link is not a decision, so it does not
+    carry. Returns how many links were carried."""
     n, carried = 0, []
     new = page_entries(cx, sha, eid)
     one_of = lambda entries, name, role: [e for e in entries if e[2] == name and e[3] == role]

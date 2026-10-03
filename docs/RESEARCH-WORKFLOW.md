@@ -69,8 +69,9 @@ edit at will (registry tiers T1–T3: certificates, census, obituaries,
 published works), and only counting accepted facts that themselves rest on
 such a source or on the owner's own word, each a statement of the very date
 or place it counts for (§5–7, "What the rule counts"). A person's own decision
-is never undone by the rule or by a record read again: a statement a person
-rejected or accepted stays as it is. A page anyone can edit (T4: Find a
+on a statement (§5–7) is never undone by the rule, by a record read again or by
+a decision carried from another copy of the record: the statement keeps the
+state the person gave it. A page anyone can edit (T4: Find a
 Grave, member trees) identifies a person but never builds their facts:
 accepting it, by the owner or by the rule, writes the persona link, and every
 fact the page types is written as an undecided assertion, what the page says,
@@ -730,7 +731,7 @@ that entry of the record, whose bytes have not changed; another row of the same
 name never takes it, and a persona the new extraction does not find that way
 carries only when its name and role are on one persona in each extraction), an
 accepted one asserting the new facts the record gives and nothing it already
-asserted, a statement a person rejected staying rejected, and the matcher
+asserted, a statement a person decided keeping the state they gave it, and the matcher
 proposes the rest again. The matcher is versioned
 the same way (`rule:matcher` at the version `tools/match.py` names, raised
 with any change to what fits). A card is matched again whenever the evidence
@@ -934,9 +935,22 @@ memberships the page states are created where the tree lacks them, each with
 an Undecided assertion, the way a sibling placement already is, for the
 relatives §0 names; every fact the page types is written as an Undecided
 assertion too, what the page says, never accepted by the decision and never
-ground for the rule. A statement already on the tree moves only from
-Undecided to Accepted when its record is accepted again (one the rule took
-back standing again): one a person rejected or accepted stays as it is. Where the
+ground for the rule. **A person's own decision on a statement** is one a
+person, or a session acting for them, takes on that statement itself: a key
+fact decided (`tools/conclude.py fact … accept|reject|undecided`, the vouch
+included, as is the owner's word placing a link or a divorce on a record), one
+statement decided (`tools/conclude.py assertion`), and a card's rejection, for
+every statement its decision wrote; what an acceptance of a record writes with
+it (its statements accepted, and the undecided ones of a page anyone can edit,
+an indexer's grouping, a sibling placement or a value the page keeps beneath),
+a re-read, a carry to another copy, a withdrawal and the import never make one,
+whoever acted. A statement a person decided keeps that state until a person
+decides it again: no acceptance of its record, by a person or the rule, no
+re-read, carry or withdrawal changes it; any other statement already on the
+tree moves only from Undecided to Accepted when its record is accepted again
+(one the rule took back standing again). Every statement records who set the
+state it now has (`assertion.asserted_by`) and whether that was a person's own
+decision on it (`assertion.person_decided`). Where the
 record's date or place
 disagrees with the event's own value, the record's statement is still accepted
 as what that record says, the event keeps its value, and the difference is a
@@ -1083,7 +1097,8 @@ when its gap has gone or the owner dismisses it.
 The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link, every assertion and the
-name alias the rule wrote rejected. A proposal the rule does not take is a card for the owner
+name alias the rule wrote rejected, and rejecting a card whose decision the rule
+took back turns rejected what that decision wrote the same way. A proposal the rule does not take is a card for the owner
 with the reason it was not taken. The rule creates a person only as above,
 through the fitting check; every other `new_person` proposal is a card for
 the owner. The rule
@@ -1094,7 +1109,8 @@ its accept row in the audit log, which `decide` writes as the decision takes
 effect), as the rule stands now and on the ground that stood before it (its own
 assertions and those of later rule decisions do not count), withdraws one it
 would no longer take, its assertions and the name alias it wrote back to
-undecided, and the record is a card for the owner again
+undecided, recorded as the rule's (a statement a person has decided on its own
+since keeps the state they gave it), and the record is a card for the owner again
 with the reason; accepting that card makes everything the decision had written
 stand again. It then matches again every card the evidence has passed by
 (above: one an older matcher wrote, one left on a superseded reading, a

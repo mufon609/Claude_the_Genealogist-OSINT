@@ -60,26 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A2. A person's decision is never overwritten by a machine
-
-Hard rule 3: a person's own decision is never undone by the rule or by a
-re-read. The writers read a statement's status, never who set it:
-`conclude._state`, `link_family` and `decide` turn any undecided assertion
-accepted, so the owner's `tools/conclude.py fact … undecided` is reversed by
-a re-read (`extract.carry_links` through `conclude.assert_facts`), by
-`conclude.carry`, or by the rule taking the card again; `conclude.withdraw`
-turns back to undecided a statement the owner accepted on their own.
-`assertion.asserted_by` is overwritten by every write and still names the
-rule after a withdrawal (about 129 live undecided assertions do), and the
-schema's comment (`user:|ai:`) no longer says what the column holds. Make
-who set a statement's state something the writers read: a state a person set
-(`user:…`, or `agent:… for user:…`) is never changed by `rule:…`, a re-read
-or a carry, and after any change the column names who set the state the
-statement now has. Show each path on a scenario. Then list, on a scratch
-copy of the live catalog and from the audit log, every statement whose
-person-set state a machine later changed; nothing live is written until that
-list has been reviewed.
-
 ### A3. A claim is the file's word and nothing else
 
 `docs/RESEARCH-WORKFLOW.md` §0 defines a claim as what the imported file
@@ -97,8 +77,6 @@ Dennis Scannell on `fceaa7dbde67`, Joe Davidson and Lura Dinning (undecided
 placements alone). A claim is the import's own statement of the membership,
 not rejected. Show the Rothberg shape on a scenario, correct C5's account of
 Joe Davidson if the data says otherwise, and report the dry-run reconsider.
-
-**Blocked by:** A2.
 
 ### A4. The rule counts what the docs list, and no more
 

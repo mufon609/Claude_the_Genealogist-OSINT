@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 38 tables, 6 views. Schema 0.7.9. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 38 tables, 6 views. Schema 0.8.0. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -50,6 +50,15 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   already held under `migration:0.7.9`; `tools/conclude.py reconsider` carries the decisions.
 - Decisions are three-state: `undecided` | `accepted` | `rejected` on `assertion`,
   `person_persona`, `place_string`, `alias`, `proposal`. No numeric confidence columns.
+- An `assertion` records who set the status it has (`asserted_by`, `asserted_at`) and whether
+  that was a person's own decision on the statement (`person_decided`: a key fact or the
+  statement decided, a vouch, the owner's word on a link or a divorce, a card's rejection;
+  RESEARCH-WORKFLOW §5–7). No acceptance of its record, re-read, carry to another copy,
+  withdrawal by the rule or give-back of a carry changes a statement that carries it; the
+  rule's withdrawal is recorded under the rule, acting for whoever ran it. The 0.8.0
+  migration (`tools/initdb.py`'s `person_decided`) marked the statements the audit log shows
+  a person decided and still holding that decision, one `audit_log` row each under
+  `migration:0.8.0`.
 - `search_plan.mode` is `auto` only when `source.connector` names a built connector
   that answers the step's checklist row; the registry's free text never decides it. A
   connector may declare the rows it answers (`ROWS` in `tools/connectors/`: the New

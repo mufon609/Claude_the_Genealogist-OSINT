@@ -157,7 +157,7 @@ Core tables (the full map by layer is in `schema/README.md`):
 | `same_record` | Two archived copies of one record joined (decision 15), insert-only: on what they share of the record itself, by code for every tree, or on the owner's word in one tree. |
 | `tree`, `tree_import` | A workspace of conclusions; which artifact was imported into which tree. |
 | `person`, `person_name`, `family`, `family_member`, `event`, `event_participant` | Layer-4 conclusions. |
-| `assertion` | The evidence link from a conclusion to a persona fact, persona or artifact, with the three-state status. |
+| `assertion` | The evidence link from a conclusion to a persona fact, persona or artifact, with the three-state status, who set it, and whether that was a person's own decision on it (`docs/RESEARCH-WORKFLOW.md` §5–7). |
 | `person_persona` | Person-to-persona link with the three-state status and who decided it. |
 | `proposal` | AI output awaiting a decision; answers a question about a person. |
 | `alias` | Variant and erroneous forms kept as search keys (§8). |

@@ -1,0 +1,267 @@
+{
+ "title": "a person's own decision on a statement stands",
+ "line": "the rule takes Alicia on the 1920 page through her father, accepted on it. The owner then decides two of the page's statements about her on their own: her birth as the census gives it set undecided, and her parents, which the rule had accepted, accepted again on the owner's word. When the rule takes its decision back, the parents link keeps the owner's accept; when it takes the card again, the birth keeps the owner's undecided. What the decision wrote and the withdrawal set undecided, her name and sex as the page writes them, is no person's decision on them, though a session ran the withdrawal: the rule takes it again with the card",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 page: the father accepted by the owner, the daughter taken by the rule",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "event_type": "Birth",
+      "is": [
+       {
+        "status": "accepted",
+        "by": {
+         "starts": "rule:"
+        },
+        "person_decided": false
+       }
+      ]
+     },
+     "why": "her birth as the census gives it, accepted with the record by the rule: no person's decision on the statement"
+    }
+   ]
+  },
+  {
+   "say": "the owner sets her birth undecided on its own",
+   "fact": {
+    "person": "I332737044990",
+    "field": "birth",
+    "status": "undecided"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "event_type": "Birth",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts her parents on their own, the page's link among them, which the rule had already accepted",
+   "fact": {
+    "person": "I332737044990",
+    "field": "parents",
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "a person's accept is recorded on the statement whether its status changes or not"
+    }
+   ]
+  },
+  {
+   "say": "the rule takes its decision on her back, run by a session for the owner",
+   "withdraw": {
+    "card": {
+     "record": "c20",
+     "person": "I332737044990"
+    },
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "a withdrawal never demotes a statement whose accept a person decided"
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "kind": "person",
+      "is": {
+       "len": 2,
+       "every": {
+        "status": "undecided",
+        "by": "rule:agrees-with-accepted for agent:harness-session for user:owner",
+        "person_decided": false
+       }
+      }
+     },
+     "why": "the statements the withdrawal took back say who set them undecided: the rule, run by the session"
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "event_type": "Birth",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     }
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "event_type": "Residence",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "rule:agrees-with-accepted for agent:harness-session for user:owner",
+        "person_decided": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider: the rule takes her card again",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "event_type": "Birth",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "the rule taking the card again never turns a statement a person set undecided"
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "kind": "person",
+      "is": {
+       "len": 2,
+       "every": {
+        "status": "accepted",
+        "by": {
+         "starts": "rule:agrees-with-accepted for "
+        },
+        "person_decided": false
+       }
+      }
+     },
+     "why": "what the withdrawal set undecided, under a session's run, is no person's decision on it: the rule takes it again with the card"
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     }
+    },
+    {
+     "states": {
+      "record": "c20",
+      "person": "I332737044990",
+      "event_type": "Residence",
+      "is": [
+       {
+        "status": "accepted",
+        "by": {
+         "starts": "rule:agrees-with-accepted for "
+        },
+        "person_decided": false
+       }
+      ]
+     },
+     "why": "her residence as the census gives it, set undecided by the withdrawal, stands again with the card"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

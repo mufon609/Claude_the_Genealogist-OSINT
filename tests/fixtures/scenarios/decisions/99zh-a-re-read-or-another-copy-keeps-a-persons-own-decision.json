@@ -1,0 +1,282 @@
+{
+ "title": "a re-read or another copy keeps a person's own decision",
+ "line": "John Y Davidson's 1946 Kentucky death certificate, held as FamilySearch's page of it and as the certificate's image read by the model: the owner accepts the page, the image's reading takes the decision with no card of its own, and the owner then sets his death undecided, the page's statement and the image's with it. Reading the page again carries the decision to the new reading, and a person's second reading of the image carries it there too: neither turns either statement accepted again, since the owner decided them on their own",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "FamilySearch's page of the certificate, archived under the file's citation",
+   "archive": {
+    "fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html",
+    "source": "D03",
+    "collection": "Kentucky, Deaths, 1911-1967",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ],
+    "rule": true
+   },
+   "as": "page"
+  },
+  {
+   "say": "the owner accepts the page as his",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "accepted",
+        "by": "agent:check",
+        "person_decided": false
+       }
+      ]
+     },
+     "why": "the page's death accepted with the record: the owner's decision on the document, not on the statement"
+    }
+   ]
+  },
+  {
+   "say": "the certificate's image, archived under the same citation",
+   "seed": {
+    "fixture": "familysearch-kentucky-death-records-1946-N983-M2R.jpg",
+    "source": "D03",
+    "collection": "Kentucky, U.S., Death Index, 1911-2000",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    }
+   },
+   "as": "image"
+  },
+  {
+   "say": "the model reads the deceased from the image: the decision on the page carries to its reading",
+   "transcribe": {
+    "record": "image",
+    "form": {
+     "name": "John Young Davidson",
+     "role": "deceased",
+     "sex": "M",
+     "age": "71",
+     "year": 1946,
+     "death_date": "11 Jun 1946",
+     "death_place": "Franklin, Simpson, Ky.",
+     "number": "14205",
+     "bbox": [
+      290,
+      660,
+      1310,
+      32
+     ],
+     "image_is": "record"
+    },
+    "by": "llm:harness"
+   },
+   "expect": [
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "image",
+      "role": "deceased",
+      "is": [
+       "accepted"
+      ]
+     }
+    },
+    {
+     "states": {
+      "record": "image",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "accepted",
+        "person_decided": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner sets his death undecided on its own: every statement behind it, the page's and the image's among them",
+   "fact": {
+    "person": "I332737204849",
+    "field": "death",
+    "status": "undecided"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     }
+    },
+    {
+     "states": {
+      "record": "image",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the page read again: the decision carries to the new reading",
+   "reread": {
+    "record": "page"
+   },
+   "expect": [
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "page",
+      "persona": "John Young Davidson",
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     },
+     "why": "both readings of the page carry the owner's decision on the document"
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "a re-read never turns a statement a person set undecided"
+    },
+    {
+     "states": {
+      "record": "image",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "the page's re-read reaches the page's own statements only"
+    }
+   ]
+  },
+  {
+   "say": "a person reads the image again, giving what the model gave: the decision carries to the second reading",
+   "transcribe": {
+    "record": "image",
+    "form": {
+     "name": "John Young Davidson",
+     "role": "deceased",
+     "sex": "M",
+     "age": "71",
+     "year": 1946,
+     "death_date": "11 Jun 1946",
+     "death_place": "Franklin, Simpson, Ky.",
+     "number": "14205",
+     "bbox": [
+      290,
+      660,
+      1310,
+      32
+     ],
+     "image_is": "record"
+    },
+    "by": "user:harness"
+   },
+   "expect": [
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "image",
+      "role": "deceased",
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     },
+     "why": "the second reading of the image takes the decision made on the page"
+    },
+    {
+     "states": {
+      "record": "image",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "a decision carried to another copy never turns a statement a person set undecided"
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

@@ -354,13 +354,16 @@ def a_decide(w, x):
     return {**r, "card": card["id"], "person_id": json.loads(card["payload_json"]).get("person_id")}
 
 def a_withdraw(w, x):
-    """The rule's decision on a `card` taken back, or with `record` every decision the rule made on that record."""
-    from conclude import withdraw
+    """The rule's decision on a `card` taken back, or with `record` every decision the rule made on that record, recorded as
+    reconsider records it, the rule acting for the harness, unless `by` names who."""
+    from conclude import RULE_ACTOR, withdraw
     if "record" in x:
         ids = [r[0] for r in w.cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' AND kind IN ('persona_match','new_person')
                                              AND json_extract(payload_json,'$.artifact_sha256')=? ORDER BY decided_at, id""", (w.tid, w.sha(x["record"])))]
     else: ids = [w.card(x["card"])["id"]]
-    for i in ids: withdraw(w.cx, w.tid, i, x.get("by", BY), x.get("why", "harness: taken back"), w.treelib.now())
+    for i in ids:
+        kind = w.cx.execute("SELECT kind FROM proposal WHERE id=?", (i,)).fetchone()[0]
+        withdraw(w.cx, w.tid, i, x.get("by", f"{RULE_ACTOR[kind]} for {BY}"), x.get("why", "harness: taken back"), w.treelib.now())
     return {"card": ids[0] if len(ids) == 1 else None, "cards": ids}
 
 def a_copies(w, x):
@@ -1005,6 +1008,20 @@ def e_statement(w, x, want):
     got = ["current" if statement_of(w.cx, a)["extraction"] == cur else "earlier" for a in ids]
     return has(got, x["is"]), got
 
+def e_states(w, x, want):
+    """A record's statements on a person, in the order they were written: on their events of `event_type`, on the person
+    themselves (`kind`: person) or on their own family links (`kind`: family_member); each one's `status`, who set it (`by`,
+    assertion.asserted_by) and whether that was a person's own decision on it (`person_decided`)."""
+    pid = w.person(x["person"]); sha = w.sha(x["record"]); kind = x.get("kind", "event")
+    if kind == "event":
+        rows = w.cx.execute("""SELECT a.status, a.asserted_by, a.person_decided FROM assertion a JOIN event_participant ep ON ep.event_id=a.subject_id JOIN event e ON e.id=a.subject_id
+                               WHERE a.subject_kind='event' AND ep.person_id=? AND e.event_type=? AND a.artifact_sha256=? ORDER BY a.id""", (pid, x["event_type"], sha))
+    elif kind == "person": rows = w.cx.execute("SELECT status, asserted_by, person_decided FROM assertion WHERE subject_kind='person' AND subject_id=? AND artifact_sha256=? ORDER BY id", (pid, sha))
+    else: rows = w.cx.execute("""SELECT status, asserted_by, person_decided FROM assertion WHERE subject_kind='family_member' AND json_extract(subject_id,'$[1]')=? AND artifact_sha256=?
+                                 ORDER BY id""", (pid, sha))
+    got = [{"status": r[0], "by": r[1], "person_decided": bool(r[2])} for r in rows]
+    return has(got, w.value(x["is"])), got
+
 def e_extractor(w, x, want):
     """The extractor row of a reading, and what the reading kept: `kind`, `name`, `model_id`, `version`; `prompt_is_instruction`,
     whether the row's prompt hash is the sha256 of the instruction file as it stands; `image_is` and `year`, the extraction's own
@@ -1116,7 +1133,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "event": e_event, "family_event": e_family_event, "disagreements": e_disagreements, "question": e_question, "assertions_on": e_assertions_on, "links": e_links, "is_subject": e_is_subject, "citations_held": e_citations_held,
            "checklist_row": e_checklist_row, "baseline": e_baseline, "waiting": e_waiting, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
-           "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
+           "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins}
 
