@@ -30,34 +30,21 @@
    ]
   },
   {
-   "say": "the citation's own words are already a place string of the tree (his own residence claims the same words); the resolver run with the geocoder's answer planted in its cache: a unique full match",
+   "say": "the citation's own words are already a place string of the tree (his own residence claims the same words); the resolver run with the geocoder's real answer planted in its cache, the town of Hempstead and the village in it: it leaves the string to the owner, both offered",
    "resolve": {
     "only": [
      "Hempstead, Nassau, New York"
     ],
-    "cache": {
-     "Hempstead, Nassau, New York, United States": [
-      {
-       "osm_type": "relation",
-       "osm_id": 4101,
-       "lat": "40.70",
-       "lon": "-73.61",
-       "name": "Hempstead",
-       "display_name": "Hempstead, Nassau County, New York, United States",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "town",
-       "address": {
-        "town": "Hempstead",
-        "county": "Nassau County",
-        "state": "New York",
-        "country": "United States",
-        "country_code": "us"
-       },
-       "extratags": {}
-      }
-     ]
-    }
+    "geocoder": [
+     "nominatim-hempstead-nassau-new-york.json"
+    ]
+   }
+  },
+  {
+   "say": "the owner chooses the town on the string's card",
+   "decide_place": {
+    "raw": "Hempstead, Nassau, New York",
+    "osm": "relation/10805167"
    }
   },
   {

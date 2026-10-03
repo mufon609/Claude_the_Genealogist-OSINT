@@ -89,6 +89,27 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios so
 | `wikidata-Q104305769-ballyquirk.json` | Wikidata's item for the townland Ballyquirk in Killeagh, County Cork |
 | `wikidata-Q502553-berthelsdorf-herrnhut.json`, `wikidata-Q27479092-berthelsdorf-weissenborn.json`, `wikidata-Q827807-berthelsdorf-liebstadt.json`, `wikidata-Q65183687-berthelsdorf-hainichen.json` | Wikidata's items for four Saxon Berthelsdorfs the geocoder answers with, read for their GOV ids (P2503); only the Weißenborn one carries one |
 
+| `wikidata-Q200077-morioka.json`, `wikidata-Q11643491-tonan.json` | Wikidata's items for Morioka and for Tonan, its former name (P1365 with its dates): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
+
+## Geocoder answers
+
+`geocoder/nominatim-<place>.json`: the geocoder's (Nominatim's) answers to the queries the resolver asks, each a cache record
+exactly as the live resolver kept it under `derivatives/geocode/nominatim/` (`{query, fetched_at, results}`, results as
+Nominatim served them), copied byte for byte; the scenarios' `place_card` and `resolve` actions plant them in the scratch
+resolver's cache under the file name it looks them up by (`geocoder: [...]`), so no request goes out. Data © OpenStreetMap
+contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said otherwise.
+
+| Files (`geocoder/nominatim-…`) | The query and what the geocoder answered |
+|---|---|
+| `new-egypt-ocean-county-new-jersey`, `new-jersey`, `auburn-kentucky` (7 September), `logan-county-kentucky`, `woodburn-kentucky`, `northampton-hampshire-massachusetts` | the place the query names, one answer each; New Egypt's two (the township's village and a postcode node) |
+| `coatesville-chester-pennsylvania`, `pennsylvania`, `philadelphia-philadelphia-pennsylvania` | one answer each; the last the city alone |
+| `philadelphia-pennsylvania` | two: the city and the county that is coterminous with it |
+| `hempstead-nassau-new-york` | two: the Town of Hempstead and the Village of Hempstead in it |
+| `morioka-japan` (15 September) | three: Morioka, Iwate Prefecture, and two streets named for it |
+| `ogau-tonan-iwate-shiwa-japan`, `ogau-tonan-japan` | no answer: the geocoder knows no such place (a former name's words) |
+| `langneundorf-lower-silesia`, `berthelsdorf-sachsen-germany` (six), `berthelsdorf-herrnhut-sachsen-germany`, `berthelsdorf-freiberg-sachsen-germany`, `ballyquirk-ireland` (four) | the answers the gazetteer scenario's resolver run reads |
+| `ballyquirk-cork-ireland` | **Captured for the harness**, one request on 2 October 2026 23:56 UTC through the resolver's own `nominatim()` with the project's User-Agent (the live cache holds no answer to this query): one answer, the Killeagh townland |
+
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record
 ids are FamilySearch record pages.
@@ -186,9 +207,8 @@ uncited claim, undecided), `divorce` (the owner's word ending a marriage through
 `person`'s one open conflict whose detail has `detail_has`, or with `over_rule` the one the rule resolved, `keep` a bound
 assertion id or `{record, event_type}` for that record's statement on the person's event of the type, `note`; a refusal
 comes back as its `error`), `reopen_conflict` (a conflict the rule resolved, taken back by the owner through
-`tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card
-with the geocoder's
-`candidates` planted in the cache), `older_matcher`, `persona_link` (a person's link to a record's persona of a `role`, and
+`tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card, its candidates the results of the
+geocoder's real answers named under `geocoder`, planted in the cache), `older_matcher`, `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided), `merge`, `cite`, `question` (a research_question row patched by
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
@@ -224,7 +244,7 @@ harness's stand-in for a holder that did not answer, or no network at all; `dry`
 at every connector), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
 `none_when`; `field` names the place-like field it asks under, "place" when absent, "census place" for a fetch step's own),
-`decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache`, Wikidata's items under `wikidata`
+`decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in

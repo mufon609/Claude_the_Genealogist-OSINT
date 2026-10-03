@@ -11,31 +11,8 @@
    "say": "a card for a death place of the file, the geocoder's answer for it planted in the cache",
    "place_card": {
     "raw": "New Egypt, Ocean, New Jersey, USA",
-    "queries": [
-     "New Egypt, Ocean County, New Jersey, United States"
-    ],
-    "candidates": [
-     {
-      "osm_type": "relation",
-      "osm_id": 170912,
-      "lat": "40.0676",
-      "lon": "-74.5307",
-      "name": "New Egypt",
-      "display_name": "New Egypt, Plumsted Township, Ocean County, New Jersey, United States",
-      "category": "boundary",
-      "type": "administrative",
-      "addresstype": "village",
-      "address": {
-       "village": "New Egypt",
-       "county": "Ocean County",
-       "state": "New Jersey",
-       "country": "United States",
-       "country_code": "us"
-      },
-      "extratags": {
-       "wikidata": "Q1024281"
-      }
-     }
+    "geocoder": [
+     "nominatim-new-egypt-ocean-county-new-jersey.json"
     ]
    },
    "as": "egypt",
@@ -57,27 +34,8 @@
    "say": "a card for a death place the file gives as the state alone",
    "place_card": {
     "raw": "New Jersey, USA",
-    "queries": [
-     "New Jersey, United States"
-    ],
-    "candidates": [
-     {
-      "osm_type": "relation",
-      "osm_id": 224951,
-      "lat": "40.07",
-      "lon": "-74.72",
-      "name": "New Jersey",
-      "display_name": "New Jersey, United States",
-      "category": "boundary",
-      "type": "administrative",
-      "addresstype": "state",
-      "address": {
-       "state": "New Jersey",
-       "country": "United States",
-       "country_code": "us"
-      },
-      "extratags": {}
-     }
+    "geocoder": [
+     "nominatim-new-jersey.json"
     ]
    },
    "as": "jersey"

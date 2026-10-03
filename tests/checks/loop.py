@@ -9,7 +9,7 @@ place or a page.
 import contextlib, importlib.util, io, json, os, shutil, sys, types
 from common import BY, FIXTURES, TOOLS, run, tool
 import scenario
-from scenario import ACTIONS, EXPECTS, SCENARIOS, has
+from scenario import ACTIONS, EXPECTS, SCENARIOS, has, plant_geocoder
 
 def queue_module():
     """tools/queue.py loaded by path: importing it by name would shadow the standard library's queue."""
@@ -166,11 +166,9 @@ def a_resolve(w, x):
     Wikidata's items in its own, and the gazetteers' answers (GOV's and Wikidata's searches, each fixture a list of the
     resolver's own cache records) under the paths the resolver reads them from, so no request goes out; the strings must
     already be the tree's."""
-    import hashlib
-    from resolve_places import cache_dir, gazetteer_cache_path, wikidata_cache_dir
-    os.makedirs(cache_dir(), exist_ok=True); os.makedirs(wikidata_cache_dir(), exist_ok=True)
-    for query, cands in x.get("cache", {}).items():
-        with open(os.path.join(cache_dir(), hashlib.sha1(query.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump({"query": query, "fetched_at": w.treelib.now(), "results": cands}, fh)
+    from resolve_places import gazetteer_cache_path, wikidata_cache_dir
+    os.makedirs(wikidata_cache_dir(), exist_ok=True)
+    plant_geocoder(x.get("geocoder", []))
     for qid, fixture in x.get("wikidata", {}).items(): shutil.copy(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
     for fixture in x.get("gazetteer", []):
         with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
@@ -192,12 +190,13 @@ def a_apply_places(w, x):
 
 def a_decide_place(w, x):
     """The owner's choice on a place card found by its string (`raw`): the candidate whose gazetteer id is `gazetteer` (a
-    gazetteer's own candidate, or the one attached to a geocoder candidate), through conclude.decide."""
+    gazetteer's own candidate, or the one attached to a geocoder candidate), or the geocoder's own answer `osm` (type/id), through
+    conclude.decide."""
     from conclude import decide
     row = w.cx.execute("SELECT id, payload_json FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.raw')=?", (w.tid, x["raw"])).fetchone()
     if not row: raise KeyError(f"no open place card for {x['raw']!r}")
     cands = json.loads(row[1])["candidates"]
-    i = next(i for i, c in enumerate(cands) if (c.get("kind") == "gazetteer" and c.get("id") == x["gazetteer"]) or (c.get("gazetteer") or {}).get("id") == x["gazetteer"])
+    i = next(i for i, c in enumerate(cands) if (("gazetteer" in x) and ((c.get("kind") == "gazetteer" and c.get("id") == x["gazetteer"]) or (c.get("gazetteer") or {}).get("id") == x["gazetteer"])) or (("osm" in x) and c.get("osm") == x["osm"]))
     return decide(w.cx, w.tid, row[0], "accepted", BY, note=x.get("note", "harness: the owner chooses"), choice=i)
 
 def a_step_query(w, x):

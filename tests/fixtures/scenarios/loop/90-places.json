@@ -23,161 +23,18 @@
      "Morioka, Japan",
      "Ogau Tonan, Iwate Shiwa, Japan"
     ],
-    "cache": {
-     "Coatesville, Chester, Pennsylvania, United States": [
-      {
-       "osm_type": "relation",
-       "osm_id": 6,
-       "lat": "39.98",
-       "lon": "-75.82",
-       "name": "Coatesville",
-       "display_name": "Coatesville, Chester County, Pennsylvania, United States",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "city",
-       "address": {
-        "city": "Coatesville",
-        "county": "Chester County",
-        "state": "Pennsylvania",
-        "country": "United States",
-        "country_code": "us"
-       },
-       "extratags": {}
-      }
-     ],
-     "Philadelphia, Pennsylvania, United States": [
-      {
-       "osm_type": "relation",
-       "osm_id": 2,
-       "lat": "40.0",
-       "lon": "-75.13",
-       "name": "Philadelphia",
-       "display_name": "Philadelphia, Philadelphia County, Pennsylvania, United States",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "city",
-       "boundingbox": [
-        "39.8670050",
-        "40.1379593",
-        "-75.2802660",
-        "-74.9558314"
-       ],
-       "address": {
-        "city": "Philadelphia",
-        "county": "Philadelphia County",
-        "state": "Pennsylvania",
-        "country": "United States",
-        "country_code": "us"
-       },
-       "extratags": {}
-      },
-      {
-       "osm_type": "relation",
-       "osm_id": 3,
-       "lat": "40.0",
-       "lon": "-75.13",
-       "name": "Philadelphia County",
-       "display_name": "Philadelphia County, Pennsylvania, United States",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "county",
-       "boundingbox": [
-        "39.8670050",
-        "40.1379593",
-        "-75.2802660",
-        "-74.9558314"
-       ],
-       "address": {
-        "county": "Philadelphia County",
-        "state": "Pennsylvania",
-        "country": "United States",
-        "country_code": "us"
-       },
-       "extratags": {}
-      }
-     ],
-     "Hempstead, Nassau, New York, United States": [
-      {
-       "osm_type": "relation",
-       "osm_id": 4,
-       "lat": "40.64",
-       "lon": "-73.6",
-       "name": "Town of Hempstead",
-       "display_name": "Town of Hempstead, Nassau County, New York, United States",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "municipality",
-       "boundingbox": [
-        "40.5253180",
-        "40.7567050",
-        "-73.7672900",
-        "-73.4647620"
-       ],
-       "address": {
-        "municipality": "Town of Hempstead",
-        "county": "Nassau County",
-        "state": "New York",
-        "country": "United States",
-        "country_code": "us"
-       },
-       "extratags": {}
-      },
-      {
-       "osm_type": "relation",
-       "osm_id": 5,
-       "lat": "40.70",
-       "lon": "-73.62",
-       "name": "Village of Hempstead",
-       "display_name": "Village of Hempstead, Town of Hempstead, Nassau County, New York, United States",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "town",
-       "boundingbox": [
-        "40.6841120",
-        "40.7213530",
-        "-73.6433830",
-        "-73.5984910"
-       ],
-       "address": {
-        "town": "Village of Hempstead",
-        "municipality": "Town of Hempstead",
-        "county": "Nassau County",
-        "state": "New York",
-        "country": "United States",
-        "country_code": "us"
-       },
-       "extratags": {}
-      }
-     ],
-     "Morioka, Japan": [
-      {
-       "osm_type": "relation",
-       "osm_id": 10,
-       "lat": "39.7",
-       "lon": "141.15",
-       "name": "Morioka",
-       "display_name": "Morioka, Iwate, Japan",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "city",
-       "address": {
-        "city": "Morioka",
-        "state": "Iwate",
-        "country": "Japan",
-        "country_code": "jp"
-       },
-       "extratags": {
-        "wikidata": "Q200077"
-       }
-      }
-     ],
-     "Ogau Tonan, Iwate Shiwa, Japan": [],
-     "Ogau Tonan, Japan": []
-    },
     "wikidata": {
      "Q200077": "wikidata-Q200077-morioka.json",
      "Q11643491": "wikidata-Q11643491-tonan.json"
-    }
+    },
+    "geocoder": [
+     "nominatim-coatesville-chester-pennsylvania.json",
+     "nominatim-philadelphia-pennsylvania.json",
+     "nominatim-hempstead-nassau-new-york.json",
+     "nominatim-morioka-japan.json",
+     "nominatim-ogau-tonan-iwate-shiwa-japan.json",
+     "nominatim-ogau-tonan-japan.json"
+    ]
    },
    "expect": [
     {
@@ -213,7 +70,7 @@
       "names": {
        "has": [
         "Town of Hempstead, Nassau County, New York, United States",
-        "Village of Hempstead, Town of Hempstead, Nassau County, New York, United States"
+        "Village of Hempstead, Town of Hempstead, Nassau County, New York, 11550, United States"
        ]
       }
      },
