@@ -1007,10 +1007,18 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   yet fetched, or blocked. It is stated with the conclusion, not a gate.
 - **The written conclusion.** `tools/proof.py "<person>"` writes, for each
   key fact, the value, the evidence grouped by original record with its class
-  words and its citation, what agrees, each conflict and how it was resolved,
+  words and its citation, what agrees, each conflict with its question id (the
+  one `tools/conclude.py resolve` and `reopen` take) and how it was resolved,
   the research by row, and who decided; a fact resting on indirect evidence or
-  an open conflict says that an argument is still owed. Pure code: the model
-  reads only what code cannot, a handwritten image or a newspaper's text.
+  an open conflict says that an argument is still owed. An open conflict on an
+  event's date or place carries the rule's own reading of it, from the test
+  that decides it (`classes_decide`): the statement the rule would keep and why,
+  or why it would not decide (no side primary, primary on both sides, a place
+  not yet resolved, the owner's own word or earlier decision). The test is over
+  the event's date or place as a whole, so two conflicts on it share one reading.
+  A record's locator is printed once per proof, at its first mention, and
+  every later mention is its number. Pure code: the model reads only what code
+  cannot, a handwritten image or a newspaper's text.
 
 ## 8. The loop
 

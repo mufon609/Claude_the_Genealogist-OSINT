@@ -472,17 +472,6 @@ one geocoder twin places it. Decide whether the head is held to the same rule
 stay a match, GOV's own historical names being spelled both ways), and apply it
 to both gazetteers' checks.
 
-### C25. The proof summary's per-conflict reasoning and question ids
-
-`tools/proof.py` computes "the classes favour X over Y" once per fact and
-prints it under every conflict of that fact, so a conflict reads a preference
-between values it does not hold (Noi Davidson's Morioka against Tokushima reads
-"favour Morioka over Ogau Tonan"), and "favour" there means secondary over
-indeterminable, not the rule's "without doubt". No read-only tool prints a
-conflict's question id, which `tools/conclude.py resolve` needs. Compute the
-line per conflict from the statements on each side and print the question id
-beside each open conflict.
-
 ### C27. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the

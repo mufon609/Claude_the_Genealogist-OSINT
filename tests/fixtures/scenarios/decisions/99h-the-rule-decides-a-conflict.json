@@ -1,6 +1,6 @@
 {
  "title": "the rule decides a conflict the classes decide",
- "line": "a state death index dating the death the 11th, primary information from the record of the death itself, against the file's bare claim of the 10th: the rule resolves it as soon as the owner accepts the index, through the owner's own resolve, its reason in words from the classes and recorded as acting for the owner, the event carrying the 11th and the 10th kept as the file says it; reconsider keeps it while it holds, takes it back when the owner rejects the index's statement (the event's 10th restored from the resolution's own record of it), resolves it again once the statement stands again, and leaves it to the owner for good once the owner reopens it",
+ "line": "a state death index dating the death the 11th, primary information from the record of the death itself, against the file's bare claim of the 10th: the rule resolves it as soon as the owner accepts the index, through the owner's own resolve, its reason in words from the classes and recorded as acting for the owner, the event carrying the 11th and the 10th kept as the file says it; reconsider keeps it while it holds, takes it back when the owner rejects the index's statement (the event's 10th restored from the resolution's own record of it), resolves it again once the statement stands again, and leaves it to the owner for good once the owner reopens it; the written conclusion prints the open question under its id, saying which statement the rule would keep before it has run and that the conflict is the owner's once reopened",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -254,6 +254,49 @@
    ]
   },
   {
+   "say": "the written conclusion before the rule has run: the question is open, and the rule's own reading of it keeps the index's 11th",
+   "proof": {
+    "person": "I332737204849",
+    "fact": "death"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "death": {
+        "conflicts": {
+         "some": {
+          "status": "open",
+          "question": {
+           "any": true
+          },
+          "verdict": {
+           "about": "death date",
+           "axis": "date",
+           "keep": {
+            "any": true
+           },
+           "why": {
+            "starts": "the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand"
+           }
+          }
+         }
+        }
+       }
+      },
+      "text": {
+       "has": [
+        "      #1 \"Kentucky, Vital Record Indexes, 1911-1999\", FamilySearch (https://www.familysearch.org/ark:/",
+        "]: death date: the tree, the file against Kentucky, Vital Record Indexes, 1911-1999 (#1): 10 June 1946 against 11 Jun 1946",
+        "\n    the rule would keep assertion "
+       ]
+      }
+     },
+     "why": "the classes decide it without doubt, so the line says which statement the rule would keep and why in the rule's words, while the question stays open until the rule or the owner closes it; the record's locator is printed in its citation and the conflict names it by its number"
+    }
+   ]
+  },
+  {
    "say": "reconsider resolves it again",
    "reconsider": {},
    "expect": [
@@ -303,6 +346,7 @@
     "detail_has": "death date:",
     "note": "harness: the family bible says the 10th; I will look at the certificate itself"
    },
+   "as": "reopened",
    "expect": [
     {
      "last": {
@@ -324,6 +368,41 @@
       "status": "open",
       "detail_has": "death date:"
      }
+    }
+   ]
+  },
+  {
+   "say": "the written conclusion once the owner has reopened it: the question the reopen named, and the rule says the conflict is theirs",
+   "proof": {
+    "person": "I332737204849",
+    "fact": "death"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "death": {
+        "conflicts": {
+         "some": {
+          "status": "open",
+          "question": "$reopened.question_id",
+          "verdict": {
+           "keep": {
+            "is": null
+           },
+           "why": {
+            "starts": "you reopened the rule's resolution of this death date"
+           }
+          }
+         }
+        }
+       }
+      },
+      "text": {
+       "has": "\n    the rule would not decide it: you reopened the rule's resolution of this death date: it is yours"
+      }
+     },
+     "why": "the reopened question prints under its own id, and the rule's reading says the conflict is the owner's"
     }
    ]
   },

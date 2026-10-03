@@ -12,9 +12,10 @@ For each key fact:
               copied from one original are one source), each with its class words (source: original, derivative or
               authored; information: primary, secondary or indeterminable; evidence: direct or indirect; a family link's
               relationship: stated or computed), its status and whether it agrees with the tree's value
-  conflicts   each conflict question on the fact: open, with the side the classes favour (the record of the event itself:
-              primary over secondary, original over derivative over authored, direct over indirect), or closed with its
-              reason, the owner's or the rule's (tools/conclude.py classes_decide)
+  conflicts   each conflict question on the fact, with its question id (tools/conclude.py resolve and reopen take it): open, with
+              the rule's own reading of it (tools/conclude.py classes_decide, over every statement on that event's date or
+              place): the side it would keep, the record of the event itself against sides resting only on secondary or
+              indeterminable information, or why it would not decide; or closed with its reason, the owner's or the rule's
   research    the fact's checklist rows: held, searched with nothing found, cited and not fetched, blocked, or not yet
               searched
   conclusion  meets the standard (an accepted statement both direct and primary, no open conflict, every row held or
@@ -22,8 +23,9 @@ For each key fact:
               no statement both, an open conflict); research still open; or no record accepted.
 The default prints a few lines per fact, the best records first; --fact prints one fact with every record and its
 citation (Evidence Explained style: a FamilySearch page's own "Cite This Record" with its film and image, else the
-collection, holder, locator and date retrieved); --json the whole. No class is ever a number: records are ordered by
-their class words, never scored.
+collection, holder, locator and date retrieved); --json the whole. A record's locator is printed once per proof, at its
+first mention, as "#3 <locator>", and every later mention of that record is "#3". No class is ever a number: records
+are ordered by their class words, never scored.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -76,7 +78,8 @@ def _q(cx):
 
 # ---------------------------------------------------------------- the records
 def record_info(cx, sha, cache, entry=None):
-    """What a line says about an archived record: its short name, its locator and its citation (Evidence Explained style),
+    """What a line says about an archived record: its short name, its locator as a reader opens it, the locator as the
+    catalog holds it (locator_value, the record's identity in a conflict line) and its citation (Evidence Explained style),
     the citation naming entry, the person as the record writes them, where the record's own citation does not."""
     if (sha, entry) in cache: return cache[(sha, entry)]
     q = _q(cx)
@@ -102,7 +105,7 @@ def record_info(cx, sha, cache, entry=None):
         reader = f"; read by {e['name']}" if e and e["kind"] in ("llm", "human") else ""
         cite = f"\"{name}\", {a['source'] if a else 'unknown holder'} ({url or 'no locator'}" + (f" : accessed {retrieved}" if retrieved else "") + ")" + \
                (f", entry for {entry}" if entry else "") + reader + "."
-    cache[(sha, entry)] = {"sha256": sha, "name": name, "locator": url, "citation": cite}
+    cache[(sha, entry)] = {"sha256": sha, "name": name, "locator": url, "locator_value": a["locator_value"] if a else None, "citation": cite}
     return cache[(sha, entry)]
 
 def statements(cat, pid, field):
@@ -276,23 +279,32 @@ def sides(axis, sts):
     out.sort(key=lambda s: order(s["best"]["classes"]))
     return out
 
-def favours(field, axis, sts, cx, cache):
-    """The side the classes favour in a date or place conflict (sides): each side read by its best statement in the
-    classes' own order. Words, or None when the statements give fewer than two sides."""
-    sides_ = sides(axis, sts)
-    if len(sides_) < 2: return None
-    text = lambda s: s["value"]["text"] if axis == "date" else s["value"]
-    who = lambda st: "the file" if st["kind"] == "file" else (st["classes"] or {}).get("original") or record_info(cx, st["sha256"], cache)["name"]
-    a, b = sides_[0], sides_[1]
-    if order(a["best"]["classes"]) == order(b["best"]["classes"]):
-        return f"the classes favour neither side: {text(a)} and {text(b)} each rest at best on {words(a['best']['classes'])}"
-    return f"the classes favour {text(a)} ({who(a['best'])}: {words(a['best']['classes'])}) over {text(b)} ({who(b['best'])}: {words(b['best']['classes'])})"
+def rule_reading(cat, detail, spots):
+    """The rule's own reading of one open conflict (tools/conclude.py classes_decide, which writes nothing): {about: the
+    event type and axis, event, axis, keep: the assertion id of the statement the rule would keep or None, why: its
+    sentence}. The test is per event and axis, over every statement on it, so two conflicts on one event's date or place
+    share one reading. None for a conflict that is not about an event's date or place (a duplicate event, a name); a
+    difference the catalog no longer finds on any event says so (spots: the catalog's lines now, each with its event and
+    axis, conclude.conflict_lines)."""
+    from conclude import CONFLICT_AXIS, classes_decide
+    m = CONFLICT_AXIS.match(detail)
+    if not m: return None
+    about = f"{m.group(1)} {m.group(2)}"
+    if detail not in spots: return {"about": about, "event": None, "axis": m.group(2), "keep": None, "why": "the catalog no longer finds this difference: the plan closes the question when it next runs"}
+    eid, axis = spots[detail]
+    keep, why = classes_decide(cat.cx, cat.tree_id, eid, axis)
+    return {"about": about, "event": eid, "axis": axis, "keep": keep, "why": why}
 
-def conflicts(cat, pid, field, sts, cache):
+def locators(cx, text):
+    """The locators of archived records that a line names in parentheses, as Catalog.disagreements writes a record
+    (its collection names and its locator), the catalog's own locator_value of each."""
+    return [loc for loc, in cx.execute("SELECT DISTINCT locator_value FROM artifact WHERE locator_value IS NOT NULL AND instr(?, '(' || locator_value || ')') > 0", (text,))]
+
+def conflicts(cat, pid, field, spots):
     """The conflict questions on this fact: every research_question of kind conflict on the person that names it, open or
     closed with a reason (resolved by the owner or the rule, or dismissed), and any difference the catalog finds now that no question
-    carries yet (Catalog.disagreements, Catalog.unplaced). An open date or place conflict on a birth or death carries the
-    side the classes favour."""
+    carries yet (Catalog.disagreements, Catalog.unplaced). Each is {question: its id, None where no question carries it yet,
+    detail, status, reason, locators: the records its detail names, verdict: an open conflict's (rule_reading)}."""
     out, seen = [], set()
     for qid, status, reason, detail_json in cat.q("SELECT id, status, closed_reason, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict'", pid):
         try: detail = json.loads(detail_json or "{}").get("detail") or ""
@@ -300,13 +312,12 @@ def conflicts(cat, pid, field, sts, cache):
         seen.add(detail)
         if fact_of(detail) != field: continue
         if status == "closed" and reason not in ("resolved", "dismissed"): continue      # gone with its gap, or answered: no longer a conflict
-        out.append({"detail": detail, "status": "open" if status == "open" else reason, "reason": resolution(cat, qid, detail_json) if status == "closed" else None})
+        out.append({"question": qid, "detail": detail, "status": "open" if status == "open" else reason, "reason": resolution(cat, qid, detail_json) if status == "closed" else None})
     for detail in cat.disagreements(pid) + cat.unplaced(pid):
-        if detail not in seen and fact_of(detail) == field: out.append({"detail": detail, "status": "open", "reason": None})
+        if detail not in seen and fact_of(detail) == field: out.append({"question": None, "detail": detail, "status": "open", "reason": None})
     for c in out:
-        if c["status"] == "open" and field in ("birth", "death"):
-            axis = "place" if re.match(r"^\w+ place\b", c["detail"]) else "date"
-            c["favours"] = favours(field, axis, sts, cat.cx, cache)
+        c["locators"] = locators(cat.cx, c["detail"])
+        if c["status"] == "open": c["verdict"] = rule_reading(cat, c["detail"], spots)
     return out
 
 # ---------------------------------------------------------------- research
@@ -361,7 +372,9 @@ def build(cat, pid, only=None):
     """The proof summary of a person's key facts (one when only names it), as a dict: the person, then per fact its value,
     basis, deciders, the file's claim, the evidence groups, the conflicts, the research and the conclusion."""
     from checklist import build as checklist
+    from conclude import conflict_lines
     ev, fam = cat.events(pid), cat.family(pid)
+    spots = {line: (eid, axis) for line, eid, axis in conflict_lines(cat, pid)}
     basis = cat.key_fact_basis(pid, ev)
     rows = checklist(cat, pid)["checklist"]
     rows = rows["A"] + rows["B"]
@@ -376,7 +389,7 @@ def build(cat, pid, only=None):
         held = [a for a in apids if cat.held_for(a, pid)]
         vouched = [s for s in sts if s["kind"] == "vouch" and s["status"] == "accepted"]
         accepted = [s for s in sts if s["kind"] == "record" and s["status"] == "accepted"]
-        cf = conflicts(cat, pid, field, sts, cache)
+        cf = conflicts(cat, pid, field, spots)
         rs = research(cat, pid, field, rows)
         verdict, why = conclusion(basis[field], accepted, vouched, sum(1 for c in cf if c["status"] == "open"), rs)
         facts.append({"fact": field, "value": value, "basis": basis[field],
@@ -387,9 +400,40 @@ def build(cat, pid, only=None):
     return {"person": {"id": pid, "name": p["name"]}, "facts": facts}
 
 # ---------------------------------------------------------------- the written form
+class Marks:
+    """The records a proof has named by locator: each gets a number at its first mention, where its locator is printed in
+    full ("#3 <locator>"), and is "#3" at every mention after."""
+    def __init__(self): self.numbers = {}
+    def first(self, locator):
+        """The number of a locator, and whether this is its first mention."""
+        new = locator not in self.numbers
+        if new: self.numbers[locator] = len(self.numbers) + 1
+        return self.numbers[locator], new
+    def line(self, text, locators):
+        """A line with each of its records' locators (written in parentheses, as Catalog.disagreements writes them) marked."""
+        for loc in sorted(locators, key=lambda loc: text.find(f"({loc})")):
+            n, new = self.first(loc)
+            if new: text = text.replace(f"({loc})", f"(#{n} {loc})", 1)
+            text = text.replace(f"({loc})", f"(#{n})")
+        return text
+    def citation(self, rec):
+        """A record's citation, led by its number when the catalog holds a locator for it."""
+        loc = rec.get("locator_value")
+        return f"#{self.first(loc)[0]} {rec['citation']}" if loc else rec["citation"]
+
+def reading_line(v, read):
+    """An open conflict's rule_reading as one line: the rule would keep a statement (its assertion id, which tools/conclude.py
+    resolve takes), or would not decide, with the reason in the rule's words; a reading already printed for the same event
+    and axis (read) is pointed to. A difference the catalog no longer finds is told as it is."""
+    if v["event"] is None: return v["why"]
+    spot = (v["event"], v["axis"])
+    if spot in read: return f"the rule's reading of this {v['about']} is the one above"
+    read.add(spot)
+    return f"the rule would keep assertion {v['keep']}: {v['why']}" if v["keep"] else f"the rule would not decide it: {v['why']}"
+
 def render(r, full=False):
     """The summary as text: a few lines per fact by default, every record with its citation when full."""
-    out = [f"{r['person']['name']} [{r['person']['id'][-6:]}]"]
+    out, marks, read = [f"{r['person']['name']} [{r['person']['id'][-6:]}]"], Marks(), set()
     for f in r["facts"]:
         head = f"{f['fact']}: {f['value'] or '(none)'}  {f['basis'] or 'no claim'}"
         if f["decided_by"]: head += f" ({', '.join(f['decided_by'])})"
@@ -401,7 +445,7 @@ def render(r, full=False):
             says = f"; {'; '.join(g['says'])}" if g["says"] else ""
             out.append(f"  {g['label']}: {words(g['classes'])}; {g['status']}{says}{who}")
             if full:
-                for rec in g["records"]: out.append(f"      {rec['citation']}")
+                for rec in g["records"]: out.append(f"      {marks.citation(rec)}")
                 for s in g["statements"]:
                     if s["status"] == "rejected": out.append(f"      a statement rejected [{s['id'][-6:]}]")
         rest = f["evidence"][len(shown):]
@@ -409,10 +453,10 @@ def render(r, full=False):
             n = {st: sum(1 for g in rest if g["status"] == st) for st in STATUS}
             out.append("  and " + ", ".join(f"{v} more {k}" for k, v in n.items() if v))
         for c in f["conflicts"]:
-            line = f"  conflict {c['status']}: {c['detail']}"
+            line = f"  conflict {c['status']}{' [' + c['question'] + ']' if c.get('question') else ''}: {marks.line(c['detail'], c.get('locators') or [])}"
             if c.get("reason"): line += f"; reason: {c['reason']}"
-            if c.get("favours"): line += f"; {c['favours']}"
             out.append(line)
+            if c.get("verdict"): out.append(f"    {reading_line(c['verdict'], read)}")
         if f["research"]:
             by = {s: [] for s in ROW_STATES}
             for x in f["research"]: by[x["state"]].append(x)
