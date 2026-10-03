@@ -82,27 +82,31 @@ def a_turns(w, x):
 def a_clear_state(w, x):
     import turn; turn.clear_state(w.db); return {}
 
-def a_run(w, x):
-    """tools/run_step.py run on one step through its real connectors, only the network call replaced: one answer per request
-    under `answers`, each for the URLs carrying `url_has`, either a saved real response (`fixture` under tests/fixtures/, its
-    `content_type`) or an `error` the source's connection raises, the harness's stand-in for a holder that did not answer (a
-    timeout, a refusal, a challenge); a request the data does not answer fails the run. No `fetch` means no network at all,
-    when a request must not go out; `dry` for --dry-run, `again` for a run by the step's id, every connector asked. The result
-    carries each connector's run and, under `records`, the sha256 of every record the runner archived and read."""
-    import run_step, urllib.error
-    st = w.step(x["step"]); cat = w.catalog()
-    fetch = x.get("fetch")
+def answered_by(fetch):
+    """The network call a run is played back with, from the data: `answers`, one for each request, in the order the requests
+    come. An answer is for the first request carrying its `url_has` that no earlier request has taken: a saved real response
+    (`fixture` under tests/fixtures/, its `content_type`) or an `error` the source's connection raises, the harness's
+    stand-in for a holder that did not answer (a timeout, a refusal, a challenge). A request the data does not answer fails
+    the run; no `fetch` means no network at all."""
+    import urllib.error
+    used = set()
     def meta(url, content_type): return {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": content_type}
-    if fetch is None or x.get("dry"):
-        def fake_fetch(url, kind, c, data=None): raise AssertionError(f"a request went out: {url}")
-    else:
-        def fake_fetch(url, kind, c, data=None):
-            for ans in fetch["answers"]:
-                if ans["url_has"] not in url: continue
-                if ans.get("error"): raise urllib.error.URLError(ans["error"])
-                with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))
-            raise AssertionError(f"a request went out that the data does not answer: {url}")
-    with patched(run_step, "fetch", fake_fetch):
+    def fake_fetch(url, kind, c, data=None):
+        for i, ans in enumerate((fetch or {}).get("answers", [])):
+            if i in used or ans["url_has"] not in url: continue
+            used.add(i)
+            if ans.get("error"): raise urllib.error.URLError(ans["error"])
+            with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))
+        raise AssertionError(f"a request went out that the data does not answer: {url}")
+    return fake_fetch
+
+def a_run(w, x):
+    """tools/run_step.py run on one step through its real connectors, only the network call replaced (answered_by); `dry` for
+    --dry-run, no request allowed, `again` for a run by the step's id, every connector asked. The result carries each
+    connector's run and, under `records`, the sha256 of every record the runner archived and read."""
+    import run_step
+    st = w.step(x["step"]); cat = w.catalog()
+    with patched(run_step, "fetch", answered_by(None if x.get("dry") else x.get("fetch"))):
         w.cx.execute("BEGIN"); res = run_step.run(w.cx, cat, w.tid, st, BY, dry_run=bool(x.get("dry")), again=bool(x.get("again"))); w.cx.commit()
     return {"step": st["id"], "results": [{"connector": r.get("connector"), "source": r.get("source"), "asked": r.get("asked"), "answered": r.get("answered"), "outcome": r.get("outcome"),
                                           "requests": r.get("requests"), "wants": r.get("wants"), "error": r.get("error"), "errors": r.get("errors"),
@@ -112,7 +116,7 @@ def a_run(w, x):
 
 def a_run_all(w, x):
     """tools/run_step.py --all with run_step.run standing in: a run that regenerates the plan as the data says (dropping one
-    step, opening another), or one that raises SystemExit; every planned search step runnable, no real connector."""
+    step, opening another), or one that raises SystemExit; which steps are runnable is the real connectors' say."""
     import run_step
     calls, opened = [], []
     fake = x["fake"]
@@ -128,8 +132,7 @@ def a_run_all(w, x):
             raise SystemExit("no step " + st["id"])
         return []
     raised = False; old_argv = sys.argv
-    stand_in = types.SimpleNamespace(__name__="fake.connector", SOURCE=None, requests=lambda fields: [{"url": "fake", "kind": "search"}])   # a connector every planned step has, its runs read whatever their source
-    with patched(run_step, "run", fake_run), patched(run_step, "connectors_for", lambda cat, st: [stand_in]):
+    with patched(run_step, "run", fake_run):
         sys.argv = ["run_step.py", "--all", "--db", w.db, "--tree", w.slug, "--by", BY]
         try:
             with contextlib.redirect_stdout(io.StringIO()): run_step.main()
@@ -138,26 +141,17 @@ def a_run_all(w, x):
     return {"calls": calls, "opened": opened, "raised": raised}
 
 def a_run_connector(w, x):
-    """run_step.run_connector on a step with a connector standing in: its requests from the step's place field (a search
-    step's own "place", or "field" names a fetch step's own citation label, "census place"), its hits from the fetch's
-    answer, the answer per request from the data (none for a URL carrying one text, found otherwise). `dry`: run_step.run
-    in dry-run mode instead, the same connector standing in through connectors_for, saying whether the runner would ask
-    it again on the step's current fields."""
+    """run_step.run_connector on a step with the real connector named (`connector`, its module under tools/connectors/), only
+    the network call replaced (answered_by): the place names the step carries tried one at a time, the requests the connector
+    builds, the run's outcome and the query the run logged. `dry`: run_step.run in dry-run mode instead, saying whether the
+    runner would ask the connector again on the step's current fields."""
     import run_step
-    from connectors import value
-    c = x["connector"]; st = w.step(x["step"]); field = c.get("field", "place")
-    def requests(fields):
-        place = value(fields, field)
-        return [{"url": f"{c['url']}?{field}={place}", "kind": "search"}] if place else []
-    def hits(url, data): return [] if data == b"none" else [{"label": "hit", "locator": "loc1", "fetch": [], "notes": {}}]
-    conn = types.SimpleNamespace(__name__="fake.connector", SOURCE=c["source"], COLLECTION=c["collection"], RATE={"search": 6000}, requests=requests, hits=hits, total=lambda data: None)
-    def fake_fetch(url, kind, cc, data=None):
-        return (b"none" if c["none_when"] in url else b"found"), {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": "application/json"}
+    from connectors import load
+    st = w.step(x["step"]); conn = load(x["connector"])
     if x.get("dry"):
-        with patched(run_step, "connectors_for", lambda cat, s: [conn] if s["id"] == st["id"] else []):
-            res = run_step.run(w.cx, w.catalog(), w.tid, st, BY, dry_run=True)
+        res = run_step.run(w.cx, w.catalog(), w.tid, st, BY, dry_run=True)
         return {"results": [{"connector": r.get("connector"), "asked": r.get("asked"), "answered": r.get("answered")} for r in res]}
-    with patched(run_step, "fetch", fake_fetch): r = run_step.run_connector(w.cx, w.catalog(), w.tid, st, conn, BY)
+    with patched(run_step, "fetch", answered_by(x.get("fetch"))): r = run_step.run_connector(w.cx, w.catalog(), w.tid, st, conn, BY)
     logged = w.cx.execute("SELECT query_json FROM search_log WHERE plan_step_id=?", (st["id"],)).fetchone()
     return {"outcome": r.get("outcome"), "requests": r.get("requests"), "logged_query": json.loads(logged[0]) if logged else {}}
 

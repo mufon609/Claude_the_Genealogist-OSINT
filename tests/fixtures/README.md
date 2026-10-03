@@ -74,6 +74,10 @@ harness has its own manifest saying so.
 | `ia-metadata-spinneyfamilygen00phil.json` + `.manifest.json` | The archive's object `ba021857…` (13 September 2026): the Archive's metadata for that lent book (`access-restricted-item` true) |
 | `ia-fts-newspapers-alicia-ahearn-empty.json` + `.manifest.json` | The archive's object `d6c20ff8…` (20 September 2026): the Archive's full-text search of its newspapers for "Alicia Ahearn", which holds nothing: the Archive's empty answer |
 | `wikitree-search-davidson-noi-1929-empty.json` + `.manifest.json` | The archive's object `eb0a659a…` (13 September 2026): WikiTree's searchPerson for Noi Davidson born 1929, which holds nothing: WikiTree's empty answer |
+| `va-gravesite-search-davidson-raymond-e.html` + `.manifest.json` | The archive's object `e6db8c20…` (14 September 2026): the VA Nationwide Gravesite Locator's results page for Davidson, Raymond, middle name beginning E, as the connector's posted search received it: five decedents, Raymond E Davidson (1939–2007) the first |
+| `va-gravesite-search-davidson-noi.html` + `.manifest.json` | The archive's object `17c08be7…` (14 September 2026): the same locator's page for Davidson, Noi: one decedent, Noi Davidson (1929–2015) |
+| `nara-1950-search-davidson-nassau-ed-30-392.json` + `.manifest.json` | The archive's object `9fda2c90…` (7 September 2026): the 1950 census site's own search for Davidson in Nassau County, New York, enumeration district 30-392: the one schedule (`nara-1950-schedule-3947385.json`, read as a page above) |
+| `nara-1950-search-davidson-nassau-ed-30-393-empty.json` + `.manifest.json` | **Captured for the harness**, one request on 3 October 2026 00:06 UTC (2 October local) with the project's User-Agent, at `https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-393&page=1`: the same search within the district beside it, which the site answers with nothing (`{"total":0,"size":25,"page":1,"results":[]}`): the census site's empty answer |
 
 ## Gazetteer answers
 
@@ -239,11 +243,13 @@ The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, th
 person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `turns` (`tools/turns.py` the same way: `turns` for --turns,
 `resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
 into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
-replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, a saved real response or the
-harness's stand-in for a holder that did not answer, or no network at all; `dry` for a dry run, `again` for a run by the step's id
-at every connector), `run_all` (`--all` with a run that regenerates
-the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
-`none_when`; `field` names the place-like field it asks under, "place" when absent, "census place" for a fetch step's own),
+replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, each answer for the first request
+carrying its `url_has` that no earlier request took: a saved real response, or the harness's stand-in for a holder that did not
+answer; a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
+step's id at every connector; the result's `records` are the sha256 of every record the runner archived and read), `run_all` (`--all` with a run that regenerates
+the plan or raises, as the data says), `run_connector` (`run_step.run_connector` with the real `connector` named, answered like `run`: the
+place names the step carries tried one at a time; the answers are taken in the order the requests come, so two names that make the same
+request can be answered nothing and then the page),
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,

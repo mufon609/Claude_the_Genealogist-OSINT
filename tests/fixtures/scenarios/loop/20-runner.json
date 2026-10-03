@@ -102,12 +102,12 @@
        {
         "source_id": "C09",
         "outcome": "none",
-        "artifacts": {"len": 2},
+        "artifacts": {"len": 2, "has": "893c0b1df818af38c4de6761c5e9e03e831049a50831852384d2e7dd968c3f66"},
         "notes": {"starts": "no candidate fits; "}
        }
       ]
      },
-     "why": "the rows fit nobody: the run is a none, the reason first in its note, the whole file and the surname's rows both kept on the run"
+     "why": "the rows fit nobody: the run is a none, the reason first in its note, the whole file and the surname's rows both kept on the run, the rows the very object the live archive holds for Evers"
     },
     {
      "step": {

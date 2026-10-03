@@ -1,6 +1,6 @@
 {
  "title": "a search step's several place names",
- "line": "a search step whose place field carries more than one accurate name is tried in order and stops at the first hit, every try named on the logged run's query",
+ "line": "a search step whose place field carries more than one accurate name is tried name by name, each try named on the logged run's query, the run stopping at the first name that gets a hit (the fetch step's scenario) and trying them all when none does",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,23 +8,27 @@
  },
  "steps": [
   {
-   "say": "a search step on a person born under a place's former name, the place field carrying both names",
+   "say": "a search step on Raymond Earl Davidson for the 1950 census, the place field carrying the two ways the owner's records write his place",
    "step": {
-    "person": "I332737099804",
+    "person": "I332737099805",
     "row_key": "footprint:",
     "seq": 1,
     "step_key": "search:retry",
     "kind": "search",
     "query_type": "household",
     "query": {
+     "given": {
+      "value": "Raymond",
+      "basis": "accepted"
+     },
      "surname": {
       "value": "Davidson",
       "basis": "accepted"
      },
      "place": {
       "value": [
-       "Tonan",
-       "Morioka"
+       "Hempstead, Nassau, New York",
+       "Hempstead, Nassau, New York, USA"
       ],
       "basis": "accepted"
      }
@@ -37,35 +41,42 @@
    "as": "s"
   },
   {
-   "say": "the connector standing in answers none for the first name and found for the second",
+   "say": "the real census connector asked once for each name, the site answering nothing to either: both are tried",
    "run_connector": {
     "step": "$s.step",
-    "connector": {
-     "source": "D05",
-     "collection": "Test Collection",
-     "url": "http://test.invalid/search",
-     "none_when": "place=Tonan"
+    "connector": "nara_1950",
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+      },
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+      }
+     ]
     }
    },
    "expect": [
     {
      "last": {
-      "outcome": "found",
+      "outcome": "none",
       "requests": [
-       "http://test.invalid/search?place=Tonan",
-       "http://test.invalid/search?place=Morioka"
+       "https://1950census.archives.gov/api/search?name=Raymond%20Davidson&state=NY&county=Nassau&page=1",
+       "https://1950census.archives.gov/api/search?name=Raymond%20Davidson&state=NY&county=Nassau&page=1"
       ],
       "logged_query": {
        "place": {
         "tried": [
-         "Tonan",
-         "Morioka"
+         "Hempstead, Nassau, New York",
+         "Hempstead, Nassau, New York, USA"
         ],
-        "value": "Morioka"
+        "value": "Hempstead, Nassau, New York, USA"
        }
       }
      },
-     "why": "both names are tried, in order, before the run stops; the logged run's query names every try, the one that hit last"
+     "why": "both names are tried, in order, none getting a hit; the logged run's query names every try, the last one tried"
     }
    ]
   }
