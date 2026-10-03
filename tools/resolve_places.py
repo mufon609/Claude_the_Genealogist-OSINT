@@ -4,7 +4,10 @@
 usage: tools/resolve_places.py [--tree slug] [--limit N] [--dry-run] [--only "raw string"] [--reset]
 
 Rules
-  * Every string is parsed into components; countries and US states are normalized.
+  * Every string is parsed into components; countries are normalized, and the last part of a string that is no country is the state
+    when it is a state's name or an abbreviation of it (catalog.us_state: NJ, N.J., Penna, Tenn., Mass.), so a string that is a
+    state alone ("NJ", "Penna", "N.J., USA") is asked as the state and accepted when exactly one candidate verifies, as any
+    string is. An abbreviation earlier in a string is left as written: Penn, in Penn, Cumberland, Pennsylvania, is a township.
   * Nominatim (free, ODbL, 1 req/s, cached under derivatives/geocode/) is asked for
     candidates. A candidate is verified by checking that EVERY component the string
     gave appears in the candidate's address hierarchy.
@@ -50,7 +53,7 @@ import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
-from catalog import country_words
+from catalog import US_STATES, country_words, us_state
 
 RESOLVER = ("rule", "nominatim-resolver", "0.2.0")
 def cache_dir():
@@ -60,15 +63,6 @@ ENDPOINT = "https://nominatim.openstreetmap.org/search"
 
 COUNTRY_SYN = country_words()   # data/countries.csv: a country's name and the words records write for it; read from a string's last part only
 DROP = {"north america", "british colonies", "europe", "colonial america", "unknown"}   # words for no place more specific than the rest of the string ("UNKNOWN, Germany" is Germany)
-US_STATES = {"alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia",
-             "hawaii","idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts",
-             "michigan","minnesota","mississippi","missouri","montana","nebraska","nevada","new hampshire","new jersey",
-             "new mexico","new york","north carolina","north dakota","ohio","oklahoma","oregon","pennsylvania","rhode island",
-             "south carolina","south dakota","tennessee","texas","utah","vermont","virginia","washington","west virginia",
-             "wisconsin","wyoming"}
-US_ABBR = {"pa": "Pennsylvania", "ny": "New York", "nj": "New Jersey", "ma": "Massachusetts", "ky": "Kentucky", "tn": "Tennessee",
-           "oh": "Ohio", "va": "Virginia", "fl": "Florida", "co": "Colorado", "ga": "Georgia", "tx": "Texas", "nc": "North Carolina",
-           "sc": "South Carolina", "wa": "Washington"}
 HISTORIC_REGION = {"silesia": "Silesia", "silesa": "Silesia", "schlesien": "Silesia"}
 WARD_RE = re.compile(r"^(.*?)\s+((?:Lower|Upper)\s+Ward|Ward|Assembly District|District|Precinct)\s*\d*$", re.I)
 ADDR_RE = re.compile(r"^\d+\s+\S|\b(Road|Street|Avenue|Lane|Drive|St\.?|Rd\.?|Ave\.?)$", re.I)
@@ -99,12 +93,13 @@ def parse(raw):
     for t in [t.strip() for t in s.split(",")]:
         if not t or (prev and t.lower() == prev.lower()): continue
         toks.append(t); prev = t
+    last = next((i for i in range(len(toks) - 1, -1, -1) if not (i == len(toks) - 1 and toks[i].lower().rstrip(".") in COUNTRY_SYN)), None)   # the last part that is no country
+    if last is not None and us_state(toks[last]): toks[last] = us_state(toks[last])   # a state written as an abbreviation (NJ, N.J., Penna, Tenn.) is the state, there only: earlier, Penn or Col is a township's or a person's own
     for t in toks:
         tl = t.lower().rstrip(".")
         if tl in COUNTRY_SYN and t is toks[-1]: p["country"] = COUNTRY_SYN[tl]; continue   # the country a record writes last; earlier, a country's name is a place of that name (Lebanon, Pennsylvania)
         if tl in DROP: continue
         if tl in HISTORIC_REGION: p["region"] = HISTORIC_REGION[tl]; continue
-        if tl in US_ABBR: t = US_ABBR[tl]
         m = WARD_RE.match(t)
         if m: p["details"].append(t); t = m.group(1)
         if ADDR_RE.search(t) and len(toks) > 1: p["details"].append(t); continue

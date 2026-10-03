@@ -293,6 +293,36 @@
    "tree": "Kansas City < Wyandotte County < Kansas < United States",
    "verdict": "disagrees",
    "note": null
+  },
+  {
+   "record": "Savannah, Tenn.",
+   "tree": "Savannah < Hardin County < Tennessee < United States",
+   "verdict": "agrees",
+   "note": null
+  },
+  {
+   "record": "Mount Joy, Penna",
+   "tree": "Mount Joy < Lancaster County < Pennsylvania < United States",
+   "verdict": "agrees",
+   "note": null
+  },
+  {
+   "record": "Penna",
+   "tree": "Mount Joy Township < Lancaster County < Pennsylvania < United States",
+   "verdict": "agrees",
+   "note": "the record gives only Pennsylvania"
+  },
+  {
+   "record": "N.Y.",
+   "tree": "Hempstead < Nassau County < New York < United States",
+   "verdict": "agrees",
+   "note": "the record gives only New York"
+  },
+  {
+   "record": "Savannah, Tenn.",
+   "tree": "Savannah < Hardin County < Alabama < United States",
+   "verdict": "disagrees",
+   "note": null
   }
  ],
  "place_verdict_with_record_state": [
@@ -446,6 +476,86 @@
     "country": "Italy",
     "queries": [
      "Rome, Italy"
+    ]
+   }
+  },
+  {
+   "raw": "NJ",
+   "parsed": {
+    "components": [
+     "New Jersey"
+    ],
+    "country": "United States",
+    "queries": [
+     "New Jersey, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Penna",
+   "parsed": {
+    "components": [
+     "Pennsylvania"
+    ],
+    "country": "United States",
+    "queries": [
+     "Pennsylvania, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Mass",
+   "parsed": {
+    "components": [
+     "Massachusetts"
+    ],
+    "country": "United States",
+    "queries": [
+     "Massachusetts, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Savannah, Tenn.",
+   "parsed": {
+    "components": [
+     "Savannah",
+     "Tennessee"
+    ],
+    "country": "United States",
+    "queries": [
+     "Savannah, Tennessee, United States",
+     "Savannah, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Red Lion, York County, Penna",
+   "parsed": {
+    "components": [
+     "Red Lion",
+     "York County",
+     "Pennsylvania"
+    ],
+    "country": "United States",
+    "queries": [
+     "Red Lion, York County, Pennsylvania, United States",
+     "Red Lion, Pennsylvania, United States",
+     "Red Lion, United States"
+    ]
+   }
+  },
+  {
+   "raw": "Philadelphia, PA, USA",
+   "parsed": {
+    "components": [
+     "Philadelphia",
+     "Pennsylvania"
+    ],
+    "country": "United States",
+    "queries": [
+     "Philadelphia, Pennsylvania, United States",
+     "Philadelphia, United States"
     ]
    }
   }
