@@ -564,6 +564,16 @@
      "Philadelphia, United States"
     ]
    }
+  },
+  {
+   "raw": "United States of America",
+   "parsed": {
+    "components": [],
+    "country": "United States",
+    "queries": [
+     "United States"
+    ]
+   }
   }
  ],
  "place_names": [

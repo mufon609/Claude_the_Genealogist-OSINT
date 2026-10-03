@@ -108,7 +108,8 @@ def parse(raw):
     """-> dict(components=[...], country, region, details=[...], warnings=[...])"""
     p = {"components": [], "country": None, "region": None, "details": [], "warnings": []}
     s = re.sub(r"\(alt\..*?\)", "", raw)
-    for phrase in sorted(COUNTRY_SYN, key=len, reverse=True):          # "Kalagh Cork Great Britain and Ireland"
+    whole = s.strip().lower().rstrip(".") in COUNTRY_SYN   # "United States of America" is one country's name, not "United States of" ahead of "America"
+    for phrase in ([] if whole else sorted(COUNTRY_SYN, key=len, reverse=True)):          # "Kalagh Cork Great Britain and Ireland"
         if "," not in s and s.lower().endswith(" " + phrase):
             s = s[: -len(phrase)].strip(); p["country"] = COUNTRY_SYN[phrase]; s = ", ".join(s.split()); break
     toks, prev = [], None
