@@ -223,8 +223,12 @@ record could carry was dropped rather than faked. Each is a path the code
 still has and nothing now tests: an in-law resolving to a real link
 through the relative it names; the spouse fit where the other party
 carries another name; the fitting check on garbled initials and on a
-short-form given name; a results row outliving its own record; a
-namesake's kin shown as a hint; the SAR page at a holder without a parser
+short-form given name; the matcher's window on a birth year
+(`match.WINDOW`: a persona born more than three years from a candidate of
+the same name is never a near match, which only a results page's rows
+carried, and no row is a card now: the 1900 Lukens household, Annie against
+her mother, needs the parents in the harness cut); a namesake's kin shown as a
+hint; the SAR page at a holder without a parser
 and its two-entry listing; the found half of the runner's listing run; the
 unnamed fetch's own naming
 (`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
@@ -513,6 +517,15 @@ Every tool defaults `--db` to the repository's `catalog/tree.db`, not to
 `DATA_ROOT`'s, so a scratch run that sets `DATA_ROOT` and forgets `--db`
 writes the owner's catalog. Default `--db` to `DATA_ROOT/catalog/tree.db`
 (one constant in `treelib.py`) so a scratch run is scratch throughout.
+
+### C31. A results row no longer has a card to close
+
+The matcher proposes no row of a results page (`tools/match.py`), so a row's
+card never sits open beside the record it summarizes, and
+`conclude.close_result_rows` finds nothing: remove it with its call in
+`decide`, its sweep and `row` kind in `reconsider`, the `row` branch of
+`tools/turn.py`'s report and the `closed_rows` line of `tools/conclude.py`'s
+command line.
 
 ## Externally blocked
 

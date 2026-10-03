@@ -51,9 +51,14 @@ persona_match with the candidate that fits (the one with more agreements when
 two fit, the other named in the rationale), or new_person when nobody fits,
 outright or by the fitting check. The
 proposal carries the question of the step the candidate came from, when it has
-one. A row of a search results page (role result) that fits nobody gets no
-proposal: it stays a candidate on the page, and the candidate card says why it
-does not fit. The rationale says in plain words which fields agree, which disagree, which
+one. A row of a results page that points at records (extract.POINTING_LISTINGS: a
+FamilySearch, Find a Grave or AAD search) is never proposed, fitting or not: its own
+record is the document, so it stays a hint on the page, and fitting_rows names the
+rows that fit a person the page was fetched for, by this module's own definition of
+fits, for tools/plan.py to write a fetch step for each row's record (a lead). A row
+of a listing that is the record (the gravesite locator's, the death indexes') is
+proposed like any persona; one that fits nobody stays a hint on the page, and the
+candidate card says why it does not fit. The rationale says in plain words which fields agree, which disagree, which
 are absent. Nothing numeric is stored. A persona that already has a proposal is
 skipped, so re-running adds nothing; a proposal closed as superseded (a re-read's,
 or an older matcher's, tools/conclude.py reconsider) is not one, so that persona
@@ -73,7 +78,7 @@ from treelib import ROOT, connect, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.5.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.6.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
 WINDOW = 3                                  # the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
 LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
 MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
@@ -226,15 +231,20 @@ def personas_of(cx, eid):
     out = []
     coll = cx.execute("SELECT c.name FROM extraction e JOIN artifact ar ON ar.sha256=e.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?", (eid,)).fetchone()
     record_state = collection_state(coll[0] if coll else None)   # the record's own event place for a bare county (catalog.place_verdict), from the collection's own name
-    for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
-        fact = lambda t: cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND (date_start IS NOT NULL OR date_end IS NOT NULL)", (pid, t)).fetchone()
-        names = [name] + [v for v, in cx.execute("SELECT value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL AND value_text<>?", (pid, name))]
-        place = lambda t: (cx.execute("SELECT ps.raw FROM persona_fact pf JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=? AND pf.fact_type=?", (pid, t)).fetchone() or [None])[0]
-        rels = cx.execute("SELECT r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (pid,)).fetchall()
-        region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pid,)).fetchone()[0] or "{}")
+    facts, rels = {}, {}                                         # persona id -> its facts, and its relations, in the order they were written: a results page holds a hundred personas, read in three queries
+    for r in cx.execute("""SELECT pf.persona_id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id
+                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pe.extraction_id=? ORDER BY pf.rowid""", (eid,)): facts.setdefault(r[0], []).append(tuple(r[1:]))
+    for r in cx.execute("""SELECT r.persona_id, r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id
+                           JOIN persona pe ON pe.id=r.persona_id WHERE pe.extraction_id=? ORDER BY r.rowid""", (eid,)): rels.setdefault(r[0], []).append(tuple(r[1:]))
+    for pid, name, sex, role, region_json in cx.execute("SELECT id, name_text, sex, role_in_record, region_json FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
+        mine = facts.get(pid, [])                                # (fact type, value, date text, date start, date end, date qualifier, place as written)
+        fact = lambda t: next(((x[2], x[3], x[4], x[5]) for x in mine if x[0] == t and (x[3] is not None or x[4] is not None)), None)
+        names = [name] + [x[1] for x in mine if x[0] == "Name" and x[1] is not None and x[1] != name]
+        place = lambda t: next((x[6] for x in mine if x[0] == t and x[6] is not None), None)
+        region = json.loads(region_json or "{}")
         m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
         out.append({"id": pid, "name": name, "names": names, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
-                    "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels,
+                    "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels.get(pid, []),
                     "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None, "record_state": record_state})
     names = {p["id"]: p["name"] for p in out}
     in_law_surnames = [rest[-1] for p in out if MARRIED_IN_LAW.search(p["role"] or "") for rest in [split_persona_name(p["name"])[1]] if rest]
@@ -363,6 +373,29 @@ def linked(cat, a, b):
         if on_record(fid, a, ra) and on_record(fid, b, rb): return True
     return False
 
+def fitting_rows(cx, eid, person_id=None, known=None):
+    """The rows of a results page that points at records (extract.POINTING_LISTINGS), as the current reading holds them, that fit
+    a person the page was fetched for (persons_for, or person_id alone), by compare's own definition of fits: more than a name
+    and a year, a place, a death, the day, a stated relationship, and nothing compared disagreeing. [(person id, the row's
+    persona as personas_of reads it, what agrees)], one entry for each person a row fits, in the page's order. Nothing is
+    written: the matcher proposes no row of such a page (match), so this is the one answer to which rows are worth their own
+    record, read by tools/plan.py for the leads and by tools/attach.py for whether the run found anyone. Empty for any other
+    extraction. known: {person id: (Catalog, candidate)} a caller asking about several pages keeps, so each person is read once."""
+    from extract import POINTING_LISTINGS
+    ext = cx.execute("""SELECT e.artifact_sha256 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
+                         WHERE e.id=? AND e.superseded_by IS NULL AND e.status='complete' AND x.name IN (%s)""" % ",".join("?" * len(POINTING_LISTINGS)), (eid, *POINTING_LISTINGS)).fetchone()
+    if not ext: return []
+    rows = personas_of(cx, eid); out = []; known = {} if known is None else known
+    for pid, _, _ in persons_for(cx, ext[0]):
+        if person_id not in (None, pid): continue
+        if pid not in known:
+            cat = Catalog(cx, cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0]); known[pid] = (cat, candidate(cat, pid))
+        cat, cand = known[pid]
+        for pr in rows:
+            fits, agree, _, _, _ = compare(cat, pr, cand, {})
+            if fits: out.append((pid, pr, agree))
+    return out
+
 def match(cx, eid, by, about=None):
     """One person at a time: a record proposes first the persona that may be the person it was fetched for (or a person already
     attached to them by a record accepted earlier, or already accepted under the same memorial); the record's other personas wait. Once a
@@ -372,11 +405,13 @@ def match(cx, eid, by, about=None):
     to the same accepted person (by_name_and_year); a persona the record relates to an accepted person and that fits nobody,
     by the fitting check either, is proposed as a new person. about: person ids the owner says the record concerns, when no
     step or link names them (a family-held file)."""
+    from extract import POINTING_LISTINGS
     ext = cx.execute("SELECT artifact_sha256, superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()
     if not ext: raise SystemExit(f"no extraction {eid}")
     if ext[1]: return []                                        # a superseded reading's personas are history: only the current reading is proposed
     sha = ext[0]; ts = now()
     extractor_name = cx.execute("SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()[0]
+    if extractor_name in POINTING_LISTINGS: return []           # a row of a results page that points at records is never a card, whatever it agrees on: its own record is the document (docs/RESEARCH-WORKFLOW.md §0); fitting_rows names the rows that fit, tools/plan.py writes a fetch step for each
     subject_role = LISTED_RELATIVE_SUBJECT.get(extractor_name)   # set on a page anyone can edit that lists a subject's family: every other role on it is a relative merely listed
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", MATCHER).fetchone()
     mid = row[0] if row else ulid()
@@ -428,7 +463,7 @@ def match(cx, eid, by, about=None):
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=? AND pp.status<>'undecided'", (pr["id"], tree_id)).fetchone(): continue   # decided already, accepted or rejected (a link carried across a re-extraction); an undecided link is no decision: one the rule took back, whose older card a newer matcher superseded, is proposed again
             if subject_role and pr["role"] != subject_role: continue   # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
             if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
-                continue                                          # a row on a results page, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card: its own record is the document
+                continue                                          # a row on a results page that is itself the record, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card
             if pr["id"] in nearly and (any(o != pr["id"] and o not in nearly and chosen[o]["id"] == chosen[pr["id"]]["id"] for o in chosen)
                                        or cx.execute("""SELECT 1 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pe.extraction_id=? AND pp.status='accepted' AND pp.person_id=?""", (eid, chosen[pr["id"]]["id"])).fetchone()):
                 continue                                          # another persona on this page fits, or is accepted as, that person: one decision put once; the near one stays a hint on the page
@@ -441,7 +476,7 @@ def match(cx, eid, by, about=None):
                 if absent: text += " Absent: " + ", ".join(absent) + "."
                 if others: text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
-            elif pr["role"] in ("result", "listed", "named in the text"): continue   # a search result, a schedule row or a name in running text that fits nobody stays on the page as a hint, not a new person
+            elif pr["role"] in ("result", "listed", "named in the text"): continue   # a row of a listing that is the record, a schedule row or a name in running text that fits nobody stays on the page as a hint, not a new person
             else:
                 tried = [compare(cat, pr, c, chosen) for c in cands]
                 why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _, _) in zip(cands, tried) if not a or d)[:600]

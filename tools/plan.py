@@ -25,7 +25,10 @@ E05, the image's URL as locator), and one fetch step per relative it merely
 lists (the matcher writes no card for one, tools/match.py): the relative's own
 memorial, under the tree person their name and birth year fit when exactly one
 does, else on the memorial's own person as a lead, row_key "listed relative:
-<memorial id>" (tools/plan.py's listed_relative_leads). Idempotent: questions and steps are keyed, so re-running updates what
+<memorial id>" (tools/plan.py's listed_relative_leads). A row of a results page (FamilySearch, Find a Grave, AAD) that fits the person
+the page was fetched for (match.fitting_rows) is a lead the same way: a fetch step for the row's own record, row "search result:",
+the results page's holder as the locator source, the row's words as its fields (tools/plan.py's result_row_leads); the matcher
+proposes no row. Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated (one that was run but
 is not done is kept for its log as skipped, planned again if generated again;
 one dropped is named in the run's audit row by its key, row and rationale, the
@@ -46,7 +49,7 @@ sync command (tools/initdb.py --sync-sources) when the registry is out of step.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, resolve_tree, ulid
-from catalog import Catalog, dbid_of, browse_only
+from catalog import Catalog, dbid_of, browse_only, year
 from checklist import build
 from log_search import closed_by_pointers, hold_household
 
@@ -190,6 +193,62 @@ def listed_relative_leads(cx, tree_id, cat, pid):
                                          "a lead, not a person: fetch their own memorial to see who they are"})
     return out
 
+AAD_COLLECTION = "WWII Army Enlistment Records (AAD)"
+
+def row_record(parser, region):
+    """(locator kind, the row's own record identity, the record's URL, its collection) for a row of a results page, from the
+    parser that read it and the row's region: a FamilySearch row's ark, a Find a Grave row's memorial id, an AAD row's record
+    URL; the identity is None when the row carries none."""
+    if parser == "familysearch-search": return "ark", region.get("ark"), region.get("url"), region.get("collection") or "FamilySearch record search"
+    if parser == "findagrave-search":
+        mid = str(region.get("memorial_id") or ""); return "memorial_id", mid or None, f"https://www.findagrave.com/memorial/{mid}/", FAG_COLLECTION
+    return "url", region.get("url"), region.get("url"), AAD_COLLECTION
+
+def row_year(collection, pr):
+    """The year a results row's record is about, for the name its page is saved under: a census collection's own year, else the
+    row's death, else its birth; None when the row dates nothing."""
+    m = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", collection) if re.search(r"census", collection, re.I) else None
+    return int(m.group(1)) if m else year((pr["death"] or {}).get("start")) or year((pr["birth"] or {}).get("start"))
+
+def row_words(pr):
+    """What a results row states, as written: its birth and death with their places, its burial and residence places."""
+    parts = []
+    for label in ("birth", "death"):
+        said = ", ".join(x for x in ((pr[label] or {}).get("text"), pr.get(f"{label} place")) if x)
+        if said: parts.append(f"{label} {said}")
+    parts += [f"{label} {pr[label]}" for label in ("burial place", "residence place") if pr.get(label)]
+    return "; ".join(parts)
+
+def result_row_leads(cx, tree_id, cat, pid):
+    """Fetch steps for the rows of a results page that fit this person (docs/RESEARCH-WORKFLOW.md §0): a row is never a card (the
+    matcher proposes none, tools/match.py), but one that fits the person a page was fetched for, by the matcher's own definition
+    (match.fitting_rows: more than a name and a year), and carries its own record's identity (an ark, a memorial id, an
+    enlistment record's URL) is a lead on that person: a fetch step for the row's own record, key "fetch:row:<record id>", under
+    row "search result:", with the holder of the results page as the locator source (so tools/fetches.py lists it for the browser
+    when the holder has no connector), the row's words as its fields (basis record), the results page it was found on, and what
+    agrees with the person in its rationale. A row a person rejected as this person, or accepted as somebody else, is no lead
+    for them (a person's decision stands); one accepted as them still is, its record not yet fetched; a row that does not fit
+    stays a hint on the page. Dropped, like any generated step, once the row no longer fits."""
+    from extract import POINTING_LISTINGS
+    from match import fitting_rows
+    out = []; seen = set(); known = {}; q = cx.cursor(); q.row_factory = sqlite3.Row; f = lambda v: {"value": v, "basis": "record"}
+    for page in q.execute(f"""SELECT DISTINCT e.id AS eid, x.name AS parser, ar.source_id, ar.locator_value AS url, e.ran_at FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id,
+                               json_each(l.artifacts_json) j JOIN extraction e ON e.artifact_sha256=j.value JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
+                               WHERE sp.person_id=? AND e.superseded_by IS NULL AND e.status='complete' AND x.name IN ({','.join('?' * len(POINTING_LISTINGS))}) ORDER BY e.ran_at, e.id""", (pid, *POINTING_LISTINGS)).fetchall():
+        holder = cat.sources.get(page["source_id"], {}).get("name") or page["source_id"]
+        for _, pr, agree in fitting_rows(cx, page["eid"], pid, known):
+            region = json.loads(q.execute("SELECT region_json FROM persona WHERE id=?", (pr["id"],)).fetchone()[0] or "{}")
+            lkind, rid, url, collection = row_record(page["parser"], region)
+            if not rid or rid in seen: continue
+            if any(who != pid or status == "rejected" for who, status in q.execute("SELECT pp.person_id, pp.status FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status<>'undecided' AND o.tree_id=?", (pr["id"], tree_id))): continue   # a person decided the row is somebody else, or not this person: no lead for them; a row accepted as them still has its record to fetch
+            seen.add(rid)
+            fields = {"collection": f(collection), "name": f(pr["name"]), "year": f(str(row_year(collection, pr) or "")), "url": f(url), "listed": f(row_words(pr)), "found on": f(f"{holder} results page {page['url']}, row {region.get('row')}")}
+            out.append({"step_key": f"fetch:row:{rid}", "row_key": "search result:", "question_key": None, "kind": "fetch", "query_type": "subject_record", "query_json": dumps({k: v for k, v in fields.items() if v["value"]}),
+                        "locator_source_id": page["source_id"], "locator_kind": lkind, "locator_value": rid, "collection_id": None, "on_json": "[]", "sources_json": dumps([page["source_id"]]), "mode": "fetch",
+                        "expected": "the record the row stands for: the person's own facts as the record states them",
+                        "rationale": f"row {region.get('row')} of a {holder} results page fits this person: {'; '.join(agree)}. A lead, not a card: fetch the row's own record"})
+    return out
+
 class RegistryOutOfStep(Exception):
     """A source id the plan would write is not in the catalog's source table."""
 
@@ -232,6 +291,8 @@ def plan_person(cx, tree_id, pid, by):
         if not any(lk["locator_value"] in (json.loads(f["query_json"]).get("url") or {}).get("value", "") for f in fetches): fetches.append(lk)
     fetches += gravestone_photos(cx, tree_id, cat, pid)                 # the stone itself, photographed on the person's own memorial
     fetches += listed_relative_leads(cx, tree_id, cat, pid)             # a relative a memorial merely lists: their own memorial, a lead
+    for lead in result_row_leads(cx, tree_id, cat, pid):                # a row of a results page that fits this person: the row's own record, a lead
+        if not any(lead["locator_value"] == f["locator_value"] or lead["locator_value"] in (json.loads(f["query_json"]).get("url") or {}).get("value", "") for f in fetches): fetches.append(lead)
     home = next((k for k in wanted if wanted[k][0] in FOOTPRINT_HOME), None)
     have = {st["locator_value"] for st in fetches}
     for rec in r["footprint"]["records"][:12]:

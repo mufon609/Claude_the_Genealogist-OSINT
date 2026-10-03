@@ -349,8 +349,8 @@ back (`tools/conclude.py reconsider`) is a card again with the rule's reason. An
 (Find a Grave; FamilySearch, the census collection itself for a household
 step with a year) shows that link, built from the foundation fields; the results
 page saved into `inbox/` comes back as the candidate card on the step's
-record, every row with its fields as agrees, disagrees or absent
-(`docs/RESEARCH-WORKFLOW.md` §4). An auto step runs through its connector
+record, every row with its fields as agrees, disagrees or absent and, for a
+row that fits, the lead it made for its own record (`docs/RESEARCH-WORKFLOW.md` §4). An auto step runs through its connector
 from `tools/run_step.py`; the screen has no run control. Assisted sources are
 worked by opening the link, searching with the step's fields, and logging the
 result.

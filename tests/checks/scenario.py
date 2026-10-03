@@ -555,6 +555,23 @@ def a_older_matcher(w, x):
     w.cx.execute(f"UPDATE proposal SET generated_by=? WHERE id IN ({','.join('?' * len(ids))})", (older, *ids))
     return {"cards": ids, "version": MATCHER[2]}
 
+def a_legacy_card(w, x):
+    """A card an older matcher wrote for a row of a results page, planted as it left it, undecided, for reconsider to meet: the
+    persona at sequence `row` on the record's current reading, put to `person`, written by the matcher at `version`. The
+    matcher proposes no such card now (tools/match.py), so only an older one can stand."""
+    from match import MATCHER
+    sha = w.sha(x["record"]); pid = w.person(x["person"]); t = w.treelib
+    pe = w.cx.execute("""SELECT pe.id, pe.extraction_id, pe.name_text, pe.role_in_record FROM persona pe JOIN extraction e ON e.id=pe.extraction_id
+                         WHERE pe.artifact_sha256=? AND e.superseded_by IS NULL AND pe.sequence=?""", (sha, x["row"])).fetchone()
+    older = w.cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", (MATCHER[0], MATCHER[1], x["version"])).fetchone()
+    older = older[0] if older else t.ulid()
+    w.cx.execute("INSERT OR IGNORE INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (older, MATCHER[0], MATCHER[1], x["version"], t.now()))
+    prop = t.ulid()
+    w.cx.execute("""INSERT INTO proposal (id,tree_id,kind,question_id,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,'persona_match',NULL,?,?,?,?,'undecided')""",
+                 (prop, w.tid, t.dumps({"persona_id": pe["id"], "person_id": pid, "subject_person_id": pid, "extraction_id": pe["extraction_id"], "artifact_sha256": sha, "step_id": None}),
+                  f"{pe['name_text']} ({pe['role_in_record']}) may be {w.name_of(pid)}, on the name alone.", older, t.now()))
+    return {"card": prop, "persona": pe["id"]}
+
 def a_persona_link(w, x):
     """A person's decision on a persona of a record that no card carries today (a memorial's listed relative, which an older
     matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name, and `sequence`,
@@ -607,6 +624,8 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "person_view": a_person_view, "save": a_save, "collect": a_collect,
            "question": a_question,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed}
+
+ACTIONS["legacy_card"] = a_legacy_card
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 

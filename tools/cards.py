@@ -26,6 +26,7 @@ from treelib import DATA_ROOT, ROOT, connect, object_path, resolve_tree
 from catalog import Catalog, fetch_target, tier_sql, year, held_for, holds
 from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, same_surname
 from conclude import rule_accepts, sibling_home
+from plan import row_record
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
 
@@ -312,9 +313,15 @@ def header_compact(sha, cards):
     r = cards[0]["record"]; ident = ", ".join(r["identity"]) if isinstance(r["identity"], list) else r["identity"]
     return f"== {r['holder'] or r['holder_id']}; {r['collection'] or 'collection unknown'}; {_clip(ident)}; tier {r['tier']}  ({len(cards)} card{'s' if len(cards) > 1 else ''}; record {sha[:12]})" + (f"  {_clip(r['page'], 80)}" if r.get("page") and r["page"] not in ident else "")
 
+def lead_words(row):
+    """What a fitting row of a results page has made of itself: the status of the fetch step for its own record, or that the plan has
+    not written one yet."""
+    return f"its own record: fetch {row['lead']}" if row["lead"] else "no lead yet"
+
 def render_search_compact(c):
     """The candidate card for a results page as the command line prints it: the search, then a line per row with whether it
-    fits, what agrees or disagrees and the row's own record id; what is absent and the runs' notes are left to --full."""
+    fits, what agrees or disagrees and the row's own record id, then the leads the fitting rows make; what is absent and the
+    runs' notes are left to --full."""
     s = c["search"]; q = s["query"]; p = c["person"]
     qs = " ".join(f"{k}={q[k]}" for k in q if q.get(k) not in (None, "", "false"))
     out = [f"SEARCH {s['holder']} search for {p['name']}: {qs}; {s['count'] if s['count'] is not None else s['rows_on_page']} matching records, page {s['page']} of {s['pages']}, {s['rows_on_page']} rows on this page; record {c['sha256'][:12]}"]
@@ -322,8 +329,8 @@ def render_search_compact(c):
         head = f"{r['n']:>2}. {r['name']}  {r['birth'] or '?'} – {r['death'] or '?'}  {r['burial'] or 'no place'}  {r['memorial_id'] or ''}"
         agrees = _said([(m.group(1).lower(), m.group(2)) for a in r["agrees"] for m in [VERDICT.match(a)] if m], "agrees")
         why = ("FITS: " + ", ".join(agrees)) if r["fits"] else ("no fit" + (": " + "; ".join(r["disagrees"]) if r["disagrees"] else ""))
-        out.append(head + "  " + why + (f"  [{r['proposal']}]" if r["proposal"] != "no proposal" else ""))
-    out.append("Proposed  " + (", ".join(f"row {r['n']} ({r['proposal']})" for r in c["proposed"]) if c["proposed"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
+        out.append(head + "  " + why + (f"  [{r['decision']}]" if r["decision"] else ""))
+    out.append("Leads     " + (", ".join(f"row {r['n']} ({lead_words(r)})" for r in c["leads"]) if c["leads"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
     return "\n".join(out)
 
 def render_cli(cx, tree_id, cards, pid=None):
@@ -340,7 +347,8 @@ def render_cli(cx, tree_id, cards, pid=None):
 
 def hints_on(cx, tree_id, sha, person_id):
     """The hints a held record carries for a person (docs/RESEARCH-WORKFLOW.md §0): on every persona of a current extraction
-    of the record that has no proposal in this tree and no link to anyone, the matcher's comparison with the person, run once
+    of the record that has no proposal in this tree (one a newer matcher closed as superseded is none) and no link to anyone, as
+    every row of a results page that points at records has, the matcher's comparison with the person, run once
     on view and stored nowhere, as its agreements, disagreements and absences. A row is a hint only when the surname agrees
     (or is the person's married name) and a place or a year agrees beyond the name, and only on a person whose baseline is
     reviewed; a name agreeing alone (a newspaper hit, a namesake on a results page) is not. {persona id: {"hint": bool,
@@ -350,7 +358,7 @@ def hints_on(cx, tree_id, sha, person_id):
     out = {}
     for e in cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL AND status<>'failed'", (sha,)).fetchall():
         for pe in personas_of(cx, e["id"]):
-            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=?", (tree_id, pe["id"])).fetchone(): continue
+            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')", (tree_id, pe["id"])).fetchone(): continue
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND o.tree_id=?", (pe["id"], tree_id)).fetchone(): continue
             _, agree, disagree, absent, _ = compare(cat, pe, cand, {})
             surname = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
@@ -360,7 +368,9 @@ def hints_on(cx, tree_id, sha, person_id):
 
 def search_card(cx, tree_id, sha, person_id=None):
     """The candidate card for one search results page: the search as run, the person it was run for, every row with its fields
-    against the person as agrees, disagrees or absent, whether it fits, and the proposal on it if any."""
+    against the person as agrees, disagrees or absent, whether it fits, and for a row that fits the lead it makes (the fetch
+    step for its own record, tools/plan.py's result_row_leads: its status, None before the plan is written again), and a person's
+    decision on the row if there is one (a row is never proposed)."""
     cx.row_factory = sqlite3.Row
     a = cx.execute(f"SELECT ar.sha256, ar.locator_value, ar.retrieved_at, {tier_sql()} AS trust_tier, ar.source_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
     e = cx.execute("""SELECT e.id, e.structured_json, x.name AS parser FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name IN ('findagrave-search','aad-search','familysearch-search') AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
@@ -375,13 +385,17 @@ def search_card(cx, tree_id, sha, person_id=None):
         region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pe["id"],)).fetchone()["region_json"] or "{}")
         fits, agree, disagree, absent, near = compare(cat, pe, cand, {})
         place = (pe["burial place"] or region.get("where")) if region.get("memorial_id") else (pe["residence place"] or pe["birth place"])   # a memorial row's cemetery; a record row's residence, else its birthplace
+        link = cx.execute("SELECT pp.status, o.display_name FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND o.tree_id=? AND pp.status<>'undecided'", (pe["id"], tree_id)).fetchone()
+        decision = f"{link['status']} as {link['display_name']}" if link else None
+        _, record, _, _ = row_record(e["parser"], region); step = cx.execute("SELECT status FROM search_plan WHERE person_id=? AND step_key=?", (person_id, f"fetch:row:{record}")).fetchone() if record else None
         rows.append({"n": region.get("row"), "name": pe["name"], "birth": pe["birth"]["text"], "death": pe["death"]["text"], "burial": place, "memorial_id": region.get("memorial_id") or region.get("rid") or region.get("ark"), "url": region.get("url"),
-                     "fits": fits, "agrees": agree, "disagrees": disagree, "absent": absent, "proposal": persona_status(cx, tree_id, pe["id"])})
+                     "fits": fits, "agrees": agree, "disagrees": disagree, "absent": absent, "decision": decision,
+                     "lead": step["status"] if step else None})
     q = parsed.get("query") or {}
     return {"kind": "search", "sha256": sha, "person": {"id": person_id, "name": pr["name"], "birth": cand["birth"]["text"], "birth_place": cand["birth"]["place"], "death": cand["death"]["text"], "death_place": cand["death"]["place"], "burial_place": cand["burial place"]},
             "search": {"holder": {"findagrave-search": "Find a Grave", "familysearch-search": "FamilySearch", "aad-search": "the WWII Army enlistment file (AAD)"}[e["parser"]], "query": q, "url": a["locator_value"], "count": parsed.get("count"), "page": parsed.get("page"), "pages": parsed.get("pages"), "rows_on_page": len(rows)},
             "runs": [dict(r) for r in runs], "archived": os.path.relpath(object_path(sha), DATA_ROOT), "rows": rows,
-            "proposed": [r for r in rows if r["fits"]], "tier": a["trust_tier"]}
+            "leads": [r for r in rows if r["fits"]], "tier": a["trust_tier"]}
 
 def render_search(c):
     """The candidate card as plain text."""
@@ -396,21 +410,20 @@ def render_search(c):
         head = f"{r['n']:>2}. {r['name']}  {r['birth'] or '?'} – {r['death'] or '?'}  {r['burial'] or 'no place'}  {r['url']}"
         why = ("FITS: " + "; ".join(r["agrees"])) if r["fits"] else ("does not fit: " + "; ".join(r["disagrees"] or ["nothing beyond the name agrees"]) + ("; agrees: " + "; ".join(r["agrees"]) if r["agrees"] and r["disagrees"] else ""))
         if r["absent"]: why += "; absent: " + ", ".join(r["absent"])
-        out.append(L("Rows" if i == 0 else "", head)); out.append(L("", "    " + why + (f"  [{r['proposal']}]" if r["proposal"] != "no proposal" else "")))
-    out.append(L("Proposed", ", ".join(f"row {r['n']} (record {r['memorial_id']}, {r['proposal']})" for r in c["proposed"]) if c["proposed"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
+        out.append(L("Rows" if i == 0 else "", head)); out.append(L("", "    " + why + (f"  [{r['decision']}]" if r["decision"] else "")))
+    out.append(L("Leads", ", ".join(f"row {r['n']} (record {r['memorial_id']}, {lead_words(r)})" for r in c["leads"]) if c["leads"] else "no candidate fits; the run is logged as none and the candidates stay on this page"))
     return "\n".join(out)
 
 def search_cards_for(cx, tree_id, pid=None):
-    """Candidate cards for the search results pages logged on a person's search steps (or anyone's) whose proposals are not all decided."""
+    """Candidate cards for the search results pages logged on a person's search steps (or anyone's), except a page whose every
+    fitting row has its own record fetched (the lead done): its work is finished. A page no row fits stays, its rows kept as candidates."""
     rows = cx.execute(f"""SELECT DISTINCT l.artifacts_json, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id JOIN person p ON p.id=sp.person_id
                           WHERE p.tree_id=? AND sp.kind='search' AND l.artifacts_json IS NOT NULL {'AND sp.person_id=?' if pid else ''}""", (tree_id, pid) if pid else (tree_id,)).fetchall()
     out = []
     for arts, person_id in rows:
         for sha in json.loads(arts):
-            st = [r[0] for r in cx.execute("SELECT status FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.artifact_sha256')=?", (tree_id, sha))]
-            if st and "undecided" not in st: continue
             c = search_card(cx, tree_id, sha, person_id)
-            if c: out.append(c)
+            if c and not (c["leads"] and all(r["lead"] == "done" for r in c["leads"])): out.append(c)
     return out
 
 def cards_for(cx, tree_id, pid=None):

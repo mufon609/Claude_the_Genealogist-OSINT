@@ -1,0 +1,227 @@
+{
+ "title": "a results row is a lead, never a card",
+ "line": "a Kentucky birth index search saved for Robert Edgar Davidson puts no row to him as a card: the one row that fits him (his birth on its day, in Logan County) is a fetch step for its own record on his plan, and the rows that agree on his name and are born within three years of him but differ on the date and the place, like the rows born decades later, are neither a card nor a lead; a card an older matcher put to a row is superseded by reconsider and not proposed again, and the plan keeps the one lead",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the Kentucky birth index searched for him, saved in the browser: a hundred rows of Robert Davidsons born from 1911 on; the file cites his birth there with no record id",
+   "attach": {
+    "fixture": "familysearch-search-kentucky-birth-index-robert-edgar-davidson.html"
+   },
+   "as": "kyb",
+   "expect": [
+    {
+     "last": {
+      "identity": {
+       "starts": "fs_search "
+      },
+      "left": null,
+      "outcome": {
+       "not": "none"
+      },
+      "proposals": []
+     },
+     "why": "a row fits him, so the run is found; the matcher proposes no row of a results page"
+    },
+    {
+     "cards": {
+      "record": "kyb",
+      "count": 0
+     },
+     "why": "no card on the page, fitting or not: a row's own record is the document"
+    },
+    {
+     "results_page": {
+      "record": "kyb",
+      "person": "I332737100409",
+      "rows": 100,
+      "fits": [
+       7
+      ],
+      "names": {
+       "7": "Robert E Davidson"
+      }
+     },
+     "why": "one row of the hundred fits him: the seventh, born on his day in his county"
+    },
+    {
+     "step_count": {
+      "person": "I332737100409",
+      "step_key_like": "fetch:row:%",
+      "is": 1
+     },
+     "why": "one lead on his plan, for that row alone"
+    },
+    {
+     "step": {
+      "person": "I332737100409",
+      "step_key": "fetch:row:ark:/61903/1:1:QKH2-XT32",
+      "fields": {
+       "kind": "fetch",
+       "status": "planned",
+       "mode": "fetch",
+       "row_key": "search result:",
+       "locator_source_id": "D03",
+       "locator_kind": "ark",
+       "locator_value": "ark:/61903/1:1:QKH2-XT32",
+       "query": {
+        "name": {
+         "value": "Robert E Davidson",
+         "basis": "record"
+        },
+        "year": {
+         "value": "1915",
+         "basis": "record"
+        },
+        "found on": {
+         "value": {
+          "has": "row 7"
+         },
+         "basis": "record"
+        }
+       }
+      }
+     },
+     "why": "the row's own record at the holder of the results page, the row's words as its fields, the year its page is saved under the one the row dates"
+    },
+    {
+     "step": {
+      "person": "I332737100409",
+      "step_key": "fetch:row:ark:/61903/1:1:QKHV-HRSH",
+      "exists": false
+     },
+     "why": "born within three years of him, with his name, and the date and the place differ: a row on the page, nothing more"
+    },
+    {
+     "step": {
+      "person": "I332737100409",
+      "step_key": "fetch:row:ark:/61903/1:1:QKHF-QXPZ",
+      "exists": false
+     },
+     "why": "born decades after him: another generation"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737100409",
+      "url_has": "ark:/61903/1:1:QKH2-XT32",
+      "is": [
+       {
+        "save_as": "familysearch-kentucky-vital-record-indexes-1915-QKH2-XT32.html"
+       }
+      ]
+     },
+     "why": "the row's record page is on the fetch list for the browser"
+    }
+   ]
+  },
+  {
+   "say": "a card an older matcher put to the row that fits him, and one to the row that differs, as they were left undecided",
+   "legacy_card": {
+    "record": "kyb",
+    "row": 7,
+    "person": "I332737100409",
+    "version": "0.5.0"
+   },
+   "as": "old_fit"
+  },
+  {
+   "legacy_card": {
+    "record": "kyb",
+    "row": 8,
+    "person": "I332737100409",
+    "version": "0.5.0"
+   },
+   "as": "old_near",
+   "expect": [
+    {
+     "cards": {
+      "record": "kyb",
+      "count": 2
+     },
+     "why": "the two older cards stand until the matcher runs again"
+    }
+   ]
+  },
+  {
+   "say": "the rule re-examines: the older matcher's cards are superseded and the page's rows are not proposed again",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "rematch",
+        "persona": "Robert E Davidson",
+        "taken": true
+       }
+      }
+     },
+     "why": "both older cards are met by reconsider and closed"
+    },
+    {
+     "cards": {
+      "record": "kyb",
+      "count": 0
+     },
+     "why": "no card is written for any row now"
+    },
+    {
+     "cards": {
+      "record": "kyb",
+      "status": "rejected",
+      "count": 2
+     },
+     "why": "the two older cards closed"
+    },
+    {
+     "proposal_status": {
+      "id": "$old_fit.card",
+      "status": "rejected",
+      "decision_note": "superseded"
+     }
+    },
+    {
+     "proposal_status": {
+      "id": "$old_near.card",
+      "status": "rejected",
+      "decision_note": "superseded"
+     }
+    },
+    {
+     "hints": {
+      "record": "kyb",
+      "person": "I332737100409",
+      "count": 100
+     },
+     "why": "every row of the page is a hint again for him: a card closed as superseded is no proposal on its row"
+    }
+   ]
+  },
+  {
+   "say": "his plan regenerated: the one lead is kept, nothing else is added",
+   "plan": [
+    "I332737100409"
+   ],
+   "expect": [
+    {
+     "step_count": {
+      "person": "I332737100409",
+      "step_key_like": "fetch:row:%",
+      "is": 1
+     }
+    },
+    {
+     "plan_idempotent": "all"
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
