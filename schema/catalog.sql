@@ -72,7 +72,7 @@ CREATE TABLE event_type (
 CREATE TABLE place (
   id            TEXT PRIMARY KEY,
   name          TEXT NOT NULL,           -- canonical modern name
-  place_type    TEXT,                    -- country | state | county | city | town | township | parish | cemetery | address | region | unknown
+  place_type    TEXT,                    -- country | state (a country's first-level unit: a US state, a province, a prefecture; the country says whether it is American) | county | city | town | township | parish | cemetery | address | region | unknown
   parent_id     TEXT REFERENCES place(id),
   latitude      REAL,
   longitude     REAL,

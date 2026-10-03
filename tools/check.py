@@ -7,7 +7,7 @@ usage: tools/check.py [--verbose] [--show] [--keep]
 
 Each check runs on a scratch catalog under a temporary data root, never the owner's. The expectations are data beside
 the fixtures (tests/fixtures/README.md): <stem>.expect.json beside each page for tests/checks/parsers.py, the scenarios
-under tests/fixtures/scenarios/ for tests/checks/scenario.py and tests/checks/loop.py, tests/fixtures/rules.json for the
+under tests/fixtures/scenarios/ for tests/checks/scenario.py, tests/checks/loop.py and tests/checks/imports.py, tests/fixtures/rules.json for the
 pure rules here and tests/fixtures/connectors.json for the offline connector checks here; the harness tree is
 tests/fixtures/harness.ged, the owner's own export cut down. A failing check prints its FAIL line with every reason and
 the run ends with one line, `green: N checks` or the failure count; exit status 1 on any failure. --verbose prints the
@@ -20,7 +20,7 @@ import argparse, contextlib, json, os, re, shutil, sqlite3, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
 from common import BY, FIXTURES, scratch
-import loop, parsers, scenario
+import imports, loop, parsers, scenario
 
 def rules():
     """The name and place rules as the docs state them, on their own, against tests/fixtures/rules.json."""
@@ -320,6 +320,7 @@ def main():
         bad += parsers.check(a.keep, a.show)
         bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
         bad += loop.check(a.keep, a.show)
+        bad += imports.check(a.keep, a.show)
     print(f"green: {lines.ok} checks" if not bad else f"{bad} failure(s) of {lines.ok + lines.failed} checks")
     sys.exit(1 if bad else 0)
 
