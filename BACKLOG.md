@@ -216,7 +216,10 @@ in one census year; and a connector's run whose records are all web pages no
 parser reads, which `run_step.run` logs `unread` and which closes no step, the
 household's steps with it (every such page the archive holds was saved in the
 browser: no connector has answered with one, so the path has no real response to
-run against). When a real document
+run against); and a person the rule creates through a relation the record
+states from the other side (the head of a household created through his
+daughter accepted on it, as the live 1950 Evers schedule did), whose reason
+names the record's word for the daughter (`conclude.rule_creates`). When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
