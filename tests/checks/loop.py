@@ -196,14 +196,18 @@ def a_apply_places(w, x):
     return {"applied": apply_to_events(w.cx, w.tid, BY, w.treelib.now())}
 
 def a_decide_place(w, x):
-    """The owner's choice on a place card found by its string (`raw`): the candidate whose gazetteer id is `gazetteer` (a
-    gazetteer's own candidate, or the one attached to a geocoder candidate), through conclude.decide."""
+    """The owner's answer on a place card found by its string (`raw`), through conclude.decide: the candidate whose gazetteer id is
+    `gazetteer` (a gazetteer's own candidate, or the one attached to a geocoder candidate) or whose OpenStreetMap id is `osm`,
+    or `status` rejected, a string that is not a place; `alone` answers that card's string only."""
     from conclude import decide
     row = w.cx.execute("SELECT id, payload_json FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.raw')=?", (w.tid, x["raw"])).fetchone()
     if not row: raise KeyError(f"no open place card for {x['raw']!r}")
-    cands = json.loads(row[1])["candidates"]
-    i = next(i for i, c in enumerate(cands) if (c.get("kind") == "gazetteer" and c.get("id") == x["gazetteer"]) or (c.get("gazetteer") or {}).get("id") == x["gazetteer"])
-    return decide(w.cx, w.tid, row[0], "accepted", BY, note=x.get("note", "harness: the owner chooses"), choice=i)
+    status = x.get("status", "accepted")
+    def picks(c):
+        if "osm" in x: return c.get("osm") == x["osm"]
+        return (c.get("kind") == "gazetteer" and c.get("id") == x["gazetteer"]) or (c.get("gazetteer") or {}).get("id") == x["gazetteer"]
+    i = None if status == "rejected" else next(i for i, c in enumerate(json.loads(row[1])["candidates"]) if picks(c))
+    return decide(w.cx, w.tid, row[0], status, BY, note=x.get("note", "harness: the owner chooses"), choice=i, alone=bool(x.get("alone")))
 
 def a_step_query(w, x):
     """A step's fields rewritten, as the plan writes new fields on it."""
@@ -312,6 +316,19 @@ def e_place_card(w, x, want):
             if c.get("place_id"): c["place_name"] = (w.cx.execute("SELECT name FROM place WHERE id=?", (c["place_id"],)).fetchone() or [None])[0]
     return has(got, w.value({k: v for k, v in x.items() if k in ("candidates", "names", "status")})), {"names": got["names"], "candidates": [{k: c.get(k) for k in ("kind", "name", "valid_from", "valid_to", "leading", "place_name")} for c in cands]}
 
+def e_place_group(w, x, want):
+    """The words of every string whose open card asks the same as the card of the string `raw`, in order, as the screen shows them
+    on one card (resolve_places.place_groups)."""
+    from resolve_places import place_groups
+    row = w.cx.execute("SELECT id FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.raw')=?", (w.tid, x["raw"])).fetchone()
+    covers = [m["raw"] for m in place_groups(w.cx, w.tid).get(row[0], [])] if row else []
+    return has(covers, x["covers"]), covers
+
+def e_same_place(w, x, want):
+    """Whether the strings `raws` are all accepted to one place."""
+    ids = [(w.cx.execute("SELECT place_id FROM place_string WHERE raw=? AND status='accepted'", (r,)).fetchone() or [None])[0] for r in x["raws"]]
+    return (len(set(ids)) == 1 and ids[0] is not None) == x.get("is", True), ids
+
 def e_event_place(w, x, want):
     """A person's event of a type: the place the event itself carries (after the filler), and the place shown."""
     pid = w.person(x["person"]); cat = w.catalog()
@@ -329,7 +346,7 @@ def e_file_exists(w, x, want):
     return v == x.get("is", True), v
 
 EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows,
-                "place": e_place, "place_card": e_place_card, "event_place": e_event_place, "file_exists": e_file_exists})
+                "place": e_place, "place_card": e_place_card, "place_group": e_place_group, "same_place": e_same_place, "event_place": e_event_place, "file_exists": e_file_exists})
 
 def check(keep, show, only=None):
     return scenario.check(os.path.join(SCENARIOS, "loop"), keep, show, only)

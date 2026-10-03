@@ -1,0 +1,218 @@
+{
+ "title": "one card for one set of places",
+ "line": "three spellings of the Worcester in Montgomery County, Pennsylvania (the file's own and two more) leave three cards that offer the same two places, the same of them verified, so they are one question: the owner answers it once on any of them and every spelling takes the answer, each with its own audit row; an answer on one spelling alone (alone) leaves the others a card, and a spelling already answered is not touched by the others' answer",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "two more spellings of the records, beside the file's own",
+   "place_string": {
+    "raw": "Worcester, Montgomery, Pennsylvania, United States"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Worcester, Pennsylvania, USA"
+   }
+  },
+  {
+   "say": "the resolver run on the three with the geocoder's real answers: each leaves a card, the village and the township offered",
+   "resolve": {
+    "only": [
+     "Worcester, Montgomery County, Pennsylvania, United States of America",
+     "Worcester, Montgomery, Pennsylvania, United States",
+     "Worcester, Pennsylvania, USA"
+    ],
+    "geocoder": [
+     "nominatim-answers-worcester.json"
+    ]
+   },
+   "expect": [
+    {
+     "place_card": {
+      "raw": "Worcester, Montgomery County, Pennsylvania, United States of America",
+      "names": [
+       "Worcester Township, Montgomery County, Pennsylvania, United States",
+       "Worcester, Worcester Township, Montgomery County, Pennsylvania, 19490, United States"
+      ],
+      "status": "undecided"
+     }
+    },
+    {
+     "place_group": {
+      "raw": "Worcester, Pennsylvania, USA",
+      "covers": [
+       "Worcester, Montgomery County, Pennsylvania, United States of America",
+       "Worcester, Montgomery, Pennsylvania, United States",
+       "Worcester, Pennsylvania, USA"
+      ]
+     },
+     "why": "the three cards offer the same two places and verify the same of them: one question, shown once with every spelling it covers"
+    }
+   ]
+  },
+  {
+   "say": "the screen of the man born at the file's Worcester",
+   "person_view": {
+    "person": "I332737038183"
+   },
+   "expect": [
+    {
+     "last": {
+      "review": {
+       "birth": {
+        "places": {
+         "len": 1,
+         "first": {
+          "raw": "Worcester, Montgomery County, Pennsylvania, United States of America",
+          "covers": [
+           "Worcester, Montgomery County, Pennsylvania, United States of America",
+           "Worcester, Montgomery, Pennsylvania, United States",
+           "Worcester, Pennsylvania, USA"
+          ],
+          "proposal": {
+           "any": true
+          },
+          "candidates": {
+           "len": 2
+          },
+          "facts": {
+           ">=": 1
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "his birth place is one question on the fact row, naming the three ways the words are written"
+    }
+   ]
+  },
+  {
+   "say": "the owner sets the shortest spelling aside alone, as not a place",
+   "decide_place": {
+    "raw": "Worcester, Pennsylvania, USA",
+    "status": "rejected",
+    "alone": true
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "status": "rejected",
+      "raw": "Worcester, Pennsylvania, USA"
+     }
+    },
+    {
+     "last": {
+      "also": {
+       "is": null
+      }
+     },
+     "why": "alone: no other string takes the answer"
+    },
+    {
+     "place_card": {
+      "raw": "Worcester, Montgomery, Pennsylvania, United States",
+      "status": "undecided"
+     },
+     "why": "the other spellings are still a card"
+    },
+    {
+     "place_group": {
+      "raw": "Worcester, Montgomery County, Pennsylvania, United States of America",
+      "covers": [
+       "Worcester, Montgomery County, Pennsylvania, United States of America",
+       "Worcester, Montgomery, Pennsylvania, United States"
+      ]
+     },
+     "why": "a string answered leaves the question"
+    }
+   ]
+  },
+  {
+   "say": "the owner answers on the file's own spelling, the township",
+   "decide_place": {
+    "raw": "Worcester, Montgomery County, Pennsylvania, United States of America",
+    "osm": "relation/3076291"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "also": {
+       "len": 1
+      }
+     },
+     "why": "the answer is given once and reaches the other spelling"
+    },
+    {
+     "place_string": {
+      "raw": "Worcester, Montgomery County, Pennsylvania, United States of America",
+      "status": "accepted",
+      "has_place": true,
+      "resolver": "agent:check",
+      "audited": true
+     }
+    },
+    {
+     "place_string": {
+      "raw": "Worcester, Montgomery, Pennsylvania, United States",
+      "status": "accepted",
+      "has_place": true,
+      "resolver": "agent:check",
+      "audited": true
+     },
+     "why": "the other spelling is accepted by the owner too, with an audit row of its own"
+    },
+    {
+     "place_card": {
+      "raw": "Worcester, Montgomery, Pennsylvania, United States",
+      "status": "accepted"
+     },
+     "why": "its card is decided with the first: nothing is asked twice"
+    },
+    {
+     "same_place": {
+      "raws": [
+       "Worcester, Montgomery County, Pennsylvania, United States of America",
+       "Worcester, Montgomery, Pennsylvania, United States"
+      ]
+     },
+     "why": "both spellings are the township"
+    },
+    {
+     "place_string": {
+      "raw": "Worcester, Pennsylvania, USA",
+      "status": "rejected",
+      "has_place": false
+     },
+     "why": "the spelling answered alone keeps its own answer"
+    }
+   ]
+  },
+  {
+   "say": "his screen once the question is answered",
+   "person_view": {
+    "person": "I332737038183"
+   },
+   "expect": [
+    {
+     "last": {
+      "review": {
+       "birth": {
+        "places": {
+         "len": 0
+        }
+       }
+      }
+     },
+     "why": "the words are resolved and the birth carries the place: nothing is asked of him"
+    }
+   ]
+  }
+ ]
+}

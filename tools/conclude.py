@@ -64,7 +64,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
   id, else its role, row and name), never to another row of the same name.
 - decide_place: the owner's answer on a place string the resolver left undecided, which real place its words mean or that they are
-  not a place, applied wherever the same words appear.
+  not a place, applied wherever the same words appear, and to every other string whose card offers the same places (the same
+  question put another way), each its own audit row; --alone answers one string only.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link.
 - place: the owner's answer to Catalog.unplaced, a record's undated fact written onto the event the owner means.
 - resolve: the answer to a conflict question, the statement whose date or place the event keeps, with the reason: the owner's,
@@ -614,7 +615,30 @@ def answer_questions(cx, tree_id, pid, prop_id, by):
             q.execute("UPDATE research_question SET closed_reason='answered', answered_by_proposal_id=? WHERE id=?", (prop_id, qid)); answered.append(qid)
     return answered
 
-def decide_place(cx, tree_id, p, status, by, note, choice, kind=None):
+def decide_place(cx, tree_id, p, status, by, note, choice, kind=None, alone=False):
+    """The owner's answer on a place card, which is the answer on every card that asks the same (resolve_places.place_groups:
+    cards offering the same places, the same of them verified, are one question put to different spellings): each string of the
+    group is decided alike by decide_place_string, accepted to the place the choice names on its own card (found by the
+    candidate, not its number) or rejected with the same reason, each with its own audit row. kind classifies how the string
+    answered on differs from the place's own name; the others' variant_kind is left unclassified. alone decides this card's
+    string only. Returns the answer on this card with `also` the answers on the others and a summary of all, or an error, in
+    which case the caller rolls back what was written."""
+    from resolve_places import candidate_key, place_groups
+    others = [] if alone else [g for g in place_groups(cx, tree_id).get(p["id"], []) if g["proposal"] != p["id"]]
+    first = decide_place_string(cx, tree_id, p, status, by, note, choice, kind)
+    if "error" in first or not others: return first
+    q = _q(cx); key = candidate_key(json.loads(p["payload_json"])["candidates"][int(choice)]) if status == "accepted" else None
+    also = []
+    for g in others:
+        sp = q.execute("SELECT * FROM proposal WHERE id=?", (g["proposal"],)).fetchone()
+        at = next((i for i, c in enumerate(json.loads(sp["payload_json"])["candidates"]) if candidate_key(c) == key), None) if key else None
+        r = decide_place_string(cx, tree_id, sp, status, by, note, at)
+        if "error" in r: return r
+        also.append(r)
+    if also: first = {**first, "also": also, "summary": "; ".join([first["summary"]] + [r["summary"] for r in also]) + f" (the same question put {len(also) + 1} ways, answered alike)"}
+    return first
+
+def decide_place_string(cx, tree_id, p, status, by, note, choice, kind=None):
     """The owner's answer on a place string the resolver left undecided (a place_resolution proposal): which real place its
     words mean (accepted, with the candidate chosen from the proposal by its index), or that they are not a place (rejected,
     the reason kept in the string's notes). The answer is about the words, so it applies to every fact carrying the same
@@ -693,10 +717,10 @@ def close_result_rows(cx, tree_id, person_id, by, ts, dry_run=False):
         closed.append((r["id"], r["name_text"]))
     return closed
 
-def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None):
+def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, alone=False):
     """A decision on a proposal: is this record's persona this person (persona_match), or a person the tree does not have
-    (new_person); or, on a place_resolution proposal, the owner's answer on a place string (decide_place, choice naming the
-    candidate, kind how the string differs from the place's name). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
+    (new_person); or, on a place_resolution proposal, the owner's answer on a place card (decide_place, choice naming the
+    candidate, kind how the string differs from the place's name, alone for this card's string only). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
     family links it states with persons already matched on it accepted (link_family), the plans of the person and of the
     person the record was fetched for regenerated and the questions that closes marked answered (the regeneration logs a
     household record, a census page whichever way it arrived, found on the person's own step for its census year,
@@ -715,7 +739,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None):
     place decided where the classes favour one side without doubt. Returns what was written, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
-    if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"): return decide_place(cx, tree_id, p, status, by, note, choice, kind)
+    if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"): return decide_place(cx, tree_id, p, status, by, note, choice, kind, alone)
     if not p or p["kind"] not in ("persona_match", "new_person") or status not in ("accepted", "rejected"): return {"error": "not a persona match, new person or place resolution, or bad status"}
     pay = json.loads(p["payload_json"]); persona_id, person_id = pay["persona_id"], pay.get("person_id"); ts = now(); n = 0; members = []; alias_id = None
     identity = editable(cx, pay["artifact_sha256"])                # a page anyone can edit: the identity and its links, never a fact
@@ -1758,7 +1782,8 @@ def main():
     ap = argparse.ArgumentParser(description="The standing rule's decisions examined again; the owner's word on a family link, a divorce, a duplicate or whether a person is alive.")
     sub = ap.add_subparsers(dest="cmd", required=True)
     dc = sub.add_parser("decide", help="the decision on a card: is this record's persona this person (or a new person)"); dc.add_argument("proposal"); dc.add_argument("verdict", choices=["accept", "reject"]); dc.add_argument("--note")
-    dc.add_argument("--choice", help="a place card: the number of the candidate the words mean, as tools/cards.py lists them")
+    dc.add_argument("--choice", help="a place card: the number of the candidate the words mean, in the order the card offers them (0 is the first)")
+    dc.add_argument("--alone", action="store_true", help="a place card: answer this card's string only, not every card that offers the same places")
     dc.add_argument("--kind", choices=["typo", "phonetic", "transcription", "abbreviation", "translation", "historical", "jurisdiction_change", "jurisdiction_error",
                                        "context_glue", "detail", "unclassified"], help="a place card: how the words differ from the place's own name")
     fc = sub.add_parser("fact", help="a key fact of a person decided: accept touches held evidence or is your own word (a vouch); reject and undecided touch every assertion behind it")
@@ -1793,7 +1818,7 @@ def main():
     cx.execute("BEGIN")
     try:
         if a.cmd == "decide":
-            res = decide(cx, tree_id, a.proposal, "accepted" if a.verdict == "accept" else "rejected", a.by, note=a.note, choice=a.choice, kind=a.kind)
+            res = decide(cx, tree_id, a.proposal, "accepted" if a.verdict == "accept" else "rejected", a.by, note=a.note, choice=a.choice, kind=a.kind, alone=a.alone)
             if "error" in res: raise SystemExit(res["error"])
             if res.get("kind") == "place_resolution": print(res["summary"]); cx.commit(); return
             who = cx.execute("SELECT display_name FROM person WHERE id=?", (res["person"],)).fetchone()

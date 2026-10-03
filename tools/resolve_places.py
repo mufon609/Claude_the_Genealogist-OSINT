@@ -688,6 +688,30 @@ def candidate_summary(c, score, checks):
             "lat": c.get("lat"), "lon": c.get("lon"), "wikidata": (c.get("extratags") or {}).get("wikidata"), "score": round(score, 2),
             "checks": checks}
 
+def candidate_key(c):
+    """Which place one candidate of a card offers: a geocoder candidate by its OpenStreetMap id, a gazetteer's own candidate by its
+    source and id, a dated former name by the place that held it."""
+    if c.get("kind") == "gazetteer": return f"{c.get('source')}:{c.get('id')}"
+    if c.get("kind") == "jurisdiction_change": return f"place:{c.get('place_id')}"
+    return c.get("osm")
+
+def place_groups(cx, tree_id):
+    """The tree's open place cards in groups, one group a question: cards offering the same set of places, the same of them verified
+    on every part of the card's string, ask the same thing of different spellings (Worcester, Montgomery County, Pennsylvania,
+    USA, and Worcester, Montgomery, Pennsylvania, United States), so the owner answers it once. {proposal id: [{"proposal",
+    "string", "raw"}, ...] by the string's words, the card's own included}, for every undecided place_resolution proposal whose
+    string is still undecided; a card offering nothing is a group of itself."""
+    by_key, rows = {}, {}
+    for pid, psid, raw, cands in cx.execute("""SELECT p.id, ps.id, ps.raw, json_extract(p.payload_json,'$.candidates') FROM proposal p
+            JOIN place_string ps ON ps.id=json_extract(p.payload_json,'$.place_string_id')
+            WHERE p.tree_id=? AND p.kind='place_resolution' AND p.status='undecided' AND ps.status='undecided' ORDER BY ps.raw""", (tree_id,)):
+        cands = json.loads(cands or "[]")
+        key = (frozenset(candidate_key(c) for c in cands),
+               frozenset(candidate_key(c) for c in cands if (c.get("verified") if c.get("kind") == "gazetteer" else (c.get("score") or 0) >= 0.999))) if cands else pid
+        rows[pid] = {"proposal": pid, "string": psid, "raw": raw}
+        by_key.setdefault(key, []).append(pid)
+    return {pid: [rows[i] for i in ids] for ids in by_key.values() for pid in ids}
+
 def place_ancestors(cx, pid):
     """pid and every place enclosing it, walking parent_id to the root."""
     chain, seen = [], set()

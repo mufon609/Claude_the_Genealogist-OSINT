@@ -28,6 +28,7 @@ from cards import card as decision_card, hints_on, render as render_card, render
 from conclude import decide as decide_document, living, match_record, record_says
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
 from overview import overview, people, person_card
+from resolve_places import place_groups
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
@@ -227,26 +228,32 @@ def living_route(cx, tree_id, pid, body):
     if word not in ("living", "deceased", "unknown"): return {"error": "word must be living, deceased or unknown"}
     return {"ok": True, **living(cx, tree_id, pid, word, CFG["by"], (body.get("note") or "").strip() or None)}
 
-def place_strings(cx, tree_id, eid):
+def place_strings(cx, tree_id, eid, groups):
     """The place strings behind an event with no resolved place, from its non-rejected assertions: each with its words and
-    status and, for one the resolver left undecided with a place_resolution proposal, the proposal's id, its candidates and
-    how many facts of the tree carry the same words, so the screen can put the question on the fact row and say how far the
-    answer reaches. A string with no proposal has its words and nothing to choose."""
+    status and, for one the resolver left undecided with a place_resolution proposal, the proposal's id, its candidates, the words
+    of every string whose card offers the same places (`covers`: they are one question, resolve_places.place_groups, shown once
+    on the row) and how many facts of the tree carry any of them, so the screen can put the question on the fact row and say
+    how far the answer reaches. A string with no proposal has its words and nothing to choose."""
     if cx.execute("SELECT place_id FROM event WHERE id=?", (eid,)).fetchone()["place_id"]: return []
-    out = []
+    out, shown = [], set()
     for r in cx.execute("""SELECT DISTINCT ps.id, ps.raw, ps.status FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN place_string ps ON ps.id=pf.place_string_id
                            WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY ps.raw""", (eid,)):
-        row = {"id": r["id"], "raw": r["raw"], "status": r["status"], "proposal": None, "candidates": [], "facts": 0}
+        row = {"id": r["id"], "raw": r["raw"], "status": r["status"], "proposal": None, "candidates": [], "covers": [r["raw"]], "facts": 0}
         if r["status"] == "undecided":
             p = cx.execute("""SELECT id, payload_json FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided'
                               AND json_extract(payload_json,'$.place_string_id')=? ORDER BY created_at DESC LIMIT 1""", (tree_id, r["id"])).fetchone()
+            members = groups.get(p["id"]) if p else None
             if p: row["proposal"] = p["id"]; row["candidates"] = [{"i": i, "display_name": c.get("display_name"), "type": c.get("type")} for i, c in enumerate(json.loads(p["payload_json"]).get("candidates") or [])]
-            row["facts"] = cx.execute("""SELECT COUNT(DISTINCT a.subject_id) FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
-                                         WHERE a.tree_id=? AND a.subject_kind='event' AND pf.place_string_id=? AND a.status<>'rejected'""", (tree_id, r["id"])).fetchone()[0]
+            if members:
+                if members[0]["proposal"] in shown: continue
+                shown.add(members[0]["proposal"]); row["covers"] = [m["raw"] for m in members]
+            ids = [m["string"] for m in members] if members else [r["id"]]
+            row["facts"] = cx.execute(f"""SELECT COUNT(DISTINCT a.subject_id) FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                         WHERE a.tree_id=? AND a.subject_kind='event' AND pf.place_string_id IN ({','.join('?' * len(ids))}) AND a.status<>'rejected'""", (tree_id, *ids)).fetchone()[0]
         out.append(row)
     return out
 
-def other_facts(cx, cat, pid):
+def other_facts(cx, cat, pid, groups):
     """Every event or attribute of the person beyond the key facts (burial, residences, occupation, an inscription, ...), each a
     fact decided under the same three states with the same evidence rule, keyed event:<id>."""
     out = []
@@ -254,14 +261,14 @@ def other_facts(cx, cat, pid):
                            WHERE ep.person_id=? AND e.event_type NOT IN ('Birth','Death') ORDER BY e.date_start, e.event_type""", (pid,)):
         f = f"event:{e['id']}"
         out.append({"field": f, "type": e["event_type"], "date": e["date_text"], "place": cat.place(e["id"], e["place_id"])["text"] if e["place_id"] else None, "value": e["description"],
-                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f), "places": place_strings(cx, cat.tree_id, e["id"])})
+                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f), "places": place_strings(cx, cat.tree_id, e["id"], groups)})
     return out
 
 def person_view(cx, tree_id, pid):
-    cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid); r["living"] = cat.living(pid)
+    cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid); r["living"] = cat.living(pid); groups = place_groups(cx, tree_id)
     r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f),
-                       "places": [s for k, i in fact_subjects(cx, pid, f) if k == "event" for s in place_strings(cx, tree_id, i)]} for f in KEY_FACTS}
-    r["facts"] = other_facts(cx, cat, pid)
+                       "places": [s for k, i in fact_subjects(cx, pid, f) if k == "event" for s in place_strings(cx, tree_id, i, groups)]} for f in KEY_FACTS}
+    r["facts"] = other_facts(cx, cat, pid, groups)
     r["waiting"] = cat.waiting(pid)
     r["documents"] = [c for c in (decision_card(cx, tree_id, row[0]) for row in cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
         AND (json_extract(payload_json,'$.person_id')=? OR (kind='new_person' AND json_extract(payload_json,'$.subject_person_id')=?)) ORDER BY created_at""", (tree_id, pid, pid))) if c]
