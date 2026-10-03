@@ -8,7 +8,7 @@
  },
  "steps": [
   {
-   "say": "the 1920 page: the father accepted by the owner, his daughters taken by the rule, each name as the census writes it an alias",
+   "say": "the 1920 page: the father accepted by the owner, the daughter the census states his taken by the rule, her name as the census writes it an alias",
    "attach": {
     "fixture": "familysearch-census-1920-MXBF-NHK.html"
    },
@@ -37,16 +37,6 @@
      }
     },
     {
-     "card": {
-      "record": "c20",
-      "person": "I332737058557",
-      "status": "accepted",
-      "decided_by": {
-       "starts": "rule:"
-      }
-     }
-    },
-    {
      "alias": {
       "person": "I332737044990",
       "is": [
@@ -57,40 +47,81 @@
        ]
       ]
      }
+    }
+   ]
+  },
+  {
+   "say": "his obituary accepted by the owner: the mother it states his taken by the rule, her name as the obituary writes it an alias",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "person": "I332737204852",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
     },
     {
      "alias": {
-      "person": "I332737058557",
-      "is": [
-       [
-        "Anna R Ahearn",
-        "detail",
+      "person": "I332737204852",
+      "is": {
+       "some": [
+        "Lena Bell Davidson",
+        {
+         "any": true
+        },
         "accepted"
        ]
-      ]
+      }
      }
     }
    ]
   },
   {
-   "say": "the rule takes Anna's decision back: her alias is undecided, as its statements are",
+   "say": "the rule takes the mother's decision back: her alias is undecided, as its statements are",
    "withdraw": {
     "card": {
-     "record": "c20",
-     "person": "I332737058557"
+     "record": "obit",
+     "person": "I332737204852"
     }
    },
    "expect": [
     {
      "alias": {
-      "person": "I332737058557",
-      "is": [
-       [
-        "Anna R Ahearn",
-        "detail",
+      "person": "I332737204852",
+      "is": {
+       "some": [
+        "Lena Bell Davidson",
+        {
+         "any": true
+        },
         "undecided"
        ]
-      ]
+      }
      }
     }
    ]
@@ -99,22 +130,24 @@
    "say": "the owner accepts her card: the alias stands again with everything the decision wrote",
    "decide": {
     "card": {
-     "record": "c20",
-     "person": "I332737058557"
+     "record": "obit",
+     "person": "I332737204852"
     },
     "status": "accepted"
    },
    "expect": [
     {
      "alias": {
-      "person": "I332737058557",
-      "is": [
-       [
-        "Anna R Ahearn",
-        "detail",
+      "person": "I332737204852",
+      "is": {
+       "some": [
+        "Lena Bell Davidson",
+        {
+         "any": true
+        },
         "accepted"
        ]
-      ]
+      }
      }
     }
    ]

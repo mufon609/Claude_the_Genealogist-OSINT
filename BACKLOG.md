@@ -55,26 +55,6 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
-### A1. The rule's points on the proof standard's classes
-
-`conclude.rule_accepts` counts points the way `docs/RESEARCH-WORKFLOW.md`
-"The proof standard" says it must not: it doubles any date given to the day on
-a trusted statement and any relationship the tree holds on trusted evidence,
-whatever the information class (`conclude.py` near "counts double"); it never
-reads a relationship's computed flag, so FamilySearch's own groupings are taken
-as stated links; records copied from one original each count; the kinds it
-trusts come from English words in collection titles (`IDENTIFYING`), not from
-`data/evidence-classes.csv`; a record giving only a state or a county earns a
-death-place or burial-place point; and a reading of an image by the model or a
-person reads as an original whatever the image shows
-(`catalog.evidence_classes`). Make the rule read its kinds and its points from
-the classes table: double only on primary information or the owner's word, a
-computed relationship one point and never a stated link, one original once, a
-place point only at the level of the tree's own place, a reading taking the
-class of what it read (`docs/DATA-ARCHITECTURE.md` §7 decision 9). Rehearse
-`reconsider` on a scratch copy and list what it would take back before it runs
-on the live catalog.
-
 ### A2. Identity is tested, not assumed
 
 `docs/DATA-ARCHITECTURE.md` §7 decision 12. The matcher compares a persona only
@@ -91,7 +71,6 @@ duplicate check before review with merged persons excluded. Live cases to
 test against: Joe Davidson, born 1925, linked undecided as a child of Lena
 Howard Bell, died 1918; John Y Davidson, whose one Birth holds the file's
 24 April 1876 against the 1900 census's Apr 1875.
-**Blocked by:** A1, which changes the same function.
 
 ---
 
@@ -234,7 +213,17 @@ marriage, the couple's own first; Catharine Rittenhouse's births of 12 and
 it); a family fact equally close to two of the couple's events, raised by
 `Catalog.unplaced` and placed on a family's event by `conclude.place` (no
 record of the Ahearn marriage fits both its events); an attribute's fact among
-several of the person's attributes of its value. When a real document
+several of the person's attributes of its value; the sibling route (a sibling
+the record itself states, of a person accepted on it, taken where the tree
+holds no parents), now that FamilySearch's readings mark every sibling their
+own grouping; the note a decision writes when it does not place a sibling
+beside a parent who died before the birth (only a re-read carries such a
+placement in the harness, and a re-read writes no note); a reading the reader
+says is of an index read derivative where neither its collection nor its
+registry row says so (the tree's one index image is filed under the New York
+marriage index, whose own row says derivative); and a death or burial place
+point standing on a statement at the tree's own level, the harness's places
+being unresolved strings. When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
@@ -346,8 +335,7 @@ characters in `conclude.py`, 1,208 across the tools), and functions up to 225 li
 (`checklist.build`, `conclude.rule_accepts`, `cards.card`), where a defect in
 a write hides in the middle of a line. Reformat them one
 statement per line at a width a review can read, behaviour unchanged and the
-checks green, a file per commit, once the rule's points on the proof
-standard's classes (section A) have landed, so the two do not collide.
+checks green, a file per commit.
 
 ### C15. A family's own facts in the file lose their place
 
@@ -460,6 +448,19 @@ conflict's question id, which `tools/conclude.py resolve` needs. Compute the
 line per conflict from the statements on each side and print the question id
 beside each open conflict.
 
+### C26. The relationships a FamilySearch page states, read as stated
+
+`extract.py`'s FamilySearch reader marks a relationship stated only for the
+page's own person's relationship to the head and the roles a record of one
+event names; every other one is computed, and since the standing rule now
+reads that flag, a census household's members other than the page's own
+person, and every sibling an obituary's index lists, are no ground for the
+relationship route and are written undecided. Where the page shows each
+member's relationship to the head (the household table's own column) read it
+as the census's statement for every member, and read an obituary index's
+brothers and sisters as the obituary's, so the rule takes what the records
+themselves state; check each on the saved pages before changing the reader.
+
 ### C27. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the
@@ -535,6 +536,19 @@ page read by the model (sha `0ee95c3d0eba…`, H05). Re-target those scenarios
 to the people those real pages are about, with their real readings, so no
 stand-in page remains; the family-held photographs are marked private, and
 whether one may sit in `tests/` is the owner's choice (hard rule 7).
+
+### C34. An original names whose record it is
+
+`data/evidence-classes.csv` names a record's original by its kind ("death
+certificate", "birth register", "obituary"), with the year only where the
+name carries one, so the standing rule's one-original test (`conclude.ground`)
+reads two different documents of one kind on the same person's event as one
+original: a parent's birthplace on a child's birth register beside the
+parent's own birth register, two obituaries of one person in two papers. The
+test errs toward the owner (a statement left out of a point, a card instead of
+a decision), never toward a wrong decision. Name the original by the record's
+own subject as well (the person whose death the certificate is), from the
+reading's own persona roles, so only copies of one document count once.
 
 ## Externally blocked
 

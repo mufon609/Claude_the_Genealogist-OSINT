@@ -116,12 +116,16 @@ statement is also **stated** by the record or **computed** by its indexer, and a
 copied from, so records copied from one original count as one source. A T2 index can hold primary information (a birth
 register's own birth) and a T1 image secondary (the age on a census page): the two scales answer different questions.
 
-One row per record kind and field: `kind`, `field`, `reads_as`, the five classes, and `notes`. A record reads as several
-kinds, most specific first (`catalog.record_kinds`): a FamilySearch record page as its own collection, its Event Type
-and its collection's kind word (`FamilySearch: <words>`), then `familysearch-record`; a record read by the model or a
-person as its registry row, the checklist rows of the steps it was fetched for (`census household`, `death record`, the
-checklist's own words), then `reading`; any other page as its parser. A kind's `reads_as` adds the kind it is a case of
-(`FamilySearch: Death` reads as `death record`). The field is the fact type as `persona_fact.fact_type` stores it,
+One row per record kind and field: `kind`, `field`, `reads_as`, `standing`, the five classes, and `notes`. A record reads
+as several kinds, most specific first (`catalog.record_kinds`): a FamilySearch record page as its own collection, its
+Event Type and its collection's kind word (`FamilySearch: <words>`), then `familysearch-record`; a record read by the
+model or a person as what its reader says the image is (`reading of an index`, or `reading` for the record made at the
+event), the collection it is filed under, its registry row, the checklist rows of the steps it was fetched for
+(`census household`, `death record`, the checklist's own words), then `reading`; any other page as its parser. A kind's
+`reads_as` adds the kind it is a case of (`FamilySearch: Death` reads as `death record`). A collection's row gives a
+reading filed under it its kind (an obituary index reads as `obituary`), and a source class only where everything filed
+under it is of that class: the image filed under an index's citation is often the record the index points to (a
+certificate, a newspaper page), which a reader that does not say what it read leaves original. The field is the fact type as `persona_fact.fact_type` stores it,
 `<type> [<label>]` for one field label of its `region_json`, `relation` or `relation:<kind>` for a family link, and
 `relation [<heading>]` for a relationship whose label ends with that heading (FamilySearch's relatives tables). Each
 class is read from the most specific row that gives it, kind before field, then the rows every record shares (`*`),
@@ -132,6 +136,14 @@ date) is indirect evidence, and a relationship the reading marks computed is com
 stated and direct (the record names the relationship itself). Both come from the record's
 current reading: a statement written from an earlier reading is read through the same person on the page in the current
 one (`catalog.statement_of`), so a page read again by a better parser reads by what that parser found.
+
+**Standing.** A kind's `*` row may carry the standing the rule gives a record of that kind (`docs/RESEARCH-WORKFLOW.md`
+§0's table): `automated`, the rule may take it; `identity`, a page anyone can edit that identifies a person, the rule
+taking the identity and never a fact; `hint`, the owner decides. A record takes the standing of the most specific of its
+kinds that gives one (`catalog.record_standing`), so a parser that serves many collections (`familysearch-record`, a
+reading) gives none and its collection's kind decides; a record no kind gives a standing is a hint. Three limits stay rules
+on the kinds: a `census household` before 1850 names only the head, an `obituary` is ground only through the
+relatives it names, and a `church register` entry is automated only when it is dated and names the parents.
 
 Where a genealogist could contest a row, the table reads the class that leaves the decision to a person
 (`docs/DATA-ARCHITECTURE.md` §7 decision 9): the Social Security application's birth date and parents read as secondary

@@ -63,17 +63,18 @@ person already accepted, and everything the document states comes with it; a
 disagreement with a value that rests on no accepted assertion is not a veto —
 the record is still taken on its points, and the difference becomes a
 conflict question, never a silent overwrite or a silent drop. It may do so
-only for document kinds that identify a person fully, from sources nobody can
+only for document kinds that identify a person fully (the table below, kept as
+each kind's standing in `data/evidence-classes.csv`), from sources nobody can
 edit at will (registry tiers T1–T3: certificates, census, obituaries,
 published works), and only counting accepted facts that themselves rest on
 such a source or on the owner's own word, each a statement of the very date
-or place it counts for. A person's own decision is never undone by the rule or
-by a record read again: a statement a person rejected or accepted stays as it
-is. A page anyone can edit (T4: Find a Grave, member trees) identifies a
-person but never builds their facts: accepting it, by the owner or by the
-rule, writes the persona link, and every fact the page types is written as an
-undecided assertion, what the page says, never accepted and never a ground
-the rule stands on; the rule takes such an identity when the name agrees and
+or place it counts for (§5–7, "What the rule counts"). A person's own decision
+is never undone by the rule or by a record read again: a statement a person
+rejected or accepted stays as it is. A page anyone can edit (T4: Find a
+Grave, member trees) identifies a person but never builds their facts:
+accepting it, by the owner or by the rule, writes the persona link, and every
+fact the page types is written as an undecided assertion, what the page says,
+never accepted and never a ground the rule stands on; the rule takes such an identity when the name agrees and
 at least three of birth date to the day, death date to the day, burial place,
 and a stated parent or spouse who is that relative in the tree agree with the
 tree, claimed or accepted. A family membership such a page states is created
@@ -98,7 +99,7 @@ The starting list, to be refined as records are met:
 | Federal census 1790–1840 | the head's name, the rest counted | hint |
 | Find a Grave memorial | full name, dates, cemetery, linked family, gravestone photographs | the identity by the rule when the name and three of birth day, death day, burial place, a stated parent or spouse agree; each relative it lists a lead, never a card; a membership it states created where the tree lacks it for a listed relative who fits exactly one person by name and birth year, undecided like its facts; each gravestone photograph a fetch step |
 | Death, birth, marriage certificate or index | full name, dates, parents or spouse | automated |
-| Social Security index, draft cards, veterans' files | full name, exact birth date | automated |
+| Social Security index, draft cards, service records (an Army enlistment), veterans' files and gravesites | full name, exact birth date or year | automated |
 | Naturalization petition, declaration or index | full name, birth date and place, residence, spouse | automated |
 | Church register entry | names and dates when the register keeps them | automated when dated and the parents are named; hint otherwise |
 | Obituary, newspaper hit | free text | hint until the text is read (by hand or by the model); then the named survivors decide: automated for the person it names once a stated relative it names is a relative the tree already links on trusted evidence, never on dates or places alone |
@@ -760,7 +761,12 @@ facts the record states (a Marriage and its date and place) are asserted on one
 of that family's own events of the type, chosen as a person's is, created when
 none fits and raised for the owner when the choice is theirs (a marriage index
 accepted for one partner waits for the other's acceptance on it, which writes
-it); a sibling
+it). A relationship the record's indexer computed rather than the record
+stating it (FamilySearch's relatives tables around a census's own person:
+"Mother", "Sister", the parents' couple) is written the same way with an
+Undecided assertion, as a sibling placement is, the decision's note saying the
+indexer, not the record, states it; beside a relationship the record states
+between the same two it adds nothing. A sibling
 stated on the record places the person as a child of the other's accepted
 parents with an Undecided assertion (the record states the sibling, not the
 parents), and only when the other is an accepted child of one family and
@@ -816,75 +822,61 @@ on their date or place are never folded into one: the migration refuses,
 writing nothing, until the owner has answered one of them.
 
 **The standing rule.** After the matcher writes its proposals, the rule takes a
-`persona_match` on the owner's behalf when the record's collection is of a kind
-that identifies a person fully (§0's list: a census from 1850, a 1950 schedule,
-a certificate or index of birth, death or marriage, Social Security, service
-records, a veteran's gravesite; a land or public records index is a hint), read
-by hand or by the model exactly as one a rule parsed — the rule judges the
-record's own kind, tier and agreeing facts, never who did the reading. A
-persona whose stated relationship (child, parent, spouse, sibling) is to a
-persona accepted on the same record as a person the tree links to a
-candidate by that relation, claimed or accepted, is taken the same way when
-the persona's given name and surname agree with the candidate's name,
-claimed or accepted, and a birth year agrees where both have one; the
-record's own name fact then documents the name. A persona stated as a sibling
+`persona_match` on the owner's behalf when the record is of a kind that
+identifies a person fully. The kinds are data: `data/evidence-classes.csv` gives
+each kind a standing (automated, the rule may take it; identity, a page anyone
+can edit that identifies a person; hint) and a record takes the standing of the
+most specific of its kinds that gives one (`catalog.record_kinds`), a kind the
+table does not hold being a hint. That is §0's list: a census from 1850 (before
+it the head alone is named), a 1950 schedule, a certificate or index of birth,
+death or marriage, a church register entry once it is dated and names the
+parents, Social Security, naturalization, draft cards and service records, a
+veteran's gravesite, a gravestone's photograph once read; a land, probate or
+public records index, a passenger list, a compiled genealogy and a row of a
+results page are hints. A record read by hand or by the model is judged exactly
+as one a rule parsed, by its kinds, its tier and the facts that agree, never by
+who did the reading.
+
+On a record nobody can edit at will (T1–T3) the rule takes the persona when the
+given name and surname agree with the accepted name (a wife under her married
+surname agrees too — that is how her own obituary can name her at all; a
+surname one letter apart is a card), the facts that agree make two points (What
+the rule counts, below) and nothing disagrees against an accepted value. A
+disagreement with a value that rests on no accepted assertion is no veto and
+becomes a conflict question once the record is taken; a stated relationship
+vetoes only against a link the tree holds on accepted evidence (a sister the
+file alone places in another family is no veto); a birth place, secondary on
+nearly every record and never a point, never vetoes. An obituary or newspaper
+text is such a kind only once read, and only on its own ground: one of its
+points must be a relative it states who is that relative in the tree on trusted
+evidence — no number of agreeing dates or places substitutes, because the named
+survivors are what identifies the person here (§0).
+
+A persona whose name the tree does not yet hold on such ground is taken through
+a relationship the record states (child, parent, spouse, sibling; never one its
+indexer computed) to a persona accepted on the same record as a person the tree
+links to the candidate by that relation, claimed or accepted, when the given
+name and surname agree with the candidate's and a birth year agrees where both
+have one; the record's own name fact then documents the name. A stated sibling
 of a person accepted on the record fits a candidate who is a child of that
-person's parents in the tree, claimed or accepted, or who has no parents in
-the tree at all and whose surname agrees (nothing holds the sibling, nothing
-contradicts it), and is taken the same way; accepting places the candidate as
-a child of those parents with an undecided assertion, as a sibling placement
-is. A sibling the tree holds counts as a relationship point like a parent or
-a spouse, on the evidence of the child membership beside the other's. A persona such a trusted
-record (T1–T2, or an obituary once read) names in a stated relationship to a
-person accepted on it, who fits nobody in the tree after the fitting check,
-is created by the rule as a person with the record's facts and the family
-link accepted, and enters the queue. The fitting check, run before any
-creation: a person of the tree with the same surname or birth surname and a
-birth year within the matcher's window, or the same stated relationship to
-the same accepted person, fits and is proposed instead of a new one. An
-obituary or newspaper text is such a kind only once read (a bare citation is
-still a hint) and only on its own ground: one of its two points must be a
-stated relative who is that relative in the tree, on trusted evidence — no
-number of agreeing dates or places substitutes, because the named survivors
-are what identifies the person here (§0). Its source is one nobody can edit at
-will (T1–T3), the given name and surname agree with the accepted name (a wife
-under her married surname agrees too — that is how her own obituary can name
-her at all), at least two accepted facts agree (birth date,
-death date, a death or burial place, a stated relationship to a person the
-record names who fits a relative the tree already links, the relative's own
-persona on that same record being already accepted as them counting as such
-a fit (accepted by the owner); a date agreeing to the day on a trusted
-statement of the day, and a relationship the tree holds on trusted evidence,
-each count double) and each rests, on the very event or link compared, on a
-trusted source or on the owner's own word, in a statement that itself gives
-the date or place compared (a record stating a death with no date, asserted on
-the person's one Death event, is no ground for the date another source gave
-that event), and nothing among them disagrees;
-a disagreement with a value that rests on no accepted assertion is not a
-veto here either, and becomes the same conflict question. That holds for a
-stated relationship too: it vetoes only against a link the tree holds on
-accepted evidence (a sister the file alone places in another family is no
-veto). A birth place, secondary on nearly every record and never a point,
-never vetoes at all: one that differs from an accepted value is the same
-conflict question once the record is taken on its points. A
-surname agreeing only one letter apart is a card, never the rule's. Claims never count, and a fact that
-rests only on a page anyone can edit does not count either. The one exception, on the owner's word: a stated
-relationship to a relative the tree links by a claim alone counts one point, never double, when that relative's own
-persona on the record fits them on more than a name (a name and an age, a name and a place), so a confirmed child in
-the claimed parents' census household is taken on name, birth year and the stated parent, and the parents then
-follow through the claimed route above; an obituary's named survivor is still one the tree holds on trusted
-evidence. Any stated relationship earns its point, single or double, only when the related persona is already
-accepted on the record or fits its tree relative on something besides that relationship, a date or a place (an age
-is a birth year): a persona that fits only through its relation to the one under decision would make the
-relationship its own proof, so a couple's index entry, two names and a date, takes neither of them, and an
-obituary's survivor named with nothing else counts once the owner or the rule has accepted that survivor on it. A
-claim whose own citation is the record under decision never counts: the agreement of a date or a place, here and for
-a relative's persona, must rest on some other statement. On a page anyone can edit that identifies a person (a
-memorial, a profile) the rule takes the identity alone, when the name agrees and at least three of birth date to the
-day, death date to the day, burial place, and a stated parent or spouse who is that relative in the tree agree with
-the tree, claimed or accepted, a claim the file cites to that very page not among them (the reason names what it left
-out); a relative a memorial lists is a lead, never a card (§0, §3), and one a profile lists by
-name and years alone has at most the stated relation and is a card for the owner. The proposal records the rule as the decider with its
+person's parents, claimed or accepted, or who has no parents in the tree and
+whose surname agrees, and is placed as a child of those parents with an
+undecided assertion. A persona a trusted record (T1–T2, or an obituary once
+read) names in a relationship it states to a person accepted on it, who fits
+nobody in the tree after the fitting check, is created by the rule with the
+record's facts and the family link accepted, and enters the queue. The fitting
+check, run before any creation: a person of the tree with the same surname or
+birth surname and a birth year within the matcher's window, or the same stated
+relationship to the same accepted person, fits and is proposed instead.
+
+On a page anyone can edit that identifies a person (a memorial, a profile) the
+rule takes the identity alone, when the name agrees and at least three of birth
+date to the day, death date to the day, burial place, and a stated parent or
+spouse who is that relative in the tree agree with the tree, claimed or
+accepted, a claim the file cites to that very page not among them (the reason
+names what it left out); a relative a memorial lists is a lead, never a card
+(§0, §3), and one a profile lists by name and years alone has at most the
+stated relation and is a card for the owner. The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link, every assertion and the
 name alias the rule wrote rejected. A proposal the rule does not take is a card for the owner
@@ -971,13 +963,26 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   derivative comes from, so records copied from one original are one source.
   The table is `data/evidence-classes.csv`, read when needed; a class never
   becomes a weight.
-- **What the rule counts.** A point counts double only when the statement it
-  rests on is primary information or the owner's own word. A relationship the
-  indexer computed counts one point. A stated relationship counts only when
-  the related persona is accepted on the record or fits its tree relative on
-  something besides that relationship. A claim whose own citation is the
-  record under decision never counts. Given names that differ in a middle
-  name or initial disagree. Records from one original count once.
+- **What the rule counts.** A point is a birth date, a death date, a death or
+  burial place, or a relationship the record gives that agrees with the tree,
+  and it rests on the tree's own statement of that very date, place or link:
+  accepted, from a source nobody can edit at will or on the owner's own word (a
+  vouch, or the file's uncited claim the owner accepted), giving the value
+  compared. A date agreeing to the day, or a relationship, counts double only
+  when that statement is primary information or the owner's own word, and
+  otherwise once. A relationship the record's indexer computed counts once at
+  most, is never an obituary's survivor and never an accepted family link. A
+  place the record gives coarser than the tree's own (a state or a county
+  against a town) agrees, is said in the reason, and earns nothing. Records
+  copied from one original count once: a statement from the same original as
+  the record under decision is no ground for its point. A stated relationship
+  counts only when the related persona is accepted on the record or fits its
+  tree relative on something besides that relationship (a couple's index
+  entry, two names and a date, takes neither of them); a link the file alone
+  claims counts once, when that relative's persona fits on more than a name.
+  A claim whose own citation is the record under decision never counts, nor
+  does a statement on a page anyone can edit. Given names that differ in a
+  middle name or initial disagree.
 - **Conflicts: kept, cited, pointed out, then decided.** A record that
   differs from the tree's value is still accepted for what it says: its
   statement stays, cited to the archived record, and the difference is a

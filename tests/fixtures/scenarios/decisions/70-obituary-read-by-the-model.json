@@ -1,6 +1,6 @@
 {
  "title": "an obituary read by the model",
- "line": "the page the file cites, held as a stand-in the harness never parses, read by the model into a card for the deceased that the rule takes because the text names the husband who already stands as her accepted spouse; held is the record's own subject, never a relative it merely names",
+ "line": "the page the file cites, held as a stand-in the harness never parses and filed under an obituary index, read by the model into a card for the deceased that the rule takes because the text names the husband who already stands as her spouse on the owner's own word; held is the record's own subject, never a relative it merely names",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -35,7 +35,7 @@
    }
   },
   {
-   "say": "the father: the couple asserted on the record",
+   "say": "the father: the couple, FamilySearch's own grouping, written undecided",
    "decide": {
     "card": {
      "record": "c40",
@@ -48,6 +48,23 @@
      "facts": {
       "person": "I332737037573",
       "name": "accepted",
+      "spouses": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the couple: the census's grouping and the file's own claim, on the owner's word",
+   "fact": {
+    "person": "I332737037573",
+    "field": "spouses",
+    "status": "accepted",
+    "note": "harness: the owner knows the couple"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737037573",
       "spouses": "accepted"
      }
     }
@@ -157,7 +174,7 @@
        "has": "spouse Frederick Michael Ahearn"
       }
      },
-     "why": "an obituary read by the model, naming her husband who already stands as her accepted spouse, is taken by the rule, the reason naming him"
+     "why": "an obituary read by the model, filed under an obituary index and so read as an obituary, naming her husband who already stands as her spouse on the owner's word, is taken by the rule, the reason naming him"
     },
     {
      "checklist_row": {

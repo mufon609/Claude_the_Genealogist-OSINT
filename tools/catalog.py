@@ -644,16 +644,27 @@ def evidence_table():
             for r in csv.DictReader(fh): EVIDENCE.setdefault(r["kind"], []).append(r)
     return EVIDENCE
 
-def record_kinds(cx, sha, extraction_id=None):
-    """(kinds, year): the kinds of data/evidence-classes.csv an archived record reads as, most specific first, and the
-    record's own year. A FamilySearch record page reads as its own collection, its Event Type and its collection's kind word
-    (`FamilySearch: <words>`, the Event Type before the kind word, which can mislead: a Massachusetts birth filed under
-    Death), then its parser; a record read by the model or a person (extractor llm or human) as its registry row, the
-    checklist rows of the steps it was fetched for, then `reading`; any other page as its parser. Only kinds the table
-    holds are kept, each followed by the kinds its rows read as (reads_as), then `*`, the rows every record shares. The
-    reading is extraction_id's, else the record's current one. The year is the record's own, for an original's name: a
-    FamilySearch page's event date or its collection's single year, a reading's own year."""
+def kinds_as(own):
+    """The kinds of data/evidence-classes.csv a record naming these kinds (most specific first) reads as: only the kinds the
+    table holds, each followed by the kinds its rows read as (reads_as), then `*`, the rows every record shares."""
     t = evidence_table()
+    kinds = list(dict.fromkeys(k for k in own if k in t))
+    for k in list(kinds):                                         # each kind's own reads_as chain, after every kind the record itself names
+        nxt = next((r["reads_as"] for r in t.get(k, []) if r["field"] == "*" and r["reads_as"]), None)
+        while nxt and nxt not in kinds:
+            kinds.append(nxt); nxt = next((r["reads_as"] for r in t.get(nxt, []) if r["field"] == "*" and r["reads_as"]), None)
+    return kinds + ["*"]
+
+def record_kinds(cx, sha, extraction_id=None):
+    """(kinds, year): the kinds of data/evidence-classes.csv an archived record reads as, most specific first (kinds_as), and
+    the record's own year. A FamilySearch record page reads as its own collection, its Event Type and its collection's kind
+    word (`FamilySearch: <words>`, the Event Type before the kind word, which can mislead: a Massachusetts birth filed under
+    Death), then its parser; a record read by the model or a person (extractor llm or human) as what its reader says the
+    image is (image_is: `reading of an index`, or `reading`, the image of the record made at the event), then the collection
+    it is filed under, its registry row, the checklist rows of the steps it was fetched for and `reading`, so that a reading
+    that does not say (one written before readers said) takes its class from a row of its collection or registry row; any
+    other page as its parser. The reading is extraction_id's, else the record's current one. The year is the record's own,
+    for an original's name: a FamilySearch page's event date or its collection's single year, a reading's own year."""
     if extraction_id is None:
         r = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND status<>'failed' AND superseded_by IS NULL ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
         extraction_id = r[0] if r else None
@@ -672,18 +683,26 @@ def record_kinds(cx, sha, extraction_id=None):
         ym = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", fields.get("event date") or "") or re.fullmatch(r".*\b(1[5-9]\d\d|20\d\d)\b.*", re.sub(r"\b\d{4}-\d{4}\b", "", name))
         yr = ym.group(1) if ym else None
     elif xkind in ("llm", "human"):
-        src = cx.execute("SELECT source_id FROM artifact WHERE sha256=?", (sha,)).fetchone()
+        src = cx.execute("SELECT ar.source_id, c.name FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
         rows = [rk.split(":", 1)[0] for rk, in cx.execute("""SELECT sp.row_key FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
                                                            WHERE l.artifacts_json LIKE ? ORDER BY l.executed_at""", (f'%"{sha}"%',))]
-        own = ([src[0]] if src and src[0] else []) + rows + ["reading"]
+        said = {"index": ["reading of an index"], "record": ["reading"]}.get(parsed.get("image_is"), [])   # the reader's own word on what the image is comes first
+        own = said + [k for k in ((src[1], src[0]) if src else ()) if k] + rows + ["reading"]
         yr = str(parsed["year"]) if parsed.get("year") else None
     elif xname: own = [xname]
-    kinds = list(dict.fromkeys(k for k in own if k in t))
-    for k in list(kinds):                                         # each kind's own reads_as chain, after every kind the record itself names
-        nxt = next((r["reads_as"] for r in t.get(k, []) if r["field"] == "*" and r["reads_as"]), None)
-        while nxt and nxt not in kinds:
-            kinds.append(nxt); nxt = next((r["reads_as"] for r in t.get(nxt, []) if r["field"] == "*" and r["reads_as"]), None)
-    return kinds + ["*"], yr
+    return kinds_as(own), yr
+
+def record_standing(kinds):
+    """(standing, kind): how the standing rule may treat a record of these kinds (record_kinds' order), from
+    data/evidence-classes.csv's standing on each kind's `*` row (docs/RESEARCH-WORKFLOW.md §0's table): automated (the rule
+    may take it), identity (a page anyone can edit that identifies a person: the rule may take the identity, never a fact)
+    or hint (the owner decides). The most specific kind that gives one decides; a record no kind gives one is a hint, and
+    kind is None."""
+    t = evidence_table()
+    for k in kinds:
+        s = next((r.get("standing") for r in t.get(k, []) if r["field"] == "*" and r.get("standing")), None)
+        if s: return s, k
+    return "hint", None
 
 def _class_rows(t, kinds, keys, label=None):
     """The table's rows for one statement, most specific first: kind by kind, and within a kind the field patterns in the
@@ -755,7 +774,30 @@ def evidence_classes(cx, assertion_id):
     {"computed": true}), whatever the table says; a relationship the reading marks stated ({"computed": false}) is the
     record's own statement of it, direct evidence. A vouch is the owner's own word: {vouched: true} and no classes."""
     st = statement_of(cx, assertion_id)
-    if st is None: return None
+    return None if st is None else classes_of(cx, st)
+
+def relation_classes(cx, persona_id, related_id, kind, value):
+    """The classes of one relationship a record gives between two of its personas (persona_relation: persona_id is the <kind>
+    of related_id, as written value), as evidence_classes reads a family link's statement: through the record's current
+    reading, the same relationship between the same two entries there (current_entry), else this reading's own."""
+    r, a = None, persona_id
+    for a, b in dict.fromkeys(((current_entry(cx, persona_id), current_entry(cx, related_id)), (persona_id, related_id))):
+        if a and b:
+            r = cx.execute("SELECT region_json FROM persona_relation WHERE persona_id=? AND related_persona_id=? AND kind=? AND coalesce(value_text,'')=coalesce(?,'')", (a, b, kind, value)).fetchone()
+            if r: break
+    try: region = json.loads(r[0]) if r and r[0] else {}
+    except ValueError: region = {}
+    sha, eid = cx.execute("SELECT artifact_sha256, extraction_id FROM persona WHERE id=?", (a,)).fetchone()
+    return classes_of(cx, {"kind": "relation", "sha": sha, "persona": a, "extraction": eid, "fact_type": None, "labels": [], "qualifier": None,
+                           "relation": {"kind": kind, "value": value, "label": (region or {}).get("label"), "region": region or {}}})
+
+def record_original(cx, sha):
+    """The original record an archived record was copied from, as its current reading's classes name it (the rows every
+    field of its kind shares), or None: records copied from one original are one source."""
+    return classes_of(cx, {"kind": "file", "sha": sha, "persona": None, "extraction": None, "fact_type": None, "labels": [], "qualifier": None, "relation": None})["original"]
+
+def classes_of(cx, st):
+    """The classes of one statement as statement_of describes it (evidence_classes)."""
     if st["kind"] == "vouch": return {"vouched": True, "source": None, "information": None, "evidence": None, "relationship": None, "original": None, "kinds": [], "notes": []}
     t = evidence_table()
     kinds, yr = record_kinds(cx, st["sha"], st["extraction"]) if st["sha"] else (["*"], None)
@@ -764,8 +806,7 @@ def evidence_classes(cx, assertion_id):
     elif rel: keys = ["relation [*]", f"relation:{rel['kind']}", "relation", "*"]
     else: keys = ["*"]
     first = lambda col, ks: next((r[col] for r in _class_rows(t, ks, keys, rel["label"] if rel else None) if r.get(col)), None)
-    xk = cx.execute("SELECT x.kind FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (st["extraction"],)).fetchone() if st["extraction"] else None
-    source = first("source", kinds) or ("original" if xk and xk[0] in ("llm", "human") else "derivative")
+    source = first("source", kinds) or "derivative"                 # a reading's own kinds end in `reading`, which says original
     cascade = kinds + [source]
     out = {"source": source, "information": first("information", cascade), "evidence": first("evidence", cascade),
            "relationship": first("relationship", cascade) if rel else None, "original": first("original", cascade), "kinds": kinds[:-1],

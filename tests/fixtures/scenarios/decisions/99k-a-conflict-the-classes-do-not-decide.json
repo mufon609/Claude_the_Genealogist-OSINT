@@ -91,7 +91,33 @@
     ],
     "rule": true
    },
-   "as": "kyb"
+   "as": "kyb",
+   "expect": [
+    {
+     "rule": {
+      "record": "kyb",
+      "person": "I332737100409",
+      "taken": false,
+      "why": {
+       "has": [
+        "birth date to the day, once (the tree holds the day on secondary information)",
+        "two are needed"
+       ]
+      }
+     },
+     "why": "his birth agrees to the day, but the tree holds the day only on the obituary and the Social Security claim, secondary information both: one point, never two, and the index names nothing else of his"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the entry as his: the rule's one point, his birth on its day, stands only on secondary information and counts once",
+   "decide": {
+    "card": {
+     "record": "kyb",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   }
   },
   {
    "say": "the three places resolved by the owner's answers, the geocoder's own answers planted as the resolver caches them",

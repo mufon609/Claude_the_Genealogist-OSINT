@@ -1,6 +1,6 @@
 {
  "title": "a relationship is no proof of itself",
- "line": "a couple's marriage index, two names and a date, is not taken on the couple the tree holds on a census: the wife's persona fits only through her relation to the husband under decision, so the relationship earns nothing and both stay cards; a memorial's burial place that the file has only from a claim citing that very memorial is no point of its identity",
+ "line": "a couple's marriage index, two names and a date, is not taken on the couple the tree holds on the owner's word: the wife's persona fits only through her relation to the husband under decision, so the relationship earns nothing and both stay cards; a memorial's burial place that the file has only from a claim citing that very memorial is no point of its identity",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,7 +8,7 @@
  },
  "steps": [
   {
-   "say": "the 1900 household accepted: the husband by the owner, his wife by the rule, the couple asserted on a census",
+   "say": "the 1900 household: the husband and his wife accepted by the owner, the couple FamilySearch's own grouping",
    "attach": {
     "fixture": "familysearch-census-1900-M9HX-SWP.html"
    },
@@ -24,18 +24,37 @@
    }
   },
   {
-   "reconsider": {},
+   "say": "the wife accepted by the owner: the couple written undecided, the record's indexer stating it",
+   "decide": {
+    "card": {
+     "record": "c00",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   },
    "expect": [
     {
-     "card": {
-      "record": "c00",
+     "memberships": {
       "person": "I332737204852",
-      "status": "accepted",
-      "decided_by": {
-       "starts": "rule:"
+      "is": {
+       "some": {
+        "role": "partner",
+        "status": "undecided"
+       }
       }
      }
-    },
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the couple: the census's grouping and the file's own claim, on the owner's word",
+   "fact": {
+    "person": "I332737204852",
+    "field": "spouses",
+    "status": "accepted",
+    "note": "harness: the owner knows the couple"
+   },
+   "expect": [
     {
      "memberships": {
       "person": "I332737204852",
@@ -46,7 +65,7 @@
        }
       }
      },
-     "why": "the couple now stands on a trusted record: a relationship the rule would count double"
+     "why": "the couple now stands on the owner's word: a relationship the rule would count double"
     }
    ]
   },

@@ -1,6 +1,6 @@
 {
  "title": "a sibling born after a parent died",
- "line": "a brother an obituary names is not placed as a child of the couple when the mother's accepted death comes before his birth, and the decision says so: a half sibling is possible, a placement under her is not",
+ "line": "a brother an obituary's index names under its own sibling grouping is created by the owner, not the rule, and is not placed as a child of the couple when the mother's accepted death comes before his birth: a half sibling is possible, a placement under her is not",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -30,7 +30,7 @@
    }
   },
   {
-   "say": "his obituary, the file's own citation, accepted by the owner: his brother Joe Davidson, whom the tree does not hold, is created by the rule; the parents are not yet accepted on it, so there is no home to place him in",
+   "say": "his obituary, the file's own citation, accepted by the owner: his brother Joe Davidson, whom the tree does not hold, stands in the index's own Parents and Siblings table, a grouping the rule creates nobody on",
    "archive": {
     "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
     "source": "B02",
@@ -59,11 +59,19 @@
       "record": "obit",
       "persona": "Joe Davidson",
       "kind": "new_person",
-      "status": "accepted",
-      "decided_by": {
-       "starts": "rule:"
-      }
+      "status": "undecided"
      }
+    },
+    {
+     "rule": {
+      "record": "obit",
+      "persona": "Joe Davidson",
+      "taken": false,
+      "why": {
+       "has": "the record's indexer, not the record, relates them to a person accepted on it (Brother)"
+      }
+     },
+     "why": "the index groups him as a brother; the rule creates a person only on a relationship the record states"
     },
     {
      "card": {
@@ -72,6 +80,26 @@
       "status": "undecided"
      },
      "why": "her name rests on the owner's word: the stated child is one point on a link the file claims, two are needed; the owner decides"
+    }
+   ]
+  },
+  {
+   "say": "the owner creates him from the obituary: the parents are not yet accepted on it, so there is no home to place him in",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "persona": "Joe Davidson"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "memberships": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "rows_total": 0
+     }
     }
    ]
   },
@@ -106,31 +134,11 @@
    }
   },
   {
-   "say": "the brother's creation taken back and taken again by reconsider: the placement beside him is examined now",
-   "withdraw": {
-    "card": {
-     "record": "obit",
-     "persona": "Joe Davidson"
-    }
-   }
-  },
-  {
-   "reconsider": {},
+   "say": "the obituary read again: each decision carries to the new reading, and the placement beside him is examined now",
+   "reread": {
+    "record": "obit"
+   },
    "expect": [
-    {
-     "card": {
-      "record": "obit",
-      "persona": "Joe Davidson",
-      "status": "accepted",
-      "note": {
-       "has": [
-        "not placed beside Robert Edgar Davidson as a child of the same parents",
-        "Lena Howard Bell's accepted death (30 October 1918) comes before the birth (1925)"
-       ]
-      }
-     },
-     "why": "the decision says what it did not write and why"
-    },
     {
      "memberships": {
       "person": {
