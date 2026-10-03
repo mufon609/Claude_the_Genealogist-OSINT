@@ -984,7 +984,7 @@ def main():
     gazetteer_names_added = backfill_gazetteer(cx)   # every accepted string whose chosen candidate a gazetteer annotated
     rows = cx.execute("SELECT id, raw FROM place_string WHERE status='undecided' AND place_id IS NULL AND resolver IS NULL " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
                       (a.only,) if a.only else ()).fetchall()
-    if a.limit: rows = rows[: a.limit]
+    if a.limit is not None: rows = rows[: a.limit]
     stats, report, unanswered = resolve_strings(cx, tree_id, a.by, rows, {"former_names_added": former_names_added, "gazetteer_names_added": gazetteer_names_added})
     if a.dry_run: cx.rollback()
     else: cx.commit()
