@@ -8,12 +8,12 @@
  },
  "steps": [
   {
-   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word, the name the citation sits on as the file writes it, suffix and all",
+   "say": "a 1950 citation on the person on the owner's word: the file cites the census on nobody in his household, so the step names the census as the file's own source record for it does (1,62308::0), with no record id of its own, the name the citation sits on as the file writes it, suffix and all",
    "step": {
     "person": "I332737036054",
     "row_key": "census household:1950",
     "seq": 90,
-    "step_key": "fetch:1,62308::1",
+    "step_key": "fetch:1,62308::0",
     "kind": "fetch",
     "query_type": "household",
     "query": {
@@ -29,7 +29,7 @@
     "locator": {
      "source": "D03",
      "kind": "apid",
-     "value": "1,62308::1"
+     "value": "1,62308::0"
     },
     "sources": [
      "D03"
@@ -158,7 +158,7 @@
     {
      "step": {
       "person": "I332737036054",
-      "step_key": "fetch:1,62308::1",
+      "step_key": "fetch:1,62308::0",
       "fields": {
        "status": "planned"
       }
@@ -221,7 +221,7 @@
     {
      "step": {
       "person": "I332737036054",
-      "step_key": "fetch:1,62308::1",
+      "step_key": "fetch:1,62308::0",
       "fields": {
        "status": "planned"
       }
@@ -242,7 +242,7 @@
     "person": "I332737036054",
     "row_key": "census household:1950",
     "seq": 91,
-    "step_key": "fetch:1,62308::2",
+    "step_key": "fetch:1,62308::0:2",
     "kind": "fetch",
     "query_type": "household",
     "query": {
@@ -258,7 +258,7 @@
     "locator": {
      "source": "D03",
      "kind": "apid",
-     "value": "1,62308::2"
+     "value": "1,62308::0"
     },
     "sources": [
      "D03"
@@ -284,7 +284,7 @@
    }
   },
   {
-   "say": "the household's record page archived by its file name, a stand-in for a third citation's record: a step done on it stays done",
+   "say": "the household's record page archived by its file name, the record a third step of the same citation is done on: a step done on it stays done",
    "archive": {
     "fixture": "familysearch-census-1950-6XYS-NQ16.html",
     "source": "D03",
@@ -303,7 +303,7 @@
     "person": "I332737036054",
     "row_key": "census household:1950",
     "seq": 92,
-    "step_key": "fetch:1,62308::3",
+    "step_key": "fetch:1,62308::0:3",
     "kind": "fetch",
     "query_type": "household",
     "query": {
@@ -319,7 +319,7 @@
     "locator": {
      "source": "D03",
      "kind": "apid",
-     "value": "1,62308::3"
+     "value": "1,62308::0"
     },
     "sources": [
      "D03"
@@ -361,7 +361,7 @@
     {
      "step": {
       "person": "I332737036054",
-      "step_key": "fetch:1,62308::2",
+      "step_key": "fetch:1,62308::0:2",
       "fields": {
        "status": "planned"
       }
@@ -385,7 +385,7 @@
     {
      "step": {
       "person": "I332737036054",
-      "step_key": "fetch:1,62308::3",
+      "step_key": "fetch:1,62308::0:3",
       "fields": {
        "status": "done"
       }
@@ -395,7 +395,7 @@
     {
      "step": {
       "person": "I332737036054",
-      "step_key": "fetch:1,62308::1",
+      "step_key": "fetch:1,62308::0",
       "fields": {
        "status": "planned"
       }

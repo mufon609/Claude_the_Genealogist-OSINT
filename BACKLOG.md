@@ -502,8 +502,6 @@ record the harness reads is real and only a holder's silence is simulated;
 harness holds more, and some of it is a real answer to another request, which
 reads as the holder saying "nothing" where its real answer holds a record:
 
-- loop `32`, `33`, `42`, `43` and decisions `97a` plant a 1950 census citation
-  with the record ids `1,62308::1` and `::3`, which no export or record holds.
 - decisions `71` and `99f` record readings typed into the scenario as read by
   `llm:claude-sonnet-5-5`; `99f` types "Huntington, Suffolk County, New York",
   "groom" and "M" where the image gives HUNTING and neither word.
@@ -520,8 +518,7 @@ reads as the holder saying "nothing" where its real answer holds a record:
 Answer each request with its own real answer (the archive's, or one captured
 from the holder with its URL and date), rewriting a scenario around that answer
 where it changes the outcome; give a typed reading
-the harness as its reader and the image's own words; replace the planted ids
-with a citation the owner's export carries. The archive holds real pages for
+the harness as its reader and the image's own words. The archive holds real pages for
 the last two stand-ins: a Find a Grave gravestone photograph read by the model
 (sha `7b2dd95d001a…`, photo 142698059, registry E05) and a Legacy.com obituary
 page read by the model (sha `0ee95c3d0eba…`, H05); whether a family-held
