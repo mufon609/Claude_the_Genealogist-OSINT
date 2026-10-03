@@ -1,6 +1,6 @@
 {
  "title": "a marriage the record dates",
- "line": "a marriage index accepted for the husband writes nothing on the couple's marriage while the wife waits; once she is accepted on it too, the marriage it dates stands accepted on the family's own Marriage event of that year, once, no second event; a marriage place the record gives otherwise than the file is a conflict question on the couple",
+ "line": "a marriage index accepted for the husband writes nothing on the couple's marriage while the wife waits; once she is accepted on it too, the marriage it dates stands accepted on one of the family's own Marriage events, once: the event of that year whose place agrees with it, never a second event and never a statement on every event of the year; the file's other marriage of the year, at another town, stays the couple's second Marriage event, a conflict question on the couple",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -76,11 +76,31 @@
    ]
   },
   {
-   "say": "the 1901 Massachusetts marriage the file cites: James and Annie married at Amherst, where the file says Northampton",
+   "say": "the 1901 Massachusetts marriage the file cites: James and Annie married at Amherst on 26 Jun 1901; the file holds the couple's own 26 Jun 1901 and James's own 1901 at Northampton as one event, and Annie's own 1901 at Amherst as another",
    "attach": {
     "fixture": "familysearch-massachusetts-marriage-index-1901-N445-429.html"
    },
-   "as": "ma"
+   "as": "ma",
+   "expect": [
+    {
+     "family_event": {
+      "a": "I332737043939",
+      "b": "I332737044799",
+      "type": "Marriage",
+      "record": "import",
+      "events": 2,
+      "dates": [
+       "1901",
+       "26 Jun 1901"
+      ],
+      "per_event": [
+       1,
+       2
+      ]
+     },
+     "why": "the import folds the file's repeated facts of one family and type that are one event: James's 1901 at Northampton is one with the couple's own 26 Jun 1901, its citation a statement there; Annie's 1901 names Amherst, another town, and stays an event of its own"
+    }
+   ]
   },
   {
    "decide": {
@@ -106,21 +126,38 @@
       "b": "I332737044799",
       "type": "Marriage",
       "record": "ma",
-      "events": 3,
+      "events": 2,
       "statements": {
-       "accepted": 3
-      }
+       "accepted": 1
+      },
+      "per_event": [
+       1,
+       0
+      ]
      },
-     "why": "the file holds three Marriage events of 1901 for the couple, the family's own and one from each partner's own line: the record's marriage is a statement on each, and the checklist's count of them stands"
+     "why": "one statement, one event: the record's marriage on the event of 1901 whose place, Amherst, agrees with it, once (the two partners' rows state the one marriage), and nothing on the Northampton event"
+    },
+    {
+     "one_event": true
     },
     {
      "question": {
       "person": "I332737043939",
       "kind": "conflict",
       "status": "open",
-      "detail_has": "marriage place:"
+      "detail_has": "2 marriage events with Annie E Scannell"
      },
-     "why": "the record's Amherst against the file's Northampton on the couple's marriage: a conflict question, as for a person's own event"
+     "why": "the file's own two marriages of the couple, at Northampton and at Amherst, still stand apart: how many there were is the owner's question"
+    },
+    {
+     "question": {
+      "person": "I332737043939",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "marriage place:",
+      "exists": false
+     },
+     "why": "the record agrees with the place of the event it lands on: no place question beside the count"
     }
    ]
   },

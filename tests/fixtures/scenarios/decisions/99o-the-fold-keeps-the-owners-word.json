@@ -1,0 +1,273 @@
+{
+ "title": "the fold keeps the owner's word",
+ "line": "the 0.7.6 migration folds a person's two Deaths into the one whose date the owner has spoken on, its date standing and the other's statement the owner's question; and refuses, writing nothing, when folding would set aside a value the owner resolved: two Death events, one whose date the owner took back from the rule, the other whose date the owner resolved, stay two",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "John Y Davidson's Kentucky death index entry, which the file cites: died 11 Jun 1946, where the file says the 10th",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "the owner accepts it, and the rule resolves the death date on the index's 11th",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "events": 1,
+      "canonical_date": "11 Jun 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner reopens the rule's resolution: the 10th again, and that death date the owner's",
+   "reopen_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "note": "harness: I will read the certificate itself"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "events": 1,
+      "canonical_date": "10 June 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a second Death the harness plants beside the file's, of the file's own date, the shape an older import left of a file's repeated fact (the import now folds such a pair, so only a planted event stands for it)",
+   "event": {
+    "person": "I332737204849",
+    "type": "Death",
+    "date": "10 June 1946",
+    "date_start": "1946-06-10"
+   },
+   "as": "second_death"
+  },
+  {
+   "say": "the same death as Reclaim the Records' copy of the state's index holds it: 11 JUN 1946",
+   "archive": {
+    "fixture": "ky-death-index-1946-davidson.txt",
+    "manifest": "ky-death-index-1946-davidson.manifest.json",
+    "source": "C06",
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ]
+   },
+   "as": "rtr"
+  },
+  {
+   "say": "the owner accepts the line as his: its death is as close to one of his two Deaths as to the other, so it asserts neither",
+   "decide": {
+    "card": {
+     "record": "rtr",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "dates it 11 JUN 1946, which fits 2 of your 2 death events equally"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner places it on the planted Death",
+   "place": {
+    "record": "rtr",
+    "person": "I332737204849",
+    "fact_type": "Death",
+    "event": "$second_death.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "event": "$second_death.event"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog upgraded through the fold: a life holds one death and the places agree, so the two are one, kept as the event whose date the owner has spoken on, though the planted one carries as many accepted statements",
+   "migrate": {
+    "reset_to": "0.7.5"
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "ends": "schema 0.7.6"
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "events": 1,
+      "canonical_date": "10 June 1946"
+     },
+     "why": "the owner's 10th stays the kept event's own date"
+    },
+    {
+     "audit": {
+      "entity": "event",
+      "id": "$second_death.event",
+      "is": [
+       {
+        "actor": "migration:0.7.6",
+        "action": "update",
+        "diff": {
+         "type": "Death",
+         "moved": {
+          "len": 1
+         },
+         "took": {
+          "len": 0
+         }
+        }
+       }
+      ]
+     },
+     "why": "the line's statement moved onto the kept event, and the kept event took nothing: its date is the owner's"
+    },
+    {
+     "conflict_rule": {
+      "person": "I332737204849",
+      "type": "Death",
+      "axis": "date",
+      "taken": false,
+      "why": {
+       "has": "you reopened"
+      }
+     },
+     "why": "the line's 11th against the owner's 10th is the owner's question, never the rule's"
+    }
+   ]
+  },
+  {
+   "say": "a third Death the harness plants, of the file's own date again",
+   "event": {
+    "person": "I332737204849",
+    "type": "Death",
+    "date": "10 June 1946",
+    "date_start": "1946-06-10"
+   },
+   "as": "third_death"
+  },
+  {
+   "say": "the owner moves the line's statement onto it",
+   "place": {
+    "record": "rtr",
+    "person": "I332737204849",
+    "fact_type": "Death",
+    "event": "$third_death.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "event": "$third_death.event"
+     }
+    }
+   ]
+  },
+  {
+   "say": "and resolves that event's date on the line's 11th",
+   "resolve_conflict": {
+    "person": "I332737204849",
+    "detail_has": "11 JUN 1946",
+    "keep": {
+     "record": "rtr",
+     "event_type": "Death"
+    },
+    "note": "harness: the state's own index"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "event": "$third_death.event"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the fold once more: now each Death carries the owner's word on its date, so the migration refuses and writes nothing",
+   "migrate": {
+    "reset_to": "0.7.5",
+    "refused": true
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "has": [
+        "0.7.6 refused, nothing written",
+        "death events",
+        "the owner resolved or reopened"
+       ]
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "events": 2
+     },
+     "why": "both Deaths stand, each with its own value"
+    },
+    {
+     "audit": {
+      "entity": "event",
+      "id": "$third_death.event",
+      "is": []
+     },
+     "why": "no fold written"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

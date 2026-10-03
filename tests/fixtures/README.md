@@ -188,7 +188,8 @@ with `extraction` and `latest` to pick a reading; a step of the plan is `{"perso
 
 Actions: `plan` (`"all"` or people), `migrate` (`tools/initdb.py --migrate` on the scratch catalog itself, its printed
 line; `{"reset_to": version}` first forgets every later version's own row, since a scratch catalog is born with every
-migration already recorded applied, so a correction is met the way an older catalog upgraded through it would),
+migration already recorded applied, so a correction is met the way an older catalog upgraded through it would;
+`"refused": true` when the correction refusing is the outcome expected, what it printed coming back as `refused`),
 `sync_sources` (`tools/initdb.py --sync-sources` on the scratch catalog itself: the registry's rows and every
 collection's tier, its printed line), `proof` (`tools/proof.py`'s summary of a `person`, one `fact` when named: its
 whole, each fact also under `fact.<name>`, and its `text`), `dismiss` (a person's one open conflict question whose
@@ -229,7 +230,7 @@ a regeneration to be checked against a prior state, such as a legacy truncated k
 Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
 `kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `note`, `rationale`), `rule` (`taken`, `why`),
 `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
-`surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, and with `record` its `statements` on them by status), `disagreements`, `question`,
+`surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, each one's date as written in date order, `dates`, how many statements each carries, `per_event`, in the same order, and with `record` its `statements` on them by status and `per_event` that record's alone), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
 `living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row,
@@ -241,7 +242,8 @@ record's statements on a person's events of an `event_type`, or on a family `lin
 date or place: `taken` and the reason, `why`), `extractor` (a reading's extractor row, `kind`, `name`, `model_id`, `version`,
 `prompt_is_instruction` for the sha256 of `app/person/read_record.md`, and what the extraction kept: `image_is`, `year`,
 `regions` of its personas), `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
-trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `whole`, `file`,
+trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `one_event` (no record fact
+stated on two events of its type that a person or a family holds), `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
 an expectation is printed with its failure.
 

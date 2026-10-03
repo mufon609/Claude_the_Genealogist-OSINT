@@ -114,6 +114,26 @@ def unspread_links(cx: sqlite3.Connection) -> None:
                    (ulid(), tree, ts, actor, "delete", "person_persona", json.dumps([row["person_id"], row["persona_id"]]),
                     json.dumps({"removed": row, "spread_from": src, "why": "a decision on another entry of the page, spread by name and role; never a decision of its own"})))
 
+def fold_events(cx: sqlite3.Connection) -> None:
+    """The catalog's one-time fold of the events an older import and older decisions wrote apart (docs/RESEARCH-WORKFLOW.md
+    §5–7, one statement, one event): every listed person's events of one type, and every family's, that are one event
+    (catalog.same_event: places agreeing or one absent, and the type held once in a life or the dates one) folded into one by
+    conclude.fold, as a merge folds them and the import and every decision now keep them: the statements and notes moved onto
+    the kept event as they are, a record fact's second statement left where it was, the folded event out of the owner's
+    events with its row kept. One audit row per event folded, under the migration's own actor, naming the owner, the type,
+    both events with their values, what moved, what stayed and what the kept event took. Refused, nothing written, when a
+    fold would set aside a value the owner resolved: two events of one group each carrying the owner's word (conclude.fold_plan)."""
+    from conclude import fold, fold_plan
+    actor = "migration:0.7.6"
+    owners = [(tree, ("person", p)) for tree, p in cx.execute("SELECT tree_id, id FROM person WHERE merged_into IS NULL ORDER BY id").fetchall()] + \
+             [(tree, ("family", f)) for tree, f in cx.execute("""SELECT DISTINCT e.tree_id, ep.family_id FROM event_participant ep JOIN event e ON e.id=ep.event_id
+                                                                 WHERE ep.family_id IS NOT NULL ORDER BY ep.family_id""").fetchall()]
+    plans = [(tree, owner, fold_plan(cx, tree, owner)) for tree, owner in owners]
+    refused = [g["refused"] for _, _, groups in plans for g in groups if g["refused"]]
+    if refused: raise SystemExit("0.7.6 refused, nothing written: " + "; ".join(refused))
+    for tree, owner, groups in plans:
+        if groups: fold(cx, tree, owner, actor=actor)
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -127,6 +147,8 @@ MIGRATIONS = [
      [allow_resolved]),
     ("0.7.5", "person_persona: the links a decision spread to another row of the same name and role on its page removed; a decision reaches only its own entry of the page",
      [unspread_links]),
+    ("0.7.6", "event: a person's or a family's events of one type that are one event folded into one; one statement, one event",
+     [fold_events]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

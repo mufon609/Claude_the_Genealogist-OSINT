@@ -14,7 +14,9 @@ What happens
   2. One extraction (extractor rule:gedcom-ingest) is recorded over it.
   3. Every INDI becomes a persona (what this tree says) + a person (conclusion)
      linked by an accepted person_persona. Every event becomes a persona_fact
-     and an event with an assertion back to the fact and the artifact.
+     and an assertion back to the fact and the artifact, on its person's or its family's event: the file's repeated facts
+     of one owner and type that are one event (catalog.same_event: places agreeing or one absent, and the type held once in
+     a life or the dates one) are one event carrying each fact's citations as statements, as the catalog's fold makes them.
   4. SOUR records become collections (keyed by Ancestry dbid where the record carries one). Citations become
      assertion.citation_text (status 'undecided' until reviewed). The unique record
      citations and media references are kept in the extraction JSON for the
@@ -27,6 +29,7 @@ import argparse, collections, json, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import (ROOT, Node, connect, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
                      parse_gedcom_date, redistributable, resolve_tree, sha256_file, ulid)
+from catalog import fuller_date, same_event
 
 EXTRACTOR = ("rule", "gedcom-ingest", "0.1.0")
 EXTRACTOR_TAG = ":".join(EXTRACTOR[:2]) + "@" + EXTRACTOR[2]   # who asserts imported claims and links personas: the extractor, not the user
@@ -85,7 +88,8 @@ class Ingest:
         self.stats = collections.Counter()
         self.head_note = None
         self.deferred_family_events = []   # (indi_node, event_node, etype, person_id, persona_id)
-        self.family_events = {}            # (family_id, etype, date_text) -> event_id
+        self.events = {}                   # ("person"|"family", owner id, etype) -> [{"id", "own": the event's own date, "facts": every fact on it}], for a repeated fact to join
+        self.kinds = {}                    # event type -> its kind (event, attribute, family_event)
         self.exporter = (None, None, None) # HEAD.SOUR's system id, name and corporation
         self.xref_system = "gedcom_xref"   # external_id.system of the file's own record ids
 
@@ -248,8 +252,14 @@ class Ingest:
 
     # ------------------------------------------------------------ people
     def event_from(self, node, etype, person_id=None, family_id=None, persona_id=None):
+        """One fact of the file on its person's event, or its family's: the persona fact as written when a person states it,
+        and the fact's citations as statements, on the event of that owner and type already written by this import that it is
+        one with (catalog.same_event, with every fact already on it), else on a new event of the fact's own date. An event a
+        fact joins takes the fact's date where it has none, or where the fact's agrees with its own and says more
+        (catalog.fuller_date), as the catalog's fold takes it. Returns the event id."""
         d = parse_gedcom_date(node.val("DATE"))
-        ps = self.place_string(node.val("PLAC"))
+        raw = (node.val("PLAC") or "").strip()
+        ps = self.place_string(raw)
         value = node.value if node.tag in ("OCCU", "ADDR", "RELI", "EDUC") and node.value else None
         fact_id = None
         if persona_id:
@@ -259,22 +269,33 @@ class Ingest:
                             (fact_id, persona_id, etype, value, node.val("DATE"), d["date_start"], d["date_end"],
                              d["date_qualifier"], d["calendar"], ps, f"gedcom:{node.tag}"))
             self.stats["persona_facts"] += 1
-        eid = ulid()
-        self.cx.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,description,created_at,updated_at)
-                           VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-                        (eid, self.tree_id, etype, node.val("DATE"), d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"],
-                         value, self.ts, self.ts))
-        self.cx.execute("INSERT INTO event_participant (id,event_id,person_id,family_id,role) VALUES (?,?,?,?,'primary')",
-                        (ulid(), eid, person_id, family_id))
-        self.assert_("event", eid, self.citations(node), persona_fact_id=fact_id)
+        fact = {"text": node.val("DATE"), "start": d["date_start"], "end": d["date_end"], "qualifier": d["date_qualifier"], "calendar": d["calendar"], "place": raw or None, "value": value}
+        owned = self.events.setdefault(("person", person_id, etype) if person_id else ("family", family_id, etype), [])
+        ev = next((e for e in owned if all(same_event(etype, self.kinds.get(etype, "event"), f, fact) for f in e["facts"])), None)
+        if ev is None:
+            ev = {"id": ulid(), "own": fact, "facts": []}; owned.append(ev)
+            self.cx.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,description,created_at,updated_at)
+                               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                            (ev["id"], self.tree_id, etype, node.val("DATE"), d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"],
+                             value, self.ts, self.ts))
+            self.cx.execute("INSERT INTO event_participant (id,event_id,person_id,family_id,role) VALUES (?,?,?,?,'primary')",
+                            (ulid(), ev["id"], person_id, family_id))
+            self.stats["events"] += 1
+        else:
+            self.stats["events_folded"] += 1
+            if fuller_date(ev["own"], fact):
+                self.cx.execute("UPDATE event SET date_text=?, date_start=?, date_end=?, date_qualifier=?, calendar=? WHERE id=?",
+                                (fact["text"], fact["start"], fact["end"], fact["qualifier"], fact["calendar"], ev["id"]))
+                ev["own"] = fact
+        ev["facts"].append(fact)
+        self.assert_("event", ev["id"], self.citations(node), persona_fact_id=fact_id)
         for nt in node.all("NOTE"):
             if nt.value:
                 self.cx.execute("INSERT INTO note (id,tree_id,entity_kind,entity_id,body,author,created_at) VALUES (?,?,?,?,?,?,?)",
-                                (ulid(), self.tree_id, "event", eid, nt.value, self.by, self.ts)); self.stats["notes"] += 1
-        self.stats["events"] += 1
+                                (ulid(), self.tree_id, "event", ev["id"], nt.value, self.by, self.ts)); self.stats["notes"] += 1
         if node.val("DATE") and d["date_start"] is None and d["date_end"] is None:
             self.stats["dates_unparsed"] += 1
-        return eid
+        return ev["id"]
 
     def load_people(self, roots):
         seq = 0
@@ -373,55 +394,30 @@ class Ingest:
                 self.stats["family_members"] += 1
             for c in n.children:
                 etype = EVENT_TAGS.get(c.tag)
-                if etype in FAMILY_EVENTS:
-                    eid = self.event_from(c, etype, family_id=fid)
-                    d = parse_gedcom_date(c.val("DATE"))
-                    dkey = d["date_start"] or d["date_end"] or (c.val("DATE") or "").strip().lower()
-                    self.family_events[(fid, etype, dkey, (c.val("PLAC") or "").strip().lower())] = eid
+                if etype in FAMILY_EVENTS: self.event_from(c, etype, family_id=fid)
             self.stats["families"] += 1
 
     def resolve_deferred_family_events(self):
-        """INDI-level MARR etc. Ancestry stores marriage facts on each spouse, often with
-        several conflicting date/place variants. Each variant becomes ONE family event,
-        shared by both spouses; nothing is collapsed. Falls back to a person event only
-        when the family cannot be determined."""
+        """INDI-level MARR etc. Ancestry stores marriage facts on each spouse, often with several date and place variants: each
+        is a persona fact of the spouse on the family's own event that it is one with (event_from: the FAM record's own, or
+        another spouse's), shared by both spouses, and a variant that is one with none becomes an event of its own. Falls back
+        to a person event only when the family cannot be determined."""
         def year(d): return (d.get("date_start") or d.get("date_end") or "")[:4]
         for indi, node, etype, pid, pa in self.deferred_family_events:
             fams = [self.families[f.value] for f in indi.all("FAMS") if f.value in self.families]
             d = parse_gedcom_date(node.val("DATE"))
-            dkey = (d["date_start"] or d["date_end"] or (node.val("DATE") or "").strip().lower())
-            pkey = (node.val("PLAC") or "").strip().lower()
             fid = None
             if len(fams) == 1:
                 fid = fams[0]
             elif fams:
-                cands = [f for f in fams for k in self.family_events if k[0] == f and k[1] == etype and k[2][:4] == year(d) and year(d)]
-                if len(set(cands)) == 1: fid = cands[0]
+                cands = {f for f in fams for e in self.events.get(("family", f, etype), []) if year(d) and (e["own"]["start"] or e["own"]["end"] or "")[:4] == year(d)}
+                if len(cands) == 1: fid = cands.pop()
             if fid is None:
                 self.event_from(node, etype, person_id=pid, persona_id=pa); self.stats["family_events_unmatched"] += 1
                 continue
-            fact_id = ulid()
-            ps = self.place_string(node.val("PLAC"))
-            self.cx.execute("""INSERT INTO persona_fact (id,persona_id,fact_type,date_text,date_start,date_end,date_qualifier,calendar,place_string_id,notes)
-                               VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                            (fact_id, pa, etype, node.val("DATE"), d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"], ps, f"gedcom:{node.tag}"))
-            self.stats["persona_facts"] += 1
-            key = (fid, etype, dkey, pkey)
-            eid = self.family_events.get(key)
-            # a FAM-level event with the same date but no place also counts as the same event
-            if eid is None and pkey:
-                eid = self.family_events.get((fid, etype, dkey, ""))
-            if eid is None:
-                eid = ulid()
-                self.cx.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at)
-                                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                                (eid, self.tree_id, etype, node.val("DATE"), d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"], self.ts, self.ts))
-                self.cx.execute("INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'primary')", (ulid(), eid, fid))
-                self.family_events[key] = eid
-                self.stats["events"] += 1; self.stats["family_events_from_indi"] += 1
-            else:
-                self.stats["family_events_merged"] += 1
-            self.assert_("event", eid, self.citations(node), persona_fact_id=fact_id)
+            written = self.stats["events"]
+            self.event_from(node, etype, family_id=fid, persona_id=pa)
+            self.stats["family_events_from_indi" if self.stats["events"] > written else "family_events_merged"] += 1
 
     # ------------------------------------------------------------ what the tree cited (kept as data, not as a queue)
     def collect_media(self, roots):
@@ -460,6 +456,7 @@ class Ingest:
             sys.exit(f"the source registry has no row {self.source_id}: python3 tools/initdb.py --sync-sources")
         self.xref_system = xref_system(self.source_id, self.exporter)
         self.media_links = collections.defaultdict(list)
+        self.kinds = dict(self.cx.execute("SELECT name, kind FROM event_type").fetchall())
         self.archive_file()
         if head and self.archived_now:
             src = head.first("SOUR")

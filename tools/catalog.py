@@ -336,6 +336,57 @@ def date_verdict(rec, tree):
     if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
     return "disagrees", None
 
+ONCE = ("Birth", "Death", "Burial", "Cremation")   # what a life holds once: a person's events of one of these types are one event wherever their places agree, and two that stand apart are a conflict question; residences, censuses, occupations and the like repeat
+RECORD_FACTS = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
+NEAR = ("calculated", "about", "estimated")      # a date marked so stands for a year give or take two
+BOUNDS = ("before", "after", "between")          # a date bounded, not stated: it names no one year of its own
+
+def date_closeness(a, b):
+    """How closely two dates agree, each {"start", "end", "qualifier"}, for choosing the one event a record's statement
+    belongs to (docs/RESEARCH-WORKFLOW.md §5–7): 0 the same day, 1 the same month where one side gives no day, 2 the same
+    year where one side gives only the year, 3 the same year with another month or day, then 3 and the years apart within
+    the two a date marked about, estimated or calculated on either side allows (4, 5); None when either has no date or
+    they lie further apart."""
+    sa, sb = (a.get("start") or a.get("end") or ""), (b.get("start") or b.get("end") or "")
+    if not (sa[:4].isdigit() and sb[:4].isdigit()): return None
+    if sa[:4] == sb[:4]:
+        n = min(len(sa), len(sb))
+        return 3 if sa[:n] != sb[:n] else 0 if n == 10 else 1 if n == 7 else 2
+    apart = abs(int(sa[:4]) - int(sb[:4]))
+    return 3 + apart if apart <= 2 and (a.get("qualifier") in NEAR or b.get("qualifier") in NEAR) else None
+
+def dates_one(a, b):
+    """Whether two dates name one day, month or year, as the fold reads them: both state a year (neither is bounded, before,
+    after or between), the same, and where both give a month or a day, the same: 26 Jun 1901 and 1901 are one, 1728 and
+    1730 are not, nor 25 and 26 Jun 1901."""
+    return a.get("qualifier") not in BOUNDS and b.get("qualifier") not in BOUNDS and date_closeness(a, b) in (0, 1, 2)
+
+def fuller_date(own, other):
+    """Whether the event that holds date own takes date other when the two become one event (the fold, the import): own
+    has no date and other has one; or the two agree (date_verdict, so a date marked about, estimated or calculated agrees
+    within two years) and other says more: more of the day, month and year, or the same exactly where own is marked about,
+    estimated or calculated (26 Jun 1901 over 1901, 24 April 1876 over CAL 1875). A bounded date (before, after, between) is
+    never taken nor replaced by another, and dates that disagree leave own as it is."""
+    so, sn = (own.get("start") or own.get("end") or ""), (other.get("start") or other.get("end") or "")
+    if not sn or own.get("qualifier") in BOUNDS or other.get("qualifier") in BOUNDS: return bool(sn) and not so
+    if not so: return True
+    says = lambda d, s: (len(s), d.get("qualifier") not in NEAR)
+    return date_verdict(other, own)[0] == "agrees" and says(other, sn) > says(own, so)
+
+def places_one(a, b):
+    """Whether two places are one, as the fold and the choice of an event read them: either absent, or one agrees with the
+    other read either way (place_verdict: a coarser or finer naming of one place agrees, Pennsylvania with Montgomery
+    County, Pennsylvania), so Amherst and Northampton are two."""
+    return not a or not b or place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees"
+
+def same_event(etype, kind, a, b):
+    """Whether two events of one person, or of one family, of one type are one event (docs/RESEARCH-WORKFLOW.md §5–7, the
+    fold): their places are one (places_one), an attribute's values are the same, and the type is one a life holds once
+    (ONCE) or their dates are one (dates_one). Each event is {"start", "end", "qualifier", "place", "value"}."""
+    if not places_one(a.get("place"), b.get("place")): return False
+    if kind == "attribute" and (a.get("value") or "") != (b.get("value") or ""): return False
+    return etype in ONCE or dates_one(a, b)
+
 US_STATE = {   # a record place written as the bare two-letter code stands for the state it abbreviates
     "al": "alabama", "ak": "alaska", "az": "arizona", "ar": "arkansas", "ca": "california", "co": "colorado",
     "ct": "connecticut", "de": "delaware", "fl": "florida", "ga": "georgia", "hi": "hawaii", "id": "idaho",
@@ -829,23 +880,91 @@ class Catalog:
                         return tree_text if "tree" in ms else text_of(ms[0])
                     out.append(f"{kind} {axis}: {side(members[0])} against {side(members[1])}: {value(members[0])} against {value(members[1])}")
         return list(dict.fromkeys(out))
+    def owner_events(self, etype, person=None, family=None):
+        """A person's events of one type, or a family's (family), by date: {id, text, start, end, qualifier, place (the
+        event's own place as Catalog.place shows it), value (an attribute's)}."""
+        col, who = ("person_id", person) if person else ("family_id", family)
+        return [{"id": i, "text": t, "start": s, "end": e, "qualifier": qu, "place": (self.place(i, pl) or {}).get("text"), "value": v}
+                for i, t, s, e, qu, pl, v in self.q(f"""SELECT e.id, e.date_text, e.date_start, e.date_end, e.date_qualifier, e.place_id, e.description FROM event e
+                                                       JOIN event_participant ep ON ep.event_id=e.id WHERE ep.{col}=? AND e.event_type=? ORDER BY e.date_start, e.id""", who, etype)]
+    def fact_place(self, place_string_id):
+        """A record fact's place as Catalog.disagreements compares it: the place its words are resolved to, when they are,
+        else the words; None for no place."""
+        r = self.q("SELECT raw, place_id, status FROM place_string WHERE id=?", place_string_id) if place_string_id else []
+        if not r: return None
+        return self._place_chain(r[0][1])["text"] if r[0][1] and r[0][2] == "accepted" else r[0][0]
+    def event_for(self, f, events, once=False):
+        """The one event among a person's events of the fact's type, or a family's (events, Catalog.owner_events), that a
+        record's fact belongs to (docs/RESEARCH-WORKFLOW.md §5–7, one statement, one event): (event id, []) when there is
+        one; (None, []) when there is none and the fact makes an event of its own; (None, [event ids]) when the choice
+        among those is the owner's (Catalog.unplaced). once: the type is one a life holds once (ONCE), or the events are an
+        attribute's of the fact's own value: a person with one such event has the fact on it whatever its date or place,
+        and one with several and none fitting leaves the choice to the owner rather than make another. Otherwise one event
+        of the type takes an undated fact, and several leave the choice to the owner; a dated fact takes the event whose own
+        date agrees most closely (date_closeness: the same day, then the same month, then the same year, then within the
+        two years an about, estimated or calculated date allows), among those whose places are one with the fact's
+        (places_one) when any are, and two or more equally close leave the choice to the owner."""
+        if not events: return None, []
+        if len(events) == 1 and (once or not (f["date_start"] or f["date_end"])): return events[0]["id"], []
+        if not (f["date_start"] or f["date_end"]): return None, [e["id"] for e in events]
+        fd = {"start": f["date_start"], "end": f["date_end"], "qualifier": f["date_qualifier"]}
+        ranked = [(r, e) for e in events for r in [date_closeness(fd, e)] if r is not None]
+        if not ranked: return None, ([e["id"] for e in events] if once else [])
+        where = self.fact_place(f["place_string_id"])
+        pool = [x for x in ranked if places_one(where, x[1]["place"])] or ranked
+        best = min(r for r, _ in pool)
+        tied = [e["id"] for r, e in pool if r == best]
+        return (tied[0], []) if len(tied) == 1 else (None, tied)
+    def stated_on(self, sha, f, person=None, family=None):
+        """The event of this person, or this family, on which the record already states this fact: a statement of the same
+        record with the same type, date, value and place (an earlier reading's, or one the owner placed there), else None."""
+        col, who = ("person_id", person) if person else ("family_id", family)
+        r = self.q(f"""SELECT a.subject_id FROM assertion a JOIN persona_fact q ON q.id=a.persona_fact_id JOIN event_participant ep ON ep.event_id=a.subject_id
+                       WHERE a.subject_kind='event' AND a.artifact_sha256=? AND ep.{col}=? AND q.fact_type=? AND coalesce(q.date_text,'')=coalesce(?,'')
+                       AND coalesce(q.value_text,'')=coalesce(?,'') AND coalesce(q.place_string_id,'')=coalesce(?,'') ORDER BY a.asserted_at, a.id""",
+                   sha, who, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])
+        return r[0][0] if r else None
     def unplaced(self, pid):
-        """A record accepted onto this person whose undated fact of an event type asserts nothing (tools/conclude.py
-        assert_facts), because the person carries more than one event of that type and nothing there guesses which one it
-        means: one line per such fact, naming the record, the type and the candidate events to choose from, in the order the
-        person screen lists them (by date), so the owner reads the choice there and answers it with tools/conclude.py place.
-        The gap closes itself once the person is left with one event of the type and the record is decided again."""
-        out = []
-        for fid, ftype, label in self.q("""SELECT pf.id, pf.fact_type, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)) FROM persona_fact pf
-                                           JOIN persona pe ON pe.id=pf.persona_id JOIN person_persona pp ON pp.persona_id=pe.id
-                                           JOIN event_type et ON et.name=pf.fact_type JOIN artifact ar ON ar.sha256=pe.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
-                                           WHERE pp.person_id=? AND pp.status='accepted' AND et.kind='event' AND pf.fact_type<>'Residence'
-                                           AND pf.date_start IS NULL AND pf.date_end IS NULL
-                                           AND NOT EXISTS (SELECT 1 FROM assertion a WHERE a.persona_fact_id=pf.id)""", pid):
-            events = self.q("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=? ORDER BY e.date_start", pid, ftype)
-            if len(events) > 1:
-                out.append(f"{ftype.lower()}: {label} has no date and fits none of your {len(events)} {ftype.lower()} events "
-                           f"({', '.join(e[0] for e in events)}); place fact {fid} on one with tools/conclude.py place")
+        """A record accepted onto this person whose fact asserts nothing because the choice of its event is the owner's
+        (Catalog.event_for, tools/conclude.py assert_facts and assert_family_events): an undated fact on a person with
+        several events of its type, a dated one that fits two or more equally, one of a type a life holds once that fits
+        none of the person's several, or an attribute's among several of its value; a family fact (a marriage) the same
+        among the events of the family the record joins the person to, once the spouse it names is accepted on it. One line
+        per fact of the record (its readings are one), naming the record, the date, the type and the events to choose from
+        in the order the person screen lists them (by date), so the owner reads the choice there and answers it with
+        tools/conclude.py place. A fact the record already states on one of the person's events, or their family's, is
+        placed (Catalog.stated_on)."""
+        out, seen = [], set()
+        fams = [f for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid)]
+        for row in self.q(f"""SELECT pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.place_string_id, pf.value_text, et.kind, pe.id, pe.artifact_sha256,
+                                     coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12))
+                              FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id JOIN extraction x ON x.id=pe.extraction_id JOIN person_persona pp ON pp.persona_id=pe.id
+                              JOIN event_type et ON et.name=pf.fact_type JOIN artifact ar ON ar.sha256=pe.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
+                              WHERE pp.person_id=? AND pp.status='accepted' AND et.kind IN ('event','attribute','family_event') AND pf.fact_type NOT IN ('Name','Sex',{','.join('?' * len(RECORD_FACTS))})
+                              AND NOT (pf.fact_type='Residence' AND pf.date_start IS NULL AND pf.date_end IS NULL)
+                              AND NOT EXISTS (SELECT 1 FROM assertion a WHERE a.persona_fact_id=pf.id) ORDER BY x.superseded_by IS NOT NULL, pf.id""", pid, *RECORD_FACTS):
+            fid, ftype, dtext, kind, persona, sha, label = row[0], row[1], row[2], row[8], row[9], row[10], row[11]
+            f = dict(zip(("id", "fact_type", "date_text", "date_start", "date_end", "date_qualifier", "place_string_id", "value_text"), row[:8]))
+            ident = (sha, ftype, dtext or "", row[7] or "", row[6] or "")
+            if ident in seen: continue
+            seen.add(ident)
+            if kind == "family_event":
+                spouses = {p for p, in self.q("""SELECT pp.person_id FROM persona_relation r JOIN person_persona pp ON pp.status='accepted' AND pp.persona_id=CASE WHEN r.persona_id=? THEN r.related_persona_id ELSE r.persona_id END
+                                                 WHERE r.kind='spouse' AND ? IN (r.persona_id, r.related_persona_id)""", persona, persona)}
+                fam = next((fm for fm in fams if spouses & {p for p, in self.q("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", fm)}), None)
+                if fam is None or self.stated_on(sha, f, family=fam): continue      # the spouse it names is not accepted on it yet: the fact waits for that decision
+                events, whose = self.owner_events(ftype, family=fam), " with " + ", ".join(n for n, in self.q("SELECT p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=? AND fm.role='partner' AND fm.person_id<>?", fam, pid))
+            else:
+                if self.stated_on(sha, f, person=pid): continue
+                events, whose = self.owner_events(ftype, person=pid), ""
+                if kind == "attribute": events = [e for e in events if (e["value"] or "") == (f["value_text"] or "")]
+            eid, choice = self.event_for(f, events, once=ftype in ONCE or kind == "attribute")
+            if eid or not choice: continue
+            t = ftype.lower(); ids = ", ".join(choice); n = len(events)
+            fd = {"start": f["date_start"], "end": f["date_end"], "qualifier": f["date_qualifier"]}
+            if not (f["date_start"] or f["date_end"]): out.append(f"{t}: {label} has no date and fits none of your {n} {t} events{whose} ({ids}); place fact {fid} on one with tools/conclude.py place")
+            elif any(date_closeness(fd, e) is not None for e in events): out.append(f"{t}: {label} dates it {dtext}, which fits {len(choice)} of your {n} {t} events{whose} equally ({ids}); place fact {fid} on the one it means with tools/conclude.py place")
+            else: out.append(f"{t}: {label} dates it {dtext}, which fits none of your {n} {t} events{whose} ({ids}); place fact {fid} on the one it means with tools/conclude.py place")
         return list(dict.fromkeys(out))
     def dated_names(self, place_id):
         """place_id's own former names (place_name rows with a valid_from or valid_to, written by tools/resolve_places.py

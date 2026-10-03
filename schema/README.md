@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.5. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.6. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -56,6 +56,15 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   search log rows and open questions move to the kept person, one `proposal` of kind
   `duplicate_person` and one `audit_log` row record what moved, and the row itself stays,
   out of every listing, overview, plan and matcher run.
+- One statement, one event: a record's event fact is asserted on one `event` of its type,
+  the person's or the family's (`Catalog.event_for`), or on none while the choice is the
+  owner's (`Catalog.unplaced`), and a person's or a family's events of one type that are one
+  event (`catalog.same_event`) are one `event` row: the import writes them so, a merge folds
+  them (`conclude.fold`), and the 0.7.6 migration folded once what a catalog held apart
+  (`tools/initdb.py` `fold_events`, one `audit_log` row per event folded under
+  `migration:0.7.6`, refused, nothing written, where two events of one group each carry the
+  owner's word). A folded event keeps its row and anything left on it, out of the owner's
+  events: its `event_participant` row goes.
 - An `assertion` links to layer 3 (`persona_fact` or `persona`); it links only to the
   artifact when the claim is a family link or family event that a tree file states on
   the family rather than on a persona.
@@ -112,7 +121,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 |---|---|
 | `tools/initdb.py` | Create the catalog and seed reference tables; `--sync-sources` and `--sync-event-types` bring an existing catalog up to the files; `--migrate` applies the schema versions it lacks, never touching decisions. |
 | `tools/tree.py create|list|use|show|overview|home` | Manage trees; `overview` prints the tree as confirmed from the home person upward with its edge, `home` sets that person. |
-| `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM file as a T4 artifact and load it into the active tree, every claim Undecided. The file is read in the encoding its bytes and header say (UTF-8, UTF-16 or ANSI) and refused, nothing recorded, when the encoding does not fit, is not read here (ANSEL) or the file holds no person; it is labelled with the exporter its header names (Ancestry's export is registry row B02, a file naming no exporter the registry has is A05); the same tree refuses a repeat. It ends by saying the tree has no home person and naming `tools/tree.py home`. |
+| `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM file as a T4 artifact and load it into the active tree, every claim Undecided, the file's repeated facts of one person or family that are one event written as one event with each fact's citations. The file is read in the encoding its bytes and header say (UTF-8, UTF-16 or ANSI) and refused, nothing recorded, when the encoding does not fit, is not read here (ANSEL) or the file holds no person; it is labelled with the exporter its header names (Ancestry's export is registry row B02, a file naming no exporter the registry has is A05); the same tree refuses a repeat. It ends by saying the tree has no home person and naming `tools/tree.py home`. |
 | `tools/resolve_places.py` | Resolve place strings through Nominatim with hierarchy verification; a unique full match, or one territory under two names, is accepted; the rest is a `place_resolution` card. |
 | `tools/backfill_aliases.py` | Undecided aliases from the names records write, and each place string's variant kind. Re-runnable. |
 | `tools/checklist.py "<person>"` | Read-only foundation, questions, Group A/B rows (held / cited / missing / n/a) and the step per gap (`docs/RESEARCH-CHECKLIST.md` §6a). |
