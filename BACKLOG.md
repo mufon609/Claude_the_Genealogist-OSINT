@@ -539,6 +539,22 @@ rate-limited holder that cannot answer differently. Ask a name only when the
 request it makes differs from every request already made on the run, and log
 the names that made no new request as tried.
 
+### C33. The harness's last two stand-ins
+
+`docs/DATA-ARCHITECTURE.md` §7 decision 8 says every page the harness reads is
+real, and two are not (`tests/fixtures/README.md`, "What is simulated"): the
+smallest of JPEG files for a gravestone photograph and for the owner's
+family-held photographs (`decisions/50-memorial`,
+`decisions/95-cited-on-the-owners-word`), and a page of nothing but its
+saved-from line for a cited obituary (`decisions/70-obituary-read-by-the-model`,
+`decisions/97-proof-summary`, `loop/70-held-is-the-subject`). The archive holds
+real ones to use: a Find a Grave gravestone photograph read by the model
+(sha `7b2dd95d001a…`, photo 142698059, registry E05) and a Legacy.com obituary
+page read by the model (sha `0ee95c3d0eba…`, H05). Re-target those scenarios
+to the people those real pages are about, with their real readings, so no
+stand-in page remains; the family-held photographs are marked private, and
+whether one may sit in `tests/` is the owner's choice (hard rule 7).
+
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
