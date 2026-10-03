@@ -933,11 +933,17 @@ def e_statement(w, x, want):
     return has(got, x["is"]), got
 
 def e_extractor(w, x, want):
-    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server
-    row = w.cx.execute("SELECT x.kind, x.name, x.model_id, x.prompt_sha256 FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (w.value(x["extraction"]),)).fetchone()
+    """The extractor row of a reading, and what the reading kept: `kind`, `name`, `model_id`, `version`; `prompt_is_instruction`,
+    whether the row's prompt hash is the sha256 of the instruction file as it stands; `image_is` and `year`, the extraction's own
+    structured_json; `regions`, each persona's region_json in the order read."""
+    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server, hashlib
+    row = w.cx.execute("SELECT x.kind, x.name, x.version, x.model_id, x.prompt_sha256, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (w.value(x["extraction"]),)).fetchone()
     got = dict(row) if row else None
-    if got and x.get("prompt") == "form": got["prompt_is_form"] = got["prompt_sha256"] == server.FORM_SHA256
-    return row is not None and has(got, {k: v for k, v in x.items() if k in ("kind", "name", "model_id", "prompt_is_form")}), got
+    if got:
+        with open(server.READ_RECORD, "rb") as fh: got["prompt_is_instruction"] = got["prompt_sha256"] == hashlib.sha256(fh.read()).hexdigest()
+        got.update(json.loads(got.pop("structured_json") or "{}"))
+        got["regions"] = [json.loads(r) for r, in w.cx.execute("SELECT region_json FROM persona WHERE extraction_id=? ORDER BY sequence", (w.value(x["extraction"]),))]
+    return row is not None and has(got, {k: v for k, v in x.items() if k in ("kind", "name", "model_id", "version", "prompt_is_instruction", "image_is", "year", "regions")}), got
 
 def e_person_persona(w, x, want):
     row = w.cx.execute("SELECT status FROM person_persona WHERE person_id=? AND persona_id=?", (w.person(x["person"]), w.value(x["persona"]))).fetchone()
@@ -986,9 +992,9 @@ def e_count(w, x, want):
     """A count from one of the catalog's tables, for a few plain questions: the rows of a table for a person."""
     q = {"persona_links_of": "SELECT COUNT(*) FROM person_persona WHERE person_id=?", "family_rows_of": "SELECT COUNT(*) FROM family_member WHERE person_id=?",
          "steps_of": "SELECT COUNT(*) FROM search_plan WHERE person_id=?", "personas_of": "SELECT COUNT(*) FROM persona WHERE artifact_sha256=?", "logs_of_step": "SELECT COUNT(*) FROM search_log WHERE plan_step_id=?",
-         "events_of": "SELECT COUNT(*) FROM event_participant WHERE person_id=?"}
+         "events_of": "SELECT COUNT(*) FROM event_participant WHERE person_id=?", "extractions_of": "SELECT COUNT(*) FROM extraction WHERE artifact_sha256=?"}
     kind = next(k for k in q if k in x)
-    arg = w.sha(x[kind]) if kind == "personas_of" else w.step(x[kind])["id"] if kind == "logs_of_step" else w.person(x[kind])
+    arg = w.sha(x[kind]) if kind in ("personas_of", "extractions_of") else w.step(x[kind])["id"] if kind == "logs_of_step" else w.person(x[kind])
     n = w.cx.execute(q[kind], (arg,)).fetchone()[0]
     return has(n, x["is"]), n
 

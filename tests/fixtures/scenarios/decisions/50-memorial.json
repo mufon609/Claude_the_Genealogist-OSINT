@@ -612,7 +612,9 @@
      "name": "Abram C. Brant",
      "role": "named on the stone",
      "birth_date": "1880",
-     "death_date": "1961"
+     "death_date": "1961",
+     "line": 1,
+     "image_is": "record"
     },
     "by": "llm:harness"
    },
@@ -632,10 +634,11 @@
       "kind": "llm",
       "name": "harness",
       "model_id": "harness",
-      "prompt": "form",
-      "prompt_is_form": true
+      "version": null,
+      "prompt_is_instruction": true,
+      "image_is": "record"
      },
-     "why": "the model's extractor row carries the model named after llm: and the hash of the form's field names, the only prompt there is"
+     "why": "the model's extractor row carries the model named after llm:, no version when the id carries none, and the hash of the instruction text; the reading keeps that the image is the record itself"
     },
     {
      "card": {

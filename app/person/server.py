@@ -31,11 +31,10 @@ from overview import overview, people, person_card
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
-# The transcription form's field names, in the order the route reads them: the only prompt a model reading an image is given,
-# so their hash is the extractor's prompt_sha256 (docs/DATA-ARCHITECTURE.md §1); a changed form is a new extractor row.
-FORM_FIELDS = ("name", "role", "sex", "age", "year", "birth_date", "birth_place", "death_date", "death_place", "residence",
-               "marriage_date", "marriage_place", "as_written", "occupation", "marital_status", "relations", "line")
-FORM_SHA256 = hashlib.sha256("\n".join(FORM_FIELDS).encode()).hexdigest()
+# What a reader of a record image is told to write (docs/RESEARCH-WORKFLOW.md §5–7): its sha256 at the time of a reading is that
+# reading's prompt hash on its extractor row (docs/DATA-ARCHITECTURE.md §1).
+READ_RECORD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "read_record.md")
+IMAGE_IS = {"record": "a record", "index": "an index"}   # what a reading may say the image is, as it reads in a refusal
 
 def db():
     cx = connect(CFG["db"], rows=True); return cx
@@ -134,27 +133,62 @@ def artifact_view(cx, tree_id, sha, pid):
             "candidates": sc, "candidates_text": render_search(sc) if sc else None, "extractions": exts, "proposals": proposals,
             "personas_on_record": [{"id": p["id"], "name": p["name"]} for e in exts for p in e["personas"]]}
 
+def instruction_sha256():
+    """The sha256 of the instruction text (read_record.md) as it stands now."""
+    with open(READ_RECORD, "rb") as fh: return hashlib.sha256(fh.read()).hexdigest()
+
+def model_version(model_id):
+    """The version a model id carries: its trailing numbers, dot-joined ("claude-fable-5-1" is 5.1); None when it carries none."""
+    m = re.search(r"(?:-\d+)+$", model_id)
+    return m.group(0)[1:].replace("-", ".") if m else None
+
+def place_on_image(body):
+    """The region of a persona on the image, from the form's `line` (counted from the top of the page, from 1) and `bbox`
+    ([x, y, width, height] in the image's pixels), with `page` when the image holds more than one: {"label": "transcription",
+    "line"?, "bbox"?, "page"?}; None when the form gives neither a line nor a bbox."""
+    region = {"label": "transcription"}; line, bbox, page = body.get("line"), body.get("bbox"), body.get("page")
+    if re.fullmatch(r"[0-9]+", str(line).strip()) and int(line) > 0: region["line"] = int(line)
+    if isinstance(bbox, (list, tuple)) and len(bbox) == 4 and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in bbox) \
+       and min(bbox) >= 0 and bbox[2] > 0 and bbox[3] > 0: region["bbox"] = list(bbox)
+    if len(region) == 1: return None
+    if re.fullmatch(r"[0-9]+", str(page).strip()) and int(page) > 0: region["page"] = int(page)
+    return region
+
 def transcribe(cx, sha, body, by=None, about=None):
-    """One persona read from a held record, by the person acting (extractor human:<user>) or by a model reading the image
-    (extractor llm:<model>, docs/DATA-ARCHITECTURE.md §1, the row carrying the model's id and the hash of the form it was
-    given, FORM_SHA256): an extraction on the artifact (created on the first persona), the persona in the record's own role
-    word, its facts as written, a birth calculated from an age and the record's year, and its relations to personas already on
-    the record."""
+    """One persona read from a held record by its reader: `by` (the screen's own identity when not given) is llm:<model id>, a
+    model reading the image by the instruction in read_record.md, or user:<name> (human:<name>), a person. The reading is an
+    extraction on the artifact (created on the first persona) by an extractor row naming the reader (a model: its id and the
+    version the id carries; both: the instruction's sha256 as it stands), its structured_json keeping the record's year and what
+    the image is (`image_is`: record or index). Each persona is in the record's own role word, its facts as written, a birth
+    calculated from an age and the record's year, its relations to personas already on the record, and its line or region on
+    the image. The reader is the actor of every write the reading makes, the matcher's proposals included. Refused, with
+    nothing written: a model with no id, a reader that is neither a model nor a person, a persona with no line or region, an
+    image not said to be a record or an index, or said to be the one the reading already says it is not."""
     if not cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return {"error": "not in the archive"}
     name = (body.get("name") or "").strip()
     if not name: return {"error": "a name is required"}
-    ts = now(); kind, who = ((by or CFG["by"]).split(":", 1) + [None])[:2]; kind = "llm" if kind in ("llm", "model") else "human"
-    prompt = FORM_SHA256 if kind == "llm" else None
-    x = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version IS NULL AND prompt_sha256 IS ?", (kind, who, prompt)).fetchone()
-    xid = x["id"] if x else ulid()
-    if not x: cx.execute("INSERT INTO extractor (id,kind,name,model_id,prompt_sha256,created_at) VALUES (?,?,?,?,?,?)", (xid, kind, who, who if kind == "llm" else None, prompt, ts))
-    e = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND superseded_by IS NULL", (sha, xid)).fetchone()
+    kind, _, who = (by or CFG["by"]).partition(":"); who = who.strip()
+    if kind == "llm" and not who: return {"error": f"{name}: a model's reading names its model, llm:<model id>"}
+    if kind not in ("llm", "user", "human") or not who: return {"error": f"{name}: a reading is by a model, llm:<model id>, or by a person, user:<name>, not by {by or CFG['by']}"}
+    reader = f"{kind}:{who}"; kind = "llm" if kind == "llm" else "human"
+    region = place_on_image(body)
+    if not region: return {"error": f"{name}: every person read from an image carries the line they stand on (line) or the region of their row (bbox: [x, y, width, height])"}
+    stated = (body.get("image_is") or "").strip().lower() or None
+    if stated not in (None, *IMAGE_IS): return {"error": f"{name}: the image is a record or an index, not {stated}"}
+    prompt, version = instruction_sha256(), model_version(who) if kind == "llm" else None
+    x = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version IS ? AND prompt_sha256=?", (kind, who, version, prompt)).fetchone()
+    e = cx.execute("SELECT id, structured_json FROM extraction WHERE artifact_sha256=? AND extractor_id=? AND superseded_by IS NULL", (sha, x["id"])).fetchone() if x else None
+    image = (json.loads(e["structured_json"]).get("image_is") if e else None) or stated
+    if not image: return {"error": f"{name}: say what the image is, image_is: record (the record made at the event) or index (an index or abstract of it)"}
+    if stated and stated != image: return {"error": f"{name}: this reading says the image is {IMAGE_IS[image]}, not {IMAGE_IS[stated]}"}
+    ts = now(); xid = x["id"] if x else ulid()
+    if not x: cx.execute("INSERT INTO extractor (id,kind,name,version,model_id,prompt_sha256,created_at) VALUES (?,?,?,?,?,?,?)", (xid, kind, who, version, who if kind == "llm" else None, prompt, ts))
     eid = e["id"] if e else ulid()
-    if not e: cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'complete',?)", (eid, sha, xid, ts, dumps({"read": "the page image, one person per row" if kind == "llm" else "typed by hand", "year": body.get("year")})))
+    if not e: cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'complete',?)", (eid, sha, xid, ts, dumps({"read": "the page image, one person per row" if kind == "llm" else "typed by hand", "year": body.get("year"), "image_is": image})))
     seq = cx.execute("SELECT COUNT(*) FROM persona WHERE extraction_id=?", (eid,)).fetchone()[0] + 1
     w = Writer(cx, sha, eid)
     sex = body.get("sex") if body.get("sex") in ("M", "F") else None
-    pid = w.persona(name, sex, (body.get("role") or "").strip().lower() or None, seq, {"label": "transcription", "line": body.get("line")})
+    pid = w.persona(name, sex, (body.get("role") or "").strip().lower() or None, seq, region)
     w.fact(pid, "Name", name, labels=["name"])
     if sex: w.fact(pid, "Sex", body["sex"], labels=["sex"])
     if body.get("age"): w.fact(pid, "Age", str(body["age"]).strip(), labels=["age"])
@@ -172,8 +206,8 @@ def transcribe(cx, sha, body, by=None, about=None):
         if r.get("persona_id") and cx.execute("SELECT 1 FROM persona WHERE id=? AND artifact_sha256=?", (r["persona_id"], sha)).fetchone():
             w.relation(pid, r["persona_id"], r.get("kind") or "other", (r.get("text") or "").strip() or None, "transcription")
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
-               (ulid(), ts, by or CFG["by"], "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
-    written, taken = match_record(cx, eid, CFG["by"], about=about)
+               (ulid(), ts, reader, "insert", "persona", pid, dumps({"extraction": eid, **w.n})))
+    written, taken = match_record(cx, eid, reader, about=about)
     return {"ok": True, "extraction": eid, "persona": pid, "proposals": len(written), "accepted_by_rule": len(taken)}
 
 def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members):

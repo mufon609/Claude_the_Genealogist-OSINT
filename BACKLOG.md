@@ -466,19 +466,6 @@ conflict's question id, which `tools/conclude.py resolve` needs. Compute the
 line per conflict from the statements on each side and print the question id
 beside each open conflict.
 
-### C26. A model's reading records what read it
-
-`docs/DATA-ARCHITECTURE.md` §1 asks for the model name, version and prompt
-hash on every AI extraction. The screen's transcription path takes the model
-name the session types, leaves the version empty, hashes the form's field
-names as the "prompt" (the same for every model), keeps no region for most
-model-read persons, and passes the screen's default identity rather than the
-reader's to the matcher (`app/person/server.py` `transcribe`, the
-`match_record` call). Record the model id and version the session states, the
-hash of the instruction text actually given, a line or region per persona
-(refused without one), and the reader as the actor of every write the reading
-makes.
-
 ### C27. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the
