@@ -350,7 +350,7 @@ def main():
         bad_files = compiles(); bad += bool(bad_files)
         print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
         bad_rules = rules(); bad += bool(bad_rules)
-        print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+        print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state, a part of a place string against a candidate's names" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
         bad_conn = connectors_offline(); bad += bool(bad_conn)
         print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
         bad_kinds = save_page_kinds(); bad += bool(bad_kinds)
