@@ -148,7 +148,8 @@ relatives it names, and a `church register` entry is automated only when it is d
 Where a genealogist could contest a row, the table reads the class that leaves the decision to a person
 (`docs/DATA-ARCHITECTURE.md` §7 decision 9): the Social Security application's birth date and parents read as secondary
 (the applicant's own word), an obituary and its indexes as secondary, FamilySearch's relatives tables as computed save
-the roles a record of one event names (the reader marks those stated), and the Pennsylvania births and christenings index
+what the page shows the record stating (the reader marks those stated: the roles a record of one event names, an
+obituary's brothers and sisters, a marriage's spouse's parents, a relative's page's own record subject), and the Pennsylvania births and christenings index
 as indeterminable (it does not name each entry's original). The NUMIDENT's parents read as stated, because the
 application's own fields name them, and as secondary information like the rest of the application.
 

@@ -63,9 +63,34 @@
      "to": 1,
      "value": "Father-in-law",
      "computed": true
+    },
+    {
+     "kind": "parent",
+     "to": 4,
+     "value": "Father",
+     "computed": false
     }
    ],
-   "why": "the bride's father, one name only, kept as written; Father-in-law of the groom is the site's own working-out"
+   "why": "the bride's father, one name only, kept as written: the marriage record names each party's parents, so he is the bride's Father as the record states it; Father-in-law of the groom is the site's own working-out"
+  },
+  "6": {
+   "name": "Mary Castello",
+   "role": "mother-in-law",
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1,
+     "value": "Mother-in-law",
+     "computed": true
+    },
+    {
+     "kind": "parent",
+     "to": 4,
+     "value": "Mother",
+     "computed": false
+    }
+   ],
+   "why": "the bride's mother, whom the page files in the groom's Extended Family as his Mother-in-law: her Mother of the bride is the record's statement, the in-law grouping FamilySearch's"
   }
  }
 }

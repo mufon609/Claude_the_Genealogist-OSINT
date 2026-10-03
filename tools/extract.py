@@ -10,7 +10,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.6.0; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.7.0; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -34,7 +34,9 @@ personas, and the matcher is not run. One extraction per run over the artifact, 
                    whose role it is to the persona it is toward: a household
                    member to the head (kind child, "Son"), a named relative to
                    the subject (kind parent, "Father's name"), value_text as
-                   written; region_json carries the label it was read under,
+                   written (a marriage's spouse's parent, whom the page files
+                   as the subject's in-law, in the word toward the spouse:
+                   Father, Mother); region_json carries the label it was read under,
                    and computed: true on one the site worked out for its own
                    display rather than one the record states.
 extraction.structured_json holds the raw parsed page: every label/value pair
@@ -105,13 +107,18 @@ member to the subject with the role word as written (relation_kind); a NUMIDENT
 record's own Parents and Siblings table carries no role word at all, and its
 two rows are read as parent relations, that collection's application naming
 only the parents there. Those tables are FamilySearch's grouping around the
-page's own person, its inference, not the record's statement: each such
-relation, and the couple of the two parents a table lists, is marked computed.
-What the record states is written beside them: each person's Relationship to
-Head of Household (the subject's field, a member's own details) as a relation to
-the head, when the page shows who the head is, and a parent a field names
-(Father's Name) toward the subject. The page's own ark, from
-the print header, is written to artifact_locator as kind ark.
+page's own person, and a row is marked stated only where it is the record's own
+statement: on a record of one event, a row for the subject's parent, spouse or
+child (on an obituary a brother or sister too); on a page whose leading h2 says
+"Mentioned in the Record of" another person, that person's row alone. Every
+other row (on a census every one), and the couple of the two parents a table
+lists, is marked computed. What the record states is written beside them: each
+person's Relationship to Head of Household (the subject's field, a member's own
+details) as a relation to the head, when the page shows who the head is; a
+parent a field names (Father's Name) toward the subject; and on a marriage
+record the subject's father- or mother-in-law as a parent of the subject's one
+spouse on the page, the record naming each party's parents. The page's own ark,
+from the print header, is written to artifact_locator as kind ark.
 
 Connector responses (JSON, archived by tools/run_step.py) have their own extractors, claimed by the response's shape:
   rule:nara-1950-schedule@0.1.0  one schedule from the 1950 census site (a single result with scheduleId and names and no
@@ -153,7 +160,7 @@ from conclude import assert_facts, link_family
 from catalog import is_identity, page_entries
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.6.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.7.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -329,15 +336,20 @@ def label_rows(table, alternates=None):
     return out
 
 def parse_record(text):
-    """A FamilySearch record page: {"kind": "familysearch", "title", "name", "collection", "ark", "citation", "document": [[label, value]],
+    """A FamilySearch record page: {"kind": "familysearch", "title", "name", "collection", "ark", "citation", "mentioned", "document": [[label, value]],
     "fields": [[label, value]], "alternates": [[label, value]], "members": [{"section", "name", "role", "sex", "age", "birthplace", "url",
-    "fields", "alternates"}]}: a field's value as shown in fields, every value it keeps collapsed beneath that in alternates."""
+    "fields", "alternates"}]}: a field's value as shown in fields, every value it keeps collapsed beneath that in alternates; mentioned,
+    on a page whose own person is a relative of the record's subject, that subject as its leading h2 names and links them ({"name",
+    "url"}), else None."""
     t = Tree(); t.feed(text); root = t.root
     main = next((n for n in walk(root) if n["tag"] == "main"), root)
     head = lambda tag: next((text_of(n) for n in walk(main) if n["tag"] == tag), None)
     collection = next((text_of(n) for n in walk(main) if n["tag"] == "h2" and not text_of(n).startswith("Mentioned in the Record of")), None)   # a citation fetched on a relative names the record's own subject in a leading h2 of its own; the collection is the h2 after it
+    banner = next((n for n in walk(main) if n["tag"] == "h2" and text_of(n).startswith("Mentioned in the Record of")), None)
+    link = next((x for x in walk(banner) if x["tag"] == "a"), None) if banner else None
     out = {"kind": "familysearch", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "name": head("h1"), "collection": collection,
-           "ark": None, "citation": None, "document": [], "fields": [], "alternates": [], "members": []}
+           "ark": None, "citation": None, "mentioned": {"name": text_of(link) if link else None, "url": link["attrs"].get("href") if link else None} if banner else None,
+           "document": [], "fields": [], "alternates": [], "members": []}
     m = next((re.search(r"ark:/61903/1:1:[A-Z0-9-]+", text_of(n)) for n in walk(root) if n["tag"] == "h3" and "ark:/61903/1:1:" in text_of(n)), None)
     if m: out["ark"] = m.group(0)
     cite = next((n for n in walk(main) if n["attrs"].get("data-testid") == "documentInformationCitation"), None)
@@ -903,17 +915,23 @@ def write_record(w, parsed):
     facts. The relationships, both kinds the page gives: each person's relationship to the household's head as the record's own
     column states it (Relationship to Head of Household, in the subject's fields and in each member's own details table, when
     the page shows who the head is), the word as written; a parent a field names (Father's Name, Mother's Name) toward the
-    subject, as the record states it; on a record of one event (a birth, a marriage, a death, a naturalization), the relatives
-    table's own rows for the subject's parents, spouse and children, the people the record itself names in those roles, as
-    stated; and every other grouping the relatives tables make around the page's own person (on a census every one of them,
-    since a census states only the relationship to the head; a sibling or a grandparent anywhere; the couple of the two
-    parents they list) marked computed in its region, FamilySearch's inference rather than the record's statement, kept
-    because it is what the page says. A parent the fields also name is not
+    subject, as the record states it; on a record of one event (a birth, a marriage, a death, a naturalization, an obituary),
+    the relatives table's own rows for the subject's parents, spouse and children, the people the record itself names in those
+    roles, as stated, and on an obituary its brothers and sisters too, the notice naming each survivor in their relationship
+    to the deceased; on a marriage record, the one the table files as the subject's father- or mother-in-law as a parent of
+    the subject's one spouse on the page, as stated, the record naming each party's parents (the in-law row itself is
+    FamilySearch's working-out); on a page whose own person is a relative of the record's subject (its leading h2 "Mentioned
+    in the Record of" names the subject), only that subject's own row; and every other grouping the relatives tables make
+    around the page's own person (on a census every one of them, since a census states only the relationship to the head; a
+    sibling of anyone but an obituary's deceased, a grandparent, an in-law; on a relative's page every row but the record's
+    subject's; the couple of the two parents they list) marked computed in its region, FamilySearch's inference rather than
+    the record's statement, kept because it is what the page says. A parent the fields also name is not
     written twice: the relatives table's own row, which carries the sex, stands for that parent, and the field's own statement
     joins it as a second Name fact, so nothing the page says is lost."""
     fields = parsed["fields"]; f = dict(fields)
     kind_word = (parsed.get("collection") or "").split("•")[0].strip().lower()                     # "Census • United States, Census, 1950"
     is_census = kind_word == "census"
+    event = (f.get("Event Type") or kind_word).strip().lower()                                     # the record's own event: the Event Type it names, else its collection's kind word
     by_type, named = field_facts(fields, EVENT_TYPES.get(kind_word), parsed.get("alternates") or [])
     calc_census_birth(by_type, is_census)
     name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
@@ -941,10 +959,21 @@ def write_record(w, parsed):
     stated = [(pid, head, household_kind(word), word) for pid, word in [(subject, to_head(fields))] + [(pid, to_head(m["fields"])) for pid, _, _, m in members_written]
               if head and word and pid != head and household_kind(word) != "head"]   # each person's relationship to the head, as the record's own column states it
     in_fields = {label for label, who, _ in named if label in ("father", "mother") and names_someone(who)}
+    mentioned = parsed.get("mentioned")                              # the page's own person is a relative of the record's subject
+    ark = lambda url: (re.search(r"ark:/61903/1:1:[A-Z0-9-]+", url or "") or [None])[0]
+    def subjects_row(m):
+        """Whether a member row is the record's own subject the banner names: the same ark where both link one, else the same name."""
+        a, b = ark(m.get("url")), ark(mentioned.get("url"))
+        return a == b if a and b else m["name"] == mentioned.get("name")
+    roles = ("parent", "child", "spouse", "sibling") if event == "obituary" else ("parent", "child", "spouse")   # the roles a record of one event names from its subject's side
+    kinds = {pid: relation_kind(m["role"], section, parsed.get("collection")) for pid, _, section, m in members_written}
     for pid, role, section, m in members_written:
-        kind = relation_kind(m["role"], section, parsed.get("collection"))
-        if role in in_fields: w.relation(pid, subject, kind, m["role"], role, computed=False); continue      # the parent a field names (Father's Name): the record states it
-        w.relation(pid, subject, kind, m["role"], section, computed=is_census or kind not in ("parent", "child", "spouse"))   # a record of one event names its subject's parents, spouse and children; any other grouping, and every one on a census, is FamilySearch's inference
+        if role in in_fields: w.relation(pid, subject, kinds[pid], m["role"], role, computed=False); continue      # the parent a field names (Father's Name): the record states it
+        w.relation(pid, subject, kinds[pid], m["role"], section, computed=is_census or kinds[pid] not in roles or bool(mentioned and not subjects_row(m)))   # any other grouping, every one on a census and every one around a relative but the record's subject, is FamilySearch's inference
+    spouses = [pid for pid, *_ in members_written if kinds[pid] == "spouse"]
+    if event == "marriage" and not mentioned and len(spouses) == 1:   # a marriage record names each party's parents: the subject's father- or mother-in-law is the spouse's own parent
+        for pid, role, section, m in members_written:
+            if role in ("father-in-law", "mother-in-law"): w.relation(pid, spouses[0], "parent", role.split("-")[0].title(), section, computed=False)
     for a, b, kind, word in stated: w.relation(a, b, kind, word, "Relationship to Head of Household", computed=False)
     seq0 = 2 + len(members_written)
     for label, who, others in named:                                 # a relative the record names in a field: Father's Name, Mother's Name, Spouse
