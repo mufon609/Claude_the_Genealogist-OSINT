@@ -1,6 +1,6 @@
 {
  "title": "a census household decided",
- "line": "the four the page names and cites each get a card and the rule takes none on a tree with no accepted fact; the son's accept writes his facts and an alias, the mother's the mother-son link, the father's the couple; the accepted birthplace against the file's claim is a conflict question, never an overwrite; the birth record's father is one letter apart and the mother's surname garbled, both cards for the owner; the sister is taken by the rule through the claimed sibling and placed undecided; a link on the owner's word is a vouch, no link for the matcher",
+ "line": "the four the page names and cites each get a card and the rule takes none on a tree with no accepted fact; the son's accept writes his facts and an alias; the mother's writes the mother-son link undecided and the father's the couple undecided, FamilySearch's own groupings that the census does not state, while the father-son link the census states (the son's relationship to the head) is accepted; the accepted birthplace against the file's claim is a conflict question, never an overwrite; the birth record's father is one letter apart and the mother's surname garbled, both cards for the owner; the sister, related only by FamilySearch's sibling grouping, is no claimed relationship the rule takes, and the owner's Add places her undecided beside her brother; a link on the owner's word is a vouch, no link for the matcher",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -147,7 +147,7 @@
    ]
   },
   {
-   "say": "the mother accepted: the mother-son link",
+   "say": "the mother accepted: the mother-son link FamilySearch computes, written undecided",
    "decide": {
     "card": {
      "record": "c40",
@@ -161,17 +161,30 @@
       "memberships": {
        "some": {
         "role": "child",
-        "as": "Mother"
+        "as": "Mother",
+        "computed": true,
+        "undecided": true
        }
       }
      },
-     "why": "accepting the mother asserts the son's child membership"
+     "why": "accepting the mother writes the son's child membership undecided: FamilySearch's Parents and Siblings table computes her his mother, the census states only each person's relationship to the head"
+    },
+    {
+     "card": {
+      "record": "c40",
+      "person": "I332737037573",
+      "note": {
+       "has": "written undecided: the record's indexer, not the record, states it"
+      }
+     },
+     "why": "the decision says what it wrote undecided and why"
     },
     {
      "facts": {
       "person": "I332737036054",
-      "parents": "accepted"
-     }
+      "parents": "undecided"
+     },
+     "why": "a link the indexer computed is never an accepted family link"
     },
     {
      "facts": {
@@ -183,7 +196,7 @@
    ]
   },
   {
-   "say": "the father accepted: the couple relation and the link from his side",
+   "say": "the father accepted: the father-son link the census states, the couple FamilySearch computes",
    "decide": {
     "card": {
      "record": "c40",
@@ -196,31 +209,43 @@
      "last": {
       "memberships": {
        "some": {
-        "role": "child"
+        "role": "child",
+        "as": "Son",
+        "undecided": false
        }
       }
-     }
+     },
+     "why": "the census states the son's relationship to the head: the father-son link is accepted"
     },
     {
      "last": {
       "memberships": {
        "some": {
-        "role": "partner"
+        "role": "partner",
+        "computed": true,
+        "undecided": true
        }
       }
      },
-     "why": "the father's accept asserts the child link and the couple"
+     "why": "the couple is FamilySearch's own Parents grouping: written undecided"
+    },
+    {
+     "facts": {
+      "person": "I332737036054",
+      "parents": "accepted"
+     },
+     "why": "his parents link stands on the census's own statement"
     },
     {
      "facts": {
       "person": "I332737037573",
-      "spouses": "accepted"
+      "spouses": "undecided"
      }
     },
     {
      "facts": {
       "person": "I332737037257",
-      "spouses": "accepted"
+      "spouses": "undecided"
      }
     },
     {
@@ -238,16 +263,18 @@
     {
      "linked": {
       "a": "I332737037573",
-      "b": "I332737036054"
+      "b": "I332737036054",
+      "is": false
      },
-     "why": "the mother and son are linked on the record for the matcher once both are accepted on it"
+     "why": "the mother-son link is FamilySearch's grouping, undecided: no link on the record for the matcher"
     },
     {
      "linked": {
       "a": "I332737037573",
-      "b": "I332737037257"
+      "b": "I332737037257",
+      "is": false
      },
-     "why": "the couple is linked on the record"
+     "why": "nor is the couple"
     },
     {
      "disagreements": {
@@ -406,7 +433,7 @@
    ]
   },
   {
-   "say": "the rule re-examines: the sister is taken through the claimed sibling and placed undecided beside her brother",
+   "say": "the rule re-examines: the sister, related only by FamilySearch's sibling grouping, stays a card",
    "reconsider": {},
    "expect": [
     {
@@ -414,25 +441,50 @@
       "rows": {
        "some": {
         "kind": "card",
-        "taken": true,
+        "taken": false,
         "person": "Alicia Ahern",
         "why": {
-         "has": "sibling Frederick Ahern"
+         "has": "its indexer's, not the record's own statement"
         }
        }
       }
-     }
+     },
+     "why": "a sibling FamilySearch's table computes is no relationship the census states: no claimed route"
     },
     {
      "card": {
       "record": "c40",
       "person": "I332737072856",
-      "status": "accepted",
-      "decided_by": {
-       "starts": "rule:"
-      },
-      "note": {
-       "has": "sibling Frederick Ahern"
+      "status": "undecided"
+     }
+    },
+    {
+     "memberships": {
+      "person": "I332737072856",
+      "is": []
+     },
+     "why": "nothing written for her"
+    }
+   ]
+  },
+  {
+   "say": "the owner's Add on the sister: placed undecided beside her brother",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737072856"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "memberships": {
+       "some": {
+        "placed": "sibling",
+        "undecided": true
+       }
       }
      }
     },
@@ -448,23 +500,6 @@
       }
      },
      "why": "the sister's membership carries an undecided sibling placement: the record states the sibling, not the parents"
-    }
-   ]
-  },
-  {
-   "say": "the rule's decision on the sister stands: the owner's Add is not a second decision",
-   "decide": {
-    "card": {
-     "record": "c40",
-     "person": "I332737072856"
-    },
-    "status": "accepted"
-   },
-   "expect": [
-    {
-     "last": {
-      "error": "already decided"
-     }
     }
    ]
   },

@@ -1,6 +1,6 @@
 {
  "title": "the proof standard's classes and its written conclusion",
- "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from; tools/proof.py writes the conclusion per key fact: the father's sex meets the standard, his birth owes an argument while its birthplace conflict is open (the classes favouring the birth register), his son's parents owe one on computed evidence alone, and his wife's marriage stated by her obituary beside the census's computed one still owes one on secondary information; the birthplace conflict closed by the owner with a written reason leaves only the research",
+ "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from; tools/proof.py writes the conclusion per key fact: the father's sex meets the standard, his birth owes an argument while its birthplace conflict is open (the classes favouring the birth register), his son's parents owe one on secondary information alone, the census stating him the head's son, and his wife's marriage stated by her obituary (read as an obituary through the index it is filed under) beside the census's computed one still owes one on secondary information; the birthplace conflict closed by the owner with a written reason leaves only the research",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -35,7 +35,7 @@
    }
   },
   {
-   "say": "the father accepted: the couple and the father-son link",
+   "say": "the father accepted: the father-son link the census states, the couple FamilySearch computes written undecided",
    "decide": {
     "card": {
      "record": "c40",
@@ -76,6 +76,15 @@
      "why": "the son's father and mother stand in FamilySearch's own Parents and Siblings table, computed from the household, not stated by the census"
     }
    ]
+  },
+  {
+   "say": "the owner accepts the couple: the census's grouping and the file's own claim, on the owner's word",
+   "fact": {
+    "person": "I332737037573",
+    "field": "spouses",
+    "status": "accepted",
+    "note": "harness: the owner knows the couple"
+   }
   },
   {
    "say": "the father's birth record arrives",
@@ -320,7 +329,7 @@
      "last": {
       "text": {
        "has": [
-        "stated; accepted [Mother; Father; Son]",
+        "stated; accepted [Mother; Son]",
         "Citing digital folder 005456604, image 109.",
         "conclusion: an argument is still owed: it rests only on secondary information"
        ]
@@ -343,31 +352,33 @@
        "spouses": {
         "evidence": [
          {
-          "original": "1940 census schedule",
-          "classes": {
-           "relationship": "computed",
-           "evidence": "indirect"
-          }
-         },
-         {
           "said": [
            "husband"
           ],
           "classes": {
            "source": "original",
+           "information": "secondary",
            "relationship": "stated",
-           "evidence": "direct"
+           "evidence": "direct",
+           "original": "obituary"
+          }
+         },
+         {
+          "original": "1940 census schedule",
+          "classes": {
+           "relationship": "computed",
+           "evidence": "indirect"
           }
          }
         ],
         "verdict": "an argument is still owed",
         "why": [
-         "it rests only on secondary or indeterminable information"
+         "it rests only on secondary information"
         ]
        }
       }
      },
-     "why": "the obituary as the model read it states the husband (direct evidence), the census's own table computes him (indirect); neither gives the marriage first hand, so an argument is still owed"
+     "why": "the obituary as the model read it, filed under an obituary index and so read as an obituary, states the husband (direct evidence, secondary information as an obituary's survivors read), the census's own table computes him (indirect); neither gives the marriage first hand, so an argument is still owed"
     }
    ]
   },

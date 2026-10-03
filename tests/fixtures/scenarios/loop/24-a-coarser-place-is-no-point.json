@@ -1,0 +1,74 @@
+{
+ "title": "a coarser place is no point",
+ "line": "the state death index line the runner derives for her surname agrees with the owner's own word on her birth and death to the day and is taken, each day counting twice on the owner's word; the index gives her death only as New Jersey where the tree holds the town, so the place agrees, is said in the reason and earns nothing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's own word on her name, her birth and her death",
+   "fact": {
+    "person": "I332737099804",
+    "fields": [
+     "name",
+     "birth",
+     "death"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "the death record the file cites for her, a fetch step at the New Jersey index's holder, run through the real death index connector: the file's lines played back",
+   "run": {
+    "step": {
+     "person": "I332737099804",
+     "row_key": "death record:2015",
+     "kind": "fetch",
+     "holder": "C09"
+    },
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "newjerseydeathindex",
+       "fixture": "nj-death-index-2006-2017-excerpt.csv",
+       "content_type": "text/csv"
+      }
+     ]
+    }
+   },
+   "as": "nj",
+   "expect": [
+    {
+     "card": {
+      "record": "nj.records.0",
+      "person": "I332737099804",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": [
+        "birth date to the day (your own word)",
+        "death date to the day (your own word)",
+        "no point for the death place, which the record gives only as New Jersey, coarser than the tree's"
+       ],
+       "lacks": "and death place"
+      }
+     },
+     "why": "her days agree with the owner's own word, each counting twice; the death place agrees only at the state, coarser than the town the tree holds: said, and no point"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

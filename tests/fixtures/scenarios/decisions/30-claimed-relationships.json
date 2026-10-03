@@ -1,6 +1,6 @@
 {
  "title": "claimed relationships on a census",
- "line": "a daughter is taken once her father is accepted on the record, her name and birth year agreeing and the file claiming the link; a stated sibling nobody in the tree holds is put to the unlinked person of that name by the surname alone and taken on the sibling route; a member related only as other is a card for the owner; the decisions are kept by the route each stands on; a rule decision withdrawn is undecided again and does not carry to a re-read, so the matcher proposes it again; cards an older matcher wrote are superseded and proposed again",
+ "line": "a daughter is taken once her father is accepted on the record, her name and birth year agreeing and the file claiming the link; a sister FamilySearch's table relates only by its own sibling grouping is put to the unlinked person of that name by the surname alone and stays a card: the census does not state the sibling; a member related only as other is a card for the owner; the decisions are kept by the route each stands on; a rule decision withdrawn is undecided again and does not carry to a re-read, so the matcher proposes it again; cards an older matcher wrote are superseded and proposed again",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -131,18 +131,26 @@
      "card": {
       "record": "c20",
       "person": "I332737058557",
-      "status": "accepted",
-      "decided_by": {
-       "starts": "rule:"
-      },
-      "note": {
-       "has": [
-        "a stated sibling",
-        "holds no parents"
-       ]
+      "status": "undecided"
+     },
+     "why": "a sister nobody in the tree holds is related on the page only by FamilySearch's own Parents and Siblings table: no stated sibling, so the rule leaves her to the owner"
+    },
+    {
+     "rule": {
+      "record": "c20",
+      "person": "I332737058557",
+      "taken": false,
+      "why": {
+       "has": "its indexer's, not the record's own statement"
       }
      },
-     "why": "a sister nobody in the tree holds is taken on the sibling route, the reason saying the tree holds no parents to contradict it"
+     "why": "the reason says the relationship is the indexer's"
+    },
+    {
+     "facts": {
+      "person": "I332737058557",
+      "name": "undecided"
+     }
     },
     {
      "card": {
@@ -153,26 +161,6 @@
       }
      },
      "why": "the card's rationale reads the sibling as absent, not a disagreement"
-    },
-    {
-     "facts": {
-      "person": "I332737058557",
-      "name": "accepted",
-      "parents": "undecided"
-     }
-    },
-    {
-     "memberships": {
-      "person": "I332737058557",
-      "is": {
-       "some": {
-        "role": "child",
-        "status": "undecided",
-        "placed": "sibling"
-       }
-      }
-     },
-     "why": "placed beside her sister, the membership undecided: the record states the sibling, not the parents"
     },
     {
      "card": {
@@ -225,17 +213,6 @@
       }
      },
      "why": "the daughter's decision is kept by the claimed relationship, her own name a claim again without its assertion"
-    },
-    {
-     "last": {
-      "rows": {
-       "some": {
-        "kind": "decision",
-        "kept": true,
-        "person": "Anna Rose Ahearn"
-       }
-      }
-     }
     }
    ]
   },

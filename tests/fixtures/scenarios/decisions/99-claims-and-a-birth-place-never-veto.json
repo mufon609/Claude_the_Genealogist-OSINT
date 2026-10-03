@@ -1,6 +1,6 @@
 {
  "title": "claims and a birth place never veto",
- "line": "a stated sister the file places in another family, on its claim alone, is not vetoed on that relationship; a Social Security claim whose birthplace differs from the one an accepted obituary gives is taken on its points, the difference a conflict question",
+ "line": "a sister the page relates to the household's daughter (FamilySearch's own grouping) whom the file places in another family, on its claim alone, is not vetoed on that relationship; a Social Security claim whose birthplace differs from the one an accepted obituary gives is taken on its points, the difference a conflict question",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -54,9 +54,12 @@
       "record": "c20",
       "person": "I332737058557",
       "taken": false,
-      "why": "the name is not accepted yet"
+      "why": {
+       "starts": "the name is not accepted yet",
+       "lacks": "disagrees"
+      }
      },
-     "why": "the tree places Anna in another family than her stated sister's on the file's claim alone: no veto; the record waits on her own name, as any card would"
+     "why": "the tree places Anna in another family than her sister's on the file's claim alone: no veto; the record waits on her own name, as any card would"
     }
    ]
   },

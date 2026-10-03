@@ -36,6 +36,17 @@
       }
      },
      "why": "both names carry a middle name or initial and C is not Edgar: the persona never fits, a card with the middle name as its disagreement"
+    },
+    {
+     "rule": {
+      "record": "aad",
+      "person": "I332737100409",
+      "taken": false,
+      "why": {
+       "starts": "disagrees: middle name disagrees"
+      }
+     },
+     "why": "an Army enlistment record is a service record, a kind data/evidence-classes.csv gives the rule's standing (docs/RESEARCH-WORKFLOW.md §0): the rule reads it, and what refuses it is the middle name, not its kind"
     }
    ]
   },

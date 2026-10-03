@@ -223,7 +223,9 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
     else:
         made.append(f"{what} is {who}" if p["kind"] == "persona_match" else f"{who} created in this tree from {what}")
         name = lambda i: cx.execute("SELECT display_name FROM person WHERE id=?", (i,)).fetchone()["display_name"]
-        made += [f"{name(m['person'])} placed as a child beside {name(m['of'])}, undecided: the record states a sibling, not the parents" if m.get("undecided") else
+        made += [f"{name(m['person'])} placed as a child beside {name(m['of'])}, undecided: the record states a sibling, not the parents" if m.get("placed") == "sibling" else
+                 f"{name(m['person'])} is a {'child' if m['role'] == 'child' else 'spouse'} of {name(m['of'])}, undecided: the record's indexer, not the record, states it" if m.get("computed") else
+                 f"{name(m['person'])} is a {'child' if m['role'] == 'child' else 'spouse'} of {name(m['of'])}, undecided: a page anyone can edit states it" if m.get("undecided") else
                  f"{name(m['person'])} is a {'child' if m['role'] == 'child' else 'spouse'} of {name(m['of'])}: " + ("a new link, on this record" if m["new"] else "this record accepted as evidence on the link") for m in members]
         for q in cx.execute(f"SELECT kind, detail_json FROM research_question WHERE id IN ({','.join('?'*len(answered))})", answered) if answered else []:
             closed.append(f"question answered: {q['kind']} {json.loads(q['detail_json'] or '{}').get('detail') or ''}".strip())
