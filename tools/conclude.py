@@ -25,7 +25,7 @@ docs/DATA-ARCHITECTURE.md §7 decision 12): nobody else of the tree fits the per
 persona on that reading of the record, and nothing the record would add falls outside the person's accepted life
 (data/life-limits.csv); a test that fails is a refusal with its reason. The rule acts on the owner's word, is recorded as
 such on the proposal and in the audit log, and the owner can reject what it accepted: the link and every assertion it wrote turn rejected. The rule can also take a decision back (reconsider): every
-decision it made is examined again as the rule stands now, oldest first, on the ground that stood before it, and one it would
+decision it made is examined again as the rule stands now, in the order it took them, on the ground that stood before it, and one it would
 no longer take is withdrawn, the record a card for the owner again; then every card still undecided is examined the same
 way, and one the rule would now take is taken. Between the two, every current extraction whose undecided cards an older
 matcher wrote (the matcher is versioned, match.MATCHER) is matched again: those cards close as superseded and the personas are
@@ -762,7 +762,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     again; one the rule took back (withdraw) is accepted with everything it had written standing again, its name alias
     included. Either way, once the plans are regenerated, the rule goes over the conflicts of the people whose plans the
     decision changed (rule_conflicts): its own resolutions there examined again, every open conflict on an event's date or
-    place decided where the classes favour one side without doubt. Returns what was written, or an error."""
+    place decided where the classes favour one side without doubt. The decision's audit row is written as it takes effect,
+    before the conflicts it changes and the cards of the same record the rule takes next, so audit ids run in the order
+    decisions were taken (reconsider examines the rule's decisions in that order). Returns what was written, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"): return decide_place(cx, tree_id, p, status, by, note, choice, kind, alone)
@@ -797,15 +799,15 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         if pid: answered += answer_questions(cx, tree_id, pid, prop_id, by)
     released = release_household(cx, tree_id, person_id, pay["artifact_sha256"], by) if status == "rejected" and person_id and not identity else []   # a step the record held for this person is planned again
     if released: answered += answer_questions(cx, tree_id, person_id, prop_id, by)   # the plan sees the row open again
+    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",   # written as the decision takes effect, ahead of what it brings on: the audit ids run in the order decisions were taken
+              (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "proposal", prop_id,
+               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "released_steps": released, "note": note})))
     people = [pid for pid in dict.fromkeys([person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"]) if pid]
     conflicts = rule_conflicts(cx, tree_id, by, people=people)   # the conflicts the decision opened or changed, and the rule's own resolutions that rest on what it changed
     if status == "accepted":                                     # the record's other personas come up next, against this person's relatives, on the current reading of the record
         eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
         while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]): eid = later
         match_record(cx, eid, by.split(" for ", 1)[-1] if by.startswith("rule:") else by)
-    q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-              (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "proposal", prop_id,
-               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "released_steps": released, "note": note})))
     return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "released_steps": released, "note": note,
             "conflicts": conflicts}
 
@@ -2030,11 +2032,14 @@ def repropose(cx, tree_id, by, ts, dry_run=False):
     return out, taken_rows
 
 def reconsider(cx, tree_id, by, dry_run=False):
-    """Every decision the rule made, oldest first, examined again as the rule stands now, on the ground that stood before it:
-    the assertions of that decision, of every rule decision after it and of every decision already withdrawn do not count, so
-    each rests only on the owner's decisions and on earlier rule decisions that survived. One the rule would no longer take is
-    withdrawn. Then every current extraction whose undecided cards an older matcher wrote is matched again (repropose): those
-    cards close as superseded and the matcher as it stands now proposes the personas again. Then every persona-match card
+    """Every decision the rule made, in the order it took them, examined again as the rule stands now, on the ground that stood
+    before it: the assertions of that decision, of every rule decision after it and of every decision already withdrawn do not
+    count, so each rests only on the owner's decisions and on earlier rule decisions that survived. The order is the second the
+    decision was taken, then its accept row in the audit log (a ULID, minted in order to the millisecond, written as the decision
+    takes effect: decide), the card's own id where no such row exists; within one second a card the rule took after one it
+    rests on is examined after it. One the rule would no longer take is withdrawn. Then every current extraction whose
+    undecided cards an older matcher wrote is matched again (repropose): those cards close as superseded and the matcher as
+    it stands now proposes the personas again. Then every persona-match card
     still undecided, oldest first, examined as the rule stands now: one it would now
     take is taken, recorded as the rule; a decision can open another card, so the pass repeats until nothing new is taken.
     Then the conflicts (rule_conflicts): every conflict the rule resolved examined again, one it would no longer resolve so
@@ -2045,7 +2050,8 @@ def reconsider(cx, tree_id, by, dry_run=False):
     its line."""
     q = _q(cx); ts = now(); out = []; gone = []
     known = {r["id"] for r in q.execute("SELECT id FROM research_question WHERE tree_id=? AND closed_reason='resolved' AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.by') LIKE 'rule:%'", (tree_id,))}
-    rows = q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' ORDER BY decided_at, id", (tree_id,)).fetchall()
+    rows = q.execute("""SELECT p.* FROM proposal p WHERE p.tree_id=? AND p.status='accepted' AND p.decided_by LIKE 'rule:%'
+                        ORDER BY p.decided_at, coalesce((SELECT max(a.id) FROM audit_log a WHERE a.entity_kind='proposal' AND a.entity_id=p.id AND a.action='accept'), p.id), p.id""", (tree_id,)).fetchall()
     ids = [r["id"] for r in rows]
     name = lambda pay: (q.execute("SELECT display_name FROM person WHERE id=?", (pay.get("person_id"),)).fetchone() or {"display_name": "(a new person)"})["display_name"]
     persona = lambda pay: q.execute("SELECT name_text FROM persona WHERE id=?", (pay["persona_id"],)).fetchone()["name_text"]

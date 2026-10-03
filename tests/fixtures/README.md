@@ -199,7 +199,7 @@ them under, and expectations name the words a reason must carry. A scenario file
 |---|---|
 | `title`, `line` | the check's name, and the ok line printed when it passes |
 | `tree` | `file` (the GEDCOM under `tests/fixtures/`), `home` (the home person's entry id), `plan` (every person planned first) |
-| `steps` | the list of steps; each is one action key with its arguments, `as` (a label to bind the result under), `say` (what the step is about), and `expect` (a list of expectations) |
+| `steps` | the list of steps; each is one action key with its arguments, `as` (a label to bind the result under), `say` (what the step is about), `at` (a timestamp the clock every tool reads stands at while the action runs, for a check that depends on writes sharing a second), and `expect` (a list of expectations) |
 
 A value `"$label"` reads what a step bound; `"$label.key.0.key"` reads into it. A person is an entry id, `{"name": …}` or
 `{"created": …}` (a person the rule made, by display name), or `"$label"`. A record is the label of the step that
@@ -250,7 +250,7 @@ hand into a shape nothing today writes, found by `kind` and `detail_has` among t
 a regeneration to be checked against a prior state, such as a legacy truncated key).
 
 Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
-`kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `note`, `rationale`), `rule` (`taken`, `why`),
+`kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `decided_at`, `note`, `rationale`), `rule` (`taken`, `why`),
 `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, each one's date as written in date order, `dates`, how many statements each carries, `per_event`, in the same order, and with `record` its `statements` on them by status and `per_event` that record's alone), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
