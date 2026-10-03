@@ -1117,12 +1117,16 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   and it rests on the tree's own statement of that very date, place or link:
   accepted, from a source nobody can edit at will or on the owner's own word (a
   vouch, or the file's uncited claim the owner accepted), giving the value
-  compared. A date agreeing to the day, or a relationship, counts double only
-  when that statement is primary information or the owner's own word, and
-  otherwise once. A relationship the record's indexer computed counts once at
-  most, is never an obituary's survivor and never an accepted family link. A
-  place the record gives coarser than the tree's own (a state or a county
-  against a town) agrees, is said in the reason, and earns nothing. Records
+  compared. A date agreeing to the day, or a relationship, counts double, and
+  any other date once, whatever the information class of the statement it
+  rests on: the information class weighs which of two statements that differ
+  is right (Conflicts, below), while a day or a relative two records nobody
+  can edit both give marks one person whoever informed them
+  (`docs/DATA-ARCHITECTURE.md` §7 decision 14). A relationship the record's
+  indexer computed counts once at most, is never an obituary's survivor and
+  never an accepted family link. A place the record gives coarser than the
+  tree's own (a state or a county against a town) agrees, is said in the
+  reason, and earns nothing. Records
   copied from one original count once: a statement from the same original as
   the record under decision is no ground for its point. A stated relationship
   counts only when the related persona is accepted on the record or fits its

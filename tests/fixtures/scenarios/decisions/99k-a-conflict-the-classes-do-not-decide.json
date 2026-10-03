@@ -1,6 +1,6 @@
 {
  "title": "a conflict the classes do not decide",
- "line": "a birthplace two secondary records give apart (an obituary's Woodburn, a Social Security claim's Auburn) beside the file's own Woodburn, Logan is the owner's: no side holds primary information; the state's birth index as FamilySearch shows it, a page whose birth the classes table reads indeterminable, changes nothing; and the same index line as the state's own file holds it, primary but giving only Logan County, which holds Auburn and is named in the file's Woodburn, Logan as well, decides between neither, so the rule still leaves the conflict to the owner, saying why",
+ "line": "a birthplace two secondary records give apart (an obituary's Woodburn, a Social Security claim's Auburn) beside the file's own Woodburn, Logan is the owner's: no side holds primary information; the state's birth index as FamilySearch shows it, taken by the rule on his birth's day, is a page whose birth the classes table reads indeterminable and changes nothing; and the same index line as the state's own file holds it, primary but giving only Logan County, which holds Auburn and is named in the file's Woodburn, Logan as well, decides between neither, so the rule still leaves the conflict to the owner, saying why",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -97,27 +97,16 @@
      "rule": {
       "record": "kyb",
       "person": "I332737100409",
-      "taken": false,
+      "taken": true,
       "why": {
        "has": [
-        "birth date to the day, once (the tree holds the day on secondary information)",
-        "two are needed"
+        "birth date to the day (secondary information)"
        ]
       }
      },
-     "why": "his birth agrees to the day, but the tree holds the day only on the obituary and the Social Security claim, secondary information both: one point, never two, and the index names nothing else of his"
+     "why": "his birth agrees to the day with the obituary and the Social Security claim, secondary information both: a day that agrees identifies him whatever its information class, two points"
     }
    ]
-  },
-  {
-   "say": "the owner accepts the entry as his: the rule's one point, his birth on its day, stands only on secondary information and counts once",
-   "decide": {
-    "card": {
-     "record": "kyb",
-     "person": "I332737100409"
-    },
-    "status": "accepted"
-   }
   },
   {
    "say": "the three places resolved by the owner's answers, the geocoder's own answers planted as the resolver caches them",
@@ -221,21 +210,24 @@
     ],
     "rule": true
    },
-   "as": "rtr"
+   "as": "rtr",
+   "expect": [
+    {
+     "rule": {
+      "record": "rtr",
+      "person": "I332737100409",
+      "taken": true
+     },
+     "why": "the state's own index line agrees with his accepted birth to the day: taken by the rule"
+    }
+   ]
   },
   {
-   "say": "the owner accepts the line as his: the record of the birth gives only Logan County, which holds Auburn and is named in the file's Woodburn, Logan as well, so it decides between neither and the rule leaves the conflict to the owner",
-   "decide": {
-    "card": {
-     "record": "rtr",
-     "person": "I332737100409"
-    },
-    "status": "accepted"
-   },
+   "say": "the rule took the line as his when it was archived: the record of the birth gives only Logan County, which holds Auburn and is named in the file's Woodburn, Logan as well, so it decides between neither and the rule leaves the conflict to the owner",
    "expect": [
     {
      "last": {
-      "conflicts": {
+      "rows": {
        "some": {
         "kind": "conflict",
         "taken": false,
@@ -284,7 +276,8 @@
     {
      "whole": true
     }
-   ]
+   ],
+   "reconsider": {}
   }
  ]
 }

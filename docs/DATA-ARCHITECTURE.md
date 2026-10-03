@@ -367,6 +367,18 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    tool makes becomes a tool command first, so every write carries the tool's
    checks, its `--by` and its audit row; no session edits catalog rows by hand
    or by ad hoc SQL.
+14. **Linkage counts agreement; the classes decide conflicts.** Whether a
+   record is about a person is decided by what it shares with the tree's
+   trusted statements: a day of birth or death, or a stated relative, that a
+   statement the tree holds on a record nobody can edit at will, or on the
+   owner's word, also gives counts double whatever that statement's
+   information class. The information class weighs which of two statements
+   that differ is right (decision 5's conflicts), the source class says which
+   records are copies of one original, and the relationship class whether the
+   record itself states a link; none of them discounts an agreement. Primary
+   information about a birth is held only once the birth record is, so
+   discounting a secondary day would leave every later record of a person
+   waiting on the owner until the first record of their life is found.
 
 ## 8. Wrong source data, variants and aliases
 

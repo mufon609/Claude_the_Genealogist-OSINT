@@ -165,7 +165,7 @@ def ground(cx, tree_id, kind, ids, sha, original, axis=None, value=None, tree=No
     record's own, record_original): records copied from one original are one source. With axis, the statement must give a
     date or a place that agrees with value, a place at the level of the tree's own (tree), a vouch standing for the event's
     own date and place. without: proposal ids whose assertions do not count (reconsider). Returns (statements, originals):
-    each statement {first_hand: primary information or the owner's own word, day: it gives value's very day, information},
+    each statement {day: it gives value's very day, information: its information class in words, or the owner's own word},
     and the originals whose statements were left out as one source with the record."""
     q = _q(cx); keys = record_keys(cx, sha); cat = Catalog(cx, tree_id); out, shared = [], []
     skip = f"AND NOT (json_valid(a.notes) AND coalesce(json_extract(a.notes,'$.proposal'),'') IN ({','.join('?' * len(without))}))" if without else ""
@@ -197,7 +197,7 @@ def ground(cx, tree_id, kind, ids, sha, original, axis=None, value=None, tree=No
                 if v != "agrees" or coarser(note): continue             # a statement coarser than the tree's own place is no ground for it
             c = None if notes.get("vouched") else evidence_classes(cx, r["id"])
             if original and c and c.get("original") == original: shared.append(original); continue
-            out.append({"id": r["id"], "first_hand": word or (c or {}).get("information") == "primary", "day": day, "information": "your own word" if word else (c or {}).get("information") or "indeterminable"})
+            out.append({"id": r["id"], "day": day, "information": "your own word" if word else (c or {}).get("information") or "indeterminable"})
     return out, list(dict.fromkeys(shared))
 
 def editable(cx, sha):
@@ -930,7 +930,8 @@ def rule_points(cx, tree_id, prop, without=()):
     beside it, so a decision written on an earlier reading is examined on what the record now reads as. A trusted record (T1–T3) of
     an automated kind is taken on the accepted name and two points, nothing disagreeing against an accepted value
     (split_disagree); each point stands on the tree's own statements as ground() finds them, and a date to the day or a
-    relationship counts double only where the tree holds it on primary information or the owner's own word. A persona whose
+    relationship counts double where the tree holds it on such ground, whatever its information class (the classes decide
+    conflicts, not whether two records that agree are about one person). A persona whose
     name the tree does not hold on such ground is taken only through a relationship the record states to a persona already
     accepted on it. A page anyone can edit (T4) of an identity kind gives the identity alone. without: proposal ids whose
     assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by the
@@ -1061,9 +1062,7 @@ def rule_points(cx, tree_id, prop, without=()):
             if shared: one_source(f"the {t} date", shared)
             continue
         day = [g for g in gs if g["day"]] if "year only" not in line else []
-        if [g for g in day if g["first_hand"]]: points.append((f"{t} date to the day ({_on([g for g in day if g['first_hand']])})", 2))
-        elif day: points.append((f"{t} date to the day, once (the tree holds the day on {_on(day)})", 1))
-        else: points.append((f"{t} date", 1))
+        points.append((f"{t} date to the day ({_on(day)})", 2) if day else (f"{t} date", 1))
     for label, et in (("death place", "Death"), ("burial place", "Burial")):
         line = next((a for a in agree if a.startswith(f"{label} agrees")), None)
         if not line or not cand["events"].get(et): continue
@@ -1087,8 +1086,7 @@ def rule_points(cx, tree_id, prop, without=()):
         if computed: points.append((f"{pt}, once (the record's indexer, not the record, states it" + ("" if gs else "; a link the file claims") + ")", 1))
         elif gs:
             rel_points.append(pt)                                  # a survivor the tree holds on trusted evidence: an obituary's ground
-            first = [g for g in gs if g["first_hand"]]
-            points.append((f"{pt} ({_on(first)})", 2) if first else (f"{pt}, once (the tree holds the link on {_on(gs)})", 1))
+            points.append((f"{pt} ({_on(gs)})", 2))
         elif shared: one_source(f"the {pt}", shared)
         else: points.append((f"{pt} (a link the file claims, the relative's own persona here fitting on more than a name)", 1))   # grounded above: a link the file claims counts once, never double, and is no obituary's ground
     bare_note = ("; the relationship the record gives to " + ", ".join(dict.fromkeys(bare)) + " is no point: the record gives nothing of them but the name and the relationship itself, and they are not accepted on it") if bare else ""
