@@ -193,7 +193,11 @@ pass's other limits (`Catalog.beyond_life`): a parent too young or too old at a
 birth, a statement dated after the death or before the birth (Ruth M Peters's
 public record of 2000–2001 after her 29 February 2000 death, live, needs her
 Social Security pages and that record in the cut), and one person in two places
-in one census year. When a real document
+in one census year; and a connector's run whose records are all web pages no
+parser reads, which `run_step.run` logs `unread` and which closes no step, the
+household's steps with it (every such page the archive holds was saved in the
+browser: no connector has answered with one, so the path has no real response to
+run against). When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
@@ -495,17 +499,16 @@ other member's relationship to the head is read only as FamilySearch's grouping
 real page that the details render without a request the method does not make),
 then save the archived census pages again by the same method.
 
-### C37. A none run that stopped at a hit reads as changed fields
+### C37. A connector's record no parser reads, in a form other than a page, is logged found
 
-`run_step.run_connector` also stops at a name whose only hits are a book the
-Archive lends (`outcome_of` reads that as none), and `run_step.run` sets a found
-run to none when every record read is a results listing none of whose rows fits
-anyone. Either leaves `tried` shorter than the step's names, and
-`log_search.same_fields` reads a shorter list as the step's fields only for a
-found run, so that connector is asked the same query again every turn. Have the
-run say on its logged place field that it stopped at a hit, read that in
-`same_fields` instead of the outcome, and show it on a real run: a cited book
-the Archive lends, its place carrying several names, run twice, asks once.
+`log_search.unread_page` holds a record unread only when it is an HTML page
+whose every extraction failed, so a run whose record is a connector's JSON or
+text response that no extractor claims stays `found`, closes its step at the
+holder, and the plan reopens the step only through `closed_by_pointers`. Read
+"no parser reads it" from the record's extractions whatever its form (an image
+or item metadata excepted, as now), so the runner and the attach log such a run
+`unread` alike, and show it on a real archived response no extractor claims, if
+one exists; if none does, record the path in the untested-paths entry.
 
 ### C38. reconsider examines the rule's decisions in creation order within a second
 

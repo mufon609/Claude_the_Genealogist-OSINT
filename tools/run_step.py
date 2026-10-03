@@ -12,8 +12,8 @@ data; every response is archived as it came, an artifact whose locator is the re
 names for a posted search) and whose source is the registry row; each hit's own transcription, text or
 image is fetched and archived the same way with what the response said about it in the manifest notes, and a search
 response the connector marks as the record itself is read as one. A place field carrying several names is tried name by
-name, stopping at the first that gets a hit, and a request already made on the run is not made again: a name that makes
-one is logged as tried, the note saying whose request it repeated. One search_log
+name, stopping at the first that gets a hit (the run's logged place says so), and a request already made on the run is not
+made again: a name that makes one is logged as tried, the note saying whose request it repeated. One search_log
 row records the exact query, the outcome (found when a hit was archived, none when the source answered with nothing,
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
@@ -21,7 +21,9 @@ a record) and the matcher on each extraction; a record no extractor claims is re
 are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
 index's rows under a surname) is found only when a row fits a person, as docs/RESEARCH-WORKFLOW.md §4 has it for a
 results page saved by hand: when no row of any listing fits anyone, the run is set to none with the reason in its note,
-the rows stay on the artifact as candidates, and the step stands as it stood before the run.
+the rows stay on the artifact as candidates, and the step stands as it stood before the run. A run whose records are all
+web pages no parser reads (log_search.unread_page: the extractor failed every one) is set to unread, as the attach logs a page
+saved by hand: the pages are held on the step's log, the note says so, and no step is closed.
 A step whose sources have several connectors runs at each, one log row per source: a search step at the connectors of its
 row's sources, a fetch step at its holder's and at those of its row's sources too (an obituary cited at a closed source runs
 at the Archive's newspapers with the citation's paper and date), the page saved by hand and a connector's answer being runs
@@ -46,7 +48,7 @@ import argparse, http.client, json, os, re, sys, time, urllib.error, urllib.pars
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, collection_tier, first_value
-from log_search import log as log_search, latest_answer, ran_unchanged, rendered_query
+from log_search import hold_unread, log as log_search, latest_answer, ran_unchanged, rendered_query, unread_page
 from extract import extract, RESULTS_LISTINGS
 from conclude import match_record
 import connectors
@@ -187,7 +189,9 @@ def household_steps(cx, tree_id, step):
 def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
     """One step through the connectors still to ask on its current fields (waiting_connectors), or through every one when
     again is set (a step run by its id): one run each (run_connector), then extraction and matching over every record any of
-    them archived. Returns one result per connector: a connector not asked, its source having answered on these fields,
+    them archived; a found run whose records fit no one (every record a results listing none of whose rows fits) is set to
+    none, and one whose records are all pages no parser reads is set to unread, each leaving the step as it stood before the
+    run. Returns one result per connector: a connector not asked, its source having answered on these fields,
     reports that answer (asked False, answered {outcome, at}) instead of a run, so --dry-run says which sources a step would
     ask."""
     conns = connectors_for(cat, step)
@@ -215,6 +219,10 @@ def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
             note = "no candidate fits; " + (cx.execute("SELECT notes FROM search_log WHERE id=?", (r["log"],)).fetchone()[0] or "")
             cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (note.rstrip("; "), r["log"]))   # a none run holds no record: the step stands as it stood before the run
             cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "none"
+        elif r["outcome"] == "found" and extracted and all(unread_page(cx, e["sha256"]) for e in extracted):   # every record is a web page no parser reads: held on the log, read by nobody, closing nothing
+            for lid in r["logs"]: hold_unread(cx, lid)
+            for sid in r["household_steps"]: cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (sid,))   # household_steps takes only planned steps
+            cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "unread"
         out.append({**r, "extracted": extracted})
     return out
 
@@ -231,9 +239,10 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     already made on this run is never made again: a connector that reads a place only as a state and a county, or not at
     all, builds the same request for two names of one place, which a rate-limited holder cannot answer differently, so
     such a name is not asked and the run's note says which name's request it repeated. Every name tried, asked or not,
-    is on the logged run's query, the last of them its value, so a widening try is read back afterwards, and a run that
-    tried every name, or a found run that stopped at the name that got the hit, is read as the step's own fields
-    (log_search.same_fields). Returns the run with the records archived, to be read afterwards."""
+    is on the logged run's query, the last of them its value, with `stopped_at_hit` saying whether the run stopped at a
+    name that got a hit, whatever the hit came to (a record, a book the Archive lends, a listing no row of which fits), so
+    a widening try is read back afterwards, and a run that tried every name or stopped at a hit is read as the step's own
+    fields (log_search.same_fields). Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     from connectors.ia import name_parts
     surname = name_parts(query)[1]
@@ -250,7 +259,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     if not reqs: gate = f"the fields give the connector nothing to ask; it wants {wants}: not asked"   # no request: a none run with the reason, the step asked again once the plan writes the field
     if gate:                                                     # the source's years miss the step's, or its connector has nothing to ask: a none run with the reason, no request
         lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome="none", artifacts=None, note=gate, query=query)
-        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "none", "log": lid, "artifacts": [], "hits": [], "errors": [], "household_steps": [], "records": [], **({"wants": wants} if wants else {"outside": gate})}
+        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "none", "log": lid, "logs": [lid], "artifacts": [], "hits": [], "errors": [], "household_steps": [], "records": [], **({"wants": wants} if wants else {"outside": gate})}
     src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (conn.SOURCE,)).fetchone()
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")
@@ -281,6 +290,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted"))})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
     made, repeated = {}, []                                      # made: a request's identity -> the name that made it; repeated: the notes of the names that made no new request
+    stopped = False                                              # the run stopped at a name that got a hit, the rest never tried
     for name in names:
         q = query_for(name); creqs = reqs if name == names[0] else conn.requests(q)
         if name is not None: tried.append(name)
@@ -311,20 +321,20 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
                 except ValueError: url = None
                 for h in page_hits:
                     hits_of_page(h)
-        if len(hits) > before: break                              # a hit under this name: never try the rest
+        if len(hits) > before: stopped = True; break              # a hit under this name, whatever it turns out to hold: never try the rest
     outcome = outcome_of(hits, errors, shas)
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [a for a in asked if a] + repeated + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
-    if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried}}   # every name tried, asked or not, the one the run stopped on
+    if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried, "stopped_at_hit": stopped}}   # every name tried, asked or not, the one the run stopped on, and whether it stopped at a hit
 
     own = step["kind"] != "fetch" or conn.SOURCE == step["locator_source_id"]   # a fetch step is done by its holder's answer alone: a row-source connector's hit is another paper's page, logged and held, the cited record still to fetch
     lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query, done=own)
-    household = []
+    household, logs = [], [lid]
     if step["kind"] == "fetch" and outcome == "found" and own:      # the page is held for every household member cited on it
         for other in household_steps(cx, tree_id, step):
-            log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
-                       query=rendered_query(other["query_json"], other["revisions_json"])); household.append(other["id"])
-    return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": all_reqs, "outcome": outcome, "log": lid, "artifacts": shas, "hits": hits,
+            logs.append(log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
+                                   query=rendered_query(other["query_json"], other["revisions_json"]))); household.append(other["id"])
+    return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": all_reqs, "outcome": outcome, "log": lid, "logs": logs, "artifacts": shas, "hits": hits,
             "errors": errors, "household_steps": household, "records": records}
 
 def main():

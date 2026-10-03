@@ -1,0 +1,662 @@
+{
+ "title": "a run that stopped at a hit and found nothing is the step's fields",
+ "line": "a directory step whose place carries two names, run at the Archive's city directories: the first name gets one hit, a book the Archive only lends, so the run stops at that name and is a none run with the reason; the logged place says the run stopped at a hit, which reads back as the step's own fields, so the Archive is asked once, not again on the next run or turn, until a name changes ahead of the one it stopped on; a run logged before the mark existed reads as it did, a found run as a stop at its hit and a none run as one that tried every name",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "Raymond Earl Davidson's city directory step as the live plan wrote it (the real step's fields, the towns his events name), carrying the place field a census or obituary step carries: the two ways the owner's records write Hempstead, tried in order",
+   "step": {
+    "person": "I332737099805",
+    "row_key": "city directory / tax list:",
+    "seq": 1,
+    "step_key": "search:city directory / tax list:",
+    "kind": "search",
+    "query_type": "subject_record",
+    "query": {
+     "birth_year": {
+      "basis": "accepted",
+      "tolerance": 2,
+      "value": 1939
+     },
+     "given": {
+      "basis": "accepted",
+      "value": "Raymond Earl"
+     },
+     "parents": {
+      "basis": "accepted",
+      "value": [
+       "Ruth M Peters",
+       "Robert Edgar Davidson"
+      ]
+     },
+     "place": {
+      "basis": "accepted",
+      "value": [
+       "Hempstead, Nassau, New York",
+       "Hempstead, Nassau, New York, USA"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "M"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Noi Davidson"
+      ]
+     },
+     "state": {
+      "basis": "accepted",
+      "value": "new jersey"
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Davidson"
+     },
+     "towns": {
+      "basis": "claim",
+      "value": [
+       "BG WILLIAM C DOYLE VET'S MEM CEM",
+       "New Egypt",
+       "Copague Suff*",
+       "Hempstead",
+       "NJ"
+      ]
+     },
+     "variants": {
+      "basis": "claim",
+      "value": [
+       "Raymond Davidson",
+       "Raymond E",
+       "Raymond E Davidson"
+      ]
+     }
+    },
+    "sources": [
+     "K01"
+    ],
+    "mode": "auto"
+   },
+   "as": "d",
+   "expect": [
+    {
+     "runnable": {
+      "step": "$d.step",
+      "is": true
+     },
+     "why": "the Archive's directories have not been asked on these fields"
+    }
+   ]
+  },
+  {
+   "say": "the real directories connector: the Archive's search for his name in directories of those towns answers with one book, the Martindale-Hubbell Law Directory 2014, and its metadata says the Archive only lends it; the run stops at the first name, which got the hit, and is a none run with the reason",
+   "run": {
+    "step": "$d.step",
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "be-api.us.archive.org/fts",
+       "fixture": "ia-fts-directories-raymond-davidson-new-jersey-towns.json"
+      },
+      {
+       "url_has": "archive.org/metadata/martindalehubbel0003unse_r8g1",
+       "fixture": "ia-metadata-martindalehubbel0003unse_r8g1.json"
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "connector": "ia_directories",
+        "source": "K01",
+        "asked": true,
+        "outcome": "none",
+        "requests": [
+         "https://be-api.us.archive.org/fts/v1/search?q=%22Raymond%20Davidson%22~3%20AND%20title%3A%28%22BG%20WILLIAM%20C%20DOYLE%20VET%27S%20MEM%20CEM%22%20OR%20%22New%20Egypt%22%20OR%20%22Copague%20Suff%2A%22%20OR%20%22Hempstead%22%20OR%20%22NJ%22%29%20AND%20title%3Adirectory%20AND%20NOT%20collection%3Anewspaperarchive&size=40"
+        ]
+       }
+      ],
+      "records": []
+     },
+     "why": "one request, the name's; the only hit is a lent book, which gives nothing to read"
+    },
+    {
+     "search_log": {
+      "step": "$d.step",
+      "is": [
+       {
+        "source_id": "K01",
+        "outcome": "none",
+        "notes": {
+         "has": "the Archive lends this copy and serves no text; read it at another holder"
+        },
+        "artifacts": {
+         "len": 2
+        },
+        "query": {
+         "place": {
+          "value": "Hempstead, Nassau, New York",
+          "tried": [
+           "Hempstead, Nassau, New York"
+          ],
+          "stopped_at_hit": true
+         }
+        }
+       }
+      ]
+     },
+     "why": "the logged place names the one name tried and says the run stopped at a hit"
+    },
+    {
+     "step": {
+      "person": "I332737099805",
+      "row_key": "city directory / tax list:",
+      "kind": "search",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "a none run leaves the step planned"
+    },
+    {
+     "runnable": {
+      "step": "$d.step",
+      "is": false
+     },
+     "why": "the run stopped at the name that got the hit: the same query again, so the Archive is not asked again on the next turn"
+    }
+   ]
+  },
+  {
+   "say": "the same step run again with no network at all: a request would fail the run",
+   "run": {
+    "step": "$d.step"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "connector": "ia_directories",
+        "asked": false,
+        "answered": {
+         "outcome": "none"
+        }
+       }
+      ]
+     },
+     "why": "asked once: the second run reports what the Archive answered and sends nothing"
+    }
+   ]
+  },
+  {
+   "say": "the plan writes the place's names again with a new name ahead of the one the run stopped on",
+   "step_query": {
+    "step": "$d.step",
+    "query": {
+     "birth_year": {
+      "basis": "accepted",
+      "tolerance": 2,
+      "value": 1939
+     },
+     "given": {
+      "basis": "accepted",
+      "value": "Raymond Earl"
+     },
+     "parents": {
+      "basis": "accepted",
+      "value": [
+       "Ruth M Peters",
+       "Robert Edgar Davidson"
+      ]
+     },
+     "place": {
+      "basis": "accepted",
+      "value": [
+       "Hempstead, Queens, New York",
+       "Hempstead, Nassau, New York",
+       "Hempstead, Nassau, New York, USA"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "M"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Noi Davidson"
+      ]
+     },
+     "state": {
+      "basis": "accepted",
+      "value": "new jersey"
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Davidson"
+     },
+     "towns": {
+      "basis": "claim",
+      "value": [
+       "BG WILLIAM C DOYLE VET'S MEM CEM",
+       "New Egypt",
+       "Copague Suff*",
+       "Hempstead",
+       "NJ"
+      ]
+     },
+     "variants": {
+      "basis": "claim",
+      "value": [
+       "Raymond Davidson",
+       "Raymond E",
+       "Raymond E Davidson"
+      ]
+     }
+    }
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$d.step",
+      "is": true
+     },
+     "why": "a name now stands ahead of the one the run stopped on that it never tried: the fields changed"
+    }
+   ]
+  },
+  {
+   "say": "the names as they were with the second dropped and a third added after the one the run stopped on",
+   "step_query": {
+    "step": "$d.step",
+    "query": {
+     "birth_year": {
+      "basis": "accepted",
+      "tolerance": 2,
+      "value": 1939
+     },
+     "given": {
+      "basis": "accepted",
+      "value": "Raymond Earl"
+     },
+     "parents": {
+      "basis": "accepted",
+      "value": [
+       "Ruth M Peters",
+       "Robert Edgar Davidson"
+      ]
+     },
+     "place": {
+      "basis": "accepted",
+      "value": [
+       "Hempstead, Nassau, New York",
+       "Town of Hempstead < Nassau County < New York < United States"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "M"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Noi Davidson"
+      ]
+     },
+     "state": {
+      "basis": "accepted",
+      "value": "new jersey"
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Davidson"
+     },
+     "towns": {
+      "basis": "claim",
+      "value": [
+       "BG WILLIAM C DOYLE VET'S MEM CEM",
+       "New Egypt",
+       "Copague Suff*",
+       "Hempstead",
+       "NJ"
+      ]
+     },
+     "variants": {
+      "basis": "claim",
+      "value": [
+       "Raymond Davidson",
+       "Raymond E",
+       "Raymond E Davidson"
+      ]
+     }
+    }
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$d.step",
+      "is": false
+     },
+     "why": "the names up to the one that got the hit are the same, whatever follows it"
+    }
+   ]
+  },
+  {
+   "say": "two more directory steps on the same fields, each with a run written as the runner wrote one before the logged place said whether it stopped at a hit: a found run and a none run, each with the first name tried alone",
+   "step": {
+    "person": "I332737099805",
+    "row_key": "city directory / tax list:",
+    "seq": 2,
+    "step_key": "search:city directory / tax list:legacy-found",
+    "kind": "search",
+    "query_type": "subject_record",
+    "query": {
+     "birth_year": {
+      "basis": "accepted",
+      "tolerance": 2,
+      "value": 1939
+     },
+     "given": {
+      "basis": "accepted",
+      "value": "Raymond Earl"
+     },
+     "parents": {
+      "basis": "accepted",
+      "value": [
+       "Ruth M Peters",
+       "Robert Edgar Davidson"
+      ]
+     },
+     "place": {
+      "basis": "accepted",
+      "value": [
+       "Hempstead, Nassau, New York",
+       "Hempstead, Nassau, New York, USA"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "M"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Noi Davidson"
+      ]
+     },
+     "state": {
+      "basis": "accepted",
+      "value": "new jersey"
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Davidson"
+     },
+     "towns": {
+      "basis": "claim",
+      "value": [
+       "BG WILLIAM C DOYLE VET'S MEM CEM",
+       "New Egypt",
+       "Copague Suff*",
+       "Hempstead",
+       "NJ"
+      ]
+     },
+     "variants": {
+      "basis": "claim",
+      "value": [
+       "Raymond Davidson",
+       "Raymond E",
+       "Raymond E Davidson"
+      ]
+     }
+    },
+    "sources": [
+     "K01"
+    ],
+    "mode": "auto"
+   },
+   "as": "f"
+  },
+  {
+   "say": "and the second",
+   "step": {
+    "person": "I332737099805",
+    "row_key": "city directory / tax list:",
+    "seq": 3,
+    "step_key": "search:city directory / tax list:legacy-none",
+    "kind": "search",
+    "query_type": "subject_record",
+    "query": {
+     "birth_year": {
+      "basis": "accepted",
+      "tolerance": 2,
+      "value": 1939
+     },
+     "given": {
+      "basis": "accepted",
+      "value": "Raymond Earl"
+     },
+     "parents": {
+      "basis": "accepted",
+      "value": [
+       "Ruth M Peters",
+       "Robert Edgar Davidson"
+      ]
+     },
+     "place": {
+      "basis": "accepted",
+      "value": [
+       "Hempstead, Nassau, New York",
+       "Hempstead, Nassau, New York, USA"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "M"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Noi Davidson"
+      ]
+     },
+     "state": {
+      "basis": "accepted",
+      "value": "new jersey"
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Davidson"
+     },
+     "towns": {
+      "basis": "claim",
+      "value": [
+       "BG WILLIAM C DOYLE VET'S MEM CEM",
+       "New Egypt",
+       "Copague Suff*",
+       "Hempstead",
+       "NJ"
+      ]
+     },
+     "variants": {
+      "basis": "claim",
+      "value": [
+       "Raymond Davidson",
+       "Raymond E",
+       "Raymond E Davidson"
+      ]
+     }
+    },
+    "sources": [
+     "K01"
+    ],
+    "mode": "auto"
+   },
+   "as": "n"
+  },
+  {
+   "log": {
+    "step": "$f.step",
+    "source": "K01",
+    "outcome": "found",
+    "query": {
+     "birth_year": {
+      "basis": "accepted",
+      "tolerance": 2,
+      "value": 1939
+     },
+     "given": {
+      "basis": "accepted",
+      "value": "Raymond Earl"
+     },
+     "parents": {
+      "basis": "accepted",
+      "value": [
+       "Ruth M Peters",
+       "Robert Edgar Davidson"
+      ]
+     },
+     "place": {
+      "basis": "accepted",
+      "value": "Hempstead, Nassau, New York",
+      "tried": [
+       "Hempstead, Nassau, New York"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "M"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Noi Davidson"
+      ]
+     },
+     "state": {
+      "basis": "accepted",
+      "value": "new jersey"
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Davidson"
+     },
+     "towns": {
+      "basis": "claim",
+      "value": [
+       "BG WILLIAM C DOYLE VET'S MEM CEM",
+       "New Egypt",
+       "Copague Suff*",
+       "Hempstead",
+       "NJ"
+      ]
+     },
+     "variants": {
+      "basis": "claim",
+      "value": [
+       "Raymond Davidson",
+       "Raymond E",
+       "Raymond E Davidson"
+      ]
+     }
+    }
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$f.step",
+      "is": false
+     },
+     "why": "a found run with no mark reads as it did: it stopped at its hit"
+    }
+   ]
+  },
+  {
+   "log": {
+    "step": "$n.step",
+    "source": "K01",
+    "outcome": "none",
+    "query": {
+     "birth_year": {
+      "basis": "accepted",
+      "tolerance": 2,
+      "value": 1939
+     },
+     "given": {
+      "basis": "accepted",
+      "value": "Raymond Earl"
+     },
+     "parents": {
+      "basis": "accepted",
+      "value": [
+       "Ruth M Peters",
+       "Robert Edgar Davidson"
+      ]
+     },
+     "place": {
+      "basis": "accepted",
+      "value": "Hempstead, Nassau, New York",
+      "tried": [
+       "Hempstead, Nassau, New York"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "M"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Noi Davidson"
+      ]
+     },
+     "state": {
+      "basis": "accepted",
+      "value": "new jersey"
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Davidson"
+     },
+     "towns": {
+      "basis": "claim",
+      "value": [
+       "BG WILLIAM C DOYLE VET'S MEM CEM",
+       "New Egypt",
+       "Copague Suff*",
+       "Hempstead",
+       "NJ"
+      ]
+     },
+     "variants": {
+      "basis": "claim",
+      "value": [
+       "Raymond Davidson",
+       "Raymond E",
+       "Raymond E Davidson"
+      ]
+     }
+    }
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$n.step",
+      "is": true
+     },
+     "why": "a none run with no mark reads as it did: it has not tried every name, so the step is asked again, and the run it makes then carries the mark"
+    }
+   ]
+  }
+ ]
+}

@@ -11,7 +11,7 @@ include/revise unless --query overrides them. A 'found' outcome marks the step d
 (a fetch step only when the page is the record it cites, holds_record); 'none' leaves
 it planned so it can be retried with different fields, and the log shows it was
 tried; 'unread' is a web page archived that no parser reads (unread_page): tools/attach.py
-writes it, never a hand, the page is held on the step's log and the step stays planned.
+and tools/run_step.py write it, never a hand, the page is held on the step's log and the step stays planned.
 A dismissed question stays closed when the plan is regenerated.
 """
 import argparse, json, os, sys
@@ -34,13 +34,16 @@ def rendered_query(query_json, revisions_json):
 
 REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
 
-def same_fields(rendered, ran, found=False):
+def same_fields(rendered, ran, outcome=None):
     """Whether a run's fields as logged are the step's rendered fields now, value for value: the same query again. What the run
     added beside the step's fields is not the step's (surname_variants, the alias table's spellings, basis record; a results
     page's fields as searched, basis run); a place field tried name by name is the same when the names tried are the step's
-    own names, or, for a found run (the run stops at the first name that gets a hit and never tries the rest), the step's
-    names up to the one that got it; a name added or dropped before that point, or any name added after a run that tried
-    them all, is a change, as is a field the step has dropped or added since."""
+    own names, or, for a run that stopped at a hit (the run stops at the first name that gets a hit and never tries the rest,
+    whatever the outcome: found, or none because the hits were a book the Archive lends or a listing none of whose rows fits
+    anyone), the step's names up to and including the one that got it; a name added or dropped before that point, or any name
+    added after a run that tried them all, is a change, as is a field the step has dropped or added since. A run says that it
+    stopped at a hit by `stopped_at_hit` beside `tried` on its logged place field; a run logged before the mark existed is
+    read by its outcome, which is the run's: found stopped at its hit."""
     for k, f in rendered.items():
         r = ran.get(k)
         if r is None: return False
@@ -48,7 +51,8 @@ def same_fields(rendered, ran, found=False):
         if r.get("tried"):
             names = f["value"] if isinstance(f["value"], list) else [f["value"]]
             tried = list(r["tried"])
-            if tried != names[:len(tried)] or (len(tried) < len(names) and not found): return False
+            stopped = r["stopped_at_hit"] if "stopped_at_hit" in r else outcome == "found"
+            if tried != names[:len(tried)] or (len(tried) < len(names) and not stopped): return False
         elif r.get("value") != f["value"]: return False
     return all(k in rendered for k, v in ran.items() if not (isinstance(v, dict) and v.get("basis") in ("run", "record")))
 
@@ -75,7 +79,7 @@ def ran_unchanged(cx, step, rendered, source_id=None):
     source whose runs are all errors is asked again. Read per source: one
     connector's none run on the step's fields does not close the step at another source, which is asked until it answers."""
     a = latest_answer(cx, step, source_id)
-    return a is not None and same_fields(rendered, a[2], a[0] == "found")
+    return a is not None and same_fields(rendered, a[2], a[0])
 
 HOUSEHOLD = "the household's record, accepted onto "     # the note prefix of a run written when a household record's persona is accepted onto a person
 ON_WORD = "on the owner's word about "                 # the note prefix of the run attach.on_word writes: the owner's word that a record is a person's, never reopened by the plan
@@ -96,16 +100,22 @@ def unread_page(cx, sha):
     """Whether an archived file is a web page nobody has read: text/html whose every extraction is the failed one tools/extract.py
     writes for a page no parser claims, and at least one exists. A page a parser claimed or the model or a person read through
     the transcription path (an extraction of its own, complete or partial) is not, nor an image or a file never read: those
-    runs stay as they are. A run whose artifacts are all such pages is logged `unread`, not `found`: the page is held on the
-    step's log and the step stays planned."""
+    runs stay as they are. A run whose pages are all such pages (the attach's one page, a connector's run's records) is logged
+    `unread`, not `found`: the pages are held on the step's log and the step stays planned."""
     mime = cx.execute("SELECT mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if not mime or not (mime[0] or "").startswith("text/html"): return False
     return {s for s, in cx.execute("SELECT status FROM extraction WHERE artifact_sha256=?", (sha,))} == {"failed"}
 
+def hold_unread(cx, log_id):
+    """A run already logged found whose pages no parser reads (unread_page) is an unread run: its outcome set to unread and its
+    note begun with UNREAD, the pages held on the step's log. The caller, which logged the run before the page was read, returns
+    any step the run marked done to the status it had."""
+    cx.execute("UPDATE search_log SET outcome='unread', notes=? || coalesce('; ' || notes, '') WHERE id=?", (UNREAD, log_id))
+
 def closed_by_pointers(cx, step_id):
     """Whether a step's found runs, since it was last reopened, are all pages that point at its record or hold nothing
-    (not holds_record): the step stands done on listings or pages no parser read alone (an unread run, the attach's word for
-    such a page, is not a found run and closes nothing). False when it has no found run since, when
+    (not holds_record): the step stands done on listings or pages no parser read alone (an unread run, the attach's and the runner's word
+    for such a page, is not a found run and closes nothing). False when it has no found run since, when
     a found run carries no artifact (a hand's found: the owner's word) or is the owner's word about a record (ON_WORD), or
     when any found run carries a record."""
     since = cx.execute("SELECT coalesce(max(id), '') FROM search_log WHERE plan_step_id=? AND notes LIKE ?", (step_id, REOPENED + "%")).fetchone()[0]

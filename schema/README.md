@@ -104,7 +104,8 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   0.7.8). `unread` is a web page archived that no parser reads: `tools/attach.py` logs it
   when every extraction of the page is the failed one `rule:extract` writes for a page no
   parser claims (`log_search.unread_page`; an image, and a page a parser, the model or a
-  person has read, keep `found`), its note beginning "no parser reads this page". The page
+  person has read, keep `found`), and `tools/run_step.py` logs it for a connector's run
+  whose records are all such pages, its note beginning "no parser reads this page". The page
   is held on the step's log, the step stays planned (`tools/fetches.py` does not list it
   again while its run stands on the step's fields), and nothing is closed or read. The 0.7.8
   migration (`tools/initdb.py`'s `unread_runs`, widening the outcome's CHECK by

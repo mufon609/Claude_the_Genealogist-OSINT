@@ -503,7 +503,8 @@ that pointed at it, the step, is archived under the step's citation, and
 closes both. A fetch step is done only when a record page holds its
 citation; a done step whose found runs hold only listings or pages no parser
 read (a hand's found run) is planned again by the plan, and a page no parser
-reads is logged `unread` by the attach, never found, and closes no step. When
+reads is logged `unread` by the attach, never found, and closes no step, nor
+does a connector's answer of such pages (below). When
 a step's sources include a holder with a connector as well (the 1950 site),
 the page saved by hand and the connector's own answer are runs of the same
 step, whichever came first.
@@ -553,7 +554,13 @@ image; the search inside is asked once per spelling of the surname the alias
 table holds for the person, Ahearn then Ahern, the pages merged; a book the
 Archive only lends stops at its metadata and the run is `none` with the
 reason), one `search_log` row holds the exact query, the outcome and every
-hash, and the extractor and matcher run on each hit's record.
+hash, and the extractor and matcher run on each hit's record. The run is
+logged before its records are read, so one whose records are all web pages no
+parser reads is then set to `unread`, as the attach logs such a page saved by
+hand: the pages are held on the step's log, the note says so, and no step is
+closed, the other household members' steps a census page was logged on included.
+A run with any record a parser reads is `found` (or, when every record is a
+results listing none of whose rows fits anyone, `none`) as before.
 A place field that carries several names (§3) is tried one name at a time, in
 that order, and the run stops at the first name that gets a hit. The requests a
 name makes are built before any is sent, and a request already made on the run
@@ -563,13 +570,16 @@ newspapers), builds one request for two names of one place, which a
 rate-limited holder cannot answer differently, so the second name is logged as
 tried and sends nothing, the run's note saying which name's request it
 repeated. Every name tried, asked or not, is on the logged run's
-query, so a run that tried them all reads back as the step's own fields, and so
-does a found run that stopped at the name that got the hit, whatever names
-follow it: a fetch step whose hit came from a connector other than its holder
-stays planned for the holder's own page, and that connector is not asked the
-same query again. A name added or dropped before the one the run stopped on, or
-added after a run that tried them all, is a change in the step's fields, and
-the step is asked again.
+query, and so is whether the run stopped at a hit. A run that tried them all
+reads back as the step's own fields, and so does a run that stopped at the name
+that got a hit, whatever names follow it and whatever the hit came to: a record
+found (a fetch step whose hit came from a connector other than its holder stays
+planned for the holder's own page), a book the Archive only lends (a `none`
+run), a listing none of whose rows fits anyone (a `none` run), and that
+connector is not asked the same query again. A name added or dropped before the
+one the run stopped on, or added after a run that tried them all, is a change in
+the step's fields, and the step is asked again. A run logged before the mark
+existed reads by its outcome: found stopped at its hit, none tried every name.
 The runner runs a fetch step the same way when the citation's free holder has a
 connector: the 1950 site takes the citation's surname within its enumeration
 district and answers with the household's schedule, whose every row becomes a
@@ -626,8 +636,9 @@ outcome (`found`, `none`, `blocked`, `error`, `unread`), artifacts produced.
 "Searched the 1880 census of Worcester Township for Brant, none found" is
 evidence and stays. `found` is a record or page archived and read; `unread` is
 a web page archived that no parser reads (a failed extraction, no reading of it
-by the model or a person): held on the step's log, the step stays planned, and
-what a program can rely on is that nothing was read from it.
+by the model or a person), whether the attach saved it from the browser or a
+connector's answer was archived: held on the step's log, the step stays planned,
+and what a program can rely on is that nothing was read from it.
 
 A `missing_fact` or `unverified_claim` question is about the absence of a
 claim, so it closes as answered the moment an accepted document supplies the
@@ -1283,9 +1294,9 @@ question whose gap has gone; a question a
 person dismissed stays closed. `tools/log_search.py` (and the person screen)
 record every run with the fields as rendered after include and revise; a
 `found` run marks the step done, a `none` run leaves it planned and visible as
-tried, and so does an `unread` run, the one the attach logs for a web page no
-parser reads (schema 0.7.8: the page is held on the log, nothing is read from
-it). A found run that archived a file records the artifact on the log; the
+tried, and so does an `unread` run, the one the attach and the runner log for a
+web page no parser reads (schema 0.7.8: the page is held on the log, nothing is
+read from it). A found run that archived a file records the artifact on the log; the
 row is then held, and the assertion comes from extraction and review.
 
 ## Rules that hold throughout
