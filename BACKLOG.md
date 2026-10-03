@@ -156,6 +156,24 @@ memberships, and count a record that names both parents of a child against the
 tree's accepted couple as that couple, so those stay taken; show both on
 the Ahearn and Davidson records above.
 
+Decision wanted first, measured on a copy of the live catalog of 3 Oct 2026:
+requiring both rows of one family withdraws 14 rule decisions, and the
+entry's own cases do not read as it says. Joe Davidson was taken through the
+claimed-relationship route ("your tree already links them so, claimed or
+accepted"), which reads no `ground()` at all: requiring both rows leaves his
+decision standing (the route is C3's). Mary Castello's partner row carries
+only an undecided statement, from the 1917 death index; the 1901 marriage
+index's parentage is on Annie's child row, and the couple Dennis Scannell and
+Mary is not accepted, so no couple clause keeps her 1917 card. Dan Davidson's
+obituary names his mother alone: his decision stands only on Noi's partner
+row, the shape this entry calls the defect. Underneath: `link_family` writes a
+parent–child statement on the child's row only, so a parent's partner row has
+ground only from a record that states the couple, and "both rows" makes a
+marriage's evidence a condition of every parentage point. Say what grounds a
+parent–child point (the child's row, or the child's row and the parent's
+partner row), how a record naming one parent counts, and whether Dan's and
+Mary's decisions stand.
+
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the
