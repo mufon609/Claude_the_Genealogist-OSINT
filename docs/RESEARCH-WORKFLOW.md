@@ -1150,7 +1150,9 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   relationship whether the record states it or the indexer computed it (a
   census states each person's relationship to the head; FamilySearch's
   "mother" and "sister" groupings are its own), with the original a
-  derivative comes from, so records copied from one original are one source.
+  derivative comes from, so records copied from one original are one source
+  (`docs/DATA-ARCHITECTURE.md` §7 decision 15: one record, cited once, its copies
+  beneath it).
   The table is `data/evidence-classes.csv`, read when needed; a class never
   becomes a weight.
 - **What the rule counts.** A point is a birth date, a death date, a death or

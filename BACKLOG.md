@@ -486,32 +486,37 @@ the model, with a person where the image is in doubt), which the queue counts as
 work a turn can do. Show it on a real image the harness holds, then read the
 seven live and decide them like Helen's and Frederick's.
 
-### C25. Two readings of one record are decided apart
+### C25. One record is one source, wherever it is held
 
-John Y Davidson's 1946 Kentucky death certificate is held twice: FamilySearch's
-index page of it (`familysearch-kentucky-deaths-1946-N983-M2R.html`, accepted
-as his) and the certificate's image, read by the model
-(`familysearch-kentucky-death-records-1946-N983-M2R.jpg`), both archived under
-the file's citation of it (`1,3077::604036`) and named for its ark N983-M2R. The page gives the death as 1946 alone and the image as
-11 Jun 1946, so the death date conflict waits on the owner while the image's
-own card is refused: its relatives are named by name alone and his persona
-disagrees with the file's claimed dates. When one reading of a record is
-accepted for a person, the same entry on another reading of that record (the
-same record id, the same role and an agreeing name, `catalog.record_original`)
-is the same document: decide it the same way, recorded as the rule with the
-reading it follows, and let the image's day stand as the certificate's own.
+`docs/DATA-ARCHITECTURE.md` §7 decision 15 (the owner: "if you find the same
+source on multiple sites it should still be 1 citation on the profile with
+multiple sources"). The catalog has no record above the archived file: each copy
+(a FamilySearch index page, the image, a state index's line) is its own
+artifact with its own reading, cards, decisions and statements, the person
+screen lists every statement apart (`facts.evidence_rows`), and the only "same
+record" is `original` in `data/evidence-classes.csv`, named by kind and year
+("death certificate"), which two different documents share: the rule's
+one-original test reads a parent's birth register beside the child's as one
+source, and two obituaries of one person in two papers as one.
 
-Decision wanted first: the two readings do not meet that test as the catalog
-holds them. The image's reading carries no record id of its own (the ark is
-the page's locator and is in the image's file name only); what the two
-artifacts share is the file's citation (`apid 1,3077::604036`) they were both
-archived under. And the roles differ: the page's reader writes the record's
-own person `subject`, the image's reading `deceased`. Say whether the locator a
-record was archived under identifies its entry across readings, and how a
-reader-independent role for the record's own person is read. The image's John
-has no card now (a rematch closed it as superseded, the matcher putting none
-up since the file's claimed dates disagree), so following the accepted reading
-also needs the rule to write the decision with no card standing.
+Give a record an identity of its own in the evidence layer, insert-only like
+the rest: a record row, and each archived copy joined to it on what the copies
+share of the record itself (the citation they were archived under, a
+certificate or file number a reading gives, the same entry by role and name),
+read by code where it can be and on the owner's word otherwise, never by kind
+alone. Then: the profile and `tools/proof.py` cite each record once with its
+copies beneath it; a decision on one copy's entry is recorded on the record's
+entry and carries to every copy's persona of it, so the reading of an image
+with no card of its own is decided with the page; the rule counts a record once
+by that identity (`conclude.ground`'s one-original test) and reads each copy's
+statements as statements of the record; the reader's role words map to one
+role for the record's own person (`subject` on a page, `deceased` on an image).
+Show it on John Y Davidson's 1946 Kentucky death certificate, held as
+FamilySearch's index page (`familysearch-kentucky-deaths-1946-N983-M2R.html`,
+the death as 1946, accepted as his) and as the certificate's image read by the
+model (`familysearch-kentucky-death-records-1946-N983-M2R.jpg`, 11 Jun 1946),
+both archived under the file's citation `1,3077::604036`: one record, its day
+of death the certificate's own, his death date conflict decided on it.
 
 ### C27. An import from anywhere is read as itself
 
@@ -587,19 +592,6 @@ nothing about where the bytes came from, and the live catalog may hold rows
 for them. Find what that run wrote (artifacts, extractions, personas, runs)
 through a tool that reads the catalog, say what the owner should keep, and
 correct the README rows that rest on those copies.
-
-### C34. An original names whose record it is
-
-`data/evidence-classes.csv` names a record's original by its kind ("death
-certificate", "birth register", "obituary"), with the year only where the
-name carries one, so the standing rule's one-original test (`conclude.ground`)
-reads two different documents of one kind on the same person's event as one
-original: a parent's birthplace on a child's birth register beside the
-parent's own birth register, two obituaries of one person in two papers. The
-test errs toward the owner (a statement left out of a point, a card instead of
-a decision), never toward a wrong decision. Name the original by the record's
-own subject as well (the person whose death the certificate is), from the
-reading's own persona roles, so only copies of one document count once.
 
 ### C35. Family links accepted on a grouping the record does not state
 

@@ -380,6 +380,21 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    discounting a secondary day would leave every later record of a person
    waiting on the owner until the first record of their life is found.
 
+15. **One record is one source, wherever it is held.** The owner: "if you find
+   the same source on multiple sites it should still be 1 citation on the
+   profile with multiple sources." A record is the document made at an event
+   (John Y Davidson's 1946 Kentucky death certificate); the files the archive
+   holds of it (FamilySearch's index page of it, the certificate's image, a
+   state index's line, an Ancestry entry) are its copies, each archived and
+   kept as itself. A fact the record states is one statement of that record
+   whatever copies carry it: a person's profile cites the record once with its
+   copies beneath it; a decision on one copy's entry is the decision on the
+   record's entry and carries to every copy; the rule counts the record once.
+   What makes two copies one record is what they share of the record itself (a
+   certificate number, the citation they were archived under, the same entry by
+   role and name), never the kind of record alone, which two different
+   documents share.
+
 ## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**
