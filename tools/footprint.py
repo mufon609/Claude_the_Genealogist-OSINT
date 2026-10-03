@@ -5,30 +5,48 @@
 usage: tools/footprint.py "<person name or id>" [--tree slug] [--json]
 
 Read-only. Reports, for one person:
-  duplicates   persons in the tree that are probably the same individual
+  duplicates   persons in the tree that are probably the same individual (the
+               duplicate check, run for every person, reviewed or not)
   unlinked     persons in the tree that may be the missing relative
   records      every record cited or held on a spouse, child, parent or sibling
                that is not already on the person, ranked by how many family
                members share it, then by how much it would settle
   collections  the collections those records come from, for same-collection searches
+The unlinked persons and the records come after the person's baseline is reviewed.
 """
 import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, resolve_tree
-from catalog import Catalog, year
+from catalog import Catalog, soundex, year
 
 RELATION_NAMES = {"spouses": "spouse", "children": "child", "parents": "parent", "siblings": "sibling"}
 
-def soundex(s):
-    s = re.sub(r"[^a-z]", "", (s or "").lower())
-    if not s: return ""
-    codes = {**dict.fromkeys("bfpv", "1"), **dict.fromkeys("cgjkqsxz", "2"), **dict.fromkeys("dt", "3"), "l": "4", **dict.fromkeys("mn", "5"), "r": "6"}
-    out, last = s[0].upper(), codes.get(s[0], "")
-    for ch in s[1:]:
-        c = codes.get(ch, "")
-        if c and c != last: out += c
-        if ch not in "hw": last = c
-    return (out + "000")[:4]
+def _first_birth_year(cat, pid):
+    return next((e["year"] for e in cat.events(pid) if e["type"] == "Birth" and e["year"]), None)
+
+def duplicates(cat: Catalog, pid: str):
+    """Persons of the tree that are probably the same individual as this one (docs/RESEARCH-WORKFLOW.md §2, duplicate_person):
+    the surname's Soundex code and the first given name the same, and a birth year within one year, or the same spouse or
+    parents by name. A person merged into another (person.merged_into) is never counted: the merge already said who they
+    are. [{id, name, why}]. Run for every person, reviewed or not: a duplicate is resolved before anything is built on
+    either entry."""
+    p = cat.person(pid); fam = cat.family(pid)
+    given = p["names"][0][0] if p["names"] else None; surname = p["names"][0][1] if p["names"] else None
+    if not surname: return []
+    b = _first_birth_year(cat, pid)
+    my_spouses = {n.lower() for _, n in fam["spouses"]}; my_parents = {n.lower() for _, n in fam["parents"]}
+    out = []
+    for oid, oname, ogiven, osurname in cat.q("""SELECT p.id, p.display_name, n.given, n.surname FROM person p JOIN person_name n ON n.person_id=p.id AND n.is_primary
+                                                 WHERE p.tree_id=? AND p.id<>? AND p.merged_into IS NULL""", cat.tree_id, pid):
+        if soundex(osurname) != soundex(surname): continue
+        if (ogiven or "").split(" ")[0].lower() != (given or "").split(" ")[0].lower(): continue
+        ob = _first_birth_year(cat, oid)
+        if b and ob and abs(ob - b) <= 1:
+            out.append({"id": oid, "name": oname, "why": f"{oname} [{oid[-6:]}]: same name, born {ob}"}); continue
+        of = cat.family(oid)
+        if (my_spouses & {n.lower() for _, n in of["spouses"]}) or (my_parents & {n.lower() for _, n in of["parents"]}):
+            out.append({"id": oid, "name": oname, "why": f"{oname} [{oid[-6:]}]: same name and the same spouse or parents"})
+    return out
 
 def expect(collection, rel, subject_alive_in_year, subject_sex):
     """What a record about a relative is expected to say about the subject. Plain rules, by collection type."""
@@ -64,7 +82,7 @@ def expect(collection, rel, subject_alive_in_year, subject_sex):
 
 def footprint(cat: Catalog, pid: str):
     p = cat.person(pid); fam = cat.family(pid); ev = cat.events(pid)
-    given = p["names"][0][0] if p["names"] else None; surname = p["names"][0][1] if p["names"] else None
+    surname = p["names"][0][1] if p["names"] else None
     dated = [e["year"] for e in ev if e["year"]]
     birth = next((e for e in ev if e["type"] == "Birth" and e["year"]), None); death = next((e for e in ev if e["type"] in ("Death", "Burial") and e["year"]), None)
     b = birth["year"] if birth else (min(dated) - 20 if dated else None)
@@ -74,23 +92,15 @@ def footprint(cat: Catalog, pid: str):
     relatives = [(rid, rname, RELATION_NAMES[g]) for g in ("spouses", "children", "parents", "siblings") for rid, rname in fam[g]]
     related_ids = {rid for rid, _, _ in relatives} | {pid}
 
-    # ---- duplicates: same name and same birth year, or same name and a shared spouse/parent name
-    duplicates, unlinked = [], []
+    # ---- duplicates (the duplicate check), then unlinked same-surname persons as hints
+    dups = duplicates(cat, pid); unlinked = []
     if surname:
         rows = cat.q("""SELECT p.id, p.display_name, n.given, n.surname FROM person p JOIN person_name n ON n.person_id=p.id AND n.is_primary
-                        WHERE p.tree_id=? AND p.id<>?""", cat.tree_id, pid)
-        my_spouses = {n.lower() for _, n in fam["spouses"]}; my_parents = {n.lower() for _, n in fam["parents"]}
+                        WHERE p.tree_id=? AND p.id<>? AND p.merged_into IS NULL""", cat.tree_id, pid)
         for oid, oname, ogiven, osurname in rows:
-            if soundex(osurname) != soundex(surname): continue
-            same_given = (ogiven or "").split(" ")[0].lower() == (given or "").split(" ")[0].lower()
-            of = cat.family(oid); oev = cat.events(oid)
+            if soundex(osurname) != soundex(surname) or oid in related_ids or any(x["id"] == oid for x in dups): continue
+            oev = cat.events(oid)
             ob = next((e["year"] for e in oev if e["type"] == "Birth" and e["year"]), None)
-            o_spouses = {n.lower() for _, n in of["spouses"]}; o_parents = {n.lower() for _, n in of["parents"]}
-            if same_given and b and ob and abs(ob - b) <= 1:
-                duplicates.append({"id": oid, "name": oname, "why": f"{oname} [{oid[-6:]}]: same name, born {ob}"}); continue
-            if same_given and ((my_spouses & o_spouses) or (my_parents & o_parents)):
-                duplicates.append({"id": oid, "name": oname, "why": f"{oname} [{oid[-6:]}]: same name and the same spouse or parents"}); continue
-            if oid in related_ids: continue
             ostates = {e["place"]["state"] for e in oev if e["place"] and e["place"]["state"]}
             if b and ob and abs(ob - b) <= 50 and (not states or not ostates or states & ostates):
                 gen = "possible parent" if 15 <= b - ob <= 50 else ("possible child" if 15 <= ob - b <= 50 else "possible sibling or cousin")
@@ -123,7 +133,7 @@ def footprint(cat: Catalog, pid: str):
     coll = [{"name": n, "count": c} for n, c in collections_.most_common()]
     return {"person": {"id": pid, "name": p["name"], "span": [b, d]},
             "summary": {"relatives": len(relatives), "records": len(records), "shared": sum(1 for r in records if len(r["on"]) > 1)},
-            "duplicates": duplicates, "unlinked": unlinked, "records": records, "collections": coll}
+            "duplicates": dups, "unlinked": unlinked, "records": records, "collections": coll}
 
 def render(fp):
     P = fp["person"]; s = fp["summary"]
@@ -146,7 +156,10 @@ def main():
     cx = connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     pid = cat.find_person(a.who); bl = cat.baseline(pid)
     if not bl["complete"]:
-        sys.exit(f"{cat.person(pid)['name']}: baseline not reviewed ({', '.join(bl['undecided'])} undecided); the footprint, duplicates and unlinked persons come after review")
+        dups = duplicates(cat, pid)
+        if a.json: print(json.dumps({"duplicates": dups, "gated": True}, ensure_ascii=False, indent=1)); return
+        if dups: print("DUPLICATES (resolve first)"); print("\n".join(f"  {x['why']}" for x in dups))
+        sys.exit(f"{cat.person(pid)['name']}: baseline not reviewed ({', '.join(bl['undecided'])} undecided); the footprint and unlinked persons come after review")
     fp = footprint(cat, pid)
     print(json.dumps(fp, ensure_ascii=False, indent=1) if a.json else render(fp))
 

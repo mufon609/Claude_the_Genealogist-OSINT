@@ -507,8 +507,7 @@ let a card that has become a hint leave.
 
 ### C29. One home for each shared rule, and no dead schema
 
-Soundex is written three times (`catalog.py`, `backfill_aliases.py`,
-`footprint.py`), edit distance twice, name splitting three times, the
+Soundex is written twice (`catalog.py`, `backfill_aliases.py`), edit distance twice, name splitting three times, the
 nickname table twice, the suffix set twice; `initdb.py` re-implements `ulid`
 without the monotonic rule `treelib.py` promises; `turns.name_of` is dead.
 The `derivative` and `artifact_page` tables are never used, the three FTS

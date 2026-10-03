@@ -2,7 +2,7 @@
 
 Shared by every tool and by the person screen. Nothing here writes.
 """
-import collections, csv, json, os, re, sqlite3, sys, unicodedata, urllib.parse
+import calendar, collections, csv, datetime, json, os, re, sqlite3, sys, unicodedata, urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -406,6 +406,74 @@ def same_event(etype, kind, a, b):
     if not places_one(a.get("place"), b.get("place")): return False
     if kind == "attribute" and (a.get("value") or "") != (b.get("value") or ""): return False
     return etype in ONCE or dates_one(a, b)
+
+LIMITS = None                                    # data/life-limits.csv, read once per process by life_limits
+
+def life_limits():
+    """data/life-limits.csv as {limit: value}, read once per process: the bounds of one life a family link or a dated statement
+    is tested against (Catalog.beyond_life, tools/conclude.py's outside_life), a number as a number and a list of event types
+    (after_death_types) as a tuple."""
+    global LIMITS
+    if LIMITS is None:
+        LIMITS = {}
+        with open(os.path.join(ROOT, "data", "life-limits.csv"), newline="", encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                v = r["value"].strip()
+                LIMITS[r["limit"]] = float(v) if re.fullmatch(r"\d+(?:\.\d+)?", v) else tuple(t.strip() for t in v.split(";") if t.strip())
+    return LIMITS
+
+def _day(s, last):
+    """The first day (last: the last day) a date written YYYY, YYYY-MM or YYYY-MM-DD can stand for, or None."""
+    m = re.fullmatch(r"(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?", s or "")
+    if not m: return None
+    y = int(m.group(1)); mo = int(m.group(2)) if m.group(2) else (12 if last else 1)
+    if not (1 <= mo <= 12 and y >= 1): return None
+    d = int(m.group(3)) if m.group(3) else (calendar.monthrange(y, mo)[1] if last else 1)
+    try: return datetime.date(y, mo, d)
+    except ValueError: return None
+
+def date_span(start, end=None, qualifier=None):
+    """(earliest, latest) day a date can stand for, each a datetime.date, None on a side the date leaves open (before, after);
+    None when it states no year. A bare year spans the year, a month the month, between its first date to its last; a date
+    marked about, estimated or calculated (NEAR) spans two whole years more on either side, as date_verdict allows."""
+    s, e = start or None, end or None
+    if not (s or e): return None
+    if qualifier == "before":
+        d = _day(e or s, True); return (None, d) if d else None
+    if qualifier == "after":
+        d = _day(s or e, False); return (d, None) if d else None
+    lo, hi = _day(s or e, False), _day(e or s, True)
+    if lo is None or hi is None: return None
+    if qualifier in NEAR: lo, hi = datetime.date(max(lo.year - 2, 1), 1, 1), datetime.date(hi.year + 2, 12, 31)
+    return lo, hi
+
+def _years(a, b): return (b - a).days / 365.2425
+
+def _plus_months(d, n):
+    y, m = divmod(d.month - 1 + n, 12)
+    return datetime.date(d.year + y, m + 1, min(d.day, calendar.monthrange(d.year + y, m + 1)[1]))
+
+def parent_limit(sex, parent_birth, parent_death, child_birth):
+    """The limit of one life (life_limits) a parent-child link breaks, or None: (the parent's date it rests on, "birth" or
+    "death", and the limit in words). Each date is a date_span or None. A mother younger or older at the child's birth than
+    the bounds allow, a father the same by his own, a child born after the mother's death or more months after the father's
+    than the limit allows; a parent of unknown sex is held to the wider bounds. Only what holds over every day each date can
+    stand for counts, so a bare year or an about date breaks nothing a finer date of it might keep."""
+    L = life_limits(); cb = child_birth
+    if not cb: return None
+    who = {"F": "the mother", "M": "the father"}.get(sex, "the parent")
+    young = {"F": L["mother_youngest"], "M": L["father_youngest"]}.get(sex, min(L["mother_youngest"], L["father_youngest"]))
+    old = {"F": L["mother_oldest"], "M": L["father_oldest"]}.get(sex, max(L["mother_oldest"], L["father_oldest"]))
+    if parent_birth:
+        if parent_birth[0] and cb[1] and _years(parent_birth[0], cb[1]) < young:
+            return "birth", f"{who} at most {int(_years(parent_birth[0], cb[1]))} at the birth, younger than {young:g}, the youngest one life allows"
+        if parent_birth[1] and cb[0] and _years(parent_birth[1], cb[0]) > old:
+            return "birth", f"{who} at least {int(_years(parent_birth[1], cb[0]))} at the birth, older than {old:g}, the oldest one life allows"
+    if parent_death and parent_death[1] and cb[0]:
+        months = int(L["after_mother_death_months"] if sex == "F" else L["after_father_death_months"])
+        if cb[0] > _plus_months(parent_death[1], months):
+            return "death", f"a child born {f'more than {months} months ' if months else ''}after {who}'s death"
+    return None
 
 def collection_state(name):
     """The US state a collection's own name states as its coverage, when the registry names it first ("<State>, U.S.,
@@ -1035,6 +1103,110 @@ class Catalog:
             if not (f["date_start"] or f["date_end"]): out.append(f"{t}: {label} has no date and fits none of your {n} {t} events{whose} ({ids}); place fact {fid} on one with tools/conclude.py place")
             elif any(date_closeness(fd, e) is not None for e in events): out.append(f"{t}: {label} dates it {dtext}, which fits {len(choice)} of your {n} {t} events{whose} equally ({ids}); place fact {fid} on the one it means with tools/conclude.py place")
             else: out.append(f"{t}: {label} dates it {dtext}, which fits none of your {n} {t} events{whose} ({ids}); place fact {fid} on the one it means with tools/conclude.py place")
+        return list(dict.fromkeys(out))
+    def _record(self, sha):
+        """(the record's collection or file name, its locator or None) as Catalog.disagreements names a record; ("the file",
+        None) for the imported tree file."""
+        r = self.q("""SELECT coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value, ar.sha256 IN (SELECT artifact_sha256 FROM tree_import)
+                      FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?""", sha)
+        if not r: return "no record", None
+        name, loc, is_file = r[0]
+        return ("the file", None) if is_file else (name, loc if loc and loc != name else None)
+    def record_label(self, sha):
+        """A record in words: its collection (or file name) and its locator; "the file" for the imported tree file."""
+        return self._labels([self._record(sha)])
+    @staticmethod
+    def _labels(records):
+        """Records in words, each collection once with every locator under it: [(name, locator or None)] in order."""
+        locs = {}
+        for name, loc in records:
+            locs.setdefault(name, [])
+            if loc and loc not in locs[name]: locs[name].append(loc)
+        return " and ".join(f"{n} ({', '.join(l)})" if l else n for n, l in locs.items())
+    def _statement(self, sha, pf, notes):
+        vouched = False
+        try: vouched = bool((json.loads(notes or "{}") or {}).get("vouched"))
+        except (ValueError, AttributeError): pass
+        return ("your own word", None) if pf is None and vouched else self._record(sha)
+    def said_by(self, eid):
+        """Who gives an event its date, in words: the record of each statement on it that is not rejected and whose date agrees
+        with the event's own, or of every statement when none does; "your own word" for a vouch, which accepts the event's own
+        date; "no statement" when nothing stands behind it."""
+        ev = self.q("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", eid)[0]
+        own = {"start": ev[1] or ev[2], "text": ev[0], "qualifier": ev[3]}
+        agree, every = [], []
+        for sha, pf, notes, text, start, end, qual in self.q("""SELECT a.artifact_sha256, a.persona_fact_id, a.notes, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier
+                                                              FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                                              WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", eid):
+            label = self._statement(sha, pf, notes); every.append(label)
+            said = own if pf is None else {"start": start or end, "text": text, "qualifier": qual}
+            if date_verdict(said, own)[0] == "agrees": agree.append(label)
+        return self._labels(agree or every) or "no statement"
+    def said_on(self, kind, sid):
+        """The records behind a subject's statements that are not rejected, in words: "the file", "your own word" for a vouch."""
+        return self._labels([self._statement(sha, pf, notes) for sha, pf, notes in self.q("""SELECT artifact_sha256, persona_fact_id, notes FROM assertion
+                                                                                          WHERE subject_kind=? AND subject_id=? AND status<>'rejected' ORDER BY asserted_at, id""", kind, sid)]) or "no statement"
+    def life_event(self, pid, etype):
+        """The person's event of a type a life holds once as the tree shows it (canonical_event: the one with the strongest
+        ground, never one whose every statement is rejected), when it carries a date: {id, text, span (date_span), said
+        (said_by)}; None otherwise."""
+        ev = self.canonical_event([{"id": i, "type": etype, "basis": self.basis("event", i)} for i, in self.q("""SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                                                                                             WHERE ep.person_id=? AND e.event_type=?""", pid, etype)], etype)
+        if not ev: return None
+        text, start, end, qual = self.q("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", ev["id"])[0]
+        span = date_span(start, end, qual)
+        return {"id": ev["id"], "text": text or start or end, "span": span, "said": self.said_by(ev["id"])} if span else None
+    def beyond_life(self, pid):
+        """Where the person's family links and accepted statements break the limits of one life (data/life-limits.csv,
+        docs/DATA-ARCHITECTURE.md §7 decision 12), one line each naming both dates' records or claims and the limit broken,
+        for an identity question: an accepted statement on the person's events or their marriages' dated after the death the
+        tree shows (the types a life holds after its end excepted: life_limits' after_death_types) or before the birth (a
+        birth statement excepted); as a child of each parent a family link gives (accepted or the file's claim, never a
+        rejected one), a parent too young or too old at the birth, or a birth after the mother's death or too long after the
+        father's (parent_limit); and two census records of one year (record_kinds' census household, the statement of the
+        record's own year), each accepted, putting the person in places that do not agree either way (place_verdict). The
+        dates compared are the events' own as the tree shows them (life_event), whatever stands behind them, each named, so
+        the owner reads whether a claim or a record is what breaks. Nothing is changed here."""
+        L = life_limits(); out = []; kinds = {}
+        name = self.q("SELECT display_name FROM person WHERE id=?", pid)[0][0]
+        birth, death = self.life_event(pid, "Birth"), self.life_event(pid, "Death")
+        fams = [f for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid) if not self.link_rejected(f, pid, "partner")]
+        for sha, ftype, text, start, end, qual in self.q(f"""SELECT DISTINCT a.artifact_sha256, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier FROM assertion a
+                                                             JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN event_participant ep ON ep.event_id=a.subject_id
+                                                             WHERE a.subject_kind='event' AND a.status='accepted' AND coalesce(pf.date_start, pf.date_end) IS NOT NULL
+                                                             AND (ep.person_id=? OR ep.family_id IN ({','.join('?' * len(fams)) or "''"})) ORDER BY pf.date_start, a.asserted_at, a.id""", pid, *fams):
+            span = date_span(start, end, qual)
+            if not span: continue
+            said = f"{ftype.lower()} {text or start or end} ({self.record_label(sha)})"
+            if death and ftype not in L["after_death_types"] and span[0] and death["span"][1] and span[0] > death["span"][1]:
+                out.append(f"{said} is dated after {name}'s death, {death['text']} ({death['said']}): a statement after the death")
+            if birth and ftype != "Birth" and span[1] and birth["span"][0] and span[1] < birth["span"][0]:
+                out.append(f"{said} is dated before {name}'s birth, {birth['text']} ({birth['said']}): a statement before the birth")
+        for fid, in (self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='child'", pid) if birth else []):
+            if self.link_rejected(fid, pid, "child"): continue
+            link = self.said_on("family_member", json.dumps([fid, pid, "child"], separators=(",", ":"), sort_keys=True))
+            for par, pname, psex in self.q("""SELECT fm.person_id, p.display_name, p.sex FROM family_member fm JOIN person p ON p.id=fm.person_id
+                                               WHERE fm.family_id=? AND fm.role='partner' AND p.merged_into IS NULL ORDER BY p.display_name""", fid):
+                if self.link_rejected(fid, par, "partner"): continue
+                pb, pd = self.life_event(par, "Birth"), self.life_event(par, "Death")
+                hit = parent_limit(psex, pb and pb["span"], pd and pd["span"], birth["span"])
+                if not hit: continue
+                on, words = hit; d = pb if on == "birth" else pd
+                out.append(f"{name}, born {birth['text']} ({birth['said']}), a child of {pname} (the link: {link}), {'born' if on == 'birth' else 'who died'} {d['text']} ({d['said']}): {words}")
+        census = {}
+        for sha, start, raw, ps_id in self.q("""SELECT DISTINCT a.artifact_sha256, pf.date_start, ps.raw, ps.id FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                                 JOIN place_string ps ON ps.id=pf.place_string_id JOIN event_participant ep ON ep.event_id=a.subject_id
+                                                 WHERE a.subject_kind='event' AND a.status='accepted' AND ep.person_id=? AND pf.fact_type IN ('Residence','Census')
+                                                 AND pf.date_start IS NOT NULL ORDER BY pf.date_start, a.asserted_at""", pid):
+            if sha not in kinds: kinds[sha] = record_kinds(self.cx, sha)
+            k, yr = kinds[sha]
+            if "census household" not in k or (yr and str(yr) != start[:4]): continue
+            census.setdefault(start[:4], []).append((self.record_label(sha), raw, self.fact_place(ps_id)))
+        for y, said in sorted(census.items()):
+            for i, (la, ra, pa) in enumerate(said):
+                for lb, rb, pb in said[i + 1:]:
+                    if la != lb and place_verdict(pa, pb)[0] == "disagrees" and place_verdict(pb, pa)[0] == "disagrees":
+                        out.append(f"census {y}: {la} puts {name} at {ra}, {lb} at {rb}: one person in two places in one census")
         return list(dict.fromkeys(out))
     def dated_names(self, place_id):
         """place_id's own former names (place_name rows with a valid_from or valid_to, written by tools/resolve_places.py

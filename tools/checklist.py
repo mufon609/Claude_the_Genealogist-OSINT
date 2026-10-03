@@ -18,13 +18,15 @@ Read-only. For one person it reports:
               every query field is {value, basis accepted|claim|row|citation|record}, rejected
               facts are omitted. Before the baseline is reviewed only fetch
               steps for cited records exist: no search steps, no footprint,
-              no duplicate or unlinked persons (docs/RESEARCH-WORKFLOW.md §2).
+              no unlinked persons (docs/RESEARCH-WORKFLOW.md §2); the duplicate
+              check and the limits of one life (an identity question) run for
+              every person, reviewed or not.
 """
 import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, resolve_tree
 from catalog import Catalog, ONCE, US_STATES, US_NAMES, jurisdictions, year
-from footprint import footprint
+from footprint import duplicates, footprint
 from connectors import answers
 
 # where which records exist and who holds them, by state or country: reference data (data/jurisdictions.csv), never a family's own places
@@ -109,8 +111,9 @@ def build(cat: Catalog, pid: str):
     for said in cat.unplaced(pid): questions.append({"kind": "conflict", "detail": said})         # an accepted record's fact whose event is the owner's choice: assert_facts guessed at none of them
     for f in fam["families"]:
         if len(f["marriages"]) > 1: questions.append({"kind": "conflict", "detail": f"{len(f['marriages'])} marriage events with {f['spouse']}"})
-    fp = footprint(cat, pid) if reviewed else {"summary": {"relatives": 0, "records": 0, "shared": 0}, "duplicates": [], "unlinked": [], "records": [], "collections": [], "gated": True}
-    for dup in fp["duplicates"]: questions.append({"kind": "duplicate_person", "detail": dup["why"], "other_id": dup["id"]})
+    for said in cat.beyond_life(pid): questions.append({"kind": "identity", "detail": said})       # a link or an accepted statement beyond the limits of one life: is this the same person
+    fp = footprint(cat, pid) if reviewed else {"summary": {"relatives": 0, "records": 0, "shared": 0}, "duplicates": duplicates(cat, pid), "unlinked": [], "records": [], "collections": [], "gated": True}
+    for dup in fp["duplicates"]: questions.append({"kind": "duplicate_person", "detail": dup["why"], "other_id": dup["id"]})   # the duplicate check runs for every person, reviewed or not
     if any(q["kind"] in ("missing_parents", "missing_spouse", "identity_incomplete") for q in questions):
         for u in fp["unlinked"]: questions.append({"kind": "unlinked_relative", "detail": u["why"], "other_id": u["id"]})
     uncited = [e for e in ev if not e["citations"]]

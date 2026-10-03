@@ -1369,8 +1369,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     the question"): the duplicate's persona links, assertions, event and family memberships, plan steps, search log rows and
     open questions move onto the person it duplicates, `person.merged_into` is set so the duplicate's own row stays for the
     audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records the
-    decision with the owner's note. A moved step the kept person's plan already has by step_key keeps whichever of the two
-    carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
+    decision with the owner's note; the duplicate_person question between the two, on either side, closes answered by it. A
+    moved step the kept person's plan already has by step_key keeps whichever of the two carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
     onto the survivor rather than lost. A dropped step or question is named in the audit row by its key, row (a step's) and
     rationale, and why it was dropped, the way plan.py's own audit row names what it drops.
 
@@ -1396,7 +1396,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     ts = now()
     moved = {"persona_links": 0, "assertions": 0, "event_participants": 0, "events_folded": 0, "event_assertions_folded": 0,
              "family_memberships": 0, "families_folded": 0, "family_children_moved": 0, "family_events_moved": 0,
-             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0,
+             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0, "questions_answered": 0,
              "dropped_steps": [], "dropped_questions": [], "folded_events": [], "folded_families": []}   # each drop or fold named by its key/type/family, the way plan.py's own audit row does: the audit row is the only trace of it afterwards
 
     for persona_id, in q.execute("SELECT persona_id FROM person_persona WHERE person_id=?", (dup_id,)).fetchall():
@@ -1443,7 +1443,13 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
                                            "reason": "the kept person's own step of this key carries search_log runs already" if kept_has_runs
                                                      else "the kept person's own step of this key is kept; neither carries a search_log run"})
 
+    prop_id = ulid()
+    for qid, in q.execute("""SELECT id FROM research_question WHERE status='open' AND kind='duplicate_person'
+                             AND ((subject_person_id=? AND q_key=?) OR (subject_person_id=? AND q_key=?))""", (dup_id, f"duplicate_person:{kept_id}", kept_id, f"duplicate_person:{dup_id}")).fetchall():
+        q.execute("UPDATE research_question SET status='closed', closed_reason='answered', closed_at=?, answered_by_proposal_id=? WHERE id=?", (ts, prop_id, qid))
+        moved["questions_answered"] += 1                              # the duplicate question between the two, either side's, is the one the merge answers
     for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=?", (dup_id,)).fetchall():
+        if question["kind"] == "duplicate_person" and question["q_key"] == f"duplicate_person:{kept_id}": continue   # answered above, or closed already: never a question of the kept person about themselves
         if q.execute("SELECT 1 FROM research_question WHERE subject_person_id=? AND q_key=?", (kept_id, question["q_key"])).fetchone():
             moved["questions_dropped"] += 1
             moved["dropped_questions"].append({"q_key": question["q_key"], "kind": question["kind"],
@@ -1453,7 +1459,6 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
 
     q.execute("UPDATE person SET merged_into=?, updated_at=? WHERE id=?", (kept_id, ts, dup_id))
     human = q.execute("SELECT id FROM extractor WHERE kind='human' AND name='manual'").fetchone()[0]
-    prop_id = ulid()
     q.execute("""INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status,decided_by,decided_at,decision_note)
                  VALUES (?,?,?,?,?,?,?,'accepted',?,?,?)""",
               (prop_id, tree_id, "duplicate_person", dumps({"duplicate_person_id": dup_id, "kept_person_id": kept_id, "moved": moved}), note, human, ts, by, ts, note))
@@ -2084,7 +2089,7 @@ def main():
                   f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s), "
                   f"{res['plan_steps_moved']} plan step(s) moved ({res['plan_steps_dropped']} dropped as already on the kept person's plan, "
                   f"{res['log_rows_repointed']} log row(s) repointed onto it), {res['questions_moved']} question(s) moved "
-                  f"({res['questions_dropped']} already open on the kept person); proposal {res['proposal']}")
+                  f"({res['questions_dropped']} already open on the kept person), {res['questions_answered']} duplicate question(s) answered; proposal {res['proposal']}")
         cx.commit()
     except Exception:
         cx.rollback(); raise

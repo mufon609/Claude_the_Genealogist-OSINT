@@ -1,0 +1,8 @@
+limit,value,reason
+mother_youngest,12,"A mother younger than twelve at a child's birth is close enough to impossible that a genealogist questions the link before accepting it: the youngest mothers on record are rare medical cases, and in a tree such a gap is nearly always another woman of the name or a wrong birth date."
+mother_oldest,55,"A natural birth to a mother past fifty-five is not recorded in any period before assisted reproduction; a mother older than that points at a wrong link or date, most often a grandmother taken for the mother."
+father_youngest,13,"A father younger than thirteen at a child's birth is a near impossibility; the link or one of the dates is more likely wrong."
+father_oldest,80,"Fathers in their seventies are recorded, past eighty almost never; a father older than that points at another man of the same name, most often the grandfather."
+after_mother_death_months,0,"A child is not born after the mother's death; a birth on the day she died is the one case the comparison allows."
+after_father_death_months,10,"A child can be born after the father's death, within a pregnancy's length, about nine months; ten allows for a death or a birth known only to the month."
+after_death_types,Death;Burial;Cremation;Probate;Will,"What a life holds after its end: the death itself, the burial or cremation, and a will and its probate (the will's own date comes before the death, its proving after). Any other statement dated after the death is another person's or a wrong date."

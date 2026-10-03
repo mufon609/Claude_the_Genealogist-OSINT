@@ -146,13 +146,16 @@ Questions are always about a person. They are generated, not typed:
 | `conflict` | competing values | 5 marriage dates for David Heebner & Maria Kriebel |
 | `duplicate_person` | two persons with the same name and the same key fact | the two Thomas Ahearns, both born 2 Oct 1846 |
 | `unlinked_relative` | a person in the tree who may be the answer | a same-surname person in the same town with no link |
+| `identity` | a family link or an accepted statement beyond the limits of one life (§5–7) | Joe Davidson, born 1925, a child of Lena Howard Bell, who died in 1918 |
 
 42 of the 117 people in the file as imported are dead ends. Ranking: home person's direct line
 first, then tractability (era and place with good record coverage in the
 registry), then how many other questions an answer would unlock. Until its subject is
 baseline-complete (no key fact Undecided) a question gets no search steps and
-no footprint, duplicate or unlinked persons; only fetch steps for records the
-tree already cites exist, because the review needs those records.
+no footprint or unlinked persons; only fetch steps for records the
+tree already cites exist, because the review needs those records. The duplicate
+check and the limits of one life run for every person, reviewed or not: a
+second entry or an impossible link is settled before anything is built on it.
 
 ## 3. Plan: the search ladder
 
@@ -189,7 +192,8 @@ holding all 4 Peters. Those are where a missing Cassel, Lukens or Peters is foun
 
 `tools/footprint.py "<person>"` computes Layer 0 from the catalog, read-only:
 the duplicate check first (same name and birth year, or same name and the same
-spouse or parents), unlinked same-surname persons as hints with a generation
+spouse or parents; run for every person, reviewed or not, and never counting a
+person merged into another), unlinked same-surname persons as hints with a generation
 label, then every record cited or held on a spouse, child, parent or sibling
 that is not already on the person, ranked by how many family members share it
 and by what it would settle, with the collections to search next. Ancestry
@@ -876,7 +880,25 @@ spouse who is that relative in the tree agree with the tree, claimed or
 accepted, a claim the file cites to that very page not among them (the reason
 names what it left out); a relative a memorial lists is a lead, never a card
 (§0, §3), and one a profile lists by name and years alone has at most the
-stated relation and is a card for the owner. The proposal records the rule as the decider with its
+stated relation and is a card for the owner.
+
+**The limits of one life.** Every plan regeneration tests each person's family
+links, accepted or the file's claims (never a rejected one), and their accepted
+dated statements against the limits of one life, which are data
+(`data/life-limits.csv`, the reasoning in `data/DATA-SOURCES.md`), beside the
+conflicts (`Catalog.beyond_life`): a statement dated after the death or before
+the birth; a mother or a father too young or too old at a child's birth; a
+child born after the mother's death, or more than ten months after the
+father's; one person in two places in one census year (two accepted census
+records of that year whose places agree neither way). The dates are the
+events' own as the tree shows them, whatever stands behind them, and only what
+holds over every day each date can stand for counts, so a bare year asks
+nothing a finer date of it might keep. A hit is an `identity` question on the
+person (on the child, for a link) naming both dates, the records or claims
+behind each and the limit broken; nothing is changed, and the question closes
+when its gap has gone or the owner dismisses it.
+
+The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link, every assertion and the
 name alias the rule wrote rejected. A proposal the rule does not take is a card for the owner
@@ -1114,8 +1136,8 @@ names and nobody has accepted); `--detail` names each person with the reason, as
 ## Schema
 
 ```
-research_question (id, tree_id, subject_person_id, kind, q_key, detail_json, status open|closed, closed_reason answered|dismissed|gap_gone, answered_by_proposal_id, created_at, closed_at)
-                   kind: missing_parents | identity_incomplete | missing_spouse | missing_fact | unverified_claim | conflict | duplicate_person | unlinked_relative
+research_question (id, tree_id, subject_person_id, kind, q_key, detail_json, status open|closed, closed_reason answered|dismissed|gap_gone|resolved, answered_by_proposal_id, created_at, closed_at)
+                   kind: missing_parents | identity_incomplete | missing_spouse | missing_fact | unverified_claim | conflict | duplicate_person | unlinked_relative | identity
 search_plan       (id, person_id, row_key, question_id?, seq, step_key, kind fetch|search, query_type, query_json {field: {value, basis}},
                    locator_source_id, locator_kind, locator_value, collection_id, on_json, sources_json, mode fetch|blocked|auto|assisted|awaiting_approval,
                    expected, status planned|done|skipped, rationale, revisions_json, created_at)

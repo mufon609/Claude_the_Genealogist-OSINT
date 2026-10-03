@@ -30,11 +30,12 @@ def requery_questions(cx: sqlite3.Connection) -> None:
     for rid, detail in cx.execute("SELECT id, detail_json FROM research_question").fetchall():
         cx.execute("UPDATE research_question SET q_key=? WHERE id=?", (q_key(json.loads(detail)), rid))
 
-def allow_resolved(cx: sqlite3.Connection) -> None:
-    """research_question.closed_reason accepts 'resolved', a conflict the owner closed naming the value kept
-    (tools/conclude.py resolve). SQLite changes a CHECK only by building the table again: the table as schema/catalog.sql
-    now defines it is created beside the old, every row copied across unchanged, the old dropped and the new renamed, with
-    foreign keys off for the swap and every reference checked after it."""
+def rebuild_questions(cx: sqlite3.Connection) -> None:
+    """research_question built again as schema/catalog.sql now defines it, for a CHECK it widens: closed_reason accepting
+    'resolved', a conflict the owner closed naming the value kept (tools/conclude.py resolve), and kind accepting
+    'identity', a link or a statement beyond the limits of one life (Catalog.beyond_life). SQLite changes a CHECK only by
+    building the table again: the table as schema/catalog.sql defines it is created beside the old, every row copied across
+    unchanged, the old dropped and the new renamed, with foreign keys off for the swap and every reference checked after it."""
     import re
     ddl = re.search(r"CREATE TABLE research_question \(.*?\n\);", read("schema/catalog.sql"), re.S).group(0)
     cx.commit(); cx.execute("PRAGMA foreign_keys=OFF")
@@ -144,11 +145,13 @@ MIGRATIONS = [
     ("0.7.3", "research_question.q_key recomputed from detail_json with plan.q_key, dropping the 120-character truncation an older key wrote",
      [requery_questions]),
     ("0.7.4", "research_question.closed_reason accepts 'resolved': a conflict the owner closes with a written reason naming the value kept",
-     [allow_resolved]),
+     [rebuild_questions]),
     ("0.7.5", "person_persona: the links a decision spread to another row of the same name and role on its page removed; a decision reaches only its own entry of the page",
      [unspread_links]),
     ("0.7.6", "event: a person's or a family's events of one type that are one event folded into one; one statement, one event",
      [fold_events]),
+    ("0.7.7", "research_question.kind accepts 'identity': a family link or an accepted statement beyond the limits of one life",
+     [rebuild_questions]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:
