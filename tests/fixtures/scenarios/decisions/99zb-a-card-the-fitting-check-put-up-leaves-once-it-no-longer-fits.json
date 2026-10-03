@@ -1,0 +1,173 @@
+{
+ "title": "a card the fitting check put up leaves once it no longer fits",
+ "line": "an obituary's daughter, put by the fitting check to a woman of the tree with no family link yet, stays a card only while she fits: once the owner places that woman in her own family on the 1920 census, the decision compares the card with her again, closes it as superseded and matches the obituary again: the daughter, whom nobody in the tree fits now, is created by the rule as his daughter, and the granddaughter put to the same woman is a card as a new person",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his obituary, the file's own citation, naming his parents, brothers and sisters, children and grandchildren",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "say": "its subject accepted by the owner: the daughter it names is put to Anna Rose Ahearn, who has no family link in the tree yet",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Carol Miller",
+      "status": "undecided",
+      "person_name": "Anna Rose Ahearn",
+      "rationale": {
+       "has": "Carol Miller (daughter) may be Anna Rose Ahearn"
+      }
+     },
+     "why": "the fitting check reaches a woman of the tree with no family link on the surname she is shown married under and the stated relationship alone"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Diane Ahern",
+      "status": "undecided",
+      "person_name": "Anna Rose Ahearn"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the 1920 census page of her parents' household",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   },
+   "say": "her father accepted by the owner on the 1920 census"
+  },
+  {
+   "say": "the rule takes her sister, the daughter the census states the father's",
+   "reconsider": {}
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737058557"
+    },
+    "status": "accepted"
+   },
+   "say": "the owner accepts Anna R on the page as Anna Rose: the census states her the sister of a daughter the rule took, so she is placed in her parents' family, and the cards put to her are compared with her again",
+   "expect": [
+    {
+     "last": {
+      "rematched": {
+       "some": {
+        "kind": "rematch",
+        "persona": "Carol Miller",
+        "why": {
+         "has": "superseded"
+        }
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Carol Miller",
+      "status": "rejected",
+      "note": "superseded",
+      "person_name": "Anna Rose Ahearn"
+     },
+     "why": "the card the fitting check put up closes once she no longer fits: she has a family now, and the obituary's daughter stands in no relationship to it"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Diane Ahern",
+      "status": "rejected",
+      "note": "superseded",
+      "person_name": "Anna Rose Ahearn"
+     }
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Carol Miller",
+      "latest": true,
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      }
+     },
+     "why": "the obituary matched again: the daughter it names, whom nobody in the tree fits now, created by the rule as it stands"
+    },
+    {
+     "persons": {
+      "named": "Carol Miller",
+      "surname": "Miller"
+     }
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Diane Ahern",
+      "latest": true,
+      "kind": "new_person",
+      "status": "undecided"
+     },
+     "why": "the granddaughter proposed afresh as a new person, a card for the owner"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "person": "I332737058557",
+      "status": "undecided",
+      "exists": false
+     },
+     "why": "no card on the obituary is put to Anna Rose any more"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

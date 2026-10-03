@@ -221,7 +221,7 @@ detail carries `detail_has`, closed by the owner through `tools/log_search.py --
 owner's word), `archive` (a `fixture`, or a stand-in: `stand_in: "image"`, or a page with only a `saved_from` line,
 `suffix` to make other bytes of the same page; `source`, `collection`, `locator`, or a `manifest`; `extract`, `match`
 (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same, for a page the harness only
-reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it),
+reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `conclude.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it),
 `reconsider` (`dry`; its `rows`, and `wrote`, the audit rows the run wrote), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
 `tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `place` (a persona fact
 placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact; `event` is a

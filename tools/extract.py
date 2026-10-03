@@ -48,7 +48,10 @@ decision to the new persona of the same entry on the page (catalog.persona_key:
 its record id, else its role, row and name): the decision was about that entry
 of the record, and the bytes have not changed; an accepted link then asserts
 the new extraction's facts and links the same way the decision did, adding only
-what the record did not already assert. Everything else is matched again.
+what the record did not already assert. Everything else is matched again. A
+decision the rule took on the old extraction and withdraws later leaves its card
+undecided there; tools/conclude.py rematch (reconsider) closes that card the
+same way and matches the current reading again.
 
 Page structure assumed for an Ancestry index page: the record's fields are rows
 of a table with a label cell (th, or the first cell) and a value cell; a table
