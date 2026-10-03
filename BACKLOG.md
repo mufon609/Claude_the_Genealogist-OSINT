@@ -455,6 +455,21 @@ one geocoder twin places it. Decide whether the head is held to the same rule
 stay a match, GOV's own historical names being spelled both ways), and apply it
 to both gazetteers' checks.
 
+### C25. Two readings of one record are decided apart
+
+John Y Davidson's 1946 Kentucky death certificate is held twice: FamilySearch's
+index page of it (`familysearch-kentucky-deaths-1946-N983-M2R.html`, accepted
+as his) and the certificate's image, read by the model
+(`familysearch-kentucky-death-records-1946-N983-M2R.jpg`), both archived under
+the file's citation of it (`1,3077::604036`) and named for its ark N983-M2R. The page gives the death as 1946 alone and the image as
+11 Jun 1946, so the death date conflict waits on the owner while the image's
+own card is refused: its relatives are named by name alone and his persona
+disagrees with the file's claimed dates. When one reading of a record is
+accepted for a person, the same entry on another reading of that record (the
+same record id, the same role and an agreeing name, `catalog.record_original`)
+is the same document: decide it the same way, recorded as the rule with the
+reading it follows, and let the image's day stand as the certificate's own.
+
 ### C27. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the
