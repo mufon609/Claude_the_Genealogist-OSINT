@@ -270,8 +270,9 @@ carrying its `url_has` that no earlier request took: a saved real response, or t
 answer; a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
 step's id at every connector; the result's `records` are the sha256 of every record the runner archived and read), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (`run_step.run_connector` with the real `connector` named, answered like `run`: the
-place names the step carries tried one at a time; the answers are taken in the order the requests come, so two names that make the same
-request can be answered nothing and then the page),
+place names the step carries tried one at a time; the answers are taken in the order the requests come, one for each request the
+runner sends, and a name that makes a request already made on the run sends none, so it takes no answer; the result adds the
+`logged_note`, the note the run logged),
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
@@ -310,7 +311,7 @@ What is simulated is a holder that does not answer, which is a control signal an
 
 - `run` and `run_connector` answers carrying an `error`: the connection raises `URLError` whose message begins "the harness's
   stand-in for no answer" (a timeout, a challenge, a refusal): the census page image in the loop scenarios
-  `21-the-record-a-connector-archived` and `96-fetch-place-names`, WikiTree in `22-a-steps-two-connectors`.
+  `21-the-record-a-connector-archived` and `94-place-names-different-requests`, WikiTree in `22-a-steps-two-connectors`.
 - `turn` and `turns` with `fake_run`: `run_step.run` replaced by a function that logs the outcome the data gives, only `none` (the
   holder answered nothing) or `error` (it did not answer), with no request, response or record, its note saying "harness: faked,
   no network"; in `10-turn`, `15-turns` (the error is the same stand-in), `60-unnamed-fetch` and `61-browse-only-holder`, to see

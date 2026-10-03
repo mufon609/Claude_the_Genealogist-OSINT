@@ -1,6 +1,6 @@
 {
  "title": "a search step's several place names",
- "line": "a search step whose place field carries more than one accurate name is tried name by name, each try named on the logged run's query, the run stopping at the first name that gets a hit (the fetch step's scenario) and trying them all when none does",
+ "line": "a search step whose place field carries more than one accurate name is tried name by name, every name named on the logged run's query; a connector that reads a place only as a state and a county, or not at all, builds one request for names of one place, so it is asked once and each name after it is logged as tried, its request not made again",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -41,16 +41,12 @@
    "as": "s"
   },
   {
-   "say": "the real census connector asked once for each name, the site answering nothing to either: both are tried",
+   "say": "the real census connector builds the identical request for both names, state New York and county Nassau: it is asked once, the site answering nothing, and the second name is logged as tried with the request it repeated",
    "run_connector": {
     "step": "$s.step",
     "connector": "nara_1950",
     "fetch": {
      "answers": [
-      {
-       "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
-      },
       {
        "url_has": "api/search?name=",
        "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
@@ -63,9 +59,11 @@
      "last": {
       "outcome": "none",
       "requests": [
-       "https://1950census.archives.gov/api/search?name=Raymond%20Davidson&state=NY&county=Nassau&page=1",
        "https://1950census.archives.gov/api/search?name=Raymond%20Davidson&state=NY&county=Nassau&page=1"
       ],
+      "logged_note": {
+       "has": "Hempstead, Nassau, New York, USA made the same request as Hempstead, Nassau, New York: not asked again"
+      },
       "logged_query": {
        "place": {
         "tried": [
@@ -76,7 +74,90 @@
        }
       }
      },
-     "why": "both names are tried, in order, none getting a hit; the logged run's query names every try, the last one tried"
+     "why": "one request goes out, not two (the list is the requests made, and the harness answers one); both names are tried, in order, none getting a hit: the logged run's query names every try, the last one tried, and the note names the name whose request the second repeated"
+    }
+   ]
+  },
+  {
+   "say": "an obituary search step on Helen Sara Brant for the Archive's newspapers, the place field carrying the four names of Boca Raton the owner's catalog logged on a real run of the Archive's newspapers for an obituary at Boca Raton",
+   "step": {
+    "person": "I332737037573",
+    "row_key": "obituary:",
+    "seq": 1,
+    "step_key": "search:obituary",
+    "kind": "search",
+    "query_type": "obituary",
+    "query": {
+     "given": {
+      "value": "Helen Sara",
+      "basis": "accepted"
+     },
+     "surname": {
+      "value": "Brant",
+      "basis": "accepted"
+     },
+     "death_year": {
+      "value": "1986",
+      "basis": "accepted"
+     },
+     "place": {
+      "value": [
+       "Boca Raton, Palm Beach, Florida, USA",
+       "Boca Raton, Palm Beach County, Florida, USA",
+       "Boca Raton, Florida",
+       "Boca Raton < Palm Beach County < Florida < United States"
+      ],
+      "basis": "accepted"
+     }
+    },
+    "sources": [
+     "H07"
+    ],
+    "mode": "auto"
+   },
+   "as": "o"
+  },
+  {
+   "say": "the Archive's newspapers connector reads no place at all, so every name makes the one request, which that real run sent four times: it is asked once, the Archive answering with nothing in the years, and the three names after it are logged as tried",
+   "run_connector": {
+    "step": "$o.step",
+    "connector": "ia_newspapers",
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "be-api.us.archive.org/fts",
+       "fixture": "ia-fts-newspapers-helen-brant.json"
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "outcome": "none",
+      "requests": [
+       "https://be-api.us.archive.org/fts/v1/search?q=%22Helen%20Brant%22~3%20AND%20collection%3Anewspaperarchive&size=40"
+      ],
+      "logged_note": {
+       "has": [
+        "Boca Raton, Palm Beach County, Florida, USA made the same request as Boca Raton, Palm Beach, Florida, USA: not asked again",
+        "Boca Raton, Florida made the same request as Boca Raton, Palm Beach, Florida, USA: not asked again",
+        "Boca Raton < Palm Beach County < Florida < United States made the same request as Boca Raton, Palm Beach, Florida, USA: not asked again"
+       ]
+      },
+      "logged_query": {
+       "place": {
+        "tried": [
+         "Boca Raton, Palm Beach, Florida, USA",
+         "Boca Raton, Palm Beach County, Florida, USA",
+         "Boca Raton, Florida",
+         "Boca Raton < Palm Beach County < Florida < United States"
+        ],
+        "value": "Boca Raton < Palm Beach County < Florida < United States"
+       }
+      }
+     },
+     "why": "one request goes out, not four; every name is on the tried list and each of the three not asked says whose request it repeated"
     }
    ]
   }

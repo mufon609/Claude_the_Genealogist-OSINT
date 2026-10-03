@@ -157,8 +157,8 @@ def a_run_all(w, x):
 def a_run_connector(w, x):
     """run_step.run_connector on a step with the real connector named (`connector`, its module under tools/connectors/), only
     the network call replaced (answered_by): the place names the step carries tried one at a time, the requests the connector
-    builds, the run's outcome and the query the run logged. `dry`: run_step.run in dry-run mode instead, saying whether the
-    runner would ask the connector again on the step's current fields."""
+    builds and the runner sends, the run's outcome and the query and note the run logged. `dry`: run_step.run in dry-run mode
+    instead, saying whether the runner would ask the connector again on the step's current fields."""
     import run_step
     from connectors import load
     st = w.step(x["step"]); conn = load(x["connector"])
@@ -166,8 +166,8 @@ def a_run_connector(w, x):
         res = run_step.run(w.cx, w.catalog(), w.tid, st, BY, dry_run=True)
         return {"results": [{"connector": r.get("connector"), "asked": r.get("asked"), "answered": r.get("answered")} for r in res]}
     with patched(run_step, "fetch", answered_by(x.get("fetch"))): r = run_step.run_connector(w.cx, w.catalog(), w.tid, st, conn, BY)
-    logged = w.cx.execute("SELECT query_json FROM search_log WHERE plan_step_id=?", (st["id"],)).fetchone()
-    return {"outcome": r.get("outcome"), "requests": r.get("requests"), "logged_query": json.loads(logged[0]) if logged else {}}
+    logged = w.cx.execute("SELECT query_json, notes FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (st["id"],)).fetchone()
+    return {"outcome": r.get("outcome"), "requests": r.get("requests"), "logged_query": json.loads(logged[0]) if logged else {}, "logged_note": logged[1] if logged else None}
 
 def a_resolve(w, x):
     """tools/resolve_places.py on the strings named (--only, one run each) with the geocoder's answers planted in its cache,

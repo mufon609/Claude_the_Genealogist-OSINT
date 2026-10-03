@@ -6,7 +6,10 @@ The contract, and nothing else:
   RATE        {kind: requests per minute} the source documents, per request kind; the runner paces to it.
   requests(fields) -> [{"url": ..., "kind": "search", ...}]
               the requests a search step's rendered fields turn into, without sending them (--dry-run shows these); anything
-              else on the request (a year window, the words searched) comes back to hits(). Three keys the runner reads:
+              else on the request (a year window, the words searched) comes back to hits(). The runner calls it for each
+              name of a place field the step carries, before sending that name's requests, and sends a request (its url and
+              form data) once on a run: a name whose requests were all made under an earlier name is not asked. Three keys
+              the runner reads:
               "data": {field: value} is posted to the url as a form, for a source whose search only posts; "locator" is the
               identity the response is archived under when the url alone does not carry the query (a posted search);
               "record": True says the response is itself the record (a results page listing what was found), read by the

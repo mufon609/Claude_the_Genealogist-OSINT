@@ -485,16 +485,6 @@ card never sits open beside the record it summarizes, and
 `tools/turn.py`'s report and the `closed_rows` line of `tools/conclude.py`'s
 command line.
 
-### C32. The runner asks the same request once for every name of a place
-
-`run_step.run_connector` tries each name of a place field in turn and stops at
-the first that gets a hit, but a connector reads a place only as a state and a
-county (the 1950 census, Chronicling America), so two names of one place give
-the identical request and the second is asked blind: a repeated request to a
-rate-limited holder that cannot answer differently. Ask a name only when the
-request it makes differs from every request already made on the run, and log
-the names that made no new request as tried.
-
 ### C33. The harness's last two stand-ins
 
 `docs/DATA-ARCHITECTURE.md` §7 decision 8 says every page the harness reads is
