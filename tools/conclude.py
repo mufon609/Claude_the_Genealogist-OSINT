@@ -287,23 +287,15 @@ def _citation(cx, sha):
     a = cx.execute("SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
     return (a[0] or a[1] or sha[:12]), ("undecided" if editable(cx, sha) else "accepted")
 
-def closed_superseded(notes):
-    """Whether a statement or a name alias was closed with its card as superseded (rematch): a decision the rule withdrew, its
-    card left on a reading of the record read again since. No person decided it, so the record accepted again makes it
-    stand, as it does one the rule withdrew."""
-    try: return bool((json.loads(notes or "{}") or {}).get("superseded"))
-    except (ValueError, AttributeError): return False
-
 def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id, extra=None):
     """One statement of a record's fact on a subject, written once: a statement the same record already makes on the same
     subject with the same type, date, value and place stands again when the rule had withdrawn it (undecided, on a trusted
-    record) or its card was closed as superseded (closed_superseded: it takes this decision's status), and otherwise stays
-    as it is, a person's rejection included. Returns 1 when written, else 0."""
+    record), and otherwise stays as it is, a person's rejection included. Returns 1 when written, else 0."""
     old = q.execute("""SELECT a.id, a.status, a.notes FROM assertion a JOIN persona_fact q ON q.id=a.persona_fact_id WHERE a.subject_kind=? AND a.subject_id=? AND a.artifact_sha256=?
                        AND q.fact_type=? AND coalesce(q.date_text,'')=coalesce(?,'') AND coalesce(q.value_text,'')=coalesce(?,'') AND coalesce(q.place_string_id,'')=coalesce(?,'')""",
                     (kind, sid, sha, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])).fetchone()
     if old:
-        if (old["status"] == "undecided" and status == "accepted") or (old["status"] == "rejected" and closed_superseded(old["notes"])):
+        if old["status"] == "undecided" and status == "accepted":
             q.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, notes=? WHERE id=?", (status, by, ts, dumps({"proposal": prop_id, **(extra or {})}), old["id"])); return 1
         return 0
     q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
@@ -514,8 +506,8 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     same path as any other relation above. A person whose link to the listed persona is rejected is no fit; fitting nobody or
     several writes nothing, as a sibling of no placed parents gives none. The trace link is written only where no row stands,
     and an earlier trace of the same decision to a person the persona no longer fits alone is withdrawn. A membership
-    statement already there moves only from undecided to accepted (withdrawn, it stands again), or, closed with its card as
-    superseded (rematch), takes this decision's status: a person's own decision on it, accepted or rejected, stays. Returns
+    statement already there moves only from undecided to accepted (withdrawn, it stands again): a person's own decision on it,
+    accepted or rejected, stays. Returns
     the links written: person, role, the other person, the page's own word, whether the membership is new, "undecided" for
     a sibling placement, a link from a page anyone can edit or one the indexer computed, and "computed" for the last."""
     q = _q(cx)
@@ -549,7 +541,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
         notes = {"proposal": prop_id, **({"placed": placed} if placed else {}), **({"computed": True} if computed else {})}
         old = q.execute("SELECT id, status, notes FROM assertion WHERE subject_kind='family_member' AND subject_id=? AND artifact_sha256=? AND citation_text=?", (sid, sha, cite)).fetchone()
         if old:
-            if (old["status"] == "undecided" and status == "accepted") or (old["status"] == "rejected" and closed_superseded(old["notes"])):
+            if old["status"] == "undecided" and status == "accepted":
                 q.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, notes=? WHERE id=?", (status, by, ts, dumps(notes), old["id"]))
             else: return
         else: q.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
@@ -810,9 +802,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     if status == "accepted":
         n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
                           AND {ACCEPTED_WITH_RECORD}""", (by, ts, tree_id, prop_id)).rowcount   # what the rule wrote and took back stands again; what it wrote undecided stays so
-        q.execute("""UPDATE alias SET status='accepted', notes=json_remove(json_set(notes,'$.proposal',?),'$.superseded') WHERE tree_id=? AND entity_kind='person' AND entity_id=? AND source_artifact_sha256=?
-                     AND json_valid(notes) AND json_extract(notes,'$.proposal') IS NOT NULL AND (status='undecided' OR (status='rejected' AND json_extract(notes,'$.superseded') IS NOT NULL))""",
-                  (prop_id, tree_id, person_id, pay["artifact_sha256"]))   # the name alias a withdrawn decision on this record left undecided, or rejected when its card closed as superseded, stands again with this one
+        q.execute("""UPDATE alias SET status='accepted', notes=json_set(notes,'$.proposal',?) WHERE tree_id=? AND entity_kind='person' AND entity_id=? AND source_artifact_sha256=?
+                     AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal') IS NOT NULL""",
+                  (prop_id, tree_id, person_id, pay["artifact_sha256"]))   # the name alias a withdrawn decision on this record left undecided stands again with this one
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts); n += m
         alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
         held_back = []
@@ -2052,12 +2044,9 @@ def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
     current reading is matched again (match_record): the matcher proposes the persona afresh as it stands, the rule taking
     what it takes, so a creation the rule took back on a reading since superseded comes back as a card for the person it
     created, and a persona that is a hint leaves the cards and stays a hint on the page. A card closed on a superseded
-    reading, a decision the rule withdrew, takes what the withdrawal took back with it, the statements the decision had
-    accepted with the record (ACCEPTED_WITH_RECORD) and its name alias, rejected and marked superseded (closed_superseded),
-    the way a rejected card's go (a family membership resting on nothing else leaves the person's family,
-    Catalog.link_rejected), since the card the record's current reading gets carries the record's facts again: accepting
-    it makes them stand. What the decision wrote undecided (a sibling placement, a link the record's indexer computed, a
-    value kept beneath the one shown) stays undecided, as accepting the record leaves it. A card the matcher still puts to
+    reading, a decision the rule withdrew, leaves what the withdrawal took back undecided, statements and name alias:
+    closing a card judges nothing it stated, so a family membership resting on it stays the claim it was, and the card the
+    record's current reading gets carries the record's facts again: accepting it makes them stand. A card the matcher still puts to
     the same person keeps its id, its rationale the matcher's words as the evidence now stands; one the rule took and
     withdrew keeps the words written before the record was taken, since its own statements now stand on the person and the
     matcher would read the record against itself. people: only the cards putting a persona to one of them (rematch_people:
@@ -2083,17 +2072,10 @@ def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
         out.append({"proposal": p["id"], "person": name(pay.get("person_id")), "persona": persona(pay["persona_id"]), "kind": "rematch", "taken": True, "why": why})
         again[reading] = True
         if dry_run: return
-        turned = {}
-        if reading != pay["extraction_id"]:                          # what a withdrawal took back of a decision on a reading since superseded, statements and alias, goes with its card
-            turned = {"assertions": q.execute(f"""UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=?, notes=json_set(notes,'$.superseded',json('true'))
-                                                  WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=? AND {ACCEPTED_WITH_RECORD}""",
-                                              (by, ts, tree_id, p["id"])).rowcount,
-                      "aliases": q.execute("""UPDATE alias SET status='rejected', notes=json_set(notes,'$.superseded',json('true'))
-                                              WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?""", (tree_id, p["id"])).rowcount}
         q.execute("UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note='superseded' WHERE id=?", (by, ts, p["id"]))
         q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                   (ulid(), tree_id, ts, by, "reject", "proposal", p["id"], dumps({"closed": "superseded", "why": why, "matcher": p["version"], "now": MATCHER[2],
-                                                                                 "extraction": pay["extraction_id"], "matched_again": reading, **turned})))
+                                                                                 "extraction": pay["extraction_id"], "matched_again": reading})))
     later = []
     for p in cards:                                                  # first what no comparison is needed for: an older matcher's card, a card on a superseded reading
         pay = json.loads(p["payload_json"]); eid = pay["extraction_id"]

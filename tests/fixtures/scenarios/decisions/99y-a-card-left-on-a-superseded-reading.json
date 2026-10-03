@@ -1,6 +1,6 @@
 {
  "title": "a card left on a superseded reading",
- "line": "a decision the rule takes, then withdraws after the page is read again, leaves its card undecided on the reading the re-read superseded: reconsider closes it as superseded and matches the current reading again, her entry proposed afresh there and taken by the rule, which still would, and the withdrawn decision's statements and name alias, turned with the closed card, stand again with the new one",
+ "line": "a decision the rule takes, then withdraws after the page is read again, leaves its card undecided on the reading the re-read superseded: reconsider closes it as superseded and matches the current reading again, her entry proposed afresh there and taken by the rule, which still would, and the withdrawn decision's statements and name alias, left undecided with the closed card, stand again with the new one",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -142,7 +142,7 @@
       "record": "c20",
       "rejected": 0
      },
-     "why": "the withdrawn decision's statements, turned rejected with its card, stand again with the decision on the current reading: nobody rejected them"
+     "why": "the withdrawn decision's statements, left undecided with its card, stand again with the decision on the current reading: closing a card judged nothing it stated"
     },
     {
      "alias": {

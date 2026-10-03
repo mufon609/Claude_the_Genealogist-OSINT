@@ -739,15 +739,11 @@ it supersedes, and its record's current reading is matched again: the matcher
 proposes the persona afresh as it stands and the rule takes what it takes, so a
 person the rule created and took back comes back as a card for that person,
 never a second one, and a persona that is a hint now leaves the cards and stays
-a hint on the page. A withdrawn decision closed on a superseded reading takes
-what the withdrawal took back with it (the statements it had accepted with the
-record, and its name alias), rejected the way a rejected card's go (a family
-membership resting on nothing else leaves the person's family), since the card
-its current reading gets carries the record's facts again: accepting that card
-makes them stand, nobody having rejected them. What the decision wrote
-undecided (a sibling placement, a link the record's indexer computed, a value
-the page keeps beneath the one it shows) stays undecided, as accepting the
-record leaves it. A
+a hint on the page. A withdrawn decision closed on a superseded reading leaves
+what the withdrawal took back undecided (its statements and its name alias):
+closing a card judges nothing it stated, so a family membership resting on it
+stays the claim it was, and the card its current reading gets carries the
+record's facts again: accepting that card makes them stand. A
 card the matcher still puts to the same person keeps its id and takes the
 matcher's words, as they now read, as its rationale (one the rule took and
 withdrew keeps the words written before the record was taken: its own
