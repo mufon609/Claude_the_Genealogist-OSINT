@@ -691,30 +691,44 @@ one, so it **answers a question**: "Is the James Ahearn in this 1870 household
 Thomas's father?" Review happens on the person's screen, on the held record.
 The decision is about the document: is this record's persona this person.
 Accepting writes the persona link Accepted and an Accepted assertion from each
-fact the record states to the person: Name and Sex assert the person; an event
-fact asserts the person's event of that type and year (within two years when
-either the record's date or the event's own is marked about, estimated or
-calculated, so "19 November 1920" lands on an event the file dates "abt 1921"),
-created from the record's date when the person has none of that type; an undated event fact
-asserts the person's one event of that type, and with several, none of them:
-the fact is raised as a `conflict` question naming the record and the type
+fact the record states to the person: Name and Sex assert the person; a fact
+about the record or the page (its id, an age at death) asserts nothing; every
+other fact asserts one event, never several (one statement, one event). A fact
+of a type a life holds once (Birth, Death, Burial, Cremation) lands on the
+person's one event of that type whatever its date or place: a date or place
+that differs is the conflict question below, never a second event, and only a
+person with no event of the type gets one from the fact. Any other fact lands
+on the person's event of its type whose own date agrees most closely with the
+record's: the same day, then the same month, then the same year, then within
+two years when either date is marked about, estimated or calculated (so
+"19 November 1920" lands on an event the file dates "abt 1921"), among the
+events whose place agrees with the record's or is absent when any does; an
+undated fact lands on the person's one event of the type; a dated fact that
+fits none makes an event of its own from the record's date. Where the record
+does not choose (two or more events equally close, an undated fact among
+several events of the type, a fact of a type a life holds once that fits none
+of the person's several), the fact asserts none of them and is raised as a
+`conflict` question naming the record, its date and the events to choose from
 (`Catalog.unplaced`) until the owner places it on the event they mean
 (`tools/conclude.py place`, which also moves a statement asserted on the
-wrong event of the type; an event left with no statement but rejected ones,
-one an older reading made of a misread value, leaves the person's events and
-stays for the audit trail); an attribute the record
-states (an occupation, an inscription) asserts the person's attribute of that
-type, created with the record's value when the person has none; a fact about
-the record or the page (its id, an age at death) asserts nothing. Where the
+wrong event of the type, a family's as a person's; an event left with no
+statement but rejected ones, one an older reading made of a misread value,
+leaves the person's events and stays for the audit trail). An attribute the
+record states (an occupation, an inscription) asserts the person's attribute
+of that type with the record's value, chosen the same way among several of
+that value, created when the person has none. A record's fact already stated
+on one of the person's events, through an earlier reading of the record or
+placed there by the owner, stays where it is. Where the
 record says the persona is the child, parent or spouse of a persona already
 accepted as a person on the same record, the family link between the two
 carries an Accepted assertion on the artifact too, created in a family of the
 right shape when the tree lacks the link: a parent-child relation is evidence
 on the child's membership, a spouse relation on both partners', and the family
-facts the record states (a Marriage and its date and place) are asserted on that
-family's own event of the type and year, created when the family has none, as a
-person's event is (a marriage index accepted for one partner waits for the
-other's acceptance on it, which writes it); a sibling
+facts the record states (a Marriage and its date and place) are asserted on one
+of that family's own events of the type, chosen as a person's is, created when
+none fits and raised for the owner when the choice is theirs (a marriage index
+accepted for one partner waits for the other's acceptance on it, which writes
+it); a sibling
 stated on the record places the person as a child of the other's accepted
 parents with an Undecided assertion (the record states the sibling, not the
 parents), and only when the other is an accepted child of one family and
@@ -743,6 +757,31 @@ creates the person in this tree with the name as written (a maiden name the
 record marks becomes the birth surname), the persona link Accepted, the same
 assertions and the same family links. Rejecting writes the proposal rejected
 and nothing else.
+
+**One event, folded.** A person's events of one type, or a family's, are one
+event when their places agree or one is absent and either the type is one a
+life holds once or their dates agree on the year without giving a different
+month or day (26 Jun 1901 and 1901 are one; 1728 and 1730 are not, nor two
+marriages of one year at Amherst and at Northampton). The import writes a
+file's repeated facts that way, one event carrying each fact's citations as
+statements; a merge folds the kept person's events and a folded family's the
+same way; and `tools/initdb.py --migrate` folds once what an older import or
+older decisions wrote apart, one audit row per event folded under the
+migration's own actor (`conclude.fold`). The kept event is the one whose date
+or place the owner has spoken on (a resolution of theirs, or a reopen), else
+one a resolution of the rule's names, else the one carrying the most accepted
+statements, then the most statements, then the earliest. The other event's
+statements and notes move onto it as they are, statuses unchanged (a second
+statement of the same record fact stays where it was); the kept event takes a
+date it lacks, or one that agrees with its own and says more (26 Jun 1901 over
+1901, 24 April 1876 over CAL 1875), and a place it lacks, never on a date or
+place the owner or the rule has decided; and the emptied event leaves the
+person's or family's events, its row kept for the audit trail. Dates that
+differ, on a type a life holds once, leave the kept event's own value and the
+other in its statements: the conflict question above, which the rule's classes
+may settle or the owner resolves. Two events that each carry the owner's word
+on their date or place are never folded into one: the migration refuses,
+writing nothing, until the owner has answered one of them.
 
 **The standing rule.** After the matcher writes its proposals, the rule takes a
 `persona_match` on the owner's behalf when the record's collection is of a kind

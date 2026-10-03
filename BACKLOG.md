@@ -89,24 +89,9 @@ to the rule the three tests of decision 12, a pass beside
 data, the creation check over the whole tree with spelling variants, and the
 duplicate check before review with merged persons excluded. Live cases to
 test against: Joe Davidson, born 1925, linked undecided as a child of Lena
-Howard Bell, died 1918; Ruth M Peters and John Y Davidson, each with two
-accepted Birth events.
+Howard Bell, died 1918; John Y Davidson, whose one Birth holds the file's
+24 April 1876 against the 1900 census's Apr 1875.
 **Blocked by:** A1, which changes the same function.
-
-### A3. One statement, one event
-
-`conclude.assert_facts` and `assert_family_events` assert a dated record fact
-on every event of its type in the year (`_of_year`), so one register entry is
-accepted on three 1901 Marriage events of James Joseph Ahearn and Annie E
-Scannell; and an accept whose date falls outside the year of the tree's own
-event creates a second Birth (John Y Davidson's CAL 1875 beside 24 April
-1876). The import writes one event per GEDCOM fact, so the file's own
-duplicates (William Rittenhouse's nine marriages) arrive as events. Assert a
-fact on one event (several that fit are the unplaced question, as an undated
-fact is); fold, at import and by migration, a person's or a couple's events of
-one type that agree on the year with places agreeing or absent, the way
-`conclude.complete_merge` folds a merge's; and land a calculated or about date
-on the person's one event of a type that occurs once in a life.
 
 ---
 
@@ -235,7 +220,15 @@ acceptances (`conclude.link_family` withdraws the earlier undecided trace); a
 merge folding a family whose child the kept family already holds, and a merge
 completed (`conclude.complete_merge`) folding two same-partner families; the
 0.7.5 migration restoring a row an older decision wrote over (a page naming one
-person twice, each persona decided, which no current parser writes). When a real document
+person twice, each persona decided, which no current parser writes); the import
+folding a person's own repeated facts, and taking a fuller date onto an event a
+coarser fact began (the cut holds only the Ahearn couple's repeated 1901
+marriage, the couple's own first; Catharine Rittenhouse's births of 12 and
+13 January 1772 and Abraham Wiegner Heebner's two of 28 Dec 1766 lie outside
+it); a family fact equally close to two of the couple's events, raised by
+`Catalog.unplaced` and placed on a family's event by `conclude.place` (no
+record of the Ahearn marriage fits both its events); an attribute's fact among
+several of the person's attributes of its value. When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
@@ -316,9 +309,10 @@ matcher applies it. Until then such a record is a card.
 
 ### C12. The person screen has no control for a record's unplaced fact
 
-`Catalog.unplaced` raises an accepted record's undated fact, on a person with
-several events of its type, as a conflict question, and only
-`tools/conclude.py place` answers it. Show the question on the person screen
+`Catalog.unplaced` raises an accepted record's fact whose event is the owner's
+choice (an undated fact among several events of its type, a dated one equally
+close to two or more, one of a type a life holds once that fits none of
+several) as a conflict question, and only `tools/conclude.py place` answers it. Show the question on the person screen
 with the person's events of that type to choose from, writing through
 `conclude.place` with its audit row, as the living line's control writes
 through `conclude.living`.
@@ -348,6 +342,18 @@ a write hides in the middle of a line. Reformat them one
 statement per line at a width a review can read, behaviour unchanged and the
 checks green, a file per commit, once the rule's points on the proof
 standard's classes (section A) have landed, so the two do not collide.
+
+### C15. A family's own facts in the file lose their place
+
+`tools/ingest_gedcom.py` writes a FAM record's own MARR (or DIV, ENGA, ...) as
+an event whose statement carries no persona fact, a family being no persona:
+its date stands only as the event's own value, and its PLAC becomes a place
+string nothing points to, so the file's place for the couple's marriage is
+lost (the Ahearn couple's own 26 Jun 1901 at Northampton reads placeless), is
+never compared by `Catalog.disagreements` and never resolved, and the fold
+reads it as absent, joining any marriage of its year. Write the FAM record's
+facts as persona facts (on each partner's persona, as an Ancestry INDI-level
+MARR already is), so the file's date and place are statements like any other.
 
 ### C16. A connector for the New York State death index
 
