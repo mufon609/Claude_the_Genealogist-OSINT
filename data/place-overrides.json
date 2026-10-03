@@ -1,7 +1,12 @@
 {
-  "_comment": "Human-reviewable overrides for the place resolver. 'reject' = not a place. 'extra_queries' = additional candidate lookups to surface in the review proposal. 'note' is attached to the place_string.",
+  "_comment": "Human-reviewable overrides for the place resolver. 'reject' = a string that is not a place. 'reject_phrases' = the whole words of a string, in any case and spacing, that a record writes for the place of another of its lines. 'extra_queries' = additional candidate lookups to surface in the review proposal. 'force_review' keeps a string a card. 'note' is attached to the place_string.",
   "reject": {
     "Birth of child, Jane Marie Morgan": "event description glued into PLAC, not a place"
+  },
+  "reject_phrases": {
+    "same house": "words a record writes for the place of another of its lines (the 1940 census's residence in 1935, Same House: the house of its own residence), not a place: the place is the line it points at",
+    "same place": "words a record writes for the place of another of its lines (the 1940 census's residence in 1935, Same House: the house of its own residence), not a place: the place is the line it points at",
+    "same county": "words a record writes for the place of another of its lines (the 1940 census's residence in 1935, Same House: the house of its own residence), not a place: the place is the line it points at"
   },
   "force_review": {
     "Berthelsdorf, Freiberg, Sachsen, Germany": "Schwenkfelder exiles lived 1726-1734 at Berthelsdorf near HERRNHUT (Zinzendorf estate, Oberlausitz), not Berthelsdorf near Freiberg. Ancestry autocomplete likely picked the wrong one. Verify before accepting.",

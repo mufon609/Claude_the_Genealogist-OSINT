@@ -1,0 +1,127 @@
+{
+ "title": "a state written as an abbreviation",
+ "line": "a place string that is a state's name or an abbreviation of it alone (NJ, Penna, Mass, Mich: the death index, a church register, the Massachusetts and Michigan records) is asked as the state and accepted when the geocoder's one candidate verifies, as a string written out in full is",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "four strings of the records, each a state written short",
+   "place_string": {
+    "raw": "NJ"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Penna"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Mass"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Mich"
+   }
+  },
+  {
+   "say": "the resolver run with the geocoder's real answers for the four states in its cache",
+   "resolve": {
+    "only": [
+     "NJ",
+     "Penna",
+     "Mass",
+     "Mich"
+    ],
+    "geocoder": [
+     "nominatim-answers-states.json"
+    ]
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": "NJ",
+      "status": "accepted",
+      "has_place": true,
+      "resolver": "ai:nominatim-resolver@0.2.0",
+      "notes": {
+       "how": "unique full match",
+       "queries": [
+        "New Jersey, United States"
+       ]
+      }
+     },
+     "why": "NJ is New Jersey: asked as the state, one candidate verifies, so it is accepted without a card"
+    },
+    {
+     "place": {
+      "name": "New Jersey",
+      "place_type": "state",
+      "chain": [
+       "New Jersey",
+       "United States"
+      ]
+     }
+    },
+    {
+     "place_string": {
+      "raw": "Penna",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "queries": [
+        "Pennsylvania, United States"
+       ]
+      }
+     },
+     "why": "a period abbreviation is the state as the postal code is"
+    },
+    {
+     "place": {
+      "name": "Pennsylvania",
+      "place_type": "state",
+      "chain": [
+       "Pennsylvania",
+       "United States"
+      ]
+     }
+    },
+    {
+     "place_string": {
+      "raw": "Mass",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "queries": [
+        "Massachusetts, United States"
+       ]
+      }
+     }
+    },
+    {
+     "place_string": {
+      "raw": "Mich",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "queries": [
+        "Michigan, United States"
+       ]
+      }
+     }
+    },
+    {
+     "place_card": {
+      "raw": "NJ",
+      "exists": false
+     },
+     "why": "a string the resolver accepts has no card"
+    }
+   ]
+  }
+ ]
+}

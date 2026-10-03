@@ -38,8 +38,11 @@ Rules
     place_name rows. Otherwise the card offers every gazetteer candidate with its checks, on its twin's entry where it
     has one, after the geocoder's own; a twin the owner chooses there carries the gazetteer's answer, and the next run
     writes it onto the place (backfill_gazetteer).
-  * data/place-overrides.json can reject non-places, force review, add candidate
-    queries, and attach notes. It is the only hand-authored input.
+  * data/place-overrides.json can reject non-places (a string whole, or the words a record writes for the place of another of
+    its lines, "Same House"), force review, add candidate queries, and attach notes. It is the only hand-authored input.
+  * A string whose geocoder request got no answer (the endpoint unreachable, a refusal) is left exactly as it was: no card, no
+    resolver, so the next run asks again; the geocoder is not asked again in the run that found it silent, and the run says how
+    many strings it left.
   * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
   * Every string the resolver accepts, rejects or resets (--reset) gets one audit row
     under the person or agent who ran it (--by), the resolver's tag and the change in
@@ -775,15 +778,39 @@ def reset_ai_resolutions(cx, tree_id, by, ts, only=None):
             cx.execute("DELETE FROM external_id WHERE entity_kind='place' AND entity_id=?", (pid,))
             cx.execute("DELETE FROM place WHERE id=?", (pid,))
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--tree")
-    ap.add_argument("--limit", type=int); ap.add_argument("--dry-run", action="store_true"); ap.add_argument("--only")
-    ap.add_argument("--reset", action="store_true", help="undo AI-made resolutions (keeps human ones) before running; combine with --only to narrow to one raw string")
-    ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
-    a = ap.parse_args()
-    cx = connect(a.db)
-    tree_id, slug = resolve_tree(cx, a.tree)
+class Unanswered(Exception):
+    """The geocoder could not be reached."""
+
+def geocode(p, extras, ask):
+    """The geocoder's candidates for a parsed string: those of the first of its query variants that yields any, then those of the
+    override's extra queries (they carry tree context, so their candidates rank first among ties). ask(query) raises Unanswered
+    when the geocoder cannot be reached. Returns (candidates, the queries asked, the osm keys the extra queries gave)."""
+    variants = query_variants(p) if (p["components"] or p["country"]) else ["Silesia"]
+    cands, queries, from_extra = [], [], set()
+    def add(got, extra=False):
+        for c in got:
+            if not any(x.get("osm_id") == c.get("osm_id") and x.get("osm_type") == c.get("osm_type") for x in cands): cands.append(c)
+            if extra: from_extra.add((c.get("osm_type"), c.get("osm_id")))
+    for q in variants:                     # stop at the first variant that yields anything
+        queries.append(q); add(ask(q))
+        if cands: break
+    for q in extras:
+        queries.append(q); add(ask(q), extra=True)
+    return cands, queries, from_extra
+
+def names_no_place(raw, ov):
+    """Why a string names no place, or None: the override lists it whole (reject), or its words, in any case and spacing, are one of
+    the phrases a record writes for the place of another line (reject_phrases: Same House)."""
+    return ov["reject"].get(raw) or (ov.get("reject_phrases") or {}).get(re.sub(r"\s+", " ", raw.lower()).strip(" .,;:"))
+
+def resolve_strings(cx, tree_id, by, rows, stats=None):
+    """Resolve each (place_string id, raw) of rows, strings with no resolver yet, as the rules above say, writing under the person or
+    agent `by`: the string accepted to its place, or rejected as no place, or left Undecided with a place_resolution card; then
+    every event whose strings are all resolved takes its place (apply_to_events), and one audit row sums the run up. stats carries
+    what the caller counted before (the places' former names) and is added to. A string whose geocoder request got no answer is
+    left exactly as it was, no card, so the next run asks it again, and the geocoder is not asked again in this run. Returns
+    (stats, report, unanswered): the report one (tag, string, what happened) per string, unanswered {"strings": [...], "said":
+    the error} or None."""
     with open(os.path.join(ROOT, "data", "place-overrides.json"), encoding="utf-8") as fh: ov = json.load(fh)
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", RESOLVER).fetchone()
     ext_id = row[0] if row else ulid()
@@ -793,43 +820,26 @@ def main():
                                            "verify": "all components must match; unique full match auto-resolves; a gazetteer's one verified candidate through its geocoder twin"}), now()))
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
-    if a.reset: reset_ai_resolutions(cx, tree_id, a.by, ts, only=a.only)
-    former_names_added = backfill_former_names(cx)   # every place with a wikidata_id, before today's strings are read against it
-    gazetteer_names_added = backfill_gazetteer(cx)   # every accepted string whose chosen candidate a gazetteer annotated
-    rows = cx.execute("SELECT id, raw FROM place_string WHERE status='undecided' AND place_id IS NULL AND resolver IS NULL " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
-                      (a.only,) if a.only else ()).fetchall()
-    if a.limit: rows = rows[: a.limit]
-    stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0, "former_names_added": former_names_added, "gazetteer_names_added": gazetteer_names_added}
-    report = []
+    stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0, **(stats or {})}
+    report, unanswered, down = [], [], []
+    def ask(q):
+        if down: raise Unanswered(down[0])
+        try: return nominatim(q)
+        except Exception as e: down.append(str(e) or type(e).__name__); raise Unanswered(down[0])
     for psid, raw in rows:
         note = ov["note"].get(raw)
-        if raw in ov["reject"]:
+        not_a_place = names_no_place(raw, ov)
+        if not_a_place:
             cx.execute("UPDATE place_string SET status='rejected', resolver=?, resolved_at=?, notes=? WHERE id=?",
-                       (resolver_tag, ts, dumps({"reason": ov["reject"][raw]}), psid)); stats["rejected"] += 1
-            audit_string(cx, tree_id, ts, a.by, psid, {"raw": raw, "resolver": resolver_tag, "from": {"status": "undecided", "place_id": None}, "to": {"status": "rejected", "place_id": None}, "reason": ov["reject"][raw]})
-            report.append(("REJECT", raw, ov["reject"][raw])); continue
+                       (resolver_tag, ts, dumps({"reason": not_a_place}), psid)); stats["rejected"] += 1
+            audit_string(cx, tree_id, ts, by, psid, {"raw": raw, "resolver": resolver_tag, "from": {"status": "undecided", "place_id": None}, "to": {"status": "rejected", "place_id": None}, "reason": not_a_place})
+            report.append(("REJECT", raw, not_a_place)); continue
         p = parse(raw)
         if not p["components"] and not p["country"] and not p["region"]:
             report.append(("SKIP", raw, "nothing parseable")); continue
         dated = dated_candidate(cx, p)   # a component naming a place's own dated former name (Tonan, in "Ogau Tonan"); offered, never auto-resolved
-        variants = query_variants(p) if (p["components"] or p["country"]) else ["Silesia"]
-        extras = ov["extra_queries"].get(raw, [])
-        cands, queries = [], []
-        for q in variants:                     # stop at the first variant that yields anything
-            queries.append(q)
-            try: got = nominatim(q)
-            except Exception as e: report.append(("ERROR", raw, f"{q}: {e}")); got = []
-            for c in got:
-                if not any(x.get("osm_id") == c.get("osm_id") and x.get("osm_type") == c.get("osm_type") for x in cands): cands.append(c)
-            if cands: break
-        from_extra = set()
-        for q in extras:                        # override queries carry tree context: rank their candidates first among ties
-            queries.append(q)
-            try: got = nominatim(q)
-            except Exception as e: report.append(("ERROR", raw, f"{q}: {e}")); got = []
-            for c in got:
-                if not any(x.get("osm_id") == c.get("osm_id") and x.get("osm_type") == c.get("osm_type") for x in cands): cands.append(c)
-                from_extra.add((c.get("osm_type"), c.get("osm_id")))
+        try: cands, queries, from_extra = geocode(p, ov["extra_queries"].get(raw, []), ask)
+        except Unanswered: unanswered.append(raw); report.append(("NOANSWER", raw, down[0])); continue   # nothing is written: the string is asked again on the next run
         scope = gazetteer_for(p) if p["components"] else None
         if not p["components"] and not p["country"] and p["region"]:      # bare "Schlesien"
             p["components"] = ["Silesia"]
@@ -885,7 +895,7 @@ def main():
                                                              "alternatives": [x.get("display_name") for _, _, x in full if x is not c],
                                                              "details": p["details"], "warnings": p["warnings"], "note": note}), psid))
             stats["accepted"] += 1; report.append(("OK", raw, (f"[{how}] " if how != "unique full match" else "") + c.get("display_name")))
-            audit_string(cx, tree_id, ts, a.by, psid, {"raw": raw, "resolver": resolver_tag, "from": {"status": "undecided", "place_id": None}, "to": {"status": "accepted", "place_id": leaf}, "how": how, "place": c.get("display_name")})
+            audit_string(cx, tree_id, ts, by, psid, {"raw": raw, "resolver": resolver_tag, "from": {"status": "undecided", "place_id": None}, "to": {"status": "accepted", "place_id": leaf}, "how": how, "place": c.get("display_name")})
         else:
             reason = forced or ("bare single token; needs context" if bare else
                                 (how or f"{len(full)} fully-verified candidates") if full else "no candidate matches every component" if scored else "no geocoder candidates")
@@ -908,12 +918,32 @@ def main():
                        (resolver_tag, ts, dumps({"result": "review", "reason": reason, "top": candidate_summary(*scored[0][2:3], scored[0][0], scored[0][1]) if scored else None, "note": note}), psid))
             stats["undecided"] += 1; report.append(("REVIEW", raw, reason))
     stats["events_placed"], stats["events_left_unplaced"] = apply_to_events(cx, tree_id, resolver_tag, ts)
+    if unanswered: stats["unanswered"] = len(unanswered)
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, resolver_tag, "resolve", "place_string", "batch", dumps(stats)))
+    return stats, report, ({"strings": unanswered, "said": down[0]} if down else None)
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--tree")
+    ap.add_argument("--limit", type=int); ap.add_argument("--dry-run", action="store_true"); ap.add_argument("--only")
+    ap.add_argument("--reset", action="store_true", help="undo AI-made resolutions (keeps human ones) before running; combine with --only to narrow to one raw string")
+    ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    a = ap.parse_args()
+    cx = connect(a.db)
+    tree_id, slug = resolve_tree(cx, a.tree)
+    if a.reset: reset_ai_resolutions(cx, tree_id, a.by, now(), only=a.only)
+    former_names_added = backfill_former_names(cx)   # every place with a wikidata_id, before today's strings are read against it
+    gazetteer_names_added = backfill_gazetteer(cx)   # every accepted string whose chosen candidate a gazetteer annotated
+    rows = cx.execute("SELECT id, raw FROM place_string WHERE status='undecided' AND place_id IS NULL AND resolver IS NULL " + ("AND raw=?" if a.only else "") + " ORDER BY raw",
+                      (a.only,) if a.only else ()).fetchall()
+    if a.limit: rows = rows[: a.limit]
+    stats, report, unanswered = resolve_strings(cx, tree_id, a.by, rows, {"former_names_added": former_names_added, "gazetteer_names_added": gazetteer_names_added})
     if a.dry_run: cx.rollback()
     else: cx.commit()
-    for tag, raw, info in report: print(f"{tag:7} {raw[:60]:60} {str(info)[:90]}")
+    for tag, raw, info in report: print(f"{tag:8} {raw[:60]:60} {str(info)[:90]}")
     print("\n" + dumps(stats))
+    if unanswered: print(f"\nthe geocoder did not answer ({unanswered['said'][:200]}): {len(unanswered['strings'])} string(s) left as they were; run again")
 
 if __name__ == "__main__":
     main()

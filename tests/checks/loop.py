@@ -163,15 +163,19 @@ def a_run_connector(w, x):
     return {"outcome": r.get("outcome"), "requests": r.get("requests"), "logged_query": json.loads(logged[0]) if logged else {}}
 
 def a_resolve(w, x):
-    """tools/resolve_places.py on the strings named (--only, one run each) with the geocoder's answers planted in its cache,
-    Wikidata's items in its own, and the gazetteers' answers (GOV's and Wikidata's searches, each fixture a list of the
-    resolver's own cache records) under the paths the resolver reads them from, so no request goes out; the strings must
-    already be the tree's."""
+    """tools/resolve_places.py on the strings named (--only, one run each) with the geocoder's answers planted in its cache
+    (inline under `cache`, or as fixtures of its own cache records under `geocoder`), Wikidata's items in its own, and the
+    gazetteers' answers (GOV's and Wikidata's searches, each fixture a list of the resolver's own cache records) under the
+    paths the resolver reads them from, so no request goes out; the strings must already be the tree's."""
     import hashlib
     from resolve_places import cache_dir, gazetteer_cache_path, wikidata_cache_dir
     os.makedirs(cache_dir(), exist_ok=True); os.makedirs(wikidata_cache_dir(), exist_ok=True)
     for query, cands in x.get("cache", {}).items():
         with open(os.path.join(cache_dir(), hashlib.sha1(query.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump({"query": query, "fetched_at": w.treelib.now(), "results": cands}, fh)
+    for fixture in x.get("geocoder", []):                                  # each fixture a list of the geocoder's own cache records: a query and its answer
+        with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
+        for rec in records:
+            with open(os.path.join(cache_dir(), hashlib.sha1(rec["query"].lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump(rec, fh, ensure_ascii=False)
     for qid, fixture in x.get("wikidata", {}).items(): shutil.copy(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
     for fixture in x.get("gazetteer", []):
         with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)

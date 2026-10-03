@@ -70,6 +70,16 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios so
 | `wikidata-Q104305769-ballyquirk.json` | Wikidata's item for the townland Ballyquirk in Killeagh, County Cork |
 | `wikidata-Q502553-berthelsdorf-herrnhut.json`, `wikidata-Q27479092-berthelsdorf-weissenborn.json`, `wikidata-Q827807-berthelsdorf-liebstadt.json`, `wikidata-Q65183687-berthelsdorf-hainichen.json` | Wikidata's items for four Saxon Berthelsdorfs the geocoder answers with, read for their GOV ids (P2503); only the Weißenborn one carries one |
 
+## Geocoder answers
+
+The place resolver's answers from OpenStreetMap's Nominatim, copied unchanged from the live catalog's cache under
+`derivatives/geocode/nominatim/` (each a record of the query, when it was fetched and the results), planted by the `resolve`
+action's `geocoder` list so no request goes out. The data is ODbL (OpenStreetMap contributors).
+
+| File | What it holds |
+|---|---|
+| `nominatim-answers-states.json` | The answers to "New Jersey, United States", "Pennsylvania, United States", "Massachusetts, United States" and "Michigan, United States": one state boundary each, fetched 5 and 13 September 2026 |
+
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record
 ids are FamilySearch record pages.

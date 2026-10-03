@@ -1,0 +1,48 @@
+{
+ "title": "a record's back-reference is no place",
+ "line": "the 1940 census's residence in 1935 reads Same House, the house of its own residence; a string whose whole words are on the override's list of phrases for the place of another line is rejected as no place, with the reason in its notes and no request to the geocoder",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the string as the 1940 census record writes it",
+   "place_string": {
+    "raw": "Same House"
+   }
+  },
+  {
+   "say": "the resolver run with nothing planted in its cache: a request would reach the network",
+   "resolve": {
+    "only": [
+     "Same House"
+    ]
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": "Same House",
+      "status": "rejected",
+      "has_place": false,
+      "resolver": "ai:nominatim-resolver@0.2.0",
+      "notes": {
+       "reason": {
+        "has": "another of its lines"
+       }
+      }
+     },
+     "why": "rejected before the geocoder is asked, the reason in the string's notes"
+    },
+    {
+     "place_card": {
+      "raw": "Same House",
+      "exists": false
+     },
+     "why": "no card asks the owner which place Same House is"
+    }
+   ]
+  }
+ ]
+}
