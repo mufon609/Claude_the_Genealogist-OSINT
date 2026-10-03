@@ -467,6 +467,25 @@ words put the human only where doubt is serious. Then the rule applies it,
 reasonably exhaustive research first: his memorial shows a gravestone
 photograph not yet held (photo 102379026), which may carry 1876 itself.
 
+### C24. A held image nobody has read is research waiting, not held
+
+A gravestone photograph is a primary source (registry E05, T1) and becomes
+evidence only once read: the transcription path (`app/person/server.py`
+`transcribe`, `app/person/read_record.md`) writes the reading, and its people
+are cards like any other record's, as Helen Sara Brant's and Frederick Michael
+Ahearn's shared stone was read and taken for both. The live archive holds seven
+more no one has read: two more of Helen's (memorial 142698059), Abraham B
+Brant's, Sarah Cassel's, Anna Marie Bolton's, Ellen E McCrary's and John Young
+Davidson's (1822–1877). Their fetch steps stand done and `tools/checklist.py`
+calls the row held once a done step archived the record, so nothing asks for
+the reading: no card, no step, no open question, and the queue passes the
+person by. Read "held" as read: an archived image with no reading of its own is
+"held, not read" on the checklist and in `tools/proof.py`'s research, and the
+person's plan carries a step to read it (the reader the owner's ruling names,
+the model, with a person where the image is in doubt), which the queue counts as
+work a turn can do. Show it on a real image the harness holds, then read the
+seven live and decide them like Helen's and Frederick's.
+
 ### C25. Two readings of one record are decided apart
 
 John Y Davidson's 1946 Kentucky death certificate is held twice: FamilySearch's
