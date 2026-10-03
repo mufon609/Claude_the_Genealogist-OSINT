@@ -130,6 +130,8 @@
      "name": "Helen Sara Brant",
      "sex": "F",
      "role": "deceased",
+     "line": 1,
+     "image_is": "record",
      "year": "1986",
      "age": "76"
     },
@@ -147,6 +149,8 @@
     "form": {
      "name": "Frederick Michael Ahearn",
      "role": "husband",
+     "line": 2,
+     "image_is": "record",
      "residence": "Boca Raton, Florida"
     },
     "relations": [

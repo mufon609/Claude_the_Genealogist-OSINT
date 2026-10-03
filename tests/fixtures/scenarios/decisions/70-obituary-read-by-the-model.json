@@ -75,6 +75,8 @@
      "name": "Helen Sara Brant",
      "sex": "F",
      "role": "deceased",
+     "line": 1,
+     "image_is": "record",
      "year": "1986",
      "age": "76"
     },
@@ -90,6 +92,37 @@
       "ok": true,
       "card_status": "undecided"
      }
+    },
+    {
+     "extractor": {
+      "extraction": "$dead.extraction",
+      "kind": "llm",
+      "name": "harness",
+      "model_id": "harness",
+      "prompt_is_instruction": true,
+      "image_is": "record",
+      "regions": [
+       {
+        "line": 1
+       }
+      ]
+     },
+     "why": "the reading names its reader, the instruction text it followed and what the page is, and the persona its line"
+    },
+    {
+     "audit": {
+      "entity": "proposal",
+      "action": "insert",
+      "is": {
+       "some": {
+        "actor": "llm:harness",
+        "diff": {
+         "proposals": 1
+        }
+       }
+      }
+     },
+     "why": "the matcher run on the reading, the one proposal it writes, is the reader's own write, never the screen's identity (agent:check, as every earlier run in this scenario)"
     }
    ]
   },
@@ -100,6 +133,8 @@
     "form": {
      "name": "Frederick Michael Ahearn",
      "role": "husband",
+     "line": 2,
+     "image_is": "record",
      "residence": "Boca Raton, Florida"
     },
     "relations": [

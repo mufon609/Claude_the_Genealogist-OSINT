@@ -626,13 +626,25 @@ transcription path. The model reads it by default (extractor `llm:<model>`,
 layer 3 like any extraction, `docs/DATA-ARCHITECTURE.md` §1), each persona in
 the record's own role word with its facts as written, a birth calculated from
 an age and the record's year (qualifier `calculated`, so the matcher allows
-two years), and its relation to the head; a person reads it (extractor
-`human:<user>`) only on serious doubt, stated as the reason. An index page
-whose own name is a slip — an indexer's transposition or misreading, not a
-fresh fact — goes through the same path to the same default. What the
-reading proposes is decided like any record, the rule taking it exactly as
-it takes a parsed record, never by who did the reading. That is the
-path for every image until an OCR or HTR extractor exists.
+two years), its relation to the head, and the line or region it stands on in
+the image; a person reads it (extractor `human:<user>`) only on serious doubt,
+stated as the reason. An index page whose own name is a slip — an indexer's
+transposition or misreading, not a fresh fact — goes through the same path to
+the same default. What the reading proposes is decided like any record, the
+rule taking it exactly as it takes a parsed record, never by who did the
+reading. That is the path for every image until an OCR or HTR extractor
+exists.
+
+What a reader of an image writes is one text, `app/person/read_record.md`, and
+a reading records what read it. A model's reading names its model id (refused
+without one) and the version the id carries, a person's reading names the user,
+and the extractor row of either carries as its prompt hash the sha256 of that
+file as it stood at the reading. The reader is the actor of everything the
+reading writes, the matcher's proposals included. Every persona carries a
+`line` or a `bbox` on the image (refused without one, the refusal naming the
+persona), and the extraction keeps what the image is, `image_is`: `record`, the
+record made at the event, or `index`, an index or abstract of it. A refused
+reading writes nothing.
 
 `tools/match.py` runs on every extraction as it is written, one person at a
 time. For each person whose step the record fulfils, every persona is

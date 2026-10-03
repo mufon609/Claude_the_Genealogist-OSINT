@@ -1,0 +1,342 @@
+{
+ "title": "a reading names its reader",
+ "line": "a record image is read through the screen's transcription path by a model (llm:<model id>) or a person (user:<name>): a model with no id, a reader that is neither, a persona with no line or region, and an image not said to be a record or an index are each refused with nothing written; a reading records the model id, the version the id carries, the sha256 of the instruction text and what the image is, and each persona its line or region; a second persona of the same reading keeps its image kind; a person's reading is an extraction of its own",
+ "tree": {
+  "file": "harness.ged"
+ },
+ "steps": [
+  {
+   "say": "page 970 of the 1959 New York marriage index, the real image the 1959 remarriage is read from",
+   "seed": {
+    "fixture": "ny-marriage-index-1959-page-970.jpg",
+    "source": "C08",
+    "collection": "New York State Marriage Index, 1881-1967 (Reclaim the Records, Internet Archive)",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "url",
+     "value": "https://ia601400.us.archive.org/BookReader/BookReaderImages.php?zip=/13/items/New_York_State_Marriage_Index_1959/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2.zip&file=Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_0986.jp2&id=New_York_State_Marriage_Index_1959&scale=1&rotate=0"
+    }
+   },
+   "as": "nys"
+  },
+  {
+   "say": "a reading by a model that names no model",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hahnle, Chris M",
+     "role": "bride or groom",
+     "line": 48,
+     "image_is": "index"
+    },
+    "by": "llm:"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": [
+        "Hahnle, Chris M",
+        "llm:<model id>"
+       ]
+      }
+     },
+     "why": "a model's reading is refused until it names its model"
+    },
+    {
+     "count": {
+      "extractions_of": "nys",
+      "is": 0
+     },
+     "why": "nothing of the refused reading is written, not even its extraction"
+    }
+   ]
+  },
+  {
+   "say": "a reading by a session that is neither a model nor a person",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hahnle, Chris M",
+     "role": "bride or groom",
+     "line": 48,
+     "image_is": "index"
+    },
+    "by": "agent:harness for user:neural"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "not by agent:harness for user:neural"
+      }
+     }
+    },
+    {
+     "count": {
+      "extractions_of": "nys",
+      "is": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "a persona the reading places nowhere on the image",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hahnle, Chris M",
+     "role": "bride or groom",
+     "image_is": "index"
+    },
+    "by": "llm:claude-sonnet-5-5"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": [
+        "Hahnle, Chris M",
+        "line",
+        "bbox"
+       ]
+      }
+     },
+     "why": "the refusal names the persona that has no line or region"
+    },
+    {
+     "count": {
+      "extractions_of": "nys",
+      "is": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "a reading that does not say what the image is",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hahnle, Chris M",
+     "role": "bride or groom",
+     "line": 48
+    },
+    "by": "llm:claude-sonnet-5-5"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": [
+        "Hahnle, Chris M",
+        "image_is"
+       ]
+      }
+     }
+    },
+    {
+     "count": {
+      "extractions_of": "nys",
+      "is": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the row of HAHNLE CHRIS M, the 48th line of the page, read by the model that reads it",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hahnle, Chris M",
+     "role": "bride or groom",
+     "marriage_date": "14 Aug 1959",
+     "marriage_place": "Hunting",
+     "as_written": {
+      "Spouse surname, first four letters": "DAVI",
+      "Certificate number": "32801"
+     },
+     "line": 48,
+     "bbox": [280, 3086, 2460, 40],
+     "image_is": "index"
+    },
+    "by": "llm:claude-sonnet-5-5"
+   },
+   "as": "hahnle",
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "extractor": {
+      "extraction": "$hahnle.extraction",
+      "kind": "llm",
+      "name": "claude-sonnet-5-5",
+      "model_id": "claude-sonnet-5-5",
+      "version": "5.5",
+      "prompt_is_instruction": true,
+      "image_is": "index",
+      "regions": [
+       {
+        "line": 48,
+        "bbox": [280, 3086, 2460, 40]
+       }
+      ]
+     },
+     "why": "the extractor row names the model, the version its id carries and the hash of the instruction text; the extraction keeps what the image is; the persona its line and its region"
+    },
+    {
+     "audit": {
+      "entity": "persona",
+      "action": "insert",
+      "is": {
+       "len": 1,
+       "every": {
+        "actor": "llm:claude-sonnet-5-5"
+       }
+      }
+     },
+     "why": "the model is the actor of what its reading writes"
+    }
+   ]
+  },
+  {
+   "say": "the next row, said to be a record: this reading says the image is an index",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hummel, Cliffo L",
+     "role": "bride or groom",
+     "line": 49,
+     "image_is": "record"
+    },
+    "by": "llm:claude-sonnet-5-5"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "an index, not a record"
+      }
+     },
+     "why": "what the image is belongs to the reading, and a persona of it never says the other"
+    },
+    {
+     "count": {
+      "personas_of": "nys",
+      "is": 1
+     }
+    }
+   ]
+  },
+  {
+   "say": "the row of HUMMEL CLIFFO L, the 49th line, by the same reader: a persona of the same reading",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hummel, Cliffo L",
+     "role": "bride or groom",
+     "marriage_date": "12 Sep 1959",
+     "marriage_place": "Colonie",
+     "as_written": {
+      "Spouse surname, first four letters": "BEAU",
+      "Certificate number": "34018"
+     },
+     "line": 49,
+     "bbox": [280, 3136, 2460, 41]
+    },
+    "by": "llm:claude-sonnet-5-5"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "extraction": "$hahnle.extraction"
+     },
+     "why": "the same reader under the same instruction adds to its one extraction of the page, the image kind kept from the first persona"
+    },
+    {
+     "extractor": {
+      "extraction": "$hahnle.extraction",
+      "image_is": "index",
+      "regions": [
+       {
+        "line": 48
+       },
+       {
+        "line": 49
+       }
+      ]
+     }
+    },
+    {
+     "count": {
+      "extractions_of": "nys",
+      "is": 1
+     }
+    }
+   ]
+  },
+  {
+   "say": "a person reads the row of HOMMELL CHRIST B, the 47th, by the row's region alone",
+   "transcribe": {
+    "record": "nys",
+    "form": {
+     "name": "Hommell, Christ B",
+     "role": "bride or groom",
+     "marriage_date": "20 Sep 1959",
+     "marriage_place": "Ramapo",
+     "as_written": {
+      "Certificate number": "37841"
+     },
+     "bbox": [280, 3037, 2460, 40],
+     "image_is": "index"
+    },
+    "by": "user:harness"
+   },
+   "as": "hommell",
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "extractor": {
+      "extraction": "$hommell.extraction",
+      "kind": "human",
+      "name": "harness",
+      "model_id": null,
+      "version": null,
+      "prompt_is_instruction": true,
+      "image_is": "index",
+      "regions": [
+       {
+        "bbox": [280, 3037, 2460, 40]
+       }
+      ]
+     },
+     "why": "a person's reading is an extraction of its own, naming the user and carrying a region instead of a line"
+    },
+    {
+     "count": {
+      "extractions_of": "nys",
+      "is": 2
+     }
+    },
+    {
+     "audit": {
+      "entity": "persona",
+      "action": "insert",
+      "is": {
+       "some": {
+        "actor": "user:harness"
+       }
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

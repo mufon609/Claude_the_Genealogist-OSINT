@@ -323,8 +323,10 @@ family footprint, unlinked persons) and that fetching cited records is open. A h
 panel also shows each record its steps archived: the file, its extractions
 with personas, facts and relations, and, when the record has no persona yet,
 a form to transcribe one person at a time (name, role, sex, age, birth, death,
-residence, a relation to a persona already on the record); the model reads an
-image the same way, as extractor `llm:<model>`. A persona on the record
+residence, the line on the image, what the image is, a relation to a persona
+already on the record); the model reads an image the same way, as extractor
+`llm:<model id>` by `app/person/read_record.md`
+(`docs/RESEARCH-WORKFLOW.md` §5–7). A persona on the record
 with no proposal and no link is compared with the person on view (nothing is
 stored): on a person whose baseline is reviewed, when the surname and a place
 or a year agree beyond the name, the persona row carries a "hint" pill and one

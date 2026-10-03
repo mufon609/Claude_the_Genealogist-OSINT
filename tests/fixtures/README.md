@@ -203,8 +203,8 @@ reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`
 placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact; `event` is a
 literal id or `{person, type, index}`, that person's nth event of the type in the person screen's own order),
 `link_on_word`, `living`,
-`transcribe` (a reading typed into the person screen's form: `record`, `form`, `relations` to bound personas, `about`,
-`by`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
+`transcribe` (a reading typed into the person screen's form: `record`, `form` with the persona's `line` or `bbox` and
+`image_is`, `relations` to bound personas, `about`, `by` the reader, `llm:<model id>` or `user:<name>`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's),
 `collect`, `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
 carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
@@ -238,7 +238,9 @@ record's statements on a person's events of an `event_type`, or on a family `lin
 `catalog.evidence_classes`: some statement's `source`, `information`, `evidence`, `relationship`, `original`),
 `statement` (which reading a record's statements on a person's events of an `event_type` are read through,
 `catalog.statement_of`: `current` or `earlier` each), `conflict_rule` (the rule's test on a conflict, `conclude.classes_decide`, on a person's event of a `type` and its `axis`,
-date or place: `taken` and the reason, `why`), `extractor`, `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
+date or place: `taken` and the reason, `why`), `extractor` (a reading's extractor row, `kind`, `name`, `model_id`, `version`,
+`prompt_is_instruction` for the sha256 of `app/person/read_record.md`, and what the extraction kept: `image_is`, `year`,
+`regions` of its personas), `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
 an expectation is printed with its failure.
@@ -314,4 +316,6 @@ into the inbox (`decisions/95-cited-on-the-owners-word`: the only family-held ph
 never redistributed). A page of nothing but its saved-from line stands for the Newspapers.com obituary page the file cites
 (`decisions/70-obituary-read-by-the-model`, `decisions/97-proof-summary`, `loop/70-held-is-the-subject`: the archive does not hold
 the page, the holder forbidding a save); the obituary's readings are typed from the file's own claims onto it, as `transcribe`
-types a reading. The 1959 marriage index's reading is typed from the real image above.
+types a reading, each persona's line the order the claims are typed in, since the page has nothing to point at. The 1959
+marriage index's readings are typed from the real image above, each persona's line counted on it and its row's `bbox` in the
+image's own pixels.

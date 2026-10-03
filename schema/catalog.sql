@@ -194,7 +194,7 @@ CREATE TABLE extractor (
   name          TEXT NOT NULL,
   version       TEXT,
   model_id      TEXT,                   -- e.g. claude-fable-5-1
-  prompt_sha256 TEXT,                   -- hash of the prompt template used
+  prompt_sha256 TEXT,                   -- hash of the prompt template used; a reading of a record image: the sha256 of app/person/read_record.md as it stood
   config_json   TEXT,
   created_at    TEXT NOT NULL,
   UNIQUE (kind, name, version, prompt_sha256)

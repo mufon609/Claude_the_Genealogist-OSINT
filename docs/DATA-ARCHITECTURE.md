@@ -187,7 +187,7 @@ tree/
   tools/         CLI tools and shared modules (`README.md` lists them; `schema/README.md`
                  says what each does)
   docs/          this file and its siblings
-  app/person/    the person screen: stdlib server + one page
+  app/person/    the person screen: stdlib server + one page, and read_record.md (what a reader of a record image writes)
 ```
 
 The archive is the permanent home of every file's bytes. `trees/<slug>/imports/`

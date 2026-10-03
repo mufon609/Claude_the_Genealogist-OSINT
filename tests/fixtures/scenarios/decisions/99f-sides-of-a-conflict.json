@@ -174,9 +174,12 @@
      "marriage_place": "Huntington, Suffolk County, New York",
      "as_written": {
       "Spouse surname, first four letters": "DAVI"
-     }
+     },
+     "line": 48,
+     "bbox": [280, 3086, 2460, 40],
+     "image_is": "index"
     },
-    "by": "llm:harness"
+    "by": "llm:claude-sonnet-5-5"
    }
   },
   {
