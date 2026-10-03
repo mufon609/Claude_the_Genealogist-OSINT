@@ -127,7 +127,7 @@
    ]
   },
   {
-   "say": "the search is run by hand and found nothing, then the plan is made again",
+   "say": "the search is run by hand and found nothing",
    "log": {
     "step": {
      "person": "I332738926170",
@@ -137,6 +137,27 @@
     "outcome": "none",
     "note": "harness: searched by the patriot's name at the holder's page, no match"
    },
+   "expect": [
+    {
+     "search_log": {
+      "step": {
+       "person": "I332738926170",
+       "holder": "F04",
+       "kind": "fetch"
+      },
+      "is": [
+       {
+        "source_id": "F04",
+        "outcome": "none"
+       }
+      ]
+     },
+     "why": "the run is logged at the holder like any assisted search and the re-plan keeps it"
+    }
+   ]
+  },
+  {
+   "say": "then the plan is made again",
    "plan": [
     "I332738926170"
    ],
@@ -154,6 +175,16 @@
      "why": "a re-plan keeps the step assisted"
     },
     {
+     "fetch_entries": {
+      "holder": "F04",
+      "person": "I332738926170",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "still not a page to fetch"
+    },
+    {
      "search_log": {
       "step": {
        "person": "I332738926170",
@@ -168,16 +199,6 @@
       ]
      },
      "why": "the run is logged at the holder like any assisted search and the re-plan keeps it"
-    },
-    {
-     "fetch_entries": {
-      "holder": "F04",
-      "person": "I332738926170",
-      "is": {
-       "len": 0
-      }
-     },
-     "why": "still not a page to fetch"
     }
    ]
   },

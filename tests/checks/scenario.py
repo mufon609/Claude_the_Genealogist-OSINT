@@ -55,6 +55,8 @@ def short(x, n=400):
     except Exception: s = repr(x)
     return s if len(s) <= n else s[:n] + "…"
 
+STEP_KEYS = ("say", "expect", "at", "as")           # what a step may carry besides its one action
+
 class Walker:
     """The scenario's state: the scratch, the tree, the labels steps bound, and the last action's result."""
     def __init__(self, spec, keep, show):
@@ -204,7 +206,10 @@ class Walker:
                 self.step_no += 1
                 self.env["last"] = None
                 if self.show: print("    -", step.get("say") or short({k: v for k, v in step.items() if k not in ("expect", "say")}, 160))
-                action = next((k for k in step if k in ACTIONS), None)
+                acts, odd = [k for k in step if k in ACTIONS], [k for k in step if k not in ACTIONS and k not in STEP_KEYS]
+                if len(acts) > 1 or odd:                    # a step does one thing: a second action or a word the walker does not know would be skipped unseen
+                    self.fails.append(f"step {self.step_no}: " + "; ".join(([f"one action per step, not {acts}"] if len(acts) > 1 else []) + ([f"no such action {odd}"] if odd else []))); continue
+                action = acts[0] if acts else None
                 if action:
                     try:
                         with self.clock(step.get("at")): self.env["last"] = ACTIONS[action](self, self.value(step[action]) if action not in ("transcribe", "place_card", "step", "fake_run", "fake_fetch", "run", "run_all", "run_connector") else step[action])
@@ -215,8 +220,9 @@ class Walker:
                     self.cx.commit()
                     if "as" in step: self.env[step["as"]] = self.env["last"]
                 for want in step.get("expect", []):
-                    kind = next((k for k in want if k in EXPECTS), None)
-                    if not kind: self.fails.append(f"step {self.step_no}: no such expectation {list(want)}"); continue
+                    kinds = [k for k in want if k in EXPECTS]
+                    if len(kinds) != 1: self.fails.append(f"step {self.step_no}: " + (f"one expectation per entry, not {kinds}" if kinds else f"no such expectation {list(want)}")); continue
+                    kind = kinds[0]
                     try: ok, got = EXPECTS[kind](self, want[kind], want)
                     except Exception as e:
                         ok, got = False, f"raised {type(e).__name__}: {e}"
