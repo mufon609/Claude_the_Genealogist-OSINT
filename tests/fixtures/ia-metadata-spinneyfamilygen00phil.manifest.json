@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "ba021857340fbf5687e87a5a5f21be57628ae9c4ac7f2cb3bc37b4578159018b",
+  "bytes": 13170,
+  "mime": "application/json",
+  "source_id": "L02",
+  "collection": "Internet Archive books",
+  "locator": {
+    "kind": "url",
+    "value": "https://archive.org/metadata/spinneyfamilygen00phil"
+  },
+  "retrieved_at": "2026-09-13T14:58:11Z",
+  "retrieved_by": "agent:tree-16 for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://archive.org/metadata/spinneyfamilygen00phil",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "PD/ToS",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "L02"
+  },
+  "trust_tier": "T3",
+  "pages": 1,
+  "notes": "{\"collections\":[\"bostonpubliclibrary\",\"bpllfhc\",\"americana\",\"inlibrary\",\"printdisabled\",\"fav-041961\",\"fav-2pennyworth\",\"fav-cd2_spinney\",\"fav-chantel_ducharme\",\"fav-cjoyhallqvist\",\"fav-epknauff\",\"fav-flocktona\",\"fav-historyuppie\",\"fav-kklisle\",\"fav-kmccormick1\",\"fav-nalfhistorian\",\"bpl-ol\"],\"connector\":\"ia_books\",\"date\":\"2004-01-01\",\"doc\":\"spinneyfamilygen00phil\",\"given\":\"Raymond Earl\",\"hit\":\"Spinney family genealogy : genealogy of Thomas Spinney and Margery Randall (2004): She  was  born  1809  in  New  York, and  died  Aft.  1 880  in  New  York.\\nChildren  of  Joseph  Spinney\",\"item\":\"spinneyfamilygen00phil\",\"locator\":{\"kind\":\"url\",\"value\":\"https://archive.org/details/spinneyfamilygen00phil\"},\"page\":414,\"q\":\"\\\"Raymond Davidson\\\"~3\",\"restricted\":true,\"step_type\":\"name\",\"surname\":\"Davidson\",\"text\":[\"She  was  born  1809  in  New  York, and  died  Aft.  1 880  in  New  York.\\nChildren  of  Joseph  Spinney\",\"October  18.  1802;  d.  October  14,  1820.  New  York.\\nJAMES  OLIVER,  b.  January  16,  1805.\\n78. \",\" b.  1805.  New  Hampsire:  d.  Aft.  1880.  New  York.\\n118.  Thomas5  Spinnhy  (John4,  Thomas7*,  Thomas2\",\"in  New  Hampsire,  and died  All.  1880  in  New  York.  He  married  MaryAnn  Pray  January  24,  1828\",\" 10-04-1895) +Bertha  Dean  of  Watkins  of  New  York  (m.  04-30-1913) Naharniah  Spinney  Gayton:\"],\"title\":\"Spinney family genealogy : genealogy of Thomas Spinney and Margery Randall\",\"variants\":[],\"year\":2004}"
+}

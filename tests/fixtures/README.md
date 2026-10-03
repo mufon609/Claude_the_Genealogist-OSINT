@@ -3,7 +3,9 @@
 Saved real pages, one per parser, read by `tools/check.py` (through `tests/checks/parsers.py`) on a scratch catalog. They are the owner's own family documents
 in the owner's repository; every page is public at its holder except where the rights column says otherwise. A fixture is
 the bytes as the archive holds them (or as the browser saved them), never edited: the parser is checked against the page
-as it is.
+as it is. The same holds for everything else the harness reads, the scenarios' answers included: every response body, row,
+page and record is real, archived or captured from its holder, but for two stand-in files no code looks inside; what is
+simulated, and those two stand-ins, are named in "What is simulated" at the end.
 
 | File | Holder and page | Parser | Rights |
 |---|---|---|---|
@@ -48,13 +50,38 @@ as it is.
 |---|---|---|
 | `wikitree-profile-Hubner-223.json` + `.manifest.json` | WikiTree's getProfile for Hubner-223 (David Hübner/Heebner, 1696–1784) with parents, spouses, children and siblings, fetched by the WikiTree connector on a scratch data root on 7 September 2026, not the live catalog; the manifest is its provenance | `rule:wikitree-profile` |
 | `ia-search-inside-genealogicalreco01krie-heebner.json` + `.manifest.json` | The Internet Archive's search inside the item genealogicalreco01krie (Genealogical record of the descendants of the Schwenkfelders, 1879) for Heebner, with the pages the connector chose in the manifest's notes, from the same scratch run | `rule:ia-search-inside` |
-| `ia-advancedsearch-title-schwenkfelder-families.json` | The Archive's advanced search for texts titled "The Genealogical Record of the Schwenkfelder Families", as the books connector asks it: three copies of the 1923 book. Read by the connector's offline check, not by an extractor: a search response is the query's evidence, not a record | none |
 | `locgov-ocr-sn89058321-1918-05-10-p2.json` + `.manifest.json` | loc.gov's page text for image 2 of The Commercial (Union City, Tennessee), 10 May 1918, a hit of Ollie Duke Davidson's obituary step run live on the catalog on 7 September 2026; the harness adds the step's kind (obituary), which the runner now writes on every response and did not then | `rule:loc-gov-ocr` |
 | `ky-death-index-1946-davidson.txt` + `.manifest.json` | Five lines of Reclaim The Records' Kentucky death index file for 1946 on the Internet Archive, DAVIDSON JIMMIE to DAVIDSON L, John Y Davidson's (Simpson County, 11 Jun 1946, certificate 14205) among them: the bytes exactly as one byte-range request returned them, each line's carriage-control byte kept; the manifest gives the range, the whole file's URL, size and sha256. The shape of the derivative the Kentucky connector keeps, and its offline check's year file | `rule:ky-death-index` |
 | `ky-birth-index-1915-davidson.txt` + `.manifest.json` | Four lines of the same release's Kentucky birth index file for 1915, DAVIDSON PRYCE to DAVIDSON RONALD, Robert Edgar Davidson's (Logan County, 19 Feb 1915, mother Lena H Bell) among them, fetched and kept the same way | `rule:ky-birth-index` |
 
 A connector's response is read with the notes its manifest carries (the item, the pages chosen, what was searched for, the
 step's kind), as the extractor reads it on arrival.
+
+## Saved responses the connector checks and the runner's scenarios are answered with
+
+Read by `tools/check.py`'s offline connector checks (`connectors.json` names them) and played back by the loop's `run`
+action as a holder's answer, never parsed as a page of their own. Each is a real response with its manifest beside it:
+where the archive holds the response, the manifest is the archive's own and the sha256 in it is the file's, so
+`sha256sum` against `archive/objects/sha256/…` shows the bytes are the archived ones; the one response captured for the
+harness has its own manifest saying so.
+
+| File | Where it came from |
+|---|---|
+| `nj-death-index-2006-2017-excerpt.csv` + `.manifest.json` | Reclaim The Records' New Jersey death index 2006–2017 (a 69 MB CSV on the Internet Archive; the archive holds it as sha256 `c94cb11b…`, fetched 15 September 2026): the file's header line, every line under the surname Ahearn (31) or Evers (42), and the line of state file number 20150061197 (Noi Davidson, born 15 Jan 1929 at Morioka, died 12 Nov 2015), each exactly as the file holds it, in the file's order, line feed ends; the manifest names every line number. Frederick Ahearn (M), born 6 Nov 1932 at Coatesville, died 3 Apr 2016, is the Ahearn row that fits Frederick Micheal Ahearn Jr; no Evers row is Carol's |
+| `ia-advancedsearch-title-schwenkfelder-families.json` + `.manifest.json` | The archive's own object (sha256 `986aaa76…`, 11 September 2026): the Archive's advanced search for texts titled "The Genealogical Record of the Schwenkfelder Families", as the books connector asks it; the three copies of the 1923 book |
+| `ia-metadata-genealogicalreco0000samu.json` + `.manifest.json` | The archive's object `ccf44554…` (11 September 2026): the Archive's metadata for the copy genealogicalreco0000samu, which names the server and directory its search inside and page images are read from |
+| `ia-search-inside-genealogicalreco0000samu-brant.json` + `.manifest.json` | The archive's object `90297f84…` (11 September 2026): the search inside that copy for Brant, three matches on two pages (182, 743) |
+| `ia-search-inside-genealogicalreco0000samu-brandt.json` + `.manifest.json` | **Captured for the harness**, one request on 2 October 2026 23:47 UTC with the project's User-Agent, at `https://ia801406.us.archive.org/fulltext/inside.php?item_id=genealogicalreco0000samu&doc=genealogicalreco0000samu&path=%2F28%2Fitems%2Fgenealogicalreco0000samu&q=Brandt`: the same search inside the same copy for Brandt, the spelling the book's own index gives for Brant ("Brand, Brandt — see Brant"); six matches on five pages (159, 209, 257, 743, 763) |
+| `ia-fts-newspapers-helen-brant.json` + `.manifest.json` | The archive's object `84cace00…` (12 September 2026): the Archive's full-text search of its newspapers for "Helen Brant", 119 issues of which the first 40 are the answer; three of them (St Joseph Herald Press 11 Feb 1967 and 8 Apr 1972, Corsicana Semi Weekly Light 28 Jan 1938) carry no year of their own, only the day in their title |
+| `ia-fts-books-raymond-davidson-new-york.json` + `.manifest.json` | The archive's object `660fbefc…` (13 September 2026): the Archive's full-text search of its books for "Raymond Davidson" with New York and a genealogy title; its third hit is spinneyfamilygen00phil, a book the Archive lends |
+| `ia-metadata-spinneyfamilygen00phil.json` + `.manifest.json` | The archive's object `ba021857…` (13 September 2026): the Archive's metadata for that lent book (`access-restricted-item` true) |
+| `ia-fts-newspapers-alicia-ahearn-empty.json` + `.manifest.json` | The archive's object `d6c20ff8…` (20 September 2026): the Archive's full-text search of its newspapers for "Alicia Ahearn", which holds nothing: the Archive's empty answer |
+| `wikitree-search-davidson-noi-1929-empty.json` + `.manifest.json` | The archive's object `eb0a659a…` (13 September 2026): WikiTree's searchPerson for Noi Davidson born 1929, which holds nothing: WikiTree's empty answer |
+| `ny-marriage-index-1959-page-970.jpg` + `.manifest.json` | The archive's object `c3dd7c98…` (7 September 2026): page 970 of Reclaim The Records' New York State marriage index for 1959 on the Internet Archive, as its reader serves the scan (3054 × 3530, 1.2 MB), the groom's row HAHNLE CHRIS M, license issued at HUNTING, 8/14, certificate 32801 among them: the image a scenario's reading is typed from. Never parsed by the harness |
+| `va-gravesite-search-davidson-raymond-e.html` + `.manifest.json` | The archive's object `e6db8c20…` (14 September 2026): the VA Nationwide Gravesite Locator's results page for Davidson, Raymond, middle name beginning E, as the connector's posted search received it: five decedents, Raymond E Davidson (1939–2007) the first |
+| `va-gravesite-search-davidson-noi.html` + `.manifest.json` | The archive's object `17c08be7…` (14 September 2026): the same locator's page for Davidson, Noi: one decedent, Noi Davidson (1929–2015) |
+| `nara-1950-search-davidson-nassau-ed-30-392.json` + `.manifest.json` | The archive's object `9fda2c90…` (7 September 2026): the 1950 census site's own search for Davidson in Nassau County, New York, enumeration district 30-392: the one schedule (`nara-1950-schedule-3947385.json`, read as a page above) |
+| `nara-1950-search-davidson-nassau-ed-30-393-empty.json` + `.manifest.json` | **Captured for the harness**, one request on 3 October 2026 00:06 UTC (2 October local) with the project's User-Agent, at `https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-393&page=1`: the same search within the district beside it, which the site answers with nothing (`{"total":0,"size":25,"page":1,"results":[]}`): the census site's empty answer |
 
 ## Gazetteer answers
 
@@ -69,6 +96,28 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios so
 | `wikidata-Q5321228-dluzec.json` | Wikidata's item for Dłużec (Lwówek Śląski), with its GOV id (P2503) and SIMC, as Special:EntityData serves it |
 | `wikidata-Q104305769-ballyquirk.json` | Wikidata's item for the townland Ballyquirk in Killeagh, County Cork |
 | `wikidata-Q502553-berthelsdorf-herrnhut.json`, `wikidata-Q27479092-berthelsdorf-weissenborn.json`, `wikidata-Q827807-berthelsdorf-liebstadt.json`, `wikidata-Q65183687-berthelsdorf-hainichen.json` | Wikidata's items for four Saxon Berthelsdorfs the geocoder answers with, read for their GOV ids (P2503); only the Weißenborn one carries one |
+
+| `wikidata-Q200077-morioka.json`, `wikidata-Q11643491-tonan.json` | Wikidata's items for Morioka and for Tonan, its former name (P1365 with its dates): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
+
+## Geocoder answers
+
+`geocoder/nominatim-<place>.json`: the geocoder's (Nominatim's) answers to the queries the resolver asks, each a cache record
+exactly as the live resolver kept it under `derivatives/geocode/nominatim/` (`{query, fetched_at, results}`, results as
+Nominatim served them), copied byte for byte; the scenarios' `place_card` and `resolve` actions plant them in the scratch
+resolver's cache under the file name it looks them up by (`geocoder: [...]`), so no request goes out. Data © OpenStreetMap
+contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said otherwise.
+
+| Files (`geocoder/nominatim-…`) | The query and what the geocoder answered |
+|---|---|
+| `new-egypt-ocean-county-new-jersey`, `new-jersey`, `auburn-kentucky` (7 September), `logan-county-kentucky`, `woodburn-kentucky`, `northampton-hampshire-massachusetts` | the place the query names, one answer each; New Egypt's two (the township's village and a postcode node) |
+| `coatesville-chester-pennsylvania`, `pennsylvania`, `philadelphia-philadelphia-pennsylvania` | one answer each; the last the city alone |
+| `philadelphia-pennsylvania` | two: the city and the county that is coterminous with it |
+| `hempstead-nassau-new-york` | two: the Town of Hempstead and the Village of Hempstead in it |
+| `morioka-japan` (15 September) | three: Morioka, Iwate Prefecture, and two streets named for it |
+| `misawa-aomori-japan` | two: the city of Misawa and a quarter of it, under Aomori Prefecture (the first-level-unit import scenario) |
+| `ogau-tonan-iwate-shiwa-japan`, `ogau-tonan-japan` | no answer: the geocoder knows no such place (a former name's words) |
+| `langneundorf-lower-silesia`, `berthelsdorf-sachsen-germany` (six), `berthelsdorf-herrnhut-sachsen-germany`, `berthelsdorf-freiberg-sachsen-germany`, `ballyquirk-ireland` (four) | the answers the gazetteer scenario's resolver run reads |
+| `ballyquirk-cork-ireland` | **Captured for the harness**, one request on 2 October 2026 23:56 UTC through the resolver's own `nominatim()` with the project's User-Agent (the live cache holds no answer to this query): one answer, the Killeagh townland |
 
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record
@@ -167,9 +216,8 @@ uncited claim, undecided), `divorce` (the owner's word ending a marriage through
 `person`'s one open conflict whose detail has `detail_has`, or with `over_rule` the one the rule resolved, `keep` a bound
 assertion id or `{record, event_type}` for that record's statement on the person's event of the type, `note`; a refusal
 comes back as its `error`), `reopen_conflict` (a conflict the rule resolved, taken back by the owner through
-`tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card
-with the geocoder's
-`candidates` planted in the cache), `older_matcher`, `legacy_card` (a card an older matcher wrote for the row at sequence `row`
+`tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card, its candidates the results of the
+geocoder's real answers named under `geocoder`, planted in the cache), `older_matcher`, `legacy_card` (a card an older matcher wrote for the row at sequence `row`
 of a results page `record`, put to `person`, planted undecided as that matcher's `version`: the matcher writes none now, so only
 an older one can stand for reconsider to meet), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
@@ -203,20 +251,23 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
 person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `turns` (`tools/turns.py` the same way: `turns` for --turns,
 `resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
-into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py`, its download a body the
-data gives, `fetch: {header, rows}` or `{body}`, one answer per request as `fetch: {answers: [{url_has, body | error}]}`, or no
-network at all; `dry` for a dry run, `again` for a run by the step's id at every connector), `run_all` (`--all` with a run that regenerates
-the plan or raises, as the data says), `run_connector` (a connector standing in, answering none for a request carrying
-`none_when`; `field` names the place-like field it asks under, "place" when absent, "census place" for a fetch step's own),
-`decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's `cache`, Wikidata's items under `wikidata`
+into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
+replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, each answer for the first request
+carrying its `url_has` that no earlier request took: a saved real response, or the harness's stand-in for a holder that did not
+answer; a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
+step's id at every connector; the result's `records` are the sha256 of every record the runner archived and read), `run_all` (`--all` with a run that regenerates
+the plan or raises, as the data says), `run_connector` (`run_step.run_connector` with the real `connector` named, answered like `run`: the
+place names the step carries tried one at a time; the answers are taken in the order the requests come, so two names that make the same
+request can be answered nothing and then the page),
+`decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in
 order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`), `locator_known`, `steps_by_collection`,
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
-`wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' contract;
-what they are asked with and answer with is in the scenario. `connectors.json` holds the same for the offline connector
-checks in `tools/check.py`: the names, titles and bodies they are run against.
+`wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' and the runner's contract; what they are asked with
+and answer with is in the scenario. `connectors.json` holds the same for the offline connector checks in `tools/check.py`: the
+names and titles they are asked with and the saved real responses they are read against.
 
 The import scenarios (`scenarios/imports/`) add, through `tests/checks/imports.py`, how a file is read as itself. The file
 is always a fixture, the harness tree, written as another exporter would write it: the action `ingest` (`tools/ingest_gedcom.py`
@@ -232,6 +283,35 @@ person `name` holding the words given, `absent` for words no row holds, `clean` 
 The geocoder's answer for the place the first-level-unit scenario resolves is the owner's own cache entry, fetched on
 5 September 2026.
 
-Two stand-ins carry no fact of anyone: the smallest of JPEG files stands for a gravestone photograph the harness never
-parses, and a page of nothing but its saved-from line stands for an obituary the file cites at a holder with no parser,
-read only by a reading typed from the file's own claims.
+## What is simulated
+
+Every response body, row, page and record the harness reads is real, but for the two stand-ins at the end: a page or response the live archive holds (a connector's
+response with the archive's own manifest beside it, and the check that the bytes are the archive's own), the owner's own export
+cut down (`harness.ged`), the geocoder's and the gazetteers' answers as the live resolver kept them, or one captured from its
+holder for the harness and named so above (three: the Archive's search inside the Schwenkfelder record for Brandt on 2 October 2026,
+Nominatim's answer for "Ballyquirk, Cork, Ireland" on 2 October, the 1950 census site's empty answer for Davidson in district 30-393 on
+3 October UTC); a few were captured by a connector or the resolver on a scratch data root and say so in their rows. A holder's
+request is asked of a real connector; only the network call is replaced.
+
+What is simulated is a holder that does not answer, which is a control signal and no record:
+
+- `run` and `run_connector` answers carrying an `error`: the connection raises `URLError` whose message begins "the harness's
+  stand-in for no answer" (a timeout, a challenge, a refusal): the census page image in the loop scenarios
+  `21-the-record-a-connector-archived` and `96-fetch-place-names`, WikiTree in `22-a-steps-two-connectors`.
+- `turn` and `turns` with `fake_run`: `run_step.run` replaced by a function that logs the outcome the data gives, only `none` (the
+  holder answered nothing) or `error` (it did not answer), with no request, response or record, its note saying "harness: faked,
+  no network"; in `10-turn`, `15-turns` (the error is the same stand-in), `60-unnamed-fetch` and `61-browse-only-holder`, to see
+  what the turn does after such a run.
+- `run_all`: `run_step.run` replaced by a function that regenerates the plan or raises `SystemExit`, no request; which steps are
+  runnable is the real connectors' say (`25-runner-all`).
+- The parent sha256 `check.py` hands the New Jersey and Kentucky connectors as the file's own (a placeholder string, only
+  compared back).
+
+Two stand-ins are not real, and no connector, parser or reading looks inside either; they carry no fact of anyone. The smallest of
+JPEG files, written by `scenario.py`, stands for the Find a Grave gravestone photograph the fetch list names
+(`decisions/50-memorial`: the archive holds no photograph of that memorial) and for the two family-held photographs the owner drops
+into the inbox (`decisions/95-cited-on-the-owners-word`: the only family-held photographs the archive has are marked private and
+never redistributed). A page of nothing but its saved-from line stands for the Newspapers.com obituary page the file cites
+(`decisions/70-obituary-read-by-the-model`, `decisions/97-proof-summary`, `loop/70-held-is-the-subject`: the archive does not hold
+the page, the holder forbidding a save); the obituary's readings are typed from the file's own claims onto it, as `transcribe`
+types a reading. The 1959 marriage index's reading is typed from the real image above.

@@ -1,6 +1,6 @@
 {
  "title": "a fetch step's place carries every accurate name, under the citation's own label",
- "line": "plan.citation_fields writes a labelled place part as the list a search step's own place field carries, the citation's own string first, unresolved or not; the runner's name-by-name try reads the citation's label as it reads 'place', every name tried logged on the run",
+ "line": "plan.citation_fields writes a labelled place part as the list a search step's own place field carries, the citation's own string first, unresolved or not; the runner's name-by-name try reads the citation's label as it reads 'place', every name tried logged on the run, the real census connector asked once for each and the run stopping at the first that gets a hit",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,12 +8,12 @@
  },
  "steps": [
   {
-   "say": "the 1940 census fetch step for Robert Edgar Davidson: the citation's own words, unresolved, are the one string alone",
+   "say": "the 1950 census fetch step for Robert Edgar Davidson: the citation's own words, unresolved, are the one string alone",
    "expect": [
     {
      "step": {
       "person": "I332737100409",
-      "row_key": "census household:1940",
+      "row_key": "census household:1950",
       "kind": "fetch",
       "fields": {
        "query": {
@@ -30,34 +30,21 @@
    ]
   },
   {
-   "say": "the citation's own words are already a place string of the tree (his own residence claims the same words); the resolver run with the geocoder's answer planted in its cache: a unique full match",
+   "say": "the citation's own words are already a place string of the tree (his own residence claims the same words); the resolver run with the geocoder's real answer planted in its cache, the town of Hempstead and the village in it: it leaves the string to the owner, both offered",
    "resolve": {
     "only": [
      "Hempstead, Nassau, New York"
     ],
-    "cache": {
-     "Hempstead, Nassau, New York, United States": [
-      {
-       "osm_type": "relation",
-       "osm_id": 4101,
-       "lat": "40.70",
-       "lon": "-73.61",
-       "name": "Hempstead",
-       "display_name": "Hempstead, Nassau County, New York, United States",
-       "category": "boundary",
-       "type": "administrative",
-       "addresstype": "town",
-       "address": {
-        "town": "Hempstead",
-        "county": "Nassau County",
-        "state": "New York",
-        "country": "United States",
-        "country_code": "us"
-       },
-       "extratags": {}
-      }
-     ]
-    }
+    "geocoder": [
+     "nominatim-hempstead-nassau-new-york.json"
+    ]
+   }
+  },
+  {
+   "say": "the owner chooses the town on the string's card",
+   "decide_place": {
+    "raw": "Hempstead, Nassau, New York",
+    "osm": "relation/10805167"
    }
   },
   {
@@ -69,7 +56,7 @@
     {
      "step": {
       "person": "I332737100409",
-      "row_key": "census household:1940",
+      "row_key": "census household:1950",
       "kind": "fetch",
       "fields": {
        "query": {
@@ -90,28 +77,43 @@
    ]
   },
   {
-   "say": "the runner tries the fetch step's several names under the citation's own label, not 'place'",
+   "say": "the runner tries the fetch step's several names under the citation's own label, not 'place', through the real census connector: the site answers the first request with nothing and the second with the household's page, the page image refused",
    "run_connector": {
     "step": {
      "person": "I332737100409",
-     "row_key": "census household:1940",
+     "row_key": "census household:1950",
      "kind": "fetch"
     },
-    "connector": {
-     "source": "D03",
-     "collection": "United States, Census, 1940",
-     "url": "http://test.invalid/search",
-     "field": "census place",
-     "none_when": "census place=Hempstead, Nassau, New York"
+    "connector": "nara_1950",
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+      },
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"
+      },
+      {
+       "url_has": "api/search?scheduleId=3947385",
+       "fixture": "nara-1950-schedule-3947385.json"
+      },
+      {
+       "url_has": "iiif",
+       "error": "the harness's stand-in for no answer: timed out"
+      }
+     ]
     }
    },
    "expect": [
     {
      "last": {
       "outcome": "found",
-      "requests": {
-       "len": 2
-      },
+      "requests": [
+       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1",
+       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1"
+      ],
       "logged_query": {
        "census place": {
         "tried": {
@@ -135,16 +137,10 @@
    "run_connector": {
     "step": {
      "person": "I332737100409",
-     "row_key": "census household:1940",
+     "row_key": "census household:1950",
      "kind": "fetch"
     },
-    "connector": {
-     "source": "D03",
-     "collection": "United States, Census, 1940",
-     "url": "http://test.invalid/search",
-     "field": "census place",
-     "none_when": "census place=Hempstead, Nassau, New York"
-    },
+    "connector": "nara_1950",
     "dry": true
    },
    "expect": [

@@ -26,7 +26,7 @@
     "fake_run": {
      "first": "error",
      "then": "none",
-     "error": "https://faked.example/search: 403, a challenge page"
+     "error": "the harness's stand-in for no answer: 403, a challenge page"
     }
    },
    "as": "first",

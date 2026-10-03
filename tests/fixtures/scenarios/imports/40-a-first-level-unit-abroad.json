@@ -1,206 +1,107 @@
 {
- "title": "a first-level unit abroad is not a US state",
- "line": "a person whose every place lies outside the United States (born at Misawa, Aomori Prefecture, Japan: the geocoder's province, a first-level unit of Japan) gets no row of a record the United States made (no naturalization, passenger list or city directory, and not the Veterans Administration's gravesite locator at her cemetery row) once her birthplace is resolved; a man with places in the United States keeps the draft-card and Social Security rows and the American holders of the obituary and cemetery rows",
- "tree": {
-  "file": "harness.ged",
-  "home": "I332737035562",
-  "plan": false
- },
- "steps": [
-  {
-   "say": "the geocoder's own answer for the birthplace of Reiko Diane Davidson, as the owner's cache holds it (fetched 5 Sept 2026): two candidates, the city and the quarter of it, the province Aomori Prefecture",
-   "place_card": {
-    "raw": "Misawa, Aomori, Japan",
-    "queries": [
-     "Misawa, Aomori, Japan"
-    ],
-    "candidates": [
-     {
-      "place_id": 271103420,
-      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
-      "osm_type": "relation",
-      "osm_id": 4107227,
-      "lat": "40.6829377",
-      "lon": "141.3692113",
-      "category": "boundary",
-      "type": "administrative",
-      "place_rank": 16,
-      "importance": 0.48100957400159844,
-      "addresstype": "city",
-      "name": "Misawa",
-      "display_name": "Misawa, Aomori Prefecture, Japan",
-      "address": {
-       "city": "Misawa",
-       "province": "Aomori Prefecture",
-       "ISO3166-2-lvl4": "JP-02",
-       "country": "Japan",
-       "country_code": "jp"
-      },
-      "extratags": {
-       "KSJ2:CN2": "三沢市",
-       "KSJ2:PRN": "青森県",
-       "wikidata": "Q496401",
-       "wikipedia": "ja:三沢市",
-       "population": "39152",
-       "source_ref": "http://nlftp.mlit.go.jp/ksj/jpgis/datalist/KsjTmplt-N03.html",
-       "linked_place": "city",
-       "admin_level": "7"
-      },
-      "namedetails": {
-       "ref": "022071",
-       "name": "三沢市",
-       "name:en": "Misawa",
-       "name:ja": "三沢市",
-       "name:ko": "미사와시",
-       "name:pl": "Misawa",
-       "name:ru": "Мисава",
-       "name:th": "มิซาวะ",
-       "name:uk": "Місава",
-       "name:zh": "三澤市",
-       "name:ja-Hira": "みさわし",
-       "name:ja-Latn": "Misawa-shi",
-       "name:zh-Hans": "三泽市",
-       "name:zh-Hant": "三澤市",
-       "name:ar": "ميساوا، آوموري",
-       "name:de": "Misawa",
-       "name:es": "Misawa",
-       "name:fr": "Misawa",
-       "name:id": "Misawa"
-      },
-      "boundingbox": [
-       "40.6609910",
-       "40.8924278",
-       "141.3100920",
-       "141.6960921"
-      ]
-     },
-     {
-      "place_id": 271790375,
-      "licence": "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
-      "osm_type": "node",
-      "osm_id": 6902731785,
-      "lat": "40.7748320",
-      "lon": "141.3820861",
-      "category": "place",
-      "type": "quarter",
-      "place_rank": 20,
-      "importance": 0.13338699092088196,
-      "addresstype": "quarter",
-      "name": "Misawa",
-      "display_name": "Misawa, Aomori Prefecture, Japan",
-      "address": {
-       "quarter": "Misawa",
-       "city": "Misawa",
-       "province": "Aomori Prefecture",
-       "ISO3166-2-lvl4": "JP-02",
-       "country": "Japan",
-       "country_code": "jp"
-      },
-      "extratags": null,
-      "namedetails": {
-       "name": "三沢",
-       "name:en": "Misawa",
-       "name:id": "Misawa",
-       "name:ja": "三沢",
-       "name:ja-Hira": "みさわ",
-       "official_name": "大字三沢"
-      },
-      "boundingbox": [
-       "40.7648320",
-       "40.7848320",
-       "141.3720861",
-       "141.3920861"
-      ]
-     }
-    ]
-   },
-   "as": "misawa"
+  "title": "a first-level unit abroad is not a US state",
+  "line": "a person whose every place lies outside the United States (born at Misawa, Aomori Prefecture, Japan: the geocoder's province, a first-level unit of Japan) gets no row of a record the United States made (no naturalization, passenger list or city directory, and not the Veterans Administration's gravesite locator at her cemetery row) once her birthplace is resolved; a man with places in the United States keeps the draft-card and Social Security rows and the American holders of the obituary and cemetery rows",
+  "tree": {
+    "file": "harness.ged",
+    "home": "I332737035562",
+    "plan": false
   },
-  {
-   "say": "the owner chooses the city",
-   "decide": {
-    "card": "$misawa.proposal",
-    "status": "accepted",
-    "choice": 0
-   },
-   "expect": [
+  "steps": [
     {
-     "event": {
-      "person": "I332737044283",
-      "type": "Birth",
-      "shown": "Misawa < Aomori Prefecture < Japan"
-     },
-     "why": "the chain is Misawa, its province, Japan: the province is a first-level unit, typed state"
+      "say": "the geocoder's own answer for the birthplace of Reiko Diane Davidson, as the owner's cache holds it (fetched 5 Sept 2026): two candidates, the city and the quarter of it, the province Aomori Prefecture",
+      "place_card": {
+        "raw": "Misawa, Aomori, Japan",
+        "geocoder": [
+          "nominatim-misawa-aomori-japan.json"
+        ]
+      },
+      "as": "misawa"
     },
     {
-     "checklist_records": {
-      "person": "I332737044283",
-      "has": [
-       "birth record",
-       "cemetery / family plot",
-       "compiled genealogy / family history"
-      ],
-      "lacks": [
-       "naturalization",
-       "passenger / emigration list",
-       "city directory / tax list",
-       "Social Security (SSDI / SS-5)",
-       "WWI draft card",
-       "WWII draft card"
+      "say": "the owner chooses the city",
+      "decide": {
+        "card": "$misawa.proposal",
+        "status": "accepted",
+        "choice": 0
+      },
+      "expect": [
+        {
+          "event": {
+            "person": "I332737044283",
+            "type": "Birth",
+            "shown": "Misawa < Aomori Prefecture < Japan"
+          },
+          "why": "the chain is Misawa, its province, Japan: the province is a first-level unit, typed state"
+        },
+        {
+          "checklist_records": {
+            "person": "I332737044283",
+            "has": [
+              "birth record",
+              "cemetery / family plot",
+              "compiled genealogy / family history"
+            ],
+            "lacks": [
+              "naturalization",
+              "passenger / emigration list",
+              "city directory / tax list",
+              "Social Security (SSDI / SS-5)",
+              "WWI draft card",
+              "WWII draft card"
+            ]
+          },
+          "why": "Aomori Prefecture is no state of the United States, so no United States record is looked for"
+        },
+        {
+          "checklist_row": {
+            "person": "I332737044283",
+            "record": "cemetery / family plot",
+            "sources": [
+              "E01"
+            ]
+          },
+          "why": "the Veterans Administration's locator (E03) holds United States veterans only"
+        }
       ]
-     },
-     "why": "Aomori Prefecture is no state of the United States, so no United States record is looked for"
     },
     {
-     "checklist_row": {
-      "person": "I332737044283",
-      "record": "cemetery / family plot",
-      "sources": [
-       "E01"
+      "say": "a man of the harness tree with places in Pennsylvania, born 1880 and dead 1961",
+      "expect": [
+        {
+          "checklist_records": {
+            "person": "I332737038183",
+            "has": [
+              "Social Security (SSDI / SS-5)",
+              "WWI draft card",
+              "WWII draft card",
+              "cemetery / family plot",
+              "obituary"
+            ]
+          }
+        },
+        {
+          "checklist_row": {
+            "person": "I332737038183",
+            "record": "cemetery / family plot",
+            "sources": [
+              "E01",
+              "E03"
+            ]
+          }
+        },
+        {
+          "checklist_row": {
+            "person": "I332737038183",
+            "record": "obituary",
+            "sources": [
+              "H01",
+              "H07",
+              "H03",
+              "H04"
+            ]
+          }
+        }
       ]
-     },
-     "why": "the Veterans Administration's locator (E03) holds United States veterans only"
     }
-   ]
-  },
-  {
-   "say": "a man of the harness tree with places in Pennsylvania, born 1880 and dead 1961",
-   "expect": [
-    {
-     "checklist_records": {
-      "person": "I332737038183",
-      "has": [
-       "Social Security (SSDI / SS-5)",
-       "WWI draft card",
-       "WWII draft card",
-       "cemetery / family plot",
-       "obituary"
-      ]
-     }
-    },
-    {
-     "checklist_row": {
-      "person": "I332737038183",
-      "record": "cemetery / family plot",
-      "sources": [
-       "E01",
-       "E03"
-      ]
-     }
-    },
-    {
-     "checklist_row": {
-      "person": "I332737038183",
-      "record": "obituary",
-      "sources": [
-       "H01",
-       "H07",
-       "H03",
-       "H04"
-      ]
-     }
-    }
-   ]
-  }
- ]
+  ]
 }

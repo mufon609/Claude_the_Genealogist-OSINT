@@ -1,2 +1,12 @@
 # The Kentucky index slices are the year files' own bytes, CRLF line ends and carriage-control bytes included: never normalised.
 ky-*.txt -text
+# The New Jersey index lines are the file's own, line feeds only: never normalised.
+nj-*.csv -text
+# A saved response is the holder's own bytes, whatever its line ends (the gravesite locator's pages end their lines with CRLF):
+# never normalised, so each is still the archive's object, byte for byte.
+va-*.html -text
+ia-*.json -text
+nara-*.json -text
+wikidata-*.json -text
+wikitree-*.json -text
+geocoder/*.json -text

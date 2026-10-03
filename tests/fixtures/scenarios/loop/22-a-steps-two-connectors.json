@@ -36,8 +36,8 @@
     "step": "$cg.step",
     "fetch": {
      "answers": [
-      {"url_has": "archive.org", "body": "{\"hits\": {\"total\": {\"value\": 0}, \"hits\": []}}"},
-      {"url_has": "api.wikitree.com", "error": "timed out"}
+      {"url_has": "archive.org", "fixture": "ia-fts-newspapers-alicia-ahearn-empty.json"},
+      {"url_has": "api.wikitree.com", "error": "the harness's stand-in for no answer: timed out"}
      ]
     }
    },
@@ -86,7 +86,7 @@
     "step": "$cg.step",
     "fetch": {
      "answers": [
-      {"url_has": "api.wikitree.com", "body": "[{\"status\": 0, \"matches\": [], \"total\": 0}]"}
+      {"url_has": "api.wikitree.com", "fixture": "wikitree-search-davidson-noi-1929-empty.json"}
      ]
     }
    },

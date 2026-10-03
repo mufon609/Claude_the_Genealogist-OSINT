@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "17c08be751d9741b2139ff63d9a344d5127fdb60d951bdc3eaf0bd98b362b71a",
+  "bytes": 9306,
+  "mime": "text/html",
+  "source_id": "E03",
+  "collection": "VA Nationwide Gravesite Locator",
+  "locator": {
+    "kind": "url",
+    "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Noi"
+  },
+  "retrieved_at": "2026-09-14T00:44:49Z",
+  "retrieved_by": "agent:tree-19 for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://gravelocator.cem.va.gov/ngl/result",
+    "content_type": "text/html; charset=ISO-8859-1"
+  },
+  "rights": {
+    "terms": "Public",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "E03"
+  },
+  "trust_tier": "T2",
+  "pages": 1,
+  "notes": "{\"query\":{\"given\":{\"basis\":\"accepted\",\"value\":\"Noi\"},\"sex\":{\"basis\":\"accepted\",\"value\":\"F\"},\"surname\":{\"basis\":\"accepted\",\"value\":\"Davidson\"}},\"request\":\"search\"}"
+}

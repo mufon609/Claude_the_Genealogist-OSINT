@@ -528,24 +528,36 @@ def a_reopen_conflict(w, x):
     row = conflict_question(w, x, closed=True)
     return {**reopen(w.cx, w.tid, row["id"], x.get("by", BY), x.get("note", "harness")), "question_id": row["id"]}
 
-def a_place_card(w, x):
-    """A place_resolution card for a string of the tree, as the resolver would write it, its candidates' geocoder answers
-    planted in the cache so no request goes out."""
+def plant_geocoder(fixtures):
+    """The geocoder's real answers planted in the resolver's cache, each fixture under tests/fixtures/geocoder/ a cache record
+    exactly as the live resolver kept it ({query, fetched_at, results}), copied to the file name the resolver looks it up by;
+    the records read, in order."""
     import hashlib
-    from resolve_places import RESOLVER, cache_dir, candidate_summary
+    from resolve_places import cache_dir
+    os.makedirs(cache_dir(), exist_ok=True); records = []
+    for name in fixtures:
+        src = os.path.join(FIXTURES, "geocoder", name)
+        with open(src, encoding="utf-8") as fh: records.append(json.load(fh))
+        shutil.copyfile(src, os.path.join(cache_dir(), hashlib.sha1(records[-1]["query"].lower().encode()).hexdigest() + ".json"))
+    return records
+
+def a_place_card(w, x):
+    """A place_resolution card for a string of the tree, as the resolver would write it, its candidates the results of the
+    geocoder's real answers (`geocoder`, plant_geocoder) planted in the cache so no request goes out."""
+    from resolve_places import RESOLVER, candidate_summary
     raw = x["raw"]; ps = w.cx.execute("SELECT id FROM place_string WHERE raw=?", (raw,)).fetchone()
     if not ps: raise KeyError(f"no place string {raw!r} in the tree")
-    os.makedirs(cache_dir(), exist_ok=True)
-    for qy in x.get("queries", []):
-        with open(os.path.join(cache_dir(), hashlib.sha1(qy.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump({"query": qy, "fetched_at": w.treelib.now(), "results": x["candidates"]}, fh)
+    records = plant_geocoder(x.get("geocoder", []))
+    queries = [r["query"] for r in records]
+    candidates = list({(c["osm_type"], c["osm_id"]): c for r in records for c in r["results"]}.values())
     rx = w.cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", RESOLVER).fetchone()
     rx_id = rx[0] if rx else w.treelib.ulid()
     if not rx: w.cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (rx_id, *RESOLVER, w.treelib.now()))
     pid_ = w.treelib.ulid()
     w.cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
-                 (pid_, w.tid, "place_resolution", w.treelib.dumps({"raw": raw, "place_string_id": ps[0], "parsed": {}, "queries": x.get("queries", []), "candidates": [candidate_summary(c, 1.0, {}) for c in x["candidates"]], "reason": "harness: the owner chooses"}), "harness: the owner chooses", rx_id, w.treelib.now()))
+                 (pid_, w.tid, "place_resolution", w.treelib.dumps({"raw": raw, "place_string_id": ps[0], "parsed": {}, "queries": queries, "candidates": [candidate_summary(c, 1.0, {}) for c in candidates], "reason": "harness: the owner chooses"}), "harness: the owner chooses", rx_id, w.treelib.now()))
     w.cx.execute("UPDATE place_string SET resolver=?, resolved_at=? WHERE id=?", (f"ai:{RESOLVER[1]}@{RESOLVER[2]}", w.treelib.now(), ps[0]))
-    return {"proposal": pid_, "place_string": ps[0], "raw": raw, "candidates": x["candidates"]}
+    return {"proposal": pid_, "place_string": ps[0], "raw": raw, "candidates": candidates}
 
 def a_older_matcher(w, x):
     """The cards on a record marked as an older matcher's, so reconsider must propose them again."""

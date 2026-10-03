@@ -1,0 +1,155 @@
+{
+ "title": "the record a connector archived",
+ "line": "a real connector's run goes through the runner with only the network call played back from real responses: a gravesite page listing five decedents is archived as the record and the matcher proposes the one who is the person; the death index's rows under a surname are archived as a derivative, byte for byte the archive's own, and the one that fits is proposed; a census household's transcription, its page image refused, is the record, and the other members' steps are logged against the same page",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the gravesite step on Raymond Earl Davidson, run through the real gravesite connector, the locator's own response to his search played back",
+   "run": {
+    "step": {"person": "I332737099805", "row_key": "cemetery / family plot:", "kind": "fetch", "holder": "E03"},
+    "fetch": {
+     "answers": [
+      {"url_has": "gravelocator.cem.va.gov", "fixture": "va-gravesite-search-davidson-raymond-e.html", "content_type": "text/html"}
+     ]
+    }
+   },
+   "as": "va",
+   "expect": [
+    {
+     "last": {
+      "connectors": ["va_graves"],
+      "results": [
+       {"connector": "va_graves", "source": "E03", "asked": true, "outcome": "found", "proposals": 1, "extraction": {"any": true}}
+      ],
+      "records": {"len": 1}
+     },
+     "why": "the page is the record: read, matched, and the run found"
+    },
+    {
+     "bound": {"value": "$va.records.0", "is": "e6db8c20113d1c87d4d407aa00f070c3a36db1fc877ff474f2788faaa0db8d20"},
+     "why": "the record archived is the archive's own object, byte for byte"
+    },
+    {
+     "artifact": {"record": "va.records.0", "source_id": "E03", "mime": "text/html", "locator_value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&middleName=E"},
+     "why": "kept under the locator's holder, the search as its identity"
+    },
+    {
+     "cards": {"record": "va.records.0", "people": ["I332737099805"], "kind": "persona_match", "count": 1, "personas": ["Raymond E Davidson"]},
+     "why": "five decedents are listed and one card is put up: Raymond E, born 12 Oct 1939, died 27 Jan 2007, to the Raymond Earl of the tree; the other four fit nobody"
+    },
+    {
+     "search_log": {"step": {"person": "I332737099805", "row_key": "cemetery / family plot:", "kind": "fetch", "holder": "E03"}, "is": [{"source_id": "E03", "outcome": "found", "artifacts": ["$va.records.0"]}]},
+     "why": "one run logged under the connector's source, the record on it"
+    },
+    {
+     "step": {"person": "I332737099805", "row_key": "cemetery / family plot:", "kind": "fetch", "holder": "E03", "fields": {"status": "done"}},
+     "why": "a fetch step is done by its holder's answer"
+    }
+   ]
+  },
+  {
+   "say": "the gravesite step on Noi Davidson, the page listing the one decedent of that name",
+   "run": {
+    "step": {"person": "I332737099804", "row_key": "cemetery / family plot:", "kind": "fetch", "holder": "E03"},
+    "fetch": {
+     "answers": [
+      {"url_has": "gravelocator.cem.va.gov", "fixture": "va-gravesite-search-davidson-noi.html", "content_type": "text/html"}
+     ]
+    }
+   },
+   "as": "vanoi",
+   "expect": [
+    {
+     "cards": {"record": "vanoi.records.0", "people": ["I332737099804"], "kind": "persona_match", "count": 1, "personas": ["Noi Davidson"]},
+     "why": "Noi, born 15 Jan 1929, died 12 Nov 2015, proposed to the Noi of the tree"
+    }
+   ]
+  },
+  {
+   "say": "the death record the file cites for Frederick Micheal Ahearn Jr, a fetch step at the New Jersey index's holder, run through the real death index connector: the file's lines played back",
+   "run": {
+    "step": {"person": "I332737036054", "row_key": "death record:2016", "kind": "fetch", "holder": "C09"},
+    "fetch": {
+     "answers": [
+      {"url_has": "newjerseydeathindex", "fixture": "nj-death-index-2006-2017-excerpt.csv", "content_type": "text/csv"}
+     ]
+    }
+   },
+   "as": "nj",
+   "expect": [
+    {
+     "last": {
+      "connectors": ["nj_death_index"],
+      "results": [
+       {"connector": "nj_death_index", "source": "C09", "asked": true, "outcome": "found", "proposals": 1, "extraction": {"any": true}}
+      ],
+      "records": {"len": 1}
+     },
+     "why": "the 31 rows under Ahearn are the record, read and matched, and the run found"
+    },
+    {
+     "bound": {"value": "$nj.records.0", "is": "31e19c1624aeb4b9e5b11affafb1e4ede22763d5182e190e8718156785402df8"},
+     "why": "the derivative the runner computes from the file's lines is the very object the live archive holds for Ahearn's rows, byte for byte"
+    },
+    {
+     "cards": {"record": "nj.records.0", "people": ["I332737036054"], "kind": "persona_match", "count": 1, "personas": ["FREDERICK M AHEARN"]},
+     "why": "of the 31 Ahearns the index lists, the one born 6 Nov 1932 at Coatesville, died 3 Apr 2016, is put up to Frederick Micheal Ahearn Jr; the other thirty fit nobody"
+    },
+    {
+     "search_log": {"step": {"person": "I332737036054", "row_key": "death record:2016", "kind": "fetch", "holder": "C09"}, "is": [{"source_id": "C09", "outcome": "found", "artifacts": {"len": 2, "has": "$nj.records.0"}}]},
+     "why": "the whole file and the surname's rows both kept on the run"
+    }
+   ]
+  },
+  {
+   "say": "the 1950 census household step on Raymond Earl Davidson, run through the real census connector: the site's search and the schedule's transcription played back, the page image refused",
+   "run": {
+    "step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch"},
+    "fetch": {
+     "answers": [
+      {"url_has": "api/search?name=", "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"},
+      {"url_has": "api/search?scheduleId=3947385", "fixture": "nara-1950-schedule-3947385.json"},
+      {"url_has": "iiif", "error": "the harness's stand-in for no answer: timed out"}
+     ]
+    }
+   },
+   "as": "nara",
+   "expect": [
+    {
+     "last": {
+      "connectors": ["nara_1950"],
+      "results": [
+       {"connector": "nara_1950", "asked": true, "outcome": "found", "extraction": {"any": true}, "errors": {"len": 1}}
+      ],
+      "records": {"len": 1}
+     },
+     "why": "the transcription is the record and the run is found though the image did not come; the refusal is on the run, not in place of it"
+    },
+    {
+     "bound": {"value": "$nara.records.0", "is": "ba0fdb2c8cec4303668448bfb58d2cc84664461d7dd43a3ed3f08e5934e35888"},
+     "why": "the record is the archive's own schedule, byte for byte"
+    },
+    {
+     "search_log": {"step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch"}, "is": [{"source_id": "D05", "outcome": "found", "artifacts": {"len": 2, "has": "$nara.records.0"}}]},
+     "why": "the search's response and the schedule kept, the image not"
+    },
+    {
+     "search_log": {"step": {"person": "I332737100409", "row_key": "census household:1950", "kind": "fetch"}, "is": [{"source_id": "D05", "outcome": "found", "notes": {"has": "the same page, fetched for Raymond Earl Davidson"}}]},
+     "why": "the father's step is held by the page fetched for his son"
+    },
+    {
+     "search_log": {"step": {"person": "I332737100400", "row_key": "census household:1950", "kind": "fetch"}, "is": [{"source_id": "D05", "outcome": "found", "notes": {"has": "the same page, fetched for Raymond Earl Davidson"}}]},
+     "why": "and the mother's"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

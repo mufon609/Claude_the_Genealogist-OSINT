@@ -229,7 +229,9 @@ the same name is never a near match, which only a results page's rows
 carried, and no row is a card now: the 1900 Lukens household, Annie against
 her mother, needs the parents in the harness cut); a namesake's kin shown as a
 hint; the SAR page at a holder without a parser
-and its two-entry listing; the found half of the runner's listing run; the
+and its two-entry listing; the New Jersey death index's birth or death with no
+month or day (`extract.nj_date` keeps the year alone), which no row of the
+2006-2017 file has, every one of its 837,351 rows carrying both dates whole; the
 unnamed fetch's own naming
 (`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
 citations that carried it (the New Jersey and New York marriage indexes) are
@@ -526,6 +528,16 @@ card never sits open beside the record it summarizes, and
 `decide`, its sweep and `row` kind in `reconsider`, the `row` branch of
 `tools/turn.py`'s report and the `closed_rows` line of `tools/conclude.py`'s
 command line.
+
+### C32. The runner asks the same request once for every name of a place
+
+`run_step.run_connector` tries each name of a place field in turn and stops at
+the first that gets a hit, but a connector reads a place only as a state and a
+county (the 1950 census, Chronicling America), so two names of one place give
+the identical request and the second is asked blind: a repeated request to a
+rate-limited holder that cannot answer differently. Ask a name only when the
+request it makes differs from every request already made on the run, and log
+the names that made no new request as tried.
 
 ## Externally blocked
 

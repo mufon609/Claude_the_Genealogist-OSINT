@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "660fbefcd309c3fc257bbf67dbbe338b359645ca75dca3d0840fcae3a02f7dea",
+  "bytes": 74001,
+  "mime": "application/json",
+  "source_id": "L02",
+  "collection": "Internet Archive books",
+  "locator": {
+    "kind": "url",
+    "value": "https://be-api.us.archive.org/fts/v1/search?q=%22Raymond%20Davidson%22~3%20AND%20%22New%20York%22%20AND%20title%3A%28genealogy%20OR%20genealogical%20OR%20history%20OR%20family%20OR%20descendants%20OR%20pioneers%20OR%20ancestry%29%20AND%20NOT%20collection%3Anewspaperarchive&size=40"
+  },
+  "retrieved_at": "2026-09-13T14:57:45Z",
+  "retrieved_by": "agent:tree-16 for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://be-api.us.archive.org/fts/v1/search?q=%22Raymond%20Davidson%22~3%20AND%20%22New%20York%22%20AND%20title%3A%28genealogy%20OR%20genealogical%20OR%20history%20OR%20family%20OR%20descendants%20OR%20pioneers%20OR%20ancestry%29%20AND%20NOT%20collection%3Anewspaperarchive&size=40",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "PD/ToS",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "L02"
+  },
+  "trust_tier": "T3",
+  "pages": 1,
+  "notes": "{\"query\":{\"birth_year\":{\"basis\":\"accepted\",\"tolerance\":2,\"value\":1939},\"given\":{\"basis\":\"accepted\",\"value\":\"Raymond Earl\"},\"parents\":{\"basis\":\"accepted\",\"value\":[\"Ruth M Peters\",\"Robert Edgar Davidson\"]},\"sex\":{\"basis\":\"accepted\",\"value\":\"M\"},\"spouses\":{\"basis\":\"accepted\",\"value\":[\"Noi Davidson\"]},\"state\":{\"basis\":\"accepted\",\"value\":\"new york\"},\"surname\":{\"basis\":\"accepted\",\"value\":\"Davidson\"},\"variants\":{\"basis\":\"claim\",\"value\":[\"Raymond Davidson\",\"Raymond E\"]}},\"request\":\"search\"}"
+}

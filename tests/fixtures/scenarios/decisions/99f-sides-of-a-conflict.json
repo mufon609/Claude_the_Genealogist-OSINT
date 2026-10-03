@@ -61,29 +61,8 @@
    "say": "the three places resolved by the owner's answers, the geocoder's own answers planted as the resolver caches them",
    "place_card": {
     "raw": "Auburn, Kentucky, United States",
-    "queries": [
-     "Auburn, Kentucky, United States"
-    ],
-    "candidates": [
-     {
-      "osm_type": "relation",
-      "osm_id": 130351,
-      "lat": "36.8642",
-      "lon": "-86.7103",
-      "name": "Auburn",
-      "display_name": "Auburn, Logan County, Kentucky, United States",
-      "category": "boundary",
-      "type": "administrative",
-      "addresstype": "town",
-      "address": {
-       "town": "Auburn",
-       "county": "Logan County",
-       "state": "Kentucky",
-       "country": "United States",
-       "country_code": "us"
-      },
-      "extratags": {}
-     }
+    "geocoder": [
+     "nominatim-auburn-kentucky.json"
     ]
    },
    "as": "auburn"
@@ -98,28 +77,8 @@
   {
    "place_card": {
     "raw": "Logan, Kentucky, United States",
-    "queries": [
-     "Logan County, Kentucky, United States"
-    ],
-    "candidates": [
-     {
-      "osm_type": "relation",
-      "osm_id": 1839553,
-      "lat": "36.8524",
-      "lon": "-86.8786",
-      "name": "Logan County",
-      "display_name": "Logan County, Kentucky, United States",
-      "category": "boundary",
-      "type": "administrative",
-      "addresstype": "county",
-      "address": {
-       "county": "Logan County",
-       "state": "Kentucky",
-       "country": "United States",
-       "country_code": "us"
-      },
-      "extratags": {}
-     }
+    "geocoder": [
+     "nominatim-logan-county-kentucky.json"
     ]
    },
    "as": "logan"
@@ -134,29 +93,8 @@
   {
    "place_card": {
     "raw": "Woodburn, Kentucky",
-    "queries": [
-     "Woodburn, Kentucky, United States"
-    ],
-    "candidates": [
-     {
-      "osm_type": "relation",
-      "osm_id": 130516,
-      "lat": "36.8406",
-      "lon": "-86.5297",
-      "name": "Woodburn",
-      "display_name": "Woodburn, Warren County, Kentucky, United States",
-      "category": "boundary",
-      "type": "administrative",
-      "addresstype": "city",
-      "address": {
-       "city": "Woodburn",
-       "county": "Warren County",
-       "state": "Kentucky",
-       "country": "United States",
-       "country_code": "us"
-      },
-      "extratags": {}
-     }
+    "geocoder": [
+     "nominatim-woodburn-kentucky.json"
     ]
    },
    "as": "woodburn"
@@ -214,7 +152,7 @@
   {
    "say": "the 1959 marriage index image of his wife's remarriage, read by the model: the groom's row, the spouse's surname by four letters",
    "seed": {
-    "stand_in": "image",
+    "fixture": "ny-marriage-index-1959-page-970.jpg",
     "source": "C08",
     "collection": "New York State Marriage Index, 1881-1967 (Reclaim the Records, Internet Archive)",
     "mime": "image/jpeg",

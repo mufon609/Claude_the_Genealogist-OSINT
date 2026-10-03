@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "c3dd7c98317faed253bfbef4947d4d75ec160a836c1f313b8c14f0e49ee56344",
+  "bytes": 1275207,
+  "mime": "image/jpeg",
+  "source_id": "C08",
+  "collection": "New York State Marriage Index, 1881-1967 (Reclaim the Records, Internet Archive)",
+  "locator": {
+    "kind": "url",
+    "value": "https://ia601400.us.archive.org/BookReader/BookReaderImages.php?zip=/13/items/New_York_State_Marriage_Index_1959/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2.zip&file=Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_0986.jp2&id=New_York_State_Marriage_Index_1959&scale=1&rotate=0"
+  },
+  "retrieved_at": "2026-09-07T04:03:14Z",
+  "retrieved_by": "user:neural",
+  "rights": {
+    "terms": "Public record (FOIL-released)",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "original_filename": "nys-marriage-index-1959-page-970.jpg",
+  "pages": 1,
+  "notes": "New York State Marriage Index 1959, printed page 970, Soundex block 540 (grooms and brides mixed, by name); Internet Archive item New_York_State_Marriage_Index_1959, leaf 986"
+}

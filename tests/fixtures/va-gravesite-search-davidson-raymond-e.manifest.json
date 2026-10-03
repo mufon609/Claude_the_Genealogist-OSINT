@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "e6db8c20113d1c87d4d407aa00f070c3a36db1fc877ff474f2788faaa0db8d20",
+  "bytes": 20799,
+  "mime": "text/html",
+  "source_id": "E03",
+  "collection": "VA Nationwide Gravesite Locator",
+  "locator": {
+    "kind": "url",
+    "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&middleName=E"
+  },
+  "retrieved_at": "2026-09-14T00:44:58Z",
+  "retrieved_by": "agent:tree-19 for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://gravelocator.cem.va.gov/ngl/result",
+    "content_type": "text/html; charset=ISO-8859-1"
+  },
+  "rights": {
+    "terms": "Public",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "E03"
+  },
+  "trust_tier": "T2",
+  "pages": 1,
+  "notes": "{\"query\":{\"collection\":{\"basis\":\"citation\",\"value\":\"U.S., Department of Veterans Affairs BIRLS Death File, 1850-2020\"},\"name\":{\"basis\":\"citation\",\"value\":\"Raymond Earl Davidson\"}},\"request\":\"search\"}"
+}

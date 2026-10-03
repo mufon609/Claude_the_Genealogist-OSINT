@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "9fda2c902bd53adce811f65b95cedc96e95690e7f592bb3684330a4880fce183",
+  "bytes": 1608,
+  "mime": "application/json",
+  "source_id": "D05",
+  "collection": "1950 Census (National Archives)",
+  "locator": {
+    "kind": "url",
+    "value": "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1"
+  },
+  "retrieved_at": "2026-09-07T00:31:58Z",
+  "retrieved_by": "user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": "Mon, 07 Sep 2026 00:27:05 GMT",
+    "final_url": "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "Public domain",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T1",
+  "pages": 1,
+  "notes": "{\"query\":{\"census place\":{\"basis\":\"citation\",\"value\":\"Hempstead, Nassau, New York\"},\"citation\":{\"basis\":\"citation\",\"value\":\"National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950\"},\"collection\":{\"basis\":\"citation\",\"value\":\"1950 United States Federal Census\"},\"enumeration district\":{\"basis\":\"citation\",\"value\":\"30-392\"},\"name\":{\"basis\":\"citation\",\"value\":\"Raymond Earl Davidson\"},\"page\":{\"basis\":\"citation\",\"value\":\"29\"},\"roll\":{\"basis\":\"citation\",\"value\":\"4390\"},\"year\":{\"basis\":\"citation\",\"value\":\"1950\"}},\"request\":\"search\"}"
+}
