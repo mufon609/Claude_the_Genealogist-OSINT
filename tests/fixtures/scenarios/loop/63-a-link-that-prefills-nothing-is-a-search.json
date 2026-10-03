@@ -1,0 +1,226 @@
+{
+ "title": "a cited record whose holder's link prefills nothing is an assisted search, off the fetch list",
+ "line": "an application of the Sons of the American Revolution is held for free at the SAR Patriot Research System, whose form posts and whose link carries nothing of the citation: its step is a fetch planned assisted, the citation's own fields as what to look for, never on the fetch list, and its log stays through a re-plan; a citation at a holder whose link carries the citation stays a fetch on the list, and one at a holder with a connector stays a fetch the runner takes",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Elizabeth D'Armand's one citation is a Sons of the American Revolution application, the SAR Patriot Research System its free holder",
+   "expect": [
+    {
+     "step": {
+      "person": "I332738926170",
+      "holder": "F04",
+      "kind": "fetch",
+      "locator": {
+       "kind": "apid",
+       "value": "1,2204::467560"
+      },
+      "fields": {
+       "mode": "assisted",
+       "status": "planned",
+       "query": {
+        "collection": {
+         "value": "U.S., Sons of the American Revolution Membership Applications, 1889-1970",
+         "basis": "citation"
+        },
+        "name": {
+         "value": "Elizabeth D'Armand",
+         "basis": "citation"
+        }
+       },
+       "rationale": {
+        "has": [
+         "searched by hand at SAR Patriot Research System",
+         "takes nothing from the citation",
+         "off the fetch list"
+        ]
+       }
+      }
+     },
+     "why": "the holder's link is the same form whatever the citation says, so the step is an assisted search carrying the citation's own details, not a fetch"
+    },
+    {
+     "fetch_entries": {
+      "holder": "F04",
+      "person": "I332738926170",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "an empty form is no page to save: the fetch list never names it"
+    },
+    {
+     "waiting": {
+      "person": "I332738926170",
+      "needs_hand": 1,
+      "runs_next": 0
+     },
+     "why": "only a hand can take the search: it is counted with the assisted searches"
+    }
+   ]
+  },
+  {
+   "say": "Noi Davidson's Legacy Funeral's citation is at Legacy.com, whose search link takes the name from the citation",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737099804",
+      "holder": "H05",
+      "kind": "fetch",
+      "locator": {
+       "kind": "apid",
+       "value": "1,2190::502215420"
+      },
+      "fields": {
+       "mode": "fetch",
+       "status": "planned"
+      }
+     },
+     "why": "the link carries the citation's name, so the step stays a fetch"
+    },
+    {
+     "fetch_entries": {
+      "holder": "H05",
+      "person": "I332737099804",
+      "url_has": "firstName=Noi&lastName=Davidson",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "a page the citation prefills stays on the fetch list"
+    }
+   ]
+  },
+  {
+   "say": "Noi Davidson's veterans' gravesites citation is at the VA gravesite locator, a holder with a connector and no search link of its own",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737099804",
+      "holder": "E03",
+      "kind": "fetch",
+      "locator": {
+       "kind": "apid",
+       "value": "1,8750::7685383"
+      },
+      "fields": {
+       "mode": "fetch",
+       "status": "planned"
+      }
+     },
+     "why": "the runner asks the holder by the citation's fields and never by its link, so the step stays a fetch for the runner"
+    },
+    {
+     "fetch_entries": {
+      "holder": "E03",
+      "person": "I332737099804",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "a holder with a connector is never on the fetch list"
+    }
+   ]
+  },
+  {
+   "say": "the search is run by hand and found nothing, then the plan is made again",
+   "log": {
+    "step": {
+     "person": "I332738926170",
+     "holder": "F04",
+     "kind": "fetch"
+    },
+    "outcome": "none",
+    "note": "harness: searched by the patriot's name at the holder's page, no match"
+   },
+   "plan": [
+    "I332738926170"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332738926170",
+      "holder": "F04",
+      "kind": "fetch",
+      "fields": {
+       "mode": "assisted",
+       "status": "planned"
+      }
+     },
+     "why": "a re-plan keeps the step assisted"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332738926170",
+       "holder": "F04",
+       "kind": "fetch"
+      },
+      "is": [
+       {
+        "source_id": "F04",
+        "outcome": "none"
+       }
+      ]
+     },
+     "why": "the run is logged at the holder like any assisted search and the re-plan keeps it"
+    },
+    {
+     "fetch_entries": {
+      "holder": "F04",
+      "person": "I332738926170",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "still not a page to fetch"
+    }
+   ]
+  },
+  {
+   "say": "a turn on Elizabeth D'Armand has no page to pause on",
+   "turn": {
+    "person": "I332738926170",
+    "fake_run": {
+     "first": "none"
+    }
+   },
+   "expect": [
+    {
+     "turn_state": {
+      "is": null
+     },
+     "why": "the turn kept no state: it paused on no page, for the search form is never offered as a page to save"
+    },
+    {
+     "last": {
+      "printed": {
+       "has": "only a hand can take"
+      }
+     },
+     "why": "the search is left for a hand, named among the planned steps the turn cannot take"
+    },
+    {
+     "step": {
+      "person": "I332738926170",
+      "holder": "F04",
+      "kind": "fetch",
+      "fields": {
+       "mode": "assisted",
+       "status": "planned"
+      }
+     },
+     "why": "the turn leaves the assisted search planned: it waits for a hand, not the loop"
+    }
+   ]
+  },
+  {
+   "say": "",
+   "clear_state": {}
+  }
+ ]
+}

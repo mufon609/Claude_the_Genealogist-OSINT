@@ -274,6 +274,16 @@ def holder_search(h, fields):
     if h["HolderKey"] == "1950census.archives.gov": return "https://1950census.archives.gov/search/?" + urllib.parse.urlencode([("name", " ".join(x for x in (given, surname) if x))], quote_via=urllib.parse.quote)
     return None
 
+def prefills_nothing(h, fields):
+    """Whether a holder's link takes nothing from the citation's fields: the link holder_search builds for them is the link it
+    builds for none, or it builds none (the holder's own page opens instead). A holder with no search template (the SAR Patriot
+    Research System, whose form posts), a template with no placeholder in it, and a template whose placeholders the citation gives
+    no value for are all such: every citation of the holder reaches the same page, so there is no page to save for one citation
+    and a person runs the search by hand. A memorial holder's link is the citation's own page, never such a form."""
+    if h["HolderKind"] == "memorial": return False
+    link = holder_search(h, fields)
+    return link is None or link == holder_search(h, {})
+
 def findagrave_search_url(fields):
     """The Find a Grave memorial search as the site's own form builds it, from a search step's fields: firstname (the first given
     name), lastname, the birth and death years each with the year filter at 3 (the audit narrows the result, not the search),
@@ -1388,7 +1398,7 @@ class Catalog:
         runs, hand = 0, 0
         for kind, mode, holder in self.q("SELECT kind, mode, locator_source_id FROM search_plan WHERE person_id=? AND status='planned' AND row_key NOT LIKE 'listed relative:%'", pid):   # a lead is counted as a lead alone
             if (kind == "fetch" and mode == "fetch" and holder in conn) or (kind == "search" and mode == "auto"): runs += 1
-            elif (kind == "fetch" and mode == "fetch") or (kind == "search" and mode == "assisted"): hand += 1
+            elif mode == "assisted" or (kind == "fetch" and mode == "fetch"): hand += 1
         conflicts = self.q("SELECT COUNT(*) FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", pid)[0][0]
         tiers = {t for t, in self.q(f"""SELECT CASE WHEN json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1) THEN 'vouch' ELSE {tier_sql()} END FROM assertion a
                                        LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id

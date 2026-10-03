@@ -19,7 +19,10 @@ the reason in its rationale. A citation whose holder is browse-only
 mode fetch, with the reason in its rationale: it is browsed by hand, film by
 film, never saved as a page, so tools/fetches.py's list leaves it off (no
 name with an unfilled placeholder is ever printed) and a turn never pauses on
-it. A memorial accepted as the person's own gives one
+it. A citation whose holder has no connector and whose link takes nothing from the citation (catalog.prefills_nothing: the
+holder's form posts, or the link is the same whatever the citation says) is a fetch step with mode assisted and the reason in its
+rationale: a search a person runs at the holder's page with the citation's details, not a page to save, so the list leaves it
+off and a turn never pauses on it; its fields and its link are as for any fetch step, and its log stays through a re-plan. A memorial accepted as the person's own gives one
 fetch step per photograph the page types Grave (the stone itself, registry row
 E05, the image's URL as locator), and one fetch step per relative it merely
 lists (the matcher writes no card for one, tools/match.py): the relative's own
@@ -49,7 +52,7 @@ sync command (tools/initdb.py --sync-sources) when the registry is out of step.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid
-from catalog import Catalog, dbid_of, browse_only, year
+from catalog import Catalog, dbid_of, browse_only, prefills_nothing, year
 from checklist import build
 from log_search import closed_by_pointers, hold_household
 
@@ -98,6 +101,8 @@ def fetch_step(cat, row_key, query_type, apid, collection, collection_id, on, ex
         source, mode, why = holder["HolderSourceId"], "blocked", f"blocked: {holder['HolderCollection']} holds scanned index pages; the page-locating step is not built"
     elif holder and browse_only(holder):
         source, mode, why = holder["HolderSourceId"], "fetch", f"browsed by hand at {holder['HolderCollection']}: no search or record page there for the browser to save, film by film; off the fetch list"
+    elif holder and not cat.sources.get(holder["HolderSourceId"], {}).get("connector") and prefills_nothing(holder, fields):
+        source, mode, why = holder["HolderSourceId"], "assisted", f"searched by hand at {holder['HolderCollection']}: its link takes nothing from the citation, so there is no page to save, only a search to run with the citation's details; off the fetch list"
     elif holder: source, mode, why = holder["HolderSourceId"], "fetch", f"fetch the record at {holder['HolderCollection']}"
     else: source, mode, why = ANCESTRY, "blocked", "blocked: no free holder of this collection yet, and Ancestry needs a membership this account lacks"
     return {"step_key": f"fetch:{apid}", "row_key": row_key, "question_key": question_key, "kind": "fetch", "query_type": query_type, "query_json": dumps(fields),

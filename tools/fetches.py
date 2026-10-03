@@ -36,17 +36,17 @@ listed name is left in the folder.
 `next [K]` is the browser session's own list: the next K pages (five by default) a turn can send someone to (`openable`: a
 link to open, a step with no run since the plan last wrote its fields), one line each with the link, the file name to save
 under, the people waiting in short and the `call` for the save script (the file name, whether to save a page of no known kind
-anyway, and the key: the steps the page serves), a link that prefills nothing marked and put last; `list` prints the same
+anyway, and the key: the steps the page serves); `list` prints the same
 `call` for every page. `list` hides the pages whose steps
 have all been run on unchanged fields (a page saved, or answered, and the plan has not changed the step since) unless --all
-brings them back, and marks a bare form: a holder's search page the citation gave nothing to prefill, whose saved page no
-parser reads and so closes nothing.
+brings them back. A step at a holder whose link takes nothing from the citation is planned assisted, a search a person runs
+by hand (tools/plan.py), never a page on this list.
 """
 import argparse, json, os, re, shutil, subprocess, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, inbox_dir, resolve_tree
 from attach import ark_id, attach, attach_inbox, line
-from catalog import Catalog, fetch_target, holder_search, browse_only, dbid_of
+from catalog import Catalog, fetch_target, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
 import connectors
 
@@ -87,8 +87,7 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
 def waiting(cx, tree_id):
     """Every planned fetch step whose holder has no connector, once per page: holder, url, the people and the number of
     steps waiting on it, whether it is a lead from a held record (locator memorial_id) or the file's citation (locator
-    apid), whether the link is a bare form (the holder's own page, the citation gave nothing to prefill it with), the file
-    name to save under, and `serves`, the steps the saved page serves: those of every entry with this entry's link and file name
+    apid), the file name to save under, and `serves`, the steps the saved page serves: those of every entry with this entry's link and file name
     (the page the browser saves is one, whatever census page or citation each entry stands for), the key page_call gives the save
     script. A step whose holder has a connector never appears here, whether or not that
     connector currently has anything to ask: it runs through tools/run_step.py, which logs a `none` run naming the field
@@ -102,9 +101,9 @@ def waiting(cx, tree_id):
     a FamilySearch images-only collection) never appears either: nobody can save such a page the page-saves-itself way,
     so it stays on the plan with its reason and off this list, never a name with an unfilled placeholder."""
     cat = Catalog(cx, tree_id); groups = cat.page_groups(); out = {}
-    def add(s, key, link, holder, name, bare=False):
+    def add(s, key, link, holder, name):
         e = out.setdefault(key, {"holder_id": s["locator_source_id"], "holder": holder, "url": link, "lead": False, "people": [], "steps": 0, "step_ids": [], "rows": [],
-                                 "save_as": name, "how": "image" if s["locator_source_id"] == "E05" else "page", "bare": bare})
+                                 "save_as": name, "how": "image" if s["locator_source_id"] == "E05" else "page"})
         e["steps"] += 1; e["step_ids"].append(s["id"]); e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url", "ark")
         if s["display_name"] not in e["people"]: e["people"].append(s["display_name"])
         rk = s["row_key"].split(":")[0]
@@ -114,7 +113,7 @@ def waiting(cx, tree_id):
                            WHERE p.tree_id=? AND sp.kind='fetch' AND sp.mode='fetch' AND sp.status='planned' ORDER BY sp.seq""", (tree_id,)):
         if s["connector"]: continue   # the runner takes it, or logs a none run naming the field it wants when it has nothing to ask (tools/run_step.py runnable)
         fields = json.loads(s["query_json"] or "{}"); url = (fields.get("url") or {}).get("value") or ""
-        hid = s["locator_source_id"]; m = MEMORIAL.search(url); piece = s["step_key"]; bare = False
+        hid = s["locator_source_id"]; m = MEMORIAL.search(url); piece = s["step_key"]
         mid = s["locator_value"] if s["locator_kind"] == "memorial_id" else (m.group(1) if m else None)
         if hid == "E01":
             if not mid: continue
@@ -124,11 +123,10 @@ def waiting(cx, tree_id):
             page = piece = min(groups.get(s["locator_value"]) or {s["locator_value"]})
             key = (hid, page) if hid == "D03" else (hid, page, s["person_id"])      # a FamilySearch page carries its ark; any other page is named for its citation and person
             t = fetch_target(s["locator_value"], url, fields); link = t["url"]; holder = f"{s['holder_name']}: {t['holder']}" if t["holder"] else s["holder_name"]
-            h = (cat.holders.get(dbid_of(s["locator_value"])) or [None])[0]; bare = bool(h) and h["HolderKind"] != "memorial" and holder_search(h, fields) is None
         else:
             key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
         name = save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link)
-        add(s, key, link, holder, name.replace("<ark id>", ark_id(s["locator_value"])).replace("-<year>", "") if s["locator_kind"] == "ark" else name, bare=bare)
+        add(s, key, link, holder, name.replace("<ark id>", ark_id(s["locator_value"])).replace("-<year>", "") if s["locator_kind"] == "ark" else name)
     entries = list(out.values())
     for e in entries: e["serves"] = [sid for o in entries if (o["url"], o["save_as"]) == (e["url"], e["save_as"]) for sid in o["step_ids"]]
     return sorted(entries, key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
@@ -210,14 +208,14 @@ def page_call(e):
     return f'("{e["save_as"]}", {"false" if e["holder_id"] in IDENTITY_HOLDERS else "true"}, "{",".join(e["serves"])}")'
 
 def page_line(e):
-    """A page to save as one compact line: the link, the file name to save under, the people waiting in short, an image or a bare
-    form marked, and the call the save script runs with (page_call; an image carries none: its name is its identity)."""
-    return f"{e['url']}  {e['save_as']}  {people_short(e['people'])}" + ("  [image: tools/save_image.js]" if e["how"] == "image" else "") + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "") \
+    """A page to save as one compact line: the link, the file name to save under, the people waiting in short, an image marked,
+    and the call the save script runs with (page_call; an image carries none: its name is its identity)."""
+    return f"{e['url']}  {e['save_as']}  {people_short(e['people'])}" + ("  [image: tools/save_image.js]" if e["how"] == "image" else "") \
         + ("  [any page: save_page.js with true]" if e["how"] != "image" and e["holder_id"] not in IDENTITY_HOLDERS else "") + (f"  call {page_call(e)}" if e["how"] != "image" else "")
 
 def next_lines(cx, tree_id, k):
-    """The next k openable pages, a line each (page_line), a bare form after every page that prefills something, and the count."""
-    rows = sorted(openable(cx, tree_id), key=lambda e: e["bare"])
+    """The next k openable pages, a line each (page_line), and the count."""
+    rows = openable(cx, tree_id)
     return [page_line(e) for e in rows[:k]] + [f"{min(k, len(rows))} of {len(rows)} openable page(s); one tab each, then tools/fetches.py collect"] if rows else ["no page waiting that a turn can open"]
 
 def main():
@@ -236,7 +234,7 @@ def main():
         for e in rows:
             if e["holder"] != last: print(f"-- {e['holder']}"); last = e["holder"]
             print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}" + ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else "")
-                  + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "") + ("  [already run on unchanged fields]" if a.all and e["url"] and not e["open_step_ids"] else "")
+                  + ("  [already run on unchanged fields]" if a.all and e["url"] and not e["open_step_ids"] else "")
                   + (f"  call {page_call(e)}" if e["url"] and e["how"] != "image" else ""))
         print(f"{len(rows)} page(s) to fetch, one tab per page; then tools/fetches.py collect" + (f" ({len(every) - len(rows)} already run on unchanged fields, hidden: --all)" if len(every) > len(rows) else ""))
     else:

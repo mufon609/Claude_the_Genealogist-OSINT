@@ -113,7 +113,7 @@ birth indexes (PDFs whose text layer is empty).
 ### C2. A page of a holder the script knows by no markup is taken by its key
 
 `tools/fetches.py collect` takes a page at a holder whose pages carry no
-identity the attach reads (an SAR patriot page, a Legacy.com obituary, saved
+identity the attach reads (a Legacy.com obituary, saved
 with `true`) by the file name the list printed, so a name Chrome sanitized or
 de-duplicated leaves the page in the download folder, though its bytes carry
 the saved-from line and the key `tools/save_page.js` wrote (the plan steps it
@@ -147,16 +147,6 @@ says `EMPTY` (closed shadow roots, or content drawn in a canvas), make those
 steps assisted with the page's own link and say so in
 `docs/RESEARCH-WORKFLOW.md` §4.
 
-### C5. The fetch list repeats one bare search form per person
-
-A page at a holder whose pages carry no identity is listed once per citation
-and person (`tools/fetches.py waiting`). Where the holder's link prefills
-nothing, every entry is the same empty form: the SAR patriot search is listed
-twenty times under one URL, each entry a page nobody can save as an answer
-without typing the search by hand. Such a link is a search a person runs, not
-a page to save: make the step assisted with the citation's fields as what to
-look for, or list the form once with the people and fields it serves.
-
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the
@@ -170,8 +160,8 @@ short-form given name; the matcher's window on a birth year
 the same name is never a near match, which only a results page's rows
 carried, and no row is a card now: the 1900 Lukens household, Annie against
 her mother, needs the parents in the harness cut); a namesake's kin shown as a
-hint; the SAR page at a holder without a parser
-and its two-entry listing; the New Jersey death index's birth or death with no
+hint; the SAR page at a holder without a parser;
+the New Jersey death index's birth or death with no
 month or day (`extract.nj_date` keeps the year alone), which no row of the
 2006-2017 file has, every one of its 837,351 rows carrying both dates whole; the
 unnamed fetch's own naming
