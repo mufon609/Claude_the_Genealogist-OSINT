@@ -557,15 +557,20 @@ def a_older_matcher(w, x):
 
 def a_persona_link(w, x):
     """A person's decision on a persona of a record that no card carries today (a memorial's listed relative, which an older
-    matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name) on the record's
-    current reading, as conclude.decide writes it."""
+    matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name, and `sequence`,
+    its row on the page) on the record's current reading, as conclude.decide writes it. With `card`, the link that card's
+    decision wrote on every persona of the decided persona's name and role, another row among them, before a decision reached
+    only its own entry of the page: the card's proposal, status and decider, the shape tools/initdb.py's 0.7.5 corrects."""
     q = """SELECT pe.id FROM persona pe JOIN extraction e ON e.id=pe.extraction_id WHERE pe.artifact_sha256=? AND e.superseded_by IS NULL AND pe.role_in_record=?"""
     args = [w.sha(x["record"]), x["role"]]
     if "persona" in x: q += " AND pe.name_text=?"; args.append(x["persona"])
+    if "sequence" in x: q += " AND pe.sequence=?"; args.append(x["sequence"])
     rows = w.cx.execute(q, args).fetchall()
     if len(rows) != 1: raise KeyError(f"{len(rows)} personas for {short(x)}")
-    w.cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,NULL,?,?)",
-                 (w.person(x["person"]), rows[0][0], x["status"], x.get("by", BY), w.treelib.now()))
+    card = w.card(x["card"]) if x.get("card") else None
+    if x.get("card") and card is None: raise KeyError(f"no card {short(x['card'])}")
+    link = (card["status"], card["id"], card["decided_by"], card["decided_at"]) if card else (x["status"], None, x.get("by", BY), w.treelib.now())
+    w.cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (w.person(x["person"]), rows[0][0], *link))
     return {"persona": rows[0][0]}
 
 def a_merge(w, x):
@@ -718,10 +723,12 @@ def e_assertions_on(w, x, want):
     return has(got, {k: v for k, v in x.items() if k in got}), got
 
 def e_links(w, x, want):
-    """The statuses of a person's links to the personas of one name and role on a record, over every reading."""
+    """The statuses of a person's links to the personas of one name and role (and row, `sequence`) on a record, over every
+    reading."""
     q = "SELECT pp.status FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pp.person_id=? AND pe.artifact_sha256=?"; args = [w.person(x["person"]), w.sha(x["record"])]
     if "persona" in x: q += " AND pe.name_text=?"; args.append(x["persona"])
     if "role" in x: q += " AND pe.role_in_record=?"; args.append(x["role"])
+    if "sequence" in x: q += " AND pe.sequence=?"; args.append(x["sequence"])
     if "persona_id" in x: q += " AND pe.id=?"; args.append(w.value(x["persona_id"]))
     got = sorted(r[0] for r in w.cx.execute(q, args))
     return has(got, x["is"]), got
@@ -883,6 +890,17 @@ def e_classes(w, x, want):
     pattern = {k: v for k, v in x.items() if k in ("source", "information", "evidence", "relationship", "original")}
     return any(has(g, pattern) for g in got), got
 
+def e_statement(w, x, want):
+    """Which reading of a record its statements on a person's events of `event_type` are read through
+    (catalog.statement_of): one word each, current when it is the record's current reading, earlier when not."""
+    from catalog import statement_of
+    pid = w.person(x["person"]); sha = w.sha(x["record"])
+    cur = w.cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL AND status<>'failed'", (sha,)).fetchone()[0]
+    ids = [a for a, in w.cx.execute("""SELECT a.id FROM assertion a JOIN event_participant ep ON ep.event_id=a.subject_id JOIN event e ON e.id=a.subject_id
+                                       WHERE a.subject_kind='event' AND ep.person_id=? AND e.event_type=? AND a.artifact_sha256=? ORDER BY a.asserted_at, a.id""", (pid, x["event_type"], sha))]
+    got = ["current" if statement_of(w.cx, a)["extraction"] == cur else "earlier" for a in ids]
+    return has(got, x["is"]), got
+
 def e_extractor(w, x, want):
     sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server
     row = w.cx.execute("SELECT x.kind, x.name, x.model_id, x.prompt_sha256 FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (w.value(x["extraction"]),)).fetchone()
@@ -973,7 +991,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "event": e_event, "family_event": e_family_event, "disagreements": e_disagreements, "question": e_question, "assertions_on": e_assertions_on, "links": e_links, "is_subject": e_is_subject, "citations_held": e_citations_held,
            "checklist_row": e_checklist_row, "baseline": e_baseline, "waiting": e_waiting, "step": e_step, "step_count": e_step_count, "fetch_entries": e_fetch_entries, "search_log": e_search_log, "named_for": e_named_for,
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
-           "artifact_where": e_artifact_where, "classes": e_classes, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
+           "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject}
 

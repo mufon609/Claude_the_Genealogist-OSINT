@@ -1,0 +1,65 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E03",
+  "locator": {
+   "kind": "url",
+   "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&middleName=E"
+  }
+ },
+ "extractor": "va-gravesite",
+ "personas": 5,
+ "every": {
+  "role": "result",
+  "why": "the page's five decedents as results"
+ },
+ "sequence": {
+  "1": {
+   "name": "Raymond E Davidson",
+   "region": [
+    "\"row\":1"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "10/12/1939"
+    },
+    {
+     "type": "Death",
+     "date": "01/27/2007"
+    },
+    {
+     "type": "Burial",
+     "value": "Plot: SECTION O1 SITE 2239",
+     "place": "BG WILLIAM C DOYLE VET'S MEM CEM, Wrightstown, New Jersey"
+    }
+   ],
+   "why": "the first of two rows of one name, its own row in the region"
+  },
+  "2": {
+   "name": "Raymond E Davidson",
+   "region": [
+    "\"row\":2"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "09/17/1930"
+    },
+    {
+     "type": "Death",
+     "date": "01/07/2021"
+    },
+    {
+     "type": "Burial",
+     "place": "CAPE COUNTY MEMORIAL PARK, Cape Girardeau, Missouri"
+    },
+    {
+     "type": "Military Service",
+     "value": "CPL US MARINE CORPS, KOREA"
+    }
+   ],
+   "why": "the second row of the same name, another man: his own dates, burial and service, and his own row in the region"
+  }
+ }
+}

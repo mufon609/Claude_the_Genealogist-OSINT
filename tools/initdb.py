@@ -13,7 +13,7 @@ from the CSV (the registry is reference data) and each collection's trust tier f
 the registry's ServedAs column, and touches nothing else. --migrate
 brings an existing catalog's own structure up to schema/catalog.sql's current
 version, one column or index at a time, and runs any one-time data correction a
-later version needs (a column's own row-by-row fix, never a decision); each schema
+later version needs (a row-by-row fix of what an older version wrote, never a decision); each schema
 version this catalog lacks runs once and is recorded in schema_migration. Stdlib only.
 """
 import argparse, csv, datetime as dt, json, os, sqlite3, sys, time
@@ -48,6 +48,72 @@ def allow_resolved(cx: sqlite3.Connection) -> None:
     if bad: raise SystemExit(f"research_question rebuilt with {len(bad)} broken reference(s); nothing committed")
     cx.commit(); cx.execute("PRAGMA foreign_keys=ON")
 
+def unspread_links(cx: sqlite3.Connection) -> None:
+    """The catalog's one-time correction of the person_persona rows an older decision spread to another entry of its page:
+    it wrote its link on every persona of the decided persona's name and role on the record, another row of the same name
+    among them, and an older re-read moved a link to the first new persona of that name and role (a decision reaches its own
+    entry of the page alone, catalog.persona_key). A spread row carries the decision's proposal, belongs to the decided
+    person, and its persona is another entry of the page than the decided persona: it is removed, never having been anyone's
+    decision. The decided persona and the same entry on the page's other readings keep theirs, and a listed relative's
+    undecided trace (conclude.link_family), being another person's, stays. A spread row whose persona has a decision of its
+    own for that person (a page that named the person twice, each decided) is that decision's link and stays, as that
+    decision left it: its status, proposal and decider. Refused, nothing written, when anything accepted on the row's person
+    rests on a row it would remove: a statement of its persona's facts, a family link written from it or from a persona the
+    record relates to it, a name alias from it. One audit row per row removed or restored, the row as it stood in
+    diff_json, under the migration's own actor."""
+    from catalog import page_entries
+    actor, ts = "migration:0.7.5", now()
+    keys = {}
+    def key(sha, pid):
+        if sha not in keys: keys[sha] = {p: k for p, _, _, _, k in page_entries(cx, sha)}
+        return keys[sha][pid]
+    merged = lambda pids: set(pids) | {m for p in pids for m, in cx.execute("SELECT merged_into FROM person WHERE id=? AND merged_into IS NOT NULL", (p,))}
+    remove, restore = [], []
+    for person, persona, status, prop, by, at, sha, src, payload_person, tree in cx.execute("""
+            SELECT pp.person_id, pp.persona_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at, pe.artifact_sha256, src.id, json_extract(pr.payload_json,'$.person_id'), p.tree_id
+            FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id JOIN proposal pr ON pr.id=pp.proposal_id
+            JOIN persona src ON src.id=json_extract(pr.payload_json,'$.persona_id')
+            WHERE pr.kind IN ('persona_match','new_person') AND src.artifact_sha256=pe.artifact_sha256 AND src.id<>pe.id ORDER BY pe.artifact_sha256, pp.persona_id""").fetchall():
+        decided = merged({payload_person} - {None} | {p for p, in cx.execute("SELECT person_id FROM person_persona WHERE persona_id=? AND proposal_id=?", (src, prop))})
+        if person not in decided or key(sha, persona) == key(sha, src): continue
+        row = {"person_id": person, "persona_id": persona, "status": status, "proposal_id": prop, "decided_by": by, "decided_at": at}
+        entry = [p for p, k in keys[sha].items() if k == key(sha, persona)]
+        own = cx.execute(f"""SELECT pr.id, pr.status, pr.decided_by, pr.decided_at FROM proposal pr
+                             WHERE pr.kind IN ('persona_match','new_person') AND json_extract(pr.payload_json,'$.persona_id') IN ({','.join('?' * len(entry))})
+                             AND json_extract(pr.payload_json,'$.person_id') IN (SELECT ? UNION SELECT id FROM person WHERE merged_into=?)
+                             AND EXISTS (SELECT 1 FROM audit_log l WHERE l.entity_kind='proposal' AND l.entity_id=pr.id AND l.action IN ('accept','reject') AND json_extract(l.diff_json,'$.persona') IS NOT NULL)
+                             ORDER BY coalesce(pr.decided_at, pr.created_at) DESC, pr.id DESC LIMIT 1""", (*entry, person, person)).fetchone()   # a decision conclude.decide made on this entry, by its own audit row
+        if own: restore.append((tree, row, src, {"status": own[1], "proposal_id": own[0], "decided_by": own[2], "decided_at": own[3]}))
+        else: remove.append((tree, row, src, sha))
+    resting = []
+    for tree, row, src, sha in remove:                     # what is accepted on the row's person, written from the row's persona or through it
+        person, persona = row["person_id"], row["persona_id"]
+        theirs = """((a.subject_kind='person' AND a.subject_id=:person)
+                     OR (a.subject_kind='event' AND a.subject_id IN (SELECT ep.event_id FROM event_participant ep WHERE ep.person_id=:person
+                         OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=:person)))
+                     OR (a.subject_kind='family_member' AND (json_extract(a.subject_id,'$[1]')=:person
+                         OR EXISTS (SELECT 1 FROM family_member fm WHERE fm.family_id=json_extract(a.subject_id,'$[0]') AND fm.person_id=:person))))"""
+        args = {"person": person, "persona": persona, "sha": sha}
+        resting += [f"assertion {a} from {persona}'s own fact" for a, in cx.execute(f"""SELECT a.id FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                    WHERE pf.persona_id=:persona AND a.status='accepted' AND {theirs}""", args)]
+        resting += [f"family link {a} written from {persona}, or through it" for a, in cx.execute(f"""SELECT a.id FROM assertion a WHERE a.status='accepted' AND a.artifact_sha256=:sha
+                    AND a.persona_id IN (SELECT :persona UNION SELECT persona_id FROM persona_relation WHERE related_persona_id=:persona UNION SELECT related_persona_id FROM persona_relation WHERE persona_id=:persona)
+                    AND {theirs}""", args)]
+        resting += [f"alias {a} from {persona}'s name" for a, in cx.execute("""SELECT al.id FROM alias al JOIN persona_fact pf ON pf.id=al.source_persona_fact_id
+                    WHERE pf.persona_id=:persona AND al.status='accepted' AND al.entity_kind='person' AND al.entity_id=:person""", args)]
+    if resting: raise SystemExit("0.7.5 refused, nothing written: accepted evidence rests on a link it would remove: " + "; ".join(resting))
+    for tree, row, src, now_ in restore:
+        cx.execute("UPDATE person_persona SET status=?, proposal_id=?, decided_by=?, decided_at=? WHERE person_id=? AND persona_id=?",
+                   (now_["status"], now_["proposal_id"], now_["decided_by"], now_["decided_at"], row["person_id"], row["persona_id"]))
+        cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                   (ulid(), tree, ts, actor, "update", "person_persona", json.dumps([row["person_id"], row["persona_id"]]),
+                    json.dumps({"was": row, "now": now_, "spread_from": src, "why": "a decision on another entry of the page had written over this entry's own decision"})))
+    for tree, row, src, _ in remove:
+        cx.execute("DELETE FROM person_persona WHERE person_id=? AND persona_id=?", (row["person_id"], row["persona_id"]))
+        cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                   (ulid(), tree, ts, actor, "delete", "person_persona", json.dumps([row["person_id"], row["persona_id"]]),
+                    json.dumps({"removed": row, "spread_from": src, "why": "a decision on another entry of the page, spread by name and role; never a decision of its own"})))
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -59,6 +125,8 @@ MIGRATIONS = [
      [requery_questions]),
     ("0.7.4", "research_question.closed_reason accepts 'resolved': a conflict the owner closes with a written reason naming the value kept",
      [allow_resolved]),
+    ("0.7.5", "person_persona: the links a decision spread to another row of the same name and role on its page removed; a decision reaches only its own entry of the page",
+     [unspread_links]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

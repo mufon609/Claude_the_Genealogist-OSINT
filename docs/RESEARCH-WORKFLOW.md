@@ -594,11 +594,15 @@ extractor, at any version, supersedes its earlier extraction (`tools/extract.py
 --stale` re-reads every page an older version of its parser read, after a
 parser changes) and rejects that
 extraction's undecided proposals with the note `superseded`; a persona the
-earlier extraction had decided carries its decision to the new persona of the
-same name and role on the same page (the decision was about the record, whose
-bytes have not changed), an accepted one asserting the new facts the record
-gives and nothing it already asserted, a statement a person rejected staying
-rejected, and the matcher proposes the rest again. The matcher is versioned
+earlier extraction had decided carries its decision to the same person on the
+page in the new extraction, found by its record id (an ark, a memorial id, an
+index's number), else by its role, its row and its name (the decision was about
+that entry of the record, whose bytes have not changed; another row of the same
+name never takes it, and a persona the new extraction does not find that way
+carries only when its name and role are on one persona in each extraction), an
+accepted one asserting the new facts the record gives and nothing it already
+asserted, a statement a person rejected staying rejected, and the matcher
+proposes the rest again. The matcher is versioned
 the same way (`rule:matcher` at the version `tools/match.py` names, raised
 with any change to what fits): `tools/conclude.py reconsider` runs it again on
 every current extraction whose undecided proposals an older matcher wrote,

@@ -74,8 +74,6 @@ place point only at the level of the tree's own place, a reading taking the
 class of what it read (`docs/DATA-ARCHITECTURE.md` §7 decision 9). Rehearse
 `reconsider` on a scratch copy and list what it would take back before it runs
 on the live catalog.
-**Blocked by:** a persona's identity on its page (in progress: a decision and
-its classes follow the same person through every reading).
 
 ### A2. Identity is tested, not assumed
 
@@ -109,7 +107,6 @@ fact is); fold, at import and by migration, a person's or a couple's events of
 one type that agree on the year with places agreeing or absent, the way
 `conclude.complete_merge` folds a merge's; and land a calculated or about date
 on the person's one event of a type that occurs once in a life.
-**Blocked by:** a persona's identity on its page (same functions).
 
 ---
 
@@ -236,7 +233,9 @@ both blocked as `scanned_index` holders; the merge's reach by name and year;
 a memorial's listed relative whose one fit moves to another person between two
 acceptances (`conclude.link_family` withdraws the earlier undecided trace); a
 merge folding a family whose child the kept family already holds, and a merge
-completed (`conclude.complete_merge`) folding two same-partner families. When a real document
+completed (`conclude.complete_merge`) folding two same-partner families; the
+0.7.5 migration restoring a row an older decision wrote over (a page naming one
+person twice, each persona decided, which no current parser writes). When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
@@ -519,7 +518,6 @@ Reject a card on a superseded reading as superseded when the current reading
 holds the same person (by the persona's key on its page); match a person's
 undecided cards again whenever a decision changes that person's evidence, and
 let a card that has become a hint leave.
-**Blocked by:** a persona's identity on its page (in progress).
 
 ### C29. One home for each shared rule, and no dead schema
 

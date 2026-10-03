@@ -519,6 +519,54 @@ def source_tier(cx, sha):
     r = cx.execute(f"SELECT {tier_sql()} FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
     return r[0] if r else None
 
+# ---------------------------------------------------------------- a persona's entry on its page
+ARK = re.compile(r"ark:/\d+/[0-9A-Za-z:-]+")
+RECORD_NUMBERS = ("state_file_number", "number", "rid", "profile")   # the number an index gives its record: a New Jersey state file number, a Kentucky certificate or birth number, an AAD record id, a WikiTree profile id
+
+def persona_key(role, sequence, name, region):
+    """Which entry of its page a persona is, the same in every reading of the page, from what the reading wrote in its
+    region_json (a dict or its JSON): an ark (its own, or the one inside its url: a FamilySearch record links each relative
+    to their own record), a Find a Grave memorial id (its own, or the one inside its url), or the number an index gives the
+    record (RECORD_NUMBERS); failing those, its role, its row on the page (the region's row or line, else the reading's
+    own sequence) and its name as written. A url is read for an ark or a memorial id only: a results page writes its own
+    address beside every row (the VA locator), so a bare url names the page, not the entry. Personas of a page with one
+    key are one entry, whatever reading wrote them; two rows of one name are two entries."""
+    if isinstance(region, str):
+        try: region = json.loads(region)
+        except ValueError: region = None
+    r = region if isinstance(region, dict) else {}
+    url = r.get("url") or ""
+    ark = ARK.search(f"{r.get('ark') or ''} {url}")
+    if ark: return ("ark", ark.group(0))
+    memorial = re.search(r"/memorial/(\d+)", url)
+    if r.get("memorial_id") or memorial: return ("memorial_id", str(r.get("memorial_id") or memorial.group(1)))
+    for k in RECORD_NUMBERS:
+        if r.get(k): return (k, str(r[k]))
+    row = next((r[k] for k in ("row", "line") if r.get(k) is not None), sequence)
+    return ("row", role, row, name)
+
+def is_identity(key):
+    """Whether a persona_key is a record identity the reading wrote, rather than the role, row and name it falls back to."""
+    return key[0] != "row"
+
+def page_entries(cx, sha, extraction_id=None):
+    """Every persona of an archived page, of one reading when extraction_id names it: [(persona id, extraction id, name as
+    written, role, persona_key)] in reading and sequence order."""
+    where, args = ("extraction_id=?", (extraction_id,)) if extraction_id else ("artifact_sha256=?", (sha,))
+    return [(pid, eid, name, role, persona_key(role, seq, name, region)) for pid, eid, name, role, seq, region in
+            cx.execute(f"SELECT id, extraction_id, name_text, role_in_record, sequence, region_json FROM persona WHERE {where} ORDER BY extraction_id, sequence, id", args)]
+
+def current_entry(cx, persona_id):
+    """The persona of the same entry (persona_key) on the current reading of its page, the reading its own extraction is in
+    turn superseded by; itself when its reading is current, None when the current reading has no persona of that entry."""
+    row = cx.execute("SELECT extraction_id, artifact_sha256, role_in_record, sequence, name_text, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
+    if not row: return None
+    eid = row[0]
+    while (later := cx.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()[0]): eid = later
+    if eid == row[0]: return persona_id
+    k = persona_key(row[2], row[3], row[4], row[5])
+    return next((pid for pid, _, _, _, key in page_entries(cx, row[1], eid) if key == k), None)
+
 # ---------------------------------------------------------------- the proof standard's classes, in words
 EVIDENCE = None                                  # data/evidence-classes.csv, read once per process by evidence_table
 INDIRECT_DATES = ("calculated", "estimated", "before", "after")   # a date the reading worked out or bounded from another field: the record does not state it
@@ -585,12 +633,20 @@ def _class_rows(t, kinds, keys, label=None):
                 if f == key or (key == "relation [*]" and label and f.startswith("relation [") and f.endswith("]") and (label == f[10:-1] or label.endswith(f[10:-1]))):
                     yield r
 
+def _labels(region):
+    """The field labels a persona fact's region_json names."""
+    try: return (json.loads(region) or {}).get("labels") or [] if region else []
+    except ValueError: return []
+
 def statement_of(cx, assertion_id):
     """What one assertion states, as data/evidence-classes.csv keys it: {kind: fact | relation | file | vouch, fact_type,
     labels, qualifier, relation (kind, label, value as written, region), persona, extraction, sha}. A fact is the persona
     fact the assertion carries; a relation the record's own relationship behind a family link, found among the persona's
     relations on the record by the word the link was written with; a file statement a citation the tree file carries; a vouch
-    the owner's own word."""
+    the owner's own word. Both are read through the record's current reading: the persona of the same entry on it
+    (current_entry), and its fact of the same type read under the same field label (the same labels first, then the same
+    value) or its relationship of the same words; the assertion's own reading only where the current one has no such persona,
+    fact or relationship. The assertion itself keeps pointing at the persona fact it was written from."""
     a = cx.execute("SELECT subject_kind, persona_fact_id, persona_id, artifact_sha256, citation_text, notes FROM assertion WHERE id=?", (assertion_id,)).fetchone()
     if not a: return None
     subject_kind, pf_id, persona_id, sha, cite, notes = a
@@ -599,19 +655,25 @@ def statement_of(cx, assertion_id):
     if n.get("vouched"): return {"kind": "vouch", "sha": sha}
     out = {"kind": "file", "sha": sha, "persona": persona_id, "extraction": None, "fact_type": None, "labels": [], "qualifier": None, "relation": None}
     if pf_id:
-        f = cx.execute("SELECT persona_id, fact_type, date_qualifier, region_json FROM persona_fact WHERE id=?", (pf_id,)).fetchone()
+        f = cx.execute("SELECT persona_id, fact_type, date_qualifier, region_json, value_text, date_text, place_string_id FROM persona_fact WHERE id=?", (pf_id,)).fetchone()
         if f:
-            try: labels = (json.loads(f[3]) or {}).get("labels") or [] if f[3] else []
-            except ValueError: labels = []
-            out.update({"kind": "fact", "persona": f[0], "fact_type": f[1], "qualifier": f[2], "labels": labels})
+            labels, cur = _labels(f[3]), current_entry(cx, f[0])
+            same = [] if cur in (None, f[0]) else \
+                   [r for r in cx.execute("SELECT persona_id, fact_type, date_qualifier, region_json, value_text, date_text, place_string_id FROM persona_fact WHERE persona_id=? AND fact_type=? ORDER BY id", (cur, f[1]))
+                    if set(_labels(r[3])) & set(labels) or not (labels or _labels(r[3]))]
+            same.sort(key=lambda r: (_labels(r[3]) != labels, r[4:] != f[4:]))
+            r = same[0] if same else f
+            out.update({"kind": "fact", "persona": r[0], "fact_type": r[1], "qualifier": r[2], "labels": _labels(r[3])})
     elif subject_kind == "family_member" and persona_id:
         words = re.sub(r"\s+on the record$", "", cite or "")
-        for kind, value, region in cx.execute("""SELECT kind, value_text, region_json FROM persona_relation WHERE persona_id=? OR related_persona_id=? ORDER BY id""", (persona_id, persona_id)):
-            w = value or kind
-            if w and (words == w or words.startswith(w + " of ")):
-                try: rj = json.loads(region) if region else {}
+        cur = current_entry(cx, persona_id)
+        for pid in dict.fromkeys(x for x in (cur, persona_id) if x):
+            rel = next(((kind, value, region) for kind, value, region in cx.execute("""SELECT kind, value_text, region_json FROM persona_relation WHERE persona_id=? OR related_persona_id=? ORDER BY id""", (pid, pid))
+                        if (value or kind) and (words == (value or kind) or words.startswith((value or kind) + " of "))), None)
+            if rel:
+                try: rj = json.loads(rel[2]) if rel[2] else {}
                 except ValueError: rj = {}
-                out.update({"kind": "relation", "relation": {"kind": kind, "value": value, "label": (rj or {}).get("label"), "region": rj or {}}}); break
+                out.update({"kind": "relation", "persona": pid, "relation": {"kind": rel[0], "value": rel[1], "label": (rj or {}).get("label"), "region": rj or {}}}); break
     if out["persona"]:
         e = cx.execute("SELECT extraction_id FROM persona WHERE id=?", (out["persona"],)).fetchone()
         out["extraction"] = e[0] if e else None

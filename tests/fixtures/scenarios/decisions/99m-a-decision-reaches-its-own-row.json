@@ -1,0 +1,231 @@
+{
+ "title": "a decision reaches its own row",
+ "line": "a results page that writes two decedents under one name: accepting the first row as the person links that row alone, never the other man of the same name; reading the page again carries the link to the first row's persona in the new reading and writes nothing from the second, and the statement written from the first reading is read through the new one; a link an older decision spread to the second row is removed by the 0.7.5 migration, with an audit row, and the decision's own row stays",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the gravesite locator's page for Raymond E Davidson: five decedents, the first two of one name, his card on the first",
+   "archive": {
+    "fixture": "va-gravesite-search-davidson-raymond-e.html",
+    "source": "E03",
+    "collection": "VA Nationwide Gravesite Locator",
+    "locator": {
+     "kind": "url",
+     "value": "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&middleName=E"
+    },
+    "extract": true,
+    "match": [
+     "I332737099805"
+    ]
+   },
+   "as": "grave",
+   "expect": [
+    {
+     "last": {
+      "n": {
+       "personas": 5
+      },
+      "written": [
+       {
+        "kind": "persona_match",
+        "name": "Raymond E Davidson"
+       }
+      ]
+     },
+     "why": "one card, the first row's: the second row's man, born 1930, agrees on the name alone and stays a hint"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the first row as him",
+   "decide": {
+    "card": {
+     "record": "grave",
+     "person": "I332737099805"
+    },
+    "status": "accepted"
+   },
+   "as": "taken",
+   "expect": [
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "persona": "Raymond E Davidson",
+      "sequence": 1,
+      "is": [
+       "accepted"
+      ]
+     }
+    },
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "persona": "Raymond E Davidson",
+      "sequence": 2,
+      "is": []
+     },
+     "why": "the second row of the same name is another entry of the page: the decision never reaches it"
+    },
+    {
+     "assertions_on": {
+      "record": "grave",
+      "accepted": 5
+     },
+     "why": "the first row's name, birth, death, burial and service, his"
+    }
+   ]
+  },
+  {
+   "say": "the page read again: the link moves to the first row of the new reading",
+   "reread": {
+    "record": "grave"
+   },
+   "expect": [
+    {
+     "last": {
+      "n": {
+       "links_carried": 1
+      }
+     }
+    },
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "persona": "Raymond E Davidson",
+      "sequence": 1,
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     },
+     "why": "the decided row and its own entry in the new reading"
+    },
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "persona": "Raymond E Davidson",
+      "sequence": 2,
+      "is": []
+     },
+     "why": "no reading's second row takes the link"
+    },
+    {
+     "assertions_on": {
+      "record": "grave",
+      "accepted": 5,
+      "undecided": 0
+     },
+     "why": "the carried link asserts the first row's facts, already held, and nothing of the second man's"
+    },
+    {
+     "statement": {
+      "person": "I332737099805",
+      "record": "grave",
+      "event_type": "Death",
+      "is": [
+       "current"
+      ]
+     },
+     "why": "the death statement, written from the first reading and kept pointing at it, is read through the current one"
+    }
+   ]
+  },
+  {
+   "say": "the link an older decision wrote on the second row too, by name and role",
+   "persona_link": {
+    "record": "grave",
+    "role": "result",
+    "persona": "Raymond E Davidson",
+    "sequence": 2,
+    "person": "I332737099805",
+    "card": {
+     "record": "grave",
+     "person": "I332737099805"
+    }
+   },
+   "expect": [
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "sequence": 2,
+      "is": [
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog upgraded through the migration that removes a decision's spread links",
+   "migrate": {
+    "reset_to": "0.7.4"
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "ends": "schema 0.7.5"
+      }
+     }
+    },
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "sequence": 2,
+      "is": []
+     },
+     "why": "the second row's link was never anyone's decision: removed"
+    },
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "sequence": 1,
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     },
+     "why": "the decision's own row, and its entry in the other reading, untouched"
+    },
+    {
+     "audit": {
+      "entity": "person_persona",
+      "action": "delete",
+      "is": [
+       {
+        "actor": "migration:0.7.5",
+        "diff": {
+         "removed": {
+          "status": "accepted",
+          "proposal_id": "$taken.card"
+         },
+         "why": {
+          "has": "spread"
+         }
+        }
+       }
+      ]
+     },
+     "why": "one audit row, the removed row in it"
+    },
+    {
+     "assertions_on": {
+      "record": "grave",
+      "accepted": 5
+     }
+    }
+   ]
+  }
+ ]
+}
