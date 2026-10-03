@@ -1,0 +1,202 @@
+{
+ "title": "a part of a string verifies only when it names the place in full",
+ "line": "a part verifies against a candidate when it is the candidate's name, or a unit's name in its hierarchy, in full once case, punctuation, an abbreviated word (Mt., Twp) and the unit's own word (Township, Ward N) are set aside; a part that is only the start of a candidate's name (Cadillac Memorial Gardens West, a cemetery's name without its last word), a truncation (Hemp.) or a spelling near it (Worchester) is marked near in the candidate's checks and the string is a card with that candidate offered, never accepted",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "three strings of the records the file does not carry: a cemetery written without its last word, a township's name misspelt, and Mount Holly abbreviated",
+   "place_string": {
+    "raw": "Cadillac Memorial Gardens West, Westland, Wayne County, Michigan, USA"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Worchester, Montgomery, Pennsylvania, USA"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Mt. Holly, Burlington, New Jersey, United States"
+   }
+  },
+  {
+   "say": "the resolver run on those and on five strings the file carries, with the geocoder's real answers in its cache",
+   "resolve": {
+    "only": [
+     "Cadillac Memorial Gardens West, Westland, Wayne County, Michigan, USA",
+     "Worchester, Montgomery, Pennsylvania, USA",
+     "Hemp., Nassau, New York",
+     "Mt. Holly, Burlington, New Jersey, United States",
+     "Mount Holly, Burlington County, New Jersey, United States of America",
+     "Caln Twp, Caln, Chester, Pennsylvania, USA",
+     "Northampton Ward 1, Hampshire, Massachusetts, USA"
+    ],
+    "geocoder": [
+     "nominatim-cadillac-memorial-gardens-west-westland-wayne-county-michigan-united-states.json",
+     "nominatim-worchester-montgomery-pennsylvania-united-states.json",
+     "nominatim-worchester-montgomery-county-pennsylvania-united-states.json",
+     "nominatim-worchester-pennsylvania-united-states.json",
+     "nominatim-worcester-township-montgomery-county-pennsylvania-united-states.json",
+     "nominatim-hemp-nassau-new-york-united-states.json",
+     "nominatim-hempstead-nassau-county-new-york-united-states.json",
+     "nominatim-mt-holly-burlington-new-jersey-united-states.json",
+     "nominatim-mount-holly-burlington-county-new-jersey-united-states.json",
+     "nominatim-caln-township-chester-pennsylvania-united-states.json",
+     "nominatim-northampton-hampshire-massachusetts-united-states.json"
+    ]
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": "Cadillac Memorial Gardens West, Westland, Wayne County, Michigan, USA",
+      "status": "undecided",
+      "has_place": false,
+      "notes": {
+       "reason": "no candidate matches every component"
+      }
+     },
+     "why": "the string is the cemetery's name less its last word: the start of a name is not the name, so the one candidate does not verify and the string is not accepted"
+    },
+    {
+     "place_card": {
+      "raw": "Cadillac Memorial Gardens West, Westland, Wayne County, Michigan, USA",
+      "names": [
+       "Cadillac Memorial Gardens West Cemetery, Westland, Wayne County, Michigan, United States"
+      ],
+      "candidates": {
+       "some": {
+        "checks": {
+         "Cadillac Memorial Gardens West": "near",
+         "Westland": true,
+         "Wayne County": true,
+         "Michigan": true
+        }
+       }
+      }
+     },
+     "why": "the cemetery is offered on the card, its first part marked near and every other part verified"
+    },
+    {
+     "place_string": {
+      "raw": "Worchester, Montgomery, Pennsylvania, USA",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "a spelling near Worcester is not Worcester: the township the owner's override asks for is offered, not accepted"
+    },
+    {
+     "place_card": {
+      "raw": "Worchester, Montgomery, Pennsylvania, USA",
+      "names": [
+       "Worcester Township, Montgomery County, Pennsylvania, United States"
+      ],
+      "candidates": {
+       "some": {
+        "checks": {
+         "Worchester": "near",
+         "Montgomery": true,
+         "Pennsylvania": true
+        }
+       }
+      }
+     },
+     "why": "Worcester Township is the card's candidate, Worchester marked near"
+    },
+    {
+     "place_string": {
+      "raw": "Hemp., Nassau, New York",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "a truncation is not the name: Hemp. is the start of Hempstead, and Hempstead is a town and a village in it"
+    },
+    {
+     "place_card": {
+      "raw": "Hemp., Nassau, New York",
+      "names": {
+       "has": [
+        "Town of Hempstead, Nassau County, New York, United States",
+        "Village of Hempstead, Town of Hempstead, Nassau County, New York, 11550, United States"
+       ]
+      },
+      "candidates": {
+       "every": {
+        "checks": {
+         "Hemp.": "near",
+         "Nassau": true,
+         "New York": true
+        }
+       }
+      }
+     },
+     "why": "both Hempstead candidates are offered with the truncation marked near, so neither is a full match"
+    },
+    {
+     "place_string": {
+      "raw": "Mt. Holly, Burlington, New Jersey, United States",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "how": "unique full match"
+      }
+     },
+     "why": "Mt. is Mount, and the township's own word is set aside: Mt. Holly names Mount Holly Township in full"
+    },
+    {
+     "place_string": {
+      "raw": "Mount Holly, Burlington County, New Jersey, United States of America",
+      "status": "accepted",
+      "has_place": true
+     }
+    },
+    {
+     "same_place": {
+      "raws": [
+       "Mt. Holly, Burlington, New Jersey, United States",
+       "Mount Holly, Burlington County, New Jersey, United States of America"
+      ]
+     },
+     "why": "the abbreviated and the written-out string are one place"
+    },
+    {
+     "place": {
+      "name": "Mount Holly Township",
+      "chain": [
+       "Mount Holly Township",
+       "Burlington County",
+       "New Jersey",
+       "United States"
+      ]
+     }
+    },
+    {
+     "place_string": {
+      "raw": "Caln Twp, Caln, Chester, Pennsylvania, USA",
+      "status": "accepted",
+      "has_place": true
+     },
+     "why": "Twp is Township: Caln Twp is Caln Township, and the string's Caln is the unit's name once its word is set aside"
+    },
+    {
+     "place_string": {
+      "raw": "Northampton Ward 1, Hampshire, Massachusetts, USA",
+      "status": "accepted",
+      "has_place": true
+     },
+     "why": "a ward's number is the unit's own word beside Northampton"
+    },
+    {
+     "place_card": {
+      "raw": "Mt. Holly, Burlington, New Jersey, United States",
+      "exists": false
+     },
+     "why": "a string accepted has no card"
+    }
+   ]
+  }
+ ]
+}

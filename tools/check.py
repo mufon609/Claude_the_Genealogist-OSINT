@@ -49,6 +49,10 @@ def rules():
     for c in R["place_parse"]:
         p = parse(c["raw"]); got = {"components": p["components"], "country": p["country"], "queries": query_variants(p) if (p["components"] or p["country"]) else []}
         if got != c["parsed"]: bad.append(f"resolve_places.parse({c['raw']!r}) gave {got!r}, expected {c['parsed']!r}")
+    from resolve_places import agree
+    for c in R["place_names"]:
+        got = agree(c["part"], c["names"])
+        if got != c["agrees"]: bad.append(f"resolve_places.agree({c['part']!r}, {c['names']!r}) gave {got!r}, expected {c['agrees']!r}")
     names = [tuple(x) for x in R["dated_names"]["names"]]
     for c in R["dated_names"]["cases"]:
         got = place_verdict(c["record"], c["tree"], dated_names=names)

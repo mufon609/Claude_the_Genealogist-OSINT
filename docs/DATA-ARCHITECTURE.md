@@ -412,7 +412,7 @@ when both resolve to one place or one is a dated name of the other.
 
 A place written at another granularity is the same place, not a conflict
 (`catalog.place_verdict`): an abbreviated word is the word (Mt. is Mount,
-St. is Saint), and two US places that differ only in the unit's own word
+St. is Saint, Ft. is Fort), and two US places that differ only in the unit's own word
 (Township, Town, Village of, Borough, City, Ward N) or in a county one side
 leaves out agree when the rest of the name and the state agree, so
 "Northampton" and "Northampton Ward 1", "Hempstead" and "Hempstead Town",
@@ -430,10 +430,18 @@ which a village nested in its same-named town stays undecided.
 it is a state's name or an abbreviation of it, from the one table in `catalog.py` that `place_verdict` reads too (the fifty
 states and the District of Columbia, with the postal codes and the period abbreviations records write: NJ, N.J., Penna,
 Mass., Tenn.), so a string that is a state alone ("NJ", "Penna") is asked as the state; earlier in a string an abbreviation
-is left as written (Penn, in Penn, Cumberland, Pennsylvania, is a township). A string is accepted when exactly one candidate
-has every part the string gives in its own hierarchy, or when the verified candidates are one territory under two names (a
-city and the county coterminous with it, tested on the geocoder's boxes); a place nested in a larger unit of the same name
-stays undecided with both offered. The words a record writes for the place of another of its lines ("Same House", "Same
+is left as written (Penn, in Penn, Cumberland, Pennsylvania, is a township). A part verifies against a candidate when it is
+the name, in full, of the candidate or of a unit in its hierarchy, or one of the old or alternative names OpenStreetMap
+records for them: the same name once case, accents, punctuation and spacing are set aside, an abbreviated word is written out
+(Mt. is Mount, St. is Saint, Ft. is Fort, Twp is Township) and the unit's own word is dropped from either side (Township,
+Town, Village of, Borough, City, County, Ward N), so "Mt. Holly" is Mount Holly Township and "Hempstead Town" the Town of
+Hempstead (`catalog.place_name_key`, which `place_verdict` shares its words with). A part that is only the start of a name
+("Cadillac Memorial Gardens West" for a cemetery named "Cadillac Memorial Gardens West Cemetery"), a truncation ("Hemp." for
+Hempstead) or a spelling close to one ("Worchester" for Worcester, "North Hampton" for Northampton) verifies nothing: the
+candidate is still offered on the card, that part marked near in its checks. A string is accepted when exactly one candidate
+verifies on every part the string gives, or when the verified candidates are one territory under two names (a city and the
+county coterminous with it, tested on the geocoder's boxes); a place nested in a larger unit of the same name stays
+undecided with both offered. The words a record writes for the place of another of its lines ("Same House", "Same
 Place", "Same County", listed in `data/place-overrides.json`) are rejected as no place, the reason in the string's notes.
 
 What is not accepted is a `place_resolution` card on the fact row of the person it concerns. Cards that offer the same set

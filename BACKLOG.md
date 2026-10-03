@@ -449,6 +449,21 @@ the card pass judge a card on the ground before it the way the re-examination
 does, so one run is the fixed point; until then the live run repeats
 reconsider until a run changes nothing.
 
+### C24. A gazetteer candidate's head name is verified by a close spelling
+
+A geocoder candidate verifies a part of a string only when the part is its
+name in full (`tools/resolve_places.py` `same_name`; a prefix, a truncation or a
+close spelling is `near` and offered on a card). A gazetteer candidate's head
+(the string's first part) is chosen by `names_agree`, which also accepts a slip
+of a letter or two to `NEAR_RATIO` (Harperdorf, Harpersdorf) and spaces and
+hyphens set aside (Langneundorf, Lang Neundorf), and `gov_candidates` and
+`wikidata_candidates` then write the head as verified, so a gazetteer candidate
+whose head is only a close spelling is accepted when the other parts verify and
+one geocoder twin places it. Decide whether the head is held to the same rule
+(a close spelling marks it near and the string a card; spacing and hyphens
+stay a match, GOV's own historical names being spelled both ways), and apply it
+to both gazetteers' checks.
+
 ### C25. The proof summary's per-conflict reasoning and question ids
 
 `tools/proof.py` computes "the classes favour X over Y" once per fact and
