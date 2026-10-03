@@ -1,0 +1,45 @@
+{
+ "title": "an Ancestry export is labelled as Ancestry's",
+ "line": "the harness tree, whose header names Ancestry.com as its exporter, is archived under registry row B02 with Ancestry's terms and cost and is not redistributable; its statements with no citation say \"the file, no citation\", and its record ids are kept under Ancestry's own id system",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the import as the tree ingests it",
+   "expect": [
+    {
+     "artifact": {
+      "record": "import",
+      "source_id": "B02",
+      "redistributable": false,
+      "manifest": {
+       "collection": "Ancestry Member Trees (GEDCOM export)",
+       "trust_tier": "T4",
+       "rights": {
+        "terms": "ancestry-tos",
+        "redistributable": false,
+        "cost": "paid"
+       }
+      }
+     }
+    },
+    {
+     "stored": {
+      "citation": "the file, no citation",
+      "absent": {
+       "citation": "Ancestry member tree"
+      }
+     }
+    },
+    {
+     "xref_systems": [
+      "ancestry_gedcom_xref"
+     ]
+    }
+   ]
+  }
+ ]
+}

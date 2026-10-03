@@ -1,0 +1,112 @@
+{
+ "title": "an import that cannot be read, or holds no one, is refused and nothing is recorded",
+ "line": "a file whose header says ANSEL, a character set not read here, is refused saying so; a file whose header says UTF-8 but whose bytes are Windows-1252 is refused naming the byte; a file with a header and no person is refused saying it holds none; each leaves no import and no artifact behind, so the same file can be ingested once it is right",
+ "tree": {
+  "slug": "harness",
+  "name": "Harness"
+ },
+ "steps": [
+  {
+   "say": "the harness file with its header's CHAR changed to ANSEL",
+   "ingest": {
+    "file": "harness.ged",
+    "written": {
+     "char": "ANSEL"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 1,
+      "said": {
+       "has": [
+        "CHAR ANSEL",
+        "does not read",
+        "re-export"
+       ]
+      },
+      "imports": 0,
+      "artifacts": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the harness file written in Windows-1252 and still saying UTF-8",
+   "ingest": {
+    "file": "harness.ged",
+    "written": {
+     "codec": "cp1252"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 1,
+      "said": {
+       "has": [
+        "CHAR UTF-8",
+        "is not valid utf-8",
+        "mislabelled"
+       ]
+      },
+      "imports": 0,
+      "artifacts": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the harness file cut to its header and submitter, no person",
+   "ingest": {
+    "file": "harness.ged",
+    "written": {
+     "header_only": true
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 1,
+      "said": {
+       "has": [
+        "no INDI record",
+        "nothing was recorded"
+       ]
+      },
+      "imports": 0,
+      "artifacts": 0
+     }
+    },
+    {
+     "persons": {
+      "count": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the same file once it is right, as the owner would re-export it",
+   "ingest": {
+    "file": "harness.ged"
+   },
+   "as": "import",
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "imports": 1
+     }
+    },
+    {
+     "persons": {
+      "count": 26
+     }
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

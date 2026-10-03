@@ -1,0 +1,69 @@
+{
+ "title": "a file that names no exporter is a family tree file of unknown origin",
+ "line": "the harness tree with its header's SOUR block cut, as a file whose exporter is not named, is archived under registry row A05 with no terms assumed and no cost, T4, its collection saying the exporter is not named; its record ids are kept under a neutral id system and its statements with no citation say \"the file, no citation\", none of them \"Ancestry member tree\"",
+ "tree": {
+  "slug": "harness",
+  "name": "Harness"
+ },
+ "steps": [
+  {
+   "say": "the harness file, its header naming no exporter",
+   "ingest": {
+    "file": "harness.ged",
+    "written": {
+     "without_exporter": true
+    }
+   },
+   "as": "import",
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "said": {
+       "has": "not named in the header: registry row A05"
+      }
+     }
+    },
+    {
+     "persons": {
+      "count": 26
+     }
+    },
+    {
+     "artifact": {
+      "record": "import",
+      "source_id": "A05",
+      "redistributable": false,
+      "manifest": {
+       "collection": "Family tree file (GEDCOM), exporter not named",
+       "trust_tier": "T4",
+       "rights": {
+        "terms": {
+         "starts": "Unknown"
+        },
+        "redistributable": false,
+        "cost": "free"
+       }
+      }
+     }
+    },
+    {
+     "stored": {
+      "citation": "the file, no citation",
+      "absent": {
+       "citation": "Ancestry member tree"
+      }
+     }
+    },
+    {
+     "xref_systems": [
+      "gedcom_xref"
+     ]
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

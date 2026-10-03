@@ -1,25 +1,32 @@
 #!/usr/bin/env python3
-"""Ingest a GEDCOM 5.5.1 file (Ancestry export) into the catalog.
+"""Ingest a GEDCOM file into the catalog.
 
-usage: tools/ingest_gedcom.py <file.ged> [--db catalog/tree.db] [--source B02] [--by user:neural]
+usage: tools/ingest_gedcom.py <file.ged> [--db catalog/tree.db] [--source <registry id>] [--by user:neural]
 
 What happens
-  1. The file is archived (content-addressed copy + manifest) as a T4 artifact.
+  0. The file is read in the encoding its own bytes and header say (UTF-8, UTF-16, ANSI; treelib.gedcom_codec) and is
+     refused, with nothing recorded, when that encoding does not fit it, names a character set not read here, or the
+     file holds no person.
+  1. The file is archived (content-addressed copy + manifest) as a T4 artifact, labelled with the exporter its own header
+     names: Ancestry's member-tree export is registry row B02 with its terms; an exporter with a Hosted Tree row in
+     data/data-sources.csv gets that row; any other file is registry row A05, a family tree file of unknown origin.
+     --source names the row instead.
   2. One extraction (extractor rule:gedcom-ingest) is recorded over it.
   3. Every INDI becomes a persona (what this tree says) + a person (conclusion)
      linked by an accepted person_persona. Every event becomes a persona_fact
      and an event with an assertion back to the fact and the artifact.
-  4. SOUR records become collections keyed by Ancestry dbid. Citations become
+  4. SOUR records become collections (keyed by Ancestry dbid where the record carries one). Citations become
      assertion.citation_text (status 'undecided' until reviewed). The unique record
      citations and media references are kept in the extraction JSON for the
      footprint engine; they are not a queue.
-  5. PLAC strings become place_string rows; Ancestry-HQ artifacts are flagged.
-Nothing is updated in place; re-running on the same file is refused.
+  5. PLAC strings become place_string rows; Ancestry-HQ artifacts are flagged in an Ancestry export.
+Nothing is updated in place; re-running on the same file is refused. A fresh tree has no home person: the run ends by
+saying so and naming the command that sets it (tools/tree.py home), which tools/queue.py and tools/turns.py need.
 """
 import argparse, collections, json, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import (ROOT, Node, connect, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
-                     parse_gedcom_date, resolve_tree, sha256_file, ulid)
+                     parse_gedcom_date, redistributable, resolve_tree, sha256_file, ulid)
 
 EXTRACTOR = ("rule", "gedcom-ingest", "0.1.0")
 EXTRACTOR_TAG = ":".join(EXTRACTOR[:2]) + "@" + EXTRACTOR[2]   # who asserts imported claims and links personas: the extractor, not the user
@@ -33,12 +40,36 @@ EVEN_TYPES = {"arrival": "Arrival", "departure": "Departure", "military": "Milit
               "military service": "Military Service", "draft": "Military Draft", "occupation": "Occupation",
               "tax": "Tax", "land": "Land Grant", "voter registration": "Voter Registration"}
 FAMILY_EVENTS = {"Marriage", "Divorce", "Engagement", "Marriage License", "Marriage Banns"}
-ARTIFACT_PLACE = re.compile(r"^(Lehi|Provo), UT, USA$")
+ARTIFACT_PLACE = re.compile(r"^(Lehi|Provo), UT, USA$")   # Ancestry's own headquarters, written into the publication place of its source records
 APID_RE = re.compile(r"^(\d+),(\d+)::(\d+)$")
+ANCESTRY = "B02"          # the registry row of Ancestry's member trees: its export is the one file whose terms and cost this ingest names itself
+UNKNOWN_ORIGIN = "A05"    # the registry row for a family tree file whose header names no exporter the registry has
+
+def header_exporter(head):
+    """What the header's SOUR says wrote the file, in its own words: (system id, name, corporation), each None when absent."""
+    src = head.first("SOUR") if head else None
+    if not src: return None, None, None
+    corp = src.first("CORP")
+    return (src.value or None), (src.val("NAME") or None), ((corp.value if corp else None) or None)
+
+def exporter_source(cx, exporter):
+    """The registry row of the file's exporter: the Hosted Tree row whose name opens one of the names the header gives
+    ("Ancestry.com" opens "Ancestry.com Family Trees"), else the row for a file of unknown origin."""
+    key = lambda t: re.sub(r"[^a-z0-9]", "", (t or "").lower())
+    for sid, name in cx.execute("SELECT id, name FROM source WHERE category='Hosted Tree' ORDER BY id"):
+        if key(name) and any(key(n).startswith(key(name)) for n in exporter if n): return sid
+    return UNKNOWN_ORIGIN
+
+def xref_system(source_id, exporter):
+    """external_id.system of the file's own record ids: Ancestry's export's, as it has always been named; another exporter's after
+    the system id its header gives; a file naming none, bare."""
+    if source_id == ANCESTRY: return "ancestry_gedcom_xref"
+    own = re.sub(r"[^a-z0-9]+", "_", (exporter[0] or "").lower()).strip("_")
+    return f"{own}_gedcom_xref" if own else "gedcom_xref"
 
 class Ingest:
     def __init__(self, cx, path, source_id, by, tree_id, tree_slug):
-        self.cx, self.path, self.source_id, self.by = cx, path, source_id, by
+        self.cx, self.path, self.source_id, self.by = cx, path, source_id, by   # source_id None: the registry row of the exporter the header names
         self.tree_id, self.tree_slug = tree_id, tree_slug
         self.archived_now = False
         self.ts = now()
@@ -55,22 +86,38 @@ class Ingest:
         self.head_note = None
         self.deferred_family_events = []   # (indi_node, event_node, etype, person_id, persona_id)
         self.family_events = {}            # (family_id, etype, date_text) -> event_id
+        self.exporter = (None, None, None) # HEAD.SOUR's system id, name and corporation
+        self.xref_system = "gedcom_xref"   # external_id.system of the file's own record ids
 
     # ------------------------------------------------------------ archive
+    def label(self):
+        """(collection, terms, cost, notes) the artifact's manifest carries: Ancestry's export as the registry's row B02 has it, any
+        other file under its own registry row's terms and cost (unknown where the row gives none), named by the exporter's own words."""
+        if self.source_id == ANCESTRY:
+            return ("Ancestry Member Trees (GEDCOM export)", "ancestry-tos", "paid",
+                    "User-exported GEDCOM. Conclusions of the tree owner; citations point at Ancestry records not yet archived.")
+        name, terms, cost = self.cx.execute("SELECT name, terms, cost FROM source WHERE id=?", (self.source_id,)).fetchone()
+        named = self.exporter[1] or self.exporter[0]
+        return ((f"{named} (GEDCOM export)" if named else "Family tree file (GEDCOM), exporter not named"), terms or "unknown",
+                (cost or "").lower() if (cost or "").lower() in ("free", "paid", "member") else "unknown",
+                f"User-supplied GEDCOM, registry row {self.source_id} ({name}). Conclusions of whoever compiled the tree; its citations are leads, not records archived.")
+
     def archive_file(self):
         sha = self.sha = sha256_file(self.path)
         if self.cx.execute("SELECT 1 FROM tree_import WHERE tree_id=? AND artifact_sha256=?", (self.tree_id, sha)).fetchone():
             sys.exit(f"already imported into tree '{self.tree_slug}': sha256 {sha[:12]}…")
         exists = self.cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone()
         size = os.path.getsize(self.path)
+        collection, terms, cost, notes = self.label()
+        redist = redistributable(terms)
         manifest = {
             "schema_version": "0.1.0", "sha256": sha, "bytes": size, "mime": "text/x-gedcom",
-            "source_id": self.source_id, "collection": "Ancestry Member Trees (GEDCOM export)",
+            "source_id": self.source_id, "collection": collection,
             "locator": {"kind": "file", "value": os.path.basename(self.path)},
             "retrieved_at": self.ts, "retrieved_by": self.by,
-            "rights": {"terms": "ancestry-tos", "redistributable": False, "cost": "paid"},
+            "rights": {"terms": terms, "redistributable": redist, "cost": cost},
             "trust_tier": "T4", "original_filename": os.path.basename(self.path), "pages": 1,
-            "notes": "User-exported GEDCOM. Conclusions of the tree owner; citations point at Ancestry records not yet archived.",
+            "notes": notes,
         }
         dst, man = object_path(sha), manifest_path(sha)
         if not exists:
@@ -82,7 +129,7 @@ class Ingest:
                            retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,manifest_json,created_at)
                            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (sha, size, "text/x-gedcom", self.source_id, "file", os.path.basename(self.path), self.ts,
-                         self.by, "ancestry-tos", False, "paid", "T4", os.path.basename(self.path), 1, dumps(manifest), self.ts))
+                         self.by, terms, redist, cost, "T4", os.path.basename(self.path), 1, dumps(manifest), self.ts))
         if not exists: self.cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)",
                         (sha, "local", self.ts, self.ts, True))
         row = self.cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", EXTRACTOR).fetchone()
@@ -104,7 +151,7 @@ class Ingest:
             self.place_strings[raw] = row[0]; self.stats["place_strings_reused"] += 1; return row[0]
         pid = ulid()
         status, notes = "undecided", None
-        if ARTIFACT_PLACE.match(raw):
+        if self.source_id == ANCESTRY and ARTIFACT_PLACE.match(raw):
             status, notes = "rejected", "Ancestry HQ address leaked into event place"
             self.stats["place_artifacts"] += 1
         self.cx.execute("INSERT INTO place_string (id,raw,status,notes) VALUES (?,?,?,?)", (pid, raw, status, notes))
@@ -181,7 +228,7 @@ class Ingest:
             self.cx.execute("""INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,persona_id,artifact_sha256,
                                citation_text,status,asserted_by,asserted_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                             (ulid(), self.tree_id, subject_kind, subject_id, persona_fact_id, persona_id, self.sha,
-                             "Ancestry member tree (no citation)", "undecided", EXTRACTOR_TAG, self.ts, dumps({"uncited": True})))
+                             "the file, no citation", "undecided", EXTRACTOR_TAG, self.ts, dumps({"uncited": True})))
             self.stats["assertions_uncited"] += 1
             return
         seen = set()                                          # the file may cite one record twice on one fact: one statement, one assertion
@@ -282,7 +329,7 @@ class Ingest:
             self.cx.execute("INSERT INTO person_persona (person_id,persona_id,status,decided_by,decided_at) VALUES (?,?,?,?,?)",
                             (pid, pa, "accepted", EXTRACTOR_TAG, self.ts))   # definitional: this GEDCOM entry *is* this person (DATA-ARCHITECTURE §1a)
             self.cx.execute("INSERT INTO external_id (id,tree_id,entity_kind,entity_id,system,value,created_at) VALUES (?,?,?,?,?,?,?)",
-                            (ulid(), self.tree_id, "person", pid, "ancestry_gedcom_xref", xref, self.ts))
+                            (ulid(), self.tree_id, "person", pid, self.xref_system, xref, self.ts))
             # person-level citations: the INDI and NAME levels carry the same citation twice; one assertion per record id
             cits = list({(c[1] or c[0]): c for c in self.citations(n) + [c for nm in names for c in self.citations(nm)]}.values())
             self.assert_("person", pid, cits, persona_id=pa)
@@ -312,7 +359,7 @@ class Ingest:
             self.cx.execute("INSERT INTO family (id,tree_id,rel_type,created_at,updated_at) VALUES (?,?,?,?,?)", (fid, self.tree_id, rel, self.ts, self.ts))
             self.families[n.xref] = fid
             self.cx.execute("INSERT INTO external_id (id,tree_id,entity_kind,entity_id,system,value,created_at) VALUES (?,?,?,?,?,?,?)",
-                            (ulid(), self.tree_id, "family", fid, "ancestry_gedcom_xref", n.xref.strip("@"), self.ts))
+                            (ulid(), self.tree_id, "family", fid, self.xref_system, n.xref.strip("@"), self.ts))
             members = []
             for tag in ("HUSB", "WIFE"):
                 for c in n.all(tag):
@@ -405,7 +452,13 @@ class Ingest:
     # ------------------------------------------------------------ run
     def run(self):
         roots = parse_gedcom(self.path)
+        if not any(r.tag == "INDI" for r in roots): sys.exit(f"{self.path}: no INDI record, so no person to import; nothing was recorded")
         head = next((r for r in roots if r.tag == "HEAD"), None)
+        self.exporter = header_exporter(head)
+        self.source_id = self.source_id or exporter_source(self.cx, self.exporter)
+        if not self.cx.execute("SELECT 1 FROM source WHERE id=?", (self.source_id,)).fetchone():
+            sys.exit(f"the source registry has no row {self.source_id}: python3 tools/initdb.py --sync-sources")
+        self.xref_system = xref_system(self.source_id, self.exporter)
         self.media_links = collections.defaultdict(list)
         self.archive_file()
         if head and self.archived_now:
@@ -450,7 +503,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("path")
     ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
-    ap.add_argument("--source", default="B02", help="source registry id of the tree host")
+    ap.add_argument("--source", help="source registry id of the file's exporter (default: the row of the exporter its header names, else A05)")
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     ap.add_argument("--tree", help="tree slug (default: $TREE or catalog/.active-tree)")
     ap.add_argument("--keep", action="store_true", help="copy instead of moving the file out of the inbox")
@@ -472,7 +525,11 @@ def main():
     in_inbox = os.path.abspath(a.path).startswith(inbox_dir() + os.sep)
     filed = ing.file_original(move=in_inbox and not a.keep)
     print(f"ingested {os.path.basename(a.path)} -> tree '{slug}', artifact {ing.sha[:12]}…\n  filed at {os.path.relpath(filed, ROOT)}")
+    print(f"  {'exporter':28} {' / '.join(x for x in ing.exporter if x) or 'not named in the header'}: registry row {ing.source_id}")
     for k in sorted(summary): print(f"  {k:28} {summary[k]}")
+    if not cx.execute("SELECT home_person_id FROM tree WHERE id=?", (tree_id,)).fetchone()[0]:
+        print(f"\nno home person is set for tree '{slug}': tools/queue.py and tools/turns.py need one and refuse to run without it.\n"
+              f"Set it with: python3 tools/tree.py home \"<person>\" --tree {slug}")
 
 if __name__ == "__main__":
     main()

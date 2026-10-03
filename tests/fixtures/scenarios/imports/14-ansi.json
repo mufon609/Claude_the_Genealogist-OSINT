@@ -1,0 +1,54 @@
+{
+ "title": "an ANSI export is read as Windows-1252",
+ "line": "the harness tree written in Windows-1252, its header's CHAR ANSI, ingests the same 26 people with the registered mark, the trade mark and the en dash of its source titles as the file writes them, none replaced; the box-drawing characters of the header's tree note, which that character set cannot write, are the question marks an exporter for it writes",
+ "tree": {
+  "slug": "harness",
+  "name": "Harness"
+ },
+ "steps": [
+  {
+   "say": "the harness file as an exporter that writes ANSI would write it",
+   "ingest": {
+    "file": "harness.ged",
+    "written": {
+     "codec": "cp1252",
+     "char": "ANSI"
+    }
+   },
+   "as": "import",
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "imports": 1
+     }
+    },
+    {
+     "persons": {
+      "count": 26
+     },
+     "why": "the same 26 people the file in UTF-8 gives"
+    },
+    {
+     "stored": {
+      "citation": "Massachusetts Vital Records, 1911–1915",
+      "collection": "U.S., Find a Grave® Index, 1600s-Current",
+      "note": "Schwenkfelder immigrant’s from Silesia",
+      "name": "Reiko Diane Davidson",
+      "clean": true
+     },
+     "why": "every text is the file's own, none replaced"
+    },
+    {
+     "artifact": {
+      "record": "import",
+      "source_id": "B02"
+     }
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
