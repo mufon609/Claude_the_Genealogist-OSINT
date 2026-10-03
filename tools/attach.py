@@ -7,7 +7,7 @@ FamilySearch ark from the record page's print header. An image carries no identi
 photograph takes the one the fetch list printed in its name (findagrave-photo-<memorial id>-<photo id>.jpg): the step for
 that photograph on that memorial, archived under the gravestone row (E05) with the image's own URL as locator, logged found,
 and read afterwards by the transcription path, never parsed. A page from a holder whose pages carry no identity the attach
-reads (an SAR patriot page, a Legacy.com obituary) is taken by tools/fetches.py collect under the name the list printed and
+reads (a Legacy.com obituary) is taken by tools/fetches.py collect under the name the list printed and
 attached here as kind "page": archived under the step's holder with the page's own URL as locator and parsed only when a
 parser claims it; a page no parser claims is held on the step's log as an unread run, never a found one. A page saved from
 the fetch list carries the plan steps it was saved for as a second comment under its saved-from line (tools/save_page.js, the
