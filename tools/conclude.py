@@ -1113,23 +1113,25 @@ def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_rec
         v = q.execute("SELECT version FROM extractor WHERE id=?", (prop["generated_by"],)).fetchone()
         if not v or v["version"] != MATCHER[2]: return False, f"the matcher at {v['version'] if v else '?'} found nobody fitting; the matcher now at {MATCHER[2]} has not looked: reconsider proposes it again"
     stated = [(r["kind"], r["value_text"], r["persona_id"] if r["persona_id"] != persona["id"] else r["related_persona_id"],
-               relation_classes(cx, r["persona_id"], r["related_persona_id"], r["kind"], r["value_text"])["relationship"] == "computed")
+               relation_classes(cx, r["persona_id"], r["related_persona_id"], r["kind"], r["value_text"])["relationship"] == "computed",
+               r["persona_id"] == persona["id"])                   # own: the persona is the <kind> of the other; else the other is the persona's
               for r in q.execute("SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation WHERE persona_id=? OR related_persona_id=?", (persona["id"], persona["id"]))]
     def resolves(word, other):
         in_law = IN_LAW.get((word or "").strip().lower())
         if not in_law: return True                                            # a half sibling, a grandchild: not an in-law, no link to resolve first
         x_surname = (split_persona_name(persona["name"])[1] or [""])[-1]
         return bool(resolve_in_law(cx, prop["tree_id"], accepted_on_record[other]["id"], in_law, x_surname))
-    family = [(kind, word, other, computed) for kind, word, other, computed in stated
+    family = [(kind, word, other, computed, own) for kind, word, other, computed, own in stated
               if other in accepted_on_record and (kind in ("child", "parent", "spouse", "sibling") or (kind == "other" and FAMILY_WORD.search(word or "") and resolves(word, other)))]
-    named = [(kind, word, other) for kind, word, other, computed in family if not computed]
+    named = [(kind, word, other, own) for kind, word, other, computed, own in family if not computed]
     if not named:
-        others = [word or kind for kind, word, other, _ in stated if other in accepted_on_record]
-        return False, ("the record's indexer, not the record, relates them to a person accepted on it (" + ", ".join(word or kind for kind, word, _, _ in family) + "): the owner decides") if family \
+        others = [word or kind for kind, word, other, _, _ in stated if other in accepted_on_record]
+        return False, ("the record's indexer, not the record, relates them to a person accepted on it (" + ", ".join(word or kind for kind, word, _, _, _ in family) + "): the owner decides") if family \
                else ("the record relates them to a person accepted on it only as " + ", ".join(others) + ": not a family relationship the rule creates a person on, or an in-law tie that does not resolve to one person") if others \
                else "the record states no family relationship between them and a person accepted on it"
-    kind, word, other = named[0]
-    return True, f"{word or kind} of {accepted_on_record[other]['name']}, accepted on this record, whom nobody in the tree fits after the fitting check: created as a person with the record's facts"
+    kind, word, other, own = named[0]
+    tie = f"{word or kind} of {accepted_on_record[other]['name']}, accepted on this record" if own else f"the record names {accepted_on_record[other]['name']}, accepted on it, as their {(word or kind).lower()}"
+    return True, f"{tie}, and nobody in the tree fits them after the fitting check: created as a person with the record's facts"
 
 def accepted_span(cx, tree_id, pid, etype, without=()):
     """What the person's accepted statements of an event type a life holds once say of its date: (earliest, latest, words),
