@@ -53,17 +53,7 @@ blocked" at the foot of this file.
 
 ## A. Priority sequence
 
-Items with ordering or coupling constraints.
-
-### A1. The FamilySearch pages read again and the rule reconsidered, live
-
-`tools/extract.py --stale` reads every FamilySearch page again at
-`rule:familysearch-record@0.7.1`, then `tools/conclude.py reconsider` examines
-the rule's decisions on those readings; the rehearsal on a scratch copy lists
-what it takes back and what it takes.
-**Blocks:** running `tools/conclude.py reconsider`, `tools/turn.py` or
-`tools/turns.py` on the live catalog, until that list is reviewed and the run
-made live.
+Items with ordering or coupling constraints. None open.
 
 ---
 
