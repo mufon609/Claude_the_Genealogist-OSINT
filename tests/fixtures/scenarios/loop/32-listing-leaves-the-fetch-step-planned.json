@@ -1,6 +1,6 @@
 {
  "title": "a results page leaves the fetch step planned",
- "line": "a row of a FamilySearch results page fits the person whose 1950 fetch step was searched for by that name in that collection, so the run is found with the page and the row is a card; the listing points at a record and is not one, so the step stays planned and the row is not held, while the holder's run on the step's own fields keeps the search off the fetch list; a plan run keeps the step planned; a step standing done on a listing alone is planned again by the plan, one done on a record page stays done; a page no parser reads, saved under the list's name, is logged found and closes nothing",
+ "line": "a row of a FamilySearch results page fits the person whose 1950 fetch step was searched for by that name in that collection, so the run is found with the page and the row is a lead, never a card: his plan gets a fetch step for the row's own record; the listing points at a record and is not one, so the step stays planned and the row is not held, while the holder's run on the step's own fields keeps the search off the fetch list; a plan run keeps the step planned; a step standing done on a listing alone is planned again by the plan, one done on a record page stays done; a page no parser reads, saved under the list's name, is logged found and closes nothing",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -55,7 +55,7 @@
    ]
   },
   {
-   "say": "the collection's search saved for the step: the first row is his, a card; the listing is not the record",
+   "say": "the collection's search saved for the step: the first row is his, a lead; the listing is not the record",
    "attach": {
     "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html"
    },
@@ -84,23 +84,56 @@
       "outcome": {
        "not": "none"
       },
-      "proposals": {
-       "len": {
-        ">=": 1
-       }
-      }
+      "proposals": []
      },
-     "why": "read as a results page by its own markup; it fulfils the fetch step whose citation was searched for by this name in this collection, the citation's own suffix set aside so the surname compared is the surname searched; a row fits, so the run is found and there is a card"
+     "why": "read as a results page by its own markup; it fulfils the fetch step whose citation was searched for by this name in this collection, the citation's own suffix set aside so the surname compared is the surname searched; a row fits, so the run is found; the matcher proposes no row of a results page"
     },
     {
      "cards": {
       "record": "ls",
-      "people": [
-       "I332737036054"
-      ],
-      "count": 1
+      "count": 0
      },
-     "why": "one card, the first row's, for the person the step is on: the other rows agree on the surname alone and stay hints on the page"
+     "why": "no card at all: a results row is never one, and the rows that agree on the surname alone stay hints on the page"
+    },
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16",
+      "fields": {
+       "kind": "fetch",
+       "status": "planned",
+       "mode": "fetch",
+       "row_key": "search result:",
+       "locator_source_id": "D03",
+       "locator_kind": "ark",
+       "locator_value": "ark:/61903/1:1:6XYS-NQ16",
+       "query": {
+        "name": {
+         "value": "Fred M Ahearn",
+         "basis": "record"
+        },
+        "collection": {
+         "value": "United States, Census, 1950",
+         "basis": "record"
+        },
+        "found on": {
+         "value": {
+          "has": "results page"
+         },
+         "basis": "record"
+        }
+       }
+      }
+     },
+     "why": "the first row fits him (his birth in Pennsylvania, the given name and surname, the year the index estimates): a lead on his plan, a fetch step for the row's own record at the holder of the results page, the row's words as its fields"
+    },
+    {
+     "step_count": {
+      "person": "I332737036054",
+      "step_key_like": "fetch:row:%",
+      "is": 1
+     },
+     "why": "one lead: the other nineteen rows fit him no better than the surname"
     },
     {
      "search_log": {
@@ -160,6 +193,22 @@
       }
      },
      "why": "the holder answered the search on the step's own fields: the step's page no longer sends anyone to it"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737036054",
+      "url_has": "ark:/61903/1:1:6XYS-NQ16",
+      "is": [
+       {
+        "save_as": "familysearch-census-1950-6XYS-NQ16.html",
+        "people": [
+         "Frederick Micheal Ahearn Jr"
+        ]
+       }
+      ]
+     },
+     "why": "the row's own record page is the next page to save, listed under the record-page name with the ark filled in"
     }
    ]
   },

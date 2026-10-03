@@ -168,7 +168,9 @@ assertion id or `{record, event_type}` for that record's statement on the person
 comes back as its `error`), `reopen_conflict` (a conflict the rule resolved, taken back by the owner through
 `tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card
 with the geocoder's
-`candidates` planted in the cache), `older_matcher`, `persona_link` (a person's link to a record's persona of a `role`, and
+`candidates` planted in the cache), `older_matcher`, `legacy_card` (a card an older matcher wrote for the row at sequence `row`
+of a results page `record`, put to `person`, planted undecided as that matcher's `version`: the matcher writes none now, so only
+an older one can stand for reconsider to meet), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided), `merge`, `cite`, `question` (a research_question row patched by
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for

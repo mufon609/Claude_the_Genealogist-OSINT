@@ -17,12 +17,14 @@ citation details, for the people the page names by name and birth year. A result
 parser that claims it, never by its file name) fulfils the search steps whose fields are the search's own, and the fetch
 steps whose citation was searched for by hand at that holder because it carries no record id of the holder's: the
 citation's collection has the page's collection as a holder (data/holders.csv) and the name the citation sits on is the
-name searched. Such a page is the run's own artifact: a found run when a row fits someone, a none run when none does, the
-query as run on the log. A fetch step is done by a found run only when the page is the record it cites (log_search.holds_record): a
-listing points at a record and is not one, and a page no parser read holds nothing, so on either the step stays planned while
-the run on its fields answers the search for the fetch list; the row's own record page, saved next, closes it: tools/fetches.py
-lists it for the step (pointed_at: a row whose persona carries an ark and is proposed or accepted as the step's person), and once
-saved it reaches the fetch steps the listing was logged on for that person (steps_pointed), archived under the step's citation.
+name searched. Such a page is the run's own artifact: a found run when a row fits someone (match.fitting_rows), a none run when
+none does, the query as run on the log. A fetch step is done by a found run only when the page is the record it cites
+(log_search.holds_record): a listing points at a record and is not one, and a page no parser read holds nothing, so on either the
+step stays planned while the run on its fields answers the search for the fetch list. A row that fits is no card (the matcher
+proposes none) but a lead on the person: the plan is written again for the people the page fits, so tools/plan.py's
+result_row_leads gives each row's own record its fetch step, which tools/fetches.py lists; once the record page is saved it
+reaches that step and the fetch steps the listing was logged on for that person (steps_pointed), archived under the step's
+citation, which it closes.
 The same search saved again with the same rows answers nothing new, so it is a repeat: a none
 run logged on every step it fits that isn't already answered on its current fields (the fields as now rendered, the note
 naming the earlier run's own artifact), and the file leaves the inbox with nothing archived a second time. A file
@@ -33,10 +35,11 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
-from log_search import ON_WORD, holds_record, latest_answer, log as log_search, rendered_query, ran_unchanged, step_source
+from log_search import ON_WORD, holds_record, log as log_search, rendered_query, ran_unchanged, step_source
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
-from match import key as name_key
+from match import fitting_rows, key as name_key
 from conclude import match_record
+from plan import plan_person
 
 MEMORIAL_URL = re.compile(r"findagrave\.com/memorial/(\d+)(?:/|$)")
 PHOTO_NAME = re.compile(r"^findagrave-photo-(\d+)-(\d+)\.(?:jpe?g|png|webp|gif)$", re.I)
@@ -155,8 +158,9 @@ def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=Non
 def steps_for(cx, tree_id, kind, value, parsed=None):
     """The tree's steps this identity fulfils: for a memorial or an ark, the fetch steps whose citation carries it, the citation on
     the person themselves first, and for an ark new to the archive the planned fetch steps a listing that carries the ark was
-    logged on for the person its row was proposed as (steps_pointed), then the steps citing the census page it names, then the
-    collection fallback; for a search results page, the search steps whose fields are the search's own query, and the fetch
+    logged on for the person its row fits (steps_pointed), the lead for the row itself (steps_leading), then the steps citing the
+    census page it names, then the collection fallback; for an enlistment record, the lead for it and the search steps its name
+    and birth year fit; for a search results page, the search steps whose fields are the search's own query, and the fetch
     steps whose citation was searched for by hand at that holder (_fetch_steps_searched)."""
     if kind == "search":
         qy = (parsed or {}).get("query") or {}
@@ -174,7 +178,8 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
         if kind == "aad_search": name, yb = p.get("query", {}).get("name") or "", p.get("query", {}).get("birth_year")
         else: f = dict(p.get("fields") or []); name, yb = " ".join(x for x in (f.get("NAME") or "").split("#") if x), f.get("YEAR OF BIRTH")
         words = [name_key(x) for x in name.split() if name_key(x)]
-        if not words: return []
+        leads = steps_leading(cx, tree_id, p["url"]) if kind == "aad_record" and p.get("url") else []   # the lead a results row of this record made
+        if not words: return leads
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='search' AND sp.sources_json LIKE '%"F01"%' ORDER BY sp.seq""", (tree_id,)).fetchall()
         out = []
         for r in rows:
@@ -183,7 +188,7 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
             if name_key(v("surname") or "") != words[0] or (given and len(words) > 1 and given != words[1]): continue
             if yb and v("birth_year") and int(v("birth_year")) % 100 != int(yb) % 100: continue
             out.append(r)
-        return _why(out, "the page's name and year of birth are the step's")
+        return leads + [r for r in _why(out, "the page's name and year of birth are the step's") if r["id"] not in {x["id"] for x in leads}]
     if kind == "photo":                                               # the step for this photograph on this memorial
         mid, pid = value.split(":", 1)
         rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_source_id=?
@@ -202,7 +207,8 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
                                   AND sp.locator_value IN ({','.join('?'*len(ids))}) ORDER BY sp.on_json='[]' DESC, sp.seq""", (tree_id, *ids)).fetchall()
             own = cx.execute("SELECT locator_value FROM artifact WHERE sha256=?", (loc[0],)).fetchone()[0]
             return _why([r for r in rows if _named_on(cx, r["person_id"], parsed)], lambda r: "the citation is this record's own" if r["locator_value"] == own else "the same sheet, and the page names this person")
-        pointed = steps_pointed(cx, tree_id, value, parsed or {})      # new to the archive: the steps a listing pointed at it for
+        pointed = steps_pointed(cx, tree_id, value, parsed or {})      # new to the archive: the steps a listing pointed at it for, then the lead for the row itself
+        pointed += [r for r in steps_leading(cx, tree_id, value) if r["id"] not in {x["id"] for x in pointed}]
         named = _page_named(parsed or {})
         if named:                                                      # the steps citing the census page it names, for the people it names
             rows = cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
@@ -263,50 +269,34 @@ def _steps_by_collection(cx, tree_id, parsed):
     return _why(out, lambda r: f"a {record_coll} record naming {parsed.get('name')}, the citation's own collection at its holder and the person's name{when}" if by_coll[r["id"]]
                 else f"a {row} naming {parsed.get('name')}, the row's kind and the person's name{when}")
 
-def _pointed(person):
-    """The SQL that keeps, of the personas pe of a pointing listing (extract.POINTING_LISTINGS, its current complete reading),
-    the rows whose persona carries a record ark and is proposed or accepted as the person and not rejected for them, person
-    being the SQL for the person's id (a parameter or a column): the record pages the listing points at for that person."""
-    return f"""JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id
-    WHERE e.superseded_by IS NULL AND e.status='complete' AND x.name IN ({','.join(repr(n) for n in POINTING_LISTINGS)})
-    AND json_extract(pe.region_json,'$.ark') IS NOT NULL
-    AND NOT EXISTS (SELECT 1 FROM person_persona pp WHERE pp.persona_id=pe.id AND pp.person_id={person} AND pp.status='rejected')
-    AND (EXISTS (SELECT 1 FROM proposal pr WHERE pr.kind='persona_match' AND json_extract(pr.payload_json,'$.persona_id')=pe.id
-                 AND json_extract(pr.payload_json,'$.person_id')={person} AND pr.status<>'rejected')
-         OR EXISTS (SELECT 1 FROM person_persona pp WHERE pp.persona_id=pe.id AND pp.person_id={person} AND pp.status='accepted'))"""
-
 def ark_id(ark):
     """The id part of a FamilySearch ark ("ark:/61903/1:1:6XYS-NQ16" -> "6XYS-NQ16"), the part the record-page file name carries."""
     return (ark or "").rsplit(":", 1)[-1]
 
-def pointed_at(cx, step):
-    """The record pages a pointing listing offers for a fetch step at FamilySearch: [(ark, the row's own URL, the row's year or
-    None)] for every row of the listings the step's latest holder run was found on (log_search.latest_answer) whose persona
-    carries an ark and is proposed or accepted as the step's person and not rejected for them (_pointed), in the listing's
-    order. Empty when the latest holder run is not a found run, or holds no pointing listing."""
-    a = latest_answer(cx, step, step["locator_source_id"])
-    if not a or a[0] != "found" or not a[3]: return []
-    out = []
-    for sha in a[3]:
-        for region, when in cx.execute(f"""SELECT pe.region_json, (SELECT min(f.date_start) FROM persona_fact f WHERE f.persona_id=pe.id AND f.date_start IS NOT NULL)
-                                          FROM persona pe {_pointed(':person')} AND pe.artifact_sha256=:sha ORDER BY pe.sequence""", {"person": step["person_id"], "sha": sha}):
-            r = json.loads(region or "{}")
-            if r.get("ark") and r["ark"] not in {o[0] for o in out}:
-                out.append((r["ark"], r.get("url") or f"https://www.familysearch.org/{r['ark']}", int(when[:4]) if when and when[:4].isdigit() else None))
-    return out
-
 def steps_pointed(cx, tree_id, ark, parsed):
-    """The planned fetch steps a record page reaches through the listing that pointed at it: a pointing listing whose row carries
-    this ark was logged found on the step, and the row's persona is proposed or accepted as the step's person and not rejected
-    for them (_pointed); the step's row year, where it has one, within two of the record's own (_row_of), as the collection
-    fallback reads it. The citation on the person themselves first."""
+    """The planned fetch steps a record page reaches through the listing that pointed at it: a pointing listing
+    (extract.POINTING_LISTINGS, its current complete reading) whose row carries this ark was logged found on the step, and the
+    step's person has a lead for the row (tools/plan.py's result_row_leads, step key fetch:row:<ark>: the row fits them) or the
+    row is accepted as them, and the row is not rejected for them; the step's row year, where it has one, within two of the
+    record's own (_row_of), as the collection fallback reads it. The citation on the person themselves first."""
     _, year = _row_of(parsed)
     rows = cx.execute(f"""SELECT DISTINCT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id JOIN search_log l ON l.plan_step_id=sp.id AND l.outcome='found'
-                          JOIN persona pe ON l.artifacts_json LIKE '%"' || pe.artifact_sha256 || '"%' {_pointed('sp.person_id')}
+                          JOIN persona pe ON l.artifacts_json LIKE '%"' || pe.artifact_sha256 || '"%' JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id
+                          WHERE e.superseded_by IS NULL AND e.status='complete' AND x.name IN ({','.join(repr(n) for n in POINTING_LISTINGS)})
                           AND json_extract(pe.region_json,'$.ark')=:ark AND p.tree_id=:tree AND sp.kind='fetch' AND sp.status='planned'
+                          AND NOT EXISTS (SELECT 1 FROM person_persona pp WHERE pp.persona_id=pe.id AND pp.person_id=sp.person_id AND pp.status='rejected')
+                          AND (EXISTS (SELECT 1 FROM search_plan lead WHERE lead.person_id=sp.person_id AND lead.step_key='fetch:row:' || :ark)
+                               OR EXISTS (SELECT 1 FROM person_persona pp WHERE pp.persona_id=pe.id AND pp.person_id=sp.person_id AND pp.status='accepted'))
                           ORDER BY sp.on_json='[]' DESC, sp.seq""", {"ark": ark, "tree": tree_id}).fetchall()
     keep = lambda r: not (year and ":" in r["row_key"] and r["row_key"].split(":", 1)[1].isdigit() and abs(int(r["row_key"].split(":", 1)[1]) - year) > 2)
-    return _why([r for r in rows if keep(r)], "a search listing pointed at this record for this person: the row proposed as them")
+    return _why([r for r in rows if keep(r)], "a search listing pointed at this record for this person: the row fits them")
+
+def steps_leading(cx, tree_id, record):
+    """The planned fetch steps that are the lead for this very record (tools/plan.py's result_row_leads): a row of a results page
+    fits the step's person, and the step asks for the record the row names by its own identity (an ark, an enlistment
+    record's URL)."""
+    return _why(cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.status='planned'
+                              AND sp.step_key=? ORDER BY sp.seq""", (tree_id, f"fetch:row:{record}")).fetchall(), "a row of a results page that fits this person pointed at this record")
 
 def _named_on(cx, person_id, parsed):
     """Whether a record page names this person: its subject or a household member, each with the birth year its age and the
@@ -482,9 +472,11 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)
         is_results_page = cx.execute(f"""SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
                                         WHERE e.id=? AND x.name IN ({','.join('?' * len(RESULTS_LISTINGS))})""", (eid, *RESULTS_LISTINGS)).fetchone()
-        if is_results_page and not out["proposals"] and logs:   # a results page whose own rows fit nobody: the run found nothing for the person, the candidates stay on the artifact
+        fits = fitting_rows(cx, eid)                              # the rows of a pointing listing that fit a person the page was fetched for: leads, never proposals
+        if is_results_page and not out["proposals"] and not fits and logs:   # a results page whose own rows fit nobody: the run found nothing for the person, the candidates stay on the artifact
             for sid, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
+        for person in dict.fromkeys(who for who, _, _ in fits): plan_person(cx, tree_id, person, by)   # the rows' own records are fetch steps now: the plan says so before anyone asks for the next page
     if out.get("outcome") != "none" and logs:                     # the found run closes a search step; a fetch step only when the page is the record it cites
         kinds = {s["id"]: s["kind"] for s in steps}; record = holds_record(cx, sha)
         for sid, lid in logs:

@@ -1,0 +1,183 @@
+{
+ "title": "a row a person decided stays decided",
+ "line": "the first row of a FamilySearch 1950 census search fits Frederick Micheal Ahearn and is a lead for its own record; accepted by the owner as him, the row stays accepted and its record is still the lead, since it is not yet fetched; neither a plan run nor the rule undoes the link; rejected by the owner as him, it stays rejected and is no lead for him: a person's decision is never undone",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 90,
+    "step_key": "fetch:1,62308::1",
+    "kind": "fetch",
+    "query_type": "household",
+    "query": {
+     "collection": {
+      "value": "1950 United States Federal Census",
+      "basis": "owner"
+     },
+     "name": {
+      "value": "Frederick Micheal Ahearn",
+      "basis": "owner"
+     }
+    },
+    "locator": {
+     "source": "D03",
+     "kind": "apid",
+     "value": "1,62308::1"
+    },
+    "sources": [
+     "D03"
+    ],
+    "mode": "fetch",
+    "status": "planned",
+    "on": "[]",
+    "rationale": "harness: a 1950 citation on the owner's word; fetch the record at United States, Census, 1950"
+   },
+   "as": "st"
+  },
+  {
+   "say": "the search saved: the first row fits him and is a lead",
+   "attach": {
+    "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html"
+   },
+   "as": "ls",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16",
+      "fields": {
+       "status": "planned"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner's word that the row is his, as a card an older matcher put to it would leave the link",
+   "persona_link": {
+    "record": "ls",
+    "person": "I332737036054",
+    "persona": "Fred M Ahearn",
+    "role": "result",
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "links": {
+      "record": "ls",
+      "person": "I332737036054",
+      "persona": "Fred M Ahearn",
+      "is": [
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "his plan regenerated, then the rule re-examines everything: the link stays accepted, no card is written for any row, and the row's record is still a lead",
+   "plan": [
+    "I332737036054"
+   ],
+   "as": "replan",
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "accepted as him, the row's own record is not yet fetched: still the lead"
+    }
+   ]
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "links": {
+      "record": "ls",
+      "person": "I332737036054",
+      "persona": "Fred M Ahearn",
+      "is": [
+       "accepted"
+      ]
+     },
+     "why": "a person's own decision is never undone by the rule"
+    },
+    {
+     "cards": {
+      "record": "ls",
+      "count": 0
+     },
+     "why": "and no card is written for any row"
+    }
+   ]
+  },
+  {
+   "say": "the owner's word that the row is not him",
+   "persona_link": {
+    "record": "ls",
+    "person": "I332737036054",
+    "persona": "Fred M Ahearn",
+    "role": "result",
+    "status": "rejected"
+   },
+   "expect": [
+    {
+     "links": {
+      "record": "ls",
+      "person": "I332737036054",
+      "persona": "Fred M Ahearn",
+      "is": [
+       "rejected"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "his plan regenerated: a row rejected as him is no lead for him, and the link stays rejected",
+   "plan": [
+    "I332737036054"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16",
+      "exists": false
+     },
+     "why": "the plan drops the lead it never ran"
+    },
+    {
+     "links": {
+      "record": "ls",
+      "person": "I332737036054",
+      "persona": "Fred M Ahearn",
+      "is": [
+       "rejected"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

@@ -27,8 +27,9 @@ Nothing is searched on claims alone.
 and the loop can act on: a record to fetch because a held record names it
 (the parent's memorial linked from Raymond Earl Davidson's), a search to run
 because an accepted fact makes it possible (the 1950 household at the address
-the 1940 census gives), a person named on an accepted record who is not yet in
-the tree. A lead has a person, what to do, where to do it, and what produced it
+the 1940 census gives), the record behind a row of a search results page that
+fits the person the search was run for, a person named on an accepted record
+who is not yet in the tree. A lead has a person, what to do, where to do it, and what produced it
 (the record, fact or citation). Leads are the queue of work; every lead is a
 plan step with its log, so what was tried and what it gave is never lost. A
 lead closes when it is run, found or none, or when its gap has gone. Accepting
@@ -45,7 +46,10 @@ the person with what agrees and what is missing, for research when the leads
 run dry. A document already accepted as the person's can also stay a hint
 while it still has work in it (the pre-1850 household accepted as the family's,
 the children not yet identified). A hint never becomes a fact on its own;
-research turns it into a lead or a match. Hints are shown only on a person
+research turns it into a lead or a match. A row of a search results page is
+never proposed as a match, whatever it agrees on: its own record is the
+document, so the row is a hint, or, when it fits the person the search was
+run for (§5–7: more than a name and a year), a lead for that record. Hints are shown only on a person
 whose baseline is reviewed, never as a feed.
 
 **Which documents the rule may accept on its own.** This paragraph and §5–7
@@ -100,7 +104,7 @@ The starting list, to be refined as records are met:
 | Obituary, newspaper hit | free text | hint until the text is read (by hand or by the model); then the named survivors decide: automated for the person it names once a stated relative it names is a relative the tree already links on trusted evidence, never on dates or places alone |
 | Will, probate, land, tax, directory | names, no ages | hint |
 | Compiled genealogy, family Bible | lineage, no proof | hint, never proof |
-| A row on a search results page | name, years, place | hint; its own record is the document |
+| A row on a search results page | name, years, place | never a card: a hint on the page, its own record is the document; a row that fits the person the search was run for is a lead for that record |
 
 ## 1. Baseline: what we know and have approved
 
@@ -223,7 +227,13 @@ relative it lists that nobody has decided otherwise is a lead: one whose given
 name, surname and birth year fit exactly one person of the tree gets the step
 under that person's cemetery row; one fitting nobody, or several, is a lead on
 the memorial's own person (row `listed relative:<memorial id>`), counted
-apart from the documents to decide. Running a step (Go, Search, the log buttons) is the approval;
+apart from the documents to decide. A row of a saved search results page that
+fits a person the page was fetched for is a lead the same way: a fetch step
+for the row's own record on that person's plan (row `search result:`, step key
+`fetch:row:<record id>`), its locator the record's own identity (an ark, a
+memorial id, an enlistment record's URL) at the holder of the results page, the
+row's words as its fields (basis `record`), the page it was found on among
+them. Running a step (Go, Search, the log buttons) is the approval;
 there is no approval state. Fetches are cheap and decisive, and open before the
 baseline is reviewed because the review needs them.
 
@@ -292,11 +302,12 @@ to open, the people waiting on it and the file name to save under, leaving out
 the pages whose steps have all been run on unchanged fields (`--all` brings
 them back) and marking a bare form; `next` takes the same pages in the same order, a
 bare form last.
-A FamilySearch step whose saved search has a row
-proposed or accepted as the step's person is listed as that row's own record
-page in the search link's place, under the record-page name with the row's ark
-filled in, and stays open until a page carrying that ark is archived: the
-listing pointed at the record and is not one. A step at a browse-only holder (`catalog.browse_only`:
+A row of a saved
+results page that fits the person (§5–7) is a lead of its own, a fetch step for the
+row's own record under row `search result:`, and is listed as that record's page
+in the search link's place, under the record-page name with the row's ark filled
+in, until a page carrying that ark is archived: the listing pointed at the record
+and is not one. A step at a browse-only holder (`catalog.browse_only`:
 a FamilySearch images-only collection, browsed by hand, film by film, with no
 search or record page for a browser to save) stays on the plan, fetchable,
 with the reason in its rationale, but never reaches this list.
@@ -357,8 +368,8 @@ the model, into a card like any other image.
 `tools/attach_inbox.py` then takes every file in `inbox/`: it reads the
 record's own identity from the file (the memorial id, the ark), archives it
 once, logs a found run on every fetch step whose citation carries that
-identity (a record page a listing pointed at reaches the steps the listing was
-logged on, for the person its row was proposed as), marks the step done when
+identity (a record page a listing pointed at reaches the lead its row made and
+the steps the listing was logged on, for the person its row fits), marks the step done when
 the page is the record it cites, and runs the extractor and matcher once; the screen's own attach
 does the same for the step the person chose plus every other step the record
 fulfils. A file whose identity matches no step stays in the inbox.
@@ -402,19 +413,19 @@ into `inbox/`. The results page's identity is the search's own fields, so
 `tools/attach_inbox.py` attaches it to the cemetery search step whose fields
 they are: the page is archived with the search URL as locator, the log row
 carries the query as run and the number of results and pages, and the
-extractor makes one persona per row. The audit is the matcher: every row
-against the person and their relatives, dates compared as dates (a different
+extractor makes one persona per row. The audit is the matcher's own
+comparison of every row with the person, dates compared as dates (a different
 day in the same year disagrees; a bare year against a full date agrees on the
-year only and says so), and a `persona_match` proposal only for a row that
-agrees on the surname and on at least one of birth date, death date or burial
-place; a disagreement beside such an agreement stands in the rationale, the
-likely identity and the difference together. A row that agrees on the name
-alone, or fits nobody, gets no proposal; it
-stays a candidate on the page, and the candidate card lists every row with
-its fields as agrees, disagrees or absent and its memorial URL. No fit at all
-sets the run to `none`. Nothing is fetched by the audit: a candidate the owner
-accepts is fetched by the one-call method and attached like any memorial. A
-second page of results is a second run of the step, never automatic.
+year only and says so): a row fits when the given name and the surname agree
+with a death date, a place or a birth date to the day, and nothing compared
+disagrees. No row is proposed as a card. A row that fits is a lead, a fetch
+step for its own memorial on the person's plan, saved by the one-call method
+and attached like any memorial; a row that agrees on the name alone, or fits
+nobody, stays a candidate on the page, and the candidate card lists every row
+with its fields as agrees, disagrees or absent, its memorial URL and the lead
+a fitting row made. No fit at all sets the run to `none`. Nothing is fetched by
+the audit. A second page of results is a second run of the step, never
+automatic.
 
 A FamilySearch search step (a missing row at a collection FamilySearch holds:
 a census year, a state's vital records) carries the site's record search
@@ -426,13 +437,15 @@ search step whose fields they are (the surname, the first given name, a birth
 year inside the page's range, the census year of the collection searched), the
 extractor makes one persona per row with the record's own ark as its identity,
 the row's events (a census as a residence on its date and place) and the
-relatives it names, and the matcher audits every row as it audits a memorial
-search. A row that fits is a card and leaves the fetch step planned: the
-listing points at a record and is not one, so the run is found with the page,
-the row is not held, and the row's own record page takes the search link's
-place on the fetch list; saved by the same method, it reaches the step through
-the listing that pointed at it, is archived under the step's citation, and
-closes the step. A fetch step is done only when a record page holds its
+relatives it names, and the matcher's comparison reads every row as it reads a
+memorial search's. A row that fits is a lead, never a card: the plan, written
+again for the person when the page is attached, gives the row's own record a
+fetch step. The listing points at a record and is not one, so the run is found
+with the page, the fetch step it was saved for stays planned, the row is not
+held, and the row's own record page takes the search link's place on the fetch
+list; saved by the same method, it reaches the lead and, through the listing
+that pointed at it, the step, is archived under the step's citation, and
+closes both. A fetch step is done only when a record page holds its
 citation; a done step whose found runs hold only listings or unread pages is
 planned again by the plan. When
 a step's sources include a holder with a connector as well (the 1950 site),
@@ -675,11 +688,18 @@ generation of the same name (a daughter named for her mother, a son for his
 father) is never put to the elder, so the persona goes on to the fitting
 check and the new-person route like anyone the tree does not hold (Annie
 Lukens, born 1899 in her parents' 1900 household, is no near match for her
-mother Anna Marie, born 1863), and a results-page row of that kind stays a
-row on the page.
-A row of a results page, a schedule row or a name in running text that agrees
-on the name alone is a hint on the page too, never a card: its own record is
-the document. One proposal per persona: `persona_match`
+mother Anna Marie, born 1863).
+A row of a search results page that points at records (FamilySearch, Find a
+Grave, AAD) is never a card, whatever it agrees on: its own record is the
+document. The row that fits the person the page was fetched for, by the
+comparison above (more than a name and a year, nothing disagreeing), is a lead:
+a fetch step on that person's plan for the row's own record (`tools/plan.py`,
+row `search result:`, the results page's holder as the locator source, the
+row's words as its fields and the page it was found on); every other row stays
+a hint on the page. A row of a listing that is the record itself (the gravesite
+locator's results, the death indexes') is proposed like a persona of any
+record, and one of those, a schedule row or a name in running text that agrees
+on the name alone is a hint on the page, never a card. One proposal per persona: `persona_match`
 with the candidate that fits, or `new_person` when nobody does. The rationale
 is plain words, which fields agree, which disagree, which are absent; no score
 is stored or shown. A proposal carries the step's question when the step has
