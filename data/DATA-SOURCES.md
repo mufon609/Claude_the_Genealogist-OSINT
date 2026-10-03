@@ -120,7 +120,8 @@ class is read from the most specific row that gives it, kind before field, then 
 then the default row of the source class, so a field nothing names reads indeterminable (`catalog.evidence_classes`).
 `{year}` in an original's name is the record's own year. Two readings are the reading's own, not the table's: a date
 worked out or bounded from another field (qualifier calculated, estimated, before or after: an age, a newspaper's own
-date) is indirect evidence, and a relationship the reading marks computed is computed. Both come from the record's
+date) is indirect evidence, and a relationship the reading marks computed is computed and indirect, one it marks stated
+stated and direct (the record names the relationship itself). Both come from the record's
 current reading: a statement written from an earlier reading is read through the same person on the page in the current
 one (`catalog.statement_of`), so a page read again by a better parser reads by what that parser found.
 

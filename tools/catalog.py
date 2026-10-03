@@ -688,7 +688,8 @@ def evidence_classes(cx, assertion_id):
     field with its label, then the field, then `*`), the source class's own default row last, so a field nothing names
     reads indeterminable. A date the reading worked out from another field (qualifier calculated, estimated, before or
     after) is indirect evidence, and so is a relationship the reading marks computed (persona_relation.region_json
-    {"computed": true}), whatever the table says. A vouch is the owner's own word: {vouched: true} and no classes."""
+    {"computed": true}), whatever the table says; a relationship the reading marks stated ({"computed": false}) is the
+    record's own statement of it, direct evidence. A vouch is the owner's own word: {vouched: true} and no classes."""
     st = statement_of(cx, assertion_id)
     if st is None: return None
     if st["kind"] == "vouch": return {"vouched": True, "source": None, "information": None, "evidence": None, "relationship": None, "original": None, "kinds": [], "notes": []}
@@ -709,7 +710,7 @@ def evidence_classes(cx, assertion_id):
     if st["kind"] == "fact" and st["qualifier"] in INDIRECT_DATES: out["evidence"] = "indirect"
     if rel and "computed" in rel["region"]:
         out["relationship"] = "computed" if rel["region"]["computed"] else "stated"
-        if rel["region"]["computed"]: out["evidence"] = "indirect"
+        out["evidence"] = "indirect" if rel["region"]["computed"] else "direct"
     return out
 
 class Catalog:
