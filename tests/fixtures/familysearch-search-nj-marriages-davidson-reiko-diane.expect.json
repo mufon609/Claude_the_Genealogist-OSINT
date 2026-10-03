@@ -1,0 +1,53 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "url",
+   "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=2365247&q.givenName=Reiko%20Diane&q.surname=Davidson"
+  }
+ },
+ "extractor": "familysearch-search",
+ "personas": 5,
+ "every": {
+  "role": "result",
+  "region": [
+   "\"collection\":\"New Jersey, Marriages, 1670-1980\""
+  ],
+  "why": "five rows of the New Jersey marriages collection, each a result with its collection"
+ },
+ "sequence": {
+  "1": {
+   "name": "Elizabeth R Davidson",
+   "region": [
+    "Q29L-9F68"
+   ],
+   "facts": [
+    {
+     "type": "Marriage",
+     "date": "14 June 1900"
+    },
+    {
+     "type": "Birth",
+     "date": "1861"
+    }
+   ],
+   "why": "the first row: a marriage of 1900 and a birth year, nothing of 1988"
+  },
+  "5": {
+   "name": "Aaron D Davison",
+   "region": [
+    "Q283-S8TY"
+   ],
+   "no_facts": [
+    {
+     "type": "Marriage"
+    },
+    {
+     "type": "Birth"
+    }
+   ],
+   "why": "the last row, its ark alone: no event the row gives"
+  }
+ }
+}

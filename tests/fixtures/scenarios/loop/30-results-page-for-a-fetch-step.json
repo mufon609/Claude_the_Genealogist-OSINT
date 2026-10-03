@@ -1,6 +1,6 @@
 {
  "title": "a results page saved for a fetch step's own search",
- "line": "a results page is told from a record page by the parser that claims it, never the file name, and goes to the fetch step whose citation was searched for by that name in that collection, as the run's own artifact with the query as run: none when no row fits, the rows kept on the artifact, the step planned, the page filed under the tree; the same page saved again is a repeat, already answered on these fields, and is removed with nothing new to log",
+ "line": "a results page is told from a record page by the parser that claims it, never the file name, and goes to the fetch step whose citation was searched for by that name in that collection, as the run's own artifact with the query as run: none when no row fits, the rows kept on the artifact, the step planned, the page filed under the tree; the same search saved again in the browser, other bytes and the same rows, is a repeat, already answered on these fields, and is removed with nothing new to log",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -116,11 +116,53 @@
    ]
   },
   {
-   "say": "the same search saved once more, other bytes, the same rows, the step already answered on these very fields",
+   "say": "Reiko Diane Davidson's search of FamilySearch's New Jersey marriages saved, as the archive holds it: it fulfils her 1988 marriage step and her husband's, whose citation was searched for by her name in that collection; none of its five rows fits",
    "attach": {
-    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
-    "suffix": "\n",
-    "as_file": "kentucky-deaths-search-saved-again.html"
+    "fixture": "familysearch-search-nj-marriages-davidson-reiko-diane.html",
+    "as_file": "nj-marriages-search-saved.html"
+   },
+   "as": "nj",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "outcome": "none",
+      "step_people": [
+       "Reiko Diane Davidson",
+       "Patrick Michael Ahearn"
+      ]
+     },
+     "why": "the citation's own search at the holder, for both people the marriage citation names"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737044283",
+       "row_key": "marriage record:Patrick Michael Ahearn",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,61253::1084421601"
+       }
+      },
+      "is": [
+       {
+        "outcome": "none",
+        "artifacts": [
+         "$nj.sha"
+        ]
+       }
+      ]
+     },
+     "why": "one run on her step, the page its artifact"
+    }
+   ]
+  },
+  {
+   "say": "the same search saved again in the browser two and a half hours later, as the archive holds it: other bytes, the same five rows, the steps already answered on these very fields",
+   "attach": {
+    "fixture": "familysearch-search-nj-marriages-davidson-reiko-diane-saved-again.html",
+    "as_file": "nj-marriages-search-saved-again.html"
    },
    "expect": [
     {
@@ -133,7 +175,7 @@
     },
     {
      "file": {
-      "name": "kentucky-deaths-search-saved-again.html",
+      "name": "nj-marriages-search-saved-again.html",
       "exists": false
      },
      "why": "nothing new to archive: the file is removed as a repeat"
@@ -141,12 +183,12 @@
     {
      "count": {
       "logs_of_step": {
-       "person": "I332737204852",
-       "row_key": "death record:1918",
+       "person": "I332737044283",
+       "row_key": "marriage record:Patrick Michael Ahearn",
        "kind": "fetch",
        "locator": {
         "kind": "apid",
-        "value": "1,1222::1373711"
+        "value": "1,61253::1084421601"
        }
       },
       "is": 1

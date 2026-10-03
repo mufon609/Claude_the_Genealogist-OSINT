@@ -1,6 +1,6 @@
 {
  "title": "a repeat save answers a step whose fields have since changed",
- "line": "the plan rewrites a step's fields after its one logged run, so ran_unchanged says it was never asked on these; a row source's connector then answers the step on its current fields, which must not stand for the holder's own page (fetches.openable reads per step_source, the holder); the same rows saved again are still a repeat of the earlier artifact, and the repeat path reads per step_source too, so it logs a none run under the holder on the step's current fields (the note naming the earlier artifact) instead of leaving the file in the inbox forever: the step is answered and the fetch list moves on",
+ "line": "the plan rewrites a step's fields after its one logged run, so ran_unchanged says it was never asked on these; a row source's connector then answers the step on its current fields, which must not stand for the holder's own page (fetches.openable reads per step_source, the holder); the same search saved again in the browser, other bytes and the same rows, is still a repeat of the earlier artifact, and the repeat path reads per step_source too, so it logs a none run under the holder on the step's current fields (the note naming the earlier artifact) instead of leaving the file in the inbox forever: the step is answered at its holder again",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -102,11 +102,67 @@
    ]
   },
   {
-   "say": "the same page is saved again, other bytes, the same rows: still a repeat of the artifact the first save archived",
+   "say": "Reiko Diane Davidson's search of FamilySearch's New Jersey marriages, saved once: a none run, the artifact logged on her 1988 marriage step, held at C09 (a holder with a connector, so never on the fetch list)",
    "attach": {
-    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
-    "suffix": "\n\n",
-    "as_file": "kentucky-deaths-search-saved-again.html"
+    "fixture": "familysearch-search-nj-marriages-davidson-reiko-diane.html",
+    "as_file": "nj-marriages-search-saved.html"
+   },
+   "as": "nj",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "repeat": null,
+      "outcome": "none"
+     },
+     "why": "the first save is fresh: logged, not a repeat"
+    }
+   ]
+  },
+  {
+   "say": "the plan rewrites her step's fields afterwards (the same stand-in as above)",
+   "log": {
+    "step": {
+     "person": "I332737044283",
+     "row_key": "marriage record:Patrick Michael Ahearn",
+     "kind": "fetch",
+     "locator": {
+      "kind": "apid",
+      "value": "1,61253::1084421601"
+     }
+    },
+    "outcome": "none",
+    "query": {
+     "q.surname": {
+      "value": "Davidson-revised"
+     }
+    },
+    "note": "harness: standing in for the plan's own rewrite of this step's fields"
+   }
+  },
+  {
+   "say": "a row source's connector answers her step on its current fields meanwhile (a stand-in: a run written by hand under C08, a source of the row) -- the holder itself still has nothing but the mismatched run",
+   "log": {
+    "step": {
+     "person": "I332737044283",
+     "row_key": "marriage record:Patrick Michael Ahearn",
+     "kind": "fetch",
+     "locator": {
+      "kind": "apid",
+      "value": "1,61253::1084421601"
+     }
+    },
+    "source": "C08",
+    "outcome": "none",
+    "query": true,
+    "note": "harness: standing in for a row source's connector answering the step on its current fields"
+   }
+  },
+  {
+   "say": "the same search saved again in the browser two and a half hours later, as the archive holds it: other bytes, the same five rows, still a repeat of the artifact the first save archived",
+   "attach": {
+    "fixture": "familysearch-search-nj-marriages-davidson-reiko-diane-saved-again.html",
+    "as_file": "nj-marriages-search-saved-again.html"
    },
    "expect": [
     {
@@ -119,7 +175,7 @@
     },
     {
      "file": {
-      "name": "kentucky-deaths-search-saved-again.html",
+      "name": "nj-marriages-search-saved-again.html",
       "exists": false
      },
      "why": "nothing new to archive: removed as a repeat"
@@ -127,38 +183,64 @@
     {
      "search_log": {
       "step": {
-       "person": "I332737204852",
-       "row_key": "death record:1918",
+       "person": "I332737044283",
+       "row_key": "marriage record:Patrick Michael Ahearn",
        "kind": "fetch",
        "locator": {
         "kind": "apid",
-        "value": "1,1222::1373711"
+        "value": "1,61253::1084421601"
        }
       },
       "is": [
-       {"outcome": "none", "query": {"q.surname": {"value": "Bell"}}},
-       {"source_id": "D03", "outcome": "none", "query": {"q.surname": {"value": "Bell-revised"}}},
-       {"source_id": "C06", "outcome": "none", "query": {"name": {"value": "Lena Howard Bell"}}},
-       {"source_id": "D03", "outcome": "none", "notes": {"has": ["already logged", "repeat save"]}, "artifacts": [], "query": {"name": {"value": "Lena Howard Bell"}}}
+       {
+        "outcome": "none",
+        "query": {
+         "q.surname": {
+          "value": "Davidson"
+         }
+        },
+        "artifacts": [
+         "$nj.sha"
+        ]
+       },
+       {
+        "source_id": "C09",
+        "outcome": "none",
+        "query": {
+         "q.surname": {
+          "value": "Davidson-revised"
+         }
+        }
+       },
+       {
+        "source_id": "C08",
+        "outcome": "none",
+        "query": {
+         "name": {
+          "value": "Reiko Diane Davidson"
+         }
+        }
+       },
+       {
+        "source_id": "C09",
+        "outcome": "none",
+        "notes": {
+         "has": [
+          "already logged",
+          "repeat save",
+          "24a52f8d9f5a"
+         ]
+        },
+        "artifacts": [],
+        "query": {
+         "name": {
+          "value": "Reiko Diane Davidson"
+         }
+        }
+       }
       ]
      },
-     "why": "a fourth run, on the step's current fields again, is logged under the holder (D03), the step's own source, naming the earlier artifact, no artifact of its own -- not under C06, the row source that already answered these fields but does not stand for the holder's page"
-    }
-   ]
-  },
-  {
-   "say": "the step is answered on its current fields once more: a turn does not pause on it",
-   "expect": [
-    {
-     "fetch_entries": {
-      "holder": "D03",
-      "person": "I332737204852",
-      "url_has": "f.collectionId=1417491",
-      "is": {
-       "len": 0
-      }
-     },
-     "why": "the repeat's own run matches the step's current fields again, so the list moves on"
+     "why": "a fourth run, on the step's current fields again, is logged under the holder (C09), the step's own source, naming the earlier artifact, no artifact of its own -- not under C08, the row source that already answered these fields but does not stand for the holder's page"
     }
    ]
   }

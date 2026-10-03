@@ -190,13 +190,12 @@ class Walker:
         return cid
 
     def fixture_bytes(self, a):
-        """The bytes an archive step archives: a fixture as it is, with a suffix when the same page must be archived again as
-        other bytes, or the stand-in for a family-held photograph (`stand_in: "image"`). The harness writes no page of its own."""
+        """The bytes an archive step archives: a fixture as it is, or the stand-in for a family-held photograph (`stand_in:
+        "image"`). The harness writes no page of its own: the same page saved twice is two real saves under tests/fixtures/."""
         if a.get("fixture"):
-            with open(os.path.join(FIXTURES, a["fixture"]), "rb") as fh: data = fh.read()
-        elif a.get("stand_in") == "image": data = JPEG
-        else: raise KeyError("no fixture: every page the harness archives or saves is a real one under tests/fixtures/")
-        return data + a.get("suffix", "").encode()
+            with open(os.path.join(FIXTURES, a["fixture"]), "rb") as fh: return fh.read()
+        if a.get("stand_in") == "image": return JPEG
+        raise KeyError("no fixture: every page the harness archives or saves is a real one under tests/fixtures/")
 
     # ---------------------------------------------------------------- the walk
     def walk(self):

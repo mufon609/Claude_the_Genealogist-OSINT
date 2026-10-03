@@ -736,13 +736,32 @@
    ]
   },
   {
-   "say": "a death record naming a woman as the deceased's mother, attached on the owner's word as hers: a card on the name alone",
-   "attach": {
+   "say": "a death record naming a woman as the deceased's mother, archived as the live archive holds it (its object c8e38d9e…): under the banner title an older parser took for its collection, and matched for her as the owner's word names her: a card on the name alone",
+   "archive": {
     "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
-    "about": "I332737204852"
+    "source": "D03",
+    "collection": "Mentioned in the Record of Ollie Duke Davidson (Lena Howard Bell's Son)",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737204852"
+    ]
    },
    "as": "ment",
    "expect": [
+    {
+     "last": {
+      "written": [
+       {
+        "kind": "persona_match",
+        "name": "Lena Howard Bell"
+       }
+      ]
+     }
+    },
     {
      "card": {
       "record": "ment",
@@ -756,49 +775,6 @@
     {
      "rule": {
       "record": "ment",
-      "person": "I332737204852",
-      "taken": false,
-      "why": {
-       "lacks": [
-        "hint until a person reads it",
-        "Mentioned in the Record"
-       ]
-      }
-     }
-    }
-   ]
-  },
-  {
-   "say": "the same page archived once more under the banner title an older parser took for its collection",
-   "archive": {
-    "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
-    "suffix": "\n",
-    "source": "D03",
-    "collection": "Mentioned in the Record of Ollie Duke Davidson (Lena Howard Bell's Son)",
-    "locator": {
-     "kind": "file",
-     "value": "stale-banner.html"
-    },
-    "extract": true,
-    "match": [
-     "I332737204852"
-    ]
-   },
-   "as": "stale",
-   "expect": [
-    {
-     "last": {
-      "written": [
-       {
-        "kind": "persona_match",
-        "name": "Lena Howard Bell"
-       }
-      ]
-     }
-    },
-    {
-     "rule": {
-      "record": "stale",
       "person": "I332737204852",
       "taken": false,
       "why": {
