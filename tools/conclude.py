@@ -1391,16 +1391,31 @@ def fold_plan(cx, tree_id, owner):
                         "refused": f"the {etype.lower()} events {', '.join(spoke)} of {owner[0]} {owner[1]} each carry a date or place the owner resolved or reopened: folding them would set one of those values aside" if len(spoke) > 1 else None})
     return out
 
-def _take_lacking(q, kept, other, ts):
+def accepted_dates(q, eid):
+    """The dates the accepted statements on an event give, each {"start", "qualifier"}: a record fact's own date, and for the
+    owner's word with no fact of its own (a vouch) the event's own date, which is what the vouch accepted."""
+    ev = q.execute("SELECT date_start, date_end, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
+    out = []
+    for r in q.execute("""SELECT a.persona_fact_id, pf.date_start, pf.date_end, pf.date_qualifier FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                          WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", (eid,)):
+        src = ev if r["persona_fact_id"] is None else r
+        if src["date_start"] or src["date_end"]: out.append({"start": src["date_start"] or src["date_end"], "qualifier": src["date_qualifier"]})
+    return out
+
+def _take_lacking(q, kept, other, ts, held=()):
     """What the kept event of a fold takes from an event folded into it: a date where it has none, or one that agrees with its
     own and says more (catalog.fuller_date: 26 Jun 1901 over 1901, 24 April 1876 over CAL 1875), and a place where it has
-    none, never on an axis the owner or the rule has decided on it; a date that disagrees stays the kept event's own.
-    Returns what changed, each with its value before; kept is brought up to date."""
+    none, never on an axis the owner or the rule has decided on it, and never a date that a date in held disagrees with (the
+    accepted statements on both events before the fold, accepted_dates: a fold never sets an accepted record's date aside
+    for a claim); a date that disagrees stays the kept event's own. Returns what changed, each with its value before; kept is
+    brought up to date."""
     k = q.execute("SELECT date_text, date_start, date_end, date_qualifier, calendar, place_id FROM event WHERE id=?", (kept["id"],)).fetchone()
     o = q.execute("SELECT date_text, date_start, date_end, date_qualifier, calendar, place_id FROM event WHERE id=?", (other["id"],)).fetchone()
     decided, sets = kept["owner"] | kept["rule"], {}
-    if "date" not in decided and fuller_date({"start": k["date_start"], "end": k["date_end"], "qualifier": k["date_qualifier"]},
-                                             {"start": o["date_start"], "end": o["date_end"], "qualifier": o["date_qualifier"]}):
+    taken = {"start": o["date_start"] or o["date_end"], "qualifier": o["date_qualifier"]}
+    if "date" not in decided and not any(date_verdict(h, taken)[0] == "disagrees" for h in held) \
+       and fuller_date({"start": k["date_start"], "end": k["date_end"], "qualifier": k["date_qualifier"]},
+                       {"start": o["date_start"], "end": o["date_end"], "qualifier": o["date_qualifier"]}):
         sets.update({c: o[c] for c in ("date_text", "date_start", "date_end", "date_qualifier", "calendar")})
         kept.update(text=o["date_text"], start=o["date_start"], end=o["date_end"], qualifier=o["date_qualifier"])
     if "place" not in decided and not k["place_id"] and o["place_id"]:
@@ -1429,8 +1444,9 @@ def fold(cx, tree_id, owner, actor=None, retire=None, moved=None):
         kept = g["kept"]
         for m in g["folded"]:
             was = {"date": kept["text"], "place_id": kept["place_id"]}
+            held = accepted_dates(q, kept["id"]) + accepted_dates(q, m["id"])
             go, stay = _fold_event(q, m["id"], kept["id"], moved)
-            took = _take_lacking(q, kept, m, ts)
+            took = _take_lacking(q, kept, m, ts, held)
             if retire: retire(m["id"])
             else: q.execute(f"DELETE FROM event_participant WHERE event_id=? AND {col}=?", (m["id"], owner[1]))
             row = {owner[0]: owner[1], "type": g["type"], "kept": {"event": kept["id"], "date": was["date"], "place_id": was["place_id"]},

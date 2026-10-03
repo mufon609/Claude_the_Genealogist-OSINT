@@ -915,7 +915,10 @@ statements and notes move onto it as they are, statuses unchanged (a second
 statement of the same record fact stays where it was); the kept event takes a
 date it lacks, or one that agrees with its own and says more (26 Jun 1901 over
 1901, 24 April 1876 over CAL 1875), and a place it lacks, never on a date or
-place the owner or the rule has decided; and the emptied event leaves the
+place the owner or the rule has decided, and never a date that a date an
+accepted statement on either event gives disagrees with (the owner's word
+gives its event's own date): a fold never sets an accepted record's date aside
+for a claim; and the emptied event leaves the
 person's or family's events, its row kept for the audit trail. Dates that
 differ, on a type a life holds once, leave the kept event's own value and the
 other in its statements: the conflict question above, which the rule's classes

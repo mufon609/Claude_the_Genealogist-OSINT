@@ -1,0 +1,126 @@
+{
+ "title": "the fold keeps an accepted record's date",
+ "line": "a person's two Births folded into one keep the date of the event carrying the accepted record: the file's 24 April 1876 says more than a calculated 1875 and agrees with it within two years, but the accepted 1900 census gives Apr 1875, which it contradicts, so the fold leaves the kept date and the difference stays the conflict question it was",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 census of John Y Davidson's household at Adairville: John Davidson, head, born Apr 1875",
+   "attach": {
+    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+   },
+   "as": "c1900"
+  },
+  {
+   "say": "the owner accepts the head as John Y Davidson: the census's Apr 1875 is stated on his one Birth, the file's 24 April 1876, and the difference is a conflict question",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Birth",
+      "events": 1,
+      "canonical_date": "24 April 1876"
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "birth date:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a second Birth the harness plants, calculated 1875, the shape an older decision left of a record's own event (a decision now states its fact on the one Birth, so only a planted event stands for it)",
+   "event": {
+    "person": "I332737204849",
+    "type": "Birth",
+    "date": "CAL 1875",
+    "date_start": "1875",
+    "qualifier": "calculated"
+   },
+   "as": "second_birth"
+  },
+  {
+   "say": "the owner places the census's birth on it",
+   "place": {
+    "record": "c1900",
+    "person": "I332737204849",
+    "fact_type": "Birth",
+    "event": "$second_birth.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "event": "$second_birth.event"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog upgraded through the fold: one Birth, kept as the event carrying the accepted statement; the file's 24 April 1876 says more than its calculated 1875, but the census's Apr 1875 contradicts it, so the kept date stands",
+   "migrate": {
+    "reset_to": "0.7.5"
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": "schema 0.7.6"
+      }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Birth",
+      "events": 1,
+      "canonical_date": "CAL 1875"
+     },
+     "why": "a fold never sets an accepted record's date aside for a claim"
+    }
+   ]
+  },
+  {
+   "say": "his plan regenerated on the folded catalog: the file's 24 April 1876 against the census's Apr 1875, both on the one Birth now, is the owner's question",
+   "plan": [
+    "I332737204849"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "birth date:"
+     },
+     "why": "the file's date against the census's stays the owner's question"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}
