@@ -15,8 +15,7 @@ certain than the rule below is a card for the owner.
 The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7, rule_accepts): a record of a kind data/evidence-classes.csv gives
 the automated standing, from a source nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with
 the accepted name, the facts that agree make two points on the tree's own statements (ground: a date to the day or a
-relationship counting double only on primary information or the owner's own word, a statement copied from the record's own
-original no ground) and nothing compared disagrees against an accepted value. A page anyone can edit (T4: a Find a Grave
+relationship counting double whatever its information class, a statement copied from the record's own original no ground) and nothing compared disagrees against an accepted value. A page anyone can edit (T4: a Find a Grave
 memorial, a WikiTree profile) identifies a person but never builds their facts: accepting it, by the owner or by the rule,
 writes the persona link and the memberships the page states, Undecided, and every fact the page types as an Undecided
 assertion; the rule takes such an identity on the name and three of birth day, death day, burial place, a stated parent or
