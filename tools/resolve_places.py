@@ -58,7 +58,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
 from catalog import US_STATES, country_words, us_state
 
-RESOLVER = ("rule", "nominatim-resolver", "0.2.0")
+RESOLVER = ("rule", "nominatim-resolver", "0.3.0")
 def cache_dir():
     """Where the geocoder's answers are kept, under the data root of the run (a scratch run keeps its own)."""
     return os.path.join(derivatives_dir(), "geocode", "nominatim")
