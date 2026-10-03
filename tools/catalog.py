@@ -743,7 +743,7 @@ class Catalog:
         page anyone can edit), each a statement of the event's own type (a remarriage cited as a divorce's evidence is no
         value of the divorce); place is compared with Catalog.place_verdict, as the place its words are resolved to when they
         are (Auburn, Kentucky is in Logan County), so a coarser or finer record, or one naming a dated former name, agrees
-        rather than disagreeing. A record cited under two collection names but one locator (the same certificate indexed
+        rather than disagreeing, and two statements that are each a part of the event's own place are no disagreement between themselves (a death index's state and an obituary's town, written without the state, are parts of one place). A record cited under two collection names but one locator (the same certificate indexed
         twice) is one statement, not two, and "the file" is the imported file alone. Statements whose values all agree with
         one another (among only those already found disagreeing with something) are grouped as one side, so six comparisons
         that all turn on the same 11th-against-10th read as one question, not six, while a coarse statement agreeing with two
@@ -805,12 +805,14 @@ class Catalog:
                     return v, note
                 accepted = [gk for gk in order if groups[gk]["status"] == "accepted" and value_of(gk) is not None]
                 pairs = []                                    # ("tree", key) or (key, key): a genuine disagreement found, before grouping
+                on_tree = lambda k: axis == "place" and tree_val is not None and cmp(value_of(k), groups[k]["state"], tree_val, None)[0] == "agrees"   # a place that is a part of the event's own place chain
                 for gk in accepted:
                     v, _ = cmp(value_of(gk), groups[gk]["state"], tree_val, None)
                     if v == "disagrees": pairs.append(("tree", gk))
                     for ok in order:
                         if ok == gk or value_of(ok) is None: continue
                         if ok in accepted and order.index(ok) < order.index(gk): continue   # two accepted statements compared once
+                        if v == "agrees" and on_tree(ok): continue                           # two statements that are each a part of the event's own place are parts of one place: a state and a town in it, written without the state, are no disagreement
                         v2, _ = cmp(value_of(gk), groups[gk]["state"], value_of(ok), groups[ok]["state"])
                         if v2 == "disagrees": pairs.append((gk, ok))
                 if not pairs: continue
