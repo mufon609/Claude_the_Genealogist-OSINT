@@ -35,10 +35,25 @@
    "relations": [
     {
      "kind": "sibling",
-     "to": 1
+     "to": 1,
+     "value": "Brother",
+     "computed": false
     }
    ],
-   "why": "a brother the obituary names with nothing else"
+   "why": "a brother the obituary names with nothing else: the notice names each survivor in their relationship to the deceased, so the brother is the record's own statement"
+  },
+  {
+   "name": "Daisy Bell Rothberg",
+   "role": "sister",
+   "relations": [
+    {
+     "kind": "sibling",
+     "to": 1,
+     "value": "Sister",
+     "computed": false
+    }
+   ],
+   "why": "a sister the notice names, stated the same way"
   },
   {
    "name": "Lena Bell Davidson",
@@ -46,9 +61,18 @@
    "relations": [
     {
      "kind": "parent",
-     "to": 1
+     "to": 1,
+     "value": "Mother",
+     "computed": false
+    },
+    {
+     "kind": "spouse",
+     "to": 3,
+     "value": "Parents",
+     "computed": true
     }
-   ]
+   ],
+   "why": "the deceased's mother as the notice names her; the couple of the two parents the table lists is FamilySearch's own grouping"
   },
   {
    "name": "John Young Davidson",
@@ -56,9 +80,24 @@
    "relations": [
     {
      "kind": "parent",
-     "to": 1
+     "to": 1,
+     "value": "Father",
+     "computed": false
     }
    ]
+  },
+  {
+   "name": "Matthew Ahern",
+   "role": "grandson",
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1,
+     "value": "Grandson",
+     "computed": true
+    }
+   ],
+   "why": "a grandson the index files in Extended Family: read computed, as every grouping beyond the parents, spouse, children, brothers and sisters"
   }
  ]
 }

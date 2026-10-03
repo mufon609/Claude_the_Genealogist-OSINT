@@ -1,6 +1,6 @@
 {
  "title": "a sibling born after a parent died",
- "line": "a brother an obituary's index names under its own sibling grouping is created by the owner, not the rule, and is not placed as a child of the couple when the mother's accepted death comes before his birth: a half sibling is possible, a placement under her is not",
+ "line": "a brother an obituary's index names, whom nobody in the tree fits, is created by the rule, and is not placed as a child of the couple when the mother's accepted death comes before his birth: a half sibling is possible, a placement under her is not",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -30,7 +30,7 @@
    }
   },
   {
-   "say": "his obituary, the file's own citation, accepted by the owner: his brother Joe Davidson, whom the tree does not hold, stands in the index's own Parents and Siblings table, a grouping the rule creates nobody on",
+   "say": "his obituary, the file's own citation, accepted by the owner: his brother Joe Davidson, whom the tree does not hold, is one of the survivors the notice names",
    "archive": {
     "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
     "source": "B02",
@@ -59,19 +59,24 @@
       "record": "obit",
       "persona": "Joe Davidson",
       "kind": "new_person",
-      "status": "undecided"
-     }
-    },
-    {
-     "rule": {
-      "record": "obit",
-      "persona": "Joe Davidson",
-      "taken": false,
-      "why": {
-       "has": "the record's indexer, not the record, relates them to a person accepted on it (Brother)"
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      },
+      "note": {
+       "has": "Brother of Robert Edgar Davidson"
       }
      },
-     "why": "the index groups him as a brother; the rule creates a person only on a relationship the record states"
+     "why": "an obituary names each survivor in their relationship to the deceased: the brother is the notice's own statement, and nobody in the tree fits him, so the rule creates him"
+    },
+    {
+     "memberships": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "rows_total": 0
+     },
+     "why": "the parents are not yet accepted on the obituary and his brother is no accepted child of theirs: no home to place him in"
     },
     {
      "card": {
@@ -80,26 +85,6 @@
       "status": "undecided"
      },
      "why": "her name rests on the owner's word: the stated child is one point on a link the file claims, two are needed; the owner decides"
-    }
-   ]
-  },
-  {
-   "say": "the owner creates him from the obituary: the parents are not yet accepted on it, so there is no home to place him in",
-   "decide": {
-    "card": {
-     "record": "obit",
-     "persona": "Joe Davidson"
-    },
-    "status": "accepted"
-   },
-   "expect": [
-    {
-     "memberships": {
-      "person": {
-       "created": "Joe Davidson"
-      },
-      "rows_total": 0
-     }
     }
    ]
   },

@@ -1,6 +1,6 @@
 {
  "title": "named relatives created from a primary record",
- "line": "once the mother is accepted on her son's Kentucky death record, the son the record states she bore, whom nobody in the tree fits, is created by the rule with the record's facts and the child link accepted and enters the plan, and the husband the record states is taken through the link the file claims; a creation taken back is taken again and links the same person, never a second one",
+ "line": "once the mother is accepted on her son's Kentucky death record, the son the record states she bore, whom nobody in the tree fits, is created by the rule with the record's facts and the child link accepted and enters the plan, while the man the page files as her husband, FamilySearch's own grouping around a relative of the record's subject, is not taken through the link the file claims; a creation taken back is taken again and links the same person, never a second one",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -23,7 +23,7 @@
       ],
       "kind": "persona_match"
      },
-     "why": "a card for the person it was attached for; the son and the husband the record names wait on her"
+     "why": "a card for the person it was attached for; the son and the husband the page files beside her wait on her"
     }
    ]
   },
@@ -57,18 +57,20 @@
      "card": {
       "record": "kd",
       "person": "I332737204849",
-      "status": "accepted",
-      "decided_by": {
-       "starts": "rule:"
-      },
-      "note": {
-       "has": [
-        "claimed relationship",
-        "spouse Lena Howard Bell"
-       ]
+      "status": "undecided"
+     },
+     "why": "the man the page files as her husband is put to the tree's own husband, a card for the owner"
+    },
+    {
+     "rule": {
+      "record": "kd",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "has": "its indexer's, not the record's own statement"
       }
      },
-     "why": "the husband the record states, the tree claiming the couple and his name not yet accepted, is taken through the claimed link"
+     "why": "the page's own person is a relative of the record's subject: the son's row is the record's statement, her husband FamilySearch's grouping around her (the death record names him the son's father, never her husband), so the claimed route does not take him"
     },
     {
      "persons": {

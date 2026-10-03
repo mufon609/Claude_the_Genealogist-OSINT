@@ -11,7 +11,13 @@
  "personas": 3,
  "parsed": {
   "collection": "Death • Kentucky, Deaths, 1911-1967",
-  "why": "the collection is read from its own h2, not the leading 'Mentioned in the Record of' banner naming the record's subject to the citation's own person"
+  "mentioned": {
+   "name": "Ollie Duke Davidson",
+   "url": {
+    "$starts": "/ark:/61903/1:1:NSGC-PXD"
+   }
+  },
+  "why": "the collection is read from its own h2, not the leading 'Mentioned in the Record of' banner naming the record's subject to the citation's own person; the banner's subject and the ark it links are kept"
  },
  "sequence": {
   "1": {
@@ -24,7 +30,28 @@
   {
    "name": "Ollie Duke Davidson",
    "role": "son",
-   "why": "the record's true subject, named in the banner, still read as a relative on the page"
+   "relations": [
+    {
+     "kind": "child",
+     "to": 1,
+     "value": "Son",
+     "computed": false
+    }
+   ],
+   "why": "the record's true subject, named in the banner, still read as a relative on the page; his row is the one the record states, the death record naming her his mother"
+  },
+  {
+   "name": "John Y. Davidson",
+   "role": "husband",
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 1,
+     "value": "Husband",
+     "computed": true
+    }
+   ],
+   "why": "the page's own person is a relative of the record's subject: her Husband is FamilySearch's grouping around her, the death record naming him the son's father, not her husband"
   }
  ],
  "none": {

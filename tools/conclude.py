@@ -70,7 +70,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
-from catalog import Catalog, page_entries, source_tier, split_name, tier_sql
+from catalog import Catalog, current_entry, page_entries, source_tier, split_name, tier_sql
 from catalog import ONCE, RECORD_FACTS, date_verdict, evidence_classes, fuller_date, holds, place_verdict, record_kinds, record_original, record_standing, relation_classes, same_event, same_surname
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
@@ -933,7 +933,9 @@ def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a proposal, and why, in words: (True, reason) or (False, why not), as
     docs/RESEARCH-WORKFLOW.md §5–7 states the rule ("The standing rule", and "What the rule counts" in the proof standard).
     The record's kinds and their standing come from data/evidence-classes.csv (catalog.record_kinds, record_standing), on its
-    current reading, the same for a page a parser read and an image read by hand or by the model. A trusted record (T1–T3) of
+    current reading, the same for a page a parser read and an image read by hand or by the model; the persona is judged on that
+    reading too, the persona of the same entry there (catalog.current_entry) with its facts and the relationships and personas
+    beside it, so a decision written on an earlier reading is examined on what the record now reads as. A trusted record (T1–T3) of
     an automated kind is taken on the accepted name and two points, nothing disagreeing against an accepted value
     (split_disagree); each point stands on the tree's own statements as ground() finds them, and a date to the day or a
     relationship counts double only where the tree holds it on primary information or the owner's own word. A persona whose
@@ -963,11 +965,13 @@ def rule_accepts(cx, tree_id, prop, without=()):
         if HEAD_ONLY[0] in kinds and yr and int(yr) < HEAD_ONLY[1]: return False, f"a census before {HEAD_ONLY[1]} names only the head"
         if by_kind == DATED_WITH_PARENTS and not dated_with_parents(cx, eid): return False, "a church register entry is a hint until a person reads it, unless it is dated and names the parents"
     cat = Catalog(cx, tree_id)
-    persona = next((p for p in personas_of(cx, pay["extraction_id"]) if p["id"] == pay["persona_id"]), None)
+    cur = current_entry(cx, pay["persona_id"])                    # the record as its current reading gives it: the persona of the same entry there, else the proposal's own reading
+    reading, persona_id = (eid, cur) if cur else (pay["extraction_id"], pay["persona_id"])
+    persona = next((p for p in personas_of(cx, reading) if p["id"] == persona_id), None)
     if not persona: return False, "persona not found"
     skip = f"AND coalesce(pp.proposal_id,'') NOT IN ({','.join('?' * len(without))})" if without else ""   # a link a decision under reconsideration wrote is not ground either
     chosen = {r["persona_id"]: candidate(cat, r["person_id"]) for r in q.execute(f"""SELECT pp.persona_id, pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
-                    JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=? {skip}""", (pay["extraction_id"], tree_id, *without))}
+                    JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=? {skip}""", (reading, tree_id, *without))}
     accepted_on_record = dict(chosen)                             # persona id -> candidate, genuinely decided on this record; the fitting loop below only guesses at a fit
     if prop["kind"] == "new_person": return rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record)
     fam = cat.family(pid); cand = candidate(cat, pid)
@@ -988,7 +992,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
                [(INV[r["kind"]], r["persona_id"], computed(r["persona_id"], p["id"], r["kind"], r["value_text"]), r["name_text"]) for r in inverse(p)]
         return sorted(rows, key=lambda r: r[2])
     fitted = {}                                                    # other persona id -> (agree, disagree) against the relative it stands for, for the relationship point below
-    others = {p["id"]: p for p in personas_of(cx, pay["extraction_id"])}
+    others = {p["id"]: p for p in personas_of(cx, reading)}
     for other in others.values():                                 # a persona the record relates to this one fits a relative the tree already links: it stands for that relative here
         if other["id"] == persona["id"] or other["id"] in chosen: continue
         as_related = {**other, "relations": both_ways(other)}    # its relation to the persona under decision, stated from either side, is one of the things it fits on (docs/RESEARCH-WORKFLOW.md §5-7)
