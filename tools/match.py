@@ -226,15 +226,20 @@ def personas_of(cx, eid):
     out = []
     coll = cx.execute("SELECT c.name FROM extraction e JOIN artifact ar ON ar.sha256=e.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?", (eid,)).fetchone()
     record_state = collection_state(coll[0] if coll else None)   # the record's own event place for a bare county (catalog.place_verdict), from the collection's own name
-    for pid, name, sex, role in cx.execute("SELECT id, name_text, sex, role_in_record FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
-        fact = lambda t: cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND (date_start IS NOT NULL OR date_end IS NOT NULL)", (pid, t)).fetchone()
-        names = [name] + [v for v, in cx.execute("SELECT value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL AND value_text<>?", (pid, name))]
-        place = lambda t: (cx.execute("SELECT ps.raw FROM persona_fact pf JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=? AND pf.fact_type=?", (pid, t)).fetchone() or [None])[0]
-        rels = cx.execute("SELECT r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id WHERE r.persona_id=?", (pid,)).fetchall()
-        region = json.loads(cx.execute("SELECT region_json FROM persona WHERE id=?", (pid,)).fetchone()[0] or "{}")
+    facts, rels = {}, {}                                         # persona id -> its facts, and its relations, in the order they were written: a results page holds a hundred personas, read in three queries
+    for r in cx.execute("""SELECT pf.persona_id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id
+                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pe.extraction_id=? ORDER BY pf.rowid""", (eid,)): facts.setdefault(r[0], []).append(tuple(r[1:]))
+    for r in cx.execute("""SELECT r.persona_id, r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id
+                           JOIN persona pe ON pe.id=r.persona_id WHERE pe.extraction_id=? ORDER BY r.rowid""", (eid,)): rels.setdefault(r[0], []).append(tuple(r[1:]))
+    for pid, name, sex, role, region_json in cx.execute("SELECT id, name_text, sex, role_in_record, region_json FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
+        mine = facts.get(pid, [])                                # (fact type, value, date text, date start, date end, date qualifier, place as written)
+        fact = lambda t: next(((x[2], x[3], x[4], x[5]) for x in mine if x[0] == t and (x[3] is not None or x[4] is not None)), None)
+        names = [name] + [x[1] for x in mine if x[0] == "Name" and x[1] is not None and x[1] != name]
+        place = lambda t: next((x[6] for x in mine if x[0] == t and x[6] is not None), None)
+        region = json.loads(region_json or "{}")
         m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
         out.append({"id": pid, "name": name, "names": names, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
-                    "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels,
+                    "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels.get(pid, []),
                     "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None, "record_state": record_state})
     names = {p["id"]: p["name"] for p in out}
     in_law_surnames = [rest[-1] for p in out if MARRIED_IN_LAW.search(p["role"] or "") for rest in [split_persona_name(p["name"])[1]] if rest]
