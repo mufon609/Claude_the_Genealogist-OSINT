@@ -244,15 +244,6 @@ two trees and one archived page, decided in the first and undecided in the
 second, and scope every reader that joins `person_persona`, `proposal` or
 `search_plan` by artifact or persona to its tree.
 
-### C10. The turn's report and the person screen do not show the rule's conflict decisions
-
-`conclude.rule_conflicts` decides a conflict the evidence classes settle and
-writes its reason on the question and in the audit log, and `tools/proof.py`
-prints it; `tools/turn.py`'s report and the person screen's decision summary
-name neither the decision nor its reason, so the owner meets it only in the
-proof summary. Name each one where the rule's other decisions are named, with
-`tools/conclude.py reopen` beside it.
-
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card
@@ -397,16 +388,6 @@ published public-domain one), add a scenario that ingests it beside the
 harness tree, builds its checklists and plans, and shows nothing of the first
 family reaching the second (the tree-isolation entry above).
 
-### C23. reconsider settles over several runs
-
-On the live catalog `tools/conclude.py reconsider` reaches its fixed point
-only on its third run: its card pass takes cards on ground the next run's
-re-examination (each decision on the ground that stood before it) refuses,
-such as the relatives an obituary names accepted through one another. Make
-the card pass judge a card on the ground before it the way the re-examination
-does, so one run is the fixed point; until then the live run repeats
-reconsider until a run changes nothing.
-
 ### C24. A gazetteer candidate's head name is verified by a close spelling
 
 A geocoder candidate verifies a part of a string only when the part is its
@@ -455,14 +436,6 @@ hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it.
 Keep each rule in `catalog.py`, drop what nothing reads (or give it its
 reader), and make `tombstone` the one way a removal is written.
 
-### C31. A results row no longer has a card to close
-
-The matcher proposes no row of a results page (`tools/match.py`), so a row's
-card never sits open beside the record it summarizes, and
-`conclude.close_result_rows` finds nothing: remove it with its call in
-`decide`, its sweep and `row` kind in `reconsider`, the `row` branch of
-`tools/turn.py`'s report and the `closed_rows` line of `tools/conclude.py`'s
-command line.
 
 ### C33. The harness's last two stand-ins
 

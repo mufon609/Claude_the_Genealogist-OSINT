@@ -25,7 +25,7 @@ from log_search import dismiss as dismiss_question, log as log_search, rendered_
 from extract import Writer
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
-from conclude import decide as decide_document, living, match_record, record_says
+from conclude import decide as decide_document, living, match_record, record_says, rule_conflict_decisions, rule_conflict_line
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
 from overview import overview, people, person_card
 from resolve_places import place_groups
@@ -212,10 +212,11 @@ def transcribe(cx, sha, body, by=None, about=None):
     written, taken = match_record(cx, eid, reader, about=about)
     return {"ok": True, "extraction": eid, "persona": pid, "proposals": len(written), "accepted_by_rule": len(taken)}
 
-def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members):
+def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, answered, members, conflicts):
     """What the decision closed and what the plan does next, in words: the link made, the questions answered, the checklist rows
-    this record fulfils for the person, the facts now carrying held evidence to accept, the proposals still open on the record,
-    the steps still planned. The last line is the one sentence a director can say."""
+    this record fulfils for the person, the facts now carrying held evidence to accept, the conflicts the rule then resolved or
+    took back (each with its question id, conclude.rule_conflict_line), the proposals still open on the record, the steps still
+    planned. The last line is the one sentence a director can say."""
     pe = cx.execute("SELECT name_text, role_in_record, artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()
     who = cx.execute("SELECT display_name FROM person WHERE id=?", (person_id,)).fetchone()["display_name"] if person_id else None
     what = f"{pe['name_text']} ({pe['role_in_record']})"
@@ -240,6 +241,7 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
         elif rs: made.append("an identity on a page anyone can edit; its statements written undecided, never accepted: " + ", ".join(f["fact"] for f in rs if f["status"] == "undecided" and not f["link"]))
         for f in rs:
             if f["disagrees"]: closed.append(f"conflict raised, {f['fact']}: {f['disagrees']}")
+    closed += [rule_conflict_line(x) for x in rule_conflict_decisions(conflicts)]
     left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person') AND json_extract(payload_json,'$.artifact_sha256')=?", (tree_id, pe["artifact_sha256"])).fetchone()[0]
     if left: nxt.append(f"{left} proposal(s) still undecided on this record")
     if person_id:
@@ -256,7 +258,7 @@ def decide_proposal(cx, tree_id, prop_id, status, note=None, choice=None):
     r = decide_document(cx, tree_id, prop_id, status, CFG["by"], note=note, choice=choice)
     if "error" in r or r.get("kind") == "place_resolution": return r
     p = cx.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
-    return {**r, **decision_outcome(cx, tree_id, p, status, r["person"], r["persona"], prop_id, r["answered"], r["memberships"])}
+    return {**r, **decision_outcome(cx, tree_id, p, status, r["person"], r["persona"], prop_id, r["answered"], r["memberships"], r["conflicts"])}
 
 def living_route(cx, tree_id, pid, body):
     """The living control on the foundation: the owner's word (living, deceased, or unknown to clear it and let the tier

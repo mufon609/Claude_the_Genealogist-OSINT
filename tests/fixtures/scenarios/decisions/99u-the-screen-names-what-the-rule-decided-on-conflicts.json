@@ -1,0 +1,89 @@
+{
+ "title": "the person screen names what the rule decided on conflicts",
+ "line": "the owner's Add on the Kentucky death index entry, through the person screen's own route, answers in one summary that names the conflict the rule then resolved: the person, the date kept, the rule's reason and the question id tools/conclude.py reopen takes, the question the owner then reopens",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "Add on the screen: the index is his, and the rule decides the 11th against the file's 10th inside that decision",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted",
+    "screen": true
+   },
+   "as": "screen",
+   "expect": [
+    {
+     "last": {
+      "summary": {
+       "has": [
+        "the rule resolved John Y Davidson's death date, kept 11 Jun 1946: the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand",
+        "(to take it back: tools/conclude.py reopen ",
+        " --note \"…\")"
+       ]
+      }
+     },
+     "why": "the decision's own answer names the rule's resolution with its reason, where it names what the decision closed"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner takes it back with the question the summary named",
+   "reopen_conflict": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "note": "harness: the family bible says the 10th"
+   },
+   "as": "reopened",
+   "expect": [
+    {
+     "bound": {
+      "value": "$screen.summary",
+      "is": {
+       "has": [
+        "tools/conclude.py reopen ",
+        "$reopened.question_id"
+       ]
+      }
+     },
+     "why": "the id in the summary is the question the owner's reopen took back"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

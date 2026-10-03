@@ -344,7 +344,9 @@ relatives is fetched for all of them, and each proposal names the person it
 concerns), each as the decision card, with Add / Ignore on a persona match or a
 new person, Ignore asking why so the reason is kept on the decision and shown
 on the card afterwards; a decision answers in one line with what it made and closed
-(the link, the questions answered, the rows this record fulfils) and what the
+(the link, the questions answered, the rows this record fulfils, the conflicts the
+rule then resolved or took back, each with its reason and the question id
+`tools/conclude.py reopen` takes) and what the
 plan does next (the facts now carrying held evidence to accept, the proposals
 still open on the record, the steps still planned). A held row
 opens its record through the citation's archived artifact as well as through

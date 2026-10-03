@@ -1069,8 +1069,12 @@ dismissed a difference on, or reopened is the owner's from then on, and the
 rule never decides there. The owner's own resolve on a question the rule
 resolved takes the rule's resolution back first; `tools/conclude.py reopen
 <question> --note "…"` takes it back without keeping anything, the event's
-value restored and the question open again. Accepting grows
-the baseline, which generates new questions.
+value restored and the question open again. Every decision of the rule on a
+conflict, a resolution made or taken back, is told in words where it is made:
+in the answer of the decision that led to it (the command line's and the
+person screen's) and in the report of the turn, each naming the person, the
+date or place kept, the rule's reason and the question id `reopen` takes.
+Accepting grows the baseline, which generates new questions.
 
 ### The proof standard
 
@@ -1197,7 +1201,10 @@ compares them; one it cannot settle is a card on the fact row),
 `tools/conclude.py reconsider`, and the plan regenerated; a turn with nothing
 to fetch runs the same tail in the same call. The turn writes nothing of its
 own: every catalog write is one of those tools' under its own name. Its
-report says what was held, what the rule decided, who was created and what is
+report says what was held, what the rule decided (the proposals it took and,
+one line each, the conflicts it resolved or took back while the turn ran, with
+the person, the date or place kept, its reason and the question id
+`tools/conclude.py reopen` gives it back by), who was created and what is
 left for the owner, in words; a source that did not answer (a connector, or
 the geocoder for the place strings) is named once, with the rows of the steps it
 was asked on or the number of strings it left, and a file left in the inbox that

@@ -27,9 +27,11 @@ same call, right after the connector steps.
 The turn writes nothing of its own: every catalog write happens inside `plan_person`, `run_step.run`,
 `fetches.collect`, `attach_inbox`, `resolve_places.resolve_strings` or `reconsider`, each under its own name in `--by` as it always is; the turn
 only calls them in order and reports what came back, in words, never a score. What a turn leaves for the owner
-are the conflict questions it raised and the cards the rule did not take (docs/RESEARCH-WORKFLOW.md §8), and its
-report names every source that did not answer once, with what it was asked and what it said: a connector step (a run
-logged error) stays runnable, and a place string the geocoder did not answer stays unresolved, so the next turn asks that
+are the conflict questions it raised and the cards the rule did not take (docs/RESEARCH-WORKFLOW.md §8). Its
+report names each conflict the rule resolved or took back while it ran, one line each (the person, the date or place
+kept, the rule's reason and the question id `tools/conclude.py reopen` gives it back by; conclude.rule_conflict_changes
+reads them from the audit log after the last row there when the turn began), and every source that did not answer once,
+with what it was asked and what it said: a connector step (a run logged error) stays runnable, and a place string the geocoder did not answer stays unresolved, so the next turn asks that
 source again. A file left in the inbox that fulfils no step is
 named once per run (the runner passes the files already named, tools/turns.py), not in every turn's report.
 """
@@ -41,21 +43,21 @@ from plan import plan_person
 import run_step
 import fetches
 from attach import attach_inbox as attach_inbox_files, line
-from conclude import reconsider
+from conclude import reconsider, rule_conflict_changes, rule_conflict_line
 from resolve_places import resolve_strings
 
 RUNNER, PLANNER = "agent:run_step", "rule:plan@0.1.0"
 
 def state_path(db_path): return db_path + ".turn-state.json"
 
-def save_state(db_path, tree_id, slug, pid, name, before_ids, held, decided, unanswered=(), since=None):
+def save_state(db_path, tree_id, slug, pid, name, before_ids, held, decided, unanswered=(), since=None, mark=None):
     """Kept beside the database, not in the catalog: which person, who existed before the turn started (so a person a
     connector step created before the pause is still reported as created once the turn is resumed), the held/decided
-    lines the connector steps already earned before the pause and the sources that did not answer, and when the turn began
-    (`since`, what the records it brought are told by), so the final report covers the whole turn, not just what --resume
-    itself does."""
+    lines the connector steps already earned before the pause and the sources that did not answer, when the turn began
+    (`since`, what the records it brought are told by) and the last audit row then (`mark`, what the rule decided on
+    conflicts is told by), so the final report covers the whole turn, not just what --resume itself does."""
     with open(state_path(db_path), "w", encoding="utf-8") as fh:
-        json.dump({"tree_id": tree_id, "tree": slug, "person_id": pid, "person": name, "started_at": now(), "since": since,
+        json.dump({"tree_id": tree_id, "tree": slug, "person_id": pid, "person": name, "started_at": now(), "since": since, "audit_mark": mark,
                    "before_ids": before_ids, "held": held, "decided": decided, "unanswered": list(unanswered)}, fh)
 
 def load_state(db_path):
@@ -66,6 +68,10 @@ def load_state(db_path):
 def clear_state(db_path):
     try: os.remove(state_path(db_path))
     except FileNotFoundError: pass
+
+def last_audit(cx):
+    """The id of the last audit row: where a turn's own writes begin."""
+    return cx.execute("SELECT coalesce(max(id), '') FROM audit_log").fetchone()[0]
 
 def person_ids(cx, tree_id):
     return {r[0]: r[1] for r in cx.execute("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into IS NULL", (tree_id,))}
@@ -184,7 +190,6 @@ def decided_lines(conn_runs, collect_results, left_results, recon):
     for row in recon:
         if row["kind"] == "card" and row["taken"]: out.append(f"  reconsider: the rule took {row['person']} / {row['persona']}: {row['why']}")
         elif row["kind"] == "decision" and not row["kept"]: out.append(f"  reconsider: withdrew {row['person']} / {row['persona']}: {row['why']}")
-        elif row["kind"] == "row": out.append(f"  reconsider: closed a results-page row for {row['person']} ({row['persona']}), the record itself is accepted")
     return out
 
 def unanswered_lines(cx, conn_runs):
@@ -229,7 +234,7 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon, watch, report
 
 def pid_name(cx, pid): return cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0]
 
-def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=(), pre_unanswered=(), reported=None, places=None):
+def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=(), pre_unanswered=(), reported=None, places=None, mark=None):
     reported = set() if reported is None else reported
     cat = Catalog(cx, tree_id)
     after_ids = person_ids(cx, tree_id)
@@ -238,7 +243,8 @@ def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left
     hl = list(pre_held) + held_lines(conn_runs, collect_results, left_results)
     out += hl or ["  nothing new archived"]
     out += ["", "decided:"]
-    dl = list(pre_decided) + decided_lines(conn_runs, collect_results, left_results, recon) + places_decided_lines(places)
+    dl = list(pre_decided) + decided_lines(conn_runs, collect_results, left_results, recon) + places_decided_lines(places) \
+         + ["  " + rule_conflict_line(x) for x in rule_conflict_changes(cx, tree_id, mark)]
     out += dl or ["  nothing for the rule to take"]
     out += ["", "created:"]
     out += [f"  {n} [{i[-6:]}]" for i, n in created] or ["  nobody"]
@@ -251,7 +257,7 @@ def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left
     return "\n".join(out)
 
 def start(cx, tree_id, slug, pid, by, db, reported=None):
-    before = person_ids(cx, tree_id); since = now()
+    before = person_ids(cx, tree_id); since = now(); mark = last_audit(cx)
     cx.execute("BEGIN")
     try: plan_stats = plan_person(cx, tree_id, pid, PLANNER); cx.commit()
     except Exception: cx.rollback(); raise
@@ -260,22 +266,22 @@ def start(cx, tree_id, slug, pid, by, db, reported=None):
     waits = waiting_for(cx, tree_id, pid)
     if waits:
         held, decided, unanswered = held_lines(conn_runs, [], []), decided_lines(conn_runs, [], [], []), unanswered_lines(cx, conn_runs)
-        save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided, unanswered, since)
+        save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided, unanswered, since, mark)
         print(f"turn: {pid_name(cx, pid)}\n" + "\n".join(fetches.page_line(e) for e in waits) + f"\n\n{len(waits)} page(s) to fetch, one tab per page; save these, then run tools/turn.py --resume")
         if held or decided: print("\n(so far this turn -- held:\n" + "\n".join(held or ["  nothing yet"]) + "\ndecided:\n" + "\n".join(decided or ["  nothing yet"]) + ")")
         if unanswered: print("\nnot answered:\n" + "\n".join(unanswered))
         return
     names, collect_results, left_results, recon, final_stats, places = finish(cx, tree_id, slug, pid, by, since)
-    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats, reported=reported, places=places))
+    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats, reported=reported, places=places, mark=mark))
 
 def resume(cx, tree_id, slug, by, db, reported=None):
     st = load_state(db)
     if not st or st["tree_id"] != tree_id: sys.exit("no paused turn on this tree: tools/turn.py \"<person>\"")
-    pid = st["person_id"]; before = st.get("before_ids") or person_ids(cx, tree_id)
+    pid = st["person_id"]; before = st.get("before_ids") or person_ids(cx, tree_id); mark = st.get("audit_mark") or last_audit(cx)
     names, collect_results, left_results, recon, final_stats, places = finish(cx, tree_id, slug, pid, by, st.get("since"))
     clear_state(db)
     print(report(cx, tree_id, pid, before, [], [], collect_results, left_results, recon, final_stats, pre_held=st.get("held") or (), pre_decided=st.get("decided") or (),
-                 pre_unanswered=st.get("unanswered") or (), reported=reported, places=places))
+                 pre_unanswered=st.get("unanswered") or (), reported=reported, places=places, mark=mark))
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--resume", action="store_true")

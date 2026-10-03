@@ -316,21 +316,33 @@ def a_match(w, x):
     return {"written": [{"proposal": p, "kind": k, "name": n, "person": pid} for p, k, n, pid in written]}
 
 def a_decide(w, x):
+    """The decision on a card (conclude.decide); with `screen`, through the person screen's own route (server.decide_proposal), whose
+    answer in words comes back as `summary`."""
     from conclude import decide
     card = w.card(x["card"])
     if card is None: raise KeyError(f"no card {short(x['card'])}")
-    r = decide(w.cx, w.tid, card["id"], x.get("status", "accepted"), x.get("by", BY), note=x.get("note", "harness"), choice=x.get("choice"))
+    if x.get("screen"):
+        sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server; server.CFG["by"] = BY
+        r = server.decide_proposal(w.cx, w.tid, card["id"], x.get("status", "accepted"), x.get("note", "harness"), x.get("choice"))
+    else: r = decide(w.cx, w.tid, card["id"], x.get("status", "accepted"), x.get("by", BY), note=x.get("note", "harness"), choice=x.get("choice"))
     return {**r, "card": card["id"], "person_id": json.loads(card["payload_json"]).get("person_id")}
 
 def a_withdraw(w, x):
+    """The rule's decision on a `card` taken back, or with `record` every decision the rule made on that record."""
     from conclude import withdraw
-    card = w.card(x["card"]); withdraw(w.cx, w.tid, card["id"], x.get("by", BY), x.get("why", "harness: taken back"), w.treelib.now())
-    return {"card": card["id"]}
+    if "record" in x:
+        ids = [r[0] for r in w.cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' AND kind IN ('persona_match','new_person')
+                                             AND json_extract(payload_json,'$.artifact_sha256')=? ORDER BY decided_at, id""", (w.tid, w.sha(x["record"])))]
+    else: ids = [w.card(x["card"])["id"]]
+    for i in ids: withdraw(w.cx, w.tid, i, x.get("by", BY), x.get("why", "harness: taken back"), w.treelib.now())
+    return {"card": ids[0] if len(ids) == 1 else None, "cards": ids}
 
 def a_reconsider(w, x):
+    """reconsider on the tree: its rows, and how many audit rows it wrote (none for a run that changes nothing)."""
     from conclude import reconsider
+    before = w.cx.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
     rows = reconsider(w.cx, w.tid, BY, dry_run=bool(x.get("dry")))
-    return {"rows": rows}
+    return {"rows": rows, "wrote": w.cx.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] - before}
 
 def a_fact(w, x):
     from facts import decide_fact

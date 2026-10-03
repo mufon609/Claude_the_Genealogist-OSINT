@@ -1,0 +1,233 @@
+{
+ "title": "reconsider settles in one run",
+ "line": "the relatives an obituary names, taken by the rule when the owner accepts its subject (the parents on the relationships it states, the brothers and sisters it names created), are taken back and put to the rule again by reconsider: one run takes every one of them again, and a second run changes nothing: no decision withdrawn, no card taken, no resolution taken back, not one audit row written",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his obituary, the file's own citation, naming his parents, brothers and sisters, children and grandchildren",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "say": "its subject accepted by the owner: the rule takes the relatives the obituary states, and the cards it does not take wait for the owner",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Lena Bell Davidson",
+      "kind": "persona_match",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     },
+     "why": "his mother, the relationship the obituary states to him on the tree's own link"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Joe Davidson",
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     },
+     "why": "a brother nobody in the tree fits, created"
+    },
+    {
+     "cards": {
+      "record": "obit",
+      "status": "accepted",
+      "count": 13
+     },
+     "why": "the subject by the owner, twelve relatives by the rule"
+    },
+    {
+     "cards": {
+      "record": "obit",
+      "count": 7
+     },
+     "why": "the rest wait for the owner"
+    },
+    {
+     "persons": {
+      "count": 36
+     },
+     "why": "the harness tree's twenty-seven and the nine brothers and sisters the rule created"
+    }
+   ]
+  },
+  {
+   "say": "the rule takes its decisions on the obituary back: each relative is a card for the owner again",
+   "withdraw": {
+    "record": "obit"
+   },
+   "expect": [
+    {
+     "cards": {
+      "record": "obit",
+      "status": "accepted",
+      "count": 1
+     },
+     "why": "the owner's own decision on the subject stands"
+    },
+    {
+     "cards": {
+      "record": "obit",
+      "count": 19
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider: the rule takes every one of them again, the created brothers and sisters linking the persons they were",
+   "reconsider": {},
+   "as": "first",
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "card",
+        "taken": true,
+        "person": "Lena Howard Bell",
+        "persona": "Lena Bell Davidson"
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kind": "decision"
+       }
+      }
+     },
+     "why": "nothing it decided is left to examine: the cards were all undecided"
+    },
+    {
+     "last": {
+      "wrote": {
+       ">=": 12
+      }
+     },
+     "why": "a run that decides writes: an audit row for each of the twelve"
+    },
+    {
+     "cards": {
+      "record": "obit",
+      "status": "accepted",
+      "count": 13
+     },
+     "why": "the same thirteen as before the withdrawal"
+    },
+    {
+     "cards": {
+      "record": "obit",
+      "count": 7
+     }
+    },
+    {
+     "persons": {
+      "count": 36
+     },
+     "why": "no second person for a brother or sister taken again: the nine the first creation made"
+    }
+   ]
+  },
+  {
+   "say": "reconsider again: every decision it made is examined on the ground that stood before it and kept, no card is taken or refused anew, and nothing is written",
+   "reconsider": {},
+   "as": "second",
+   "expect": [
+    {
+     "last": {
+      "wrote": 0
+     },
+     "why": "a run that changes nothing writes nothing: not a decision, a link, a statement, a question or an audit row"
+    },
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kept": false
+       }
+      }
+     },
+     "why": "no decision withdrawn, no resolution taken back"
+    },
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "taken": true
+       }
+      }
+     },
+     "why": "no card taken, no older card proposed again, no conflict resolved"
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Lena Howard Bell"
+       }
+      }
+     }
+    },
+    {
+     "cards": {
+      "record": "obit",
+      "status": "accepted",
+      "count": 13
+     }
+    },
+    {
+     "cards": {
+      "record": "obit",
+      "count": 7
+     }
+    },
+    {
+     "persons": {
+      "count": 36
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
