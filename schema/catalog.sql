@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.7.6
+-- tree catalog schema  v0.7.7
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -433,12 +433,13 @@ CREATE INDEX ix_proposal_status ON proposal(tree_id, status, kind);
 -- open until answered, dismissed or, a conflict, resolved by the owner with a written reason naming the
 -- value kept (tools/conclude.py resolve; the resolution is in detail_json); the decision that answers it
 -- is a proposal. A missing checklist row is not a question: it is a unit of work, a search_plan row.
+-- An identity question names a link or a statement beyond the limits of one life (data/life-limits.csv).
 CREATE TABLE research_question (
   id                      TEXT PRIMARY KEY,
   tree_id                 TEXT NOT NULL REFERENCES tree(id),
   subject_person_id       TEXT NOT NULL REFERENCES person(id),
   kind                    TEXT NOT NULL CHECK (kind IN ('missing_parents','identity_incomplete','missing_spouse','missing_fact',
-                                                        'unverified_claim','conflict','duplicate_person','unlinked_relative')),
+                                                        'unverified_claim','conflict','duplicate_person','unlinked_relative','identity')),
   q_key                   TEXT NOT NULL,                -- stable key for idempotent regeneration: kind + detail
   detail_json             TEXT,
   status                  TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed')),

@@ -239,7 +239,8 @@ falls outside of. Every query field is `{value, basis}`: basis `accepted` or
 (a census year), `citation` for a detail the citation itself carries (a fetch
 step's fields); a Rejected fact is left out. Before the baseline is reviewed
 the generator emits only fetch steps for cited records: no search steps, no
-footprint, no duplicate or unlinked persons.
+footprint, no unlinked persons; the duplicate check and the limits of one life
+(an `identity` question, `docs/RESEARCH-WORKFLOW.md` §5–7) run for every person.
 
 ## 6b. The screen as built
 

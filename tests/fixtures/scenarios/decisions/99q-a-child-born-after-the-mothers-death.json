@@ -1,0 +1,209 @@
+{
+ "title": "a child born after the mother's death",
+ "line": "the brother an obituary names, placed beside its subject as a child of the couple while the mother's death of 30 October 1918 is still the file's claim, is born in 1925: the plan raises an identity question on him naming the birth, the mother's death, the records behind each and the limit broken, changes nothing, and closes the question once the link is rejected",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's own word on the parents' names; the mother's death, 30 October 1918, stays the file's claim",
+   "fact": {
+    "person": "I332737204852",
+    "fields": [
+     "name"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "fact": {
+    "person": "I332737204849",
+    "fields": [
+     "name"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "his obituary, the file's own citation, naming his brother Joe Davidson, whom the tree does not hold",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the owner creates the brother from the obituary",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "persona": "Joe Davidson"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the birth year his Find a Grave index entry gives him (1925), planted: no harness record dates his birth",
+   "event": {
+    "person": {
+     "created": "Joe Davidson"
+    },
+    "type": "Birth",
+    "date": "1925",
+    "date_start": "1925"
+   }
+  },
+  {
+   "say": "the parents accepted on the obituary by the owner",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the obituary read again: with no death of hers accepted, nothing stops the placement beside his brother, undecided",
+   "reread": {
+    "record": "obit"
+   },
+   "expect": [
+    {
+     "memberships": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "is": [
+       {
+        "role": "child",
+        "status": "undecided",
+        "placed": "sibling"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "his plan: the link breaks the limits of one life",
+   "plan": [
+    {
+     "created": "Joe Davidson"
+    }
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "kind": "identity",
+      "status": "open",
+      "detail_has": "born 1925 (no statement), a child of Lena Howard Bell (the link: U.S., Obituary Collection, 1930-Current (1,7545::2520318)), who died 30 October 1918 (the file): a child born after the mother's death",
+      "count": 1
+     },
+     "why": "one question, about him, naming his birth and her death with the records behind each, the link's own record and the limit broken"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "identity",
+      "count": 0
+     },
+     "why": "the father's death (10 June 1946) leaves the birth inside his limits"
+    },
+    {
+     "memberships": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "is": [
+       {
+        "role": "child",
+        "status": "undecided",
+        "placed": "sibling"
+       }
+      ]
+     },
+     "why": "the question changes nothing: the link stays as it was"
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects the placement: the question's gap is gone",
+   "assertion": {
+    "person": {
+     "created": "Joe Davidson"
+    },
+    "record": "obit",
+    "membership": {
+     "family_of": "I332737204852",
+     "role": "child"
+    },
+    "verdict": "reject"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "kind": "identity",
+      "status": "open",
+      "count": 0
+     }
+    },
+    {
+     "question": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "kind": "identity",
+      "status": "closed",
+      "count": 1
+     },
+     "why": "closed by the plan's own rule, its gap gone"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

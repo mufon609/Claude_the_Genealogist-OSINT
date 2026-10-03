@@ -1,0 +1,88 @@
+{
+ "title": "a duplicate before review",
+ "line": "the file's two entries for Thomas Ahearn, both born 2 October 1846, raise a duplicate question on each while neither baseline is reviewed; merging them answers it on both sides, and the merged entry is never counted again",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "nothing reviewed: each entry's plan holds a duplicate question naming the other",
+   "expect": [
+    {
+     "baseline": {
+      "person": "I332737059537",
+      "complete": false
+     }
+    },
+    {
+     "question": {
+      "person": "I332737059537",
+      "kind": "duplicate_person",
+      "status": "open",
+      "detail_has": "Thomas Ahearn [",
+      "count": 1
+     },
+     "why": "the duplicate check runs for every person, reviewed or not"
+    },
+    {
+     "question": {
+      "person": "I332737068288",
+      "kind": "duplicate_person",
+      "status": "open",
+      "detail_has": "same name, born 1846",
+      "count": 1
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner merges the second entry into the first",
+   "merge": {
+    "duplicate": "I332737068288",
+    "kept": "I332737059537"
+   },
+   "expect": [
+    {
+     "last": {
+      "questions_answered": 2
+     },
+     "why": "the question between the two, on either side, is the one the merge answers"
+    },
+    {
+     "question": {
+      "person": "I332737059537",
+      "kind": "duplicate_person",
+      "status": "closed",
+      "count": 1
+     }
+    }
+   ]
+  },
+  {
+   "say": "the kept entry planned again: the merged entry is never counted",
+   "plan": [
+    "I332737059537"
+   ],
+   "expect": [
+    {
+     "question": {
+      "person": "I332737059537",
+      "kind": "duplicate_person",
+      "status": "open",
+      "count": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

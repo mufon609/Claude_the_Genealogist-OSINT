@@ -357,8 +357,8 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    (compared across the whole tree, spelling variants included), the person
    holds no other persona on that reading, and nothing the record would add
    falls outside the person's life as accepted. Every plan regeneration tests
-   each person's accepted links and statements against the limits of one
-   life: a statement dated after the death or before the birth, a parent too
+   each person's family links (accepted or the file's claims, never a
+   rejected one) and accepted statements against the limits of one life: a statement dated after the death or before the birth, a parent too
    young or too old at a child's birth, a child born after the mother's death
    or more than ten months after the father's, one person in two places in
    one census. The limits are data. A hit is a question about the person that

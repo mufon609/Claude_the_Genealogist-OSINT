@@ -262,6 +262,36 @@ part only, since a country's name earlier in a string is a town or county of
 that name (Lebanon, Pennsylvania; Poland, Ohio). A country's name that is also
 a US state (Georgia) is read as the state.
 
+## 5b. The limits of one life (`life-limits.csv`)
+
+Identity is tested, not assumed (`docs/DATA-ARCHITECTURE.md` §7 decision 12): a
+family link or an accepted statement that a single life could not hold is a
+question for the owner (`research_question` kind `identity`), and the standing
+rule refuses a record that would add one. The bounds are data, one row each,
+`limit`, `value` and the `reason` in words:
+
+- **A parent's age at a child's birth.** A mother from 12 to 55, a father from
+  13 to 80. The bounds are set where a genealogist calls a link impossible or
+  nearly so, not where it is merely unusual: a mother of 45 or a father of 70
+  is recorded often enough to pass. A hit asks, it never decides, so a bound
+  may sit at the very edge of the possible. A parent whose sex the tree does
+  not give is held to the wider of the two.
+- **A child born after a parent's death.** Never after the mother's (0 months),
+  up to ten months after the father's: about nine months of pregnancy and a
+  month for a date known only to the month.
+- **What a life holds after its end** (`after_death_types`): the death, a burial
+  or a cremation, a will and its probate. Any other statement dated after the
+  death is another person's or a wrong date; a statement before the birth is
+  tested the same way, the birth itself excepted.
+
+A date is compared over every day it can stand for (`catalog.date_span`): a
+bare year spans the year, a month the month, a date marked about, estimated or
+calculated two years more on either side, before and after leave a side open.
+Only a limit broken over the whole of both spans counts, so an imprecise date
+never raises a question a finer date of it might settle. One person in two
+places in one census year has no bound to set and stays a rule of the code
+(`Catalog.beyond_life`).
+
 ## 6. Deferred work
 
 Lives in `BACKLOG.md`. Rows whose `Status` is `blocked-apply` or `todo` with a

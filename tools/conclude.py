@@ -20,8 +20,11 @@ original no ground) and nothing compared disagrees against an accepted value. A 
 memorial, a WikiTree profile) identifies a person but never builds their facts: accepting it, by the owner or by the rule,
 writes the persona link and the memberships the page states, Undecided, and every fact the page types as an Undecided
 assertion; the rule takes such an identity on the name and three of birth day, death day, burial place, a stated parent or
-spouse. The rule acts on the owner's word, is recorded as such on the proposal and in the audit log, and the owner can
-reject what it accepted: the link and every assertion it wrote turn rejected. The rule can also take a decision back (reconsider): every
+spouse. Whatever the route, identity is tested before the rule takes a record or creates a person from it (identity_refused,
+docs/DATA-ARCHITECTURE.md §7 decision 12): nobody else of the tree fits the persona as well, the person holds no other
+persona on that reading of the record, and nothing the record would add falls outside the person's accepted life
+(data/life-limits.csv); a test that fails is a refusal with its reason. The rule acts on the owner's word, is recorded as
+such on the proposal and in the audit log, and the owner can reject what it accepted: the link and every assertion it wrote turn rejected. The rule can also take a decision back (reconsider): every
 decision it made is examined again as the rule stands now, oldest first, on the ground that stood before it, and one it would
 no longer take is withdrawn, the record a card for the owner again; then every card still undecided is examined the same
 way, and one the rule would now take is taken. Between the two, every current extraction whose undecided cards an older
@@ -53,7 +56,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - decide: a person's (or the rule's) decision on a proposal, with everything that follows from it; a command too, as is a
   key fact's decision (tools/facts.py).
 - match_record: the matcher on an extraction, then the rule on every proposal it wrote.
-- rule_accepts: whether the rule takes a proposal, and why or why not, in words; ground: the tree's statements a point stands on.
+- rule_accepts: whether the rule takes a proposal, and why or why not, in words: on its points (rule_points), then identity tested
+  (identity_refused: fits_as_well, a second persona on the reading, outside_life); ground: the tree's statements a point stands on.
 - reconsider, withdraw: the rule's decisions examined again; one it would no longer take, taken back; a card it would now take, taken.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
@@ -71,7 +75,7 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, current_entry, page_entries, source_tier, split_name, tier_sql
-from catalog import ONCE, RECORD_FACTS, date_verdict, evidence_classes, fuller_date, holds, place_verdict, record_kinds, record_original, record_standing, relation_classes, same_event, same_surname
+from catalog import ONCE, RECORD_FACTS, date_span, date_verdict, evidence_classes, fuller_date, holds, life_limits, parent_limit, place_verdict, record_kinds, record_original, record_standing, relation_classes, same_event, same_surname
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
 from plan import plan_person
@@ -931,7 +935,19 @@ def _on(statements):
 
 def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a proposal, and why, in words: (True, reason) or (False, why not), as
-    docs/RESEARCH-WORKFLOW.md §5–7 states the rule ("The standing rule", and "What the rule counts" in the proof standard).
+    docs/RESEARCH-WORKFLOW.md §5–7 states the rule ("The standing rule", and "What the rule counts" in the proof standard):
+    the record taken on its points (rule_points), and then identity tested, not assumed (identity_refused): nobody else of
+    the tree fits the persona as well, the person holds no other persona on this reading of the record, and nothing the
+    record would add falls outside the person's life as accepted. A test that fails is a refusal with its reason, and the
+    card stays the owner's."""
+    ok, why = rule_points(cx, tree_id, prop, without)
+    if not ok: return ok, why
+    refused = identity_refused(cx, tree_id, prop, without)
+    return (False, refused) if refused else (True, why)
+
+def rule_points(cx, tree_id, prop, without=()):
+    """Whether the record of a proposal is one the standing rule takes on its points, and why, in words: (True, reason) or
+    (False, why not), before identity is tested (rule_accepts).
     The record's kinds and their standing come from data/evidence-classes.csv (catalog.record_kinds, record_standing), on its
     current reading, the same for a page a parser read and an image read by hand or by the model; the persona is judged on that
     reading too, the persona of the same entry there (catalog.current_entry) with its facts and the relationships and personas
@@ -1111,7 +1127,8 @@ def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_rec
     spouse, sibling, half sibling, grandchild, in-law; never "other relative" or a blank; one the record's indexer computed is
     no statement of the record's, catalog.relation_classes) to a person accepted on the same record, and nobody in the tree
     fits after the fitting check — the matcher's own word, so a card an older matcher wrote is left for reconsider to propose
-    again. A page anyone can edit names a person but never creates one: the owner does."""
+    again, and the check run once more across the whole tree as it stands when the rule decides (identity_refused). A page
+    anyone can edit names a person but never creates one: the owner does."""
     q = _q(cx)
     if identity: return False, "a page anyone can edit names a person but never creates one: the owner decides"
     tier = str(x["trust_tier"] or "")[:2]
@@ -1139,6 +1156,132 @@ def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_rec
                else "the record states no family relationship between them and a person accepted on it"
     kind, word, other = named[0]
     return True, f"{word or kind} of {accepted_on_record[other]['name']}, accepted on this record, whom nobody in the tree fits after the fitting check: created as a person with the record's facts"
+
+def accepted_span(cx, tree_id, pid, etype, without=()):
+    """What the person's accepted statements of an event type a life holds once say of its date: (earliest, latest, words),
+    the earliest day any of them can stand for and the latest (catalog.date_span; None on a side one of them leaves open),
+    and the dates as written; None when none is accepted or none gives a date. A statement with no record fact of its own
+    (the owner's word) stands for the event's own date. without: proposal ids whose statements do not count (reconsider)."""
+    skip = f"AND NOT (json_valid(a.notes) AND coalesce(json_extract(a.notes,'$.proposal'),'') IN ({','.join('?' * len(without))}))" if without else ""
+    spans, words = [], []
+    for r in _q(cx).execute(f"""SELECT a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, e.date_text AS ev_text, e.date_start AS ev_start, e.date_end AS ev_end, e.date_qualifier AS ev_q
+                                FROM assertion a JOIN event e ON e.id=a.subject_id JOIN event_participant ep ON ep.event_id=e.id LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                WHERE a.tree_id=? AND a.subject_kind='event' AND a.status='accepted' AND ep.person_id=? AND e.event_type=? {skip} ORDER BY a.asserted_at, a.id""", (tree_id, pid, etype, *without)):
+        own = r["persona_fact_id"] is None
+        sp = date_span(r["ev_start"], r["ev_end"], r["ev_q"]) if own else date_span(r["date_start"], r["date_end"], r["date_qualifier"])
+        if sp: spans.append(sp); words.append(r["ev_text" if own else "date_text"] or "")
+    if not spans: return None
+    return (None if any(s[0] is None for s in spans) else min(s[0] for s in spans), None if any(s[1] is None for s in spans) else max(s[1] for s in spans),
+            " and ".join(dict.fromkeys(w for w in words if w)))
+
+def record_span(cx, persona_id, etype):
+    """What a persona's own record says of an event type's date: (earliest, latest, words), or None."""
+    r = _q(cx).execute("SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND coalesce(date_start, date_end) IS NOT NULL ORDER BY rowid", (persona_id, etype)).fetchone()
+    sp = date_span(r["date_start"], r["date_end"], r["date_qualifier"]) if r else None
+    return (*sp, r["date_text"] or r["date_start"] or r["date_end"]) if sp else None
+
+def fits_as_well(cat, persona, cand_id, chosen, exclude):
+    """The persons of the tree (never one merged into another, none in exclude) other than the candidate who fit the persona
+    on as much as the candidate does or more (match.compare: given names and surnames with their spelling variants and short
+    forms, dates, places, the relationships the record states to personas already accepted on it), or, with no candidate,
+    who fit it at all: [(person id, name, what agrees)]. compare's fit needs the given name to agree, or the same memorial
+    accepted as them, so only those persons are compared."""
+    from match import by_memorial, name_keys, same_given
+    names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
+    givens = [g for g, _ in names if g]
+    mine = len(compare(cat, persona, candidate(cat, cand_id), chosen)[1]) if cand_id else 0
+    same_memorial = set(by_memorial(cat.cx, cat.tree_id, persona["memorial"])) if persona.get("memorial") else set()
+    out = []
+    for pid, name in cat.q("SELECT id, display_name FROM person WHERE tree_id=? AND merged_into IS NULL ORDER BY created_at, id", cat.tree_id):
+        if pid == cand_id or pid in exclude: continue
+        if pid not in same_memorial and not any(same_given(g, k) for g in givens for k, _ in name_keys(cat, pid)): continue
+        fits, agree, _, _, _ = compare(cat, persona, candidate(cat, pid), chosen)
+        if fits and len(agree) >= mine: out.append((pid, name, agree))
+    return out
+
+def outside_life(cx, tree_id, persona, pid, accepted_on_record, without=()):
+    """Why what the record would add falls outside a life as accepted (data/life-limits.csv), or None: a dated fact of the
+    persona's after the person's accepted death (a type a life holds after its end excepted: catalog.life_limits'
+    after_death_types) or before the accepted birth (a birth fact excepted), or a parent-child relationship the record states
+    to a persona accepted on it that breaks the limits of one life (catalog.parent_limit), each side's dates the person's
+    accepted ones, else what the record itself says of them. pid None: a person the record would create, whose life is the
+    record's alone."""
+    L = life_limits(); q = _q(cx)
+    birth = accepted_span(cx, tree_id, pid, "Birth", without) if pid else None
+    death = accepted_span(cx, tree_id, pid, "Death", without) if pid else None
+    for f in q.execute(f"""SELECT fact_type, date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND coalesce(date_start, date_end) IS NOT NULL
+                           AND fact_type NOT IN ('Name','Sex',{','.join('?' * len(RECORD_FACTS))}) ORDER BY rowid""", (persona["id"], *RECORD_FACTS)).fetchall():
+        sp = date_span(f["date_start"], f["date_end"], f["date_qualifier"])
+        if not sp: continue
+        said = f"{f['fact_type'].lower()} {f['date_text'] or f['date_start'] or f['date_end']}"
+        if death and death[1] and sp[0] and f["fact_type"] not in L["after_death_types"] and sp[0] > death[1]:
+            return f"the record dates {said}, after the accepted death ({death[2]}): a statement beyond the limits of one life"
+        if birth and birth[0] and sp[1] and f["fact_type"] != "Birth" and sp[1] < birth[0]:
+            return f"the record dates {said}, before the accepted birth ({birth[2]}): a statement beyond the limits of one life"
+    def life(person_id, persona_id, etype):
+        return (accepted_span(cx, tree_id, person_id, etype, without) if person_id else None) or record_span(cx, persona_id, etype)
+    def sex(person_id, persona_id):
+        r = q.execute("SELECT sex FROM person WHERE id=?", (person_id,)).fetchone() if person_id else None
+        return (r["sex"] if r and r["sex"] in ("M", "F") else None) or (q.execute("SELECT sex FROM persona WHERE id=?", (persona_id,)).fetchone() or {"sex": None})["sex"]
+    rels = [(r["kind"], r["related_persona_id"]) for r in q.execute("SELECT kind, related_persona_id FROM persona_relation WHERE persona_id=? AND kind IN ('child','parent')", (persona["id"],))] + \
+           [({"child": "parent", "parent": "child"}[r["kind"]], r["persona_id"]) for r in q.execute("SELECT kind, persona_id FROM persona_relation WHERE related_persona_id=? AND kind IN ('child','parent')", (persona["id"],))]
+    name = lambda person_id, persona_id: (q.execute("SELECT display_name FROM person WHERE id=?", (person_id,)).fetchone() or {"display_name": None})["display_name"] or \
+                                         q.execute("SELECT name_text FROM persona WHERE id=?", (persona_id,)).fetchone()["name_text"]
+    span = lambda person_id, persona_id, etype: (lambda s: s[:2] if s else None)(life(person_id, persona_id, etype))
+    for kind, other in rels:
+        if other not in accepted_on_record: continue
+        o = accepted_on_record[other]
+        (par, par_pe), (ch, ch_pe) = ((o, other), (pid, persona["id"])) if kind == "child" else ((pid, persona["id"]), (o, other))
+        hit = parent_limit(sex(par, par_pe), span(par, par_pe, "Birth"), span(par, par_pe, "Death"), span(ch, ch_pe, "Birth"))
+        if hit:
+            on, words = hit; d = life(par, par_pe, "Birth" if on == "birth" else "Death"); b = life(ch, ch_pe, "Birth")
+            return (f"the record makes {name(ch, ch_pe)}, born {b[2]}, a child of {name(par, par_pe)}, {'born' if on == 'birth' else 'who died'} {d[2]}: {words}, "
+                    "beyond the limits of one life")
+    return None
+
+def identity_refused(cx, tree_id, prop, without=()):
+    """Why the rule may not take a record it would take on its points, or None: identity tested, not assumed
+    (docs/DATA-ARCHITECTURE.md §7 decision 12, docs/RESEARCH-WORKFLOW.md §5–7). Three tests, each a refusal naming what it
+    found: another person of the tree fits the persona as well as the candidate or better (fits_as_well; for a person the
+    rule would create, anyone who fits, or whom the fitting check reaches, match.by_name_and_year); the person already holds
+    another persona on this reading of the record (two rows of one page are two people); something the record would add
+    falls outside the person's life as accepted (outside_life). A person created by a decision under reconsideration
+    (without) or by this one is no other person, nor is one accepted as another persona on this reading. without:
+    proposal ids whose assertions and links do not count (reconsider)."""
+    from match import by_name_and_year
+    q = _q(cx); pay = json.loads(prop["payload_json"]); cat = Catalog(cx, tree_id)
+    persona = next((p for p in personas_of(cx, pay["extraction_id"]) if p["id"] == pay["persona_id"]), None)
+    if not persona: return None
+    pid = pay.get("person_id") if prop["kind"] == "persona_match" else None
+    skip = f"AND coalesce(pp.proposal_id,'') NOT IN ({','.join('?' * len(without))})" if without else ""
+    accepted_on_record = {r["persona_id"]: r["person_id"] for r in q.execute(f"""SELECT pp.persona_id, pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
+                          JOIN person o ON o.id=pp.person_id WHERE pe.extraction_id=? AND pp.status='accepted' AND o.tree_id=? AND pp.persona_id<>? {skip}""",
+                          (pay["extraction_id"], tree_id, persona["id"], *without))}
+    marks = ",".join("?" * len(without))
+    created = {r["pid"] for r in q.execute(f"SELECT json_extract(payload_json,'$.person_id') AS pid FROM proposal WHERE kind='new_person' AND id IN ({marks})", without)} if without else set()
+    if prop["kind"] == "new_person" and pay.get("person_id"): created.add(pay["person_id"])
+    exclude = (created | set(accepted_on_record.values())) - {pid, None}
+    chosen = {o: candidate(cat, p) for o, p in accepted_on_record.items()}
+    who = lambda rows: " and ".join(f"{n} [{i[-6:]}]" for i, n, _ in rows)
+    on = lambda agree: ", ".join(dict.fromkeys(a.split(" agrees")[0] if " agrees" in a else "the same memorial" for a in agree)) + " agreeing"
+    others = fits_as_well(cat, persona, pid, chosen, exclude)
+    if others:
+        return (f"{who(others)} {'fits' if len(others) == 1 else 'fit'} {persona['name']} " + ("as well as the candidate or better" if pid else "already") +
+                f" ({on(others[0][2])}): which person the record is about is yours to say")
+    if not pid:
+        reached = [(i, n, a) for i in by_name_and_year(cat, cx, tree_id, persona) if i not in exclude
+                   for n in [cat.person(i)["name"]] for f, a, _, _, near in [compare(cat, persona, candidate(cat, i), chosen)] if f or near]
+        if reached: return f"the fitting check reaches {who(reached)} for {persona['name']} ({on(reached[0][2])}): the person may be in the tree already, which is yours to say"
+    if pid:
+        ext = pay["extraction_id"]
+        while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (ext,)).fetchone()["superseded_by"]): ext = later
+        mine = set(same_personas(cx, persona["id"]))
+        held = [r for r in q.execute(f"""SELECT pe.id, pe.name_text, pe.role_in_record FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
+                                          WHERE pp.person_id=? AND pp.status='accepted' AND pe.extraction_id=? {skip} ORDER BY pe.sequence""", (pid, ext, *without)) if r["id"] not in mine]
+        if held:
+            return (f"{cat.person(pid)['name']} is already accepted as {held[0]['name_text']} ({held[0]['role_in_record'] or 'no role'}) on this reading of the record: "
+                    "two rows of one page are two people, and which row is theirs is yours to say")
+    return outside_life(cx, tree_id, persona, pid, accepted_on_record, without)
 
 def match_record(cx, eid, by, about=None):
     """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the
@@ -1373,8 +1516,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     the question"): the duplicate's persona links, assertions, event and family memberships, plan steps, search log rows and
     open questions move onto the person it duplicates, `person.merged_into` is set so the duplicate's own row stays for the
     audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records the
-    decision with the owner's note. A moved step the kept person's plan already has by step_key keeps whichever of the two
-    carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
+    decision with the owner's note; the duplicate_person question between the two, on either side, closes answered by it. A
+    moved step the kept person's plan already has by step_key keeps whichever of the two carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
     onto the survivor rather than lost. A dropped step or question is named in the audit row by its key, row (a step's) and
     rationale, and why it was dropped, the way plan.py's own audit row names what it drops.
 
@@ -1400,7 +1543,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     ts = now()
     moved = {"persona_links": 0, "assertions": 0, "event_participants": 0, "events_folded": 0, "event_assertions_folded": 0,
              "family_memberships": 0, "families_folded": 0, "family_children_moved": 0, "family_events_moved": 0,
-             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0,
+             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0, "questions_answered": 0,
              "dropped_steps": [], "dropped_questions": [], "folded_events": [], "folded_families": []}   # each drop or fold named by its key/type/family, the way plan.py's own audit row does: the audit row is the only trace of it afterwards
 
     for persona_id, in q.execute("SELECT persona_id FROM person_persona WHERE person_id=?", (dup_id,)).fetchall():
@@ -1447,7 +1590,13 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
                                            "reason": "the kept person's own step of this key carries search_log runs already" if kept_has_runs
                                                      else "the kept person's own step of this key is kept; neither carries a search_log run"})
 
+    prop_id = ulid()
+    for qid, in q.execute("""SELECT id FROM research_question WHERE status='open' AND kind='duplicate_person'
+                             AND ((subject_person_id=? AND q_key=?) OR (subject_person_id=? AND q_key=?))""", (dup_id, f"duplicate_person:{kept_id}", kept_id, f"duplicate_person:{dup_id}")).fetchall():
+        q.execute("UPDATE research_question SET status='closed', closed_reason='answered', closed_at=?, answered_by_proposal_id=? WHERE id=?", (ts, prop_id, qid))
+        moved["questions_answered"] += 1                              # the duplicate question between the two, either side's, is the one the merge answers
     for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=?", (dup_id,)).fetchall():
+        if question["kind"] == "duplicate_person" and question["q_key"] == f"duplicate_person:{kept_id}": continue   # answered above, or closed already: never a question of the kept person about themselves
         if q.execute("SELECT 1 FROM research_question WHERE subject_person_id=? AND q_key=?", (kept_id, question["q_key"])).fetchone():
             moved["questions_dropped"] += 1
             moved["dropped_questions"].append({"q_key": question["q_key"], "kind": question["kind"],
@@ -1457,7 +1606,6 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
 
     q.execute("UPDATE person SET merged_into=?, updated_at=? WHERE id=?", (kept_id, ts, dup_id))
     human = q.execute("SELECT id FROM extractor WHERE kind='human' AND name='manual'").fetchone()[0]
-    prop_id = ulid()
     q.execute("""INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status,decided_by,decided_at,decision_note)
                  VALUES (?,?,?,?,?,?,?,'accepted',?,?,?)""",
               (prop_id, tree_id, "duplicate_person", dumps({"duplicate_person_id": dup_id, "kept_person_id": kept_id, "moved": moved}), note, human, ts, by, ts, note))
@@ -2088,7 +2236,7 @@ def main():
                   f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s), "
                   f"{res['plan_steps_moved']} plan step(s) moved ({res['plan_steps_dropped']} dropped as already on the kept person's plan, "
                   f"{res['log_rows_repointed']} log row(s) repointed onto it), {res['questions_moved']} question(s) moved "
-                  f"({res['questions_dropped']} already open on the kept person); proposal {res['proposal']}")
+                  f"({res['questions_dropped']} already open on the kept person), {res['questions_answered']} duplicate question(s) answered; proposal {res['proposal']}")
         cx.commit()
     except Exception:
         cx.rollback(); raise

@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.6. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.7. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -91,6 +91,13 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   reason in notes. A decision on a string applies wherever the same words appear, since
   `place_string.raw` is unique, and to every string whose card offers the same places
   (`resolve_places.place_groups`), each with its own audit row.
+- A `research_question` of kind `identity` (schema 0.7.7, `tools/initdb.py`'s
+  `rebuild_questions` widening the kind's CHECK) names a family link or an accepted
+  statement beyond the limits of one life (`Catalog.beyond_life`, the bounds in
+  `data/life-limits.csv`) with both records; it is generated, never typed, closes when
+  its gap has gone or the owner dismisses it, and changes nothing itself. A
+  `duplicate_person` question is raised for every person, reviewed or not, and never
+  counts a person merged into another.
 - Living status is computed by the app (`Catalog.living`) from the person's tier
   (their generation from the home person along the tree's family links, accepted or
   claimed; `docs/DATA-ARCHITECTURE.md` §7 decision 3), held death evidence
