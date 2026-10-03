@@ -449,6 +449,19 @@ words put the human only where doubt is serious. Then the rule applies it,
 reasonably exhaustive research first: his memorial shows a gravestone
 photograph not yet held (photo 102379026), which may carry 1876 itself.
 
+### C24. Say where the tree comes from: the file, or the evidence
+
+The owner's goal is a loop that builds the tree from documents, the imported
+file a rough guide. On the live catalog of 3 Oct 2026, 124 of 140 people exist
+because the file created them (16 from records), and 47 of the 65 accepted
+documents were fetched because the file cited them (4 from leads in held
+records, 6 from searches on accepted facts, 8 attached by hand). Nothing reports
+this. Add it to `tools/tree.py overview`'s summary, two lines: the people, by
+whether the file or a record brought them into the tree; the accepted
+documents, by what fetched them (the file's citation, a lead a held record made,
+a search on accepted facts, by hand), read from each document's runs and their
+steps' field bases. Show it on the harness tree, where every count is known.
+
 ### C25. Two readings of one record are decided apart
 
 John Y Davidson's 1946 Kentucky death certificate is held twice: FamilySearch's
@@ -474,6 +487,19 @@ carries which records exist where. And an unresolved place string that names a
 US state anywhere in it is read as American even when its last part names
 another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
 the country the string ends with first.
+
+### C28. The queue's edge reaches past the file
+
+`tools/queue.py` names as the edge a parent or spouse the file names whose link
+is not yet accepted, so growth stops where the file stops: Noi Davidson, John
+Evers and Dolores Evers stand confirmed with "edge: no parents claimed", and 46
+missing-parents questions are open. Make a confirmed person whose parents
+nobody has accepted the edge for the records that name parents (a birth or
+death record, a census with the parents in the household, an obituary), first
+in their plan; a parent such a record names is created by the rule from a
+trusted record as now (the fitting check first) and enters the queue like any
+other. Show it on the harness: a confirmed person the file gives no parents
+whose own record names them, and the parents created and queued.
 
 ### C29. One home for each shared rule, and no dead schema
 
