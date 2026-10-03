@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "040d0989155952dec4217ea0601f10a1e6a17fed9a5a54ba4cf6b7b21bd7a9e6",
+  "bytes": 33255,
+  "mime": "text/html",
+  "source_id": "H05",
+  "collection": "U.S., Obituary Collection, 1930-Current",
+  "locator": {
+    "kind": "url",
+    "value": "https://www.mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html"
+  },
+  "retrieved_at": "2026-09-18T18:00:55Z",
+  "retrieved_by": "agent:tree-subagent-2026-09-18 for user:neural",
+  "rights": {
+    "terms": "ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T3",
+  "original_filename": "h05-obituary-collection-current-2004-ZW0KTA.html",
+  "pages": 1,
+  "notes": "saved in the browser under the fetch list's name at Legacy.com: Legacy.com, the citation's own obituary page"
+}

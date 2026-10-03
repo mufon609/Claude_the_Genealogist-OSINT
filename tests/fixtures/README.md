@@ -43,6 +43,17 @@ simulated, and those two stand-ins, are named in "What is simulated" at the end.
 | `va-gravesite-search-davidson-raymond-page1.html` | The same locator's first page for Davidson, Raymond with no year: ten of 22 decedents and the links to the next pages, as the connector received it on a scratch run | `rule:va-gravesite` | public record, Department of Veterans Affairs |
 | `va-gravesite-search-davidson-raymond-e.html` | The same locator's page for Davidson, Raymond E, as the archive holds it: five decedents, two of them written Raymond E Davidson, the first (1939–2007) the harness's Raymond Earl Davidson and the second (1930–2021) another man | `rule:va-gravesite` | public record, Department of Veterans Affairs |
 
+## Pages no parser reads
+
+A real page the archive holds from a holder whose pages no parser claims, saved by the page-saves-itself method under the
+fetch list's name and archived by `collect`: read by no `<stem>.expect.json` (the extractor fails it, which is what the
+scenario that uses it is about), its `.manifest.json` the archive's own, byte for byte, so `sha256sum` against `archive/objects/sha256/…`
+shows the page is the archived one.
+
+| File | Holder and page | Rights |
+|---|---|---|
+| `mansfield-news-journal-obituary-193623-page-not-found.html` + `.manifest.json` | The archive's object `040d0989…` (18 September 2026, H05): the Mansfield News Journal's own answer when the link a cited obituary names (`mansfieldnewsjournal.com/news/stories/20040408/obituaries/193623.html`) was opened in the browser: its "Page Not Found (404)" page, which holds no obituary and no record of anyone, the paper's navigation and trending headlines of that day | the paper's page, its terms |
+
 ## From connector runs
 
 | File | Where it came from | Parser |
@@ -215,10 +226,10 @@ placed onto an event through `tools/conclude.py place`: `record`, `person`, `fac
 literal id or `{person, type, index}`, that person's nth event of the type in the person screen's own order),
 `link_on_word`, `living`,
 `transcribe` (a reading typed into the person screen's form: `record`, `form` with the persona's `line` or `bbox` and
-`image_is`, `relations` to bound personas, `about`, `by` the reader, `llm:<model id>` or `user:<name>`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
+`image_is`, `relations` to bound personas, `about`, `by` the reader, `llm:<model id>` or `user:<name>`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person` (the entry whose link has `url_has`, when the person has several there), into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's; `key` writes the
 key under the page's own saved-from line as `tools/save_page.js` does when the list's call gave it one: `true` for the entry's own steps, or a
-list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
+list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it, its `sha` the record when one page came in), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
 carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
 owner's own export that the cut leaves out, because another scenario reads its people without it, written as the
 import writes it: `xref` the family's own id in the export, `partners` and `children`, each membership the file's

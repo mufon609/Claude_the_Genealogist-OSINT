@@ -30,7 +30,7 @@ saved for) reaches those steps first (tools/attach.py named_steps), each checked
 its identity reaches beside them; a page from a holder whose
 pages carry no identity the attach reads, by the name the list printed, to the steps of the one citation and person the
 name carries, archived under that holder with the page's own URL (the saved-from line the browser wrote) as locator,
-logged found, and reported unparsed until a parser claims it. A file with neither a recognised saved-from line nor a
+logged unread (held on the step's log, the step planned), and reported unparsed until a parser claims it. A file with neither a recognised saved-from line nor a
 listed name is left in the folder.
 
 `next [K]` is the browser session's own list: the next K pages (five by default) a turn can send someone to (`openable`: a

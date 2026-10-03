@@ -409,14 +409,16 @@ def a_person_view(w, x):
     return server.person_view(w.cx, w.tid, w.person(x["person"]))
 
 def a_save(w, x):
-    """A page or an image saved in the browser, as a stand-in: into the inbox, or into a download folder for collect.
+    """A page or an image saved in the browser, as a stand-in: into the inbox, or into a download folder for collect. The
+    entry it stands for is the person's at the `holder` whose link has `url_has`, when the person has several there.
     Under the name the fetch list prints for it, unless `name` gives the file's own name instead (the sanitized shape a
     browser actually produced, to prove collect takes a page by its saved-from identity whatever it is named). `key` writes the
     key into the page the way tools/save_page.js does when the fetch list's call gave it one: a second comment under the page's own
     saved-from line, naming the entry's own steps (true) or the steps given (plan step references, or an id that names no step)."""
     from fetches import waiting
     pid = w.person(x["person"]) if x.get("person") else None
-    entries = [e for e in waiting(w.cx, w.tid) if (not x.get("holder") or e["holder_id"] == x["holder"]) and (pid is None or any(s in e["step_ids"] for s in [s[0] for s in w.cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))]))]
+    entries = [e for e in waiting(w.cx, w.tid) if (not x.get("holder") or e["holder_id"] == x["holder"]) and (not x.get("url_has") or x["url_has"] in (e.get("url") or ""))
+               and (pid is None or any(s in e["step_ids"] for s in [s[0] for s in w.cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))]))]
     e = entries[0] if entries else None
     if "name" in x: name = x["name"]
     else:
@@ -437,7 +439,8 @@ def a_collect(w, x):
     from attach import line
     from fetches import collect
     names, res = collect(w.cx, w.tid, w.slug, BY, folder=w.value(x["folder"]))
-    return {"names": names, "results": res, "files": {r["file"]: r for r in res}, "lines": [line(r) for r in res]}   # each result as the tool prints it
+    return {"names": names, "results": res, "files": {r["file"]: r for r in res}, "lines": [line(r) for r in res],   # each result as the tool prints it
+            "sha": res[0].get("sha256") if len(res) == 1 else None}                                        # the record, when one page came in
 
 def a_log(w, x):
     """A run written by hand, as a connector or a saved page would leave it: query true takes the step's own current

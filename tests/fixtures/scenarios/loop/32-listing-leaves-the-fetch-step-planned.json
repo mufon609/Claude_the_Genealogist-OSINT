@@ -1,6 +1,6 @@
 {
  "title": "a results page leaves the fetch step planned",
- "line": "a row of a FamilySearch results page fits the person whose 1950 fetch step was searched for by that name in that collection, so the run is found with the page and the row is a lead, never a card: his plan gets a fetch step for the row's own record; the listing points at a record and is not one, so the step stays planned and the row is not held, while the holder's run on the step's own fields keeps the search off the fetch list; a plan run keeps the step planned; a step standing done on a listing alone is planned again by the plan, one done on a record page stays done; a page no parser reads, saved under the list's name, is logged found and closes nothing",
+ "line": "a row of a FamilySearch results page fits the person whose 1950 fetch step was searched for by that name in that collection, so the run is found with the page and the row is a lead, never a card: his plan gets a fetch step for the row's own record; the listing points at a record and is not one, so the step stays planned and the row is not held, while the holder's run on the step's own fields keeps the search off the fetch list; a plan run keeps the step planned; a step standing done on a listing alone is planned again by the plan, one done on a record page stays done",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -400,90 +400,6 @@
        "status": "planned"
       }
      }
-    }
-   ]
-  },
-  {
-   "say": "a page from a holder without a parser, saved under the list's own name for a cited obituary page: nothing but its saved-from line",
-   "save": {
-    "holder": "H05",
-    "person": "I332737204852",
-    "folder": "downloads"
-   },
-   "as": "saved",
-   "expect": [
-    {
-     "last": {
-      "how": "page",
-      "save_as": {
-       "starts": "h05-"
-      }
-     }
-    }
-   ]
-  },
-  {
-   "say": "collect brings it in by the name: logged found on her step, unparsed, and the step stays planned",
-   "collect": {
-    "folder": "$saved.folder"
-   },
-   "expect": [
-    {
-     "last": {
-      "results": [
-       {
-        "left": null,
-        "unparsed": {
-         "has": "no parser claims"
-        },
-        "logs": {
-         "len": 1
-        }
-       }
-      ]
-     },
-     "why": "the page reaches the step by the list's name and no parser reads it"
-    },
-    {
-     "step": {
-      "person": "I332737204852",
-      "holder": "H05",
-      "kind": "fetch",
-      "status": "planned",
-      "fields": {
-       "status": "planned"
-      }
-     },
-     "why": "a page no parser read holds nothing: the step it was saved for stays planned"
-    },
-    {
-     "search_log": {
-      "step": {
-       "person": "I332737204852",
-       "holder": "H05",
-       "kind": "fetch",
-       "status": "planned"
-      },
-      "is": {
-       "some": {
-        "source_id": "H05",
-        "outcome": "found"
-       }
-      }
-     },
-     "why": "the run is what happened: the page was saved and is held, logged found under the holder"
-    },
-    {
-     "fetch_entries": {
-      "holder": "H05",
-      "person": "I332737204852",
-      "is": {
-       "none": {
-        "save_as": "$saved.save_as"
-       }
-      }
-     },
-     "why": "the holder's run on the step's own fields keeps that page off the open list"
     }
    ]
   },

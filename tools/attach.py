@@ -8,12 +8,12 @@ photograph takes the one the fetch list printed in its name (findagrave-photo-<m
 that photograph on that memorial, archived under the gravestone row (E05) with the image's own URL as locator, logged found,
 and read afterwards by the transcription path, never parsed. A page from a holder whose pages carry no identity the attach
 reads (an SAR patriot page, a Legacy.com obituary) is taken by tools/fetches.py collect under the name the list printed and
-attached here as kind "page": archived under the step's holder with the page's own URL as locator, logged found, and parsed
-only when a parser claims it. A page saved from the fetch list carries the plan steps it was saved for as a second comment under
-its saved-from line (tools/save_page.js, the key): those steps come first (named_steps), each checked against the page's own
-identity, and the steps the identity reaches follow them; a page saved by hand has no key and reaches its steps by identity alone.
-The steps a record fulfils are the tree's fetch steps whose citation
-carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record ids the artifact holds
+attached here as kind "page": archived under the step's holder with the page's own URL as locator and parsed only when a
+parser claims it; a page no parser claims is held on the step's log as an unread run, never a found one. A page saved from
+the fetch list carries the plan steps it was saved for as a second comment under its saved-from line (tools/save_page.js, the
+key): those steps come first (named_steps), each checked against the page's own identity, and the steps the identity reaches
+follow them; a page saved by hand has no key and reaches its steps by identity alone. The steps a record fulfils are the
+tree's fetch steps whose citation carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record ids the artifact holds
 (catalog.holds: its own and, on the same sheet, those of the people the page names) once it is in the archive, else the
 census page the record page itself names (year, enumeration district, sheet, county and state) against each step's
 citation details, for the people the page names by name and birth year. A results page (told from a record page by the
@@ -22,12 +22,13 @@ steps whose citation was searched for by hand at that holder because it carries 
 citation's collection has the page's collection as a holder (data/holders.csv) and the name the citation sits on is the
 name searched. Such a page is the run's own artifact: a found run when a row fits someone (match.fitting_rows), a none run when
 none does, the query as run on the log. A fetch step is done by a found run only when the page is the record it cites
-(log_search.holds_record): a listing points at a record and is not one, and a page no parser read holds nothing, so on either the
-step stays planned while the run on its fields answers the search for the fetch list. A row that fits is no card (the matcher
-proposes none) but a lead on the person: the plan is written again for the people the page fits, so tools/plan.py's
-result_row_leads gives each row's own record its fetch step, which tools/fetches.py lists; once the record page is saved it
-reaches that step and the fetch steps the listing was logged on for that person (steps_pointed), archived under the step's
-citation, which it closes.
+(log_search.holds_record): a listing points at a record and is not one, so the step stays planned while the run on its fields
+answers the search for the fetch list. A page no parser reads (log_search.unread_page) is held and holds nothing a program
+knows: its run is `unread`, the step stays planned whatever its kind, and the run on its fields keeps the page off the fetch
+list while it waits. A row that fits is no card (the matcher proposes none) but a lead on the person: the plan is written
+again for the people the page fits, so tools/plan.py's result_row_leads gives each row's own record its fetch step, which
+tools/fetches.py lists; once the record page is saved it reaches that step and the fetch steps the listing was logged on for
+that person (steps_pointed), archived under the step's citation, which it closes.
 The same search saved again with the same rows answers nothing new, so it is a repeat: a none
 run logged on every step it fits that isn't already answered on its current fields (the fields as now rendered, the note
 naming the earlier run's own artifact), and the file leaves the inbox with nothing archived a second time. A file
@@ -38,7 +39,7 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
-from log_search import ON_WORD, holds_record, log as log_search, rendered_query, ran_unchanged, step_source
+from log_search import ON_WORD, UNREAD, holds_record, log as log_search, rendered_query, ran_unchanged, step_source, unread_page
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
 from conclude import match_record
@@ -475,9 +476,10 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     retrieved gives terms and cost; the locator is the step's, or the search URL for a results page), log a found run on every
     step not yet logged with it (a results page's log carries the query as run and the number of results), file the original
     under the tree, then parse and match a page new to the archive. A results page on which no candidate fits has its run set
-    to none, the candidates kept on the artifact. Then the steps the run closes are marked done: a search step by the found run;
-    a fetch step only when the page is the record it cites (log_search.holds_record), so a listing that points at records and a
-    page no parser read leave it planned. Returns what happened."""
+    to none, the candidates kept on the artifact; one no parser reads (a web page whose every reading failed, log_search.unread_page)
+    has it set to unread, the note saying so, and closes nothing. Then the steps the run closes are marked done: a search step by
+    the found run; a fetch step only when the page is the record it cites (log_search.holds_record), so a listing that points at
+    records leaves it planned. Returns what happened."""
     src = os.path.join(inbox_dir(), os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
     if not steps and not about: raise ValueError("no step to attach to")
@@ -530,7 +532,10 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
             for sid, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
         for person in dict.fromkeys(who for who, _, _ in fits): plan_person(cx, tree_id, person, by)   # the rows' own records are fetch steps now: the plan says so before anyone asks for the next page
-    if out.get("outcome") != "none" and logs:                     # the found run closes a search step; a fetch step only when the page is the record it cites
+    if steps and logs and unread_page(cx, sha):                   # a page no parser reads: held on the step's log, read by nobody, closing nothing
+        for sid, lid in logs: cx.execute("UPDATE search_log SET outcome='unread', notes=? || coalesce('; ' || notes, '') WHERE id=?", (UNREAD, lid))
+        out["outcome"] = "unread"
+    if out.get("outcome") not in ("none", "unread") and logs:     # the found run closes a search step; a fetch step only when the page is the record it cites
         kinds = {s["id"]: s["kind"] for s in steps}; record = holds_record(cx, sha)
         for sid, lid in logs:
             if record or kinds.get(sid) != "fetch": cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,))
@@ -615,4 +620,4 @@ def line(r):
     if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in the inbox: {r['left']}{key_note(r)}"
     who = "; ".join(f"{n} ({rk.split(':')[0]}: {why or 'the step cites it'})" for _, n, rk, why in r["steps"])
     return (f"{r['file']}: {r['identity']}; {len(r['steps'])} step(s) fulfilled: {who}; artifact {r['sha256'][:12]}{'' if r['new'] else ' (already archived)'}; "
-            f"{len(r['logs'])} run(s) logged{' as none' if r.get('outcome') == 'none' else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else "") + key_note(r))
+            f"{len(r['logs'])} run(s) logged{' as ' + r['outcome'] if r.get('outcome') in ('none', 'unread') else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else "") + key_note(r))

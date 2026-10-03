@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.7. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 37 tables, 6 views. Schema 0.7.8. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -100,6 +100,18 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   its gap has gone or the owner dismisses it, and changes nothing itself. A
   `duplicate_person` question is raised for every person, reviewed or not, and never
   counts a person merged into another.
+- A `search_log` run's `outcome` is `found`, `none`, `blocked`, `error` or `unread` (schema
+  0.7.8). `unread` is a web page archived that no parser reads: `tools/attach.py` logs it
+  when every extraction of the page is the failed one `rule:extract` writes for a page no
+  parser claims (`log_search.unread_page`; an image, and a page a parser, the model or a
+  person has read, keep `found`), its note beginning "no parser reads this page". The page
+  is held on the step's log, the step stays planned (`tools/fetches.py` does not list it
+  again while its run stands on the step's fields), and nothing is closed or read. The 0.7.8
+  migration (`tools/initdb.py`'s `unread_runs`, widening the outcome's CHECK by
+  `rebuild_table`) turned the found runs an older attach logged for such a page into unread
+  ones, one `audit_log` row each under `migration:0.7.8` naming the step, the person, the
+  holder and the page and holding the run as it stood; refused, nothing written, where such
+  a run sits on a step standing done.
 - Living status is computed by the app (`Catalog.living`) from the person's tier
   (their generation from the home person along the tree's family links, accepted or
   claimed; `docs/DATA-ARCHITECTURE.md` §7 decision 3), held death evidence
@@ -137,7 +149,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/checklist.py "<person>"` | Read-only foundation, questions, Group A/B rows (held / cited / missing / n/a) and the step per gap (`docs/RESEARCH-CHECKLIST.md` §6a). |
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicates, unlinked same-surname persons, records on relatives ranked by the family members they share. |
 | `tools/plan.py "<person>" / --all` | Materialize questions and steps into `research_question` and `search_plan`, idempotently: a fetch step per citation or lead, a search step per missing row. |
-| `tools/log_search.py` | A run (found / none / blocked / error) logged on a step, per source; `--dismiss` a question, `--reopen` a step done in error, `--list` a person's plan. |
+| `tools/log_search.py` | A run (found / none / blocked / error; `unread` is the attach's word for a page no parser reads) logged on a step, per source; `--dismiss` a question, `--reopen` a step done in error, `--list` a person's plan. |
 | `tools/attach_inbox.py [file ...] [--about "<person>"]` | Every inbox file to the steps its own identity fulfils: archived once, logged, extracted and matched; a step is done only when the page is the record it cites. `--about` takes one file on the owner's word: a record no step cites, or a family-held photograph or scan. |
 | `tools/attach.py` | The attach path `attach_inbox.py`, `fetches.py collect` and the person screen share. |
 | `tools/fetches.py next [K] / list / collect` | The pages waiting to be saved in the owner's browser, with the link, the file name to save under and the save script's call, whose key names the steps the page serves: `next` the next K, one line each, `list` all of them; `collect` brings the saved pages in by their own identity and the steps their key names. |
