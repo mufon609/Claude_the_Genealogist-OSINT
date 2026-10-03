@@ -156,6 +156,17 @@
       }
      },
      "why": "the file's Woodburn, Logan agrees with the county but not with Auburn: it stands on a side of its own, never with Auburn"
+    },
+    {
+     "disagreements": {
+      "person": "I332737100409",
+      "is": {
+       "first": {
+        "starts": "birth place: the tree, "
+       }
+      }
+     },
+     "why": "the lines come in the order the differences were found, never in the order the process happens to hash its strings: the difference with the tree is first"
     }
    ]
   },

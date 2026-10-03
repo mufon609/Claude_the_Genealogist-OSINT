@@ -1002,10 +1002,10 @@ class Catalog:
                     for b in nodes[i + 1:]:
                         ra, rb = find(a), find(b)
                         if ra != rb and together(a, b) and all(together(x, y) for x in nodes if find(x) == ra for y in nodes if find(y) == rb): parent[ra] = rb
-                seen = set()
+                seen = {}
                 for a, b in pairs:
                     ra, rb = find(a), find(b)
-                    if ra != rb: seen.add(frozenset((ra, rb)))
+                    if ra != rb: seen[frozenset((ra, rb))] = None
                 for pr in seen:
                     ra, rb = tuple(pr)
                     sides = ([n for n in nodes if find(n) == ra], [n for n in nodes if find(n) == rb])
