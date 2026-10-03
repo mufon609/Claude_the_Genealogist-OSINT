@@ -1,0 +1,54 @@
+{
+ "title": "a UTF-8 file with a byte order mark is read as UTF-8",
+ "line": "the harness tree written in UTF-8 behind a byte order mark ingests the same 26 people, the mark no part of the first line",
+ "tree": {
+  "slug": "harness",
+  "name": "Harness"
+ },
+ "steps": [
+  {
+   "say": "the harness file with a byte order mark in front",
+   "ingest": {
+    "file": "harness.ged",
+    "written": {
+     "codec": "utf-8",
+     "bom": true
+    }
+   },
+   "as": "import",
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "imports": 1
+     }
+    },
+    {
+     "persons": {
+      "count": 26
+     },
+     "why": "the same 26 people the file in UTF-8 gives"
+    },
+    {
+     "stored": {
+      "citation": "Massachusetts Vital Records, 1911–1915",
+      "collection": "U.S., Find a Grave® Index, 1600s-Current",
+      "note": "Schwenkfelder immigrant’s from Silesia",
+      "name": "Reiko Diane Davidson",
+      "clean": true
+     },
+     "why": "every text is the file's own, none replaced"
+    },
+    {
+     "artifact": {
+      "record": "import",
+      "source_id": "B02"
+     }
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

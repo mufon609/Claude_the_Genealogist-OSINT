@@ -5,7 +5,7 @@ derivatives/, inbox/, trees/<slug>/imports, trees/<slug>/exports): the
 repository by default, or the directory named by the environment variable
 DATA_ROOT, so a scratch run keeps its files apart from the owner's.
 """
-import datetime as dt, hashlib, json, os, re, sqlite3, time
+import codecs, datetime as dt, hashlib, json, os, re, sqlite3, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
@@ -141,26 +141,46 @@ class Node:
         c = self.first(tag); return c.value if c else default
 
 _LINE = re.compile(r"^(\d+)\s+(?:(@[^@]+@)\s+)?([A-Za-z0-9_]+)(?:\s(.*))?$")
+_HEADER_CHAR = re.compile(r"^1[ \t]+CHAR[ \t]+(\S[^\r\n]*?)[ \t]*$", re.M)
+CHAR_CODECS = {"UTF-8": "utf-8", "UTF8": "utf-8", "ASCII": "utf-8", "ANSI": "cp1252"}   # a header's CHAR value to the codec that reads it; ASCII is read as UTF-8, which is the same bytes below 128
+
+def gedcom_codec(raw: bytes, path: str):
+    """(codec, what the file says it is) for the bytes of a GEDCOM file: a byte order mark first (UTF-8, UTF-16 either way),
+    then UTF-16 without one (the first line's "0" followed or preceded by a zero byte), then the header's CHAR line; a file
+    with no CHAR line is UTF-8, as GEDCOM 7 writes it. A character set this reads no further (ANSEL, the old DOS and
+    Macintosh sets) and a UNICODE file that is not UTF-16 are refused, never guessed at."""
+    if raw.startswith(codecs.BOM_UTF8): return "utf-8-sig", "UTF-8 with a byte order mark"
+    if raw.startswith(codecs.BOM_UTF16_LE) or raw.startswith(codecs.BOM_UTF16_BE): return "utf-16", "UTF-16 with a byte order mark"
+    if raw[:2] == b"0\x00": return "utf-16-le", "UTF-16, little-endian, no byte order mark"
+    if raw[:2] == b"\x000": return "utf-16-be", "UTF-16, big-endian, no byte order mark"
+    m = _HEADER_CHAR.search(raw[:65536].decode("latin-1"))
+    char = m.group(1).upper() if m else "UTF-8"
+    if char in CHAR_CODECS: return CHAR_CODECS[char], f"CHAR {char}"
+    if char in ("UNICODE", "UTF-16"): raise SystemExit(f"{path}: its header says CHAR {char}, UTF-16, but the file has no UTF-16 byte order mark and its bytes are not UTF-16: re-export it as UTF-8")
+    raise SystemExit(f"{path}: its header says CHAR {char}, a character set this does not read: re-export the file as UTF-8")
 
 def parse_gedcom(path: str):
-    """Return list of level-0 Nodes with CONC/CONT folded into values."""
+    """Return list of level-0 Nodes with CONC/CONT folded into values. The file is read in the encoding its own bytes and header
+    say (gedcom_codec) and refused, naming the byte, when they do not fit it: a character is never replaced."""
     roots, stack = [], []
-    with open(path, encoding="utf-8-sig", errors="replace") as fh:
-        for raw in fh:
-            line = raw.rstrip("\r\n")
-            if not line.strip(): continue
-            m = _LINE.match(line)
-            if not m: continue
-            level, xref, tag, value = int(m.group(1)), m.group(2), m.group(3), m.group(4) or ""
-            if tag in ("CONC", "CONT") and stack:
-                parent = stack[-1]
-                parent.value = (parent.value or "") + ("\n" if tag == "CONT" else "") + value
-                continue
-            node = Node(level, xref, tag, value)
-            while stack and stack[-1].level >= level: stack.pop()
-            if stack: stack[-1].children.append(node)
-            else: roots.append(node)
-            stack.append(node)
+    with open(path, "rb") as fh: data = fh.read()
+    codec, said = gedcom_codec(data, path)
+    try: text = data.decode(codec)
+    except UnicodeDecodeError as e: raise SystemExit(f"{path}: {said}, but byte {e.start} is not valid {codec} ({e.reason}): the file is mislabelled or damaged")
+    for line in re.split(r"\r\n|\r|\n", text):                   # a line ends in any of the three; only these, never another Unicode separator inside a value
+        if not line.strip(): continue
+        m = _LINE.match(line)
+        if not m: continue
+        level, xref, tag, value = int(m.group(1)), m.group(2), m.group(3), m.group(4) or ""
+        if tag in ("CONC", "CONT") and stack:
+            parent = stack[-1]
+            parent.value = (parent.value or "") + ("\n" if tag == "CONT" else "") + value
+            continue
+        node = Node(level, xref, tag, value)
+        while stack and stack[-1].level >= level: stack.pop()
+        if stack: stack[-1].children.append(node)
+        else: roots.append(node)
+        stack.append(node)
     return roots
 
 def dumps(o) -> str:

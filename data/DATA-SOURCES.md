@@ -96,6 +96,14 @@ record (`catalog.tier_sql`) is its collection's where its holder's own collectio
 collection first met when a record arrives (`tools/attach.py`, `tools/run_step.py`) takes its tier from the column the
 same way when it is created.
 
+**A tree file's row.** A GEDCOM is labelled with the exporter its own header names (`HEAD.SOUR`, with its `NAME` and
+`CORP`), never assumed to be one vendor's. The ingest takes the Hosted Tree row whose name opens one of the names the
+header gives ("Ancestry.com" opens "Ancestry.com Family Trees"), and writes that row's terms and cost on the artifact:
+Ancestry's member-tree export is B02. A file whose header names no exporter with a row here is A05, a family tree file
+of unknown origin: T4 like every compiled tree (someone's conclusions, which anyone could have edited, so it identifies
+people and never builds their facts), with no terms assumed. A row for another exporter is added when a file from it
+arrives, named so that its first words open the name its header gives.
+
 ### Evidence classes (`evidence-classes.csv`)
 
 A tier classifies the source; a class classifies each piece of information a record gives. The Genealogical Proof

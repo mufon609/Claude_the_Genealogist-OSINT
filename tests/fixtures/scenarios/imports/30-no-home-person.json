@@ -1,0 +1,146 @@
+{
+ "title": "a fresh import has no home person and the loop will not walk without one",
+ "line": "ingest says no home person is set and names the command that sets it; the queue and the runner each refuse, saying the same, rather than walking the file's people; once the owner sets the home person the queue names someone at the edge",
+ "tree": {
+  "slug": "harness",
+  "name": "Harness"
+ },
+ "steps": [
+  {
+   "say": "the harness file ingested into a fresh tree",
+   "ingest": {
+    "file": "harness.ged"
+   },
+   "as": "import",
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "said": {
+       "has": [
+        "no home person is set for tree 'harness'",
+        "python3 tools/tree.py home \"<person>\" --tree harness"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the queue is asked",
+   "run_tool": {
+    "tool": "queue.py",
+    "args": [
+     "--tree",
+     "harness"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 1,
+      "said": {
+       "has": [
+        "tree 'harness' has no home person",
+        "python3 tools/tree.py home"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the queue's whole listing, as JSON",
+   "run_tool": {
+    "tool": "queue.py",
+    "args": [
+     "--tree",
+     "harness",
+     "--all",
+     "--json"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 1,
+      "said": {
+       "has": "has no home person"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the runner is asked",
+   "run_tool": {
+    "tool": "turns.py",
+    "args": [
+     "--tree",
+     "harness",
+     "--by",
+     "agent:check"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 1,
+      "said": {
+       "has": [
+        "has no home person",
+        "python3 tools/tree.py home"
+       ],
+       "lacks": "turn(s) run"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner sets the home person, as the message says",
+   "run_tool": {
+    "tool": "tree.py",
+    "args": [
+     "--by",
+     "agent:check",
+     "home",
+     "Matthew Alan Ahearn",
+     "--tree",
+     "harness"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "said": {
+       "has": "home person of harness: Matthew Alan Ahearn"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the queue is asked again",
+   "run_tool": {
+    "tool": "queue.py",
+    "args": [
+     "--tree",
+     "harness"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "said": {
+       "has": "link not yet accepted",
+       "lacks": "no home person"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

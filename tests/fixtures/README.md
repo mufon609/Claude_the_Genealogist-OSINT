@@ -216,6 +216,20 @@ order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`),
 what they are asked with and answer with is in the scenario. `connectors.json` holds the same for the offline connector
 checks in `tools/check.py`: the names, titles and bodies they are run against.
 
+The import scenarios (`scenarios/imports/`) add, through `tests/checks/imports.py`, how a file is read as itself. The file
+is always a fixture, the harness tree, written as another exporter would write it: the action `ingest` (`tools/ingest_gedcom.py`
+into the scenario's tree, a refusal not an error: the result is its `code`, what it `said`, the `imports` and `artifacts` the
+catalog holds afterwards) takes `file` and `written`: `char` (the header's CHAR value), `codec` (the encoding the bytes are written in, utf-8 by default) with `bom` (its
+byte order mark first), `without_exporter` (the header's SOUR block dropped, a file that names no exporter) and `header_only`
+(everything from the first person on dropped); a character the codec cannot write becomes `?`, as an exporter for that
+character set writes it. `run_tool` runs one of the tools on the scenario's catalog (`tool`, `args`; `--db` goes first) and
+returns its `code` and what it `said`. The expectations are `checklist_records` (the record kinds of a person's checklist
+rows: `has`, `lacks`), `stored` (text the import stored: a `citation`, `collection` name, `note` body, `place` string or
+person `name` holding the words given, `absent` for words no row holds, `clean` for no replacement character anywhere) and
+`xref_systems` (the external id systems of the tree's persons). A scenario with no `tree.file` starts with an empty tree.
+The geocoder's answer for the place the first-level-unit scenario resolves is the owner's own cache entry, fetched on
+5 September 2026.
+
 Two stand-ins carry no fact of anyone: the smallest of JPEG files stands for a gravestone photograph the harness never
 parses, and a page of nothing but its saved-from line stands for an obituary the file cites at a holder with no parser,
 read only by a reading typed from the file's own claims.

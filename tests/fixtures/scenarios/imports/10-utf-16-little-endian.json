@@ -1,0 +1,55 @@
+{
+ "title": "a UTF-16 export is read as UTF-16",
+ "line": "the harness tree written in UTF-16, little-endian with a byte order mark and its header's CHAR UNICODE, ingests the same 26 people with every stored text as the file writes it, none of it replaced",
+ "tree": {
+  "slug": "harness",
+  "name": "Harness"
+ },
+ "steps": [
+  {
+   "say": "the harness file as an exporter that writes UTF-16 would write it",
+   "ingest": {
+    "file": "harness.ged",
+    "written": {
+     "codec": "utf-16-le",
+     "bom": true,
+     "char": "UNICODE"
+    }
+   },
+   "as": "import",
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "imports": 1
+     }
+    },
+    {
+     "persons": {
+      "count": 26
+     },
+     "why": "the same 26 people the file in UTF-8 gives"
+    },
+    {
+     "stored": {
+      "citation": "Massachusetts Vital Records, 1911–1915",
+      "collection": "U.S., Find a Grave® Index, 1600s-Current",
+      "note": "Schwenkfelder immigrant’s from Silesia",
+      "name": "Reiko Diane Davidson",
+      "clean": true
+     },
+     "why": "every text is the file's own, none replaced"
+    },
+    {
+     "artifact": {
+      "record": "import",
+      "source_id": "B02"
+     }
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

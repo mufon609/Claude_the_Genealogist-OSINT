@@ -475,20 +475,14 @@ makes.
 
 ### C27. An import from anywhere is read as itself
 
-Beyond citations: any province, region or state makes a person US-based
-(`checklist.py` `in_us`; `resolve_places.leaf_type` types every first-level
-unit `state`), so a person born and died in Hull, England gets US census,
-draft and Social Security rows; every import is labelled an Ancestry member
-tree with Ancestry's terms (`ingest_gedcom.py`: the manifest, the default
-source B02, "Ancestry member tree (no citation)", the external id system); the
-gazetteer routing for Ireland, Germany and Poland, the Silesian place rules and
-the church denominations are written in code (`resolve_places.py`,
-`catalog.py`, `checklist.py`, `footprint.py`); a UTF-16 file ingests as no one
-and is recorded as imported; the quickstart sets no home person, so the queue
-walks the file alphabetically. Read the export's own source and terms from its
-header, a country's first-level unit as its own kind, the routing and the
-denominations from data, the file's encoding from its BOM and header, and ask
-for the home person at import.
+Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the
+Silesian place rules and the church denominations are written in code
+(`resolve_places.py`, `catalog.py`, `checklist.py`, `footprint.py`). Read the
+routing and the denominations from data, as `data/jurisdictions.csv` already
+carries which records exist where. And an unresolved place string that names a
+US state anywhere in it is read as American even when its last part names
+another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
+the country the string ends with first.
 
 ### C28. Cards the evidence has passed by
 

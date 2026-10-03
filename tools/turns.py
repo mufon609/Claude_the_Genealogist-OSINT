@@ -11,7 +11,7 @@ asks the queue again. A turn that pauses on pages to save in the browser (turn.s
 stops the runner with that list printed and the turn's state kept, as turn.py does; the session at the owner's browser saves
 them and calls the runner again with --resume, which resumes the paused turn (turn.resume, its report) and goes on to the
 next person. The runner stops when the queue names nobody a turn can act on, when a turn pauses, or after --turns N turns
-(the resumed turn counted). A person the queue names again whose last turn held nothing new for them (the count of records
+(the resumed turn counted). It refuses to start on a tree with no home person (tools/tree.py home), as the queue does. A person the queue names again whose last turn held nothing new for them (the count of records
 held on their plan and accepted on their personas, before and after) is passed over for the rest of the run with that
 reason, so a queue that keeps naming a person with nothing left to bring in does not run them again and again.
 
@@ -105,6 +105,7 @@ def summary(cx, tree_id, st, stopped, detail=False):
 def run(cx, tree_id, slug, by, db, turns=None, resume=False, detail=False):
     """Turn after turn (turn.start) from the queue's edge, the paused turn resumed first when asked (turn.resume). Returns the
     run's state once it stops."""
+    queue_module().require_home(cx, tree_id)                   # the loop walks the confirmed tree from the home person: none set, nothing runs
     paused = turn.load_state(db); st = load_state(db)
     if resume:
         if not paused or paused["tree_id"] != tree_id: sys.exit("no paused turn on this tree: tools/turns.py")

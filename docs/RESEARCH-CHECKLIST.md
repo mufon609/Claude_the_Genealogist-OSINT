@@ -74,6 +74,15 @@ and Harpersdorf registers, and Philadelphia County probate (Montgomery County
 did not exist until 1784). A pre-1850 census row is still a household record,
 but the expectation is "counted under the head", not "named".
 
+"In the United States" is read from the country of a place and nowhere else:
+a province, a prefecture or England is a first-level unit of its own country,
+never a US state. The census, state census, directory, land, passenger-list and
+naturalization rows need a place in the United States. The Social Security,
+draft-card, Army enlistment, pension, probate and military-service rows, and
+the American holders of the obituary and cemetery rows, are left out only for
+a person whose every place lies outside it: a person whose places are not yet
+known keeps them, and a record the tree already cites or holds keeps its row.
+
 ## 3. From checklist to gaps to search tasks (automatic on opening a profile)
 
 For each checklist row: **held** (archived), **cited but not held** (the old

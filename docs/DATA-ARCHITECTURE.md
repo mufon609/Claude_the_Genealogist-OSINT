@@ -211,7 +211,8 @@ A **tree** is a workspace of conclusions. The catalog holds any number of them.
 - The home person, the one the overview lays the tree out from and the
   living default counts tiers from (§7 decision 3), lives in
   `tree.home_person_id`; `tree.settings_json` is for per-tree settings, and
-  none is defined today.
+  none is defined today. An import sets no home person: the ingest says so and
+  names `tools/tree.py home`, and the queue and the runner refuse until it is set.
 - Access control per tree is a later addition: a `tree_member` table keyed on
   `tree_id` is all the schema needs.
 
