@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, and how a part of a string stands to the names of a candidate. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, and how a part of a string stands to the names of a candidate. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -136,6 +136,58 @@
     "publication date": "27 Jan 1986"
    },
    "url": "https://www.google.com/search?q=%22Boca%20Raton%20News%22&tbm=bks&tbs=cdr:1,cd_min:1%2F27%2F1986,cd_max:1%2F27%2F1986"
+  }
+ ],
+ "prefills_nothing": [
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "", "HolderCollection": "x"},
+   "fields": {"name": "Catherine Rittenhouse"},
+   "nothing": true
+  },
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "https://archive.org/search?query=title%3A%28%22Appletons%27+cyclopaedia+of+American+biography%22%29", "HolderCollection": "x"},
+   "fields": {"name": "Abram C Brant"},
+   "nothing": true
+  },
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "https://archive.org/search?query=title%3A%28%22{title}%22%29", "HolderCollection": "x"},
+   "fields": {"name": "Abram C Brant", "citation": "The Genealogical Record of the Schwenkfelder Families"},
+   "nothing": false
+  },
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "https://archive.org/search?query=title%3A%28%22{title}%22%29", "HolderCollection": "x"},
+   "fields": {"name": "Abram C Brant"},
+   "nothing": true
+  },
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "https://www.legacy.com/obituaries/search?firstName={given}&lastName={surname}", "HolderCollection": "x"},
+   "fields": {"name": "Helen Sara Brant"},
+   "nothing": false
+  },
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "{url}", "HolderCollection": "x"},
+   "fields": {"name": "Noi Davidson", "url": "http://www.legacy.com/obituaries/x?n=noi"},
+   "nothing": false
+  },
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "{url}", "HolderCollection": "x"},
+   "fields": {"name": "Noi Davidson"},
+   "nothing": true
+  },
+  {
+   "holder": {"HolderKind": "fs_collection", "HolderKey": "1937489", "HolderCollection": "New York, State Census, 1925"},
+   "fields": {"name": "Dorothy Peters"},
+   "nothing": false
+  },
+  {
+   "holder": {"HolderKind": "fs_collection", "HolderKey": "1937489", "HolderCollection": "New York, State Census, 1925"},
+   "fields": {"collection": "New York, State Census, 1925"},
+   "nothing": true
+  },
+  {
+   "holder": {"HolderKind": "memorial", "HolderKey": "", "HolderCollection": "x"},
+   "fields": {"name": "Ellen E McCrary"},
+   "nothing": false
   }
  ],
  "automated_kinds": [

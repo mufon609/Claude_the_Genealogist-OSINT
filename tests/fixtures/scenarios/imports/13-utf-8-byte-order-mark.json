@@ -1,6 +1,6 @@
 {
  "title": "a UTF-8 file with a byte order mark is read as UTF-8",
- "line": "the harness tree written in UTF-8 behind a byte order mark ingests the same 26 people, the mark no part of the first line",
+ "line": "the harness tree written in UTF-8 behind a byte order mark ingests the same 27 people, the mark no part of the first line",
  "tree": {
   "slug": "harness",
   "name": "Harness"
@@ -25,9 +25,9 @@
     },
     {
      "persons": {
-      "count": 26
+      "count": 27
      },
-     "why": "the same 26 people the file in UTF-8 gives"
+     "why": "the same 27 people the file in UTF-8 gives"
     },
     {
      "stored": {

@@ -470,7 +470,7 @@ CREATE TABLE search_plan (
   collection_id     TEXT REFERENCES collection(id),
   on_json           TEXT,                               -- [[relative name, relation]] the citation sits on; [] when it is on the person
   sources_json      TEXT NOT NULL,                      -- registry ids for the record's kind
-  mode              TEXT NOT NULL CHECK (mode IN ('fetch','blocked','auto','assisted','awaiting_approval')),   -- blocked: a cited record with no free holder
+  mode              TEXT NOT NULL CHECK (mode IN ('fetch','blocked','auto','assisted','awaiting_approval')),   -- blocked: a cited record with no free holder; assisted fetch: a cited record whose holder's link takes nothing from the citation
   expected          TEXT,
   status            TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned','done','skipped')),
   rationale         TEXT,

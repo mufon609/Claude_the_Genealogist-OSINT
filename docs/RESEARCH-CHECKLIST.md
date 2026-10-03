@@ -231,7 +231,8 @@ the catalog, read-only: the foundation with each field marked `accepted` or
 held / cited / missing / n/a, the relative a citation sits on when it is not on
 the person, and the pre-built search step per gap with its execution mode per
 source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record,
-`blocked` for one with no free holder).
+`blocked` for one with no free holder, `assisted` for one whose free holder's
+link takes nothing from the citation).
 `--json` gives the machine form; `--all` gives one line per person. A real
 citation always beats an era rule; the row is then marked with the rule it
 falls outside of. Every query field is `{value, basis}`: basis `accepted` or

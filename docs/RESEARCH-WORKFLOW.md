@@ -215,7 +215,17 @@ archive.org collection of scanned index pages with no page-locating step
 built yet (`data/holders.csv`'s `scanned_index` kind), is a fetch step with
 mode `blocked` and the reason in its rationale; a reviewed person whose row is cited
 only through blocked fetches also gets the row's search step at the free
-sources, as for a missing row. A **search**
+sources, as for a missing row. A citation at a free holder with no connector
+whose link takes nothing from the citation (the holder's form posts, as the SAR
+Patriot Research System's does, or its link is the same whatever the citation
+says: `catalog.prefills_nothing`) is a fetch step with mode `assisted`: every
+citation of that holder opens the same empty form, so there is no page for this
+citation to save, only a search a person runs, the citation's own details as
+what to look for and the holder's page as where, logged like any assisted
+search. It stays off the fetch list (§4), a turn never pauses on it, and its log
+stays through a re-plan. A holder whose link carries a field of the citation
+stays `fetch`, and so does one with a connector, which asks by the fields and
+not by the link. A **search**
 is a typed query (`subject_record`, `household`, `couple`, `name`,
 `surname_locality`, `obituary`, `probate`) for a missing row, built from the
 foundation fields with each field's basis, with its registry sources, one mode
@@ -259,13 +269,25 @@ combination only once those are not getting hits.
 | Mode | Sources | Behaviour |
 |---|---|---|
 | auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text and title search, WikiTree, the VA gravesite locator, the New Jersey death index, the Kentucky death and birth indexes; FamilySearch after Innovator approval, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
-| assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
+| assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), the SAR Patriot Research System, Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
 
 **Adjusting a prefilled search.** A person at the keyboard may change the
 fields of a prefilled search before running it (a wider year, a middle name,
 a place spelt as the site wants it); the run's log carries the fields as run,
 so the change is a logged act. A link that is wrong for the citation itself
 (a suffix taken as a surname) is a defect: report it, do not work around it.
+
+**A cited record whose holder's link prefills nothing.** A cited record at a
+holder whose link takes nothing from the citation (the SAR Patriot Research
+System's search form posts, and its `robots.txt` disallows the search to every
+agent) is an assisted fetch step (§3), a search to run by hand and not a page to
+save: the screen shows the citation's own details (the collection, the name the
+citation sits on, the page text's parts) as what to look for and the holder's
+own page as where; the owner runs the search there and logs it as for any
+assisted search (nothing found, blocked, or a page saved into `inbox/` and
+attached to the step). The step is never on `tools/fetches.py`'s list, which is
+the pages the page-saves-itself method can save: the same empty form listed once
+per citation and person is a page nobody can save as an answer.
 
 **The enlistment file.** The WWII Army enlistment step for a man born 1895
 to 1927 carries the National Archives' own fielded search prefilled (the name
@@ -281,9 +303,7 @@ military service event, education and marital status as written.
 the owner's own browser in one call and never read through the model.
 `tools/fetches.py next` names the next pages (five by default): the link to
 open, the file name to save under, the people waiting and the call for the
-script, one line each; a
-link that prefills nothing (a holder's bare search form, whose saved page no
-parser reads) is marked and comes last. For each page: open a new tab, navigate
+script, one line each. For each page: open a new tab, navigate
 it to the link and run `tools/save_page.js` in it with the line's call in place
 of the `("FILENAME.html")` that ends the script
 (a navigate and the script go in one batch call), read the one line it returns,
@@ -308,8 +328,7 @@ holder without a connector, once, leads from held records first, with the link
 to open, the people waiting on it, the file name to save under and the call,
 leaving out
 the pages whose steps have all been run on unchanged fields (`--all` brings
-them back) and marking a bare form; `next` takes the same pages in the same order, a
-bare form last.
+them back); `next` takes the same pages in the same order.
 
 The call is the file name, whether to save a page of no known kind anyway
 (`true` at a holder whose pages the script knows by no markup of its own), and
@@ -354,7 +373,7 @@ a person's two census searches (the 1925 New York state census and the 1930
 federal census) do not share a name; a link that is a record page is listed
 under `familysearch-<collection words>-<year>-<ark id>.html`, the ark id read
 off the page once saved. For a page from a holder whose pages carry no identity
-the attach reads (an SAR patriot page, a Legacy.com obituary), by the name
+the attach reads (a Legacy.com obituary), by the name
 the list printed, whole: such a page is listed once per citation and person
 waiting on it, under a name that carries the citation's own record locator
 (the step's key when it has none) and ends in that person's six characters,

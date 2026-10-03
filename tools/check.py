@@ -25,7 +25,7 @@ import imports, loop, parsers, scenario
 def rules():
     """The name and place rules as the docs state them, on their own, against tests/fixtures/rules.json."""
     with open(os.path.join(FIXTURES, "rules.json"), encoding="utf-8") as fh: R = json.load(fh)
-    from catalog import collection_state, holder_search, kinds_as, place_verdict, record_standing, same_surname
+    from catalog import collection_state, holder_search, kinds_as, place_verdict, prefills_nothing, record_standing, same_surname
     bad = []
     for c in R["same_surname"]:
         got = same_surname(c["record"], c["tree"])
@@ -33,6 +33,9 @@ def rules():
     for c in R["holder_search"]:
         got = holder_search(c["holder"], {k: {"value": v, "basis": "citation"} for k, v in c["fields"].items()})
         if got != c["url"]: bad.append(f"holder_search({c['holder']['HolderKind']}, {c['holder']['HolderKey'][:40]!r}) gave {got!r}, expected {c['url']!r}")
+    for c in R["prefills_nothing"]:
+        got = prefills_nothing(c["holder"], {k: {"value": v, "basis": "citation"} for k, v in c["fields"].items()})
+        if got != c["nothing"]: bad.append(f"prefills_nothing({c['holder']['HolderKind']}, {c['holder']['HolderKey'][:40]!r}, {c['fields']!r}) gave {got!r}, expected {c['nothing']!r}")
     for kind in R["automated_kinds"]:
         if record_standing(kinds_as([kind]))[0] != "automated": bad.append(f"data/evidence-classes.csv gives {kind} no automated standing: its records would stay a hint until a person reads them")
     for c in R["place_verdict"]:
