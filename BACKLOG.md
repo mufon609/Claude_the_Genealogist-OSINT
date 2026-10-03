@@ -475,25 +475,6 @@ US state anywhere in it is read as American even when its last part names
 another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
 the country the string ends with first.
 
-### C28. Cards the evidence has passed by
-
-27 undecided cards sit on superseded readings (some duplicate a newer card on
-the same persona), and a card is never matched again when the person's evidence
-changes, so Robert Edgar Davidson's WikiTree namesakes, which now disagree on
-both dates, are still cards, their rationale saying the death date is absent.
-Reject a card on a superseded reading as superseded when the current reading
-holds the same person (by the persona's key on its page); match a person's
-undecided cards again whenever a decision changes that person's evidence, and
-let a card that has become a hint leave. Among them are nine creations the rule
-took and later withdrew (John D Ahearn, Daisy Bell Rothberg, Dennis Scannell,
-five Lukens and Charles Miller): the person exists, the card is undecided again
-on a reading since superseded, and `conclude.rule_creates` refuses it because
-an older matcher wrote it, saying reconsider proposes it again; `repropose`
-reads only current readings, so it never does. Match such a card's current
-reading again (its entry by the persona's key) so the person is proposed as
-themselves, and turn the withdrawn decision's undecided statements the way a
-superseded card's go.
-
 ### C29. One home for each shared rule, and no dead schema
 
 Soundex is written twice (`catalog.py`, `backfill_aliases.py`), edit distance twice, name splitting three times, the

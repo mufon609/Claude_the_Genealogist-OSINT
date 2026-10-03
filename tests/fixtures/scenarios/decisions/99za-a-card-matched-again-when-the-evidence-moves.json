@@ -1,0 +1,116 @@
+{
+ "title": "a card matched again when the evidence moves",
+ "line": "a card waiting for the owner is compared with the person again whenever a decision moves the person's evidence: the 1940 census's card for the father says his birthplace disagrees with the tree's Northampton, then, once the owner accepts him on the 1920 census, with the Massachusetts the tree shows from it, and Northampton once more when the owner sets that statement aside on its own; the card is the same card throughout, its words the comparison as the evidence stands",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 census page, a household with a son Frederick M among the children: nobody on it is accepted",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "say": "the 1940 census page: the father's card says his Pennsylvania birthplace disagrees with the tree's Northampton",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40",
+   "expect": [
+    {
+     "card": {
+      "record": "c40",
+      "person": "I332737037257",
+      "status": "undecided",
+      "rationale": {
+       "has": "Birth place disagrees (record Pennsylvania, tree Northampton, Hampshire, Massachusetts, USA)"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts Frederick M on the 1920 page: the tree shows his birthplace as that accepted record gives it, and the 1940 card is compared with him again at that decision",
+   "decide": {
+    "card": {
+     "record": "c20",
+     "persona": "Frederick M Ahearn"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "rematched": {
+       "some": {
+        "kind": "rationale",
+        "person": "Frederick Michael Ahearn",
+        "why": {
+         "has": "tree Massachusetts"
+        }
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "c40",
+      "person": "I332737037257",
+      "status": "undecided",
+      "rationale": {
+       "has": "Birth place disagrees (record Pennsylvania, tree Massachusetts)",
+       "lacks": "Northampton"
+      }
+     },
+     "why": "the card's words are the comparison with the person as the evidence now stands, the same card"
+    }
+   ]
+  },
+  {
+   "say": "the owner sets the 1920 census's birth statement aside on its own: the tree shows the file's Northampton again, and the 1940 card is compared with him again at that decision",
+   "assertion": {
+    "record": "c20",
+    "person": "I332737037257",
+    "event_type": "Birth",
+    "verdict": "reject"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "c40",
+      "person": "I332737037257",
+      "status": "undecided",
+      "rationale": {
+       "has": "Birth place disagrees (record Pennsylvania, tree Northampton, Hampshire, Massachusetts, USA)",
+       "lacks": "tree Massachusetts)"
+      }
+     },
+     "why": "a decision on one statement moves the evidence too"
+    },
+    {
+     "cards": {
+      "record": "c40",
+      "status": "rejected",
+      "count": 0
+     },
+     "why": "the same card throughout, never superseded: the matcher still puts the persona to him"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

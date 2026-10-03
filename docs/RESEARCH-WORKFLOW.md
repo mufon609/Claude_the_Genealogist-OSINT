@@ -727,10 +727,37 @@ accepted one asserting the new facts the record gives and nothing it already
 asserted, a statement a person rejected staying rejected, and the matcher
 proposes the rest again. The matcher is versioned
 the same way (`rule:matcher` at the version `tools/match.py` names, raised
-with any change to what fits): `tools/conclude.py reconsider` runs it again on
-every current extraction whose undecided proposals an older matcher wrote,
-rejecting those with the note `superseded` and proposing the personas again as
-the matcher stands. A record image gets no
+with any change to what fits). A card is matched again whenever the evidence
+has passed it by (`tools/conclude.py` rematch): one an older matcher wrote; one
+left on a reading the page's re-read superseded (a decision the rule took there
+and withdrew afterwards, which a re-read, closing only the cards undecided at
+the time, never reached); and one the matcher, on the person's evidence as it
+now stands, would no longer put to that person (the persona a hint for them
+now, §0, waiting on the record's own person, or another person fitting). Each
+closes with the note `superseded`, as a re-read closes the cards of the reading
+it supersedes, and its record's current reading is matched again: the matcher
+proposes the persona afresh as it stands and the rule takes what it takes, so a
+person the rule created and took back comes back as a card for that person,
+never a second one, and a persona that is a hint now leaves the cards and stays
+a hint on the page. A withdrawn decision closed on a superseded reading takes
+what the withdrawal took back with it (the statements it had accepted with the
+record, and its name alias), rejected the way a rejected card's go (a family
+membership resting on nothing else leaves the person's family), since the card
+its current reading gets carries the record's facts again: accepting that card
+makes them stand, nobody having rejected them. What the decision wrote
+undecided (a sibling placement, a link the record's indexer computed, a value
+the page keeps beneath the one it shows) stays undecided, as accepting the
+record leaves it. A
+card the matcher still puts to the same person keeps its id and takes the
+matcher's words, as they now read, as its rationale (one the rule took and
+withdrew keeps the words written before the record was taken: its own
+statements stand on the person now). Every decision that changes a person's
+evidence does this for that person's cards as it is taken (a card, a key fact,
+one statement, a place's words, a conflict resolved or reopened, a statement
+placed, a link or a divorce on the owner's word, a merge), and
+`tools/conclude.py reconsider` does it for every card, and again for the people
+whose date or place its own pass over the conflicts kept or gave back. A record
+image gets no
 automatic extraction: it is read one person per row through the screen's
 transcription path. The model reads it by default (extractor `llm:<model>`,
 layer 3 like any extraction, `docs/DATA-ARCHITECTURE.md` §1), each persona in
@@ -1043,8 +1070,10 @@ assertions and those of later rule decisions do not count), withdraws one it
 would no longer take, its assertions and the name alias it wrote back to
 undecided, and the record is a card for the owner again
 with the reason; accepting that card makes everything the decision had written
-stand again. It then proposes again the cards an older
-matcher wrote, and examines every card still undecided
+stand again. It then matches again every card the evidence has passed by
+(above: one an older matcher wrote, one left on a superseded reading, a
+decision it has just withdrawn there included, and one the matcher would no
+longer put to that person), and examines every card still undecided
 the same way and takes one it would now take, recorded as the rule; a decision
 can open another card, so it passes again until nothing new is taken. Then it
 goes over the conflicts: every conflict it resolved is examined again, newest
@@ -1072,7 +1101,9 @@ difference read afterwards from the kept side is closed with it, so a
 regeneration reopens nothing, while a statement that comes later makes a
 question of its own. Every decision that changes a person's evidence
 regenerates the plan and then lets the rule go over the person's conflicts, as
-`reconsider` does for everyone. The rule resolves through the same path,
+`reconsider` does for everyone, and then matches the person's undecided cards
+again (§5–7: the matcher's words as they now read, or the card superseded when
+the matcher no longer puts the persona to them). The rule resolves through the same path,
 recorded as `rule:classes-favour-one-side for <owner>`, when the classes favour
 one side without doubt (`conclude.classes_decide`): the statement it keeps
 holds the event first-hand (primary information, accepted, from a record whose

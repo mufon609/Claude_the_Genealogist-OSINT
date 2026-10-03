@@ -9,7 +9,7 @@ regenerates the person's plan.
 import json, re
 from treelib import dumps, now, ulid
 from catalog import fetch_target, held_for, holdings, tier_sql
-from conclude import answer_questions
+from conclude import answer_questions, rematch_people
 
 KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
 
@@ -76,7 +76,9 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held);
     a citation to a record not yet fetched stays Undecided. When no assertion behind the fact has visible evidence, the accept
     is the person's own knowledge: a vouch (see vouch). Reject and Undecided apply to every assertion behind the fact.
-    An accept regenerates the plan and marks the questions it closes answered by the proposal that brought the evidence."""
+    An accept regenerates the plan and marks the questions it closes answered by the proposal that brought the evidence.
+    Whatever the decision, the person's undecided cards are matched again on the evidence as it now stands
+    (conclude.rematch_people), rematched the rows."""
     if (field not in KEY_FACTS and not (field.startswith("event:") and fact_subjects(cx, pid, field))) or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
     ts = now(); n = 0; vouched = []
     ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or e["held"]]
@@ -95,5 +97,7 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     if status == "accepted" and ids:                             # the proposal whose match brought the accepted evidence answers what the plan now closes
         props = [json.loads(r["notes"]).get("proposal") for r in cx.execute(f"SELECT notes FROM assertion WHERE id IN ({','.join('?'*len(ids))}) AND notes LIKE '{{%'", ids)]
         answered = answer_questions(cx, tree_id, pid, next((x for x in props if x), None), by)
-    return {"ok": True, "field": field, "status": status, "assertions": n, "evidence": len(ids), "vouched": vouched, "answered": answered}   # evidence: the assertions the decision could act on
+    rematched = rematch_people(cx, tree_id, by, [pid])          # the person's cards compared with the evidence as it now stands
+    return {"ok": True, "field": field, "status": status, "assertions": n, "evidence": len(ids), "vouched": vouched, "answered": answered,
+            "rematched": rematched}   # evidence: the assertions the decision could act on
 

@@ -65,8 +65,11 @@ proposed like any persona; one that fits nobody stays a hint on the page, and th
 candidate card says why it does not fit. The rationale says in plain words which fields agree, which disagree, which
 are absent. Nothing numeric is stored. A persona that already has a proposal is
 skipped, so re-running adds nothing; a proposal closed as superseded (a re-read's,
-or an older matcher's, tools/conclude.py reconsider) is not one, so that persona
-is proposed again. A persona already decided, its link accepted or rejected, is
+or one tools/conclude.py rematch closes: an older matcher's, one left on a superseded
+reading, one the person's evidence has passed by) is not one, so that persona is
+proposed again. What the matcher proposes is proposals(), which writes nothing:
+match writes it, and rematch compares a card that stands with it, the card taken as
+unwritten. A persona already decided, its link accepted or rejected, is
 skipped too; an undecided link is no decision (a decision the rule took back), so
 it keeps no persona from its card. A relative a memorial merely lists (every persona on a
 findagrave-memorial extraction but its own subject) gets no proposal at all,
@@ -409,6 +412,16 @@ def fitting_rows(cx, eid, person_id=None, known=None):
             if fits: out.append((pid, pr, agree))
     return out
 
+def matchable(cx, eid):
+    """The sha256 of the record an extraction is, when the matcher proposes from it; None for a superseded reading, whose
+    personas are history (only the current reading is proposed), and for a results page that points at records, whose rows
+    are never cards whatever they agree on: its own record is the document (docs/RESEARCH-WORKFLOW.md §0); fitting_rows
+    names the rows that fit, tools/plan.py writes a fetch step for each."""
+    from extract import POINTING_LISTINGS
+    ext = cx.execute("SELECT e.artifact_sha256, e.superseded_by, x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()
+    if not ext: raise SystemExit(f"no extraction {eid}")
+    return None if ext[1] or ext[2] in POINTING_LISTINGS else ext[0]
+
 def match(cx, eid, by, about=None):
     """One person at a time: a record proposes first the persona that may be the person it was fetched for (or a person already
     attached to them by a record accepted earlier, or already accepted under the same memorial); the record's other personas wait. Once a
@@ -418,21 +431,39 @@ def match(cx, eid, by, about=None):
     (and, for a person already placed in a family, the same given name), or the same stated relationship to the same
     accepted person; a persona the record relates to an accepted person and that fits nobody, by the fitting check either,
     is proposed as a new person. about: person ids the owner says the record concerns, when no step or link names them (a
-    family-held file)."""
-    from extract import POINTING_LISTINGS
-    ext = cx.execute("SELECT artifact_sha256, superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()
-    if not ext: raise SystemExit(f"no extraction {eid}")
-    if ext[1]: return []                                        # a superseded reading's personas are history: only the current reading is proposed
-    sha = ext[0]; ts = now()
-    extractor_name = cx.execute("SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()[0]
-    if extractor_name in POINTING_LISTINGS: return []           # a row of a results page that points at records is never a card, whatever it agrees on: its own record is the document (docs/RESEARCH-WORKFLOW.md §0); fitting_rows names the rows that fit, tools/plan.py writes a fetch step for each
-    subject_role = LISTED_RELATIVE_SUBJECT.get(extractor_name)   # set on a page anyone can edit that lists a subject's family: every other role on it is a relative merely listed
+    family-held file). What it proposes is proposals' answer, written: [(proposal id, kind, persona name, person id)]."""
+    sha = matchable(cx, eid)
+    if not sha: return []
+    ts = now()
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", MATCHER).fetchone()
     mid = row[0] if row else ulid()
     if not row: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (mid, *MATCHER, ts))
-    personas = personas_of(cx, eid); written = []
+    written = []
+    for p in proposals(cx, eid, about=about):
+        prop = ulid()
+        cx.execute("""INSERT INTO proposal (id,tree_id,kind,question_id,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,?,'undecided')""",
+                   (prop, p["tree_id"], p["kind"], p["question_id"], dumps({"persona_id": p["persona_id"], "person_id": p["person_id"], "subject_person_id": p["subject_person_id"],
+                                                                         "extraction_id": eid, "artifact_sha256": sha, "step_id": p["step_id"]}), p["rationale"], mid, ts))
+        written.append((prop, p["kind"], p["name"], p["person_id"]))
+    cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
+               (ulid(), ts, by, "insert", "proposal", eid, dumps({"proposals": len(written)})))
+    return written
+
+def proposals(cx, eid, about=None, ignore=()):
+    """What the matcher proposes on an extraction as the catalog stands, written by match and by nothing else: one dict per
+    persona it proposes, in the page's order, {tree_id, persona_id, name, kind, person_id (None for a new person),
+    subject_person_id, question_id, step_id, rationale}. The record is matched for the people persons_for finds and the
+    ones about names besides them. A persona already proposed or already decided gets none; ignore: proposal ids taken as
+    not written, so a card that stands is matched again as the matcher would write it now (tools/conclude.py rematch)."""
+    sha = matchable(cx, eid)
+    if not sha: return []
+    extractor_name = cx.execute("SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()[0]
+    subject_role = LISTED_RELATIVE_SUBJECT.get(extractor_name)   # set on a page anyone can edit that lists a subject's family: every other role on it is a relative merely listed
+    ignore = tuple(ignore); unless = f" AND id NOT IN ({','.join('?' * len(ignore))})" if ignore else ""
+    personas = personas_of(cx, eid); out = []
     by_tree = {}                                                # tree id -> [(person id, question id, step id)]
-    for pid, qid, step_id in persons_for(cx, sha) + [(a, None, None) for a in (about or [])]:
+    found = persons_for(cx, sha)
+    for pid, qid, step_id in found + [(a, None, None) for a in dict.fromkeys(about or []) if a not in {f[0] for f in found}]:
         by_tree.setdefault(cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0], []).append((pid, qid, step_id))
     for tree_id, contexts in by_tree.items():
         cat = Catalog(cx, tree_id); cands, ctx_of = [], {}    # candidate persons in order met; candidate id -> the context it came from
@@ -473,7 +504,7 @@ def match(cx, eid, by, about=None):
                 elif close: chosen[pr["id"]] = close[0]; nearly[pr["id"]] = close[0]
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)
         for pr in personas:
-            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')", (tree_id, pr["id"])).fetchone(): continue   # proposed already, unless that proposal was superseded
+            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')" + unless, (tree_id, pr["id"], *ignore)).fetchone(): continue   # proposed already, unless that proposal was superseded
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=? AND pp.status<>'undecided'", (pr["id"], tree_id)).fetchone(): continue   # decided already, accepted or rejected (a link carried across a re-extraction); an undecided link is no decision: one the rule took back, whose older card a newer matcher superseded, is proposed again
             if subject_role and pr["role"] != subject_role: continue   # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
             if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
@@ -496,13 +527,9 @@ def match(cx, eid, by, about=None):
                 why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _, _) in zip(cands, tried) if not a or d)[:600]
                 text = f"{pr['name']} ({pr['role']}) fits nobody in the family of {names}. " + why
                 kind, person_id, (pid, qid, step_id) = "new_person", None, contexts[0]
-            prop = ulid()
-            cx.execute("""INSERT INTO proposal (id,tree_id,kind,question_id,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,?,'undecided')""",
-                       (prop, tree_id, kind, qid, dumps({"persona_id": pr["id"], "person_id": person_id, "subject_person_id": pid, "extraction_id": eid, "artifact_sha256": sha, "step_id": step_id}), text, mid, ts))
-            written.append((prop, kind, pr["name"], person_id))
-    cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
-               (ulid(), ts, by, "insert", "proposal", eid, dumps({"proposals": len(written)})))
-    return written
+            out.append({"tree_id": tree_id, "persona_id": pr["id"], "name": pr["name"], "kind": kind, "person_id": person_id, "subject_person_id": pid,
+                        "question_id": qid, "step_id": step_id, "rationale": text})
+    return out
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("extraction"); ap.add_argument("--db", default=DB); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))

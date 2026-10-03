@@ -1,0 +1,186 @@
+{
+ "title": "a card left on a superseded reading",
+ "line": "a decision the rule takes, then withdraws after the page is read again, leaves its card undecided on the reading the re-read superseded: reconsider closes it as superseded and matches the current reading again, her entry proposed afresh there and taken by the rule, which still would, and the withdrawn decision's statements and name alias, turned with the closed card, stand again with the new one",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 page: the father accepted by the owner, the daughter the census states his taken by the rule, her name as the census writes it an alias",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the page read again while her decision stands: it carries to her persona on the new reading",
+   "reread": {
+    "record": "c20"
+   },
+   "as": "again",
+   "expect": [
+    {
+     "links": {
+      "record": "c20",
+      "person": "I332737044990",
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule takes her decision back after the re-read: the card is undecided again on the first reading, which the re-read superseded, and her statements and alias with it",
+   "withdraw": {
+    "card": {
+     "record": "c20",
+     "person": "I332737044990"
+    }
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "undecided"
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737044990",
+      "is": {
+       "some": [
+        "Alicia M Ahearn",
+        {
+         "any": true
+        },
+        "undecided"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider closes the card left on the superseded reading and matches the current reading again: her entry is proposed afresh there and taken by the rule, which still would",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "rematch",
+        "person": "Alicia Mary Ahearn",
+        "why": {
+         "has": "superseded"
+        }
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "rejected",
+      "note": "superseded"
+     },
+     "why": "the card on the superseded reading closes as a re-read closes the cards of the reading it supersedes"
+    },
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "extraction": "$again.extraction",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     },
+     "why": "the current reading's persona of her entry proposed afresh, and taken by the rule as it stands"
+    },
+    {
+     "links": {
+      "record": "c20",
+      "person": "I332737044990",
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     }
+    },
+    {
+     "assertions_on": {
+      "record": "c20",
+      "rejected": 0
+     },
+     "why": "the withdrawn decision's statements, turned rejected with its card, stand again with the decision on the current reading: nobody rejected them"
+    },
+    {
+     "alias": {
+      "person": "I332737044990",
+      "is": {
+       "some": [
+        "Alicia M Ahearn",
+        {
+         "any": true
+        },
+        "accepted"
+       ]
+      }
+     },
+     "why": "her name as the census writes it stands again with the new decision"
+    },
+    {
+     "cards": {
+      "record": "c20",
+      "status": "undecided",
+      "personas": {
+       "lacks": "Alicia M Ahearn"
+      }
+     },
+     "why": "no card of hers is left undecided on any reading"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

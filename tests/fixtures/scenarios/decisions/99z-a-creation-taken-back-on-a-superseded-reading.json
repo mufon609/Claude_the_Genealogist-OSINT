@@ -1,0 +1,205 @@
+{
+ "title": "a creation taken back on a superseded reading",
+ "line": "a person the rule created from a death record, the creation taken back after the page was read again and its card left undecided on the superseded reading as an older matcher's, is no new person when reconsider matches the current reading again: the persona is put to the person the creation made, never a second one, and the creation's statements, turned with its closed card, stand again when that card is accepted",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the death record naming her as the deceased's mother, attached on the owner's word as hers",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
+    "about": "I332737204852"
+   },
+   "as": "kd"
+  },
+  {
+   "say": "she is accepted by the owner: the son the record states she bore, whom nobody fits, is created by the rule",
+   "decide": {
+    "card": {
+     "record": "kd",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "kd",
+      "persona": "Ollie Duke Davidson",
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      }
+     }
+    },
+    {
+     "persons": {
+      "count": 28
+     }
+    }
+   ]
+  },
+  {
+   "say": "the page read again while the creation stands: his link carries to the new reading",
+   "reread": {
+    "record": "kd"
+   },
+   "as": "again",
+   "expect": [
+    {
+     "links": {
+      "record": "kd",
+      "person": {
+       "created": "Ollie Duke Davidson"
+      },
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule takes the creation back after the re-read: its card undecided again on the superseded reading, the person row staying",
+   "withdraw": {
+    "card": {
+     "record": "kd",
+     "persona": "Ollie Duke Davidson"
+    }
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "kd",
+      "persona": "Ollie Duke Davidson",
+      "kind": "new_person",
+      "status": "undecided"
+     }
+    },
+    {
+     "persons": {
+      "count": 28
+     }
+    }
+   ]
+  },
+  {
+   "say": "the record's open cards marked as an older matcher's: the rule leaves an older matcher's creation for reconsider to propose again",
+   "older_matcher": {
+    "record": "kd"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "kd",
+      "persona": "Ollie Duke Davidson",
+      "taken": false,
+      "why": {
+       "has": "reconsider proposes it again"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider closes the card on the superseded reading and matches the current reading again: the persona is put to the person the creation made, not proposed as a new person",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "kd",
+      "persona": "Ollie Duke Davidson",
+      "kind": "new_person",
+      "status": "rejected",
+      "note": "superseded"
+     },
+     "why": "the card left on the superseded reading closes as a re-read closes the cards of the reading it supersedes"
+    },
+    {
+     "card": {
+      "record": "kd",
+      "persona": "Ollie Duke Davidson",
+      "extraction": "$again.extraction",
+      "kind": "persona_match",
+      "status": "undecided",
+      "person_name": "Ollie Duke Davidson"
+     },
+     "why": "the current reading's persona of his entry, proposed as the person the creation made: the person exists"
+    },
+    {
+     "rule": {
+      "record": "kd",
+      "persona": "Ollie Duke Davidson",
+      "extraction": "$again.extraction",
+      "taken": false,
+      "why": {
+       "starts": "the name is not accepted yet"
+      }
+     },
+     "why": "the rule takes what it takes: with the creation's statements gone with its card, his name and his link to her rest on nothing accepted, so the card is the owner's"
+    },
+    {
+     "persons": {
+      "count": 28
+     },
+     "why": "never a second Ollie Duke Davidson"
+    },
+    {
+     "facts": {
+      "person": {
+       "created": "Ollie Duke Davidson"
+      },
+      "name": "rejected",
+      "death": "rejected"
+     },
+     "why": "the creation's statements went with its card, the way a rejected card's go, until the card the current reading got is decided"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the card the current reading got: the creation's statements stand again with it",
+   "decide": {
+    "card": {
+     "record": "kd",
+     "persona": "Ollie Duke Davidson",
+     "extraction": "$again.extraction"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": {
+       "created": "Ollie Duke Davidson"
+      },
+      "name": "accepted",
+      "death": "accepted",
+      "parents": "accepted"
+     },
+     "why": "his name, death and parents link accepted from the record again: nobody rejected them"
+    },
+    {
+     "persons": {
+      "count": 28
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

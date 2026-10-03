@@ -233,7 +233,7 @@ detail carries `detail_has`, closed by the owner through `tools/log_search.py --
 (`fixture` into the inbox and `tools/attach_inbox.py`, or `stand_in: "image"` under `as_file`, `about` for the
 owner's word), `archive` (a `fixture`, `suffix` to make other bytes of the same page; `source`, `collection`, `locator`, or a
 `manifest`; `extract`, `match` (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same,
-for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it),
+for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `conclude.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it),
 `reconsider` (`dry`; its `rows`, and `wrote`, the audit rows the run wrote), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
 `tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `place` (a persona fact
 placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact; `event` is a
