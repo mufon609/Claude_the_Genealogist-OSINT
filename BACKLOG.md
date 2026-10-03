@@ -578,6 +578,21 @@ a decision), never toward a wrong decision. Name the original by the record's
 own subject as well (the person whose death the certificate is), from the
 reading's own persona roles, so only copies of one document count once.
 
+### C35. Family links accepted on a grouping the record does not state
+
+An accept writes a family link the record's indexer computed undecided, but
+decisions made before the FamilySearch reader marked its relations, the
+owner's and the rule's alike, wrote FamilySearch's groupings as accepted
+links: a census page's "Father", "Mother" and "Parents" couple around the
+page's own person, a head's page's "Wife", a marriage page's in-law. A rule
+decision `reconsider` keeps keeps them accepted, so a person's parents or
+spouses can read accepted on a grouping alone. Have `reconsider`, when it
+keeps a decision, turn each of that decision's accepted family-link statements
+whose record's current reading marks the relationship computed to undecided,
+noted as the indexer's, one audit row each; the same statements under the
+owner's own decisions are the owner's to answer, listed for them, since a
+person's decision is never undone by the rule.
+
 ## Externally blocked
 
 Waiting on events the repo cannot drive.

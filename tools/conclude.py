@@ -1099,7 +1099,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
             points.append((f"{pt} ({_on(first)})", 2) if first else (f"{pt}, once (the tree holds the link on {_on(gs)})", 1))
         elif shared: one_source(f"the {pt}", shared)
         else: points.append((f"{pt} (a link the file claims, the relative's own persona here fitting on more than a name)", 1))   # grounded above: a link the file claims counts once, never double, and is no obituary's ground
-    bare_note = ("; the stated relationship to " + ", ".join(dict.fromkeys(bare)) + " is no point: the record gives nothing of them but the name and the relationship itself, and they are not accepted on it") if bare else ""
+    bare_note = ("; the relationship the record gives to " + ", ".join(dict.fromkeys(bare)) + " is no point: the record gives nothing of them but the name and the relationship itself, and they are not accepted on it") if bare else ""
     left_note = ("; no point for " + "; ".join(left)) if left else ""
     if sum(n for _, n in points) < 2: return False, "agrees with the accepted name" + (f" and {points[0][0]}" if points else "") + " only, counting facts from trusted sources; two are needed" + bare_note + left_note
     if survivors_kind and not rel_points: return False, "an obituary or newspaper text is ground only through who it names: " + (", ".join(w for w, _ in points) or "the name") + " agree, but none of the accepted relatives is among the survivors it names" + bare_note + left_note
