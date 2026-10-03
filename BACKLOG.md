@@ -502,9 +502,6 @@ record the harness reads is real and only a holder's silence is simulated;
 harness holds more, and some of it is a real answer to another request, which
 reads as the holder saying "nothing" where its real answer holds a record:
 
-- decisions `71` and `99f` record readings typed into the scenario as read by
-  `llm:claude-sonnet-5-5`; `99f` types "Huntington, Suffolk County, New York",
-  "groom" and "M" where the image gives HUNTING and neither word.
 - undisclosed stand-ins: `fake_run` in loop `12`, `13` and `63` beside the four
   the README names; `loop.py`'s geocoder reading only its cache; loop `40`
   step 3's bare `<html></html>`; the smallest of JPEG files for a gravestone
@@ -515,8 +512,7 @@ reads as the holder saying "nothing" where its real answer holds a record:
 
 Answer each request with its own real answer (the archive's, or one captured
 from the holder with its URL and date), rewriting a scenario around that answer
-where it changes the outcome; give a typed reading
-the harness as its reader and the image's own words. The archive holds real pages for
+where it changes the outcome. The archive holds real pages for
 the last two stand-ins: a Find a Grave gravestone photograph read by the model
 (sha `7b2dd95d001a…`, photo 142698059, registry E05) and a Legacy.com obituary
 page read by the model (sha `0ee95c3d0eba…`, H05); whether a family-held

@@ -1,6 +1,6 @@
 {
  "title": "a reading names its reader",
- "line": "a record image is read through the screen's transcription path by a model (llm:<model id>) or a person (user:<name>): a model with no id, a reader that is neither, a persona with no line or region, and an image not said to be a record or an index are each refused with nothing written; a reading records the model id, the version the id carries, the sha256 of the instruction text and what the image is, and each persona its line or region; a second persona of the same reading keeps its image kind; a person's reading is an extraction of its own",
+ "line": "a record image is read through the screen's transcription path by a model (llm:<model id>) or a person (user:<name>), every reading here typed from the real image by the harness, in the model's place as llm:harness and in a person's as user:harness: a model with no id, a reader that is neither, a persona with no line or region, and an image not said to be a record or an index are each refused with nothing written; a reading records the model id, the version the id carries, the sha256 of the instruction text and what the image is, and each persona its line or region; a second persona of the same reading keeps its image kind; a person's reading is an extraction of its own",
  "tree": {
   "file": "harness.ged"
  },
@@ -89,7 +89,7 @@
      "role": "bride or groom",
      "image_is": "index"
     },
-    "by": "llm:claude-sonnet-5-5"
+    "by": "llm:harness"
    },
    "expect": [
     {
@@ -121,7 +121,7 @@
      "role": "bride or groom",
      "line": 48
     },
-    "by": "llm:claude-sonnet-5-5"
+    "by": "llm:harness"
    },
    "expect": [
     {
@@ -143,7 +143,7 @@
    ]
   },
   {
-   "say": "the row of HAHNLE CHRIS M, the 48th line of the page, read by the model that reads it",
+   "say": "the row of HAHNLE CHRIS M, the 48th line of the page, typed from the image by the harness in the model's place: no model read it, so its reader names the harness",
    "transcribe": {
     "record": "nys",
     "form": {
@@ -159,7 +159,7 @@
      "bbox": [280, 3086, 2460, 40],
      "image_is": "index"
     },
-    "by": "llm:claude-sonnet-5-5"
+    "by": "llm:harness"
    },
    "as": "hahnle",
    "expect": [
@@ -172,9 +172,9 @@
      "extractor": {
       "extraction": "$hahnle.extraction",
       "kind": "llm",
-      "name": "claude-sonnet-5-5",
-      "model_id": "claude-sonnet-5-5",
-      "version": "5.5",
+      "name": "harness",
+      "model_id": "harness",
+      "version": null,
       "prompt_is_instruction": true,
       "image_is": "index",
       "regions": [
@@ -184,7 +184,7 @@
        }
       ]
      },
-     "why": "the extractor row names the model, the version its id carries and the hash of the instruction text; the extraction keeps what the image is; the persona its line and its region"
+     "why": "the extractor row names the model the reader names, the version its id carries (none: harness carries none) and the hash of the instruction text; the extraction keeps what the image is; the persona its line and its region"
     },
     {
      "audit": {
@@ -193,11 +193,11 @@
       "is": {
        "len": 1,
        "every": {
-        "actor": "llm:claude-sonnet-5-5"
+        "actor": "llm:harness"
        }
       }
      },
-     "why": "the model is the actor of what its reading writes"
+     "why": "the reader is the actor of what its reading writes"
     }
    ]
   },
@@ -211,7 +211,7 @@
      "line": 49,
      "image_is": "record"
     },
-    "by": "llm:claude-sonnet-5-5"
+    "by": "llm:harness"
    },
    "expect": [
     {
@@ -246,7 +246,7 @@
      "line": 49,
      "bbox": [280, 3136, 2460, 41]
     },
-    "by": "llm:claude-sonnet-5-5"
+    "by": "llm:harness"
    },
    "expect": [
     {
@@ -279,7 +279,7 @@
    ]
   },
   {
-   "say": "a person reads the row of HOMMELL CHRIST B, the 47th, by the row's region alone",
+   "say": "the row of HOMMELL CHRIST B, the 47th, typed by the harness in a person's place, by the row's region alone",
    "transcribe": {
     "record": "nys",
     "form": {
