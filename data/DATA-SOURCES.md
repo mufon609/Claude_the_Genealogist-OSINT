@@ -260,7 +260,11 @@ for it (Deutschland and Allemagne for Germany, USA for the United States); the
 place resolver and the checklist read a country from a place string's last
 part only, since a country's name earlier in a string is a town or county of
 that name (Lebanon, Pennsylvania; Poland, Ohio). A country's name that is also
-a US state (Georgia) is read as the state.
+a US state (Georgia) is read as the state. Its `units` column lists the
+first-level units a record writes where the country's name would stand
+(England, Scotland, Wales and Northern Ireland, each with its own registration
+and records): read as the country, and kept by the resolver as the place's
+first-level unit, asked and verified like any other part of the string.
 
 ## 5b. The limits of one life (`life-limits.csv`)
 

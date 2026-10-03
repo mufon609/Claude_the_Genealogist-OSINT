@@ -119,7 +119,7 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios so
 exactly as the live resolver kept it under `derivatives/geocode/nominatim/` (`{query, fetched_at, results}`, results as
 Nominatim served them), copied byte for byte; the scenarios' `place_card` and `resolve` actions plant them in the scratch
 resolver's cache under the file name it looks them up by (`geocoder: [...]`), so no request goes out. Data © OpenStreetMap
-contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said otherwise.
+contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said otherwise. The United Kingdom's answers (`nominatim-united-kingdom.json`, 13 September; `nominatim-aberdeen-united-kingdom.json`, 3 October) are the live cache's; `nominatim-scotland-united-kingdom.json` and `nominatim-aberdeen-scotland-united-kingdom.json` were fetched on a scratch data root on 3 October 2026 07:39 UTC with the project's User-Agent.
 
 | Files (`geocoder/nominatim-…`) | The query and what the geocoder answered |
 |---|---|
@@ -131,6 +131,9 @@ contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said
 | `misawa-aomori-japan` | two: the city of Misawa and a quarter of it, under Aomori Prefecture (the first-level-unit import scenario) |
 | `ogau-tonan-iwate-shiwa-japan`, `ogau-tonan-japan` | no answer: the geocoder knows no such place (a former name's words) |
 | `langneundorf-lower-silesia`, `berthelsdorf-sachsen-germany` (six), `berthelsdorf-herrnhut-sachsen-germany`, `berthelsdorf-freiberg-sachsen-germany`, `ballyquirk-ireland` (four) | the answers the gazetteer scenario's resolver run reads |
+| `nieder-harperdorf-lower-silesia-poland` (none), `nieder-lower-silesia-poland` (six, none of them Harpersdorf), `twardocice-pielgrzymka-lower-silesia-poland` (one) | the answers the resolver reads for "Nieder, Harperdorf, Silesia, Poland" before asking GOV |
+| `united-kingdom`, `aberdeen-united-kingdom` | one answer each: the country, and Aberdeen City asked without Scotland |
+| `scotland-united-kingdom`, `aberdeen-scotland-united-kingdom` | one answer each: Scotland, and Aberdeen City within it |
 | `ballyquirk-cork-ireland` | **Captured for the harness**, one request on 2 October 2026 23:56 UTC through the resolver's own `nominatim()` with the project's User-Agent (the live cache holds no answer to this query): one answer, the Killeagh townland |
 | `new-jersey-united-states`, `pennsylvania-united-states`, `massachusetts-united-states`, `michigan-united-states` (5 and 13 September) | one state boundary each (the state-abbreviation scenario) |
 | `worcester-montgomery-county-pennsylvania-united-states`, `worcester-montgomery-pennsylvania-united-states`, `worcester-pennsylvania-united-states` | the same two places each, the village and the township (one card for one set of places) |

@@ -270,17 +270,6 @@ two trees and one archived page, decided in the first and undecided in the
 second, and scope every reader that joins `person_persona`, `proposal` or
 `search_plan` by artifact or persona to its tree.
 
-### C10. England, Scotland and Wales are read as the United Kingdom
-
-`data/countries.csv` lists england, scotland and wales as words for the United
-Kingdom, so a string ending in one of them loses it: ", Scotland", "Scotland"
-and "England (Uk)" resolve to the United Kingdom alone, though each of the
-three keeps its own registration and records (ScotlandsPeople, the General
-Register Office for England and Wales). Strings that name a place inside them
-keep the constituent country in the candidate's hierarchy. Read such a word as
-the United Kingdom and keep it as the place's first-level unit, verified like
-any other part, and say it in `data/DATA-SOURCES.md`.
-
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card

@@ -63,15 +63,16 @@ import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
-from catalog import US_STATES, country_words, place_name_key, us_state
+from catalog import US_STATES, country_units, country_words, place_name_key, us_state
 
-RESOLVER = ("rule", "nominatim-resolver", "0.5.0")
+RESOLVER = ("rule", "nominatim-resolver", "0.6.0")
 def cache_dir():
     """Where the geocoder's answers are kept, under the data root of the run (a scratch run keeps its own)."""
     return os.path.join(derivatives_dir(), "geocode", "nominatim")
 ENDPOINT = "https://nominatim.openstreetmap.org/search"
 
 COUNTRY_SYN = country_words()   # data/countries.csv: a country's name and the words records write for it; read from a string's last part only
+COUNTRY_UNIT = country_units()  # data/countries.csv's units: Scotland read as the United Kingdom, and kept as the place's first-level unit
 DROP = {"north america", "british colonies", "europe", "colonial america", "unknown"}   # words for no place more specific than the rest of the string ("UNKNOWN, Germany" is Germany)
 HISTORIC_REGION = {"silesia": "Silesia", "silesa": "Silesia", "schlesien": "Silesia"}
 WARD_RE = re.compile(r"^(.*?)\s+((?:Lower|Upper)\s+Ward|Ward|Assembly District|District|Precinct)\s*\d*$", re.I)
@@ -106,13 +107,15 @@ def agree(part, names):
     return "near" if any(near_name(part, n) for n in names) else False
 
 def parse(raw):
-    """-> dict(components=[...], country, region, details=[...], warnings=[...])"""
+    """-> dict(components=[...], country, region, details=[...], warnings=[...]). A country's first-level unit written where
+    the country's name would stand (Scotland, Wales: COUNTRY_UNIT) gives the country and stays the last component, asked and
+    verified like any other part."""
     p = {"components": [], "country": None, "region": None, "details": [], "warnings": []}
-    s = re.sub(r"\(alt\..*?\)", "", raw)
+    s = re.sub(r"\(alt\..*?\)", "", raw); unit = None
     whole = s.strip().lower().rstrip(".") in COUNTRY_SYN   # "United States of America" is one country's name, not "United States of" ahead of "America"
     for phrase in ([] if whole else sorted(COUNTRY_SYN, key=len, reverse=True)):          # "Kalagh Cork Great Britain and Ireland"
         if "," not in s and s.lower().endswith(" " + phrase):
-            s = s[: -len(phrase)].strip(); p["country"] = COUNTRY_SYN[phrase]; s = ", ".join(s.split()); break
+            s = s[: -len(phrase)].strip(); p["country"] = COUNTRY_SYN[phrase]; unit = COUNTRY_UNIT.get(phrase); s = ", ".join(s.split()); break
     toks, prev = [], None
     for t in [t.strip() for t in s.split(",")]:
         if not t or (prev and t.lower() == prev.lower()): continue
@@ -121,7 +124,7 @@ def parse(raw):
     if last is not None and us_state(toks[last]): toks[last] = us_state(toks[last])   # a state written as an abbreviation (NJ, N.J., Penna, Tenn.) is the state, there only: earlier, Penn or Col is a township's or a person's own
     for t in toks:
         tl = t.lower().rstrip(".")
-        if tl in COUNTRY_SYN and t is toks[-1]: p["country"] = COUNTRY_SYN[tl]; continue   # the country a record writes last; earlier, a country's name is a place of that name (Lebanon, Pennsylvania)
+        if tl in COUNTRY_SYN and t is toks[-1]: p["country"] = COUNTRY_SYN[tl]; unit = COUNTRY_UNIT.get(tl) or unit; continue   # the country a record writes last; earlier, a country's name is a place of that name (Lebanon, Pennsylvania)
         if tl in DROP: continue
         if tl in HISTORIC_REGION: p["region"] = HISTORIC_REGION[tl]; continue
         m = WARD_RE.match(t)
@@ -132,6 +135,7 @@ def parse(raw):
         if t.lower() in US_STATES and not p["country"]: p["country"] = "United States"
         p["components"].append(t)
     if p["region"] == "Silesia" and p["country"] == "Germany": p["country"] = None; p["warnings"].append("Silesia given as Germany; now mostly Poland")
+    if unit and not (p["components"] and norm(p["components"][-1]) == norm(unit)): p["components"].append(unit)
     return p
 
 def query_string(p, comps=None):

@@ -623,15 +623,28 @@ def served_as():
 
 def country_words():
     """data/countries.csv: every country's name and the other words records write for it, lower case, to its name as the
-    place resolver writes it ("deutschland" and "allemagne" to Germany, "usa" to United States); a name that is also a US
-    state (Georgia) is left out, the state being what an American record means. Longest words first, for phrases."""
+    place resolver writes it ("deutschland" and "allemagne" to Germany, "usa" to United States), the names of its own
+    first-level units that records write in its place among them ("scotland" to United Kingdom: country_units); a name
+    that is also a US state (Georgia) is left out, the state being what an American record means. Longest words first,
+    for phrases."""
     out = {}
     with open(os.path.join(ROOT, "data", "countries.csv"), encoding="utf-8") as fh:
         for r in csv.DictReader(fh):
-            for w in [r["country"]] + [x for x in (r["synonyms"] or "").split(";") if x]:
+            for w in [r["country"]] + [x for x in ((r["synonyms"] or "") + ";" + (r.get("units") or "")).split(";") if x]:
                 w = w.strip().lower()
                 if w and w not in US_STATES: out[w] = r["country"]
     return dict(sorted(out.items(), key=lambda kv: -len(kv[0])))
+
+def country_units():
+    """data/countries.csv's units: the first-level units a record writes where the country's name would stand, lower case,
+    to the unit's own name (England, Scotland, Wales and Northern Ireland of the United Kingdom, each its own registration and
+    records): read as the country by country_words, and kept by the place resolver as the place's first-level unit."""
+    out = {}
+    with open(os.path.join(ROOT, "data", "countries.csv"), encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            for w in (r.get("units") or "").split(";"):
+                if w.strip(): out[w.strip().lower()] = w.strip().title()
+    return out
 
 def jurisdictions():
     """data/jurisdictions.csv, the reference knowledge of where which records exist and who holds them, by US state or country

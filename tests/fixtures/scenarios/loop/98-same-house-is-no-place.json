@@ -26,7 +26,7 @@
       "raw": "Same House",
       "status": "rejected",
       "has_place": false,
-      "resolver": "ai:nominatim-resolver@0.5.0",
+      "resolver": "ai:nominatim-resolver@0.6.0",
       "notes": {
        "reason": {
         "has": "another of its lines"

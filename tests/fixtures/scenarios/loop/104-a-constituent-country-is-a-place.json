@@ -1,0 +1,73 @@
+{
+ "title": "a constituent country is a place of its own",
+ "line": "a string that ends in Scotland, England, Wales or Northern Ireland is in the United Kingdom and keeps the constituent country as its first-level unit, asked and verified like any other part: \", Scotland\" is Scotland, not the United Kingdom alone, and Aberdeen lies in Scotland",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "two of the owner's strings, as the export writes them",
+   "place_string": {
+    "raw": ", Scotland"
+   }
+  },
+  {
+   "place_string": {
+    "raw": "Aberdeen, Scotland"
+   }
+  },
+  {
+   "say": "the resolver run with the geocoder's real answers planted in its cache",
+   "resolve": {
+    "only": [
+     ", Scotland",
+     "Aberdeen, Scotland"
+    ],
+    "geocoder": [
+     "nominatim-scotland-united-kingdom.json",
+     "nominatim-aberdeen-scotland-united-kingdom.json",
+     "nominatim-united-kingdom.json",
+     "nominatim-aberdeen-united-kingdom.json"
+    ]
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": ", Scotland",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "match": {
+        "display_name": "Scotland, United Kingdom",
+        "checks": {
+         "Scotland": true
+        }
+       }
+      }
+     },
+     "why": "the string's Scotland, a unit of its own within the United Kingdom, asked and verified, never the United Kingdom alone"
+    },
+    {
+     "place_string": {
+      "raw": "Aberdeen, Scotland",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "match": {
+        "display_name": {
+         "has": "Scotland"
+        },
+        "checks": {
+         "Scotland": true
+        }
+       }
+      }
+     },
+     "why": "Aberdeen verified as lying in Scotland, the part the string gives"
+    }
+   ]
+  }
+ ]
+}
