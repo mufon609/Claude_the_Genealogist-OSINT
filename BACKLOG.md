@@ -222,7 +222,12 @@ are searches' own answers and items' metadata, never read as records, so the pat
 has no real response to run against); and a person the rule creates through a
 relation the record states from the other side (the head of a household created
 through his daughter accepted on it, as the live 1950 Evers schedule did), whose
-reason names the record's word for the daughter (`conclude.rule_creates`). When a real document
+reason names the record's word for the daughter (`conclude.rule_creates`); and a relative's
+persona whose birth place differs from a finer one another decision gave the
+tree's person, which the rule reads as fitting all the same (`match.compare`
+with `birth_place=False`): the harness's places for Robert Edgar Davidson's
+birth stay unresolved strings, so no scenario reaches the Auburn the live
+catalog holds against his obituary's Woodburn. When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under

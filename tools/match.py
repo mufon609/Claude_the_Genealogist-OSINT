@@ -164,8 +164,10 @@ def split_persona_name(name_text):
     while len(parts) > 1 and parts[-1].strip(".").lower() in SUFFIX: parts.pop()     # Jr, Sr, III are not a surname
     return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:] if len(key(p)) > 1])   # an initial is not a surname
 
-def compare(cat, persona, cand, chosen):
-    """Agreements, disagreements and absences between a persona and a candidate person, in words."""
+def compare(cat, persona, cand, chosen, birth_place=True):
+    """Agreements, disagreements and absences between a persona and a candidate person, in words. birth_place False: a birth
+    place that differs keeps the persona from fitting no more than it vetoes the standing rule (docs/RESEARCH-WORKFLOW.md
+    §5–7), as the rule reads a relative's persona on a record; the matcher's own proposals read it as written."""
     agree, disagree, absent = [], [], []
     keys = name_keys(cat, cand["id"])
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]     # every name the record gives: at birth, current, as written elsewhere on it
@@ -215,7 +217,7 @@ def compare(cat, persona, cand, chosen):
         (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
                                               f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
         rel_ok = rel_ok or holds
-    clean = not any(d.startswith(("sex", "middle name", "birth date", "death date", "birth place", "burial place", "death place")) for d in disagree)
+    clean = not any(d.startswith(("sex", "middle name", "birth date", "death date", "burial place", "death place") + (("birth place",) if birth_place else ())) for d in disagree)
     strong = any(a.startswith(("death date", "birth place", "burial place", "death place", "residence place")) for a in agree) \
              or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))

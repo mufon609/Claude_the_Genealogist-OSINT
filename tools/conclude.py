@@ -989,7 +989,7 @@ def rule_points(cx, tree_id, prop, without=()):
         if other["id"] == persona["id"] or other["id"] in chosen: continue
         as_related = {**other, "relations": both_ways(other)}    # its relation to the persona under decision, stated from either side, is one of the things it fits on (docs/RESEARCH-WORKFLOW.md §5-7)
         for c in relatives:
-            fits, agree, disagree, absent, near = compare(cat, as_related, c, {persona["id"]: cand})
+            fits, agree, disagree, absent, near = compare(cat, as_related, c, {persona["id"]: cand}, birth_place=False)   # a birth place, never a veto, never unfits a relative either: the rule's decisions do not turn on a finer place another decision brought
             if fits or (identity and _stands_for(cat, as_related, c, {persona["id"]: cand})): chosen[other["id"]] = c; fitted[other["id"]] = (agree, disagree); break
     keys = record_keys(cx, sha)
     def grounded(other_pid):
