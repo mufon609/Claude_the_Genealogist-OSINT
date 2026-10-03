@@ -666,3 +666,15 @@ Waiting on events the repo cannot drive.
 - **API keys the owner would request** — DPLA, Europeana and the Google Books
   API answer only with a key (`data/data-sources.csv` M02, M03, L05); each is
   low yield for this tree, so none is wanted until a step needs it.
+
+### C39. A second copy of a held record is left in the inbox
+
+`tools/attach.py` places a saved page on the plan step its identity reaches; once
+one copy of a cited record is held (John Y Davidson's 1946 certificate page, done
+on its citation `1,3077::604036`), a later save of another copy of the same
+record (FamilySearch's index entry of it) finds no planned step and stays in the
+inbox, so it is never archived, read or joined (`same_record`). Archive such a
+page under the done step's citation when its identity reaches that step, read
+it, and let `conclude.join_copies` and `conclude.carry` make it a copy of the
+record the step holds; the harness scenario `99ze` archives the index entry by
+hand for this reason.
