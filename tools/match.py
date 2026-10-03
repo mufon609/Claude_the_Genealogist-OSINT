@@ -38,15 +38,19 @@ agree, or a stated relationship agrees; a persona whose own memorial link is a
 memorial already accepted as a person fits that person outright, and that
 person joins the candidates whether or not they are a relative in the tree.
 Nobody fitting outright, the fitting check (docs/RESEARCH-WORKFLOW.md §5-7)
-still proposes an existing person before a new one: a candidate whose surname
-or birth surname agrees and whose birth year agrees where both have one, or
-who already stands in the same stated relationship to the same candidate the
-record's other persona was accepted as, is proposed with the disagreement in
-the rationale; a given name that disagrees is not what refuses this, only the
-surname or the relationship (a stated sibling is neither held nor contradicted
-by a candidate with no parents in the tree); and a candidate of the same name comes before one
-the fitting check reaches on the surname or the relationship alone, so a
-brother named Joe is put to the tree's Joe, not to the first sibling met. One proposal per persona: kind
+still proposes an existing person before a new one, looking across the whole
+tree (by_name_and_year): a candidate whose surname or birth surname agrees, as
+written or as a spelling variant, and whose birth year agrees within the window
+where both have one, or who already stands in the same stated relationship to
+the same candidate the record's other persona was accepted as, is proposed with
+the disagreement in the rationale; for a person with no family link yet a given
+name that disagrees is not what refuses this, only the surname or the
+relationship (a stated sibling is neither held nor contradicted by a candidate
+with no parents in the tree), while a person already placed in a family is
+reached this way only when the given name agrees too; and a candidate of the
+same name comes before one the fitting check reaches on the surname or the
+relationship alone, so a brother named Joe is put to the tree's Joe, not to the
+first sibling met. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
 two fit, the other named in the rationale), or new_person when nobody fits,
 outright or by the fitting check. The
@@ -78,7 +82,7 @@ from treelib import ROOT, connect, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.6.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.7.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
 WINDOW = 3                                  # the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
 LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
 MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
@@ -270,19 +274,26 @@ def memorials_of(cx, pid):
     return ids
 
 def by_name_and_year(cat, cx, tree_id, persona):
-    """Persons of the tree whose surname or birth surname is the persona's, whose birth year lies within three years of the
-    persona's where the persona gives one, and who stand in the tree with no family link yet (the fitting check,
-    docs/RESEARCH-WORKFLOW.md §5-7): a household or obituary record names people the tree may hold without a family link yet
-    (a sibling added from a memorial, a survivor an obituary names with no age), and those belong among the candidates on
-    their own evidence; a person already placed in a family is reached through that family or not at all. Without a birth
-    year on the persona the surname is the whole of it, and the record's other signals carry the actual decision."""
-    given, rest = split_persona_name(persona["name"])
+    """Persons of the whole tree (never one merged into another) whose surname or birth surname agrees with the persona's, as
+    written or as a spelling variant (catalog.same_surname), and whose birth year lies within the matcher's window of the
+    persona's where both give one (the fitting check, docs/RESEARCH-WORKFLOW.md §5-7): a household or obituary record names
+    people the tree may already hold, a sibling added from a memorial with no family link yet, or a grandson the obituary
+    writes Ahern whom the tree holds as Ahearn in another branch of the family. A person with no family link yet is reached
+    on the surname and the year alone, the record's other signals carrying the actual decision; a person already placed in
+    a family only when a given name of the persona's agrees with one of theirs too (same_given), so the household's
+    unknown members are not put to every relative of the surname the tree holds. Without a birth year on either side the
+    names are the whole of it."""
+    names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
+    givens, rest = [g for g, _ in names if g], [t for _, r in names for t in r]
     if not rest: return []
     by = (persona["birth"] or {}).get("start")
     y = int(by[:4]) if by and by[:4].isdigit() else None
     out = []
-    for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL AND NOT EXISTS (SELECT 1 FROM family_member fm WHERE fm.person_id=person.id)", (tree_id,)):
-        if not any(s in rest for _, s in name_keys(cat, pid) if s): continue
+    for pid, linked in cx.execute("""SELECT id, EXISTS (SELECT 1 FROM family_member fm WHERE fm.person_id=person.id) FROM person
+                                     WHERE tree_id=? AND merged_into IS NULL ORDER BY created_at, id""", (tree_id,)).fetchall():
+        keys = name_keys(cat, pid)
+        if not any(same_surname(t, s) for t in rest for _, s in keys if s): continue
+        if linked and not any(same_given(g, k) for g in givens for k, _ in keys): continue
         if y is not None:
             years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
                      WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]
@@ -400,11 +411,12 @@ def match(cx, eid, by, about=None):
     """One person at a time: a record proposes first the persona that may be the person it was fetched for (or a person already
     attached to them by a record accepted earlier, or already accepted under the same memorial); the record's other personas wait. Once a
     person is accepted on the record, its other personas are proposed against that person's relatives as the catalog knows
-    them, claims included, and against a person of the tree with no family link yet who fits the fitting check: the same
-    surname or birth surname and a birth year within three years where the persona gives one, or the same stated relationship
-    to the same accepted person (by_name_and_year); a persona the record relates to an accepted person and that fits nobody,
-    by the fitting check either, is proposed as a new person. about: person ids the owner says the record concerns, when no
-    step or link names them (a family-held file)."""
+    them, claims included, and against every person of the tree the fitting check reaches (by_name_and_year): the same
+    surname or birth surname, as written or as a spelling variant, and a birth year within three years where both give one
+    (and, for a person already placed in a family, the same given name), or the same stated relationship to the same
+    accepted person; a persona the record relates to an accepted person and that fits nobody, by the fitting check either,
+    is proposed as a new person. about: person ids the owner says the record concerns, when no step or link names them (a
+    family-held file)."""
     from extract import POINTING_LISTINGS
     ext = cx.execute("SELECT artifact_sha256, superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()
     if not ext: raise SystemExit(f"no extraction {eid}")
@@ -438,7 +450,7 @@ def match(cx, eid, by, about=None):
                     if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
                     open_now.add(rid)
             if accepted_here:
-                for rid in by_name_and_year(cat, cx, tree_id, pr):    # a person of the tree with the persona's surname and birth year, linked to nobody yet
+                for rid in by_name_and_year(cat, cx, tree_id, pr):    # a person of the tree the fitting check reaches: the persona's surname, a spelling variant of it, and its birth year
                     if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
                     open_now.add(rid)
         accepted_personas = {r[0] for r in cx.execute("""SELECT pp.persona_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id

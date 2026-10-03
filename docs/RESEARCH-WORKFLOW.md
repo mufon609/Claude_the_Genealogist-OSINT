@@ -661,9 +661,8 @@ person already accepted under the memorial the persona links (the same page
 is the same identity); every other persona waits, shown on the card as
 waiting on this decision. Accepting the document as that person's runs the
 matcher again: the record's other personas are then proposed against the
-accepted person's relatives, claims included, and against a person of the
-tree with the persona's surname and a birth within three years who stands in
-the tree with no family link yet; a persona the record relates to the accepted
+accepted person's relatives, claims included, and against every person of the
+tree the fitting check below reaches; a persona the record relates to the accepted
 person and that fits nobody is proposed as a new person then, never before. So
 a household or a profile is decided one person after another, each on the
 record's own words about the last. The comparison
@@ -869,9 +868,13 @@ undecided assertion. A persona a trusted record (T1–T2, or an obituary once
 read) names in a relationship it states to a person accepted on it, who fits
 nobody in the tree after the fitting check, is created by the rule with the
 record's facts and the family link accepted, and enters the queue. The fitting
-check, run before any creation: a person of the tree with the same surname or
-birth surname and a birth year within the matcher's window, or the same stated
-relationship to the same accepted person, fits and is proposed instead.
+check, run before any creation, looks across the whole tree: a person whose
+surname or birth surname agrees, as written or as a spelling variant, and whose
+birth year lies within the matcher's window where both give one (a person
+already placed in a family only when the given name agrees too), or who stands
+in the same stated relationship to the same accepted person, fits and is
+proposed instead: the grandson an obituary writes Matthew Ahern is put to the
+tree's Matthew Alan Ahearn, never created a second time.
 
 On a page anyone can edit that identifies a person (a memorial, a profile) the
 rule takes the identity alone, when the name agrees and at least three of birth

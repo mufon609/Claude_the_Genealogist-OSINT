@@ -1,0 +1,86 @@
+{
+ "title": "the fitting check reaches the whole tree",
+ "line": "once the obituary's subject is accepted, the grandson it writes Matthew Ahern is put to the tree's Matthew Alan Ahearn, placed in another branch of the family, the surname a spelling variant, and the daughter-in-law Noi Davidson to the tree's Noi Davidson, wife of his son: cards for persons the tree holds, never new people; a grandson of a name nobody in the tree carries is still a new person",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his obituary, the file's own citation, naming his children and grandchildren by name alone",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "say": "its subject accepted by the owner: the record's other personas are proposed",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Matthew Ahern",
+      "kind": "persona_match",
+      "status": "undecided",
+      "person_name": "Matthew Alan Ahearn",
+      "rationale": {
+       "has": "Surname agrees as a spelling variant"
+      }
+     },
+     "why": "the home person, a child of another family of the tree, reached by the fitting check across the whole tree: a card, not a new person"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Noi Davidson",
+      "kind": "persona_match",
+      "status": "undecided",
+      "person_name": "Noi Davidson"
+     },
+     "why": "his son's wife, linked in the tree to the son and not to him: reached the same way"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Daniel Davidson",
+      "kind": "new_person",
+      "status": "undecided"
+     },
+     "why": "a grandson whose given name no person of the surname in the tree carries: nobody is reached, and the card offers a new person"
+    },
+    {
+     "persons": {
+      "named": "Matthew Ahern",
+      "exists": false
+     },
+     "why": "no second Matthew created"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
