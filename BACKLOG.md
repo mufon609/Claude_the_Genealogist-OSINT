@@ -629,7 +629,7 @@ Raymond Earl Davidson says the birth year agrees. `docs/RESEARCH-WORKFLOW.md` sa
 year agrees "where both have one": say the birth year in the reason only when
 both sides give one, and show it on that row.
 
-### C37. Circumstances under which a record misstates a date on purpose
+### C38. Circumstances under which a record misstates a date on purpose
 
 A record made at the event can carry a false age or date for good: a boy who
 gave himself an earlier birth year to enlist under age keeps it on every
