@@ -43,7 +43,7 @@ WWII Army enlistment,Military Service,,,,primary,,,,
 WWII Army enlistment,Residence,,,,primary,,,,
 compiled genealogy / family history,*,,hint,authored,,,,,
 familysearch-record,*,,,derivative,,,,,
-familysearch-record,relation [Parents and Siblings],,,,,indirect,computed,,"FamilySearch's own relatives table, for a reading that does not mark its relations: the reader marks each one itself (familysearch-record 0.6.0 on), stated for the parents, spouse and children a record of one event names, an obituary's brothers and sisters, a marriage's spouse's parents and, on a page about a relative of the record's subject, that subject's own row; computed for a census grouping, any other sibling, a grandparent, an in-law, any other row around a relative, or the parents' couple."
+familysearch-record,relation [Parents and Siblings],,,,,indirect,computed,,"FamilySearch's own relatives table, for a reading that does not mark its relations: the reader marks each one itself (familysearch-record 0.6.0 on), stated for the parents, spouse and children a record of one event names, an obituary's brothers and sisters, a marriage's spouse's parents, on a page about a relative of the record's subject, that subject's own row and, on a census page whose own person is the head, each row that carries a relationship word; computed for a census grouping around any other member, a blank-cell row on the head's page, any other sibling, a grandparent, an in-law, any other row around a relative, or the parents' couple."
 familysearch-record,relation [Spouses and Children],,,,,indirect,computed,,
 familysearch-record,relation [Extended Family],,,,,indirect,computed,,
 familysearch-record,relation [Other People on This Record],,,,,indirect,computed,,

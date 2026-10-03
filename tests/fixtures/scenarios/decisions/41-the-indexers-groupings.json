@@ -1,6 +1,6 @@
 {
  "title": "the indexer's groupings",
- "line": "a census page that shows no head, every relationship on it FamilySearch's own grouping: once the owner accepts the head, his wife and mother are not taken through those groupings, the son and daughter nobody fits are not created, and the decision on the wife writes the couple undecided, saying the record's indexer states it",
+ "line": "a census page focused on a household member, the relatives its tables group around him FamilySearch's own: once the owner accepts the son, the father is taken through the son's own stated relationship to the head, while the mother is not taken through the Parents and Siblings table, the brother nobody fits is not created, and the decision on the mother writes the couple undecided, saying the record's indexer states it; on the head's own page the same kind of row is the census's own column, stated: once the owner accepts the head, his wife is taken through it and his son and daughter, whom nobody fits, are created",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,7 +8,144 @@
  },
  "steps": [
   {
-   "say": "the 1900 page arrives: two cards, the head and his wife",
+   "say": "the 1950 household's page, found through the son's own search and saved by hand: read and matched for the son",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-census-1950-6XYS-NQ16.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737036054"
+    ]
+   },
+   "as": "c50",
+   "expect": [
+    {
+     "cards": {
+      "record": "c50",
+      "people": [
+       "I332737036054"
+      ],
+      "kind": "persona_match"
+     },
+     "why": "the son alone is proposed; the household waits on him"
+    }
+   ]
+  },
+  {
+   "say": "the son accepted by the owner: his own field states his relationship to the head, the Parents and Siblings table is FamilySearch's",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "c50",
+      "person": "I332737037257",
+      "taken": true,
+      "why": {
+       "has": "child Fred M Ahearn"
+      }
+     },
+     "why": "the son's relationship to the head is the census's own statement: the father is taken through it, the tree claiming the link"
+    },
+    {
+     "rule": {
+      "record": "c50",
+      "person": "I332737037573",
+      "taken": false,
+      "why": {
+       "has": "its indexer's, not the record's own statement"
+      }
+     },
+     "why": "the mother is related on the page only by FamilySearch's Parents and Siblings table: the claimed route does not take her"
+    },
+    {
+     "card": {
+      "record": "c50",
+      "person": "I332737037573",
+      "status": "undecided"
+     },
+     "why": "the mother, put to the tree's own mother, is a card for the owner"
+    },
+    {
+     "rule": {
+      "record": "c50",
+      "persona": "John D Ahearn",
+      "taken": false,
+      "why": {
+       "has": "the record's indexer, not the record, relates them to a person accepted on it (Brother)"
+      }
+     },
+     "why": "the rule creates a person only on a relationship the record states"
+    },
+    {
+     "card": {
+      "record": "c50",
+      "persona": "John D Ahearn",
+      "kind": "new_person",
+      "status": "undecided"
+     },
+     "why": "a brother the table groups under the son, whom nobody fits, is a card for the owner"
+    },
+    {
+     "persons": {
+      "count": 26
+     },
+     "why": "nobody created"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the mother on it: the couple written undecided, the indexer's grouping",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "memberships": {
+       "some": {
+        "role": "partner",
+        "as": "Parents",
+        "computed": true,
+        "undecided": true
+       }
+      }
+     },
+     "why": "FamilySearch's table computes the couple: written undecided, never an accepted family link"
+    },
+    {
+     "card": {
+      "record": "c50",
+      "person": "I332737037573",
+      "note": {
+       "has": "written undecided: the record's indexer, not the record, states it"
+      }
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737037573",
+      "spouses": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the 1900 household's page, the head's own: two cards, the head and his wife",
    "attach": {
     "fixture": "familysearch-census-1900-M9HX-SWP.html"
    },
@@ -28,7 +165,7 @@
    ]
   },
   {
-   "say": "the head accepted by the owner: the relatives the page groups around him are the owner's",
+   "say": "the head accepted by the owner: on his own page the tables are worded from his side, each row's word is the census's own column",
    "decide": {
     "card": {
      "record": "c00",
@@ -41,97 +178,63 @@
      "rule": {
       "record": "c00",
       "person": "I332737204852",
-      "taken": false,
+      "taken": true,
       "why": {
-       "has": "its indexer's, not the record's own statement"
+       "has": [
+        "claimed relationship",
+        "spouse John Davidson"
+       ]
       }
      },
-     "why": "the wife FamilySearch's Spouses and Children table puts beside the head is no relationship the census page states: the claimed route does not take her"
-    },
-    {
-     "card": {
-      "record": "c00",
-      "persona": "Ellan E Davidson",
-      "status": "undecided",
-      "rationale": {
-       "has": "Given name agrees (record Ellan E Davidson"
-      }
-     },
-     "why": "the mother, written Ellan under her married surname, is still put to the tree's own mother, a card for the owner"
+     "why": "the wife's row is her relationship to the head, stated: the claimed route takes her"
     },
     {
      "card": {
       "record": "c00",
       "persona": "Willie R Davidson",
       "kind": "new_person",
-      "status": "undecided"
-     },
-     "why": "a son the table groups under the head, whom nobody fits, is a card for the owner"
-    },
-    {
-     "rule": {
-      "record": "c00",
-      "persona": "Willie R Davidson",
-      "taken": false,
-      "why": {
-       "has": "the record's indexer, not the record, relates them to a person accepted on it (Son)"
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      },
+      "note": {
+       "has": "Son of John Y Davidson"
       }
      },
-     "why": "the rule creates a person only on a relationship the record states"
+     "why": "a son the census states, whom nobody fits, is created by the rule"
     },
     {
      "card": {
       "record": "c00",
       "persona": "Cassie E Davidson",
       "kind": "new_person",
-      "status": "undecided"
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      },
+      "note": {
+       "has": "Daughter of John Y Davidson"
+      }
      }
     },
     {
      "persons": {
-      "count": 26
+      "count": 28
      },
-     "why": "nobody created"
+     "why": "the son and the daughter created"
     }
    ]
   },
   {
-   "say": "the owner accepts the wife on it: the couple written undecided, the indexer's grouping",
-   "decide": {
-    "card": {
-     "record": "c00",
-     "person": "I332737204852"
-    },
-    "status": "accepted"
-   },
+   "say": "the rule takes what it would take",
+   "reconsider": {},
    "expect": [
-    {
-     "last": {
-      "memberships": {
-       "some": {
-        "role": "partner",
-        "as": "Wife",
-        "computed": true,
-        "undecided": true
-       }
-      }
-     },
-     "why": "FamilySearch's table computes the couple: written undecided, never an accepted family link"
-    },
-    {
-     "card": {
-      "record": "c00",
-      "person": "I332737204852",
-      "note": {
-       "has": "written undecided: the record's indexer, not the record, states it"
-      }
-     }
-    },
     {
      "facts": {
       "person": "I332737204852",
-      "spouses": "undecided"
-     }
+      "spouses": "accepted"
+     },
+     "why": "the couple stands on the census's statement of the wife's relationship to the head, not written undecided as a grouping is"
     }
    ]
   },
