@@ -477,6 +477,18 @@ same record id, the same role and an agreeing name, `catalog.record_original`)
 is the same document: decide it the same way, recorded as the rule with the
 reading it follows, and let the image's day stand as the certificate's own.
 
+Decision wanted first: the two readings do not meet that test as the catalog
+holds them. The image's reading carries no record id of its own (the ark is
+the page's locator and is in the image's file name only); what the two
+artifacts share is the file's citation (`apid 1,3077::604036`) they were both
+archived under. And the roles differ: the page's reader writes the record's
+own person `subject`, the image's reading `deceased`. Say whether the locator a
+record was archived under identifies its entry across readings, and how a
+reader-independent role for the record's own person is read. The image's John
+has no card now (a rematch closed it as superseded, the matcher putting none
+up since the file's claimed dates disagree), so following the accepted reading
+also needs the rule to write the decision with no card standing.
+
 ### C27. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the
