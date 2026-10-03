@@ -11,7 +11,9 @@ request goes out with treelib.USER_AGENT at the source's documented rate, posted
 data; every response is archived as it came, an artifact whose locator is the request URL (or the identity the connector
 names for a posted search) and whose source is the registry row; each hit's own transcription, text or
 image is fetched and archived the same way with what the response said about it in the manifest notes, and a search
-response the connector marks as the record itself is read as one. One search_log
+response the connector marks as the record itself is read as one. A place field carrying several names is tried name by
+name, stopping at the first that gets a hit, and a request already made on the run is not made again: a name that makes
+one is logged as tried, the note saying whose request it repeated. One search_log
 row records the exact query, the outcome (found when a hit was archived, none when the source answered with nothing,
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
 done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
@@ -216,14 +218,22 @@ def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
         out.append({**r, "extracted": extracted})
     return out
 
+def request_key(rq):
+    """What makes two requests one: the URL and the form data posted to it."""
+    return rq["url"], json.dumps(rq.get("data") or {}, sort_keys=True, default=str)
+
 def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     """One step at one connector: requests, responses archived, hits fetched and archived, the log row under the connector's
     source. A place field carrying more than one accurate name (checklist.py's PLACES for a search step's own "place",
     plan.citation_fields for a fetch step's citation label, "census place": the name valid at the record's date first, then
     as-written, then current, then every other dated name) is tried in that order, one substituted for it at a time, and
-    stops at the first that gets a hit; every name actually tried is on the logged run's query, the one that hit last, so
-    the same search is never repeated blindly and a widening try is read back afterwards. Returns the run with the
-    records archived, to be read afterwards."""
+    stops at the first that gets a hit. A name's requests are built (connector.requests) before any is sent, and one
+    already made on this run is never made again: a connector that reads a place only as a state and a county, or not at
+    all, builds the same request for two names of one place, which a rate-limited holder cannot answer differently, so
+    such a name is not asked and the run's note says which name's request it repeated. Every name tried, asked or not,
+    is on the logged run's query, the last of them its value, so a widening try is read back afterwards and a run that
+    tried every name is read as the step's own fields (log_search.same_fields). Returns the run with the records
+    archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     from connectors.ia import name_parts
     surname = name_parts(query)[1]
@@ -270,11 +280,17 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
             if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted"))})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
+    made, repeated = {}, []                                      # made: a request's identity -> the name that made it; repeated: the notes of the names that made no new request
     for name in names:
         q = query_for(name); creqs = reqs if name == names[0] else conn.requests(q)
         if name is not None: tried.append(name)
+        new = [rq for rq in creqs if request_key(rq) not in made]
+        if creqs and not new:                                    # every request this name makes was made under another name already
+            earlier = dict.fromkeys(made[request_key(rq)] for rq in creqs)
+            repeated.append(f"{name} made the same request as {' and '.join(earlier)}: not asked again"); continue
+        made.update({request_key(rq): name for rq in new})
         before = len(hits)
-        for rq in creqs:
+        for rq in new:
             all_reqs.append(rq["url"])
             url = rq["url"]; pages = 1
             while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
@@ -298,8 +314,8 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         if len(hits) > before: break                              # a hit under this name: never try the rest
     outcome = outcome_of(hits, errors, shas)
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
-    note = "; ".join(x for x in [answered] + [a for a in asked if a] + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
-    if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried}}   # every name actually tried, the one the run stopped on
+    note = "; ".join(x for x in [answered] + [a for a in asked if a] + repeated + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
+    if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried}}   # every name tried, asked or not, the one the run stopped on
 
     own = step["kind"] != "fetch" or conn.SOURCE == step["locator_source_id"]   # a fetch step is done by its holder's answer alone: a row-source connector's hit is another paper's page, logged and held, the cited record still to fetch
     lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query, done=own)

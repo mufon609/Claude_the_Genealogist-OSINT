@@ -1,6 +1,6 @@
 {
  "title": "a fetch step's place carries every accurate name, under the citation's own label",
- "line": "plan.citation_fields writes a labelled place part as the list a search step's own place field carries, the citation's own string first, unresolved or not; the runner's name-by-name try reads the citation's label as it reads 'place', every name tried logged on the run, the real census connector asked once for each and the run stopping at the first that gets a hit",
+ "line": "plan.citation_fields writes a labelled place part as the list a search step's own place field carries, the citation's own string first, unresolved or not; the runner's name-by-name try reads the citation's label as it reads 'place', every name tried logged on the run, the real census connector asked once for the two names, which make the same request, and the second logged as tried with the request it repeated",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -77,7 +77,7 @@
    ]
   },
   {
-   "say": "the runner tries the fetch step's several names under the citation's own label, not 'place', through the real census connector: the site answers the first request with nothing and the second with the household's page, the page image refused",
+   "say": "the runner tries the fetch step's several names under the citation's own label, not 'place', through the real census connector: both names read as county Nassau, state New York: one request goes out and the site answers it with nothing, and the second name, making the same request, is not asked",
    "run_connector": {
     "step": {
      "person": "I332737100409",
@@ -90,18 +90,6 @@
       {
        "url_has": "api/search?name=",
        "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
-      },
-      {
-       "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"
-      },
-      {
-       "url_has": "api/search?scheduleId=3947385",
-       "fixture": "nara-1950-schedule-3947385.json"
-      },
-      {
-       "url_has": "iiif",
-       "error": "the harness's stand-in for no answer: timed out"
       }
      ]
     }
@@ -109,11 +97,13 @@
    "expect": [
     {
      "last": {
-      "outcome": "found",
+      "outcome": "none",
       "requests": [
-       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1",
        "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1"
       ],
+      "logged_note": {
+       "has": "Town of Hempstead < Nassau County < New York < United States made the same request as Hempstead, Nassau, New York: not asked again"
+      },
       "logged_query": {
        "census place": {
         "tried": {
@@ -128,7 +118,7 @@
        }
       }
      },
-     "why": "both names are tried, in order, before the run stops, under the citation's own label"
+     "why": "one request goes out, not two (the list is the requests made, and the harness answers one); both names are tried, in order, under the citation's own label, and the note names the name whose request the second repeated"
     }
    ]
   },
@@ -150,12 +140,12 @@
        "some": {
         "asked": false,
         "answered": {
-         "outcome": "found"
+         "outcome": "none"
         }
        }
       }
      },
-     "why": "the run's tried names, read under 'census place' as the runner wrote them, match the step's own names: the same query again, so the dry run says the connector would not be asked"
+     "why": "the run's tried names, read under 'census place' as the runner wrote them, match the step's own names, the name that made no request among them: the same query again, so the dry run says the connector would not be asked"
     }
    ]
   }

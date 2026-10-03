@@ -526,7 +526,17 @@ table holds for the person, Ahearn then Ahern, the pages merged; a book the
 Archive only lends stops at its metadata and the run is `none` with the
 reason), one `search_log` row holds the exact query, the outcome and every
 hash, and the extractor and matcher run on each hit's record.
-It runs a fetch step the same way when the citation's free holder has a
+A place field that carries several names (§3) is tried one name at a time, in
+that order, and the run stops at the first name that gets a hit. The requests a
+name makes are built before any is sent, and a request already made on the run
+is never made again: a connector that reads a place only as a state and a
+county (the 1950 census site, loc.gov), or not at all (the Archive's
+newspapers), builds one request for two names of one place, which a
+rate-limited holder cannot answer differently, so the second name is logged as
+tried and sends nothing, the run's note saying which name's request it
+repeated. Every name tried, asked or not, is on the logged run's
+query, so a run that tried them all reads back as the step's own fields.
+The runner runs a fetch step the same way when the citation's free holder has a
 connector: the 1950 site takes the citation's surname within its enumeration
 district and answers with the household's schedule, whose every row becomes a
 persona and whose image is archived beside it; the page is logged found on

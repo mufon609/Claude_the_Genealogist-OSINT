@@ -1,0 +1,212 @@
+{
+ "title": "a place's names that make different requests are each asked",
+ "line": "the runner asks a name of a place only when the request it makes differs from every request already made on the run, not only the one before it: names that read as different counties are each asked and the run stops at the first that gets a hit, a name that repeats an earlier request is logged as tried and its request not made again",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1950 census fetch step for Robert Edgar Davidson, its place carrying the citation's own string, then the county the town sat in before Nassau County was cut from Queens County in 1899, then the town as the resolver names it: the first and the third read as the same county, the second as another",
+   "step_query": {
+    "step": {
+     "person": "I332737100409",
+     "row_key": "census household:1950",
+     "kind": "fetch"
+    },
+    "query": {
+     "census place": {
+      "basis": "citation",
+      "value": [
+       "Hempstead, Nassau, New York",
+       "Hempstead, Queens, New York",
+       "Town of Hempstead < Nassau County < New York < United States"
+      ]
+     },
+     "citation": {
+      "basis": "citation",
+      "value": "National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950"
+     },
+     "collection": {
+      "basis": "citation",
+      "value": "1950 United States Federal Census"
+     },
+     "enumeration district": {
+      "basis": "citation",
+      "value": "30-392"
+     },
+     "name": {
+      "basis": "citation",
+      "value": "Robert Edgar Davidson"
+     },
+     "page": {
+      "basis": "citation",
+      "value": "29"
+     },
+     "roll": {
+      "basis": "citation",
+      "value": "4390"
+     },
+     "year": {
+      "basis": "citation",
+      "value": "1950"
+     }
+    }
+   }
+  },
+  {
+   "say": "the real census connector: Nassau then Queens are two requests, each asked and each answered with nothing; the town's resolved name makes Nassau's request again and is not asked",
+   "run_connector": {
+    "step": {
+     "person": "I332737100409",
+     "row_key": "census household:1950",
+     "kind": "fetch"
+    },
+    "connector": "nara_1950",
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+      },
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "outcome": "none",
+      "requests": [
+       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1",
+       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Queens&ed=30-392&page=1"
+      ],
+      "logged_note": {
+       "has": [
+        "Town of Hempstead < Nassau County < New York < United States made the same request as Hempstead, Nassau, New York: not asked again"
+       ],
+       "lacks": "Hempstead, Queens, New York made the same request"
+      },
+      "logged_query": {
+       "census place": {
+        "tried": [
+         "Hempstead, Nassau, New York",
+         "Hempstead, Queens, New York",
+         "Town of Hempstead < Nassau County < New York < United States"
+        ],
+        "value": "Town of Hempstead < Nassau County < New York < United States"
+       }
+      }
+     },
+     "why": "two requests go out, one per county, each answered; the third name repeats the first's request, which is not the one just before it, and is the only name left unasked; all three are on the tried list"
+    }
+   ]
+  },
+  {
+   "say": "the same step with the county the town sat in first, then the town's own: Queens is asked and answered with nothing, Nassau is a different request and is asked, the site answering with the household's page, the page image refused",
+   "step_query": {
+    "step": {
+     "person": "I332737100409",
+     "row_key": "census household:1950",
+     "kind": "fetch"
+    },
+    "query": {
+     "census place": {
+      "basis": "citation",
+      "value": [
+       "Hempstead, Queens, New York",
+       "Hempstead, Nassau, New York"
+      ]
+     },
+     "citation": {
+      "basis": "citation",
+      "value": "National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950"
+     },
+     "collection": {
+      "basis": "citation",
+      "value": "1950 United States Federal Census"
+     },
+     "enumeration district": {
+      "basis": "citation",
+      "value": "30-392"
+     },
+     "name": {
+      "basis": "citation",
+      "value": "Robert Edgar Davidson"
+     },
+     "page": {
+      "basis": "citation",
+      "value": "29"
+     },
+     "roll": {
+      "basis": "citation",
+      "value": "4390"
+     },
+     "year": {
+      "basis": "citation",
+      "value": "1950"
+     }
+    }
+   }
+  },
+  {
+   "say": "the runner asks both names, the second's different request getting the household's page",
+   "run_connector": {
+    "step": {
+     "person": "I332737100409",
+     "row_key": "census household:1950",
+     "kind": "fetch"
+    },
+    "connector": "nara_1950",
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+      },
+      {
+       "url_has": "api/search?name=",
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"
+      },
+      {
+       "url_has": "api/search?scheduleId=3947385",
+       "fixture": "nara-1950-schedule-3947385.json"
+      },
+      {
+       "url_has": "iiif",
+       "error": "the harness's stand-in for no answer: timed out"
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "outcome": "found",
+      "requests": [
+       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Queens&ed=30-392&page=1",
+       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1"
+      ],
+      "logged_note": {
+       "lacks": "not asked again"
+      },
+      "logged_query": {
+       "census place": {
+        "tried": [
+         "Hempstead, Queens, New York",
+         "Hempstead, Nassau, New York"
+        ],
+        "value": "Hempstead, Nassau, New York"
+       }
+      }
+     },
+     "why": "both names make a request of their own, so both are asked, and the run stops at the second, the name that got the hit; no name is logged as a repeat"
+    }
+   ]
+  }
+ ]
+}
