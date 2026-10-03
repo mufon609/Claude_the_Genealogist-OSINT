@@ -418,16 +418,6 @@ published public-domain one), add a scenario that ingests it beside the
 harness tree, builds its checklists and plans, and shows nothing of the first
 family reaching the second (the tree-isolation entry above).
 
-### C23. reconsider settles over several runs
-
-On the live catalog `tools/conclude.py reconsider` reaches its fixed point
-only on its third run: its card pass takes cards on ground the next run's
-re-examination (each decision on the ground that stood before it) refuses,
-such as the relatives an obituary names accepted through one another. Make
-the card pass judge a card on the ground before it the way the re-examination
-does, so one run is the fixed point; until then the live run repeats
-reconsider until a run changes nothing.
-
 ### C24. A gazetteer candidate's head name is verified by a close spelling
 
 A geocoder candidate verifies a part of a string only when the part is its
