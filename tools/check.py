@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, every parser
-reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
+"""Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, the evidence layer
+is insert-only, every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
 usage: tools/check.py [--verbose] [--show] [--keep]
@@ -288,6 +288,35 @@ def save_page_kinds():
     if sorted(table) != sorted({k for _, k in expect}): bad.append(f"the script's kinds {sorted(table)} are not the fixtures' {sorted({k for _, k in expect})}")
     return bad
 
+def evidence_insert_only():
+    """The evidence layer is insert-only (CLAUDE.md hard rule 2): on a scratch catalog holding one real record read into personas
+    and facts, an UPDATE and a DELETE on artifact, persona and persona_fact are each refused with the trigger's own words
+    (schema/sqlite_extras.sql), so a dropped trigger turns this red; the rows are all still there afterwards."""
+    from treelib import archive_object
+    from extract import extract
+    name = "va-gravesite-search-davidson-raymond-2007"
+    with open(os.path.join(FIXTURES, name + ".expect.json"), encoding="utf-8") as fh: a = json.load(fh)["archive"]
+    with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
+    d, db = scratch(False); bad = []
+    try:
+        cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+        sha, _ = archive_object(cx, data, mime=a["mime"], source_id=a["source"], collection_id=None, locator_kind=a["locator"]["kind"], locator_value=a["locator"]["value"], retrieved_by=BY, terms=None, cost="free", trust_tier=None)
+        extract(cx, sha, BY); cx.commit()
+        before = {t: cx.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("artifact", "persona", "persona_fact")}
+        for table, key, update_says, delete_says in (("artifact", "sha256", "immutable", "never deleted"), ("persona", "id", "immutable", "never deleted"), ("persona_fact", "id", "immutable", "never deleted")):
+            row = cx.execute(f"SELECT {key} FROM {table} LIMIT 1").fetchone()
+            if not row: bad.append(f"{table} holds no row to try"); continue
+            for sql, says in ((f"UPDATE {table} SET {key}={key} WHERE {key}=?", update_says), (f"DELETE FROM {table} WHERE {key}=?", delete_says)):
+                try: cx.execute(sql, (row[0],)); bad.append(f"{sql.split()[0]} on {table} was allowed")
+                except sqlite3.IntegrityError as e:
+                    if says not in str(e): bad.append(f"{sql.split()[0]} on {table} was refused, but not by its trigger: {e}")
+                cx.rollback()
+        after = {t: cx.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in before}
+        if after != before: bad.append(f"rows changed: {before} then {after}")
+        cx.close()
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 def compiles():
     """Every tool, the screen's server and the check modules compile; the first thing green means."""
     import py_compile
@@ -322,6 +351,8 @@ def main():
         print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
         bad_kinds = save_page_kinds(); bad += bool(bad_kinds)
         print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
+        bad_ev = evidence_insert_only(); bad += bool(bad_ev)
+        print("ok   the evidence layer is insert-only: an UPDATE and a DELETE on artifact, persona and persona_fact are each refused by their trigger, on a catalog holding a real record read" if not bad_ev else "FAIL evidence: " + "; ".join(bad_ev))
         bad += parsers.check(a.keep, a.show)
         bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
         bad += loop.check(a.keep, a.show)

@@ -152,7 +152,7 @@
   {
    "say": "the 1959 marriage index image of his wife's remarriage, read by the model: the groom's row, the spouse's surname by four letters",
    "seed": {
-    "stand_in": "image",
+    "fixture": "ny-marriage-index-1959-page-970.jpg",
     "source": "C08",
     "collection": "New York State Marriage Index, 1881-1967 (Reclaim the Records, Internet Archive)",
     "mime": "image/jpeg",
