@@ -11,8 +11,11 @@ tools/tree.py overview's own order, the home person's line first, generation by 
 father then mother), then the file's other people in the order overview lists them. At each confirmed card the
 edge is: a parent or spouse the file names whose link is not yet accepted, taken before the card's own person
 (never a person two links from anyone confirmed); else the card's own person when a document waits to be
-decided, a conflict is open, or a key fact is still undecided (an open question). A card with none of these is
-settled and the walk moves on to the next. The file's other people (not reached by an accepted parents link)
+decided, a conflict is open, or a key fact is still undecided (an open question); else the card's own person when
+nobody has accepted their parents and the file names none, for the records that name parents (checklist.names_parents:
+a birth or death record, an obituary, a census of their childhood's household), which their plan puts first, so the tree
+grows past the file on evidence: a parent such a record names is created by the rule and is the next card above. A card
+with none of these is settled and the walk moves on to the next. The file's other people (not reached by an accepted parents link)
 come after the confirmed line, in tools/tree.py overview's own "others" order, and only the ones a document or a
 conflict already waits on (overview's own filter), so nobody surfaces two links from anyone confirmed.
 
@@ -25,6 +28,8 @@ already planned with no such step, whose open question is now only the owner's (
 nobody has vouched or decided, an assisted search with no link to open, an auto step run on these fields already (a run
 logged error, the source not answering, is not such a run), a fetch logged blocked) is passed over: named, with why, but
 never named next, since running a turn on them would do nothing.
+A person at the edge for their parents' records is named only while one of those steps is one a turn can advance (or no
+plan has been made for them yet), and passed over otherwise.
 Without --all, prints the first person found and the number passed over (queue.py --all lists the rest, each passed-over
 person with the reason).
 """
@@ -32,18 +37,17 @@ import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, resolve_tree
 from catalog import Catalog
+from checklist import names_parents
 from overview import overview
 import run_step, fetches
 
 def advanceable(cx, cat, tree_id):
-    """The people with a step a turn can advance: one the runner takes now (run_step.runnable: a connector can run it and it
-    has no run since the plan last wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to
-    open, and this person's own step in the entry with no run on unchanged fields either)."""
-    people = {r["person_id"] for r in run_step.runnable(cx, cat, tree_id)}
-    owner = dict(cx.execute("SELECT sp.id, sp.person_id FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=?", (tree_id,)).fetchall())
-    for e in fetches.openable(cx, tree_id):
-        people.update(owner[sid] for sid in e["open_step_ids"] if sid in owner)
-    return people
+    """The steps a turn can advance, by id: one the runner takes now (run_step.runnable: a connector can run it and it has no
+    run since the plan last wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to open, and
+    this person's own step in the entry with no run on unchanged fields either)."""
+    steps = {r["id"] for r in run_step.runnable(cx, cat, tree_id)}
+    for e in fetches.openable(cx, tree_id): steps.update(e["open_step_ids"])
+    return steps
 
 def require_home(cx, tree_id):
     """The tree's home person, or a refusal that names the command that sets one: the confirmed tree is walked from them."""
@@ -54,18 +58,19 @@ def require_home(cx, tree_id):
 def edge(cx, tree_id):
     """([{id, name, reason, kind}], [{id, name, reason, kind}]): the queue a turn can act on, in order, then everyone passed
     over (named once each, first reason it surfaces under; kind says which: "parent link" or "spouse link" the file names and
-    nobody has accepted, "open question" on a confirmed person, "unlinked" for a person the file names with no accepted link to
-    anyone confirmed). A person with no plan yet is always actionable (a turn's own
+    nobody has accepted, "open question" on a confirmed person, "parents records" for a confirmed person whose parents nobody
+    has accepted and the file names none, "unlinked" for a person the file names with no accepted link to anyone confirmed). A person with no plan yet is always actionable (a turn's own
     first move makes one); one already planned is actionable only while a step of theirs is one a turn can advance
     (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next."""
     require_home(cx, tree_id)
     cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out, passed = [], []; seen = set()
     can = advanceable(cx, cat, tree_id)
-    def add(pid, name, reason, kind):
+    def add(pid, name, reason, kind, counts=lambda row_key: True):
+        """counts: which of the person's steps answer the reason (all of them, or the records that name parents)."""
         if pid in seen: return
         seen.add(pid)
-        planned_before = cat.q("SELECT 1 FROM search_plan WHERE person_id=? LIMIT 1", pid)
-        if planned_before and pid not in can:
+        planned = cat.q("SELECT id, row_key FROM search_plan WHERE person_id=?", pid)
+        if planned and not any(sid in can and counts(rk) for sid, rk in planned):
             passed.append({"id": pid, "name": name, "reason": f"nothing left for a turn to run or fetch: {reason}", "kind": kind})
         else:
             out.append({"id": pid, "name": name, "reason": reason, "kind": kind})
@@ -87,6 +92,10 @@ def edge(cx, tree_id):
                 if w["documents"]: why.append(f"{w['documents']} document(s) to decide")
                 if w["conflicts"]: why.append(f"{w['conflicts']} conflict(s) open")
                 add(pid, c["name"], "confirmed, with an open question: " + ", ".join(why), "open question")
+            elif cat.link_basis(pid, "parents") != "accepted" and not fam["parents"]:
+                born = c["span"][0]
+                add(pid, c["name"], "confirmed, no parents accepted and the file names none: the records that name parents", "parents records",
+                    counts=lambda row_key, born=born: names_parents(row_key, born))
     for c in ov["others"]:
         add(c["id"], c["name"], "named in the file, no accepted link to anyone confirmed yet, with a document or a conflict waiting", "unlinked")
     return out, passed

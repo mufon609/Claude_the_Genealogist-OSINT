@@ -505,19 +505,6 @@ US state anywhere in it is read as American even when its last part names
 another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
 the country the string ends with first.
 
-### C28. The queue's edge reaches past the file
-
-`tools/queue.py` names as the edge a parent or spouse the file names whose link
-is not yet accepted, so growth stops where the file stops: Noi Davidson, John
-Evers and Dolores Evers stand confirmed with "edge: no parents claimed", and 46
-missing-parents questions are open. Make a confirmed person whose parents
-nobody has accepted the edge for the records that name parents (a birth or
-death record, a census with the parents in the household, an obituary), first
-in their plan; a parent such a record names is created by the rule from a
-trusted record as now (the fitting check first) and enters the queue like any
-other. Show it on the harness: a confirmed person the file gives no parents
-whose own record names them, and the parents created and queued.
-
 ### C29. One home for each shared rule, and no dead schema
 
 Soundex is written twice (`catalog.py`, `backfill_aliases.py`), edit distance twice, name splitting three times, the

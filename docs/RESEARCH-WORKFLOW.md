@@ -1238,9 +1238,15 @@ card takes a parent or spouse the file names whose link is not yet accepted
 before the card's own person, then that person when a document waits, a
 conflict is open or a key fact is undecided and a turn can still act on them:
 a step a connector can run with no run since the plan last wrote its fields,
-or a page the fetch list can name. A person whose open question is now the
+or a page the fetch list can name. A confirmed person settled but for their
+parents, whom nobody has accepted and the file names none, is the edge for
+the records that name parents (a birth or death record, an obituary, a census
+of the household in a year of their childhood), which their plan puts first:
+the tree grows past the file on evidence, a parent such a record names created
+by the rule from a trusted record (§5–7, the fitting check first) and the next
+card above, at the edge in turn. A person whose open question is now the
 owner's alone (a card to decide, a conflict, an assisted search with no link
-to open) is passed over. The command prints the next person with the reason and
+to open), or whose parents' records are all such, is passed over. The command prints the next person with the reason and
 the number passed over; `--all` lists everyone, each person passed over with the
 reason.
 

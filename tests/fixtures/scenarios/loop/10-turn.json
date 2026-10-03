@@ -96,33 +96,36 @@
      "search_log": {
       "step": "$turn.seen.0",
       "is": {
-       "len": 1,
+       "len": 2,
        "every": {
-        "source_id": "E03",
         "outcome": "error"
+       },
+       "some": {
+        "source_id": "H01"
        }
       }
      },
-     "why": "the run that did not answer is logged as run_step.run reports it, under the connector's own source: the gravesite locator on her cemetery step"
+     "why": "the runs that did not answer are logged as run_step.run reports them, each under its connector's own source: loc.gov and the Archive's newspapers on her obituary step, first in her plan since nobody has accepted her parents"
     },
     {
      "search_log": {
       "step": "$turn.seen.1",
       "is": {
-       "len": 2,
+       "len": 1,
        "every": {
-        "outcome": "none"
+        "outcome": "none",
+        "source_id": "E03"
        }
       }
      },
-     "why": "her compiled-genealogy step has two connectors: one none run each, under its own source"
+     "why": "her cemetery step, the next: one none run under the gravesite locator"
     },
     {
      "turn_state": {
       "person": "I332737039686",
       "is": {
        "unanswered": {
-        "len": 1,
+        "len": 2,
         "every": {
          "has": [
           "did not answer",
@@ -132,7 +135,7 @@
        }
       }
      },
-     "why": "the turn paused on her assisted fetch list, its state naming the source that did not answer, by the registry's name, with what it said"
+     "why": "the turn paused on her assisted fetch list, its state naming each source that did not answer, by the registry's name, with what it said"
     },
     {
      "runnable": {
@@ -163,13 +166,32 @@
    ]
   },
   {
-   "say": "the source answers on the second ask: a none run on the same fields, under the connector's own source, closes the step (one under the holder alone would not: the locator has still not answered)",
+   "say": "loc.gov answers on the second ask: a none run on the same fields under its own source; the Archive's newspapers have still not answered, so the step stays runnable",
    "log": {
     "step": "$turn.seen.0",
     "outcome": "none",
     "note": "harness: the source answered on the second ask",
     "query": true,
-    "source": "E03"
+    "source": "H01"
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$turn.seen.0",
+      "is": true
+     },
+     "why": "each source is read on its own: H07's error still leaves the step to ask"
+    }
+   ]
+  },
+  {
+   "say": "the Archive's newspapers answer too: a none run under each source closes the step (one under the holder alone would not)",
+   "log": {
+    "step": "$turn.seen.0",
+    "outcome": "none",
+    "note": "harness: the source answered on the second ask",
+    "query": true,
+    "source": "H07"
    },
    "expect": [
     {

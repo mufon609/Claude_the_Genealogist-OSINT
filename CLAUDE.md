@@ -118,9 +118,11 @@ by hand it is the same steps. Research decisions are made on the live
 catalog; a scratch copy is for testing code, never for decisions.
 
 1. `tools/queue.py` names the next person at the edge of the confirmed tree:
-   a parent or spouse the file claims whose link is not yet accepted, or a
-   confirmed person with an open question; never a person two links away
-   from anyone confirmed. `tools/turn.py "<person>"` runs their plan: every
+   a parent or spouse the file claims whose link is not yet accepted, a
+   confirmed person with an open question, or a confirmed person whose parents
+   nobody has accepted and the file names none, for the records that name
+   parents, first in their plan; never a person two links away from anyone
+   confirmed. `tools/turn.py "<person>"` runs their plan: every
    step a connector can run, the rule's decisions, the plan again.
 2. A turn pauses on pages a connector cannot fetch: save the ones
    `tools/fetches.py next` names in the owner's browser by the

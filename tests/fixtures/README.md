@@ -311,7 +311,7 @@ runner sends, and a name that makes a request already made on the run sends none
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
-`not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in
+`not_named`, `passed`, `not_passed`, `reasons`: by person, or a list of `[person, pattern]` pairs for a person the rule created), `runnable`, `turn_state`, `turns_run` (the runner's turns in
 order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`), `locator_known`, `steps_by_collection`,
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
 `wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' and the runner's contract; what they are asked with

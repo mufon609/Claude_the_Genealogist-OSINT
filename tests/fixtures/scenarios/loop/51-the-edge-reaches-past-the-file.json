@@ -1,0 +1,175 @@
+{
+ "title": "the queue's edge reaches past the file",
+ "line": "a confirmed person whose parents nobody has accepted and the file names none is the edge for the records that name parents, which their plan puts first: Charlotte D Lukens, settled but for her parents, is named for the 1900 census of her father's household, which the file cites on her; accepted as hers, the census's head is created by the rule as her father, and he is at the edge in turn, his own parents' records first in his plan, passed over while none of them is a step a turn can take",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the line from the home person up to Charlotte D Lukens accepted on the owner's word, her marriage too",
+   "fact": {
+    "person": "I332737035562",
+    "field": "parents",
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737035563",
+    "field": "parents",
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737036054",
+    "field": "parents",
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737037573",
+    "field": "parents",
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737038183",
+    "field": "spouses",
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "her own key facts decided on the owner's word: settled, but the file names no parents for her",
+   "fact": {
+    "person": "I332737039686",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   },
+   "expect": [
+    {
+     "queue": {
+      "named": [
+       "I332737039686"
+      ],
+      "reasons": {
+       "I332737039686": {
+        "has": "no parents accepted and the file names none: the records that name parents"
+       }
+      }
+     },
+     "why": "nothing else waits on her: the records that name her parents are the edge, and the 1900 census the file cites on her is a page a turn can open"
+    }
+   ]
+  },
+  {
+   "say": "the 1900 census of the Lukens household arrives: the file's citation on her",
+   "attach": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html"
+   },
+   "as": "c1900",
+   "expect": [
+    {
+     "last": {
+      "step_people": [
+       "Charlotte D Lukens"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts her on it: the head, whom the record states she is the daughter of, is created by the rule",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "person": "I332737039686"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "persons": {
+      "named": "Milton Lukens",
+      "given": "Milton",
+      "surname": "Lukens"
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737039686",
+      "parents": "accepted"
+     },
+     "why": "her parents now rest on the census"
+    },
+    {
+     "queue": {
+      "reasons": {
+       "I332737039686": {
+        "lacks": "records that name parents"
+       }
+      }
+     },
+     "why": "her parents accepted, she is no longer at the edge for their records (the census's conflicts with the file are what wait on her now)"
+    },
+    {
+     "step": {
+      "person": {
+       "created": "Milton Lukens"
+      },
+      "row_key": "death record:1939",
+      "kind": "search",
+      "fields": {
+       "seq": 3
+      }
+     },
+     "why": "his own parents' records first in his plan: the censuses of his childhood, then his death record, before the fetch steps"
+    },
+    {
+     "queue": {
+      "passed": [
+       {
+        "created": "Milton Lukens"
+       }
+      ],
+      "reasons": [
+       [
+        {
+         "created": "Milton Lukens"
+        },
+        {
+         "has": [
+          "no parents accepted and the file names none: the records that name parents",
+          "nothing left for a turn"
+         ]
+        }
+       ]
+      ]
+     },
+     "why": "created by the rule, he is at the edge for his own parents' records; each is a search a person runs at the holder, so a turn has none to take and he is passed over, saying so"
+    }
+   ]
+  }
+ ]
+}

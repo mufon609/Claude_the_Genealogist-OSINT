@@ -267,7 +267,8 @@ def e_queue(w, x, want):
     for ref in x.get("not_passed", []): ok &= not any(e["id"] == w.person(ref) for e in passed)
     if "first" in x: ok &= bool(out) and out[0]["id"] in [w.person(r) for r in (x["first"] if isinstance(x["first"], list) else [x["first"]])]
     if "first_reason" in x: ok &= bool(out) and has(out[0]["reason"], x["first_reason"])
-    for ref, pat in (x.get("reasons") or {}).items(): ok &= any(e["id"] == w.person(ref) and has(e["reason"], pat) for e in out + passed)
+    reasons = x.get("reasons") or {}
+    for ref, pat in (reasons.items() if isinstance(reasons, dict) else reasons): ok &= any(e["id"] == w.person(ref) and has(e["reason"], pat) for e in out + passed)   # a list of [person, pattern] pairs names a person no key can, one the rule created
     if "passed_count" in x: ok &= has(len(passed), x["passed_count"])
     return ok, got
 

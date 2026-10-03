@@ -43,6 +43,16 @@ MATCH = {"census": lambda y: rf"^{y} United States Federal Census", "state_censu
          "social_security": r"Social Security", "naturalization": r"Naturalization", "draft_ww1": r"World War I ",
          "draft_ww2": r"World War II Draft", "draft_civil": r"Civil War Draft", "military": r"Army|Navy|Veterans", "enlistment": r"World War II Army Enlistment"}
 
+PARENT_ROWS = ("birth record", "death record", "obituary")   # the rows whose record names the person's parents (docs/RESEARCH-CHECKLIST.md, Group B's B1 and the obituary)
+CHILDHOOD = 21                                               # a census of a year before the person turned this, the household their parents headed
+
+def names_parents(row_key, born):
+    """Whether a plan step's row is a record that names the person's parents: a birth or death record, an obituary, or a census
+    of the household in a year of the person's childhood (born the given year; none counts when the birth year is unknown)."""
+    record, _, instance = (row_key or "").partition(":")
+    if record in PARENT_ROWS: return True
+    return record == "census household" and bool(born) and instance.isdigit() and int(instance) - born < CHILDHOOD
+
 # ---------------------------------------------------------------------------------------
 def build(cat: Catalog, pid: str):
     p = cat.person(pid); ev = cat.events(pid); fam = cat.family(pid)

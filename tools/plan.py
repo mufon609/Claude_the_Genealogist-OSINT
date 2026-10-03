@@ -42,7 +42,8 @@ found runs since it was last reopened carry only pages that point at its record 
 a results listing, a page no parser read), never one done on the owner's word, by a hand's found run, on a household record
 or on a listing that is the record, logs a household record (a census page, whichever way it arrived) accepted onto the
 person found on their own step for its census year (log_search.hold_household), so the row reads held and no runner
-searches that census again for a household the tree has read, keeps done steps, and closes questions
+searches that census again for a household the tree has read, keeps done steps, puts first the steps on the records that
+name parents (checklist.names_parents) for a person whose parents nobody has accepted, and closes questions
 whose gap has gone (closed_reason 'gap_gone'). A question a person dismissed or answered stays closed. Nothing
 here runs a search. Before writing anything the plan checks that every holder
 in data/holders.csv and every source id the checklist emits is a row in the
@@ -53,7 +54,7 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, dbid_of, browse_only, prefills_nothing, year
-from checklist import build
+from checklist import build, names_parents
 from log_search import closed_by_pointers, hold_household
 
 FOOTPRINT_HOME = ("missing_parents", "identity_incomplete", "missing_spouse", "unverified_claim")
@@ -323,7 +324,10 @@ def plan_person(cx, tree_id, pid, by):
             cx.execute("UPDATE research_question SET status='closed', closed_reason='gap_gone', closed_at=? WHERE id=?", (ts, qid)); stats["questions_closed"] += 1; stats["closed"].append(qid)
     have_steps = {row[1]: row[0] for row in cx.execute("SELECT id, step_key FROM search_plan WHERE person_id=?", (pid,))}
     seen, wanted_keys = {}, set()
-    for seq, st in enumerate(fetches + searches, 1):
+    steps = fetches + searches
+    if cat.link_basis(pid, "parents") != "accepted":                 # nobody has accepted this person's parents: the records that name them come first
+        steps.sort(key=lambda st: not names_parents(st["row_key"], r["person"]["span"][0]))
+    for seq, st in enumerate(steps, 1):
         n = seen[st["step_key"]] = seen.get(st["step_key"], 0) + 1      # two identical steps (e.g. two spouses of the same name)
         if n > 1: st["step_key"] += f":{n}"
         wanted_keys.add(st["step_key"])
