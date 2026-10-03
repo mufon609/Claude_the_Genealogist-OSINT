@@ -494,30 +494,29 @@ Keep each rule in `catalog.py`, drop what nothing reads (or give it its
 reader), and make `tombstone` the one way a removal is written.
 
 
-### C33. The harness's stand-ins and borrowed answers
+### C33. A family-held photograph in the harness
 
-`docs/DATA-ARCHITECTURE.md` §7 decision 8 says every page, response, row and
-record the harness reads is real and only a holder's silence is simulated;
-`tests/fixtures/README.md` ("What is simulated") names two stand-ins. The
-harness holds more, and some of it is a real answer to another request, which
-reads as the holder saying "nothing" where its real answer holds a record:
+`decisions/95-cited-on-the-owners-word` drops two family-held photographs into
+the inbox, and the harness writes the smallest of JPEG files for them, the one
+stand-in file `tests/fixtures/README.md` ("What is simulated") still names. The
+only family-held photographs the archive holds are marked private and never
+redistributed; whether one may sit in `tests/` is the owner's choice (CLAUDE.md,
+hard rule 7). Once the owner names one, archive it as a fixture with its
+manifest, attach it in place of the stand-in, and drop `stand_in` from
+`tests/checks/scenario.py` and the README.
 
-- undisclosed stand-ins: `fake_run` in loop `12`, `13` and `63` beside the four
-  the README names; `loop.py`'s geocoder reading only its cache; the smallest
-  of JPEG files for a gravestone
-  photograph and the owner's family photographs (`decisions/50-memorial`,
-  `decisions/95-cited-on-the-owners-word`), and a page of nothing but its
-  saved-from line for a cited obituary (`decisions/70`, `decisions/97`,
-  `loop/70`).
+### C26. Runs that stand for an answer no holder gave
 
-Answer each request with its own real answer (the archive's, or one captured
-from the holder with its URL and date), rewriting a scenario around that answer
-where it changes the outcome. The archive holds real pages for
-the last two stand-ins: a Find a Grave gravestone photograph read by the model
-(sha `7b2dd95d001a…`, photo 142698059, registry E05) and a Legacy.com obituary
-page read by the model (sha `0ee95c3d0eba…`, H05); whether a family-held
-photograph, marked private, may sit in `tests/` is the owner's choice (hard
-rule 7). What stays simulated is listed in the README, every instance.
+`docs/DATA-ARCHITECTURE.md` §7 decision 8 lets the harness simulate a holder's
+failure to answer and nothing else, but a turn scenario's `fake_run` logs `none`
+with no request behind it (loop `10`, `12`, `13`, `15`, `60`, `61`, `63`), and
+the `log` action writes `none` and `found` runs by hand (loop `10`, `31`, `50`,
+`63`, `72`, `101`; decisions `90`), each the catalog's word that a holder
+answered nothing, or answered, where no holder did. `tests/fixtures/README.md`
+lists them. Either answer each with a real run (the connectors through `run`
+on the archive's own answers, a saved page through `save` and `collect`) or a
+holder's silence where the path allows it, or have decision 8 say that a run
+written to reach a path is the harness's bookkeeping and no answer.
 
 ### C34. An original names whose record it is
 

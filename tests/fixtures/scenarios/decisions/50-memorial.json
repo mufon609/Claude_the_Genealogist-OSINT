@@ -1,6 +1,6 @@
 {
  "title": "a memorial, a page anyone can edit",
- "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the ten relatives it lists get no card at all, fit or not, and create nobody, but his wife and his daughter, each fitting exactly one person of the tree by name and birth year, get an undecided membership and an undecided persona link the same acceptance, while his parents and his six siblings, fitting nobody, get neither, so his own parents fact still has nothing to decide; reconsider keeps the identity, a withdrawn one is taken again and leaves the memberships as they were; a re-read carries the decided link and accepts no fact; the owner's accept is an identity too; the plan turns each listed relative into a fetch step for their own memorial, on the tree person their name and birth year plainly fit when exactly one does (his wife, his daughter, each under their own cemetery row) and otherwise as a lead on the subject's own plan (his parents, his six siblings), named apart from documents to decide; the gravestone photograph is a fetch step saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it by the model is a card the rule leaves to the owner",
+ "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the ten relatives it lists get no card at all, fit or not, and create nobody, but his wife and his daughter, each fitting exactly one person of the tree by name and birth year, get an undecided membership and an undecided persona link the same acceptance, while his parents and his six siblings, fitting nobody, get neither, so his own parents fact still has nothing to decide; reconsider keeps the identity, a withdrawn one is taken again and leaves the memberships as they were; a re-read carries the decided link and accepts no fact; the owner's accept is an identity too; the plan turns each listed relative into a fetch step for their own memorial, on the tree person their name and birth year plainly fit when exactly one does (his wife, his daughter, each under their own cemetery row) and otherwise as a lead on the subject's own plan (his parents, his six siblings), named apart from documents to decide; the photograph a memorial types Grave is a fetch step under the cemetery row, his one and, once her memorial arrives, his daughter's three; her gravestone photograph is saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it, typed by the harness in the model's place, is a card the rule leaves to the owner",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -534,11 +534,74 @@
    ]
   },
   {
-   "say": "the photograph saved in the browser under that name, into the download folder",
+   "say": "his daughter's memorial arrives, the page the owner saved: of its five photographs its contributor typed three Grave, two of them family photographs on the farm, the last the stone",
+   "attach": {
+    "fixture": "findagrave-memorial-142698059.html"
+   },
+   "as": "dmem",
+   "expect": [
+    {
+     "last": {
+      "identity": "memorial 142698059"
+     },
+     "why": "the attach knows the page by the memorial it is"
+    }
+   ]
+  },
+  {
+   "say": "her plan: each photograph typed Grave is a fetch step under her cemetery row, the stone's among them",
+   "plan": [
+    "I332737037573"
+   ],
+   "expect": [
+    {
+     "step_count": {
+      "person": "I332737037573",
+      "step_key_like": "fetch:photo:%",
+      "is": 3
+     },
+     "why": "the three photographs typed Grave, whatever they show; the Person and Family ones make none"
+    },
+    {
+     "step": {
+      "person": "I332737037573",
+      "step_key": "fetch:photo:117088371",
+      "fields": {
+       "locator_source_id": "E05",
+       "locator_kind": "url",
+       "locator_value": {
+        "ends": "142698059_1424121146.jpg"
+       },
+       "row_key": {
+        "starts": "cemetery"
+       }
+      }
+     },
+     "why": "the stone's photograph, its image's URL the locator"
+    },
+    {
+     "fetch_entries": {
+      "holder": "E05",
+      "person": "I332737037573",
+      "url_has": "142698059_1424121146.jpg",
+      "is": [
+       {
+        "save_as": "findagrave-photo-142698059-117088371.jpg",
+        "how": "image"
+       }
+      ]
+     },
+     "why": "the fetch list names the image and the file to save it under"
+    }
+   ]
+  },
+  {
+   "say": "the stone's photograph saved in the browser under that name, into the download folder: the image the archive holds",
    "save": {
     "holder": "E05",
-    "person": "I332737038183",
-    "stand_in": "image",
+    "person": "I332737037573",
+    "url_has": "142698059_1424121146.jpg",
+    "fixture": "findagrave-photo-142698059-117088371.jpg",
     "folder": "downloads"
    },
    "as": "photo",
@@ -547,7 +610,7 @@
      "bound": {
       "value": "$photo.url",
       "is": {
-       "ends": "78019650_131821819991.jpg"
+       "ends": "142698059_1424121146.jpg"
       }
      },
      "why": "the entry's link is the step's locator"
@@ -565,7 +628,7 @@
      "last": {
       "results": [
        {
-        "file": "findagrave-photo-78019650-49839510.jpg",
+        "file": "findagrave-photo-142698059-117088371.jpg",
         "left": null,
         "steps": {
          "len": 1
@@ -579,7 +642,7 @@
     {
      "file": {
       "folder": "$photo.folder",
-      "name": "findagrave-photo-78019650-49839510.jpg",
+      "name": "findagrave-photo-142698059-117088371.jpg",
       "exists": false
      },
      "why": "the file has left the download folder"
@@ -595,8 +658,8 @@
     },
     {
      "step": {
-      "person": "I332737038183",
-      "step_key_like": "fetch:photo:%",
+      "person": "I332737037573",
+      "step_key": "fetch:photo:117088371",
       "fields": {
        "status": "done"
       }
@@ -605,15 +668,20 @@
    ]
   },
   {
-   "say": "the stone read by the model: a card for the subject the rule leaves to the owner",
+   "say": "the stone read, typed by the harness in the model's place from the image's own words (AHEARN over her panel: HELEN BRANT, JULY 11 1909, JAN 24, 1986): a card for her the rule leaves to the owner",
    "transcribe": {
     "record": "$got.results.0.sha256",
     "form": {
-     "name": "Abram C. Brant",
+     "name": "Helen Brant Ahearn",
      "role": "named on the stone",
-     "birth_date": "1880",
-     "death_date": "1961",
-     "line": 1,
+     "birth_date": "11 Jul 1909",
+     "death_date": "24 Jan 1986",
+     "bbox": [
+      1626,
+      1279,
+      812,
+      345
+     ],
      "image_is": "record"
     },
     "by": "llm:harness"
@@ -638,19 +706,19 @@
       "prompt_is_instruction": true,
       "image_is": "record"
      },
-     "why": "the model's extractor row carries the model named after llm:, no version when the id carries none, and the hash of the instruction text; the reading keeps that the image is the record itself"
+     "why": "the model's place in the extractor row carries the reader named after llm:, no version when the id carries none, and the hash of the instruction text; the reading keeps that the image is the record itself"
     },
     {
      "card": {
       "record": "$stone.sha",
-      "person": "I332737038183",
+      "person": "I332737037573",
       "status": "undecided"
      }
     },
     {
      "rule": {
       "record": "$stone.sha",
-      "person": "I332737038183",
+      "person": "I332737037573",
       "taken": false,
       "why": {
        "has": "not accepted"

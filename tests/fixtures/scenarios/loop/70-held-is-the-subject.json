@@ -8,71 +8,43 @@
  },
  "steps": [
   {
-   "say": "the household accepted on the census, so the couple stands on a record",
-   "attach": {
-    "fixture": "familysearch-census-1940-KQX1-VT9.html"
-   },
-   "as": "c40"
-  },
-  {
-   "say": "",
-   "decide": {
-    "card": {
-     "record": "c40",
-     "person": "I332737037573"
-    },
-    "status": "accepted"
-   }
-  },
-  {
-   "say": "",
-   "decide": {
-    "card": {
-     "record": "c40",
-     "person": "I332737037257"
-    },
-    "status": "accepted"
-   }
-  },
-  {
-   "say": "the obituary the file cites on her, a stand-in",
+   "say": "the obituary the file cites on her, the page the archive holds",
    "seed": {
-    "file": "obituary-stand-in.html",
-    "saved_from": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355",
-    "source": "H04",
-    "collection": "U.S., Newspapers.com™ Obituary Index, 1800s-current",
+    "fixture": "legacy-obituary-noi-davidson-17624767.html",
+    "source": "H05",
+    "collection": "U.S., Obituary Collection, 1930-Current",
     "locator": {
      "kind": "url",
-     "value": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355"
+     "value": "https://www.legacy.com/us/obituaries/trentonian/name/noi-davidson-obituary?id=17624767"
     }
    },
    "as": "ob"
   },
   {
-   "say": "the deceased read",
+   "say": "the deceased read, as the page names her (typed by the harness in the model's place)",
    "transcribe": {
     "record": "ob",
     "form": {
-     "name": "Helen Sara Brant",
-     "sex": "F",
+     "name": "Noi Davidson",
      "role": "deceased",
      "line": 1,
      "image_is": "record",
-     "year": "1986"
+     "year": "2015",
+     "age": "86"
     },
     "about": [
-     "I332737037573"
+     "I332737099804"
     ],
     "by": "llm:harness"
    },
    "as": "dead"
   },
   {
-   "say": "her husband, a survivor",
+   "say": "her husband, named as one who went before her",
    "transcribe": {
     "record": "ob",
     "form": {
-     "name": "Frederick Michael Ahearn",
+     "name": "Raymond E. Davidson",
      "role": "husband",
      "line": 2,
      "image_is": "record"
@@ -92,7 +64,7 @@
    "decide": {
     "card": {
      "record": "ob",
-     "person": "I332737037573"
+     "person": "I332737099804"
     },
     "status": "accepted"
    }
@@ -102,23 +74,23 @@
    "decide": {
     "card": {
      "record": "ob",
-     "person": "I332737037257"
+     "person": "I332737099805"
     },
     "status": "accepted",
-    "note": "harness: the named survivor"
+    "note": "harness: the husband named"
    }
   },
   {
    "say": "a done fetch step on each, the citation sitting on the person (on_json []), logged found with the page",
    "step": {
-    "person": "I332737037573",
+    "person": "I332737099804",
     "row_key": "obituary:",
     "seq": 7,
     "step_key": "fetch:obituary-held",
     "kind": "fetch",
     "query_type": "subject_record",
     "sources": [
-     "H04"
+     "H05"
     ],
     "mode": "fetch",
     "status": "done",
@@ -130,7 +102,7 @@
    "say": "",
    "log": {
     "step": "$hs.step",
-    "source": "H04",
+    "source": "H05",
     "outcome": "found",
     "artifacts": [
      "ob"
@@ -141,14 +113,14 @@
   {
    "say": "",
    "step": {
-    "person": "I332737037257",
+    "person": "I332737099805",
     "row_key": "obituary:",
     "seq": 7,
     "step_key": "fetch:obituary-named",
     "kind": "fetch",
     "query_type": "subject_record",
     "sources": [
-     "H04"
+     "H05"
     ],
     "mode": "fetch",
     "status": "done",
@@ -160,7 +132,7 @@
    "say": "",
    "log": {
     "step": "$fs.step",
-    "source": "H04",
+    "source": "H05",
     "outcome": "found",
     "artifacts": [
      "ob"
@@ -170,7 +142,7 @@
    "expect": [
     {
      "fetched_rows": {
-      "person": "I332737037573",
+      "person": "I332737099804",
       "row": "obituary:",
       "held": true
      },
@@ -178,11 +150,11 @@
     },
     {
      "fetched_rows": {
-      "person": "I332737037257",
+      "person": "I332737099805",
       "row": "obituary:",
       "held": false
      },
-     "why": "a person accepted only as a survivor named on someone else's record, an outgoing relation to the deceased: not held, though his own step logged the page found"
+     "why": "a person accepted only as a husband named on someone else's record, an outgoing relation to the deceased: not held, though his own step logged the page found"
     }
    ]
   }
