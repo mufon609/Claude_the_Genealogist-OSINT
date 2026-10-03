@@ -577,16 +577,6 @@ for them. Find what that run wrote (artifacts, extractions, personas, runs)
 through a tool that reads the catalog, say what the owner should keep, and
 correct the README rows that rest on those copies.
 
-### C32. The same page saved twice
-
-`suffix` adds line feeds to a real page so that a scenario archives the same
-page again as other bytes (decisions `60`, loop `30` and `31`): bytes no save
-produced. The live archive holds a real second save of one page, Reiko Diane
-Davidson's FamilySearch search at collection 2365247, saved twice on 18
-September 2026 (`fbc2a73f…`, `24a52f8d…`, six bytes apart). Make those
-scenarios' second save a real one (that pair, or another the archive holds)
-and drop `suffix` from `tests/checks/scenario.py` and the README.
-
 ### C34. An original names whose record it is
 
 `data/evidence-classes.csv` names a record's original by its kind ("death
@@ -638,6 +628,36 @@ buried with by name alone, and the reason the rule takes the veteran as
 Raymond Earl Davidson says the birth year agrees. `docs/RESEARCH-WORKFLOW.md` says a birth
 year agrees "where both have one": say the birth year in the reason only when
 both sides give one, and show it on that row.
+
+### C37. Circumstances under which a record misstates a date on purpose
+
+A record made at the event can carry a false age or date for good: a boy who
+gave himself an earlier birth year to enlist under age keeps it on every
+military, veterans' and Social Security record after, so primary records
+disagree with his birth record for ever, and the proof standard's classes alone
+would read the enlistment's side as first-hand. The same holds for a minor
+marrying without consent, a child overstating age to work, a delayed birth
+certificate copied from such a record, ages rounded on a census or a passenger
+list, a dual-dated year before 1752. The owner wants structure for these before
+such findings arrive: "this project needs a database of circumstances where we
+could possibly see contradicting information in primary sources ... then
+future lines of research can be ran under these specific entries in this new
+file to pin down the real story." Add `data/circumstances.csv`, reference data
+for any family: each row a circumstance, the record kinds and field it touches
+(in the kinds `data/evidence-classes.csv` and the checklist use), the direction
+and usual size of the misstatement, the condition that makes it likely (an age
+threshold at the record's own event, an era), the incentive or convention, the
+records made before or free of it (its research lines), and sources an
+archivist or genealogist would cite, each opened and checked. Then a date
+conflict that fits a row names the circumstance where the conflict is told
+(the question, `tools/proof.py`, the person screen); the rule never settles
+such a conflict for the record made under the incentive; and the row's research
+lines become steps on the person's plan, leads whose origin is the
+circumstance. A family's own story (a grandfather said to have enlisted under
+age) is the owner's word on that person in the catalog, never a row: the file
+holds what recurs in any family. Write the decision into
+`docs/DATA-ARCHITECTURE.md` §7 and the proof standard before the code, and show
+it on a real record the archive holds.
 
 ### C3. A decision taken on a claimed relationship that reconsider would withdraw
 
