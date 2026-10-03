@@ -74,7 +74,8 @@ rejected or accepted stays as it is. A page anyone can edit (T4: Find a
 Grave, member trees) identifies a person but never builds their facts:
 accepting it, by the owner or by the rule, writes the persona link, and every
 fact the page types is written as an undecided assertion, what the page says,
-never accepted and never a ground the rule stands on; the rule takes such an identity when the name agrees and
+never accepted and never a ground the rule stands on, one that differs from a primary record the tree
+holds a contradiction of it and never a veto; the rule takes such an identity when the name agrees and
 at least three of birth date to the day, death date to the day, burial place,
 and a stated parent or spouse who is that relative in the tree agree with the
 tree, claimed or accepted. A family membership such a page states is created
@@ -1037,7 +1038,13 @@ rule takes the identity alone, when the name agrees and at least three of birth
 date to the day, death date to the day, burial place, and a stated parent or
 spouse who is that relative in the tree agree with the tree, claimed or
 accepted, a claim the file cites to that very page not among them (the reason
-names what it left out); a relative a memorial lists is a lead, never a card
+names what it left out). A date or place the page gives that disagrees with an
+accepted statement holding primary information is no veto there: such a page is
+not trusted for a fact, so the primary record's value stands and the page's,
+written undecided like every fact it types, is a contradiction of it, a conflict
+question the classes decide for the primary record, the page named on the side
+set aside (the owner, 3 Oct 2026: "use the primary document and just tag the find
+a grave as a contradiction"); a relative a memorial lists is a lead, never a card
 (§0, §3), and one a profile lists by name and years alone has at most the
 stated relation and is a card for the owner.
 

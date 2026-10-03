@@ -1,0 +1,111 @@
+{
+ "title": "a page anyone can edit that contradicts a primary record",
+ "line": "John Y Davidson's death certificate, as FamilySearch's index entry of it, gives the 11th first-hand and the rule keeps it; his Find a Grave memorial gives the 10th. The memorial is not trusted for a fact: the certificate's day stands, and the memorial's 10th, written undecided, is a contradiction the conflict names, while the memorial's identity is taken on its own agreements (the owner, 3 Oct 2026: use the primary document and tag the page anyone can edit as a contradiction)",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "the owner accepts it as his: the rule settles the file's 10th for the certificate's 11th",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "his memorial, a page anyone can edit: died the 10th",
+   "attach": {
+    "fixture": "findagrave-memorial-130509402.html"
+   },
+   "as": "memorial",
+   "expect": [
+    {
+     "rule": {
+      "record": "memorial",
+      "person": "I332737204849",
+      "taken": true,
+      "why": {
+       "has": [
+        "identity on a page anyone can edit",
+        "the page's value is kept as a contradiction",
+        "death date disagrees (record 10 Jun 1946, tree 11 Jun 1946"
+       ]
+      }
+     },
+     "why": "the memorial's 10th is no veto against the certificate's first-hand day: the identity is taken on what agrees"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     },
+     "why": "the primary record's day stands"
+    },
+    {
+     "conflict_rule": {
+      "person": "I332737204849",
+      "type": "Death",
+      "axis": "date",
+      "taken": true,
+      "why": {
+       "has": [
+        "states the death first-hand, 11 Jun 1946",
+        "a page anyone can edit (Find a Grave memorial 130509402)"
+       ]
+      }
+     },
+     "why": "the memorial's 10th is named in the conflict as what the certificate's day sets aside"
+    }
+   ]
+  },
+  {
+   "say": "reconsider keeps the identity",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "why": {
+         "has": "kept as a contradiction"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

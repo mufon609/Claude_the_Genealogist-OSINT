@@ -1010,16 +1010,18 @@ def _stands_for(cat, persona, cand, chosen):
 FIELD_EVENT = {"birth date": ("Birth", "date", "birth"), "death date": ("Death", "date", "death"), "birth place": ("Birth", "place", "birth place"),
                "burial place": ("Burial", "place", "burial place"), "death place": ("Death", "place", "death place")}
 
-def _grounded(cx, eid, kind, value):
+def _grounded(cx, eid, kind, value, primary=False):
     """Whether an Accepted assertion on this event itself disagrees with value ({start,text,qualifier} for a date, a raw
     string for a place): only such a value vetoes the rule (docs/RESEARCH-WORKFLOW.md §0); a disagreement with a bare claim
     does not, and decide() raises it as a conflict question once the record is taken on its other points. A vouch (the
     owner's own word, accepted with no persona_fact of its own: facts.vouch) accepts the event's own date as it stands, so
-    it grounds a date comparison against the event's own fields; it carries no place, so it never grounds one."""
+    it grounds a date comparison against the event's own fields; it carries no place, so it never grounds one. primary: only an
+    assertion holding primary information counts (catalog.evidence_classes), the owner's word not among them."""
     q = _q(cx)
-    rows = q.execute("""SELECT a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.place_string_id, ps.raw
+    rows = q.execute("""SELECT a.id, a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.place_string_id, ps.raw
                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
-                         WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", (eid,))
+                         WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", (eid,)).fetchall()
+    if primary: rows = [r for r in rows if r["persona_fact_id"] is not None and (evidence_classes(cx, r["id"]) or {}).get("information") == "primary"]
     if kind == "date":
         ev = q.execute("SELECT date_text, date_start, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
         for r in rows:
@@ -1044,7 +1046,7 @@ def held_against(cx, tree_id, cand_id, other_id, kind, without=()):
     if kind == "sibling": return held(cand_id, "child") and held(other_id, "child")
     return True
 
-def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=()):
+def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), editable_page=False):
     """Partition compare()'s disagreements into those grounded in an Accepted assertion on the very event or link compared
     (a veto), those against a bare claim (named in the decision note instead, never a veto) and a birth place that differs
     from an accepted one: a birth or death date, a death or burial place is checked against the event's own Accepted
@@ -1052,7 +1054,11 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=()):
     the tree holds of it on accepted evidence (held_against), so a family the file only claims is a claim here too; a birth
     place, secondary on nearly every record and never a point, never vetoes, and when it differs from an accepted value the
     difference is a conflict question once the record is taken; every other kind of disagreement (a name, a middle name, sex)
-    vetoes. Returns (vetoes, claims, conflicts)."""
+    vetoes. On a page anyone can edit (editable_page), a date or a place that disagrees with an accepted statement holding
+    primary information is no veto either: the primary record stands, and the page's value, written undecided, is a
+    contradiction of it, a conflict question once the page's identity is taken (the owner, 3 Oct 2026: a page anyone can edit
+    is not trusted; use the primary document and tag the page as a contradiction). Returns (vetoes, claims, conflicts), a
+    contradiction among the conflicts."""
     rel = {}                                                         # a relationship line's own opening -> (kind, the related candidate), as compare() words it
     for kind, other_pid, as_written, other_name in persona["relations"]:
         if chosen.get(other_pid): rel[f"relationship disagrees: {as_written or kind} of {other_name},"] = (kind, chosen[other_pid])
@@ -1062,6 +1068,7 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=()):
         eid = cand["events"].get(FIELD_EVENT[field][0]) if field else None
         if field and eid and not _grounded(cx, eid, FIELD_EVENT[field][1], persona[FIELD_EVENT[field][2]]): claims.append(d)
         elif field == "birth place": conflicts.append(d)
+        elif field and eid and editable_page and _grounded(cx, eid, FIELD_EVENT[field][1], persona[FIELD_EVENT[field][2]], primary=True): conflicts.append(d)
         elif d.startswith("relationship disagrees"):
             kind, oc = next((v for k, v in rel.items() if d.startswith(k)), (None, None))
             (vetoes if oc is None or held_against(cx, tree_id, cand["id"], oc["id"], kind, without) else claims).append(d)
@@ -1266,10 +1273,13 @@ def rule_points(cx, tree_id, prop, without=()):
             elif a.startswith("the same memorial"): return True
         return False
     fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
-    vetoes, claims, conflicts = split_disagree(cx, tree_id, cand, persona, disagree, chosen, without)
+    vetoes, claims, conflicts = split_disagree(cx, tree_id, cand, persona, disagree, chosen, without, editable_page=identity)
     if vetoes: return False, "disagrees: " + "; ".join(vetoes)
     claim_note = (" (disagrees with the tree's own claim, not yet accepted: " + "; ".join(claims) + ")") if claims else ""
-    claim_note += (" (the birth place differs from an accepted one, never a veto: a conflict question once the record is taken: " + "; ".join(conflicts) + ")") if conflicts else ""
+    contradicts = [c for c in conflicts if not c.startswith("birth place")]
+    born = [c for c in conflicts if c.startswith("birth place")]
+    claim_note += (" (the birth place differs from an accepted one, never a veto: a conflict question once the record is taken: " + "; ".join(born) + ")") if born else ""
+    claim_note += (" (contradicts a primary record the tree holds, which stands: the page's value is kept as a contradiction, a conflict question once its identity is taken: " + "; ".join(contradicts) + ")") if contradicts else ""
     married = any(a.startswith("surname:") and "carries her husband's surname" in a for a in absent)   # a wife under her married name: not a disagreement, and not the surname's absence either
     if not any(a.startswith("given name agrees") for a in agree) or not (any(a.startswith("surname agrees") for a in agree) or married): return False, "the name does not agree in full"
     if any(a.startswith("surname agrees, one letter apart") for a in agree): return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"
