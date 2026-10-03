@@ -349,24 +349,6 @@ statement per line at a width a review can read, behaviour unchanged and the
 checks green, a file per commit, once the rule's points on the proof
 standard's classes (section A) have landed, so the two do not collide.
 
-### C15. A record whose two personas each wait on the other
-
-Carol Evers's card on the 1950 schedule the owner cited on their own word
-(`tools/cite.py`: the Evers household at East Northport, the page read by the
-model) proposes Evers, Carol Ann, daughter, as her on the name and sex alone;
-her only stated relationship is to Evers, John, the head, who is nobody in
-the tree. The rule does not take her: no accepted fact of hers agrees, and a
-stated relationship counts a point only when the relative's persona fits
-someone in the tree (`docs/RESEARCH-WORKFLOW.md` §5–7). John Evers gets no card: a persona
-is proposed as a new person only through a stated relationship to a persona
-already accepted on the record, and none is. Each waits on the other, and the
-record stays the owner's click though the owner's own citation says whose
-household it is. Decide what seats the first persona on a record fetched on
-the owner's word: the owner's citation as the ground that persona lacks (a
-vouch, recorded as their word), the household then read outward from her
-through its stated relationships as any accepted record is; or the card stays
-the owner's.
-
 ### C16. A connector for the New York State death index
 
 Reclaim the Records' New York State death index 1880–1971 (outside New York

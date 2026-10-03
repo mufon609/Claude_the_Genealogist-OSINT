@@ -979,7 +979,10 @@ report says what was held, what the rule decided, who was created and what is
 left for the owner, in words; a source that did not answer is named once, with
 the rows of the steps it was asked on, and a file left in the inbox that
 fulfils no step is named once per run, not in every report. A record the owner cites on their own word
-(`tools/cite.py`) is a fetch step on the plan a turn runs like any other.
+(`tools/cite.py`) is a fetch step on the plan a turn runs like any other;
+where the owner's word names who on the record is their person, that persona's
+card is accepted on their word, the decision's note quoting it, and the record
+is read outward from that person as any accepted record is.
 `tools/turns.py` is the loop run without a hand on it: it asks the queue for
 the next person, runs their turn with `tools/turn.py`'s own code, prints the
 turn's report and asks the queue again, until the queue names nobody a turn
