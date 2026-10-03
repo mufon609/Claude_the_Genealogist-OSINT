@@ -1,0 +1,536 @@
+{
+ "title": "a page no parser reads is held, unread",
+ "line": "a page saved under the fetch list's name from a holder whose pages no parser reads (the Mansfield News Journal's own answer for a cited obituary, a Page Not Found page) is archived and logged unread on the step it was saved for, the run's note saying so: the page is held, still fetched for the person, and the step stays planned and is not listed for saving again while the page waits, the other person's step citing the same page still listed; the 0.7.8 migration turns a found run an older attach logged for such a page to unread with one audit row under its own actor, leaves a run on a page a parser reads and a run on an image found, and refuses, writing nothing, while a step stands done with a run to correct",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "two people cite the same Mansfield News Journal obituary page, so the list holds it for each of them",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "H05",
+      "url_has": "mansfieldnewsjournal",
+      "is": {
+       "len": 2
+      }
+     },
+     "why": "a page at a holder whose pages carry no identity is one entry per citation and person waiting on it"
+    }
+   ]
+  },
+  {
+   "say": "the page saved in the browser under the list's name for Raymond Earl Davidson: what the holder answered when the citation's link was opened",
+   "save": {
+    "holder": "H05",
+    "person": {
+     "name": "Raymond Earl Davidson"
+    },
+    "url_has": "mansfieldnewsjournal",
+    "fixture": "mansfield-news-journal-obituary-193623-page-not-found.html",
+    "folder": "downloads"
+   },
+   "as": "saved",
+   "expect": [
+    {
+     "last": {
+      "how": "page",
+      "save_as": {
+       "starts": "h05-"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "collect brings it in by the name",
+   "collect": {
+    "folder": "$saved.folder"
+   },
+   "as": "collected",
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "left": null,
+        "outcome": "unread",
+        "unparsed": {
+         "has": "no parser claims"
+        },
+        "logs": {
+         "len": 1
+        },
+        "proposals": []
+       }
+      ]
+     },
+     "why": "the page reaches the step by the list's name and no parser reads it: its run is unread, not found"
+    },
+    {
+     "last": {
+      "lines": [
+       {
+        "has": "1 run(s) logged as unread"
+       }
+      ]
+     },
+     "why": "the line the tools print says so"
+    },
+    {
+     "step": {
+      "person": {
+       "name": "Raymond Earl Davidson"
+      },
+      "locator": {
+       "kind": "apid",
+       "value": "1,7545::225160171"
+      },
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "a page nobody read holds nothing: the step it was saved for stays planned"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "Raymond Earl Davidson"
+       },
+       "locator": {
+        "kind": "apid",
+        "value": "1,7545::225160171"
+       }
+      },
+      "is": [
+       {
+        "source_id": "H05",
+        "outcome": "unread",
+        "notes": {
+         "starts": "no parser reads this page"
+        },
+        "artifacts": [
+         "$collected.sha"
+        ]
+       }
+      ]
+     },
+     "why": "the page is held on the step's log under the holder, as an unread run: no found run, the page archived"
+    }
+   ]
+  },
+  {
+   "say": "what the page waiting means for the list and the person",
+   "expect": [
+    {
+     "fetch_entries": {
+      "holder": "H05",
+      "person": {
+       "name": "Raymond Earl Davidson"
+      },
+      "url_has": "mansfieldnewsjournal",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the holder's unread run on the step's own fields keeps the page off the open list"
+    },
+    {
+     "fetch_entries": {
+      "holder": "H05",
+      "person": {
+       "name": "Robert Edgar Davidson"
+      },
+      "url_has": "mansfieldnewsjournal",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "the other person's step on the same page has no run: still listed"
+    },
+    {
+     "named_for": {
+      "record": "collected",
+      "is": {
+       "has": "Raymond Earl Davidson"
+      }
+     },
+     "why": "the page is still fetched for him: a reading of it later is matched to him"
+    },
+    {
+     "checklist_row": {
+      "person": {
+       "name": "Raymond Earl Davidson"
+      },
+      "record": "obituary",
+      "status": {
+       "not": "held"
+      }
+     },
+     "why": "his obituary row is not held on a page nobody read"
+    }
+   ]
+  },
+  {
+   "say": "his plan run again keeps the step planned and logs nothing",
+   "plan": [
+    {
+     "name": "Raymond Earl Davidson"
+    }
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": {
+       "name": "Raymond Earl Davidson"
+      },
+      "locator": {
+       "kind": "apid",
+       "value": "1,7545::225160171"
+      },
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "the citation is not held and the step was never done: nothing to plan again"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "Raymond Earl Davidson"
+       },
+       "locator": {
+        "kind": "apid",
+        "value": "1,7545::225160171"
+       }
+      },
+      "is": {
+       "len": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "a page a parser reads, the 1950 census household, archived and read",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-census-1950-6XYS-NQ16.html"
+    },
+    "extract": true
+   },
+   "as": "c50"
+  },
+  {
+   "say": "an image, page 970 of the 1959 New York marriage index, never read by a parser",
+   "seed": {
+    "fixture": "ny-marriage-index-1959-page-970.jpg",
+    "source": "C08",
+    "collection": "New York State Marriage Index, 1881-1967 (Reclaim the Records, Internet Archive)",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "url",
+     "value": "https://ia601400.us.archive.org/BookReader/BookReaderImages.php?zip=/13/items/New_York_State_Marriage_Index_1959/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2.zip&file=Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_jp2/Reclaim_The_Records_-_New_York_Marriage_Index_-_1959_0986.jp2&id=New_York_State_Marriage_Index_1959&scale=1&rotate=0"
+    }
+   },
+   "as": "nys"
+  },
+  {
+   "say": "an older catalog's runs on the other person's step, as the attach logged them before a page no parser reads had a word of its own: found on the page a parser reads and on the image",
+   "log": {
+    "step": {
+     "person": {
+      "name": "Robert Edgar Davidson"
+     },
+     "locator": {
+      "kind": "apid",
+      "value": "1,7545::2574614"
+     }
+    },
+    "source": "H05",
+    "outcome": "found",
+    "artifacts": [
+     "c50"
+    ],
+    "note": "harness: a run on a page a parser reads, as an older attach logged it",
+    "query": true
+   }
+  },
+  {
+   "say": "",
+   "log": {
+    "step": {
+     "person": {
+      "name": "Robert Edgar Davidson"
+     },
+     "locator": {
+      "kind": "apid",
+      "value": "1,7545::2574614"
+     }
+    },
+    "source": "H05",
+    "outcome": "found",
+    "artifacts": [
+     "nys"
+    ],
+    "note": "harness: a run on an image, as an older attach logged it",
+    "query": true
+   }
+  },
+  {
+   "say": "and found on the page nobody read, which marked the step done",
+   "log": {
+    "step": {
+     "person": {
+      "name": "Robert Edgar Davidson"
+     },
+     "locator": {
+      "kind": "apid",
+      "value": "1,7545::2574614"
+     }
+    },
+    "source": "H05",
+    "outcome": "found",
+    "artifacts": [
+     "collected"
+    ],
+    "note": "harness: the page no parser reads, as an older attach logged it",
+    "query": true,
+    "done": true
+   },
+   "as": "planted"
+  },
+  {
+   "say": "the migration, run on the catalog as it stood at 0.7.7, refuses: a step stands done with a run to correct",
+   "migrate": {
+    "reset_to": "0.7.7",
+    "refused": true
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "has": [
+        "0.7.8 refused, nothing written",
+        "Robert Edgar Davidson",
+        "stands done"
+       ]
+      }
+     },
+     "why": "the run may have closed the step, and whether the step stands is the owner's"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "Robert Edgar Davidson"
+       },
+       "locator": {
+        "kind": "apid",
+        "value": "1,7545::2574614"
+       }
+      },
+      "is": {
+       "every": {
+        "outcome": "found"
+       }
+      }
+     },
+     "why": "nothing written: the three runs are found as they were"
+    },
+    {
+     "audit": {
+      "entity": "search_log",
+      "action": "update",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "no audit row either"
+    }
+   ]
+  },
+  {
+   "say": "the owner takes the step's closing back: it is planned again",
+   "reopen": {
+    "step": {
+     "person": {
+      "name": "Robert Edgar Davidson"
+     },
+     "locator": {
+      "kind": "apid",
+      "value": "1,7545::2574614"
+     }
+    },
+    "note": "harness: the page the run closed it with was read by nobody"
+   }
+  },
+  {
+   "say": "the migration again",
+   "migrate": {},
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": "schema 0.7.8"
+      }
+     }
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "Robert Edgar Davidson"
+       },
+       "locator": {
+        "kind": "apid",
+        "value": "1,7545::2574614"
+       }
+      },
+      "is": {
+       "len": 4
+      }
+     },
+     "why": "the three planted runs and the reopen's own row"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "Robert Edgar Davidson"
+       },
+       "locator": {
+        "kind": "apid",
+        "value": "1,7545::2574614"
+       }
+      },
+      "is": {
+       "some": {
+        "outcome": "unread",
+        "notes": {
+         "starts": "no parser reads this page; harness: the page no parser reads"
+        },
+        "artifacts": [
+         "$collected.sha"
+        ]
+       }
+      }
+     },
+     "why": "the run on the page nobody read is unread, its own note kept after the new one"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "Robert Edgar Davidson"
+       },
+       "locator": {
+        "kind": "apid",
+        "value": "1,7545::2574614"
+       }
+      },
+      "is": {
+       "some": {
+        "outcome": "found",
+        "artifacts": [
+         "$c50.sha"
+        ]
+       }
+      }
+     },
+     "why": "a run on a page a parser reads stays found"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "Robert Edgar Davidson"
+       },
+       "locator": {
+        "kind": "apid",
+        "value": "1,7545::2574614"
+       }
+      },
+      "is": {
+       "some": {
+        "outcome": "found",
+        "artifacts": [
+         "$nys.sha"
+        ]
+       }
+      }
+     },
+     "why": "a run on an image stays found"
+    },
+    {
+     "audit": {
+      "entity": "search_log",
+      "id": "$planted.log",
+      "action": "update",
+      "is": [
+       {
+        "actor": "migration:0.7.8",
+        "action": "update",
+        "diff": {
+         "was": {
+          "outcome": "found"
+         },
+         "now": {
+          "outcome": "unread"
+         },
+         "person": "Robert Edgar Davidson",
+         "holder": "H05",
+         "artifacts": [
+          "$collected.sha"
+         ]
+        }
+       }
+      ]
+     },
+     "why": "one audit row for the run corrected, under the migration's own actor, the run as it stood in it"
+    },
+    {
+     "audit": {
+      "entity": "search_log",
+      "action": "update",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "no other run was touched: not the unread run the attach wrote, nor the two on pages read"
+    },
+    {
+     "step": {
+      "person": {
+       "name": "Robert Edgar Davidson"
+      },
+      "locator": {
+       "kind": "apid",
+       "value": "1,7545::2574614"
+      },
+      "fields": {
+       "status": "planned"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

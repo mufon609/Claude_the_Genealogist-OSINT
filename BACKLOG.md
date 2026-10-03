@@ -124,16 +124,6 @@ by-name path does. The test needs a real page of such a holder saved by the
 script with its key; none is archived (the pages of those holders so far came
 through connectors).
 
-### C3. A page no parser reads is logged found
-
-`tools/attach.py`'s `attach` logs a run `found` before the page is parsed and
-turns it to `none` only for a results listing whose rows fit nobody. A page at
-a holder without a parser (the SAR Patriot Research System's "No matching
-records found") is therefore `found` in `search_log` though it holds nothing
-and closes no step. Decide the word for a run whose page nobody has read (a
-`found` with a note that says unread, or an outcome of its own), so the log
-says what a program can rely on, and apply it to the rows already logged so.
-
 ### C4. Confirm the shadow-root save on archive.org
 
 `tools/save_page.js` serializes the page's open shadow roots as declarative
@@ -160,8 +150,7 @@ short-form given name; the matcher's window on a birth year
 the same name is never a near match, which only a results page's rows
 carried, and no row is a card now: the 1900 Lukens household, Annie against
 her mother, needs the parents in the harness cut); a namesake's kin shown as a
-hint; the SAR page at a holder without a parser;
-the New Jersey death index's birth or death with no
+hint; the New Jersey death index's birth or death with no
 month or day (`extract.nj_date` keeps the year alone), which no row of the
 2006-2017 file has, every one of its 837,351 rows carrying both dates whole; the
 unnamed fetch's own naming

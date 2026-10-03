@@ -30,24 +30,60 @@ def requery_questions(cx: sqlite3.Connection) -> None:
     for rid, detail in cx.execute("SELECT id, detail_json FROM research_question").fetchall():
         cx.execute("UPDATE research_question SET q_key=? WHERE id=?", (q_key(json.loads(detail)), rid))
 
-def rebuild_questions(cx: sqlite3.Connection) -> None:
-    """research_question built again as schema/catalog.sql now defines it, for a CHECK it widens: closed_reason accepting
-    'resolved', a conflict the owner closed naming the value kept (tools/conclude.py resolve), and kind accepting
-    'identity', a link or a statement beyond the limits of one life (Catalog.beyond_life). SQLite changes a CHECK only by
+def rebuild_table(cx: sqlite3.Connection, table: str) -> None:
+    """A table built again as schema/catalog.sql now defines it, for a CHECK the schema widens. SQLite changes a CHECK only by
     building the table again: the table as schema/catalog.sql defines it is created beside the old, every row copied across
-    unchanged, the old dropped and the new renamed, with foreign keys off for the swap and every reference checked after it."""
+    unchanged, the old dropped and the new renamed, its indexes made again, with foreign keys off for the swap and every
+    reference checked after it."""
     import re
-    ddl = re.search(r"CREATE TABLE research_question \(.*?\n\);", read("schema/catalog.sql"), re.S).group(0)
+    sql = read("schema/catalog.sql")
+    ddl = re.search(rf"CREATE TABLE {table} \(.*?\n\);", sql, re.S).group(0)
+    indexes = re.findall(rf"^CREATE INDEX [^\n]*? ON {table}\([^\n]*;$", sql, re.M)
     cx.commit(); cx.execute("PRAGMA foreign_keys=OFF")
-    cx.execute(ddl.replace("CREATE TABLE research_question (", "CREATE TABLE research_question_rebuilt (", 1))
-    cols = ", ".join(r[1] for r in cx.execute("PRAGMA table_info(research_question)"))
-    cx.execute(f"INSERT INTO research_question_rebuilt ({cols}) SELECT {cols} FROM research_question")
-    cx.execute("DROP TABLE research_question")
-    cx.execute("ALTER TABLE research_question_rebuilt RENAME TO research_question")
-    cx.execute("CREATE INDEX ix_question_person ON research_question(subject_person_id, status)")
+    cx.execute(ddl.replace(f"CREATE TABLE {table} (", f"CREATE TABLE {table}_rebuilt (", 1))
+    cols = ", ".join(r[1] for r in cx.execute(f"PRAGMA table_info({table})"))
+    cx.execute(f"INSERT INTO {table}_rebuilt ({cols}) SELECT {cols} FROM {table}")
+    cx.execute(f"DROP TABLE {table}")
+    cx.execute(f"ALTER TABLE {table}_rebuilt RENAME TO {table}")
+    for index in indexes: cx.execute(index)
     bad = cx.execute("PRAGMA foreign_key_check").fetchall()
-    if bad: raise SystemExit(f"research_question rebuilt with {len(bad)} broken reference(s); nothing committed")
+    if bad: raise SystemExit(f"{table} rebuilt with {len(bad)} broken reference(s); nothing committed")
     cx.commit(); cx.execute("PRAGMA foreign_keys=ON")
+
+def rebuild_questions(cx: sqlite3.Connection) -> None:
+    """research_question built again (rebuild_table) for a CHECK it widens: closed_reason accepting 'resolved', a conflict the
+    owner closed naming the value kept (tools/conclude.py resolve), and kind accepting 'identity', a link or a statement
+    beyond the limits of one life (Catalog.beyond_life)."""
+    rebuild_table(cx, "research_question")
+
+def unread_runs(cx: sqlite3.Connection) -> None:
+    """search_log accepts the outcome 'unread' (rebuild_table), and the catalog's one-time correction of the runs an older
+    attach logged found for a web page no parser reads: a found run whose every artifact is a page whose every extraction is
+    the failed one for a page no parser claims (log_search.unread_page; an image, a page a parser or the model or a person
+    read, stays found) is an unread run, its note beginning with log_search.UNREAD, one audit row per run under the
+    migration's own actor, naming the step, the person, the holder and the page, the run as it stood in diff_json. Refused,
+    nothing written, when such a run sits on a step standing done: the run may have closed it, and whether the step
+    stands is the owner's, so each such step is named."""
+    from log_search import UNREAD, unread_page
+    actor, ts = "migration:0.7.8", now()
+    runs = []
+    for lid, tree, step, shas, source, notes in cx.execute("""SELECT id, tree_id, plan_step_id, artifacts_json, source_id, notes FROM search_log
+                                                              WHERE outcome='found' AND artifacts_json IS NOT NULL ORDER BY executed_at, id""").fetchall():
+        shas = json.loads(shas)
+        if shas and all(unread_page(cx, s) for s in shas): runs.append((lid, tree, step, shas, source, notes))
+    done = [f"step {step} ({cx.execute('SELECT p.display_name FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=?', (step,)).fetchone()[0]}, "
+            f"{source}) stands done with run {lid} on the unread page {', '.join(s[:12] for s in shas)}" for lid, _, step, shas, source, _ in runs
+            if step and cx.execute("SELECT status FROM search_plan WHERE id=?", (step,)).fetchone()[0] == "done"]
+    if done: raise SystemExit("0.7.8 refused, nothing written: a step stands done with a run to correct: " + "; ".join(done))
+    rebuild_table(cx, "search_log")
+    for lid, tree, step, shas, source, notes in runs:
+        now_notes = UNREAD + (f"; {notes}" if notes else "")
+        cx.execute("UPDATE search_log SET outcome='unread', notes=? WHERE id=?", (now_notes, lid))
+        person = cx.execute("SELECT p.display_name FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=?", (step,)).fetchone() if step else None
+        cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                   (ulid(), tree, ts, actor, "update", "search_log", lid,
+                    json.dumps({"was": {"outcome": "found", "notes": notes}, "now": {"outcome": "unread", "notes": now_notes}, "step": step, "person": person[0] if person else None,
+                                "holder": source, "artifacts": shas, "why": "a web page no parser reads is held, not found: nothing a program knows was read from it"})))
 
 def unspread_links(cx: sqlite3.Connection) -> None:
     """The catalog's one-time correction of the person_persona rows an older decision spread to another entry of its page:
@@ -152,6 +188,8 @@ MIGRATIONS = [
      [fold_events]),
     ("0.7.7", "research_question.kind accepts 'identity': a family link or an accepted statement beyond the limits of one life",
      [rebuild_questions]),
+    ("0.7.8", "search_log.outcome accepts 'unread': a web page archived that no parser reads is held on its step's log, the step stays planned; the runs an older attach logged found for such a page are corrected",
+     [unread_runs]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

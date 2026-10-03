@@ -71,7 +71,8 @@ def plan_view(cx, pid):
 def log_step(cx, tree_id, slug, step_id, body):
     """Write one run of a step. A found run with a file attaches the file (tools/attach.py): archived once, a found run logged
     on the step the person chose and on every other step the record's own identity fulfils, then a record page new to the
-    archive is parsed and matched; the assertion and personas come later from extraction and review, never from the attach."""
+    archive is parsed and matched (a page no parser reads leaves its runs unread, the steps planned); the assertion and personas
+    come later from extraction and review, never from the attach."""
     st = cx.execute("SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone()
     if not st: return {"error": "step not found"}
     outcome = body.get("outcome"); note = body.get("note") or None; query = body.get("query") or rendered_query(st["query_json"], st["revisions_json"])
@@ -84,7 +85,7 @@ def log_step(cx, tree_id, slug, step_id, body):
         steps = [st] + [s for s in (attach_steps_for(cx, tree_id, kind, value, parsed) if kind else []) if s["id"] != st["id"]]
         try: r = attach_file(cx, tree_id, slug, body["file"], steps, CFG["by"], note=note, query=query if kind != "search" else None, kind=kind, value=value, parsed=parsed)
         except ValueError as e: return {"error": str(e)}
-        return {"ok": True, "log": r["logs"][0][1] if r["logs"] else None, "artifacts": [r["sha256"]], "unparsed": r["unparsed"], "identity": f"{kind} {value}" if kind else None,
+        return {"ok": True, "log": r["logs"][0][1] if r["logs"] else None, "outcome": r.get("outcome") or "found", "artifacts": [r["sha256"]], "unparsed": r["unparsed"], "identity": f"{kind} {value}" if kind else None,
                 "steps": [s["id"] for s in steps], "proposals": len(r["proposals"])}
     lid = log_search(cx, tree_id, CFG["by"], step_id=step_id, outcome=outcome, artifacts=None, note=note, query=query)
     return {"ok": True, "log": lid, "artifacts": [], "unparsed": None}

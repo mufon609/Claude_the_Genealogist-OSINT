@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.7.7
+-- tree catalog schema  v0.7.8
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -482,7 +482,10 @@ CREATE INDEX ix_search_plan_person   ON search_plan(person_id, seq);
 CREATE INDEX ix_search_plan_question ON search_plan(question_id);
 CREATE INDEX ix_search_plan_locator  ON search_plan(locator_kind, locator_value);
 
--- Every execution of a step, including the ones that found nothing.
+-- Every execution of a step, including the ones that found nothing. found: a page or record was archived and read, and
+-- marks the step done when it is the record the step cites; none: the source answered with nothing; blocked; error: the
+-- source did not answer; unread: a web page was archived and no parser reads it (tools/attach.py), held on the step's log,
+-- the step stays planned.
 CREATE TABLE search_log (
   id              TEXT PRIMARY KEY,
   tree_id         TEXT NOT NULL REFERENCES tree(id),
@@ -492,7 +495,7 @@ CREATE TABLE search_log (
   executed_by     TEXT NOT NULL,                        -- user:<name> | agent:<name>
   source_id       TEXT REFERENCES source(id),
   query_json      TEXT NOT NULL,                        -- exactly the fields used, after include/revise
-  outcome         TEXT NOT NULL CHECK (outcome IN ('found','none','blocked','error')),
+  outcome         TEXT NOT NULL CHECK (outcome IN ('found','none','blocked','error','unread')),
   artifacts_json  TEXT,                                 -- sha256s archived by this run
   notes           TEXT
 );

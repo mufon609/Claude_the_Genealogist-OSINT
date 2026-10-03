@@ -380,9 +380,17 @@ waiting on it, under a name that carries the citation's own record locator
 so one person's several pages of one collection are told apart as two
 people's are, and no name waits on a year the citation may not carry; the
 saved file goes to that person's steps on that citation alone, archived under
-that holder with the page's own URL as locator, logged found, unparsed until
-a parser claims it, and the step stays planned: a page no parser reads holds
-nothing and closes nothing. A file with neither a recognised saved-from line nor a
+that holder with the page's own URL as locator and reported unparsed until a
+parser claims it. Its run is logged `unread`, not found, the note saying that no
+parser reads the page: the page is held on the step's log, still fetched for
+that person, and the step stays planned, for a page no parser reads holds
+nothing a program knows and closes nothing. The run on the step's own fields
+keeps the step off the fetch list while the page waits. The run stays as what
+happened when a parser is added and the page is read again
+(`tools/extract.py <sha256>`): the step is then closed the way any fetch step
+is, by a record page that holds its citation. An image, and a page the model or a
+person has read through the transcription path, is not this case: its run is
+found, as for any record. A file with neither a recognised saved-from line nor a
 listed name is left in the folder. A results page saved again with the same
 rows already logged on the step is a repeat: nothing new to archive, so the
 file is removed with none archived twice, and a none run is logged on the
@@ -493,8 +501,9 @@ held, and the row's own record page takes the search link's place on the fetch
 list; saved by the same method, it reaches the lead and, through the listing
 that pointed at it, the step, is archived under the step's citation, and
 closes both. A fetch step is done only when a record page holds its
-citation; a done step whose found runs hold only listings or unread pages is
-planned again by the plan. When
+citation; a done step whose found runs hold only listings or pages no parser
+read (a hand's found run) is planned again by the plan, and a page no parser
+reads is logged `unread` by the attach, never found, and closes no step. When
 a step's sources include a holder with a connector as well (the 1950 site),
 the page saved by hand and the connector's own answer are runs of the same
 step, whichever came first.
@@ -607,8 +616,12 @@ search on those details, in the owner's own browser when the holder has no
 endpoint. A collection with no free holder yet leaves its steps `blocked`.
 
 Every execution is a **research log** row: query as actually run, source, date,
-outcome (`found`, `none`, `blocked`, `error`), artifacts produced. "Searched the
-1880 census of Worcester Township for Brant, none found" is evidence and stays.
+outcome (`found`, `none`, `blocked`, `error`, `unread`), artifacts produced.
+"Searched the 1880 census of Worcester Township for Brant, none found" is
+evidence and stays. `found` is a record or page archived and read; `unread` is
+a web page archived that no parser reads (a failed extraction, no reading of it
+by the model or a person): held on the step's log, the step stays planned, and
+what a program can rely on is that nothing was read from it.
 
 A `missing_fact` or `unverified_claim` question is about the absence of a
 claim, so it closes as answered the moment an accepted document supplies the
@@ -674,7 +687,8 @@ site response to `rule:nara-1950-schedule@0.1.0`, a loc.gov OCR response
 to `rule:loc-gov-ocr@0.1.0`, the Archive's search inside an item to
 `rule:ia-search-inside@0.1.0` and a WikiTree profile with its relatives to
 `rule:wikitree-profile@0.1.0`; a page no parser claims gets a failed extraction
-by `rule:extract@0.1.0` and is reported. The raw parsed page is in
+by `rule:extract@0.1.0` and is reported, its run on the step logged `unread` (§4).
+The raw parsed page is in
 `extraction.structured_json`. Re-running an
 extractor, at any version, supersedes its earlier extraction (`tools/extract.py
 --stale` re-reads every page an older version of its parser read, after a
@@ -1240,7 +1254,7 @@ search_plan       (id, person_id, row_key, question_id?, seq, step_key, kind fet
                    locator_source_id, locator_kind, locator_value, collection_id, on_json, sources_json, mode fetch|blocked|auto|assisted|awaiting_approval,
                    expected, status planned|done|skipped, rationale, revisions_json, created_at)
                    row_key: "<record>:<instance>" of the checklist row, or "footprint:<locator>" for a record on a relative
-search_log        (id, tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome found|none|blocked|error, artifacts_json, notes)
+search_log        (id, tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome found|none|blocked|error|unread, artifacts_json, notes)
 proposal.question_id
 source.connector
 ```
@@ -1256,7 +1270,9 @@ question whose gap has gone; a question a
 person dismissed stays closed. `tools/log_search.py` (and the person screen)
 record every run with the fields as rendered after include and revise; a
 `found` run marks the step done, a `none` run leaves it planned and visible as
-tried. A found run that archived a file records the artifact on the log; the
+tried, and so does an `unread` run, the one the attach logs for a web page no
+parser reads (schema 0.7.8: the page is held on the log, nothing is read from
+it). A found run that archived a file records the artifact on the log; the
 row is then held, and the assertion comes from extraction and review.
 
 ## Rules that hold throughout

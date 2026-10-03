@@ -10,7 +10,9 @@ The query recorded is exactly what was run: the step's fields after the person's
 include/revise unless --query overrides them. A 'found' outcome marks the step done
 (a fetch step only when the page is the record it cites, holds_record); 'none' leaves
 it planned so it can be retried with different fields, and the log shows it was
-tried. A dismissed question stays closed when the plan is regenerated.
+tried; 'unread' is a web page archived that no parser reads (unread_page): tools/attach.py
+writes it, never a hand, the page is held on the step's log and the step stays planned.
+A dismissed question stays closed when the plan is regenerated.
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -65,8 +67,9 @@ def latest_answer(cx, step, source_id=None):
 
 def ran_unchanged(cx, step, rendered, source_id=None):
     """Whether the step's latest run the source answered (latest_answer) asked these very fields: nothing has changed on the step
-    since, so running it again at that source would be the same query blind. A found or none run before an error on the same
-    fields still closes the step at that source; a source whose runs are all errors is asked again. Read per source: one
+    since, so running it again at that source would be the same query blind. A found, none or unread run (an unread page
+    is held: the step is not asked for it again) before an error on the same fields still closes the step at that source; a
+    source whose runs are all errors is asked again. Read per source: one
     connector's none run on the step's fields does not close the step at another source, which is asked until it answers."""
     a = latest_answer(cx, step, source_id)
     return a is not None and same_fields(rendered, a[2])
@@ -84,9 +87,22 @@ def holds_record(cx, sha):
                       ORDER BY e.ran_at DESC, e.id DESC LIMIT 1""", (sha,)).fetchone()
     return True if not e else e[0] == "complete" and e[1] not in POINTING_LISTINGS
 
+UNREAD = "no parser reads this page"                    # the note prefix of an unread run: the page is held and holds nothing a program knows
+
+def unread_page(cx, sha):
+    """Whether an archived file is a web page nobody has read: text/html whose every extraction is the failed one tools/extract.py
+    writes for a page no parser claims, and at least one exists. A page a parser claimed or the model or a person read through
+    the transcription path (an extraction of its own, complete or partial) is not, nor an image or a file never read: those
+    runs stay as they are. A run whose artifacts are all such pages is logged `unread`, not `found`: the page is held on the
+    step's log and the step stays planned."""
+    mime = cx.execute("SELECT mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    if not mime or not (mime[0] or "").startswith("text/html"): return False
+    return {s for s, in cx.execute("SELECT status FROM extraction WHERE artifact_sha256=?", (sha,))} == {"failed"}
+
 def closed_by_pointers(cx, step_id):
     """Whether a step's found runs, since it was last reopened, are all pages that point at its record or hold nothing
-    (not holds_record): the step stands done on listings or unread pages alone. False when it has no found run since, when
+    (not holds_record): the step stands done on listings or pages no parser read alone (an unread run, the attach's word for
+    such a page, is not a found run and closes nothing). False when it has no found run since, when
     a found run carries no artifact (a hand's found: the owner's word) or is the owner's word about a record (ON_WORD), or
     when any found run carries a record."""
     since = cx.execute("SELECT coalesce(max(id), '') FROM search_log WHERE plan_step_id=? AND notes LIKE ?", (step_id, REOPENED + "%")).fetchone()[0]
@@ -142,8 +158,8 @@ def reopen(cx, tree_id, by, step_id, note):
 def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome="none", artifacts=None, note=None, query=None, done=True):
     """One run of a step (or of a question with no step) into search_log; a found run marks the step done unless done is
     False (a fetch step answered at a source other than its holder: the pages found are held, the cited record is not; or by
-    a page that is not the record it cites, a listing that points at one or a page no parser read: tools/attach.py marks the
-    step done itself once the page is read, holds_record)."""
+    a page that is not the record it cites, a listing that points at one: tools/attach.py marks the step done itself once the
+    page is read, holds_record); an unread run (unread_page) marks no step done."""
     ts = now()
     if step_id:
         st = cx.execute("SELECT id, question_id, query_json, sources_json, revisions_json, locator_source_id FROM search_plan WHERE id=?", (step_id,)).fetchone()
