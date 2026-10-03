@@ -16,6 +16,7 @@
   {
    "say": "resumed with the geocoder silent: the harness has no network and no answer planted",
    "resume": {
+    "geocoder_silent": true,
     "inbox": []
    },
    "expect": [

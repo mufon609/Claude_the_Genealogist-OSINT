@@ -60,27 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A1. The harness fails when an expectation is wrong
-
-The walker refuses an unknown action key (`tests/checks/scenario.py`, the
-action dispatch) but passes over an unknown expectation key, so a claim
-written in the wrong place passes whatever the code does: loop `72` step 5
-puts `status` and `decided_by` beside `card` instead of inside it, loop `80`
-step 3 puts `fields` beside `step`, and `status: "rejected"` there stays
-green. A check run also reaches the network: loop
-`104-a-constituent-country-is-a-place` asks Wikidata for `Q36405` from the
-resolver's subprocess, `resolve_places.wikidata_entity` turns the failure
-into `{}`, and the check is green online and offline alike, since
-`geocoder_offline` (`tests/checks/loop.py`) replaces Nominatim alone. Make an
-unknown expectation key a failure, put the two expectations where they
-belong, and make a request no planted answer serves a failure in every
-process a check starts (the Wikidata answer captured from the holder as a
-fixture, by decision 8). Let `tools/check.py` run one scenario by name, as
-`scenario.check` already allows, so a session does not wait on every check
-to test one path.
-
-**Blocks:** every entry below.
-
 ### A2. A person's decision is never overwritten by a machine
 
 Hard rule 3: a person's own decision is never undone by the rule or by a
@@ -100,8 +79,6 @@ statement now has. Show each path on a scenario. Then list, on a scratch
 copy of the live catalog and from the audit log, every statement whose
 person-set state a machine later changed; nothing live is written until that
 list has been reviewed.
-
-**Blocked by:** A1.
 
 ### A3. A claim is the file's word and nothing else
 
@@ -158,8 +135,6 @@ date as its range (a date inside it agrees, and a bound is never a day of
 birth or death), with examples in `tests/fixtures/rules.json` beside the pure
 rules already there, and report the dry-run reconsider.
 
-**Blocked by:** A1.
-
 ### A6. Nothing rewrites the audit trail, the evidence or the research log
 
 Hard rule 2 and decision 13. The insert-only triggers
@@ -176,8 +151,6 @@ outcome new rows (say which in `docs/RESEARCH-WORKFLOW.md`'s schema
 section), stop the ingest's rewrite, give the backup's writes a `--by` and
 their audit rows, then add the triggers with a check that each refuses. The
 tombstone's own writer and readers stay C29.
-
-**Blocked by:** A1.
 
 ### A7. A turn survives a bad answer and a failed file
 
@@ -197,8 +170,6 @@ scratch `--db` writes into the live archive, the cause of C31. Log an answer
 no reader can parse as an error run, take one file per transaction, and make
 the data root follow `--db` or refuse a `--db` outside it; a scenario for
 each, the holder's challenge simulated as decision 8 allows.
-
-**Blocked by:** A1.
 
 ### A8. One person's pages never stop the loop
 
@@ -232,8 +203,6 @@ analysed (`ANALYZE` alone brings it to under a second on a copy), and
 module-level `holdings()` calls rebuild the Catalog's cached holdings about
 23 times a view. The page's `list()` and `/api/people` are a queue-shaped
 table reading fields nothing returns: remove them.
-
-**Blocked by:** A1.
 
 ---
 
@@ -1058,6 +1027,19 @@ state that counts as the loop working (people and documents brought by
 evidence rather than the file, turns run without a session, what still reaches
 the owner and why), written into `README.md` beside the goal and printed by
 the overview.
+
+### C48. A key the harness does not know inside an expectation or an action passes
+
+An entry of `expect` and a step now fail on a key beside the one the walker
+knows, but the expectations and actions read the value they are given by
+picking the keys they know and dropping the rest (the `{k: v for k, v in
+x.items() if k in (...)}` of `e_card`, `e_event`, `e_artifact` and most of
+their neighbours, `x.get("status", "accepted")` in `a_decide`): a misspelt or
+misplaced key inside a pattern, `stauts` for `status` in a `card`, is never
+read, so the claim it carried holds whatever the code does. Give each
+expectation and action in `tests/checks/scenario.py`, `loop.py` and
+`imports.py` the keys it reads, and fail a value that carries another, so a
+scenario can say nothing the harness does not check.
 
 ## Externally blocked
 

@@ -3,7 +3,7 @@
 is insert-only, every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
-usage: tools/check.py [--verbose] [--show] [--keep]
+usage: tools/check.py [--verbose] [--show] [--keep] [--scenario NAME]
 
 Each check runs on a scratch catalog under a temporary data root, never the owner's. The expectations are data beside
 the fixtures (tests/fixtures/README.md): <stem>.expect.json beside each page for tests/checks/parsers.py, the scenarios
@@ -12,7 +12,10 @@ pure rules here and tests/fixtures/connectors.json for the offline connector che
 tests/fixtures/harness.ged, the owner's own export cut down. A failing check prints its FAIL line with every reason and
 the run ends with one line, `green: N checks` or the failure count; exit status 1 on any failure. --verbose prints the
 ok line of every check too; --show prints what each reading and each scenario step did, for writing a sidecar (and the ok
-lines); --keep leaves the scratch directories in place and prints their paths. Nothing in the harness names a person: another family's
+lines); --keep leaves the scratch directories in place and prints their paths; --scenario NAME runs only the scenarios whose file name
+has NAME in it (`104`, `a-constituent-country`), none of the other checks, and fails when none is named so. No check sends a request:
+every process a check starts refuses a connection to any host but this machine, and a refusal fails the check it happened in
+(tests/checks/offline.py), so a holder's answer is data planted before the run. Nothing in the harness names a person: another family's
 export, pages and sidecars run through it unchanged.
 """
 import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys
@@ -20,7 +23,7 @@ import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
 from common import BY, FIXTURES, scratch, tool
-import imports, loop, parsers, scenario
+import imports, loop, offline, parsers, scenario
 
 def rules():
     """The name and place rules as the docs state them, and the version a reader's model id carries, on their own, against
@@ -393,26 +396,37 @@ class OkLines:
             if self.verbose or not line.startswith("ok   "): self.out.write(line + "\n")
     def flush(self): self.out.flush()
 
+def every_check(a):
+    """The checks that are not scenarios, then every scenario: the number that failed."""
+    bad = 0
+    bad_files = compiles(); bad += bool(bad_files)
+    print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
+    bad_rules = rules(); bad += bool(bad_rules)
+    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    bad_conn = connectors_offline(); bad += bool(bad_conn)
+    print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
+    bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
+    print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
+    bad_ev = evidence_insert_only(); bad += bool(bad_ev)
+    print("ok   the evidence layer is insert-only: an UPDATE and a DELETE on artifact, persona and persona_fact are each refused by their trigger, on a catalog holding a real record read" if not bad_ev else "FAIL evidence: " + "; ".join(bad_ev))
+    bad_db = default_catalog(); bad += bool(bad_db)
+    print("ok   a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT" if not bad_db else "FAIL default catalog: " + "; ".join(bad_db))
+    bad += parsers.check(a.keep, a.show)
+    bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
+    bad += loop.check(a.keep, a.show)
+    bad += imports.check(a.keep, a.show)
+    return bad
+
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--show", action="store_true"); ap.add_argument("--keep", action="store_true"); ap.add_argument("--verbose", action="store_true"); a = ap.parse_args()
-    bad = 0; lines = OkLines(sys.stdout, a.verbose or a.show)
+    ap = argparse.ArgumentParser(); ap.add_argument("--show", action="store_true"); ap.add_argument("--keep", action="store_true"); ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--scenario", metavar="NAME", help="only the scenarios whose file name has NAME in it"); a = ap.parse_args()
+    if a.scenario and not scenario.named(a.scenario): sys.exit(f"no scenario file under tests/fixtures/scenarios/ has {a.scenario!r} in its name")
+    bad = 0; lines = OkLines(sys.stdout, a.verbose or a.show); offline.start()
     with contextlib.redirect_stdout(lines):
-        bad_files = compiles(); bad += bool(bad_files)
-        print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
-        bad_rules = rules(); bad += bool(bad_rules)
-        print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
-        bad_conn = connectors_offline(); bad += bool(bad_conn)
-        print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
-        bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
-        print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
-        bad_ev = evidence_insert_only(); bad += bool(bad_ev)
-        print("ok   the evidence layer is insert-only: an UPDATE and a DELETE on artifact, persona and persona_fact are each refused by their trigger, on a catalog holding a real record read" if not bad_ev else "FAIL evidence: " + "; ".join(bad_ev))
-        bad_db = default_catalog(); bad += bool(bad_db)
-        print("ok   a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT" if not bad_db else "FAIL default catalog: " + "; ".join(bad_db))
-        bad += parsers.check(a.keep, a.show)
-        bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
-        bad += loop.check(a.keep, a.show)
-        bad += imports.check(a.keep, a.show)
+        if a.scenario: bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show, a.scenario) + loop.check(a.keep, a.show, a.scenario) + imports.check(a.keep, a.show, a.scenario)
+        else: bad += every_check(a)
+        bad_net = offline.words(offline.sent()); bad += bool(bad_net)
+        print("ok   no check sent a request: every process a check starts refused any connection to a host but this machine, and none tried" if not bad_net else "FAIL network: " + "; ".join(bad_net))
     print(f"green: {lines.ok} checks" if not bad else f"{bad} failure(s) of {lines.ok + lines.failed} checks")
     sys.exit(1 if bad else 0)
 

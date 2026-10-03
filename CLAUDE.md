@@ -95,7 +95,7 @@ Every tool, one line each: `schema/README.md`'s table; each tool's docstring
 and `--help` have the rest. The ones a session uses:
 
 ```
-python3 tools/check.py                      # green in one command; a failure in full, --verbose every check
+python3 tools/check.py                      # green in one command; a failure in full, --verbose every check, --scenario NAME one scenario
 python3 tools/initdb.py --migrate           # after a pull that moves the schema, once backed up: every tool refuses a catalog behind it
 python3 tools/initdb.py --sync-sources      # after any change to data/data-sources.csv (--sync-event-types for the event types)
 python3 tools/turns.py [--turns N]          # the loop: the next person at the edge, their turn, the next; pauses on pages to save in the browser

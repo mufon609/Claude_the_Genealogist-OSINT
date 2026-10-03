@@ -58,7 +58,9 @@
   },
   {
    "say": "resumed: the tail's reconsider takes the resolution back, and the report says so, the date it had kept and why",
-   "resume": {},
+   "resume": {
+    "geocoder_silent": true
+   },
    "as": "back",
    "expect": [
     {
@@ -115,7 +117,9 @@
   },
   {
    "say": "resumed: the tail's reconsider resolves it, and the report names the person, the date kept, the rule's reason and the question to reopen it by",
-   "resume": {},
+   "resume": {
+    "geocoder_silent": true
+   },
    "as": "made",
    "expect": [
     {
@@ -181,7 +185,9 @@
   },
   {
    "say": "resumed: the conflict is the owner's now, and the report has nothing to name",
-   "resume": {},
+   "resume": {
+    "geocoder_silent": true
+   },
    "as": "after",
    "expect": [
     {

@@ -3,11 +3,13 @@ and the loop's tools run on the harness tree as the data says, and what they wri
 
 A scenario file names the tree to ingest (tests/fixtures/harness.ged, the owner's own export cut down) and a list of
 steps. A step does one thing (an action) and then checks any number of expectations; the vocabulary of both is in
-tests/fixtures/README.md. People are named by the harness file's own entry ids, records by the label a step bound them
-under, and nothing in this module names a person, a place or a page: another family's export, fixtures and scenarios run
-through it unchanged.
+tests/fixtures/README.md. An entry of `expect` is one expectation and its `why`: a step or an entry carrying any other key fails.
+A scenario fails too when a process it starts asks for a connection to any host but this machine (tests/checks/offline.py).
+People are named by the harness file's own entry ids, records by the label a step bound them under, and nothing in this
+module names a person, a place or a page: another family's export, fixtures and scenarios run through it unchanged.
 """
 import contextlib, json, os, shutil, sqlite3, subprocess, sys
+import offline
 from common import BY, FIXTURES, ROOT, TOOLS, Fails, connect, done, run, scratch, tool, whole
 
 SCENARIOS = os.path.join(FIXTURES, "scenarios")
@@ -61,6 +63,7 @@ class Walker:
     """The scenario's state: the scratch, the tree, the labels steps bound, and the last action's result."""
     def __init__(self, spec, keep, show):
         self.spec, self.keep, self.show = spec, keep, show
+        self.title = spec.get("title", "scenario")
         self.env = {}; self.fails = Fails(); self.step_no = 0
 
     # ---------------------------------------------------------------- the tree
@@ -98,7 +101,8 @@ class Walker:
     def close(self):
         w = whole(self.cx)
         if w: self.fails.append(w)
-        self.cx.close(); done(self.root, self.keep, self.spec.get("title", "scenario"))
+        self.fails.extend(offline.words(offline.sent(self.title)))
+        self.cx.close(); done(self.root, self.keep, self.title)
 
     # ---------------------------------------------------------------- references
     def value(self, x):
@@ -219,8 +223,10 @@ class Walker:
                     self.cx.commit()
                     if "as" in step: self.env[step["as"]] = self.env["last"]
                 for want in step.get("expect", []):
-                    kinds = [k for k in want if k in EXPECTS]
-                    if len(kinds) != 1: self.fails.append(f"step {self.step_no}: " + (f"one expectation per entry, not {kinds}" if kinds else f"no such expectation {list(want)}")); continue
+                    kinds, odd = [k for k in want if k in EXPECTS], [k for k in want if k not in EXPECTS and k != "why"]
+                    if len(kinds) != 1 or odd:                  # an entry is one expectation and its why: a key beside it is a claim in the wrong place, which nothing would ever check
+                        self.fails.append(f"step {self.step_no}: " + (f"one expectation per entry, not {kinds}" if len(kinds) > 1 else f"no such expectation {list(want)}" if not kinds else f"{odd} sit beside {kinds[0]}, not inside it"))
+                        continue
                     kind = kinds[0]
                     try: ok, got = EXPECTS[kind](self, want[kind], want)
                     except Exception as e:
@@ -1120,13 +1126,19 @@ def load(folder):
         if f.endswith(".json"):
             with open(os.path.join(folder, f), encoding="utf-8") as fh: yield f, json.load(fh)
 
+def named(only):
+    """The scenario files, under every folder of scenarios, whose file name has `only` in it."""
+    return [f for sub in sorted(os.listdir(SCENARIOS)) for f, _ in load(os.path.join(SCENARIOS, sub)) if only in f]
+
 def check(folder, keep, show, only=None):
-    """Every scenario under the folder walked on its own scratch; one line each; the number that failed."""
+    """Every scenario under the folder walked on its own scratch, or those whose file name has `only` in it; one line each; the number that failed."""
     bad = 0
     for f, spec in load(folder):
         if only and only not in f: continue
+        os.environ[offline.WHO] = spec.get("title", "scenario")        # a request any process of this scenario is refused is named for it
         try: fails = Walker(spec, keep, show).walk()
         except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]
+        finally: os.environ.pop(offline.WHO, None)
         title = spec.get("title", f)
         if fails: bad += 1; print(f"FAIL {title}: " + "; ".join(fails))
         else: print(f"ok   {title}: {spec.get('line', '')}")

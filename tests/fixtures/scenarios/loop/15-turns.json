@@ -22,6 +22,7 @@
   {
    "say": "two turns: the first person's turn holds nothing new (a challenge at the first connector, an error run; nothing at the rest), and the queue names them again, so they are passed over; the next person's turn pauses on pages to save",
    "turns": {
+    "geocoder_silent": true,
     "turns": 2,
     "fake_run": {
      "first": "error",
@@ -112,6 +113,7 @@
   {
    "say": "resumed with nothing saved: the paused turn is finished and its person, named again with nothing new, is passed over; the grandmother's own marriage-index citation is blocked (no page-locating step), so her turn has nothing to pause on and finishes too; the run's own budget of three turns is done, and its state is cleared",
    "turns": {
+    "geocoder_silent": true,
     "resume": true,
     "inbox": [],
     "turns": 3
@@ -167,6 +169,7 @@
   {
    "say": "a fresh run starts the count again: the queue names the home person first as before, and nobody is passed over for the last run's reasons",
    "turns": {
+    "geocoder_silent": true,
     "turns": 1
    },
    "expect": [

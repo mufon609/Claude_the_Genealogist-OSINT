@@ -128,11 +128,11 @@
     {
      "card": {
       "record": "c50",
-      "person": "I332737037257"
-     },
-     "status": "accepted",
-     "decided_by": {
-      "starts": "rule:"
+      "person": "I332737037257",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
      },
      "why": "the rule takes the father: the son is accepted on the record and the father agrees with what the tree holds on him"
     },

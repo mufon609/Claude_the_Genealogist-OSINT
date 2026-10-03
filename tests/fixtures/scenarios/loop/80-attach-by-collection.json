@@ -146,10 +146,10 @@
      "step": {
       "person": "I332737037573",
       "row_key": "birth record:1909",
-      "kind": "search"
-     },
-     "fields": {
-      "status": "planned"
+      "kind": "search",
+      "fields": {
+       "status": "planned"
+      }
      },
      "why": "her birth-record search step is planned"
     }

@@ -205,6 +205,7 @@
   {
    "say": "resumed after the browser session, an unrelated page saved into the inbox by hand",
    "resume": {
+    "geocoder_silent": true,
     "inbox": [
      "familysearch-census-1940-KQX1-VT9.html"
     ]

@@ -30,7 +30,10 @@
      "nominatim-aberdeen-scotland-united-kingdom.json",
      "nominatim-united-kingdom.json",
      "nominatim-aberdeen-united-kingdom.json"
-    ]
+    ],
+    "wikidata": {
+     "Q36405": "wikidata-Q36405-aberdeen.json"
+    }
    },
    "expect": [
     {

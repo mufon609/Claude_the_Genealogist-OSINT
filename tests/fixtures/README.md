@@ -124,6 +124,7 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios (a
 | `wikidata-Q200077-morioka.json`, `wikidata-Q11643491-tonan.json` | Wikidata's items for Morioka and for Tonan, its former name (P1365 with its dates): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
 | `wikidata-Q1010236-norristown.json`, `wikidata-Q1345-philadelphia.json`, `wikidata-Q1185890-pottstown.json`, `wikidata-Q1895826-warwick-township.json`, `wikidata-Q49186-northampton.json` | Wikidata's items the resolver reads for the geocoder's candidates in the turn that reads a person's places (loop `12`): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
 | `wikidata-Q936639-mount-holly.json`, `wikidata-Q1893417-caln-township.json` (and Northampton's above) | the same, for the strings a part must name in full (loop `93`) |
+| `wikidata-Q36405-aberdeen.json` | **Captured for the harness**, one request on 3 October 2026 23:09 UTC with the project's User-Agent, at `https://www.wikidata.org/wiki/Special:EntityData/Q36405.json`, through the resolver's own `wikidata_entity` (the cache file it wrote, byte for byte): Wikidata's item for Aberdeen, the city the geocoder's answer for "Aberdeen, Scotland" names (loop `104`) |
 | `wikidata-Q1133193-coatesville.json`, `wikidata-Q1205932-takizawa.json`, `wikidata-Q1348478-shizukuishi.json`, `wikidata-Q2391361-tamayama.json`, `wikidata-Q11367618-nakano.json`, `wikidata-Q11410107-kuriyagawa.json`, `wikidata-Q11444312-ota.json`, `wikidata-Q11520132-motomiya.json`, `wikidata-Q11557079-asagishi.json`, `wikidata-Q11603862-yanagawa.json`, `wikidata-Q11604013-yonai.json` (and Philadelphia's above) | the same, for the resolver's own line (loop `90`) |
 
 ## Geocoder answers
@@ -221,6 +222,13 @@ them under, and expectations name the words a reason must carry. A scenario file
 | `tree` | `file` (the GEDCOM under `tests/fixtures/`), `home` (the home person's entry id), `plan` (every person planned first) |
 | `steps` | the list of steps; each is one action key with its arguments, `as` (a label to bind the result under), `say` (what the step is about), `at` (a timestamp the clock every tool reads stands at while the action runs, for a check that depends on writes sharing a second), and `expect` (a list of expectations) |
 
+No scenario sends a request. `tools/check.py` starts every check under a guard (`tests/checks/offline.py`, put on every Python
+process a check starts through the interpreter's startup hook in `tests/checks/offline_site/`) that refuses a connection to any host
+but this machine's own and writes the refusal down: the scenario whose process asked fails with the host named, whether the code
+under check swallowed the failure or not. What answers a holder is data planted before the run: the geocoder's and the
+gazetteers' answers in the resolver's cache, Wikidata's items, a `fetch` answer for the runner's own network call. `tools/check.py
+--scenario NAME` walks only the scenarios whose file name has NAME in it (`104`, `a-constituent-country`).
+
 A value `"$label"` reads what a step bound; `"$label.key.0.key"` reads into it. A person is an entry id, `{"name": …}` or
 `{"created": …}` (a person the rule made, by display name), or `"$label"`. A record is the label of the step that
 archived it. A card is `{"record": label, "person": ref}` or `{"record": label, "persona": name as written[, "role": …]}`,
@@ -290,8 +298,9 @@ date or place: `taken` and the reason, `why`), `extractor` (a reading's extracto
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `one_event` (no record fact
 stated on two events of its type that a person or a family holds), `whole`, `file`,
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`, `origins` (`overview.origins`: the `people` by what brought them in, `file` or
-`record`, and the accepted `documents` by what fetched them, `citation`, `lead`, `search` or `hand`). A `why` beside
-an expectation is printed with its failure.
+`record`, and the accepted `documents` by what fetched them, `citation`, `lead`, `search` or `hand`). An entry of `expect` is one
+expectation, its name the key and its pattern the value, and a `why`, printed with its failure; any other key beside the name (a
+`status` meant for the pattern) is a failure, as an action no step knows is, so a claim written in the wrong place cannot pass.
 
 Patterns: a dict matches the keys given, a list its length and each element, a string or number equals; `{">=": n}`,
 `{"<=": n}`, `{"has": x}` (a substring, or every substring of a list, or an element), `{"lacks": x}`, `{"starts": s}`,
@@ -357,9 +366,11 @@ A holder that does not answer is simulated, a control signal and no record:
   and `100`; the census site's search in Nassau County in `94`'s first run, so that its second and third names are tried and the
   first and third, whose request it was, are logged unanswered;
   WikiTree in `22`.
-- The geocoder in a turn (`turn`, `turns`, `resume`): `loop.py` answers it from the resolver's cache alone, and a query the
-  cache lacks fails as an endpoint that does not answer, so no request leaves the harness: loop `12` (its second step, the
-  geocoder silent on purpose), and `10`, `13` and `15`, whose turns read place strings no answer is planted for.
+- The geocoder in a turn (`turn`, `turns`, `resume`) whose step says `geocoder_silent`: `loop.py` answers it from the resolver's cache
+  alone, and a query the cache lacks fails as an endpoint that does not answer, so no request is made: loop `12` (its second step,
+  the geocoder silent on purpose), `10` (its resume), `13` (each resume) and `15` (its first, third and fourth turns), whose turns read
+  place strings no answer is planted for. A step that does not say it has the geocoder's answers it plants and no others, and a query
+  they lack is a request, which fails the scenario.
 
 The runner's runs are simulated where a scenario is about what happens after one, not about a holder's answer:
 
