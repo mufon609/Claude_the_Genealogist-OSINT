@@ -221,10 +221,14 @@ def a_migrate(w, x):
     """tools/initdb.py --migrate on the scratch catalog itself: its printed line, for a data correction a migration
     version carries to be checked against a row put in the shape it corrects. A scratch catalog is born current, every
     MIGRATIONS version already recorded applied, never behind; {"reset_to": version} first forgets every later version's
-    row, so --migrate meets the correction the way an older catalog actually upgraded through it would."""
+    row, so --migrate meets the correction the way an older catalog actually upgraded through it would. {"refused": true}: a
+    correction that refuses is the outcome expected, and what it printed comes back as refused."""
     if isinstance(x, dict) and x.get("reset_to"): w.cx.execute("DELETE FROM schema_migration WHERE version > ?", (x["reset_to"],))
     w.cx.commit()
-    return {"printed": run(tool("initdb.py"), "--db", w.db, "--migrate").strip()}
+    try: return {"printed": run(tool("initdb.py"), "--db", w.db, "--migrate").strip()}
+    except RuntimeError as e:
+        if isinstance(x, dict) and x.get("refused"): return {"refused": str(e)}
+        raise
 
 def a_sync_sources(w, x):
     """tools/initdb.py --sync-sources on the scratch catalog itself: the registry's rows and every collection's tier from

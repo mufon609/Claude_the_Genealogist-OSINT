@@ -9,7 +9,7 @@ import codecs, datetime as dt, hashlib, json, os, re, sqlite3, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
-SCHEMA_VERSION = "0.7.5"   # schema/catalog.sql's own; a catalog whose schema_migration lacks it is behind the code (tools/initdb.py --migrate)
+SCHEMA_VERSION = "0.7.6"   # schema/catalog.sql's own; a catalog whose schema_migration lacks it is behind the code (tools/initdb.py --migrate)
 USER_AGENT = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"   # sent on every request the tools make
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
