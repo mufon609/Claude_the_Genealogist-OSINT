@@ -510,6 +510,17 @@ or item metadata excepted, as now), so the runner and the attach log such a run
 `unread` alike, and show it on a real archived response no extractor claims, if
 one exists; if none does, record the path in the untested-paths entry.
 
+### C3. A decision taken on a claimed relationship that reconsider would withdraw
+
+In scenario `60-confirmed-on-a-record` the rule takes Robert Davidson on the
+Social Security record through a claimed relationship, and from step 9 on a
+dry-run `reconsider` would withdraw that decision with only itself left out of
+its ground, so the order of decisions is not the cause. Find where the claimed
+route (`conclude.claimed_relation_match`, the rule's "name not yet accepted"
+branch) reads ground that `reconsider`'s re-examination does not, make the two
+read the same ground, and show it on that scenario: a reconsider right after the
+decision keeps it.
+
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
