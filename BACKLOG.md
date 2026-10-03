@@ -543,6 +543,18 @@ other member's relationship to the head is read only as FamilySearch's grouping
 real page that the details render without a request the method does not make),
 then save the archived census pages again by the same method.
 
+### C37. A run that stops at a hit reads as changed fields
+
+`run_step.run_connector` stops at the first name of a place field that gets a
+hit and logs `tried` with the names up to it (`run_step.py`, the query's
+`tried`), while `log_search.same_fields` reads a place field as unchanged only
+when `tried` equals every name of the step's field. A fetch step whose hit came
+from a connector that is not its holder stays planned, so `ran_unchanged` is
+false and that connector is asked again every turn. Read a field as unchanged
+when the names tried run, in the step's order, up to the name the run stopped
+on with a hit, and show it on a real run: the fetch step asked of a second
+connector whose first name hits, run twice, asks once.
+
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
