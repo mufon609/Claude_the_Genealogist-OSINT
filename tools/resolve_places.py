@@ -10,7 +10,13 @@ Rules
     string is. An abbreviation earlier in a string is left as written: Penn, in Penn, Cumberland, Pennsylvania, is a township.
   * Nominatim (free, ODbL, 1 req/s, cached under derivatives/geocode/) is asked for
     candidates. A candidate is verified by checking that EVERY component the string
-    gave appears in the candidate's address hierarchy.
+    gave is, in full, the name of the candidate or of a unit in its address hierarchy, or one of
+    its own old or alternative names (same_name: catalog.place_name_key, so case, accents,
+    punctuation, spacing, an abbreviated word such as Mt., Twp or Ft. and the unit's own word
+    such as Township or Ward N are set aside). A component that is only the start of a name
+    ("Cadillac Memorial Gardens West" for "... Cemetery"), a truncation ("Hemp.") or a close
+    spelling ("Worchester") is marked "near" in the candidate's checks and verifies nothing:
+    the candidate is still offered on the string's card.
   * Auto-resolve when exactly one candidate verifies fully, and also when the
     verified candidates are one territory under two names — a city and the county
     coterminous with it (Philadelphia, Queens) — tested on the geocoder's own answer:
@@ -56,9 +62,9 @@ import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
-from catalog import US_STATES, country_words, us_state
+from catalog import US_STATES, country_words, place_name_key, us_state
 
-RESOLVER = ("rule", "nominatim-resolver", "0.3.0")
+RESOLVER = ("rule", "nominatim-resolver", "0.4.0")
 def cache_dir():
     """Where the geocoder's answers are kept, under the data root of the run (a scratch run keeps its own)."""
     return os.path.join(derivatives_dir(), "geocode", "nominatim")
@@ -72,24 +78,38 @@ ADDR_RE = re.compile(r"^\d+\s+\S|\b(Road|Street|Avenue|Lane|Drive|St\.?|Rd\.?|Av
 LOCALITY_KEYS = ("city", "town", "village", "hamlet", "municipality", "borough", "isolated_dwelling", "locality")
 SUB_KEYS = ("suburb", "neighbourhood", "city_district", "quarter")
 
-SYN = {"nordrhein-westfalen": "north rhine-westphalia", "sachsen": "saxony", "noord-holland": "north holland",
-       "zuid-holland": "south holland", "friesland": "frisia", "köln": "cologne", "koln": "cologne", "bayern": "bavaria",
-       "new york city": "new york", "philadelphia city": "philadelphia"}
-STRIP = r"\b(county|township|twp|municipality|gemeente|co\.?|cty|prefecture|province|district|borough|metropolitan|stadtkreis|landkreis|kreis|gmina|powiat|town of|village of|city of|borough of|the municipal district of)\b"
+SYN = {"nordrhein westfalen": "north rhine westphalia", "sachsen": "saxony", "noord holland": "north holland",
+       "zuid holland": "south holland", "friesland": "frisia", "koln": "cologne", "bayern": "bavaria"}   # a name and its English translation, one place's two names, keyed as catalog.place_name_key writes them
+NEAR_RATIO = 0.86
 def norm(s):
-    s = re.sub(r"\s+", " ", re.sub(STRIP, "", s.lower())).strip(" ,.")
-    return SYN.get(s, s)
-def similar(a, b):
+    """A name as the resolver compares names: catalog.place_name_key, a translation (SYN) read as the English name."""
+    k = place_name_key(s)
+    return SYN.get(k, k)
+def same_name(a, b):
+    """Whether two names are one name in full: the same key (norm) once case, accents, punctuation, spacing, an abbreviated
+    word and the unit's own word are set aside. This is the only way a part of a string verifies against a candidate's name."""
+    na = norm(a)
+    return bool(na) and na == norm(b)
+def near_name(a, b):
+    """Whether a differs from b yet resembles it: a is a word-for-word start of b ("Cadillac Memorial Gardens West" and "Cadillac
+    Memorial Gardens West Cemetery"), a written with a period is the start of b ("Hemp." and Hempstead), or the two spell alike
+    to difflib's NEAR_RATIO ("Worchester" and Worcester, "North Hampton" and Northampton). Never a verification: only what a
+    card shows."""
     na, nb = norm(a), norm(b)
-    if not na or not nb: return False
-    if a.strip().endswith(".") and len(na) >= 3 and nb.startswith(na): return True     # truncation: "Hemp." ~ Hempstead
-    return na == nb or nb.startswith(na + " ") or difflib.SequenceMatcher(None, na, nb).ratio() >= 0.86
+    if not na or not nb or na == nb: return False
+    return (a.strip().endswith(".") and len(na) >= 3 and nb.startswith(na)) or nb.startswith(na + " ") or difflib.SequenceMatcher(None, na, nb).ratio() >= NEAR_RATIO
+def agree(part, names):
+    """How a part of a string stands to a candidate's names: True when it is one of them in full (same_name), "near" when it only
+    resembles one (near_name), else False. Only True verifies the part."""
+    if any(same_name(part, n) for n in names): return True
+    return "near" if any(near_name(part, n) for n in names) else False
 
 def parse(raw):
     """-> dict(components=[...], country, region, details=[...], warnings=[...])"""
     p = {"components": [], "country": None, "region": None, "details": [], "warnings": []}
     s = re.sub(r"\(alt\..*?\)", "", raw)
-    for phrase in sorted(COUNTRY_SYN, key=len, reverse=True):          # "Kalagh Cork Great Britain and Ireland"
+    whole = s.strip().lower().rstrip(".") in COUNTRY_SYN   # "United States of America" is one country's name, not "United States of" ahead of "America"
+    for phrase in ([] if whole else sorted(COUNTRY_SYN, key=len, reverse=True)):          # "Kalagh Cork Great Britain and Ireland"
         if "," not in s and s.lower().endswith(" " + phrase):
             s = s[: -len(phrase)].strip(); p["country"] = COUNTRY_SYN[phrase]; s = ", ".join(s.split()); break
     toks, prev = [], None
@@ -346,11 +366,11 @@ def gov_related(superordinate, subordinate):
 
 def names_agree(a, b):
     """Two names are one name: the same letters once spaces and hyphens are set aside (Langneundorf and Lang Neundorf),
-    or a slip of a letter or two between them (Harperdorf and Harpersdorf, by similar's own measure); never one name
+    or a slip of a letter or two between them (Harperdorf and Harpersdorf, spelling alike to difflib's NEAR_RATIO); never one name
     inside a longer one, which is another place (Berthelsdorf and Neuberthelsdorf, Ballyquirk and Ballyquirk Castle)."""
     x, y = (re.sub(r"[\s-]+", "", norm(n)) for n in (a, b))
     if not x or not y: return False
-    return x == y or (abs(len(x) - len(y)) <= 2 and difflib.SequenceMatcher(None, x, y).ratio() >= 0.86)
+    return x == y or (abs(len(x) - len(y)) <= 2 and difflib.SequenceMatcher(None, x, y).ratio() >= NEAR_RATIO)
 
 def osm_names(c):
     """A geocoder candidate's own names: its name and every name, old name and alternative name OpenStreetMap records."""
@@ -457,11 +477,11 @@ def wikidata_candidates(p):
             if x in seen: continue
             seen.add(x); within.append(x); todo += up.get(x) or []
         names = list(dict.fromkeys(labels[x] for x in within + countries[q] if labels.get(x)))
-        checks = {head: True, **{part: any(similar(part, n) for n in names) for part in parts}}
+        checks = {head: True, **{part: agree(part, names) for part in parts}}
         desc = ((ents.get(q) or {}).get("descriptions") or {}).get("en", {}).get("value") or ", ".join(names)
         out.append({"source": "wikidata", "id": q, "display_name": f"{h.get('label')} ({desc}; Wikidata {q})",
                     "type": next((labels.get(t) for t in types[q] if labels.get(t)), "unknown"), "names": [], "lat": at.get("latitude"), "lon": at.get("longitude"),
-                    "url": "https://www.wikidata.org/wiki/" + q, "within": names, "checks": checks, "verified": all(checks.values()), "parts": len(parts), "same": [q]})
+                    "url": "https://www.wikidata.org/wiki/" + q, "within": names, "checks": checks, "verified": all(v is True for v in checks.values()), "parts": len(parts), "same": [q]})
     return out
 
 def gov_refs(c):
@@ -551,22 +571,25 @@ def dated_candidate(cx, p):
         for i in range(len(words)):
             tail = " ".join(words[i:])
             for pid, name, vf, vt in dated:
-                if similar(tail, name):
+                if same_name(tail, name):
                     return {"place_id": pid, "place": chain_text(cx, pid), "name": name, "valid_from": vf, "valid_to": vt, "leading": " ".join(words[:i]) or None}
     return None
 
 def verify(p, cand):
-    """Score a candidate: fraction of given components found in its hierarchy; country must match."""
+    """Check a candidate against the parsed string: each component the string gives is True when it is the candidate's name or the
+    name of a unit in its hierarchy in full (agree: its own old and alternative names count), "near" when it only resembles one,
+    False otherwise; the country must be the candidate's country, in full. Returns (score, checks), the score the fraction of the
+    checks that are True: a near part is not a verified one."""
     addr = cand.get("address") or {}; names = cand.get("namedetails") or {}
     hier = [v for k, v in addr.items() if k not in ("postcode", "country_code", "ISO3166-2-lvl4", "ISO3166-2-lvl6", "house_number")]
     hier += [v for k, v in names.items() if k.startswith("name") or k.startswith("old_name") or k.startswith("alt_name")]
     checks = {}
     for c in p["components"]:
-        checks[c] = any(similar(c, h) for h in hier)
+        checks[c] = agree(c, hier)
     if p["country"]:
-        checks["country:" + p["country"]] = similar(p["country"], addr.get("country", "")) or \
+        checks["country:" + p["country"]] = same_name(p["country"], addr.get("country", "")) or \
             (p["country"] == "United Kingdom" and addr.get("country_code") == "gb")
-    n = len(checks); ok = sum(checks.values())
+    n = len(checks); ok = sum(v is True for v in checks.values())
     score = ok / n if n else 0.0
     if p["country"] and not checks.get("country:" + p["country"]): score = min(score, 0.4)
     return score, checks
@@ -612,7 +635,7 @@ class Store:
         if sub and sub != loc: chain.append(("neighborhood", sub))
         lt = leaf_type(cand); leaf_name = cand.get("name") or cand.get("display_name", "").split(",")[0]
         names_in_chain = [c[1] for c in chain if c[1]]
-        if leaf_name and lt not in ("unknown",) and not any(similar(leaf_name, n) for n in names_in_chain):
+        if leaf_name and lt not in ("unknown",) and not any(same_name(leaf_name, n) for n in names_in_chain):
             chain.append((lt, leaf_name))
         for ptype, name in chain:
             if not name: continue
@@ -841,7 +864,7 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
     if not row:
         cx.execute("INSERT INTO extractor (id,kind,name,version,config_json,created_at) VALUES (?,?,?,?,?,?)",
                    (ext_id, *RESOLVER, dumps({"endpoint": ENDPOINT, "gazetteers": {"gov": GOV_SERVICES, "wikidata": WIKIDATA_API},
-                                           "verify": "all components must match; unique full match auto-resolves; a gazetteer's one verified candidate through its geocoder twin"}), now()))
+                                           "verify": "every component must match a name of the candidate or of a unit in its hierarchy in full, a prefix, a truncation or a close spelling being near only; unique full match auto-resolves; a gazetteer's one verified candidate through its geocoder twin"}), now()))
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
     stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0, "former_names_added": 0, "gazetteer_names_added": 0, **(stats or {})}
@@ -871,7 +894,7 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
         wants_feature = any(k in head for k in ("church", "cemetery", "road", "street", "lane", "avenue"))
         placeish = [c for c in cands if wants_feature or c.get("category") not in NONPLACE_CLASSES]
         scored = sorted(((*verify(p, c), c) for c in (placeish or cands)),
-                        key=lambda x: (-x[0], (x[2].get("osm_type"), x[2].get("osm_id")) not in from_extra))
+                        key=lambda x: (-x[0], -sum(v == "near" for v in x[1].values()), (x[2].get("osm_type"), x[2].get("osm_id")) not in from_extra))
         full = [s for s in scored if s[0] >= 0.999 and (wants_feature or s[2].get("category") not in NONPLACE_CLASSES)]
         forced = ov["force_review"].get(raw)
         bare = len(p["components"]) == 1 and not p["country"]

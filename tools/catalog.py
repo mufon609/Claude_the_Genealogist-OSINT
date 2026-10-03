@@ -2,7 +2,7 @@
 
 Shared by every tool and by the person screen. Nothing here writes.
 """
-import collections, csv, json, os, re, sqlite3, sys, urllib.parse
+import collections, csv, json, os, re, sqlite3, sys, unicodedata, urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -414,7 +414,7 @@ def collection_state(name):
     first = (name or "").split(",")[0].strip()
     return first if first.lower() in US_STATES else None
 
-ABBREVIATION = ((re.compile(r"\bmt\b\.?"), "mount"), (re.compile(r"\bst\b\.?"), "saint"))   # a place name's abbreviated word stands for the word: Mt. Holly is Mount Holly
+ABBREVIATION = ((re.compile(r"\bmt\b\.?"), "mount"), (re.compile(r"\bst\b\.?"), "saint"), (re.compile(r"\bft\b\.?"), "fort"))   # a place name's abbreviated word stands for the word: Mt. Holly is Mount Holly
 ADMINISTRATIVE = re.compile(r"\b(?:village|borough|city|town) of\b|\b(?:town|borough|city|ward \d+|\d+(?:st|nd|rd|th) ward)\b")   # the unit's own word beside its name: Hempstead Town, Village of Lindenhurst, Northampton Ward 1
 
 def _place_part(p, administrative=False):
@@ -437,6 +437,20 @@ def _place_parts(s, administrative=False):
     state = us_state(out[i][1]) if i is not None else None
     if state: out[i] = (state.lower(), out[i][1])
     return out
+
+UNIT_WORD = re.compile(r"\b(?:the )?municipal district of\b|\b(?:cty|municipality|gemeente|prefecture|province|district|metropolitan|stadtkreis|landkreis|kreis|gmina|powiat)\b")   # the unit's own word that _place_part leaves: Cty, and in the countries the resolver reads beside the US Iwate Prefecture, Gmina Dluzec, Landkreis Freiberg
+LETTERS = str.maketrans({"ß": "ss", "ø": "o", "ł": "l", "đ": "d", "æ": "ae", "œ": "oe"})   # the letters that have no accent to take off
+
+def place_name_key(name):
+    """One place name as every comparison of two names reads it; two names are the same name when their keys are equal. The
+    case, the accents (Düsseldorf is Dusseldorf), the punctuation (an apostrophe goes, a hyphen is a space) and the spacing
+    are set aside; an abbreviated word is written out (Mt. is Mount, St. is Saint, Ft. is Fort, Twp is Township); and the
+    unit's own word is dropped from either side (Township, Town, Village of, Borough, City, County, Ward N, and abroad
+    Prefecture, Gmina, Landkreis), as place_verdict's granularity rule drops it. A word is never run into its neighbour:
+    North Hampton is not Northampton. '' for a name that is nothing but a unit's word."""
+    s = unicodedata.normalize("NFKD", (name or "").lower().translate(LETTERS))
+    s = _place_part("".join(ch for ch in s if not unicodedata.combining(ch)), administrative=True)
+    return re.sub(r"[^a-z0-9]+", " ", UNIT_WORD.sub(" ", s).replace("'", "").replace("’", "")).strip()
 
 def _place_verdict_once(record, tree, supply=None):
     parts = _place_parts                                              # (normalised, as written)
@@ -485,7 +499,7 @@ def _same_granular(record, tree):
 def place_verdict(record, tree, record_state=None, dated_names=None):
     """(verdict, note): agrees when every part the record states, at or below the country, is a part of the tree's resolved
     chain — 'Town < County < State < Country' — matched whole after normalisation (a jurisdiction word stripped, an
-    abbreviated word written out (Mt. is Mount, St. is Saint), a two-letter US state code expanded to its name, with or
+    abbreviated word written out (Mt. is Mount, St. is Saint, Ft. is Fort), a two-letter US state code expanded to its name, with or
     without a period), never as a substring of another word: 'Kent'
     is not Kentucky and 'Frank' is not Franklin. The country is not a part to count on either side. A record with more
     parts below the country than the tree's own chain is read from the state backward, so what it names ahead of the

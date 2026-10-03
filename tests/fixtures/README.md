@@ -121,6 +121,12 @@ contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said
 | `new-jersey-united-states`, `pennsylvania-united-states`, `massachusetts-united-states`, `michigan-united-states` (5 and 13 September) | one state boundary each (the state-abbreviation scenario) |
 | `worcester-montgomery-county-pennsylvania-united-states`, `worcester-montgomery-pennsylvania-united-states`, `worcester-pennsylvania-united-states` | the same two places each, the village and the township (one card for one set of places) |
 | `norristown-montgomery-pennsylvania-united-states`, `pottstown-montgomery-pennsylvania-united-states`, `warwick-bucks-pennsylvania-united-states`, `philadelphia-pennsylvania-united-states`, `northampton-hampshire-massachusetts-united-states` | one boundary each, Philadelphia the city and the county coterminous with it (the turn reading its places) |
+| `cadillac-memorial-gardens-west-westland-wayne-county-michigan-united-states` (7 September) | one answer: Cadillac Memorial Gardens West Cemetery, which the string names without its last word (a part that is the start of a name) |
+| `worchester-montgomery-pennsylvania-united-states`, `worchester-montgomery-county-pennsylvania-united-states` | no answer: the geocoder knows no such place, the spelling being Worcester's misspelt |
+| `worchester-pennsylvania-united-states`, `worcester-township-montgomery-county-pennsylvania-united-states` | one answer each: a street of Nescopeck, and the owner's override's own query, Worcester Township (a part a spelling near the name) |
+| `hemp-nassau-new-york-united-states`, `hempstead-nassau-county-new-york-united-states` | one answer, a lane named Hemp, and two, the Town of Hempstead and the Village of Hempstead in it, the override's own query (a part that is a truncation) |
+| `mt-holly-burlington-new-jersey-united-states` (15 September), `mount-holly-burlington-county-new-jersey-united-states` | two each: Mount Holly Township and a peak of the same name in it, the string written Mt. and written out |
+| `caln-township-chester-pennsylvania-united-states` | one boundary, Caln Township |
 
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record

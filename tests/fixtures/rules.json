@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, and the place resolver's reading of a string into the queries it sends. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, and how a part of a string stands to the names of a candidate. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -323,6 +323,12 @@
    "tree": "Savannah < Hardin County < Alabama < United States",
    "verdict": "disagrees",
    "note": null
+  },
+  {
+   "record": "FT. ROSECRANS NATIONAL CEMETERY, San Diego, California",
+   "tree": "Fort Rosecrans National Cemetery < San Diego County < California < United States",
+   "verdict": "agrees",
+   "note": null
   }
  ],
  "place_verdict_with_record_state": [
@@ -558,6 +564,124 @@
      "Philadelphia, United States"
     ]
    }
+  },
+  {
+   "raw": "United States of America",
+   "parsed": {
+    "components": [],
+    "country": "United States",
+    "queries": [
+     "United States"
+    ]
+   }
+  }
+ ],
+ "place_names": [
+  {
+   "part": "Mt. Holly",
+   "names": [
+    "Mount Holly Township"
+   ],
+   "agrees": true
+  },
+  {
+   "part": "Caln Twp",
+   "names": [
+    "Caln Township"
+   ],
+   "agrees": true
+  },
+  {
+   "part": "Hempstead Town",
+   "names": [
+    "Town of Hempstead"
+   ],
+   "agrees": true
+  },
+  {
+   "part": "Hempstead",
+   "names": [
+    "Village of Hempstead"
+   ],
+   "agrees": true
+  },
+  {
+   "part": "Northampton Ward 1",
+   "names": [
+    "Northampton"
+   ],
+   "agrees": true
+  },
+  {
+   "part": "Nordrhein-Westfalen",
+   "names": [
+    "Mülheim an der Ruhr",
+    "North Rhine-Westphalia"
+   ],
+   "agrees": true
+  },
+  {
+   "part": "Hemp.",
+   "names": [
+    "Town of Hempstead"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "Cadillac Memorial Gardens West",
+   "names": [
+    "Cadillac Memorial Gardens West Cemetery"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "Mülheim",
+   "names": [
+    "Mülheim an der Ruhr"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "Sunderland",
+   "names": [
+    "Sunderland Road"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "Worchester",
+   "names": [
+    "Worcester Township"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "Humphrey County",
+   "names": [
+    "Humphreys County"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "North Hampton",
+   "names": [
+    "Northampton"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "Norriton",
+   "names": [
+    "Norristown"
+   ],
+   "agrees": "near"
+  },
+  {
+   "part": "Amherst",
+   "names": [
+    "Northampton"
+   ],
+   "agrees": false
   }
  ]
 }
