@@ -481,9 +481,11 @@ overrides force), a gazetteer that knows the string's places is asked next:
 | Germany, Poland, Silesia | GOV, genealogy.net's historical gazetteer (SOAP, no key) | `searchByName` under the string's own name and under the current name of every geocoder candidate that keeps the string's name as its own (Dłużec, whose old name OpenStreetMap records as Langneundorf); `searchRelatedByName` for each other part | CC BY-SA |
 | Ireland | Wikidata, its own API | `wbsearchentities` under the string's name; `wbgetentities` for the candidates; their containing units followed up P131 (`wbgetclaims`) to the country (P17) | CC0 |
 
-A gazetteer candidate is checked as a geocoder candidate is: every part the
-string gives (a Kreis, a town, a county, a land, the region, the country)
-must be a unit the candidate lies within, in any period of its history, so
+A gazetteer candidate is checked as a geocoder candidate is: its own name is
+the string's in full (spaces and hyphens set aside; a close spelling,
+Harperdorf for Harpersdorf, is offered and verifies nothing), and every other
+part the string gives (a Kreis, a town, a county, a land, the region, the
+country) must be a unit the candidate lies within, in any period of its history, so
 "Freiberg" verifies the Berthelsdorf that lay in the Amtshauptmannschaft
 Freiberg and no other. GOV offers only its populated places; its parishes,
 churches, registry offices and administrative units of the same name are

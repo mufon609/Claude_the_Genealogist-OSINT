@@ -34,8 +34,9 @@ Rules
     with the project's User-Agent. GOV is asked under the string's own name and under the current name of every geocoder
     candidate that keeps one of the string's names as its own (an old German name OpenStreetMap records on today's
     Polish place); its populated places (GOV_POPULATED) whose names agree with the string's are its candidates. A
-    gazetteer candidate is verified as a geocoder one is: every other part of the string (a Kreis, a town, a county, a
-    land, the region, the country) must be a unit it lies within, in any period of its history (GOV's own
+    gazetteer candidate is verified as a geocoder one is: its own name in full (same_letters: spaces and hyphens set
+    aside; a close spelling, Harperdorf for Harpersdorf, is near and verifies nothing), and every other part of the
+    string (a Kreis, a town, a county, a land, the region, the country) must be a unit it lies within, in any period of its history (GOV's own
     searchRelatedByName; Wikidata's P131 chain and P17). The same rule decides: the string is accepted only when exactly
     one gazetteer candidate verifies on every part, the string gives more than its name, and that candidate has exactly
     one geocoder twin (the same place by an identifier both keep: Wikidata's item id, or GOV's id through Wikidata's
@@ -64,7 +65,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
 from catalog import US_STATES, country_words, place_name_key, us_state
 
-RESOLVER = ("rule", "nominatim-resolver", "0.4.0")
+RESOLVER = ("rule", "nominatim-resolver", "0.5.0")
 def cache_dir():
     """Where the geocoder's answers are kept, under the data root of the run (a scratch run keeps its own)."""
     return os.path.join(derivatives_dir(), "geocode", "nominatim")
@@ -364,10 +365,17 @@ def gov_related(superordinate, subordinate):
     xml = gov("searchRelatedByName", service="SimpleService", superordinateName=superordinate, subordinateName=subordinate)
     return {e.text for e in ET.fromstring(xml).iter() if e.tag.endswith("}item") and e.text} if xml else set()
 
+def same_letters(a, b):
+    """Two names are one name in full: the same letters once spaces and hyphens are set aside (Langneundorf and Lang
+    Neundorf, GOV's own historical names being spelled both ways). What verifies a gazetteer candidate's name."""
+    x, y = (re.sub(r"[\s-]+", "", norm(n)) for n in (a, b))
+    return bool(x) and x == y
+
 def names_agree(a, b):
-    """Two names are one name: the same letters once spaces and hyphens are set aside (Langneundorf and Lang Neundorf),
-    or a slip of a letter or two between them (Harperdorf and Harpersdorf, spelling alike to difflib's NEAR_RATIO); never one name
-    inside a longer one, which is another place (Berthelsdorf and Neuberthelsdorf, Ballyquirk and Ballyquirk Castle)."""
+    """Two names may be one name: the same letters in full (same_letters), or a slip of a letter or two between them
+    (Harperdorf and Harpersdorf, spelling alike to difflib's NEAR_RATIO); never one name inside a longer one, which is
+    another place (Berthelsdorf and Neuberthelsdorf, Ballyquirk and Ballyquirk Castle). What a gazetteer is asked under and
+    offers; a close spelling verifies nothing (same_letters)."""
     x, y = (re.sub(r"[\s-]+", "", norm(n)) for n in (a, b))
     if not x or not y: return False
     return x == y or (abs(len(x) - len(y)) <= 2 and difflib.SequenceMatcher(None, x, y).ratio() >= NEAR_RATIO)
@@ -409,7 +417,7 @@ def gov_candidates(p, cands):
     parts = rest + [x for x in (p["region"], p["country"]) if x]
     out = []
     for o in seen.values():
-        checks = {head: True}
+        checks = {head: True if any(same_letters(head, gov_core(n["name"])) for n in o["names"]) else "near"}   # a close spelling of the name is offered, never verified
         for part in parts:
             checks[part] = any(o["id"] in gov_related(n, o["asked_as"]) for n in GOV_NAMES.get(part, (GOV_UNIT_WORD.sub("", part).strip(),)))
         same = {o["id"], *o["refs"]} | {r for r in o["part_of"] if r in everything and any(names_agree(gov_core(a["name"]), gov_core(b["name"])) for a in everything[r]["names"] for b in o["names"])}
@@ -418,7 +426,7 @@ def gov_candidates(p, cands):
         out.append({"source": "gov", "id": o["id"], "display_name": f"{label} (GOV {o['id']}, {types[0] if types else 'place'}"
                     + (f", {o['lat']:.4f} N {o['lon']:.4f} E)" if o["lat"] is not None else ")"),
                     "type": types[0] if types else "unknown", "names": o["names"], "lat": o["lat"], "lon": o["lon"], "url": GOV_ITEM + o["id"],
-                    "checks": checks, "verified": all(checks.values()), "parts": len(parts), "same": sorted(same)})
+                    "checks": checks, "verified": all(v is True for v in checks.values()), "parts": len(parts), "same": sorted(same)})
     return out
 
 def wikidata_api(service, args, params):
@@ -477,7 +485,8 @@ def wikidata_candidates(p):
             if x in seen: continue
             seen.add(x); within.append(x); todo += up.get(x) or []
         names = list(dict.fromkeys(labels[x] for x in within + countries[q] if labels.get(x)))
-        checks = {head: True, **{part: agree(part, names) for part in parts}}
+        own = same_letters(head, h.get("label") or "") or same_letters(head, (h.get("match") or {}).get("text") or "")
+        checks = {head: True if own else "near", **{part: agree(part, names) for part in parts}}   # a close spelling of the name is offered, never verified
         desc = ((ents.get(q) or {}).get("descriptions") or {}).get("en", {}).get("value") or ", ".join(names)
         out.append({"source": "wikidata", "id": q, "display_name": f"{h.get('label')} ({desc}; Wikidata {q})",
                     "type": next((labels.get(t) for t in types[q] if labels.get(t)), "unknown"), "names": [], "lat": at.get("latitude"), "lon": at.get("longitude"),

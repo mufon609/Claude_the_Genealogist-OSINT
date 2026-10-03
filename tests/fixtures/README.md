@@ -109,6 +109,8 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios so
 | `wikidata-Q104305769-ballyquirk.json` | Wikidata's item for the townland Ballyquirk in Killeagh, County Cork |
 | `wikidata-Q502553-berthelsdorf-herrnhut.json`, `wikidata-Q27479092-berthelsdorf-weissenborn.json`, `wikidata-Q827807-berthelsdorf-liebstadt.json`, `wikidata-Q65183687-berthelsdorf-hainichen.json` | Wikidata's items for four Saxon Berthelsdorfs the geocoder answers with, read for their GOV ids (P2503); only the Weißenborn one carries one |
 
+| `gov-answers-harperdorf.json` | GOV's SOAP answers for "Nieder, Harperdorf, Silesia, Poland" as the resolver caches them, fetched on a scratch data root on 3 October 2026 07:32–07:33 UTC with the project's User-Agent: `searchByName` for Nieder Harperdorf and Twardocice, and `searchRelatedByName` for Twardocice within Schlesien, Polen and Poland |
+| `wikidata-Q7857426-twardocice.json` | Wikidata's item for Twardocice (Nieder Harpersdorf), as Special:EntityData serves it, fetched by the same scratch run on 3 October 2026 |
 | `wikidata-Q200077-morioka.json`, `wikidata-Q11643491-tonan.json` | Wikidata's items for Morioka and for Tonan, its former name (P1365 with its dates): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
 
 ## Geocoder answers

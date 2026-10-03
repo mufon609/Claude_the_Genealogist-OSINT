@@ -1,0 +1,45 @@
+[
+ {
+  "service": "gov:searchByName",
+  "args": [
+   "Twardocice"
+  ],
+  "fetched_at": "2026-10-03T07:32:56Z",
+  "answer": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns1:searchByNameResponse xmlns:ns1=\"http://gov.genealogy.net/ws\"><out xmlns:ns2=\"http://gov.genealogy.net/data\" xmlns:ns3=\"http://gov.genealogy.net/ws\"><ns2:object id=\"HAROR1JO71VC\" last-modification=\"2018-12-03T16:24:57.000+01:00\"><ns2:position lon=\"15.77\" lat=\"51.1\" type=\"e\"/><ns2:external-reference value=\"SIMC:0366445\"/><ns2:url value=\"https://de.wikipedia.org/wiki/Twardocice liegt bei 51.09767°N 15.77502°O\"/><ns2:url value=\"https://pl.wikipedia.org/wiki/Twardocice\"/><ns2:name lang=\"deu\" value=\"Harpersdorf\" end-year=\"1945\"/><ns2:name lang=\"deu\" value=\"Twardocice\" begin-year=\"1945\"/><ns2:type value=\"55\" end-year=\"1945\"/><ns2:part-of ref=\"HARORFJO71VC\" end-year=\"1945\"/><ns2:note lang=\"deu\"><ns2:text>Geographische Position laut</ns2:text><ns2:source ref=\"source_1172542\"/></ns2:note></ns2:object><ns2:object id=\"object_268674\" last-modification=\"2018-12-03T16:26:42.000+01:00\"><ns2:position lon=\"15.76928\" lat=\"51.0974\" type=\"p\"/><ns2:name lang=\"deu\" value=\"Ober Harpersdorf\"/><ns2:name lang=\"deu\" value=\"Twardocice\" begin-year=\"1945\"/><ns2:type value=\"39\"/><ns2:population value=\"402\" year=\"1910\"><ns2:source ref=\"source_265044\"/></ns2:population><ns2:part-of ref=\"object_263779\"/><ns2:note lang=\"deu\"><ns2:text>Geographische Position laut</ns2:text><ns2:source ref=\"source_1172542\"/></ns2:note></ns2:object><ns2:object id=\"object_268651\" last-modification=\"2018-12-03T16:28:04.000+01:00\"><ns2:position lon=\"15.78619\" lat=\"51.10123\" type=\"p\"/><ns2:name lang=\"deu\" value=\"Nieder Harpersdorf\"/><ns2:name lang=\"deu\" value=\"Twardocice\" begin-year=\"1945\"/><ns2:type value=\"39\"/><ns2:population value=\"508\" year=\"1910\"><ns2:source ref=\"source_265044\"/></ns2:population><ns2:part-of ref=\"object_263779\"/><ns2:note lang=\"deu\"><ns2:text>Geographische Position laut</ns2:text><ns2:source ref=\"source_1172542\"/></ns2:note></ns2:object><ns2:object id=\"object_1190902\" last-modification=\"2018-12-03T16:29:50.000+01:00\"><ns2:position lon=\"15.76928\" lat=\"51.0974\" type=\"l\"/><ns2:name lang=\"pol\" value=\"Twardocice\"/><ns2:name lang=\"deu\" value=\"Harpersdorf (Ss. Trinitas)\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:name><ns2:type value=\"26\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:type><ns2:denomination value=\"rk\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:denomination><ns2:located-in ref=\"object_268674\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:located-in><ns2:represents ref=\"object_1190900\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:represents><ns2:represents ref=\"object_1190899\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:represents><ns2:note lang=\"deu\"><ns2:text>Ist vermutlich identisch mit der Kirche św. Piotra i Pawła.</ns2:text></ns2:note></ns2:object><ns2:object id=\"object_1190900\" last-modification=\"2018-12-03T16:30:43.000+01:00\"><ns2:position lon=\"15.76928\" lat=\"51.0974\" type=\"c\"/><ns2:name lang=\"deu\" value=\"Harpersdorf (Ss. Trinitas)\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:name><ns2:name lang=\"pol\" value=\"Twardocice\"/><ns2:type value=\"29\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:type><ns2:denomination value=\"rk\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:denomination><ns2:part-of ref=\"object_1190899\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:part-of></ns2:object><ns2:object id=\"object_1190899\" last-modification=\"2018-12-03T16:30:53.000+01:00\"><ns2:position lon=\"15.76928\" lat=\"51.0974\" type=\"c\"/><ns2:name lang=\"deu\" value=\"Harpersdorf (Ss. Trinitas)\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:name><ns2:name lang=\"pol\" value=\"Twardocice (św. Piotra i Pawła)\"><ns2:source ref=\"source_299844\"><ns2:note>Dekanat Świerzawa</ns2:note></ns2:source></ns2:name><ns2:type value=\"42\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:type><ns2:denomination value=\"rk\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:denomination><ns2:part-of ref=\"object_268176\" year=\"1887\"><ns2:source ref=\"source_1162661\"><ns2:note>S. 67 Nr. 2</ns2:note></ns2:source></ns2:part-of></ns2:object><ns2:object id=\"HARORFJO71VC\" last-modification=\"2019-11-20T12:26:03.000+01:00\"><ns2:position lon=\"15.7758\" lat=\"51.0969\" type=\"p\"/><ns2:external-reference value=\"SIMC:0366445\"/><ns2:name lang=\"pol\" value=\"Twardocice\" begin-year=\"1945\"/><ns2:name lang=\"deu\" value=\"Harpersdorf\" end-year=\"1945\"/><ns2:type value=\"55\"/><ns2:population value=\"1364\"><ns2:timespan><ns2:begin jd=\"2429401\" precision=\"2\"/><ns2:end jd=\"2429401\" precision=\"2\"/></ns2:timespan><ns2:source ref=\"source_293517\"><ns2:page>257</ns2:page></ns2:source></ns2:population><ns2:population value=\"1364\" year=\"1943\"><ns2:source ref=\"source_1134445\"><ns2:page>150</ns2:page></ns2:source></ns2:population><ns2:part-of ref=\"object_285090\" year=\"1943\"><ns2:source ref=\"source_1134445\"><ns2:page>150</ns2:page></ns2:source></ns2:part-of><ns2:part-of ref=\"object_263808\" year=\"1943\"><ns2:source ref=\"source_1134445\"><ns2:page>150</ns2:page></ns2:source></ns2:part-of><ns2:part-of ref=\"object_1136472\" year=\"1943\"><ns2:source ref=\"source_1134445\"><ns2:page>150</ns2:page></ns2:source></ns2:part-of><ns2:part-of ref=\"adm_169764\" end-year=\"1945\"/><ns2:part-of ref=\"object_308214\" begin-year=\"1999\"><ns2:source ref=\"source_1079298\"/></ns2:part-of><ns2:note><ns2:text>nächste Bahnstation 1943 Pilgramsdorf</ns2:text><ns2:source ref=\"source_1134445\"><ns2:page>150</ns2:page></ns2:source></ns2:note></ns2:object></out></ns1:searchByNameResponse></soap:Body></soap:Envelope>"
+ },
+ {
+  "service": "gov:searchByName",
+  "args": [
+   "Nieder Harperdorf"
+  ],
+  "fetched_at": "2026-10-03T07:32:54Z",
+  "answer": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns1:searchByNameResponse xmlns:ns1=\"http://gov.genealogy.net/ws\"><out xmlns:ns2=\"http://gov.genealogy.net/data\" xmlns:ns3=\"http://gov.genealogy.net/ws\"/></ns1:searchByNameResponse></soap:Body></soap:Envelope>"
+ },
+ {
+  "service": "gov:searchRelatedByName",
+  "args": [
+   "Schlesien",
+   "Twardocice"
+  ],
+  "fetched_at": "2026-10-03T07:32:57Z",
+  "answer": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns1:searchRelatedByNameResponse xmlns:ns1=\"http://gov.genealogy.net/ws\"><out xmlns:ns2=\"http://gov.genealogy.net/data\" xmlns:ns3=\"http://gov.genealogy.net/ws\"><ns3:item>HAROR1JO71VC</ns3:item><ns3:item>object_268674</ns3:item><ns3:item>object_268651</ns3:item><ns3:item>object_1190902</ns3:item><ns3:item>HARORFJO71VC</ns3:item></out></ns1:searchRelatedByNameResponse></soap:Body></soap:Envelope>"
+ },
+ {
+  "service": "gov:searchRelatedByName",
+  "args": [
+   "Polen",
+   "Twardocice"
+  ],
+  "fetched_at": "2026-10-03T07:33:01Z",
+  "answer": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns1:searchRelatedByNameResponse xmlns:ns1=\"http://gov.genealogy.net/ws\"><out xmlns:ns2=\"http://gov.genealogy.net/data\" xmlns:ns3=\"http://gov.genealogy.net/ws\"><ns3:item>object_1190902</ns3:item><ns3:item>object_1190900</ns3:item><ns3:item>object_1190899</ns3:item><ns3:item>HARORFJO71VC</ns3:item></out></ns1:searchRelatedByNameResponse></soap:Body></soap:Envelope>"
+ },
+ {
+  "service": "gov:searchRelatedByName",
+  "args": [
+   "Poland",
+   "Twardocice"
+  ],
+  "fetched_at": "2026-10-03T07:32:59Z",
+  "answer": "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\"><soap:Body><ns1:searchRelatedByNameResponse xmlns:ns1=\"http://gov.genealogy.net/ws\"><out xmlns:ns2=\"http://gov.genealogy.net/data\" xmlns:ns3=\"http://gov.genealogy.net/ws\"><ns3:item>HARORFJO71VC</ns3:item></out></ns1:searchRelatedByNameResponse></soap:Body></soap:Envelope>"
+ }
+]

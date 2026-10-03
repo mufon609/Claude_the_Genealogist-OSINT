@@ -1,0 +1,63 @@
+{
+ "title": "a gazetteer's candidate verifies its name only in full",
+ "line": "the owner's string for the Schwenkfelders' home village writes Harperdorf; GOV's one candidate is Nieder Harpersdorf, today Twardocice, a letter apart: a close spelling of the name is offered on the card and verifies nothing, as a close spelling of any other part of a string does",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the owner's string, as the export writes it",
+   "place_string": {
+    "raw": "Nieder, Harperdorf, Silesia, Poland"
+   }
+  },
+  {
+   "say": "the resolver run with the geocoder's, GOV's and Wikidata's real answers planted in their caches",
+   "resolve": {
+    "only": [
+     "Nieder, Harperdorf, Silesia, Poland"
+    ],
+    "wikidata": {
+     "Q7857426": "wikidata-Q7857426-twardocice.json"
+    },
+    "gazetteer": [
+     "gov-answers-harperdorf.json"
+    ],
+    "geocoder": [
+     "nominatim-nieder-harperdorf-lower-silesia-poland.json",
+     "nominatim-nieder-lower-silesia-poland.json",
+     "nominatim-twardocice-pielgrzymka-lower-silesia-poland.json"
+    ]
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": "Nieder, Harperdorf, Silesia, Poland",
+      "status": "undecided",
+      "has_place": false
+     },
+     "why": "no candidate verifies on every part"
+    },
+    {
+     "place_card": {
+      "raw": "Nieder, Harperdorf, Silesia, Poland",
+      "candidates": {
+       "some": {
+        "kind": "gazetteer",
+        "source": "gov",
+        "id": "object_268651",
+        "verified": false,
+        "checks": {
+         "Nieder Harperdorf": "near"
+        }
+       }
+      }
+     },
+     "why": "GOV's Nieder Harpersdorf is a letter from the string's name: near, offered for the owner to read, never verified"
+    }
+   ]
+  }
+ ]
+}
