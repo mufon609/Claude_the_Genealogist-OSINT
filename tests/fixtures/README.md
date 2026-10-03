@@ -216,8 +216,7 @@ checks in `tools/check.py`: the names, titles and bodies they are run against.
 The import scenarios (`scenarios/imports/`) add, through `tests/checks/imports.py`, how a file is read as itself. The file
 is always a fixture, the harness tree, written as another exporter would write it: the action `ingest` (`tools/ingest_gedcom.py`
 into the scenario's tree, a refusal not an error: the result is its `code`, what it `said`, the `imports` and `artifacts` the
-catalog holds afterwards) takes `file`, `as_file` (the file's name in the scratch), `source` (a registry row for `--source`) and
-`written`: `char` (the header's CHAR value), `codec` (the encoding the bytes are written in, utf-8 by default) with `bom` (its
+catalog holds afterwards) takes `file` and `written`: `char` (the header's CHAR value), `codec` (the encoding the bytes are written in, utf-8 by default) with `bom` (its
 byte order mark first), `without_exporter` (the header's SOUR block dropped, a file that names no exporter) and `header_only`
 (everything from the first person on dropped); a character the codec cannot write becomes `?`, as an exporter for that
 character set writes it. `run_tool` runs one of the tools on the scenario's catalog (`tool`, `args`; `--db` goes first) and
