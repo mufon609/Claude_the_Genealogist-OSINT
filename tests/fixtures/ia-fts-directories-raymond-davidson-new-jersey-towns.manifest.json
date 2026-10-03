@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "c5219b32b9d14705d54e47c766a63e67b7451bb5ef538006f4ebf7a78a7c8f36",
+  "bytes": 2375,
+  "mime": "application/json",
+  "source_id": "K01",
+  "collection": "Internet Archive city directories",
+  "locator": {
+    "kind": "url",
+    "value": "https://be-api.us.archive.org/fts/v1/search?q=%22Raymond%20Davidson%22~3%20AND%20title%3A%28%22BG%20WILLIAM%20C%20DOYLE%20VET%27S%20MEM%20CEM%22%20OR%20%22New%20Egypt%22%20OR%20%22Copague%20Suff%2A%22%20OR%20%22Hempstead%22%20OR%20%22NJ%22%29%20AND%20title%3Adirectory%20AND%20NOT%20collection%3Anewspaperarchive&size=40"
+  },
+  "retrieved_at": "2026-09-18T16:21:11Z",
+  "retrieved_by": "agent:run_step",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://be-api.us.archive.org/fts/v1/search?q=%22Raymond%20Davidson%22~3%20AND%20title%3A%28%22BG%20WILLIAM%20C%20DOYLE%20VET%27S%20MEM%20CEM%22%20OR%20%22New%20Egypt%22%20OR%20%22Copague%20Suff%2A%22%20OR%20%22Hempstead%22%20OR%20%22NJ%22%29%20AND%20title%3Adirectory%20AND%20NOT%20collection%3Anewspaperarchive&size=40",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "Public domain",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "K01"
+  },
+  "trust_tier": "T1",
+  "pages": 1,
+  "notes": "{\"query\":{\"birth_year\":{\"basis\":\"accepted\",\"tolerance\":2,\"value\":1939},\"given\":{\"basis\":\"accepted\",\"value\":\"Raymond Earl\"},\"parents\":{\"basis\":\"accepted\",\"value\":[\"Ruth M Peters\",\"Robert Edgar Davidson\"]},\"sex\":{\"basis\":\"accepted\",\"value\":\"M\"},\"spouses\":{\"basis\":\"accepted\",\"value\":[\"Noi Davidson\"]},\"state\":{\"basis\":\"accepted\",\"value\":\"new jersey\"},\"surname\":{\"basis\":\"accepted\",\"value\":\"Davidson\"},\"towns\":{\"basis\":\"claim\",\"value\":[\"BG WILLIAM C DOYLE VET'S MEM CEM\",\"New Egypt\",\"Copague Suff*\",\"Hempstead\",\"NJ\"]},\"variants\":{\"basis\":\"claim\",\"value\":[\"Raymond Davidson\",\"Raymond E\",\"Raymond E Davidson\"]}},\"request\":\"search\"}"
+}

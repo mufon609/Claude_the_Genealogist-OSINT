@@ -34,13 +34,16 @@ def rendered_query(query_json, revisions_json):
 
 REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
 
-def same_fields(rendered, ran, found=False):
+def same_fields(rendered, ran, outcome=None):
     """Whether a run's fields as logged are the step's rendered fields now, value for value: the same query again. What the run
     added beside the step's fields is not the step's (surname_variants, the alias table's spellings, basis record; a results
     page's fields as searched, basis run); a place field tried name by name is the same when the names tried are the step's
-    own names, or, for a found run (the run stops at the first name that gets a hit and never tries the rest), the step's
-    names up to the one that got it; a name added or dropped before that point, or any name added after a run that tried
-    them all, is a change, as is a field the step has dropped or added since."""
+    own names, or, for a run that stopped at a hit (the run stops at the first name that gets a hit and never tries the rest,
+    whatever the outcome: found, or none because the hits were a book the Archive lends or a listing none of whose rows fits
+    anyone), the step's names up to and including the one that got it; a name added or dropped before that point, or any name
+    added after a run that tried them all, is a change, as is a field the step has dropped or added since. A run says that it
+    stopped at a hit by `stopped_at_hit` beside `tried` on its logged place field; a run logged before the mark existed is
+    read by its outcome, which is the run's: found stopped at its hit."""
     for k, f in rendered.items():
         r = ran.get(k)
         if r is None: return False
@@ -48,7 +51,8 @@ def same_fields(rendered, ran, found=False):
         if r.get("tried"):
             names = f["value"] if isinstance(f["value"], list) else [f["value"]]
             tried = list(r["tried"])
-            if tried != names[:len(tried)] or (len(tried) < len(names) and not found): return False
+            stopped = r["stopped_at_hit"] if "stopped_at_hit" in r else outcome == "found"
+            if tried != names[:len(tried)] or (len(tried) < len(names) and not stopped): return False
         elif r.get("value") != f["value"]: return False
     return all(k in rendered for k, v in ran.items() if not (isinstance(v, dict) and v.get("basis") in ("run", "record")))
 
@@ -75,7 +79,7 @@ def ran_unchanged(cx, step, rendered, source_id=None):
     source whose runs are all errors is asked again. Read per source: one
     connector's none run on the step's fields does not close the step at another source, which is asked until it answers."""
     a = latest_answer(cx, step, source_id)
-    return a is not None and same_fields(rendered, a[2], a[0] == "found")
+    return a is not None and same_fields(rendered, a[2], a[0])
 
 HOUSEHOLD = "the household's record, accepted onto "     # the note prefix of a run written when a household record's persona is accepted onto a person
 ON_WORD = "on the owner's word about "                 # the note prefix of the run attach.on_word writes: the owner's word that a record is a person's, never reopened by the plan

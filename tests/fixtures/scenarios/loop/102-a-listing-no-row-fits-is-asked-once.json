@@ -1,0 +1,204 @@
+{
+ "title": "a listing no row of which fits is the step's fields",
+ "line": "a death record step whose place carries two names, run at the New Jersey death index: the first name's request gets the file, whose rows under the surname are the hit and fit nobody, so the run is set to none with the rows kept on the artifact; the logged place says the run stopped at a hit, which reads back as the step's own fields, so the index is asked once, not again on the next run or turn, until a name changes ahead of the one it stopped on",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "Carol Evers' death record step as the plan wrote it for her (her name and her husband), carrying the place field a census or obituary step carries: the two names the tree gives New Jersey, the state her husband died in, tried in order",
+   "step": {
+    "person": "I332737036894",
+    "row_key": "death record:",
+    "seq": 1,
+    "step_key": "search:death record:",
+    "kind": "search",
+    "query_type": "subject_record",
+    "query": {
+     "given": {
+      "basis": "accepted",
+      "value": "Carol"
+     },
+     "place": {
+      "basis": "accepted",
+      "value": [
+       "New Jersey, USA",
+       "New Jersey < United States"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "F"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Frederick Micheal Ahearn Jr"
+      ]
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Evers"
+     }
+    },
+    "sources": [
+     "C09"
+    ],
+    "mode": "auto"
+   },
+   "as": "d",
+   "expect": [
+    {
+     "runnable": {
+      "step": "$d.step",
+      "is": true
+     },
+     "why": "the death index has not been asked on these fields"
+    }
+   ]
+  },
+  {
+   "say": "the real death index connector, its download standing in as the real file's header and the lines under two surnames and one more: the first name's request gets the file, whose forty-two rows under Evers are the hit and none is hers; the run stops at that name and is a none run, the rows kept on the artifact",
+   "run": {
+    "step": "$d.step",
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "newjerseydeathindex",
+       "fixture": "nj-death-index-2006-2017-excerpt.csv",
+       "content_type": "text/csv"
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "connector": "nj_death_index",
+        "source": "C09",
+        "asked": true,
+        "outcome": "none",
+        "proposals": 0
+       }
+      ]
+     },
+     "why": "the connector's one request, and the matcher proposes none of the rows to anyone"
+    },
+    {
+     "search_log": {
+      "step": "$d.step",
+      "is": [
+       {
+        "source_id": "C09",
+        "outcome": "none",
+        "notes": {
+         "starts": "no candidate fits; "
+        },
+        "artifacts": {
+         "len": 2
+        },
+        "query": {
+         "place": {
+          "value": "New Jersey, USA",
+          "tried": [
+           "New Jersey, USA"
+          ],
+          "stopped_at_hit": true
+         }
+        }
+       }
+      ]
+     },
+     "why": "the rows fit nobody, so the run was set to none; the logged place still says it stopped at a hit"
+    },
+    {
+     "step": {
+      "person": "I332737036894",
+      "row_key": "death record:",
+      "kind": "search",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "a none run leaves the step planned"
+    },
+    {
+     "runnable": {
+      "step": "$d.step",
+      "is": false
+     },
+     "why": "the run stopped at the name that got the hit: the same query again, so the death index is not asked again on the next turn"
+    }
+   ]
+  },
+  {
+   "say": "the same step run again with no network at all: a request would fail the run",
+   "run": {
+    "step": "$d.step"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "connector": "nj_death_index",
+        "asked": false,
+        "answered": {
+         "outcome": "none"
+        }
+       }
+      ]
+     },
+     "why": "asked once: the second run reports what the index answered and sends nothing"
+    }
+   ]
+  },
+  {
+   "say": "the plan writes a name ahead of the one the run stopped on",
+   "step_query": {
+    "step": "$d.step",
+    "query": {
+     "given": {
+      "basis": "accepted",
+      "value": "Carol"
+     },
+     "place": {
+      "basis": "accepted",
+      "value": [
+       "New Jersey",
+       "New Jersey, USA",
+       "New Jersey < United States"
+      ]
+     },
+     "sex": {
+      "basis": "accepted",
+      "value": "F"
+     },
+     "spouses": {
+      "basis": "accepted",
+      "value": [
+       "Frederick Micheal Ahearn Jr"
+      ]
+     },
+     "surname": {
+      "basis": "accepted",
+      "value": "Evers"
+     }
+    }
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$d.step",
+      "is": true
+     },
+     "why": "a name now stands ahead of the one the run stopped on that it never tried: the fields changed"
+    }
+   ]
+  }
+ ]
+}

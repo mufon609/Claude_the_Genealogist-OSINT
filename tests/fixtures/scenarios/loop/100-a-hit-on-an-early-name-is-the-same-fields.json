@@ -1,6 +1,6 @@
 {
  "title": "a run that stops at a hit reads back as the step's fields",
- "line": "a fetch step held at FamilySearch and asked of the 1950 site, a source of the same row: the first of its place's names gets the hit and the run stops there, so the page found is held while the cited record is still to fetch at the holder and the step stays planned; the run's tried names are the step's names up to the one that got the hit, which reads as the step's own fields, so the site is not asked again until the names change before that one; a none run reads back as the step's fields only when it tried every name",
+ "line": "a fetch step held at FamilySearch and asked of the 1950 site, a source of the same row: the first of its place's names gets the hit and the run stops there, so the page found is held while the cited record is still to fetch at the holder and the step stays planned; the run's tried names are the step's names up to the one that got the hit, which reads as the step's own fields, so the site is not asked again until the names change before that one; a none run that stopped at no hit reads back as the step's fields only when it tried every name",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -110,7 +110,8 @@
         "tried": [
          "Hempstead, Nassau, New York"
         ],
-        "value": "Hempstead, Nassau, New York"
+        "value": "Hempstead, Nassau, New York",
+        "stopped_at_hit": true
        }
       }
      },
@@ -293,11 +294,12 @@
          "Hempstead, Nassau, New York",
          "Hempstead, Queens, New York"
         ],
-        "value": "Hempstead, Queens, New York"
+        "value": "Hempstead, Queens, New York",
+        "stopped_at_hit": false
        }
       }
      },
-     "why": "both names asked, neither getting a hit: the run tried every name"
+     "why": "both names asked, neither getting a hit: the run tried every name and stopped at none"
     },
     {
      "runnable": {

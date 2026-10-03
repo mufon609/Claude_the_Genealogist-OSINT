@@ -563,13 +563,16 @@ newspapers), builds one request for two names of one place, which a
 rate-limited holder cannot answer differently, so the second name is logged as
 tried and sends nothing, the run's note saying which name's request it
 repeated. Every name tried, asked or not, is on the logged run's
-query, so a run that tried them all reads back as the step's own fields, and so
-does a found run that stopped at the name that got the hit, whatever names
-follow it: a fetch step whose hit came from a connector other than its holder
-stays planned for the holder's own page, and that connector is not asked the
-same query again. A name added or dropped before the one the run stopped on, or
-added after a run that tried them all, is a change in the step's fields, and
-the step is asked again.
+query, and so is whether the run stopped at a hit. A run that tried them all
+reads back as the step's own fields, and so does a run that stopped at the name
+that got a hit, whatever names follow it and whatever the hit came to: a record
+found (a fetch step whose hit came from a connector other than its holder stays
+planned for the holder's own page), a book the Archive only lends (a `none`
+run), a listing none of whose rows fits anyone (a `none` run), and that
+connector is not asked the same query again. A name added or dropped before the
+one the run stopped on, or added after a run that tried them all, is a change in
+the step's fields, and the step is asked again. A run logged before the mark
+existed reads by its outcome: found stopped at its hit, none tried every name.
 The runner runs a fetch step the same way when the citation's free holder has a
 connector: the 1950 site takes the citation's surname within its enumeration
 district and answers with the household's schedule, whose every row becomes a

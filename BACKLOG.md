@@ -522,18 +522,6 @@ other member's relationship to the head is read only as FamilySearch's grouping
 real page that the details render without a request the method does not make),
 then save the archived census pages again by the same method.
 
-### C37. A none run that stopped at a hit reads as changed fields
-
-`run_step.run_connector` also stops at a name whose only hits are a book the
-Archive lends (`outcome_of` reads that as none), and `run_step.run` sets a found
-run to none when every record read is a results listing none of whose rows fits
-anyone. Either leaves `tried` shorter than the step's names, and
-`log_search.same_fields` reads a shorter list as the step's fields only for a
-found run, so that connector is asked the same query again every turn. Have the
-run say on its logged place field that it stopped at a hit, read that in
-`same_fields` instead of the outcome, and show it on a real run: a cited book
-the Archive lends, its place carrying several names, run twice, asks once.
-
 ## Externally blocked
 
 Waiting on events the repo cannot drive.

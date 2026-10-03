@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "378d47ed4b3207a72bacfced31a0e1a09f6885d92f19405296bb0def91eff594",
+  "bytes": 12634,
+  "mime": "application/json",
+  "source_id": "K01",
+  "collection": "Internet Archive city directories",
+  "locator": {
+    "kind": "url",
+    "value": "https://archive.org/metadata/martindalehubbel0003unse_r8g1"
+  },
+  "retrieved_at": "2026-09-18T16:21:13Z",
+  "retrieved_by": "agent:run_step",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://archive.org/metadata/martindalehubbel0003unse_r8g1",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "Public domain",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "K01"
+  },
+  "trust_tier": "T1",
+  "pages": 1,
+  "notes": "{\"collections\":[\"internetarchivebooks\",\"americana\",\"pub_martindale-hubbell-law-directory\",\"periodicals\",\"texts\",\"printdisabled\",\"fav-demowertia\"],\"connector\":\"ia_directories\",\"date\":null,\"doc\":\"martindalehubbel0003unse_r8g1\",\"given\":\"Raymond Earl\",\"hit\":\"Martindale-Hubbell Law Directory 2014 MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NYC, NYS, NC, ND (?): Support; Sex Crimes; Drug Crimes.Email: raymond@DagueLaw.com\\n \\nDAVIDSON FINK LLP\\nSYRACUSE, NEW YORK (See Rochester)\",\"item\":\"martindalehubbel0003unse_r8g1\",\"locator\":{\"kind\":\"url\",\"value\":\"https://archive.org/details/martindalehubbel0003unse_r8g1\"},\"page\":3242,\"q\":\"\\\"Raymond Davidson\\\"~3\",\"restricted\":true,\"step_type\":\"subject_record\",\"surname\":\"Davidson\",\"text\":[\"Support; Sex Crimes; Drug Crimes.Email: raymond@DagueLaw.com\\n \\nDAVIDSON FINK LLP\\nSYRACUSE, NEW YORK (See Rochester)\"],\"title\":\"Martindale-Hubbell Law Directory 2014 MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NYC, NYS, NC, ND\",\"variants\":[],\"year\":null}"
+}
