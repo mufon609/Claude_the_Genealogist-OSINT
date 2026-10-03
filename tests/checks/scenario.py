@@ -1086,6 +1086,13 @@ def e_listed(w, x, want):
     listed = [r[0] for r in w.cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL", (w.tid,))]
     return all(w.person(p) in listed for p in x.get("has", [])) and all(w.person(p) not in listed for p in x.get("lacks", [])), len(listed)
 
+def e_origins(w, x, want):
+    """Where the tree comes from (overview.origins): the people by what brought them in (`people`: file, record) and the
+    accepted documents by what fetched them (`documents`: citation, lead, search, hand)."""
+    from overview import origins
+    got = origins(w.cx, w.tid)
+    return has(got, {k: v for k, v in x.items() if k in ("people", "documents")}), got
+
 def e_assertion_subject(w, x, want):
     v = w.cx.execute("SELECT subject_id FROM assertion WHERE persona_id=?", (w.value(x["persona"]),)).fetchone()
     return v is not None and v[0] == w.person(x["is"]), v and w.name_of(v[0])
@@ -1096,7 +1103,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
-           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject}
+           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins}
 
 def load(folder):
     """Every scenario file under a folder, in name order."""

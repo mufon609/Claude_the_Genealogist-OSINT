@@ -467,19 +467,6 @@ words put the human only where doubt is serious. Then the rule applies it,
 reasonably exhaustive research first: his memorial shows a gravestone
 photograph not yet held (photo 102379026), which may carry 1876 itself.
 
-### C24. Say where the tree comes from: the file, or the evidence
-
-The owner's goal is a loop that builds the tree from documents, the imported
-file a rough guide. On the live catalog of 3 Oct 2026, 124 of 140 people exist
-because the file created them (16 from records), and 47 of the 65 accepted
-documents were fetched because the file cited them (4 from leads in held
-records, 6 from searches on accepted facts, 8 attached by hand). Nothing reports
-this. Add it to `tools/tree.py overview`'s summary, two lines: the people, by
-whether the file or a record brought them into the tree; the accepted
-documents, by what fetched them (the file's citation, a lead a held record made,
-a search on accepted facts, by hand), read from each document's runs and their
-steps' field bases. Show it on the harness tree, where every count is known.
-
 ### C25. Two readings of one record are decided apart
 
 John Y Davidson's 1946 Kentucky death certificate is held twice: FamilySearch's

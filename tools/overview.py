@@ -4,7 +4,10 @@ and what waits on each. Shared by the screen's overview and `tools/tree.py overv
 Confirmed means: the home person, and every person reached from them by a parents link the owner accepted (the family_member
 assertions behind it accepted, on a record or on the owner's word). The walk stops at the last accepted link; beyond it the
 file's claim of parents is named on the card as a claim, and the people it names stay outside until a decision puts them in.
+The summary says where the tree comes from (origins): the people the file brought in and those a record did, and the
+accepted documents by what fetched them, so the owner sees whether the file or the evidence is building the tree.
 """
+import json
 from treelib import dumps
 from catalog import Catalog
 from facts import KEY_FACTS, fact_status
@@ -36,6 +39,37 @@ def link_trusted(cx, tree_id, pid):
     rows = [dumps([fid, pid, "child"]) for fid, in cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role='child'", (pid,))]
     return trusted_evidence(cx, tree_id, "family_member", rows)
 
+def origins(cx, tree_id):
+    """Where the tree comes from. The people (merged ones aside) by what brought them in: the file (the import gives each
+    person the file's own record id, external_id *gedcom_xref) or a record (a decision on a record's card created them,
+    conclude.create_person). The accepted documents (a record a person of the tree is accepted on, on its current reading;
+    the file itself aside) by what fetched them, read from the runs that first held the document (its earliest run's
+    moment; a reopen's row and a household's bookkeeping row aside) and their steps' field bases: by hand (a run on the
+    owner's word, a step the owner wrote, basis owner, or no run at all), else a fetch step on the file's citation (basis
+    citation), else a fetch step on a lead a held record made (basis record: a memorial a page lists, a results row's own
+    record, a photograph), else a search step. One page reaching several steps at once is counted by the first of those."""
+    from log_search import HOUSEHOLD, ON_WORD, REOPENED
+    people = {"file": 0, "record": 0}
+    for xref, in cx.execute("""SELECT EXISTS (SELECT 1 FROM external_id x WHERE x.entity_kind='person' AND x.entity_id=p.id AND x.system LIKE '%gedcom_xref')
+                               FROM person p WHERE p.tree_id=? AND p.merged_into IS NULL""", (tree_id,)):
+        people["file" if xref else "record"] += 1
+    ORDER = ("hand", "citation", "lead", "search")
+    first = {}                                                   # sha256 -> (moment of its earliest run, the classes of the runs at that moment)
+    for arts, at, note, kind, q in cx.execute("""SELECT sl.artifacts_json, sl.executed_at, sl.notes, sp.kind, sp.query_json FROM search_log sl LEFT JOIN search_plan sp ON sp.id=sl.plan_step_id
+                                                 WHERE sl.tree_id=? AND sl.artifacts_json IS NOT NULL ORDER BY sl.executed_at, sl.id""", (tree_id,)):
+        if (note or "").startswith((REOPENED, HOUSEHOLD)): continue
+        bases = {v.get("basis") for v in json.loads(q or "{}").values() if isinstance(v, dict)}
+        cls = "hand" if kind is None or (note or "").startswith(ON_WORD) or "owner" in bases else "search" if kind == "search" else "lead" if "record" in bases else "citation"
+        for sha in json.loads(arts or "[]"):
+            if first.setdefault(sha, (at, set()))[0] == at: first[sha][1].add(cls)
+    docs = dict.fromkeys(ORDER, 0)
+    for sha, in cx.execute("""SELECT DISTINCT pe.artifact_sha256 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN extraction e ON e.id=pe.extraction_id
+                              JOIN person p ON p.id=pp.person_id WHERE pp.status='accepted' AND p.tree_id=? AND e.superseded_by IS NULL
+                              AND pe.artifact_sha256 NOT IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?)""", (tree_id, tree_id)):
+        classes = first.get(sha, (None, {"hand"}))[1]
+        docs[next(c for c in ORDER if c in classes)] += 1
+    return {"people": people, "documents": docs}
+
 def overview(cx, tree_id):
     """The tree overview: the people the owner has confirmed, laid out from the home person upward one row per generation, a
     card's parents above it (father then mother). The walk follows a parents link only where the owner accepted it, so the tree
@@ -58,11 +92,12 @@ def overview(cx, tree_id):
             cards.append(c)
         gens.append(cards); row = [p for c in cards for p in c["parents"]]
     others = [c for c in people(cx, tree_id) if c["id"] not in seen]
-    return {"home": home, "generations": gens, "others": [c for c in others if c["documents"] or c["conflicts"]], "unconfirmed": len(others)}
+    return {"home": home, "generations": gens, "others": [c for c in others if c["documents"] or c["conflicts"]], "unconfirmed": len(others), "origins": origins(cx, tree_id)}
 
 
 def render(o, cx):
-    """The overview as text: one line per person, generation by generation, then the count of the file's people outside."""
+    """The overview as text: one line per person, generation by generation, then the count of the file's people outside and
+    where the tree comes from (origins)."""
     labels = ["you", "parents", "grandparents", "great-grandparents", "great-great-grandparents"]
     out = []
     if not o["home"]: return "no home person set: tools/tree.py home \"<person>\""
@@ -77,4 +112,7 @@ def render(o, cx):
             out.append(f"  {c['name']} ({c['span'][0] or '?'}-{c['span'][1] or ''}) [{c['id'][-6:]}]  {c['accepted']} of {c['key_facts']} key facts" + (f"; {sp}" if sp else "") +
                        ("; " + "; ".join(w for w in waits if w) if any(waits) else "") + (f"\n      edge: {claim}" if claim else ""))
     out.append(f"-- {o['unconfirmed']} more people in the file, not connected by an accepted link; {len(o['others'])} of them with a document or a conflict waiting")
+    p, d = o["origins"]["people"], o["origins"]["documents"]
+    out.append(f"-- where the tree comes from: {p['file'] + p['record']} people, {p['file']} brought in by the file and {p['record']} by a record")
+    out.append(f"   {sum(d.values())} accepted documents, {d['citation']} fetched for the file's citations, {d['lead']} for leads in held records, {d['search']} by searches, {d['hand']} by hand")
     return "\n".join(out)

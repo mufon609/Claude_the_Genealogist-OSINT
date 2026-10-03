@@ -1,0 +1,335 @@
+{
+ "title": "where the tree comes from",
+ "line": "the overview says where the tree comes from: the people the file brought in and those a record brought in, and the accepted documents by what fetched them, the file's citation, a lead a held record made, a search, or the owner's hand; on the harness tree every count is known",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the tree as the file made it: its twenty-seven people, no document accepted",
+   "expect": [
+    {
+     "origins": {
+      "people": {
+       "file": 27,
+       "record": 0
+      },
+      "documents": {
+       "citation": 0,
+       "lead": 0,
+       "search": 0,
+       "hand": 0
+      }
+     },
+     "why": "every person carries the file's own record id"
+    }
+   ]
+  },
+  {
+   "say": "Raymond Earl Davidson's Social Security record arrives: the file cites it, so it reaches his step",
+   "attach": {
+    "fixture": "familysearch-social-security-numident-1956-6KML-FS23.html"
+   },
+   "as": "ssn"
+  },
+  {
+   "say": "the owner accepts him on it",
+   "decide": {
+    "card": {
+     "record": "ssn",
+     "person": "I332737099805"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "origins": {
+      "people": {
+       "file": 27,
+       "record": 0
+      },
+      "documents": {
+       "citation": 1,
+       "lead": 0,
+       "search": 0,
+       "hand": 0
+      }
+     },
+     "why": "fetched for the file's citation"
+    }
+   ]
+  },
+  {
+   "say": "his father's death index page, attached on the owner's word, no step citing it",
+   "attach": {
+    "fixture": "familysearch-ohio-death-index-VKBL-4FN.html",
+    "about": "I332737100409"
+   },
+   "as": "ohio"
+  },
+  {
+   "say": "the owner accepts him on it",
+   "decide": {
+    "card": {
+     "record": "ohio",
+     "person": "I332737100409",
+     "latest": true
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "origins": {
+      "people": {
+       "file": 27,
+       "record": 0
+      },
+      "documents": {
+       "citation": 1,
+       "lead": 0,
+       "search": 0,
+       "hand": 1
+      }
+     },
+     "why": "a run on the owner's word: by hand"
+    }
+   ]
+  },
+  {
+   "say": "a death record naming Lena Howard Bell as the deceased's mother: it reaches her step on the file's citation",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
+    "about": "I332737204852"
+   },
+   "as": "kd"
+  },
+  {
+   "say": "the owner accepts her on it: the son the record states she bore, whom nobody fits, is created by the rule",
+   "decide": {
+    "card": {
+     "record": "kd",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "origins": {
+      "people": {
+       "file": 27,
+       "record": 1
+      },
+      "documents": {
+       "citation": 2,
+       "lead": 0,
+       "search": 0,
+       "hand": 1
+      }
+     },
+     "why": "Ollie Duke Davidson is the record's, not the file's"
+    }
+   ]
+  },
+  {
+   "say": "Abram C Brant's memorial and his daughter's, each carried by a citation of the file: the rule takes each identity",
+   "attach": {
+    "fixture": "findagrave-memorial-78019650.html"
+   },
+   "as": "mem"
+  },
+  {
+   "say": "",
+   "attach": {
+    "fixture": "findagrave-memorial-142698059.html"
+   },
+   "as": "dmem",
+   "expect": [
+    {
+     "origins": {
+      "people": {
+       "file": 27,
+       "record": 1
+      },
+      "documents": {
+       "citation": 4,
+       "lead": 0,
+       "search": 0,
+       "hand": 1
+      }
+     },
+     "why": "a page anyone can edit, its identity accepted, is an accepted document"
+    }
+   ]
+  },
+  {
+   "say": "her plan: the photograph of her stone her memorial types Grave is a fetch step, a lead the held memorial made",
+   "plan": [
+    "I332737037573"
+   ]
+  },
+  {
+   "say": "the stone's photograph saved in the browser under the list's name",
+   "save": {
+    "holder": "E05",
+    "person": "I332737037573",
+    "url_has": "142698059_1424121146.jpg",
+    "fixture": "findagrave-photo-142698059-117088371.jpg",
+    "folder": "downloads"
+   },
+   "as": "photo"
+  },
+  {
+   "say": "",
+   "collect": {
+    "folder": "$photo.folder"
+   },
+   "as": "got"
+  },
+  {
+   "say": "the stone read, typed by the harness in the model's place from the image's own words",
+   "transcribe": {
+    "record": "$got.results.0.sha256",
+    "form": {
+     "name": "Helen Brant Ahearn",
+     "role": "named on the stone",
+     "birth_date": "11 Jul 1909",
+     "death_date": "24 Jan 1986",
+     "bbox": [
+      1626,
+      1279,
+      812,
+      345
+     ],
+     "image_is": "record"
+    },
+    "by": "llm:harness"
+   },
+   "as": "stone",
+   "expect": [
+    {
+     "last": {
+      "card_status": "undecided",
+      "card_kind": "persona_match"
+     },
+     "why": "a card the rule leaves to the owner"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts her on the stone",
+   "decide": {
+    "card": "$stone.card",
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "origins": {
+      "people": {
+       "file": 27,
+       "record": 1
+      },
+      "documents": {
+       "citation": 4,
+       "lead": 1,
+       "search": 0,
+       "hand": 1
+      }
+     },
+     "why": "the photograph's step rests on the memorial, basis record: a lead"
+    }
+   ]
+  },
+  {
+   "say": "her key facts decided on the owner's word, so her searches open, the birth record's among them",
+   "fact": {
+    "person": "I332737037573",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "plan": [
+    "I332737037573"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737037573",
+      "row_key": "birth record:1909",
+      "kind": "search"
+     }
+    }
+   ]
+  },
+  {
+   "say": "her own christening record archived and read",
+   "archive": {
+    "fixture": "familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html",
+    "source": "D03",
+    "locator": {
+     "kind": "apid",
+     "value": "1,2451::22699845"
+    },
+    "extract": true,
+    "match": [
+     "I332737037573"
+    ]
+   },
+   "as": "bap"
+  },
+  {
+   "say": "her birth-record search finds it (a stand-in: a run written by hand on the search step, as a saved page would leave it)",
+   "log": {
+    "step": {
+     "person": "I332737037573",
+     "row_key": "birth record:1909",
+     "kind": "search"
+    },
+    "outcome": "found",
+    "artifacts": [
+     "bap"
+    ],
+    "note": "harness: standing in for the search step's own run"
+   }
+  },
+  {
+   "say": "the owner accepts her on it",
+   "decide": {
+    "card": {
+     "record": "bap",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "origins": {
+      "people": {
+       "file": 27,
+       "record": 1
+      },
+      "documents": {
+       "citation": 4,
+       "lead": 1,
+       "search": 1,
+       "hand": 1
+      }
+     },
+     "why": "the search step's run fetched it"
+    }
+   ]
+  }
+ ]
+}

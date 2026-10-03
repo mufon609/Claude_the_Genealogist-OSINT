@@ -285,7 +285,8 @@ date or place: `taken` and the reason, `why`), `extractor` (a reading's extracto
 `regions` of its personas), `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `one_event` (no record fact
 stated on two events of its type that a person or a family holds), `whole`, `file`,
-`count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`. A `why` beside
+`count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`, `origins` (`overview.origins`: the `people` by what brought them in, `file` or
+`record`, and the accepted `documents` by what fetched them, `citation`, `lead`, `search` or `hand`). A `why` beside
 an expectation is printed with its failure.
 
 Patterns: a dict matches the keys given, a list its length and each element, a string or number equals; `{">=": n}`,
@@ -363,7 +364,7 @@ The runner's runs are simulated where a scenario is about what happens after one
   network": loop `10` and `15` (an error, the same stand-in, then none), `12`, `13`, `60`, `61` and `63` (none). A `none` here
   stands for an answer of nothing that no holder gave.
 - `log`: a run written by hand, as a connector or a saved page would leave it, its outcome and its artifacts (real pages the
-  scenario archived) as the step gives them: decisions `60`, `90`; loop `10`, `31`, `32`, `46`, `50`, `63`, `70`, `72`, `101`.
+  scenario archived) as the step gives them: decisions `60`, `90`, `99zd` (a search step's run finding the christening record); loop `10`, `31`, `32`, `46`, `50`, `63`, `70`, `72`, `101`.
 - `run_all`: `run_step.run` replaced by a function that regenerates the plan or raises `SystemExit`, no request; which steps are
   runnable is the real connectors' say (loop `25`).
 - The parent sha256 `check.py` hands the New Jersey and Kentucky connectors as the file's own (a placeholder string, only

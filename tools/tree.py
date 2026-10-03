@@ -5,7 +5,7 @@
   tools/tree.py list
   tools/tree.py use <slug>          # sets catalog/.active-tree
   tools/tree.py show [<slug>]
-  tools/tree.py overview [<slug>]      the tree as confirmed: home person upward, key facts accepted, the edge
+  tools/tree.py overview [<slug>]      the tree as confirmed: home person upward, key facts accepted, the edge; where the tree comes from
   tools/tree.py home "<person>" [--tree <slug>]   # the person the tree overview starts from
 """
 import argparse, json, os, sqlite3, sys
@@ -92,7 +92,7 @@ def main():
     sub.add_parser("list")
     u = sub.add_parser("use"); u.add_argument("slug")
     sh = sub.add_parser("show"); sh.add_argument("slug", nargs="?")
-    ov = sub.add_parser("overview", help="the tree as confirmed, from the home person upward, and its edge"); ov.add_argument("slug", nargs="?")
+    ov = sub.add_parser("overview", help="the tree as confirmed, from the home person upward, its edge, and where the tree comes from"); ov.add_argument("slug", nargs="?")
     hm = sub.add_parser("home"); hm.add_argument("person"); hm.add_argument("--tree")
     a = ap.parse_args()
     cx = connect(a.db)
