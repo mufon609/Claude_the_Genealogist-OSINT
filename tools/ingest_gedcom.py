@@ -27,7 +27,7 @@ saying so and naming the command that sets it (tools/tree.py home), which tools/
 """
 import argparse, collections, json, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import (ROOT, Node, connect, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
+from treelib import (ROOT, DB, Node, connect, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
                      parse_gedcom_date, redistributable, resolve_tree, sha256_file, ulid)
 from catalog import fuller_date, same_event
 
@@ -499,7 +499,7 @@ class Ingest:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("path")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--db", default=DB)
     ap.add_argument("--source", help="source registry id of the file's exporter (default: the row of the exporter its header names, else A05)")
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     ap.add_argument("--tree", help="tree slug (default: $TREE or catalog/.active-tree)")

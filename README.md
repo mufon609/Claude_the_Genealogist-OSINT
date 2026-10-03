@@ -29,8 +29,9 @@ forbids automation, the loop pauses for the owner's browser.
 Not in git: `archive/` (content-addressed masters), `catalog/*.db`, `derivatives/`,
 and everything under `trees/*/imports` and `trees/*/exports`. Those are backed up by
 BagIt bags, not by git, and the commit hook refuses them: install it once with
-`git config core.hooksPath tools/hooks`. Set `DATA_ROOT` to keep those directories
-somewhere else, as a scratch run does.
+`git config core.hooksPath tools/hooks`. Set `DATA_ROOT` to keep those directories,
+the catalog among them, somewhere else, as a scratch run does: a tool given no `--db`
+opens the catalog under `DATA_ROOT`.
 
 ```
 python3 tools/initdb.py

@@ -108,7 +108,7 @@ python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "â€
 python3 tools/proof.py "<person>"           # each key fact against the proof standard: evidence and its classes, research, conflicts
 python3 tools/tree.py overview              # the tree as confirmed, from the home person upward, and its edge
 python3 app/person/server.py --by user:<you>   # the person screen on http://127.0.0.1:8765/
-DATA_ROOT=<scratch> python3 tools/<tool>.py --db <scratch>/tree.db   # a scratch run, for testing code
+DATA_ROOT=<scratch> python3 tools/<tool>.py   # a scratch run, for testing code: the catalog, archive and inbox under <scratch>
 ```
 
 ## Working a person

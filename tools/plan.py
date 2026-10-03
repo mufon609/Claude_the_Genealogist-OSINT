@@ -48,7 +48,7 @@ sync command (tools/initdb.py --sync-sources) when the registry is out of step.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, dumps, now, resolve_tree, ulid
+from treelib import DB, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, dbid_of, browse_only, year
 from checklist import build
 from log_search import closed_by_pointers, hold_household
@@ -359,7 +359,7 @@ def plan_person(cx, tree_id, pid, by):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--tree"); ap.add_argument("--all", action="store_true")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="rule:plan@0.1.0")
+    ap.add_argument("--db", default=DB); ap.add_argument("--by", default="rule:plan@0.1.0")
     a = ap.parse_args()
     cx = connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     pids = [r[0] for r in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL ORDER BY display_name", (tree_id,))] if a.all else [cat.find_person(a.who or sys.exit("give a person or --all"))]

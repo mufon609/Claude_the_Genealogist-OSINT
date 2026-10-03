@@ -14,7 +14,7 @@ the matcher and the standing rule like any other record. The planner never drops
 """
 import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, resolve_tree
+from treelib import DB, connect, resolve_tree
 from catalog import Catalog
 from attach import cite_on_word
 
@@ -22,7 +22,7 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who"); ap.add_argument("--row", required=True, help="the checklist row: 'census household:1950', 'death record:1986'")
     ap.add_argument("--holder", required=True, help="the registry id of the holder to ask (data/data-sources.csv)"); ap.add_argument("--field", action="append", default=[], help="'label=value', the citation's own detail")
     ap.add_argument("--type", choices=["household", "subject_record"]); ap.add_argument("--note"); ap.add_argument("--tree")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument("--db", default=DB); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     fields = {}
     for f in a.field:

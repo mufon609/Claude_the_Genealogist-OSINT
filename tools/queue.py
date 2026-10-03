@@ -30,7 +30,7 @@ person with the reason).
 """
 import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, dumps, resolve_tree
+from treelib import DB, connect, dumps, resolve_tree
 from catalog import Catalog
 from overview import overview
 import run_step, fetches
@@ -93,7 +93,7 @@ def edge(cx, tree_id):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--all", action="store_true"); ap.add_argument("--json", action="store_true")
-    ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--tree"); ap.add_argument("--db", default=DB)
     a = ap.parse_args()
     cx = connect(a.db, rows=True); tree_id, slug = resolve_tree(cx, a.tree)
     q, passed = edge(cx, tree_id)

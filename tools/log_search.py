@@ -14,7 +14,7 @@ tried. A dismissed question stays closed when the plan is regenerated.
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, dumps, now, resolve_tree, ulid
+from treelib import DB, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog
 
 def rendered_query(query_json, revisions_json):
@@ -170,7 +170,7 @@ def dismiss(cx, tree_id, by, question_id, note=None):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--step"); ap.add_argument("--question"); ap.add_argument("--source"); ap.add_argument("--outcome", choices=["found", "none", "blocked", "error"])
     ap.add_argument("--artifact", action="append"); ap.add_argument("--note"); ap.add_argument("--query"); ap.add_argument("--list"); ap.add_argument("--dismiss"); ap.add_argument("--reopen", help="a step marked done in error: planned again, with --note saying why"); ap.add_argument("--tree")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument("--db", default=DB); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = connect(a.db); tree_id, slug = resolve_tree(cx, a.tree)
     if a.list:

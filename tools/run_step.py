@@ -42,7 +42,7 @@ answered on these fields.
 """
 import argparse, http.client, json, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
+from treelib import DB, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, collection_tier, first_value
 from log_search import log as log_search, latest_answer, ran_unchanged, rendered_query
 from extract import extract, RESULTS_LISTINGS
@@ -313,7 +313,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("step", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--dry-run", action="store_true")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--tree"); ap.add_argument("--by", default="agent:run_step")
+    ap.add_argument("--db", default=DB); ap.add_argument("--tree"); ap.add_argument("--by", default="agent:run_step")
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)

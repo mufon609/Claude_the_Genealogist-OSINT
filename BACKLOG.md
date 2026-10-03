@@ -476,13 +476,6 @@ hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it.
 Keep each rule in `catalog.py`, drop what nothing reads (or give it its
 reader), and make `tombstone` the one way a removal is written.
 
-### C30. A tool run without --db opens the live catalog
-
-Every tool defaults `--db` to the repository's `catalog/tree.db`, not to
-`DATA_ROOT`'s, so a scratch run that sets `DATA_ROOT` and forgets `--db`
-writes the owner's catalog. Default `--db` to `DATA_ROOT/catalog/tree.db`
-(one constant in `treelib.py`) so a scratch run is scratch throughout.
-
 ### C31. A results row no longer has a card to close
 
 The matcher proposes no row of a results page (`tools/match.py`), so a row's

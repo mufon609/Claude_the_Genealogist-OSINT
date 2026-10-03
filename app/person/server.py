@@ -17,7 +17,7 @@ import argparse, glob, hashlib, json, mimetypes, os, re, sys, threading, urllib.
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
-from treelib import active_tree_slug, connect, dumps, inbox_dir, now, ulid
+from treelib import DB, active_tree_slug, connect, dumps, inbox_dir, now, ulid
 from catalog import Catalog, fetch_target, held_for, holdings, holds, search_target, tier_sql
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
@@ -388,7 +388,7 @@ class H(BaseHTTPRequestHandler):
             finally: cx.close()
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap = argparse.ArgumentParser(); ap.add_argument("--db", default=DB)
     ap.add_argument("--port", type=int, default=8765); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args(); CFG["db"] = a.db; CFG["by"] = a.by
     print(f"person screen: http://127.0.0.1:{a.port}/   (db {os.path.relpath(a.db, ROOT)}, acting as {a.by})")

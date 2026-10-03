@@ -24,7 +24,7 @@ Read-only. For one person it reports:
 """
 import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, resolve_tree
+from treelib import DB, connect, resolve_tree
 from catalog import Catalog, ONCE, US_STATES, US_NAMES, jurisdictions, year
 from footprint import duplicates, footprint
 from connectors import answers
@@ -314,7 +314,7 @@ def render(r):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true"); ap.add_argument("--all", action="store_true")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--db", default=DB)
     a = ap.parse_args()
     cx = connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if a.all:

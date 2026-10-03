@@ -61,7 +61,7 @@ import argparse, datetime, difflib, hashlib, json, math, os, re, sys, time, urll
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
+from treelib import DB, ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
 from catalog import US_STATES, country_words, place_name_key, us_state
 
 RESOLVER = ("rule", "nominatim-resolver", "0.4.0")
@@ -972,7 +972,7 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--tree")
+    ap.add_argument("--db", default=DB); ap.add_argument("--tree")
     ap.add_argument("--limit", type=int); ap.add_argument("--dry-run", action="store_true"); ap.add_argument("--only")
     ap.add_argument("--reset", action="store_true", help="undo AI-made resolutions (keeps human ones) before running; combine with --only to narrow to one raw string")
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))

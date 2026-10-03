@@ -155,7 +155,7 @@ Connector responses (JSON, archived by tools/run_step.py) have their own extract
 import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
+from treelib import DB, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 from conclude import assert_facts, link_family
 from catalog import is_identity, page_entries
 
@@ -1278,7 +1278,7 @@ def read(cx, sha, by, about=None):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("what", nargs="?", help="artifact sha256, or a path whose bytes are archived")
     ap.add_argument("--stale", action="store_true", help="read again every page an older version of its parser read")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument("--db", default=DB); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     ap.add_argument("--about", help="the person the record is about when no step or link names them, on the owner's word")
     a = ap.parse_args()
     cx = connect(a.db)

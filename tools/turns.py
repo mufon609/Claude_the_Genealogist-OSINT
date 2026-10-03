@@ -29,7 +29,7 @@ people with the reason, as tools/queue.py --all does.
 """
 import argparse, importlib.util, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, now, resolve_tree
+from treelib import DB, connect, now, resolve_tree
 from catalog import Catalog
 import turn
 
@@ -138,7 +138,7 @@ def run(cx, tree_id, slug, by, db, turns=None, resume=False, detail=False):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--resume", action="store_true"); ap.add_argument("--turns", type=int)
     ap.add_argument("--detail", action="store_true", help="the summary names every person left for the owner, with the reason")
-    ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--tree"); ap.add_argument("--db", default=DB)
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = connect(a.db, rows=True)

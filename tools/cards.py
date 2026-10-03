@@ -22,7 +22,7 @@ prints every card whole, as render() and render_search() write it for the person
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DATA_ROOT, ROOT, connect, object_path, resolve_tree
+from treelib import DATA_ROOT, DB, connect, object_path, resolve_tree
 from catalog import Catalog, fetch_target, tier_sql, year, held_for, holds
 from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, same_surname
 from conclude import rule_accepts, sibling_home
@@ -459,7 +459,7 @@ def grouped(cx, tree_id, cards, pid=None):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--all", action="store_true"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true")
     ap.add_argument("--full", action="store_true", help="every card whole, as the person screen shows it")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--db", default=DB)
     a = ap.parse_args()
     cx = connect(a.db, rows=True); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if not a.all and not a.who: sys.exit("give a person or --all")

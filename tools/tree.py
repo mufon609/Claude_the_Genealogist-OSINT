@@ -10,7 +10,7 @@
 """
 import argparse, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ACTIVE_TREE_FILE, ROOT, active_tree_slug, connect, dumps, exports_dir, imports_dir, now, tree_dir, ulid
+from treelib import ACTIVE_TREE_FILE, DB, ROOT, active_tree_slug, connect, dumps, exports_dir, imports_dir, now, tree_dir, ulid
 
 def cmd_create(cx, a):
     if cx.execute("SELECT 1 FROM tree WHERE slug=?", (a.slug,)).fetchone():
@@ -85,7 +85,7 @@ def cmd_home(cx, a):
     cx.commit(); print(f"home person of {slug}: {rows[0][1]}")
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap = argparse.ArgumentParser(); ap.add_argument("--db", default=DB)
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("create"); c.add_argument("slug"); c.add_argument("--name", required=True); c.add_argument("--description")

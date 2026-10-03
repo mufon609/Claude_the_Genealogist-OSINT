@@ -16,7 +16,7 @@ The unlinked persons and the records come after the person's baseline is reviewe
 """
 import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, resolve_tree
+from treelib import DB, connect, resolve_tree
 from catalog import Catalog, soundex, year
 
 RELATION_NAMES = {"spouses": "spouse", "children": "child", "parents": "parent", "siblings": "sibling"}
@@ -151,7 +151,7 @@ def render(fp):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who"); ap.add_argument("--tree"); ap.add_argument("--json", action="store_true")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--db", default=DB)
     a = ap.parse_args()
     cx = connect(a.db); tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     pid = cat.find_person(a.who); bl = cat.baseline(pid)

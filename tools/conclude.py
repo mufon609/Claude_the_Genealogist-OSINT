@@ -73,7 +73,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
+from treelib import DB, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
 from catalog import Catalog, current_entry, page_entries, source_tier, split_name, tier_sql
 from catalog import ONCE, RECORD_FACTS, date_span, date_verdict, evidence_classes, fuller_date, holds, life_limits, parent_limit, place_verdict, record_kinds, record_original, record_standing, relation_classes, same_event, same_surname
 from catalog import key as surname_key
@@ -2113,7 +2113,7 @@ def main():
     ro = sub.add_parser("reopen", help="a conflict the rule resolved, taken back: the event's value as it was, the question open again and yours from now on")
     ro.add_argument("question"); ro.add_argument("--note", required=True, help="your reason, kept on the audit row")
     for x in (dc, fc, ac, pc, ls, r, l, d, mg, lv, rs, ro):
-        x.add_argument("--tree"); x.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+        x.add_argument("--tree"); x.add_argument("--db", default=DB); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)

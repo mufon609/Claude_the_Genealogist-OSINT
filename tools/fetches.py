@@ -44,7 +44,7 @@ parser reads and so closes nothing.
 """
 import argparse, json, os, re, shutil, subprocess, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, dumps, inbox_dir, resolve_tree
+from treelib import DB, connect, dumps, inbox_dir, resolve_tree
 from attach import ark_id, attach, attach_inbox, line
 from catalog import Catalog, fetch_target, holder_search, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
@@ -223,7 +223,7 @@ def next_lines(cx, tree_id, k):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("cmd", choices=["next", "list", "collect"]); ap.add_argument("count", nargs="?", type=int, default=5, help="next: how many pages")
     ap.add_argument("--json", action="store_true"); ap.add_argument("--all", action="store_true", help="list: the pages already run on unchanged fields too"); ap.add_argument("--tree")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db")); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument("--db", default=DB); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     ap.add_argument("--folder", help="collect: the folder to take saved pages from, instead of the browser's own download folder")
     a = ap.parse_args()
     cx = connect(a.db, rows=True)

@@ -29,7 +29,7 @@ are ordered by their class words, never scored.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, resolve_tree
+from treelib import DB, connect, resolve_tree
 from catalog import Catalog, date_verdict, evidence_classes, key, place_verdict, same_surname, split_name
 from facts import KEY_FACTS, fact_subjects
 
@@ -468,7 +468,7 @@ def render(r, full=False):
 def main():
     ap = argparse.ArgumentParser(description="The proof standard's written conclusion for a person's key facts: read-only, written by code.")
     ap.add_argument("person"); ap.add_argument("--fact", choices=KEY_FACTS); ap.add_argument("--json", action="store_true"); ap.add_argument("--tree")
-    ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--db", default=DB)
     a = ap.parse_args()
     cx = connect(a.db); tree_id, _ = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     r = build(cat, cat.find_person(a.person), only=a.fact)

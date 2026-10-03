@@ -15,11 +15,11 @@ ok line of every check too; --show prints what each reading and each scenario st
 lines); --keep leaves the scratch directories in place and prints their paths. Nothing in the harness names a person: another family's
 export, pages and sidecars run through it unchanged.
 """
-import argparse, contextlib, json, os, re, shutil, sqlite3, sys
+import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
-from common import BY, FIXTURES, scratch
+from common import BY, FIXTURES, scratch, tool
 import imports, loop, parsers, scenario
 
 def rules():
@@ -348,6 +348,17 @@ def evidence_insert_only():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+def default_catalog():
+    """A tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT (treelib.DB), never the owner's: on a fresh
+    scratch catalog holding one tree, tools/tree.py list run without --db names that tree."""
+    d, db = scratch(False); bad = []
+    try:
+        subprocess.run([sys.executable, tool("tree.py"), "--db", db, "create", "scratch-default", "--name", "the scratch catalog"], capture_output=True, text=True, check=True)
+        r = subprocess.run([sys.executable, tool("tree.py"), "list"], capture_output=True, text=True, env={**os.environ, "DATA_ROOT": d})
+        if r.returncode or "scratch-default" not in r.stdout: bad.append(f"tools/tree.py list without --db did not open {db}: {r.stdout.strip() or r.stderr.strip()}")
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 def compiles():
     """Every tool, the screen's server and the check modules compile; the first thing green means."""
     import py_compile
@@ -384,6 +395,8 @@ def main():
         print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
         bad_ev = evidence_insert_only(); bad += bool(bad_ev)
         print("ok   the evidence layer is insert-only: an UPDATE and a DELETE on artifact, persona and persona_fact are each refused by their trigger, on a catalog holding a real record read" if not bad_ev else "FAIL evidence: " + "; ".join(bad_ev))
+        bad_db = default_catalog(); bad += bool(bad_db)
+        print("ok   a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT" if not bad_db else "FAIL default catalog: " + "; ".join(bad_db))
         bad += parsers.check(a.keep, a.show)
         bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
         bad += loop.check(a.keep, a.show)

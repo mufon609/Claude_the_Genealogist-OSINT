@@ -12,12 +12,12 @@ file logs no step twice. See tools/attach.py, which the person screen shares.
 """
 import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, inbox_dir, resolve_tree
+from treelib import DB, connect, inbox_dir, resolve_tree
 from attach import attach_inbox, line
 from catalog import Catalog
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("files", nargs="*"); ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap = argparse.ArgumentParser(); ap.add_argument("files", nargs="*"); ap.add_argument("--tree"); ap.add_argument("--db", default=DB)
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown")); ap.add_argument("--about", help="the person the named file is about, on the owner's word, when no step cites it")
     a = ap.parse_args()
     cx = connect(a.db, rows=True)

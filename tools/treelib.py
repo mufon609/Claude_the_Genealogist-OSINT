@@ -1,14 +1,16 @@
 """Shared helpers for tree tools: ULIDs, timestamps, GEDCOM date parsing, data paths.
 
-ROOT is the repository. DATA_ROOT is where the data directories live (archive/,
-derivatives/, inbox/, trees/<slug>/imports, trees/<slug>/exports): the
+ROOT is the repository. DATA_ROOT is where the data directories live (catalog/,
+archive/, derivatives/, inbox/, trees/<slug>/imports, trees/<slug>/exports): the
 repository by default, or the directory named by the environment variable
-DATA_ROOT, so a scratch run keeps its files apart from the owner's.
+DATA_ROOT, so a scratch run keeps its files apart from the owner's. DB is the
+catalog every tool opens when no --db is given, the one under DATA_ROOT.
 """
 import codecs, datetime as dt, hashlib, json, os, re, sqlite3, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
+DB = os.path.join(DATA_ROOT, "catalog", "tree.db")   # the default --db: a scratch run that sets DATA_ROOT opens its own catalog, never the owner's
 SCHEMA_VERSION = "0.7.7"   # schema/catalog.sql's own; a catalog whose schema_migration lacks it is behind the code (tools/initdb.py --migrate)
 USER_AGENT = "tree-genealogy-dev/0.1 (personal genealogy research; single user)"   # sent on every request the tools make
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"

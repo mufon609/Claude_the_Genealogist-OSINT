@@ -35,7 +35,7 @@ named once per run (the runner passes the files already named, tools/turns.py), 
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import ROOT, connect, dumps, now, resolve_tree
+from treelib import DB, connect, dumps, now, resolve_tree
 from catalog import Catalog
 from plan import plan_person
 import run_step
@@ -279,7 +279,7 @@ def resume(cx, tree_id, slug, by, db, reported=None):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--resume", action="store_true")
-    ap.add_argument("--tree"); ap.add_argument("--db", default=os.path.join(ROOT, "catalog", "tree.db"))
+    ap.add_argument("--tree"); ap.add_argument("--db", default=DB)
     ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     if bool(a.who) == bool(a.resume): sys.exit("give a person, or --resume, not both")
