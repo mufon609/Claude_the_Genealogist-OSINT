@@ -292,7 +292,11 @@ the words: a place chosen sets the string's place, status and resolver to the
 owner and fills every event whose strings are all resolved; "not a place" sets
 the string rejected with the reason in its notes; either way the answer applies
 to every fact carrying the same words, the row says so, and the reply says how
-many facts carry them and how many are placed now. This is the only place a
+many facts carry them and how many are placed now. Cards that offer the same
+places, the same of them verified on every part of their strings, are one
+question: the row names every spelling the card covers (once, however many of
+them the fact carries), and the answer is every one's, each string with its own
+audit row. This is the only place a
 place string is decided: there is no place queue.
 Deciding a fact sets every assertion that supports it and writes an
 audit row. Accept sets Accepted only on the assertions whose evidence is

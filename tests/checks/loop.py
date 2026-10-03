@@ -39,15 +39,37 @@ def patched(module, name, value):
     try: yield
     finally: setattr(module, name, orig)
 
+def plant_geocoder(w, fixtures):
+    """Each fixture, a list of the geocoder's own cache records (a query and its answer), planted where the resolver reads them."""
+    import hashlib
+    from resolve_places import cache_dir
+    os.makedirs(cache_dir(), exist_ok=True)
+    for fixture in fixtures or []:
+        with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
+        for rec in records:
+            with open(os.path.join(cache_dir(), hashlib.sha1(rec["query"].lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump(rec, fh, ensure_ascii=False)
+
+@contextlib.contextmanager
+def geocoder_offline():
+    """The geocoder answering from the resolver's cache only, for a turn the harness runs in this process: a query the cache lacks
+    fails as an endpoint that does not answer, so no request leaves the harness."""
+    import hashlib, resolve_places
+    def cached(q):
+        path = os.path.join(resolve_places.cache_dir(), hashlib.sha1(q.lower().encode()).hexdigest() + ".json")
+        if not os.path.exists(path): raise OSError("the harness has no network")
+        with open(path, encoding="utf-8") as fh: return json.load(fh)["results"]
+    with patched(resolve_places, "nominatim", cached): yield
+
 # ---------------------------------------------------------------- actions
 
 def a_turn(w, x):
-    """tools/turn.py start on a person, run_step.run standing in for the network as the data says; the steps it ran and the
-    state it kept beside the database."""
+    """tools/turn.py start on a person, run_step.run standing in for the network as the data says, the geocoder's answers the
+    fixtures under `geocoder` plant (and no other); the steps it ran and the state it kept beside the database."""
     import run_step, turn
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
+    plant_geocoder(w, x.get("geocoder")); w.cx.commit()
     buf = io.StringIO()
-    with patched(run_step, "run", fake_run), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
+    with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
     st = turn.load_state(w.db)
     return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue()}
 
@@ -56,8 +78,9 @@ def a_resume(w, x):
     import turn
     os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
+    plant_geocoder(w, x.get("geocoder")); w.cx.commit()
     buf = io.StringIO()
-    with contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
+    with geocoder_offline(), contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
     out = buf.getvalue()
     return {"report": out, "left": out.split("left:", 1)[1] if "left:" in out else "", "state": turn.load_state(w.db)}
 
@@ -71,8 +94,9 @@ def a_turns(w, x):
     if x.get("resume"):
         os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
         for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
+    plant_geocoder(w, x.get("geocoder")); w.cx.commit()
     buf = io.StringIO(); refused = None; st = None
-    with patched(run_step, "run", fake_run), contextlib.redirect_stdout(buf):
+    with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf):
         try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"), resume=bool(x.get("resume")))
         except SystemExit as e: refused = str(e)
     out = buf.getvalue()
@@ -172,10 +196,7 @@ def a_resolve(w, x):
     os.makedirs(cache_dir(), exist_ok=True); os.makedirs(wikidata_cache_dir(), exist_ok=True)
     for query, cands in x.get("cache", {}).items():
         with open(os.path.join(cache_dir(), hashlib.sha1(query.lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump({"query": query, "fetched_at": w.treelib.now(), "results": cands}, fh)
-    for fixture in x.get("geocoder", []):                                  # each fixture a list of the geocoder's own cache records: a query and its answer
-        with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
-        for rec in records:
-            with open(os.path.join(cache_dir(), hashlib.sha1(rec["query"].lower().encode()).hexdigest() + ".json"), "w", encoding="utf-8") as fh: json.dump(rec, fh, ensure_ascii=False)
+    plant_geocoder(w, x.get("geocoder"))
     for qid, fixture in x.get("wikidata", {}).items(): shutil.copy(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
     for fixture in x.get("gazetteer", []):
         with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)

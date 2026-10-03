@@ -844,7 +844,7 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
                                            "verify": "all components must match; unique full match auto-resolves; a gazetteer's one verified candidate through its geocoder twin"}), now()))
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
-    stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0, **(stats or {})}
+    stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0, "former_names_added": 0, "gazetteer_names_added": 0, **(stats or {})}
     report, unanswered, down = [], [], []
     def ask(q):
         if down: raise Unanswered(down[0])

@@ -16,17 +16,21 @@ challenge at a holder pauses the same way (docs/RESEARCH-WORKFLOW.md §4): it do
 it is the owner's own hand.
 
 `--resume` picks up the paused turn: `tools/fetches.py collect` moves what was saved into the inbox and attaches
-it by identity, `tools/attach_inbox.py` takes whatever collect's own naming left behind, `tools/conclude.py
-reconsider` re-examines the rule's decisions and every card still undecided, and the plan is regenerated for the
-person once more. When a turn has nothing to fetch, `--resume` is not needed: the same tail runs in the same
-call, right after the connector steps.
+it by identity, `tools/attach_inbox.py` takes whatever collect's own naming left behind, the place resolver
+(`tools/resolve_places.py`) reads the place strings the turn's new records brought and the strings behind this person's own
+events, through its cache and the public endpoint's rate (a string it accepts is placed, one it cannot settle is a card on
+the person's fact row, and the events whose strings are all resolved take their place before the rule goes over the
+conflicts), `tools/conclude.py reconsider` re-examines the rule's decisions and every card still undecided, and the plan is
+regenerated for the person once more. When a turn has nothing to fetch, `--resume` is not needed: the same tail runs in the
+same call, right after the connector steps.
 
 The turn writes nothing of its own: every catalog write happens inside `plan_person`, `run_step.run`,
-`fetches.collect`, `attach_inbox`, or `reconsider`, each under its own name in `--by` as it always is; the turn
+`fetches.collect`, `attach_inbox`, `resolve_places.resolve_strings` or `reconsider`, each under its own name in `--by` as it always is; the turn
 only calls them in order and reports what came back, in words, never a score. What a turn leaves for the owner
 are the conflict questions it raised and the cards the rule did not take (docs/RESEARCH-WORKFLOW.md §8), and its
-report names every source that did not answer a connector step (a run logged error) once, with the rows of its steps and what
-it said: such a step stays runnable, so the next turn asks that source again. A file left in the inbox that fulfils no step is
+report names every source that did not answer once, with what it was asked and what it said: a connector step (a run
+logged error) stays runnable, and a place string the geocoder did not answer stays unresolved, so the next turn asks that
+source again. A file left in the inbox that fulfils no step is
 named once per run (the runner passes the files already named, tools/turns.py), not in every turn's report.
 """
 import argparse, json, os, sys
@@ -38,18 +42,20 @@ import run_step
 import fetches
 from attach import attach_inbox as attach_inbox_files, line
 from conclude import reconsider
+from resolve_places import resolve_strings
 
 RUNNER, PLANNER = "agent:run_step", "rule:plan@0.1.0"
 
 def state_path(db_path): return db_path + ".turn-state.json"
 
-def save_state(db_path, tree_id, slug, pid, name, before_ids, held, decided, unanswered=()):
+def save_state(db_path, tree_id, slug, pid, name, before_ids, held, decided, unanswered=(), since=None):
     """Kept beside the database, not in the catalog: which person, who existed before the turn started (so a person a
     connector step created before the pause is still reported as created once the turn is resumed), the held/decided
-    lines the connector steps already earned before the pause and the sources that did not answer, so the final report
-    covers the whole turn, not just what --resume itself does."""
+    lines the connector steps already earned before the pause and the sources that did not answer, and when the turn began
+    (`since`, what the records it brought are told by), so the final report covers the whole turn, not just what --resume
+    itself does."""
     with open(state_path(db_path), "w", encoding="utf-8") as fh:
-        json.dump({"tree_id": tree_id, "tree": slug, "person_id": pid, "person": name, "started_at": now(),
+        json.dump({"tree_id": tree_id, "tree": slug, "person_id": pid, "person": name, "started_at": now(), "since": since,
                    "before_ids": before_ids, "held": held, "decided": decided, "unanswered": list(unanswered)}, fh)
 
 def load_state(db_path):
@@ -94,15 +100,56 @@ def run_connectors(cx, cat, tree_id, pid):
         out.append({"step": st["id"], "row_key": st["row_key"], "results": res})
     return out
 
-def finish(cx, tree_id, slug, pid, by):
-    """The shared tail: fetches.py collect, attach_inbox.py on whatever it leaves, conclude.py reconsider, the plan
-    regenerated for the person. Runs whether a turn had nothing to fetch or is resuming after one that did."""
+def new_place_strings(cx, tree_id, pid, since):
+    """The place strings no resolver has read yet that this turn should: those the persons of a record archived since the turn
+    began carry (not the tree's own imported file: it is no record the turn brought), and those behind this person's own events
+    (their non-rejected assertions, a marriage included), as (place string id, words) by the words."""
+    return cx.execute("""SELECT DISTINCT ps.id, ps.raw FROM place_string ps JOIN persona_fact pf ON pf.place_string_id=ps.id JOIN persona pe ON pe.id=pf.persona_id
+        WHERE ps.status='undecided' AND ps.place_id IS NULL AND ps.resolver IS NULL
+          AND (pe.artifact_sha256 IN (SELECT sha256 FROM artifact WHERE created_at>=? AND sha256 NOT IN (SELECT artifact_sha256 FROM tree_import))
+               OR pf.id IN (SELECT a.persona_fact_id FROM assertion a JOIN event_participant ep ON a.subject_kind='event' AND a.subject_id=ep.event_id
+                            WHERE a.tree_id=? AND a.status<>'rejected' AND (ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner'))))
+        ORDER BY ps.raw""", (since or "9999", tree_id, pid, pid)).fetchall()
+
+def resolve_places(cx, tree_id, pid, since, by):
+    """The place resolver on the strings new_place_strings names, in one transaction: what it accepted, rejected as no place and
+    left a card, and the geocoder's silence if it did not answer (the strings it left stay unresolved, asked again by the next
+    turn). None when there is nothing to read."""
+    rows = new_place_strings(cx, tree_id, pid, since)
+    if not rows: return None
+    cx.execute("BEGIN")
+    try: stats, report, unanswered = resolve_strings(cx, tree_id, by, rows); cx.commit()
+    except Exception: cx.rollback(); raise
+    return {"strings": len(rows), "accepted": stats["accepted"], "rejected": stats["rejected"], "cards": stats["undecided"] + stats["no_candidates"], "unanswered": unanswered}
+
+def places_decided_lines(places):
+    """What the resolver settled for the turn, in words."""
+    if not places or not (places["accepted"] or places["rejected"]): return []
+    return [f"  places: {places['accepted']} of {places['strings']} new place string(s) resolved by the geocoder's answer" + (f", {places['rejected']} set aside as no place" if places["rejected"] else "")]
+
+def places_left_lines(cx, places):
+    """What the resolver leaves: the cards it wrote for the owner (on the person's fact rows), and the geocoder that did not answer,
+    named once with how many strings it left."""
+    out = []
+    if not places: return out
+    if places["cards"]: out.append(f"  places: {places['cards']} place string(s) the resolver could not settle, a card on the fact row for the owner")
+    if places["unanswered"]:
+        n = (cx.execute("SELECT name FROM source WHERE id='N06'").fetchone() or ["OpenStreetMap Nominatim"])[0]
+        k = len(places["unanswered"]["strings"])
+        out.append(f"  {n} (N06) did not answer ({places['unanswered']['said'][:200]}) on {k} place string{'s' if k != 1 else ''}; {'they stay' if k != 1 else 'it stays'} unresolved, the next turn asks it again")
+    return out
+
+def finish(cx, tree_id, slug, pid, by, since=None):
+    """The shared tail: fetches.py collect, attach_inbox.py on whatever it leaves, the place resolver on the new place strings
+    (before the rule goes over the conflicts, so an event the answers place is compared as placed), conclude.py reconsider, the
+    plan regenerated for the person. Runs whether a turn had nothing to fetch or is resuming after one that did."""
     cx.execute("BEGIN")
     try: names, collect_results = fetches.collect(cx, tree_id, slug, by); cx.commit()
     except Exception: cx.rollback(); raise
     cx.execute("BEGIN")
     try: left_results = attach_inbox_files(cx, tree_id, slug, by); cx.commit()
     except Exception: cx.rollback(); raise
+    places = resolve_places(cx, tree_id, pid, since, by)
     cx.execute("BEGIN")
     try: recon = reconsider(cx, tree_id, by); cx.commit()
     except Exception: cx.rollback(); raise
@@ -110,7 +157,7 @@ def finish(cx, tree_id, slug, pid, by):
     cx.execute("BEGIN")
     try: plan_stats = plan_person(cx, tree_id, pid, PLANNER); cx.commit()
     except Exception: cx.rollback(); raise
-    return names, collect_results, left_results, recon, plan_stats
+    return names, collect_results, left_results, recon, plan_stats, places
 
 def held_lines(conn_runs, collect_results, left_results):
     """What was fetched and archived this turn, in words: the connector runs that found something or found nothing, then the
@@ -182,7 +229,7 @@ def left_lines(cx, cat, pid, collect_results, left_results, recon, watch, report
 
 def pid_name(cx, pid): return cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0]
 
-def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=(), pre_unanswered=(), reported=None):
+def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left_results, recon, plan_stats, pre_held=(), pre_decided=(), pre_unanswered=(), reported=None, places=None):
     reported = set() if reported is None else reported
     cat = Catalog(cx, tree_id)
     after_ids = person_ids(cx, tree_id)
@@ -191,20 +238,20 @@ def report(cx, tree_id, pid, before_ids, conn_runs, waits, collect_results, left
     hl = list(pre_held) + held_lines(conn_runs, collect_results, left_results)
     out += hl or ["  nothing new archived"]
     out += ["", "decided:"]
-    dl = list(pre_decided) + decided_lines(conn_runs, collect_results, left_results, recon)
+    dl = list(pre_decided) + decided_lines(conn_runs, collect_results, left_results, recon) + places_decided_lines(places)
     out += dl or ["  nothing for the rule to take"]
     out += ["", "created:"]
     out += [f"  {n} [{i[-6:]}]" for i, n in created] or ["  nobody"]
     out += ["", "left:"]
     watch = {pid_name(cx, pid)} | {n for _, n in created}
-    ll = left_lines(cx, cat, pid, collect_results, left_results, recon, watch, reported) + list(pre_unanswered) + unanswered_lines(cx, conn_runs)
+    ll = left_lines(cx, cat, pid, collect_results, left_results, recon, watch, reported) + list(pre_unanswered) + unanswered_lines(cx, conn_runs) + places_left_lines(cx, places)
     out += ll or ["  nothing outstanding on this person"]
     if waits: out += ["", f"still to fetch by hand (nothing saved for {len(waits)} page(s) yet): run tools/fetches.py list"]
     out += ["", f"plan: {dumps(plan_stats)}"]
     return "\n".join(out)
 
 def start(cx, tree_id, slug, pid, by, db, reported=None):
-    before = person_ids(cx, tree_id)
+    before = person_ids(cx, tree_id); since = now()
     cx.execute("BEGIN")
     try: plan_stats = plan_person(cx, tree_id, pid, PLANNER); cx.commit()
     except Exception: cx.rollback(); raise
@@ -213,22 +260,22 @@ def start(cx, tree_id, slug, pid, by, db, reported=None):
     waits = waiting_for(cx, tree_id, pid)
     if waits:
         held, decided, unanswered = held_lines(conn_runs, [], []), decided_lines(conn_runs, [], [], []), unanswered_lines(cx, conn_runs)
-        save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided, unanswered)
+        save_state(db, tree_id, slug, pid, pid_name(cx, pid), before, held, decided, unanswered, since)
         print(f"turn: {pid_name(cx, pid)}\n" + "\n".join(fetches.page_line(e) for e in waits) + f"\n\n{len(waits)} page(s) to fetch, one tab per page; save these, then run tools/turn.py --resume")
         if held or decided: print("\n(so far this turn -- held:\n" + "\n".join(held or ["  nothing yet"]) + "\ndecided:\n" + "\n".join(decided or ["  nothing yet"]) + ")")
         if unanswered: print("\nnot answered:\n" + "\n".join(unanswered))
         return
-    names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
-    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats, reported=reported))
+    names, collect_results, left_results, recon, final_stats, places = finish(cx, tree_id, slug, pid, by, since)
+    print(report(cx, tree_id, pid, before, conn_runs, [], collect_results, left_results, recon, final_stats, reported=reported, places=places))
 
 def resume(cx, tree_id, slug, by, db, reported=None):
     st = load_state(db)
     if not st or st["tree_id"] != tree_id: sys.exit("no paused turn on this tree: tools/turn.py \"<person>\"")
     pid = st["person_id"]; before = st.get("before_ids") or person_ids(cx, tree_id)
-    names, collect_results, left_results, recon, final_stats = finish(cx, tree_id, slug, pid, by)
+    names, collect_results, left_results, recon, final_stats, places = finish(cx, tree_id, slug, pid, by, st.get("since"))
     clear_state(db)
     print(report(cx, tree_id, pid, before, [], [], collect_results, left_results, recon, final_stats, pre_held=st.get("held") or (), pre_decided=st.get("decided") or (),
-                 pre_unanswered=st.get("unanswered") or (), reported=reported))
+                 pre_unanswered=st.get("unanswered") or (), reported=reported, places=places))
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("who", nargs="?"); ap.add_argument("--resume", action="store_true")

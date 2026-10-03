@@ -80,7 +80,8 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   resolver and status the owner's, `event.place_id` filled where every string of the
   event is resolved), and a string that is not a real place is `rejected` with its
   reason in notes. A decision on a string applies wherever the same words appear, since
-  `place_string.raw` is unique.
+  `place_string.raw` is unique, and to every string whose card offers the same places
+  (`resolve_places.place_groups`), each with its own audit row.
 - Living status is computed by the app (`Catalog.living`) from the person's tier
   (their generation from the home person along the tree's family links, accepted or
   claimed; `docs/DATA-ARCHITECTURE.md` §7 decision 3), held death evidence
@@ -113,7 +114,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/initdb.py` | Create the catalog and seed reference tables; `--sync-sources` and `--sync-event-types` bring an existing catalog up to the files; `--migrate` applies the schema versions it lacks, never touching decisions. |
 | `tools/tree.py create|list|use|show|overview|home` | Manage trees; `overview` prints the tree as confirmed from the home person upward with its edge, `home` sets that person. |
 | `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM file as a T4 artifact and load it into the active tree, every claim Undecided. The file is read in the encoding its bytes and header say (UTF-8, UTF-16 or ANSI) and refused, nothing recorded, when the encoding does not fit, is not read here (ANSEL) or the file holds no person; it is labelled with the exporter its header names (Ancestry's export is registry row B02, a file naming no exporter the registry has is A05); the same tree refuses a repeat. It ends by saying the tree has no home person and naming `tools/tree.py home`. |
-| `tools/resolve_places.py` | Resolve place strings through Nominatim with hierarchy verification; a unique full match, or one territory under two names, is accepted; the rest is a `place_resolution` card. |
+| `tools/resolve_places.py` | Resolve place strings through Nominatim (GOV and Wikidata after it for Germany, Poland and Ireland) with hierarchy verification; a state's name or abbreviation alone is the state; a unique full match, or one territory under two names, is accepted; the words a record writes for another line's place (Same House) are rejected; the rest is a `place_resolution` card, one question for every spelling that offers the same places. `resolve_strings` is the same run on the strings a caller names, which the turn does for the records it brings and the person's own events. |
 | `tools/backfill_aliases.py` | Undecided aliases from the names records write, and each place string's variant kind. Re-runnable. |
 | `tools/checklist.py "<person>"` | Read-only foundation, questions, Group A/B rows (held / cited / missing / n/a) and the step per gap (`docs/RESEARCH-CHECKLIST.md` §6a). |
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicates, unlinked same-surname persons, records on relatives ranked by the family members they share. |

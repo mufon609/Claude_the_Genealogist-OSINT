@@ -79,6 +79,9 @@ action's `geocoder` list so no request goes out. The data is ODbL (OpenStreetMap
 | File | What it holds |
 |---|---|
 | `nominatim-answers-states.json` | The answers to "New Jersey, United States", "Pennsylvania, United States", "Massachusetts, United States" and "Michigan, United States": one state boundary each, fetched 5 and 13 September 2026 |
+| `nominatim-answers-worcester.json` | The answers to "Worcester, Montgomery County, Pennsylvania, United States", "Worcester, Montgomery, Pennsylvania, United States" and "Worcester, Pennsylvania, United States": the same two places each, the village and the township, fetched 5 September 2026 |
+| `nominatim-answers-montgomery-bucks.json` | The answers to "Norristown, Montgomery, Pennsylvania, United States", "Pottstown, Montgomery, Pennsylvania, United States", "Warwick, Bucks, Pennsylvania, United States" (one boundary each) and "Philadelphia, Pennsylvania, United States" (the city and the county coterminous with it), fetched 5 September 2026 |
+| `nominatim-answers-northampton.json` | The answer to "Northampton, Hampshire, Massachusetts, United States": the town, fetched 5 September 2026 |
 
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record

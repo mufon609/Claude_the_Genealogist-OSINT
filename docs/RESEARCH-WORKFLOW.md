@@ -974,13 +974,17 @@ without a connector (`tools/fetches.py next`'s own pages, narrowed to their
 unrun steps) are printed with the file name to save under, and the turn pauses for the
 owner's browser session, its state kept beside the catalog.
 `tools/turn.py --resume` picks the paused turn up: `tools/fetches.py collect`,
-`tools/attach_inbox.py` on whatever collect's naming left behind,
+`tools/attach_inbox.py` on whatever collect's naming left behind, the place
+resolver on the place strings the turn's new records carry and those behind the
+person's own events (a string it accepts places its events before the rule
+compares them; one it cannot settle is a card on the fact row),
 `tools/conclude.py reconsider`, and the plan regenerated; a turn with nothing
 to fetch runs the same tail in the same call. The turn writes nothing of its
 own: every catalog write is one of those tools' under its own name. Its
 report says what was held, what the rule decided, who was created and what is
-left for the owner, in words; a source that did not answer is named once, with
-the rows of the steps it was asked on, and a file left in the inbox that
+left for the owner, in words; a source that did not answer (a connector, or
+the geocoder for the place strings) is named once, with the rows of the steps it
+was asked on or the number of strings it left, and a file left in the inbox that
 fulfils no step is named once per run, not in every report. A record the owner cites on their own word
 (`tools/cite.py`) is a fetch step on the plan a turn runs like any other;
 where the owner's word names who on the record is their person, that persona's

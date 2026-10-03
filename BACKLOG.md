@@ -437,18 +437,6 @@ the card pass judge a card on the ground before it the way the re-examination
 does, so one run is the fixed point; until then the live run repeats
 reconsider until a run changes nothing.
 
-### C24. Places the resolver could settle
-
-Of 1,858 undecided place strings 1,747 have no card, and no turn runs
-`tools/resolve_places.py`, so a conflict waiting on a place's words (Noi
-Davidson's death place "NJ") never closes. The resolver knows 15 state
-abbreviations (`US_ABBR`) where `catalog.py` knows 50 and none of Mass, Penna,
-Mich; one place is carded once per spelling ("Worcester, Montgomery County,
-Pennsylvania" nine times); a string naming no place ("Same House") is carded.
-One abbreviation table for both; one card per candidate set, deciding every
-string it covers; the resolver in the turn's tail after the rule, through its
-cache and the public endpoint's rate.
-
 ### C25. The proof summary's per-conflict reasoning and question ids
 
 `tools/proof.py` computes "the classes favour X over Y" once per fact and
