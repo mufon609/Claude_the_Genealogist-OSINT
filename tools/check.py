@@ -262,7 +262,7 @@ def connectors_offline():
     say(hb and [r["given"] for r in ky.rows(hb[0]["fetch"][0]["bytes"])] == KB["kept"] and ky.hits(rb0["url"], dbody, rb0) == [], "the birth file's rows read by the birth layout; a death file gives a birth search nothing")
     d, db = scratch(False)
     cx2 = sqlite3.connect(db); cx2.execute("PRAGMA foreign_keys=ON"); cx2.row_factory = sqlite3.Row
-    whole = (K["heading"] + "\r\n").encode("latin-1") + dbody
+    with open(os.path.join(FIXTURES, K["death_page_fixture"]), "rb") as fh: whole = fh.read()
     w_sha, _ = ao(cx2, whole, mime="text/plain", source_id="C06", collection_id=None, locator_kind="url", locator_value=KD["url"], retrieved_by=BY, terms="Public Domain Mark 1.0", cost="free", trust_tier="T2")
     _, nw = ext_fn(cx2, w_sha, BY)
     say(nw.get("failed") and "whole file" in nw["failed"], f"a year file with its headings, read on its own, is refused: {nw}")

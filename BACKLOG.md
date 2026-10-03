@@ -505,8 +505,6 @@ reads as the holder saying "nothing" where its real answer holds a record:
 - decisions `71` and `99f` record readings typed into the scenario as read by
   `llm:claude-sonnet-5-5`; `99f` types "Huntington, Suffolk County, New York",
   "groom" and "M" where the image gives HUNTING and neither word.
-- `tools/check.py`'s Kentucky death index check puts a heading line typed in
-  `tests/fixtures/connectors.json` before the real five-line excerpt.
 - undisclosed stand-ins: `fake_run` in loop `12`, `13` and `63` beside the four
   the README names; `loop.py`'s geocoder reading only its cache; loop `40`
   step 3's bare `<html></html>`; the smallest of JPEG files for a gravestone

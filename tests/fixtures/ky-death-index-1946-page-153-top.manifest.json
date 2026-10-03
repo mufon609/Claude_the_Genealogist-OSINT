@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "9241223cbbec1e152ef9d573c5daffe3958576bfe3615fdf6a64ec78766dd705",
+  "bytes": 928,
+  "mime": "text/plain",
+  "source_id": "C06",
+  "collection": "Kentucky, U.S., Death and Birth Indexes, 1911-1989",
+  "locator": {
+    "kind": "url",
+    "value": "https://archive.org/download/reclaim-the-records-kentucky-death-index-01911-1989/Reclaim_The_Records_-_Kentucky_Death_Index_-_01946.TXT#bytes=686455-687382"
+  },
+  "retrieved_at": "2026-10-03T08:08:09Z",
+  "retrieved_by": "agent:harness-real-answers for user:neural",
+  "http": {
+    "status": 206,
+    "etag": "\"64cbf027-2eef1f\"",
+    "last_modified": "Thu, 03 Aug 2023 18:21:27 GMT",
+    "final_url": "https://dn721606.ca.archive.org/0/items/reclaim-the-records-kentucky-death-index-01911-1989/Reclaim_The_Records_-_Kentucky_Death_Index_-_01946.TXT",
+    "content_type": "text/plain; charset=utf-8",
+    "content_range": "bytes 678713-687382/3075871"
+  },
+  "rights": {
+    "terms": "Public Domain Mark 1.0",
+    "redistributable": true,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "pages": 1,
+  "derived_from": {
+    "url": "https://archive.org/download/reclaim-the-records-kentucky-death-index-01911-1989/Reclaim_The_Records_-_Kentucky_Death_Index_-_01946.TXT",
+    "sha256": "4255c574c2c38a9662f8e485deb714a1fe37e92bf3e59327fc5ef83d2fc6a02e",
+    "etag": "\"64cbf027-2eef1f\"",
+    "bytes": 3075871,
+    "range": [
+      686455,
+      687382
+    ]
+  },
+  "notes": "{\"captured\":\"one byte-range request by the harness's author on 3 October 2026 for bytes 678713-687382 of the 1946 file, cut at the start of the line that ends page 152: that line and the vertical tab after it, page 153's heading (the department's line, DEATH INDEX FOR YEAR 1946 PAGE NO 153, the column titles) and the five Davidson lines the excerpt beside it holds, each line's carriage-control byte kept\",\"connector\":\"ky_vital_index\",\"index\":\"death\",\"year\":1946}"
+}
