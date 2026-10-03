@@ -137,6 +137,25 @@ says `EMPTY` (closed shadow roots, or content drawn in a canvas), make those
 steps assisted with the page's own link and say so in
 `docs/RESEARCH-WORKFLOW.md` §4.
 
+### C5. A relationship point stands on either membership of the family
+
+`conclude.rule_points` grounds a stated relationship on the accepted statements
+of either membership joining the two people (`ground` over both rows), so one
+person's link stands in for the other's: Joe Davidson, whom the file alone
+places as Lena Howard Bell's child and who was born seven years after her
+death, takes "sibling Robert Edgar Davidson" on his brother's obituary from
+Robert's own accepted child row, and a parent's accepted marriage grounds a
+child's claimed parentage. `docs/RESEARCH-WORKFLOW.md` ("What the rule counts")
+says a point rests on the tree's statement of that very link. Requiring both
+rows withdraws decisions that are sound, because the tree states a couple's
+parentage partly on partner rows: Francis Thomas Ahearn's 1904 birth record
+(his own card, his father's and his mother's), Dan Davidson on his mother's
+obituary, and Mary Castello, created as the bride's mother from the 1901
+marriage index, whose partner row carries that parentage. Ground a link on both
+memberships, and count a record that names both parents of a child against the
+tree's accepted couple as that couple, so those stay taken; show both on
+the Ahearn and Davidson records above.
+
 ### C6. Rule paths the harness no longer exercises, for want of a real record
 
 When the harness became data (no invented test data, no names in the
@@ -247,6 +266,17 @@ shared evidence in `docs/DATA-ARCHITECTURE.md` §4a), write a scenario with
 two trees and one archived page, decided in the first and undecided in the
 second, and scope every reader that joins `person_persona`, `proposal` or
 `search_plan` by artifact or persona to its tree.
+
+### C10. England, Scotland and Wales are read as the United Kingdom
+
+`data/countries.csv` lists england, scotland and wales as words for the United
+Kingdom, so a string ending in one of them loses it: ", Scotland", "Scotland"
+and "England (Uk)" resolve to the United Kingdom alone, though each of the
+three keeps its own registration and records (ScotlandsPeople, the General
+Register Office for England and Wales). Strings that name a place inside them
+keep the constituent country in the candidate's hierarchy. Read such a word as
+the United Kingdom and keep it as the place's first-level unit, verified like
+any other part, and say it in `data/DATA-SOURCES.md`.
 
 ### C11. A place written one letter apart disagrees
 
@@ -392,6 +422,21 @@ published public-domain one), add a scenario that ingests it beside the
 harness tree, builds its checklists and plans, and shows nothing of the first
 family reaching the second (the tree-isolation entry above).
 
+### C23. A conflict one side of which rests only on claims and editable pages
+
+The rule resolves a conflict only when the side it keeps holds primary
+information (`conclude.classes_decide`), so John Y Davidson's birth date stays
+the owner's although 24 April 1876 rests only on the file's claim and three
+Find a Grave memorials while Apr 1875 rests on the 1900 census and his 1946
+death certificate, records nobody can edit. Decide in the docs whether a side
+resting on records nobody can edit, agreeing with one another, outweighs a side
+resting only on the file's claim and pages anyone can edit, the file's
+uncited claim the owner accepted being their own word and never outweighed;
+§7 decision 9 reads contested classes toward the owner, and the owner's own
+words put the human only where doubt is serious. Then the rule applies it,
+reasonably exhaustive research first: his memorial shows a gravestone
+photograph not yet held (photo 102379026), which may carry 1876 itself.
+
 ### C24. A gazetteer candidate's head name is verified by a close spelling
 
 A geocoder candidate verifies a part of a string only when the part is its
@@ -427,7 +472,15 @@ both dates, are still cards, their rationale saying the death date is absent.
 Reject a card on a superseded reading as superseded when the current reading
 holds the same person (by the persona's key on its page); match a person's
 undecided cards again whenever a decision changes that person's evidence, and
-let a card that has become a hint leave.
+let a card that has become a hint leave. Among them are nine creations the rule
+took and later withdrew (John D Ahearn, Daisy Bell Rothberg, Dennis Scannell,
+five Lukens and Charles Miller): the person exists, the card is undecided again
+on a reading since superseded, and `conclude.rule_creates` refuses it because
+an older matcher wrote it, saying reconsider proposes it again; `repropose`
+reads only current readings, so it never does. Match such a card's current
+reading again (its entry by the persona's key) so the person is proposed as
+themselves, and turn the withdrawn decision's undecided statements the way a
+superseded card's go.
 
 ### C29. One home for each shared rule, and no dead schema
 
@@ -441,21 +494,49 @@ Keep each rule in `catalog.py`, drop what nothing reads (or give it its
 reader), and make `tombstone` the one way a removal is written.
 
 
-### C33. The harness's last two stand-ins
+### C33. The harness's stand-ins and borrowed answers
 
-`docs/DATA-ARCHITECTURE.md` §7 decision 8 says every page the harness reads is
-real, and two are not (`tests/fixtures/README.md`, "What is simulated"): the
-smallest of JPEG files for a gravestone photograph and for the owner's
-family-held photographs (`decisions/50-memorial`,
-`decisions/95-cited-on-the-owners-word`), and a page of nothing but its
-saved-from line for a cited obituary (`decisions/70-obituary-read-by-the-model`,
-`decisions/97-proof-summary`, `loop/70-held-is-the-subject`). The archive holds
-real ones to use: a Find a Grave gravestone photograph read by the model
+`docs/DATA-ARCHITECTURE.md` §7 decision 8 says every page, response, row and
+record the harness reads is real and only a holder's silence is simulated;
+`tests/fixtures/README.md` ("What is simulated") names two stand-ins. The
+harness holds more, and some of it is a real answer to another request, which
+reads as the holder saying "nothing" where its real answer holds a record:
+
+- loop `94`, `96` and `100` answer the request for Davidson in Nassau
+  enumeration district 30-392 with the empty answer captured for district
+  30-393; the archive's own answer to 30-392 (sha `9fda2c90…`, 7 Sept) holds a
+  schedule. Their Queens requests are answered empty with nothing captured.
+- loop `22` answers Charlotte Lukens's books search with the Archive's empty
+  newspaper search for Alicia Ahearn, and her WikiTree search with WikiTree's
+  empty answer for Noi Davidson 1929.
+- loop `32`, `33`, `42`, `43` and decisions `97a` plant a 1950 census citation
+  with the record ids `1,62308::1` and `::3`, which no export or record holds.
+- decisions `71` and `99f` record readings typed into the scenario as read by
+  `llm:claude-sonnet-5-5`; `99f` types "Huntington, Suffolk County, New York",
+  "groom" and "M" where the image gives HUNTING and neither word.
+- `tools/check.py`'s Kentucky death index check puts a heading line typed in
+  `tests/fixtures/connectors.json` before the real five-line excerpt.
+- loop `12` and `93` plant no Wikidata answers, so a check run with a network
+  asks Wikidata live.
+- undisclosed stand-ins: `fake_run` in loop `12`, `13` and `63` beside the four
+  the README names; `loop.py`'s geocoder reading only its cache; loop `40`
+  step 3's bare `<html></html>`; the smallest of JPEG files for a gravestone
+  photograph and the owner's family photographs (`decisions/50-memorial`,
+  `decisions/95-cited-on-the-owners-word`), and a page of nothing but its
+  saved-from line for a cited obituary (`decisions/70`, `decisions/97`,
+  `loop/70`).
+
+Answer each request with its own real answer (the archive's, or one captured
+from the holder with its URL and date), rewriting a scenario around that answer
+where it changes the outcome; plant the Wikidata items the two place scenarios
+read (the live resolver's cache holds them byte for byte); give a typed reading
+the harness as its reader and the image's own words; replace the planted ids
+with a citation the owner's export carries. The archive holds real pages for
+the last two stand-ins: a Find a Grave gravestone photograph read by the model
 (sha `7b2dd95d001a…`, photo 142698059, registry E05) and a Legacy.com obituary
-page read by the model (sha `0ee95c3d0eba…`, H05). Re-target those scenarios
-to the people those real pages are about, with their real readings, so no
-stand-in page remains; the family-held photographs are marked private, and
-whether one may sit in `tests/` is the owner's choice (hard rule 7).
+page read by the model (sha `0ee95c3d0eba…`, H05); whether a family-held
+photograph, marked private, may sit in `tests/` is the owner's choice (hard
+rule 7). What stays simulated is listed in the README, every instance.
 
 ### C34. An original names whose record it is
 
