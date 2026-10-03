@@ -678,3 +678,25 @@ page under the done step's citation when its identity reaches that step, read
 it, and let `conclude.join_copies` and `conclude.carry` make it a copy of the
 record the step holds; the harness scenario `99ze` archives the index entry by
 hand for this reason.
+
+### C40. A document's topic, and the leads it opens for a person and their family
+
+The catalog classifies evidence by the kind of document and its trust, never by
+the part of a life it reveals (military service, immigration, a church, a
+trade): the source registry's `Category` sits on the holder (Fold3 "Military",
+the VA gravesite locator "Burial"), not on what a document states. Raymond Earl
+Davidson's accepted records state an Air Force master sergeant who served in
+Vietnam ("MSGT US AIR FORCE, VIETNAM"), yet nothing marks him a veteran or Noi
+Davidson, whom her own gravesite row names "WIFE OF DAVIDSON, RAYMOND E", a
+veteran's wife, and the checklist's military service row opens only on a
+military event no rule writes from that rank; so the loop never looks for the
+records that service left (his service file, VA claim, the dependents it names)
+for him or his family. The same holds for every immigrant, church member or
+tradesman. Owner, 3 Oct 2026: this is the root issue behind "tag her as a
+military wife". Give each record kind or fact type a topic in data, its detail
+from the record's own words (Air Force, Vietnam); a person carries the topics of
+their accepted records, derived, never typed; each topic names, as data, the
+record sets it leaves for the person and their close family, which the plan
+turns into leads. Start with military; write it as a design decision before
+building. Noi's Military Service event, whose two statements are rejected,
+waits on this.
