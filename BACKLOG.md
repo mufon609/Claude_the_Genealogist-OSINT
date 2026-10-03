@@ -518,6 +518,43 @@ on the archive's own answers, a saved page through `save` and `collect`) or a
 holder's silence where the path allows it, or have decision 8 say that a run
 written to reach a path is the harness's bookkeeping and no answer.
 
+### C30. A dependent's row on the gravesite locator
+
+The VA locator's row for a veteran's dependent names the veteran the dependent
+is buried with and carries the veteran's rank and branch: Noi Davidson's row
+(`tests/fixtures/va-gravesite-search-davidson-noi.html`) reads "Relationships:
+WIFE OF DAVIDSON, RAYMOND E" and "Rank & Branch: MSGT US AIR FORCE".
+`connectors/va_graves.py` reads no `Relationships` label, and the reader in
+`tools/extract.py` writes the row's rank and branch as the dependent's own
+Military Service. Read the relationship as the row states it (the veteran a
+persona of the record, related as written) and the rank and branch as the
+veteran's, and give that page a sidecar that says so.
+
+### C31. Objects a check run archived into the live archive
+
+Fifteen manifests under the live `archive/manifests/` say `retrieved_by:
+agent:check`, all at 2026-09-15T14:44:31Z: the harness's own fixtures (the
+memorial of Abram C Brant, the 1950 search for Frederick Micheal Ahearn, the
+Hahnle 1950 record page, the 1950 schedule 3947385, the Find a Grave search for
+Robert Davidson, the Schwenkfelder search inside, Hubner-223's profile, two
+gravesite pages, the loc.gov page text and five FamilySearch record pages), each
+under its fixture's own file name, archived by a check run whose data root was
+the live one. For those fixtures the archive's copy proves
+nothing about where the bytes came from, and the live catalog may hold rows
+for them. Find what that run wrote (artifacts, extractions, personas, runs)
+through a tool that reads the catalog, say what the owner should keep, and
+correct the README rows that rest on those copies.
+
+### C32. The same page saved twice
+
+`suffix` adds line feeds to a real page so that a scenario archives the same
+page again as other bytes (decisions `60`, loop `30` and `31`): bytes no save
+produced. The live archive holds a real second save of one page, Reiko Diane
+Davidson's FamilySearch search at collection 2365247, saved twice on 18
+September 2026 (`fbc2a73f…`, `24a52f8d…`, six bytes apart). Make those
+scenarios' second save a real one (that pair, or another the archive holds)
+and drop `suffix` from `tests/checks/scenario.py` and the README.
+
 ### C34. An original names whose record it is
 
 `data/evidence-classes.csv` names a record's original by its kind ("death
