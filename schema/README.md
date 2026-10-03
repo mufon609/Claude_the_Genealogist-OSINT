@@ -101,13 +101,15 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   `duplicate_person` question is raised for every person, reviewed or not, and never
   counts a person merged into another.
 - A `search_log` run's `outcome` is `found`, `none`, `blocked`, `error` or `unread` (schema
-  0.7.8). `unread` is a web page archived that no parser reads: `tools/attach.py` logs it
-  when every extraction of the page is the failed one `rule:extract` writes for a page no
-  parser claims (`log_search.unread_page`; an image, and a page a parser, the model or a
-  person has read, keep `found`), and `tools/run_step.py` logs it for a connector's run
-  whose records are all such pages, its note beginning "no parser reads this page". The page
-  is held on the step's log, the step stays planned (`tools/fetches.py` does not list it
-  again while its run stands on the step's fields), and nothing is closed or read. The 0.7.8
+  0.7.8). `unread` is a record archived that no parser reads, whatever its form: every
+  extraction of it is the failed one `rule:extract` writes for a file no parser claims
+  (`log_search.unread_record`; an image, a record a parser, the model or a person has read,
+  and a file no parser is asked to read, an item's metadata or a search's own response,
+  keep `found`). `tools/attach.py` logs it for a page saved by hand, and `tools/run_step.py`
+  for a connector's run whose records are all such records, a web page or a JSON or text
+  response alike; the run's note begins "no parser reads this record". The record is held
+  on the step's log, the step stays planned (`tools/fetches.py` does not list it again
+  while its run stands on the step's fields), and nothing is closed or read. The 0.7.8
   migration (`tools/initdb.py`'s `unread_runs`, widening the outcome's CHECK by
   `rebuild_table`) turned the found runs an older attach logged for such a page into unread
   ones, one `audit_log` row each under `migration:0.7.8` naming the step, the person, the
@@ -150,7 +152,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/checklist.py "<person>"` | Read-only foundation, questions, Group A/B rows (held / cited / missing / n/a) and the step per gap (`docs/RESEARCH-CHECKLIST.md` §6a). |
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicates, unlinked same-surname persons, records on relatives ranked by the family members they share. |
 | `tools/plan.py "<person>" / --all` | Materialize questions and steps into `research_question` and `search_plan`, idempotently: a fetch step per citation or lead, a search step per missing row. |
-| `tools/log_search.py` | A run (found / none / blocked / error; `unread` is the attach's word for a page no parser reads) logged on a step, per source; `--dismiss` a question, `--reopen` a step done in error, `--list` a person's plan. |
+| `tools/log_search.py` | A run (found / none / blocked / error; `unread` is the attach's and the runner's word for a record no parser reads) logged on a step, per source; `--dismiss` a question, `--reopen` a step done in error, `--list` a person's plan. |
 | `tools/attach_inbox.py [file ...] [--about "<person>"]` | Every inbox file to the steps its own identity fulfils: archived once, logged, extracted and matched; a step is done only when the page is the record it cites. `--about` takes one file on the owner's word: a record no step cites, or a family-held photograph or scan. |
 | `tools/attach.py` | The attach path `attach_inbox.py`, `fetches.py collect` and the person screen share. |
 | `tools/fetches.py next [K] / list / collect` | The pages waiting to be saved in the owner's browser, with the link, the file name to save under and the save script's call, whose key names the steps the page serves: `next` the next K, one line each, `list` all of them; `collect` brings the saved pages in by their own identity and the steps their key names. |

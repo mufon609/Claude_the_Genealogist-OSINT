@@ -484,8 +484,8 @@ CREATE INDEX ix_search_plan_locator  ON search_plan(locator_kind, locator_value)
 
 -- Every execution of a step, including the ones that found nothing. found: a page or record was archived and read, and
 -- marks the step done when it is the record the step cites; none: the source answered with nothing; blocked; error: the
--- source did not answer; unread: a web page was archived and no parser reads it (tools/attach.py, tools/run_step.py), held on the step's log,
--- the step stays planned.
+-- source did not answer; unread: a record was archived and no parser reads it, a web page or a connector's JSON or text response
+-- alike (tools/attach.py, tools/run_step.py), held on the step's log, the step stays planned.
 CREATE TABLE search_log (
   id              TEXT PRIMARY KEY,
   tree_id         TEXT NOT NULL REFERENCES tree(id),
