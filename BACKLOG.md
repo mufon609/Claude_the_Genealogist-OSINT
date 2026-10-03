@@ -55,6 +55,26 @@ blocked" at the foot of this file.
 
 Items with ordering or coupling constraints.
 
+### A1. The relationships a FamilySearch page states, read as stated
+
+`extract.py`'s FamilySearch reader marks a relationship stated only for the
+page's own person's relationship to the head and the roles a record of one
+event names from its subject's side; every other one is computed. The rule
+reads that flag, so a census household's members other than the page's own
+person, every sibling an obituary's index lists, and the bride's parents on a
+marriage record whose page is the groom's (FamilySearch files them as his
+"mother-in-law" and "father-in-law"; the record names them as her parents) are
+no ground and are written undecided. Where the page shows each member's
+relationship to the head, read it as the census's statement for every member;
+read a marriage record's parents of either party as that party's, stated; read
+an obituary index's brothers and sisters as the obituary's. Check each on the
+saved pages before changing the reader, then rehearse `reconsider` on a scratch
+copy and list what it takes back and takes.
+**Blocks:** running `tools/conclude.py reconsider`, `tools/turn.py` or
+`tools/turns.py` on the live catalog. On the rule as it now stands, reconsider
+takes back 37 of the rule's 101 decisions, most of them for want of this
+reading; run it live once this has landed, with that list reviewed.
+
 ### A2. Identity is tested, not assumed
 
 `docs/DATA-ARCHITECTURE.md` §7 decision 12. The matcher compares a persona only
@@ -447,19 +467,6 @@ indeterminable, not the rule's "without doubt". No read-only tool prints a
 conflict's question id, which `tools/conclude.py resolve` needs. Compute the
 line per conflict from the statements on each side and print the question id
 beside each open conflict.
-
-### C26. The relationships a FamilySearch page states, read as stated
-
-`extract.py`'s FamilySearch reader marks a relationship stated only for the
-page's own person's relationship to the head and the roles a record of one
-event names; every other one is computed, and since the standing rule now
-reads that flag, a census household's members other than the page's own
-person, and every sibling an obituary's index lists, are no ground for the
-relationship route and are written undecided. Where the page shows each
-member's relationship to the head (the household table's own column) read it
-as the census's statement for every member, and read an obituary index's
-brothers and sisters as the obituary's, so the rule takes what the records
-themselves state; check each on the saved pages before changing the reader.
 
 ### C27. An import from anywhere is read as itself
 
