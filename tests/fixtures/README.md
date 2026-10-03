@@ -372,7 +372,7 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   `tools/save_page.js` writes it (loop `41`, `42`, `43`). `tools/check.py`'s test of that script writes the script's own head over
   the Lena Howard Bell search page's document.
 - `suffix`: line feeds added to a real page, for the same page saved again as other bytes (decisions `60`; loop `30`, `31`).
-- Catalog state a path needs and no record or run would leave in a short scenario is written by hand, each step saying so: plan
+- Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan
   steps (`step`, `step_query`), events (`event`), a research question's shape (`question`), cards and links an older matcher
   left (`legacy_card`, `older_matcher`, `persona_link`), a place card on the geocoder's real answers (`place_card`) and place
   strings of the owner's records (`place_string`). None of them is a page, a response or a record of anyone.
