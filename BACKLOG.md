@@ -173,7 +173,9 @@ through the relative it names; the spouse fit where the other party
 carries another name; the fitting check on garbled initials and on a
 short-form given name; a results row outliving its own record; a
 namesake's kin shown as a hint; the SAR page at a holder without a parser
-and its two-entry listing; the found half of the runner's listing run; the
+and its two-entry listing; the New Jersey death index's birth or death with no
+month or day (`extract.nj_date` keeps the year alone), which no row of the
+2006-2017 file has, every one of its 837,351 rows carrying both dates whole; the
 unnamed fetch's own naming
 (`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
 citations that carried it (the New Jersey and New York marriage indexes) are
@@ -393,6 +395,16 @@ such as the relatives an obituary names accepted through one another. Make
 the card pass judge a card on the ground before it the way the re-examination
 does, so one run is the fixed point; until then the live run repeats
 reconsider until a run changes nothing.
+
+### C24. The runner asks the same request once for every name of a place
+
+`run_step.run_connector` tries each name of a place field in turn and stops at
+the first that gets a hit, but a connector reads a place only as a state and a
+county (the 1950 census, Chronicling America), so two names of one place give
+the identical request and the second is asked blind: a repeated request to a
+rate-limited holder that cannot answer differently. Ask a name only when the
+request it makes differs from every request already made on the run, and log
+the names that made no new request as tried.
 
 ## Externally blocked
 

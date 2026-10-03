@@ -3,7 +3,9 @@
 Saved real pages, one per parser, read by `tools/check.py` (through `tests/checks/parsers.py`) on a scratch catalog. They are the owner's own family documents
 in the owner's repository; every page is public at its holder except where the rights column says otherwise. A fixture is
 the bytes as the archive holds them (or as the browser saved them), never edited: the parser is checked against the page
-as it is.
+as it is. The same holds for everything else the harness reads, the scenarios' answers included: every response body, row,
+page and record is real, archived or captured from its holder, but for two stand-in files no code looks inside; what is
+simulated, and those two stand-ins, are named in "What is simulated" at the end.
 
 | File | Holder and page | Parser | Rights |
 |---|---|---|---|
@@ -74,6 +76,7 @@ harness has its own manifest saying so.
 | `ia-metadata-spinneyfamilygen00phil.json` + `.manifest.json` | The archive's object `ba021857…` (13 September 2026): the Archive's metadata for that lent book (`access-restricted-item` true) |
 | `ia-fts-newspapers-alicia-ahearn-empty.json` + `.manifest.json` | The archive's object `d6c20ff8…` (20 September 2026): the Archive's full-text search of its newspapers for "Alicia Ahearn", which holds nothing: the Archive's empty answer |
 | `wikitree-search-davidson-noi-1929-empty.json` + `.manifest.json` | The archive's object `eb0a659a…` (13 September 2026): WikiTree's searchPerson for Noi Davidson born 1929, which holds nothing: WikiTree's empty answer |
+| `ny-marriage-index-1959-page-970.jpg` + `.manifest.json` | The archive's object `c3dd7c98…` (7 September 2026): page 970 of Reclaim The Records' New York State marriage index for 1959 on the Internet Archive, as its reader serves the scan (3054 × 3530, 1.2 MB), the groom's row HAHNLE CHRIS M, license issued at HUNTING, 8/14, certificate 32801 among them: the image a scenario's reading is typed from. Never parsed by the harness |
 | `va-gravesite-search-davidson-raymond-e.html` + `.manifest.json` | The archive's object `e6db8c20…` (14 September 2026): the VA Nationwide Gravesite Locator's results page for Davidson, Raymond, middle name beginning E, as the connector's posted search received it: five decedents, Raymond E Davidson (1939–2007) the first |
 | `va-gravesite-search-davidson-noi.html` + `.manifest.json` | The archive's object `17c08be7…` (14 September 2026): the same locator's page for Davidson, Noi: one decedent, Noi Davidson (1929–2015) |
 | `nara-1950-search-davidson-nassau-ed-30-392.json` + `.manifest.json` | The archive's object `9fda2c90…` (7 September 2026): the 1950 census site's own search for Davidson in Nassau County, New York, enumeration district 30-392: the one schedule (`nara-1950-schedule-3947385.json`, read as a page above) |
@@ -256,10 +259,39 @@ written where the resolver reads them), `place_string`, `apply_places`, `step_qu
 `not_named`, `passed`, `not_passed`, `reasons`), `runnable`, `turn_state`, `turns_run` (the runner's turns in
 order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`), `locator_known`, `steps_by_collection`,
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
-`wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' contract;
-what they are asked with and answer with is in the scenario. `connectors.json` holds the same for the offline connector
-checks in `tools/check.py`: the names, titles and bodies they are run against.
+`wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' and the runner's contract; what they are asked with
+and answer with is in the scenario. `connectors.json` holds the same for the offline connector checks in `tools/check.py`: the
+names and titles they are asked with and the saved real responses they are read against.
 
-Two stand-ins carry no fact of anyone: the smallest of JPEG files stands for a gravestone photograph the harness never
-parses, and a page of nothing but its saved-from line stands for an obituary the file cites at a holder with no parser,
-read only by a reading typed from the file's own claims.
+## What is simulated
+
+Every response body, row, page and record the harness reads is real, but for the two stand-ins at the end: a page or response the live archive holds (a connector's
+response with the archive's own manifest beside it, and the check that the bytes are the archive's own), the owner's own export
+cut down (`harness.ged`), the geocoder's and the gazetteers' answers as the live resolver kept them, or one captured from its
+holder for the harness and named so above (three: the Archive's search inside the Schwenkfelder record for Brandt on 2 October 2026,
+Nominatim's answer for "Ballyquirk, Cork, Ireland" on 2 October, the 1950 census site's empty answer for Davidson in district 30-393 on
+3 October UTC); a few were captured by a connector or the resolver on a scratch data root and say so in their rows. A holder's
+request is asked of a real connector; only the network call is replaced.
+
+What is simulated is a holder that does not answer, which is a control signal and no record:
+
+- `run` and `run_connector` answers carrying an `error`: the connection raises `URLError` whose message begins "the harness's
+  stand-in for no answer" (a timeout, a challenge, a refusal): the census page image in the loop scenarios
+  `21-the-record-a-connector-archived` and `96-fetch-place-names`, WikiTree in `22-a-steps-two-connectors`.
+- `turn` and `turns` with `fake_run`: `run_step.run` replaced by a function that logs the outcome the data gives, only `none` (the
+  holder answered nothing) or `error` (it did not answer), with no request, response or record, its note saying "harness: faked,
+  no network"; in `10-turn`, `15-turns` (the error is the same stand-in), `60-unnamed-fetch` and `61-browse-only-holder`, to see
+  what the turn does after such a run.
+- `run_all`: `run_step.run` replaced by a function that regenerates the plan or raises `SystemExit`, no request; which steps are
+  runnable is the real connectors' say (`25-runner-all`).
+- The parent sha256 `check.py` hands the New Jersey and Kentucky connectors as the file's own (a placeholder string, only
+  compared back).
+
+Two stand-ins are not real, and no connector, parser or reading looks inside either; they carry no fact of anyone. The smallest of
+JPEG files, written by `scenario.py`, stands for the Find a Grave gravestone photograph the fetch list names
+(`decisions/50-memorial`: the archive holds no photograph of that memorial) and for the two family-held photographs the owner drops
+into the inbox (`decisions/95-cited-on-the-owners-word`: the only family-held photographs the archive has are marked private and
+never redistributed). A page of nothing but its saved-from line stands for the Newspapers.com obituary page the file cites
+(`decisions/70-obituary-read-by-the-model`, `decisions/97-proof-summary`, `loop/70-held-is-the-subject`: the archive does not hold
+the page, the holder forbidding a save); the obituary's readings are typed from the file's own claims onto it, as `transcribe`
+types a reading. The 1959 marriage index's reading is typed from the real image above.
