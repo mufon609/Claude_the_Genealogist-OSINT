@@ -31,7 +31,15 @@
      "date": "CAL 1940"
     }
    ],
-   "why": "the son's birth calculated from his age 0"
+   "relations": [
+    {
+     "kind": "child",
+     "to": 1,
+     "value": "Son",
+     "computed": false
+    }
+   ],
+   "why": "the son's birth calculated from his age 0; the page's own person is the head, so the son's row is his relationship to the head, stated"
   },
   "3": {
    "name": "Ruth Davidson",
@@ -42,7 +50,15 @@
      "date": "CAL 1921"
     }
    ],
-   "why": "the wife's birth calculated from her age 19"
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 1,
+     "value": "Wife",
+     "computed": false
+    }
+   ],
+   "why": "the wife's birth calculated from her age 19; her row on the head's own page is her relationship to him, stated"
   }
  }
 }

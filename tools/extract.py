@@ -10,7 +10,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.7.0; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.7.1; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -160,7 +160,7 @@ from conclude import assert_facts, link_family
 from catalog import is_identity, page_entries
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.7.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.7.1"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -922,7 +922,8 @@ def write_record(w, parsed):
     the subject's one spouse on the page, as stated, the record naming each party's parents (the in-law row itself is
     FamilySearch's working-out); on a page whose own person is a relative of the record's subject (its leading h2 "Mentioned
     in the Record of" names the subject), only that subject's own row; and every other grouping the relatives tables make
-    around the page's own person (on a census every one of them, since a census states only the relationship to the head; a
+    around the page's own person (on a census every one of them, since a census states only the relationship to the head, save
+    on the head's own page, where a row's word is that member's relationship to the head and is written stated; a
     sibling of anyone but an obituary's deceased, a grandparent, an in-law; on a relative's page every row but the record's
     subject's; the couple of the two parents they list) marked computed in its region, FamilySearch's inference rather than
     the record's statement, kept because it is what the page says. A parent the fields also name is not
@@ -956,6 +957,7 @@ def write_record(w, parsed):
     to_head = lambda rows: next((v for l, v in rows if l.lower().strip() == "relationship to head of household" and (v or "").strip()), None)
     heads = [subject] if household_kind(to_head(fields)) == "head" else [pid for pid, _, _, m in members_written if household_kind(to_head(m["fields"])) == "head"]
     head = heads[0] if len(heads) == 1 else None                     # the household's head, by the record's own column: the subject, or the one member whose own details say Head
+    head_page = is_census and head is not None and head == subject   # the page's own person is the head: a relatives-table row's word is that member's relationship to the head, the census's own column
     stated = [(pid, head, household_kind(word), word) for pid, word in [(subject, to_head(fields))] + [(pid, to_head(m["fields"])) for pid, _, _, m in members_written]
               if head and word and pid != head and household_kind(word) != "head"]   # each person's relationship to the head, as the record's own column states it
     in_fields = {label for label, who, _ in named if label in ("father", "mother") and names_someone(who)}
@@ -969,7 +971,7 @@ def write_record(w, parsed):
     kinds = {pid: relation_kind(m["role"], section, parsed.get("collection")) for pid, _, section, m in members_written}
     for pid, role, section, m in members_written:
         if role in in_fields: w.relation(pid, subject, kinds[pid], m["role"], role, computed=False); continue      # the parent a field names (Father's Name): the record states it
-        w.relation(pid, subject, kinds[pid], m["role"], section, computed=is_census or kinds[pid] not in roles or bool(mentioned and not subjects_row(m)))   # any other grouping, every one on a census and every one around a relative but the record's subject, is FamilySearch's inference
+        w.relation(pid, subject, kinds[pid], m["role"], section, computed=not (head_page and m["role"].strip()) and (is_census or kinds[pid] not in roles or bool(mentioned and not subjects_row(m))))   # any other grouping, every one on a census and every one around a relative but the record's subject, is FamilySearch's inference
     spouses = [pid for pid, *_ in members_written if kinds[pid] == "spouse"]
     if event == "marriage" and not mentioned and len(spouses) == 1:   # a marriage record names each party's parents: the subject's father- or mother-in-law is the spouse's own parent
         for pid, role, section, m in members_written:

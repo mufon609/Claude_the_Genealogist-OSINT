@@ -8,27 +8,28 @@
  },
  "steps": [
   {
-   "say": "the 1900 household: the husband and his wife accepted by the owner, the couple FamilySearch's own grouping",
+   "say": "the Kentucky death record naming her the deceased's mother, attached on the owner's word as hers",
    "attach": {
-    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+    "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
+    "about": "I332737204852"
    },
-   "as": "c00"
+   "as": "kd"
   },
   {
    "decide": {
     "card": {
-     "record": "c00",
-     "person": "I332737204849"
+     "record": "kd",
+     "person": "I332737204852"
     },
     "status": "accepted"
    }
   },
   {
-   "say": "the wife accepted by the owner: the couple written undecided, the record's indexer stating it",
+   "say": "the man the page files as her husband accepted by the owner: the couple FamilySearch's own grouping around a relative of the record's subject, written undecided",
    "decide": {
     "card": {
-     "record": "c00",
-     "person": "I332737204852"
+     "record": "kd",
+     "person": "I332737204849"
     },
     "status": "accepted"
    },
@@ -47,7 +48,7 @@
    ]
   },
   {
-   "say": "the owner accepts the couple: the census's grouping and the file's own claim, on the owner's word",
+   "say": "the owner accepts the couple: the page's grouping and the file's own claim, on the owner's word",
    "fact": {
     "person": "I332737204852",
     "field": "spouses",

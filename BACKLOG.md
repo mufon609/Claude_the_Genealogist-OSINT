@@ -58,7 +58,7 @@ Items with ordering or coupling constraints.
 ### A1. The FamilySearch pages read again and the rule reconsidered, live
 
 `tools/extract.py --stale` reads every FamilySearch page again at
-`rule:familysearch-record@0.7.0`, then `tools/conclude.py reconsider` examines
+`rule:familysearch-record@0.7.1`, then `tools/conclude.py reconsider` examines
 the rule's decisions on those readings; the rehearsal on a scratch copy lists
 what it takes back and what it takes.
 **Blocks:** running `tools/conclude.py reconsider`, `tools/turn.py` or
@@ -457,23 +457,6 @@ one geocoder twin places it. Decide whether the head is held to the same rule
 stay a match, GOV's own historical names being spelled both ways), and apply it
 to both gazetteers' checks.
 
-### C26. Two FamilySearch rows the record states, worded as the site's own
-
-Two kinds of relatives-table row stay computed though the record states the
-relationship behind them, because the page shows FamilySearch's word and not
-the record's; reading them as stated is the owner's choice. On a census page
-whose own person is the head, each row (Wife, Son, Mother) restates that
-member's relationship to the head, but the page does not show the column, and
-FamilySearch's table is its own working-out (the 1950 Hahnle page leaves the
-head's wife's row blank, the 1920 Ahearn page two sons'). On a page whose own
-person is a parent of the record's subject ("Mentioned in the Record of"), the
-other parent the record names is filed as her husband (Kentucky Deaths, Lena
-Howard Bell's page of her son Ollie's death: "John Y. Davidson, Husband"), as a
-marriage's bride's parents are filed as the groom's in-laws, which the reader
-already reads as hers. If the owner takes either, the reader writes the head's
-row as the member's stated relationship to him, and the husband as the
-subject's stated parent, the husband row staying computed.
-
 ### C27. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the
@@ -569,7 +552,7 @@ An accept writes a family link the record's indexer computed undecided, but
 decisions made before the FamilySearch reader marked its relations, the
 owner's and the rule's alike, wrote FamilySearch's groupings as accepted
 links: a census page's "Father", "Mother" and "Parents" couple around the
-page's own person, a head's page's "Wife", a marriage page's in-law. A rule
+page's own person, a marriage page's in-law. A rule
 decision `reconsider` keeps keeps them accepted, so a person's parents or
 spouses can read accepted on a grouping alone. Have `reconsider`, when it
 keeps a decision, turn each of that decision's accepted family-link statements
@@ -585,9 +568,9 @@ record page shows that column only in each member's own details table, which
 the page keeps closed until its "Open All" button is pressed. Of the twelve
 census pages in the archive, one (the 1900 Lukens household) was saved with
 every member's details open; on the rest the column shows for the page's own
-person and the head alone, so every other member's relationship to the head is
-read only as FamilySearch's grouping (computed), and the rule takes no one
-through it. Have `tools/save_page.js` press the page's "Open All" buttons on an
+person and the head alone, so on a page whose own person is not the head every
+other member's relationship to the head is read only as FamilySearch's grouping
+(computed), and the rule takes no one through it. Have `tools/save_page.js` press the page's "Open All" buttons on an
 `fs-record` page and wait for the details tables before it saves (confirm on a
 real page that the details render without a request the method does not make),
 then save the archived census pages again by the same method.
