@@ -75,23 +75,6 @@ copy and list what it takes back and takes.
 takes back 37 of the rule's 101 decisions, most of them for want of this
 reading; run it live once this has landed, with that list reviewed.
 
-### A2. Identity is tested, not assumed
-
-`docs/DATA-ARCHITECTURE.md` §7 decision 12. The matcher compares a persona only
-with the person a record was fetched for, their family and the tree's unlinked
-people; the rule never reads the matcher's "Also fits"; nothing tests a life's
-limits; the check before the rule creates a person looks only at people with no
-family link, by exact surname (`match.by_name_and_year`); the duplicate check
-(`footprint.py`) runs only on a reviewed person and counts merged persons. Add
-to the rule the three tests of decision 12, a pass beside
-`Catalog.disagreements` raising an identity question (a new
-`research_question.kind`, by migration) naming both records, the life limits as
-data, the creation check over the whole tree with spelling variants, and the
-duplicate check before review with merged persons excluded. Live cases to
-test against: Joe Davidson, born 1925, linked undecided as a child of Lena
-Howard Bell, died 1918; John Y Davidson, whose one Birth holds the file's
-24 April 1876 against the 1900 census's Apr 1875.
-
 ---
 
 ## B. Parallel batch
@@ -243,7 +226,20 @@ says is of an index read derivative where neither its collection nor its
 registry row says so (the tree's one index image is filed under the New York
 marriage index, whose own row says derivative); and a death or burial place
 point standing on a statement at the tree's own level, the harness's places
-being unresolved strings. When a real document
+being unresolved strings; the rule's identity tests (`conclude.identity_refused`)
+refusing a record it would take on its points: another person of the tree who
+fits the persona as well as the candidate (the file's two Thomas Ahearns would
+fit any record of his own equally, and the harness holds none: his 1902
+Massachusetts death record or an 1870 or 1880 census would carry it), the person
+already accepted as another row of the same reading (a page naming one person
+twice), and a dated fact or a stated parent-child link outside the accepted life
+(no harness record dates a fact after an accepted death, and Joe Davidson's link
+to his mother is a sibling placement, not the rule's decision); and the identity
+pass's other limits (`Catalog.beyond_life`): a parent too young or too old at a
+birth, a statement dated after the death or before the birth (Ruth M Peters's
+public record of 2000–2001 after her 29 February 2000 death, live, needs her
+Social Security pages and that record in the cut), and one person in two places
+in one census year. When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under

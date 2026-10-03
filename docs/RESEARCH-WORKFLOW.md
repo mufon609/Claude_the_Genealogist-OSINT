@@ -885,6 +885,22 @@ names what it left out); a relative a memorial lists is a lead, never a card
 (§0, §3), and one a profile lists by name and years alone has at most the
 stated relation and is a card for the owner.
 
+**Identity is tested, not assumed** (`docs/DATA-ARCHITECTURE.md` §7 decision
+12). Before the rule takes a record by any route above, or creates a person
+from it, three tests, each a refusal with its reason in words when it fails,
+the card staying the owner's: nobody else fits as well (the persona compared
+with every person of the tree not merged into another, spelling variants and
+short forms as the matcher compares them; another person who fits on as much
+as the candidate or more is named, and for a person the rule would create,
+anyone who fits or whom the fitting check reaches); the person holds no other
+accepted persona on that reading of the record (two rows of one page are two
+people); and nothing the record would add falls outside the person's life as
+accepted (their accepted statements' own dates): a dated fact after the
+accepted death or before the accepted birth (the death, a burial, a cremation,
+a will and its probate excepted after the death, the birth itself before the
+birth), or a parent-child relationship it states to a person accepted on it
+that breaks the limits of one life below.
+
 **The limits of one life.** Every plan regeneration tests each person's family
 links, accepted or the file's claims (never a rejected one), and their accepted
 dated statements against the limits of one life, which are data
