@@ -586,13 +586,24 @@ one exists; if none does, record the path in the untested-paths entry.
 ### C3. A decision taken on a claimed relationship that reconsider would withdraw
 
 In scenario `60-confirmed-on-a-record` the rule takes Robert Davidson on the
-Social Security record through a claimed relationship, and from step 9 on a
-dry-run `reconsider` would withdraw that decision with only itself left out of
-its ground, so the order of decisions is not the cause. Find where the claimed
-route (`conclude.claimed_relation_match`, the rule's "name not yet accepted"
-branch) reads ground that `reconsider`'s re-examination does not, make the two
-read the same ground, and show it on that scenario: a reconsider right after the
-decision keeps it.
+1940 census through the relationship it states to his son, accepted on it,
+while his own name is not yet held on trusted ground. Once the owner accepts
+him on the Ohio death index (step 9), a dry-run `reconsider` would withdraw
+that census decision: with his name now held, `conclude.rule_points` judges the
+record by two points, not by the claimed-relationship route, and the son's
+link is a claim (one point). More accepted ground refuses what less allowed.
+The owner's ruling of 15 Sept covers "a person the file claims" whether or not
+the name is held; the docs narrowed the route to a name not yet held. Let the
+route stand when the points fall short (the change is one fallback before "two
+are needed"), state it in `docs/RESEARCH-WORKFLOW.md` §5–7, and show on scenario
+60 that a reconsider after step 9 keeps every decision. Before that, close the
+gap it exposes in scenario `99c-a-sibling-born-after-a-parent-died`: with the
+route widened, the mother is taken on her son's obituary before her death is
+accepted, and the brother born seven years after it is placed as her child,
+undecided; the placement is examined only when it is made, so accepting her
+death afterwards leaves it. Examine an undecided sibling placement again when a
+parent's death is accepted (`conclude.died_before`), as a re-read does, and
+remove the placement the limits of one life refuse, with its note.
 
 ## Externally blocked
 
