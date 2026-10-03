@@ -537,17 +537,18 @@ on the archive's own answers, a saved page through `save` and `collect`) or a
 holder's silence where the path allows it, or have decision 8 say that a run
 written to reach a path is the harness's bookkeeping and no answer.
 
-### C30. A dependent's row on the gravesite locator
+### C30. A fact a reading no longer states stays on the person
 
-The VA locator's row for a veteran's dependent names the veteran the dependent
-is buried with and carries the veteran's rank and branch: Noi Davidson's row
-(`tests/fixtures/va-gravesite-search-davidson-noi.html`) reads "Relationships:
-WIFE OF DAVIDSON, RAYMOND E" and "Rank & Branch: MSGT US AIR FORCE".
-`connectors/va_graves.py` reads no `Relationships` label, and the reader in
-`tools/extract.py` writes the row's rank and branch as the dependent's own
-Military Service. Read the relationship as the row states it (the veteran a
-persona of the record, related as written) and the rank and branch as the
-veteran's, and give that page a sidecar that says so.
+A page read again by a newer reader can drop a fact the older reading wrote,
+and the accepted statement on it stays: `catalog.statement_of` reads a
+statement through the record's current reading and falls back on the
+assertion's own reading where the current one has no such fact. The gravesite
+locator's reader now gives a dependent's row's rank and branch to the veteran
+the row names, yet Noi Davidson's two pages of the locator, read again, leave
+her Military Service "MSGT US AIR FORCE" accepted on the superseded readings.
+Decide what a statement the current reading no longer makes is (withdrawn with
+its reading, or kept as the record's word), write it into
+`docs/DATA-ARCHITECTURE.md`, and have the re-read do it; show it on that page.
 
 ### C31. Objects a check run archived into the live archive
 
@@ -615,6 +616,16 @@ other member's relationship to the head is read only as FamilySearch's grouping
 `fs-record` page and wait for the details tables before it saves (confirm on a
 real page that the details render without a request the method does not make),
 then save the archived census pages again by the same method.
+
+### C37. The route through a stated relationship says a birth year agrees where none was compared
+
+`conclude.rule_accepts` takes a persona through a relationship the record
+states with the reason "the name and birth year agree", whatever the record
+gives: the gravesite locator's row for Noi Davidson names the veteran she is
+buried with by name alone, and the reason the rule takes the veteran as
+Raymond Earl Davidson says the birth year agrees. `docs/RESEARCH-WORKFLOW.md` says a birth
+year agrees "where both have one": say the birth year in the reason only when
+both sides give one, and show it on that row.
 
 ### C3. A decision taken on a claimed relationship that reconsider would withdraw
 

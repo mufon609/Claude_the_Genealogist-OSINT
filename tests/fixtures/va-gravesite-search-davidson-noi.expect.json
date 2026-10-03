@@ -1,0 +1,67 @@
+{
+ "extractor": "va-gravesite",
+ "personas": 2,
+ "sequence": {
+  "1": {
+   "name": "Noi Davidson",
+   "role": "result",
+   "region": [
+    "\"row\":1"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "01/15/1929"
+    },
+    {
+     "type": "Death",
+     "date": "11/12/2015"
+    },
+    {
+     "type": "Burial",
+     "value": "Plot: SECTION O1 SITE 2239",
+     "place": "BG WILLIAM C DOYLE VET'S MEM CEM, Wrightstown, New Jersey"
+    }
+   ],
+   "no_facts": [
+    {
+     "type": "Military Service"
+    }
+   ],
+   "relations": [
+    {
+     "kind": "spouse",
+     "to": 2,
+     "value": "WIFE"
+    }
+   ],
+   "why": "the decedent of the row, a dependent: the dependent's own dates and burial, the wife of the veteran the row names, and no service of the dependent's own"
+  },
+  "2": {
+   "name": "Raymond E Davidson",
+   "role": "veteran",
+   "region": [
+    "\"row\":1",
+    "Relationships"
+   ],
+   "facts": [
+    {
+     "type": "Military Service",
+     "value": "MSGT US AIR FORCE"
+    }
+   ],
+   "no_facts": [
+    {
+     "type": "Birth"
+    },
+    {
+     "type": "Death"
+    },
+    {
+     "type": "Burial"
+    }
+   ],
+   "why": "the veteran the dependent is buried with, named as Relationships writes it (WIFE OF DAVIDSON, RAYMOND E), the row's rank and branch the veteran's, and no date the row gives for the veteran"
+  }
+ }
+}

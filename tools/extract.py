@@ -166,7 +166,7 @@ EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("r
               "familysearch": ("rule", "familysearch-record", "0.7.1"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
-              "va_graves": ("rule", "va-gravesite", "0.1.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
+              "va_graves": ("rule", "va-gravesite", "0.2.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
               "ky_death_index": ("rule", "ky-death-index", "0.1.0"), "ky_birth_index": ("rule", "ky-birth-index", "0.1.0"),
               None: ("rule", "extract", "0.1.0")}
 RESULTS_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search", "va-gravesite", "nj-death-index", "ky-death-index", "ky-birth-index")   # the extractors that read a results listing, one persona per row: a row's own record is the document (docs/RESEARCH-WORKFLOW.md §0), so a listing on which no row fits anyone is a none run (§4), its rows kept on the artifact as candidates
@@ -863,23 +863,35 @@ def write_aad_search(w, parsed):
 
 MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 
+VA_RELATIONSHIP = re.compile(r"^\s*(.+?)\s+OF\s+(.+?)\s*$", re.I)   # a dependent's row: WIFE OF DAVIDSON, RAYMOND E
+
 def write_va(w, parsed):
     """One persona per decedent the gravesite locator lists: the name the right way round, the dates of birth and death as
     written (month first), the burial in the cemetery at its town and state with the section and site as the plot, rank and
-    branch and the war period as one Military Service attribute, the row and the page in the region. A row is a result: one
-    that fits nobody stays on the page as a hint."""
+    branch and the war period as one Military Service attribute, the row and the page in the region. A dependent's row names
+    the veteran the dependent is buried with (Relationships: WIFE OF DAVIDSON, RAYMOND E): the veteran is a persona of the
+    same row, the row's rank and branch and war period the veteran's Military Service, and the dependent is related to the
+    veteran as written (kind spouse, "WIFE"). A row is a result: one that fits nobody stays on the page as a hint."""
     from connectors.nara_1950 import ABBR
     states = {v: k.title() for k, v in ABBR.items()}
+    seq = 1
     for r in parsed["rows"]:
         name = va_name(r.get("name")) or "(unnamed)"
-        pid = w.persona(name, None, "result", r["n"], {"label": "result", "row": r["n"], "name_as_written": r.get("name"), "url": parsed.get("url")})
+        pid = w.persona(name, None, "result", seq, {"label": "result", "row": r["n"], "name_as_written": r.get("name"), "url": parsed.get("url")}); seq += 1
         w.fact(pid, "Name", name, labels=["Name"])
         if r.get("birth"): w.fact(pid, "Birth", None, r["birth"], None, ["Date of Birth"])
         if r.get("death"): w.fact(pid, "Death", None, r["death"], None, ["Date of Death"])
         place = ", ".join(x for x in (r.get("cemetery"), (r.get("city") or "").title() or None, states.get(r.get("state")) or r.get("state")) if x) or None
         if place or r.get("buried_at"): w.fact(pid, "Burial", f"Plot: {r['buried_at']}" if r.get("buried_at") else None, None, place, ["Cemetery", "Buried At", "Cemetery Address"])
         service = ", ".join(x for x in (r.get("rank_branch"), r.get("war")) if x)
-        if service: w.fact(pid, "Military Service", service, labels=["Rank & Branch", "War Period"])
+        rel = VA_RELATIONSHIP.match(r.get("relationship") or "")
+        holder = pid
+        if rel:
+            vname = va_name(rel.group(2)) or "(unnamed)"
+            holder = w.persona(vname, None, "veteran", seq, {"label": "Relationships", "row": r["n"], "name_as_written": rel.group(2), "url": parsed.get("url")}); seq += 1
+            w.fact(holder, "Name", vname, labels=["Relationships"])
+            w.relation(pid, holder, household_kind(rel.group(1)), rel.group(1), "Relationships")
+        if service: w.fact(holder, "Military Service", service, labels=["Rank & Branch", "War Period"])
 
 def write_aad_record(w, parsed):
     """The enlistee: the name the right way round; the birth year; the nativity as the birth place; a Residence in the county and

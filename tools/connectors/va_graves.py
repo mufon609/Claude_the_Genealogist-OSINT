@@ -6,7 +6,9 @@ Endpoint: https://gravelocator.cem.va.gov/ngl/result, the form the site's own se
 middleName each with an option (1 exact, 2 begins with, 3 contains), p_birthMM / p_birthYY and p_deathMM / p_deathYY,
 cemetery blank for every cemetery, nglUP 1 for burial locations. It answers a declared tool with the results page: each
 decedent's name (SURNAME, GIVEN MIDDLE), rank and branch, war period, dates of birth and death, the cemetery with its
-address, and for a national cemetery the section and site. The results page is the record itself. The site publishes no
+address, and for a national cemetery the section and site. A dependent's row names the veteran the dependent is buried
+with under Relationships (WIFE OF DAVIDSON, RAYMOND E), and its rank and branch and war period are that veteran's. The
+results page is the record itself. The site publishes no
 robots.txt and states no rate limit; the connector keeps to a person's pace. A search asks the surname and the first given
 name exactly, the middle name's first letter as a beginning when the name has one (the locator writes RAYMOND E for a
 Raymond Earl; asked with it, Davidson, Raymond falls from 22 decedents to 5), and the death year when the step carries
@@ -26,7 +28,7 @@ URL = "https://gravelocator.cem.va.gov/ngl/result"
 FORM = "https://gravelocator.cem.va.gov/ngl/"                      # the page a person runs the same search from
 MARK = re.compile(r'<table[^>]*\bid="searchResults"')
 LABELS = {"Name": "name", "Rank & Branch": "rank_branch", "War Period": "war", "Date of Birth": "birth", "Date of Death": "death",
-          "Buried At": "buried_at", "Cemetery": "cemetery", "Cemetery Address": "address", "Telephone": "telephone"}
+          "Buried At": "buried_at", "Cemetery": "cemetery", "Cemetery Address": "address", "Telephone": "telephone", "Relationships": "relationship"}
 
 def wants(fields):
     return None if name_parts(fields)[1] else "a surname"
@@ -59,9 +61,9 @@ def clean(s):
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s)).replace("&amp;", "&").replace("&nbsp;", " ").strip()
 
 def results(body):
-    """The page's decedents, one dict each: n, name, rank_branch, war, birth, death, buried_at, cemetery, address, telephone, as
-    the page writes them (upper case, dates MM/DD/YYYY), and from the address its city and state (the page sets the town off
-    from the street by a double space)."""
+    """The page's decedents, one dict each: n, name, rank_branch, war, birth, death, buried_at, cemetery, address, telephone and,
+    on a dependent's row, relationship, as the page writes them (upper case, dates MM/DD/YYYY), and from the address its city
+    and state (the page sets the town off from the street by a double space)."""
     t = text(body); m = MARK.search(t)
     if not m: return []
     table = t[m.start():t.find("</table>", m.start())]

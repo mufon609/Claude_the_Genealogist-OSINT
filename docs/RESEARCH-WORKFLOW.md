@@ -525,7 +525,9 @@ with its parents, spouses, children and siblings; a page anyone can edit, so
 always a card), `va_graves` on E03 (the Nationwide Gravesite Locator's
 own search, posted by surname and first given name with the step's death
 year; the results page is the record: each veteran's name, dates of birth and
-death, rank, branch, war period, cemetery, section and site),
+death, rank, branch, war period, cemetery, section and site; a dependent's row
+names the veteran the dependent is buried with, a persona of the row related as
+written, and its rank and branch are the veteran's),
 `nj_death_index` on C09 (the New Jersey death index 2001-2017 as Reclaim The
 Records' CSV files on the Internet Archive, fetched whole and read locally;
 the death record row alone, since C09 sits on the birth and marriage rows

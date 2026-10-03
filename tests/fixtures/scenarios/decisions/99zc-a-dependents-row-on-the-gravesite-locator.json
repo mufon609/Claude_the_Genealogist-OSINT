@@ -1,0 +1,102 @@
+{
+ "title": "a dependent's row on the gravesite locator",
+ "line": "the gravesite locator's row for Noi Davidson is a dependent's: it names the veteran she is buried with, WIFE OF DAVIDSON, RAYMOND E, and carries the veteran's rank and branch; accepted as hers, it gives her no Military Service, and the veteran it names is taken by the rule as her husband Raymond Earl Davidson through the marriage the row states, the rank and branch his and the marriage accepted on the row",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the locator's page for Davidson, Noi, as the archive holds it, read and matched for her",
+   "archive": {
+    "fixture": "va-gravesite-search-davidson-noi.html",
+    "source": "E03",
+    "manifest": "va-gravesite-search-davidson-noi.manifest.json",
+    "extract": true,
+    "match": [
+     "I332737099804"
+    ],
+    "rule": true
+   },
+   "as": "va",
+   "expect": [
+    {
+     "cards": {
+      "record": "va",
+      "people": [
+       "I332737099804"
+      ],
+      "count": 1,
+      "personas": [
+       "Noi Davidson"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the row as Noi's",
+   "decide": {
+    "card": {
+     "record": "va",
+     "person": "I332737099804"
+    },
+    "status": "accepted",
+    "note": "harness: the row is hers"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737099804",
+      "type": "Military Service",
+      "events": 0
+     },
+     "why": "the row's rank and branch are the veteran's, never the dependent's"
+    },
+    {
+     "card": {
+      "record": "va",
+      "persona": "Raymond E Davidson",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "person_name": "Raymond Earl Davidson",
+      "note": {
+       "has": "a claimed relationship: spouse Noi Davidson"
+      }
+     },
+     "why": "the veteran the row names, put to Noi's husband in the tree and taken through the relationship the row states"
+    },
+    {
+     "event": {
+      "person": "I332737099805",
+      "type": "Military Service",
+      "events": 1
+     },
+     "why": "MSGT US AIR FORCE, on the veteran"
+    },
+    {
+     "memberships": {
+      "person": "I332737099804",
+      "is": [
+       {
+        "role": "partner",
+        "status": "accepted"
+       }
+      ]
+     },
+     "why": "the marriage the row states, accepted on the row"
+    },
+    {
+     "cards": {
+      "record": "va",
+      "count": 0
+     },
+     "why": "nothing on the row left for the owner"
+    }
+   ]
+  }
+ ]
+}

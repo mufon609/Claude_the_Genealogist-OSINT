@@ -771,7 +771,7 @@ def e_event(w, x, want):
     for e, in rows:
         for raw, st in w.cx.execute("""SELECT ps.raw, a.status FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.subject_kind='event' AND a.subject_id=?""", (e,)): strings[raw] = st
     canon = cat.canonical_event(ev, x["type"])
-    got = {"events": len(rows), "strings": strings, "shown": cat.place(rows[0][0], None)["text"] if rows else None, "canonical_date": canon["date_text"] if canon else None,
+    got = {"events": len(rows), "strings": strings, "shown": (cat.place(rows[0][0], None) or {}).get("text") if rows else None, "canonical_date": canon["date_text"] if canon else None,
            "basis": cat.key_fact_basis(pid, ev).get(x["type"].lower())}
     pattern = {k: v for k, v in x.items() if k in ("events", "strings", "shown", "canonical_date", "basis")}
     return has(got, pattern), got
