@@ -1,0 +1,217 @@
+{
+ "title": "a page saved from the fetch list names the steps it was saved for",
+ "line": "the list gives the save script a call whose key is the steps the page serves; the script writes the key as a second comment under the saved-from line; collect reaches the steps the key names first, the inference from the page's own identity left out of it: after the plan rewrote the step's fields the search's name no longer reads as the citation's, and the page reaches the step all the same; a Find a Grave memorial saved from the list is reached by its key too",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the list's call for her Kentucky death records search: the file name, no force at a holder the script knows, and the step's own id as the key",
+   "expect": [
+    {
+     "fetch_call": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "call": {
+       "starts": "(\"familysearch-kentucky-death-records-search-lena-howard-bell.html\", false, \"",
+       "ends": "\")"
+      },
+      "serves": [
+       {
+        "person": "I332737204852",
+        "row_key": "death record:1918",
+        "kind": "fetch",
+        "locator": {
+         "kind": "apid",
+         "value": "1,1222::1373711"
+        }
+       }
+      ]
+     },
+     "why": "the key is the plan step ids the page serves, here the one step"
+    }
+   ]
+  },
+  {
+   "say": "the search saved from the list: the script's page, the key under its saved-from line",
+   "save": {
+    "holder": "D03",
+    "person": "I332737204852",
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "folder": "downloads",
+    "key": true
+   },
+   "as": "saved",
+   "expect": [
+    {
+     "last": {
+      "save_as": "familysearch-kentucky-death-records-search-lena-howard-bell.html",
+      "key": {
+       "len": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "before the page is collected the plan writes new fields on the step: the name the citation sits on is now the married name, so the search's name (Bell) is no longer the citation's",
+   "step_query": {
+    "step": {
+     "person": "I332737204852",
+     "row_key": "death record:1918",
+     "kind": "fetch",
+     "locator": {
+      "kind": "apid",
+      "value": "1,1222::1373711"
+     }
+    },
+    "query": {
+     "collection": {
+      "value": "Kentucky, U.S., Death Records, 1852-1965",
+      "basis": "citation"
+     },
+     "name": {
+      "value": "Lena Howard Davidson",
+      "basis": "citation"
+     }
+    }
+   }
+  },
+  {
+   "say": "collect: the page reaches the step its key names, not by the name or the collection",
+   "collect": {
+    "folder": "$saved.folder"
+   },
+   "as": "collected",
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": {
+         "starts": "fs_search "
+        },
+        "left": null,
+        "steps": [
+         [
+          {
+           "any": true
+          },
+          "Lena Howard Bell",
+          "death record:1918",
+          {
+           "has": "page's own key names this step"
+          }
+         ]
+        ],
+        "key": {
+         "named": 1,
+         "taken": 1,
+         "aside": []
+        },
+        "outcome": "none"
+       }
+      ]
+     },
+     "why": "the key's one step, with the key as its reason and nothing else reached: the inference by name finds no step now, and the page needed none"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": {
+       "some": {
+        "outcome": "none",
+        "notes": {
+         "has": "no candidate fits"
+        },
+        "artifacts": {
+         "has": "$collected.results.0.sha256"
+        }
+       }
+      }
+     },
+     "why": "the step's log row carries the page as its artifact: no candidate fits her, so the run is none"
+    }
+   ]
+  },
+  {
+   "say": "a memorial saved from the list: its call and key, as for any page the script knows",
+   "save": {
+    "holder": "E01",
+    "person": {
+     "name": "John Young Davidson"
+    },
+    "fixture": "findagrave-memorial-143847338.html",
+    "folder": "downloads2",
+    "key": true
+   },
+   "as": "memorial",
+   "expect": [
+    {
+     "last": {
+      "save_as": "findagrave-memorial-143847338.html",
+      "key": {
+       "len": 1
+      }
+     },
+     "why": "the entry for the memorial names its one step"
+    }
+   ]
+  },
+  {
+   "say": "collect: the memorial's step by the key; the memorial the citation's URL names is the page's own, so nothing contradicts it",
+   "collect": {
+    "folder": "$memorial.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": "memorial 143847338",
+        "left": null,
+        "steps": [
+         [
+          {
+           "any": true
+          },
+          "John Young Davidson",
+          {
+           "starts": "cemetery"
+          },
+          {
+           "has": "page's own key names this step"
+          }
+         ]
+        ],
+        "key": {
+         "named": 1,
+         "taken": 1,
+         "aside": []
+        }
+       }
+      ]
+     },
+     "why": "the key's step stands and leads; the step the citation's memorial URL reaches is the same step, taken once"
+    }
+   ]
+  }
+ ]
+}

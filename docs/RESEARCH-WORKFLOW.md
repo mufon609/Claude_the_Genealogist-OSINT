@@ -276,10 +276,12 @@ military service event, education and marital status as written.
 **The page saves itself.** A cited page at an assisted source is saved from
 the owner's own browser in one call and never read through the model.
 `tools/fetches.py next` names the next pages (five by default): the link to
-open, the file name to save under and the people waiting, one line each; a
+open, the file name to save under, the people waiting and the call for the
+script, one line each; a
 link that prefills nothing (a holder's bare search form, whose saved page no
 parser reads) is marked and comes last. For each page: open a new tab, navigate
-it to the link and run `tools/save_page.js` in it with the file name filled in
+it to the link and run `tools/save_page.js` in it with the line's call in place
+of the `("FILENAME.html")` that ends the script
 (a navigate and the script go in one batch call), read the one line it returns,
 close the tab: three calls and no screenshot. The script waits up to fifteen
 seconds for the page's own markup, then clones the document, removes `iframe`,
@@ -299,10 +301,30 @@ a hand on it: a second page saved in the same tab lands nowhere, so each page
 gets its own tab, closed after the file arrives. `tools/fetches.py list` prints
 the pages the page-saves-itself method can save: every planned fetch step at a
 holder without a connector, once, leads from held records first, with the link
-to open, the people waiting on it and the file name to save under, leaving out
+to open, the people waiting on it, the file name to save under and the call,
+leaving out
 the pages whose steps have all been run on unchanged fields (`--all` brings
 them back) and marking a bare form; `next` takes the same pages in the same order, a
 bare form last.
+
+The call is the file name, whether to save a page of no known kind anyway
+(`true` at a holder whose pages the script knows by no markup of its own), and
+the page's key: the plan steps the page serves (those of every entry with that
+link and file name). The script writes the key as a second comment under the
+saved-from line, `<!-- for steps <id>,<id> -->`; a page saved by hand has no call
+and carries no key. `collect` reads the key from the page's bytes, never from its
+file name, and reaches the steps it names first, once it has checked that each
+is a planned fetch step of this tree and that the page's own identity does not
+contradict it: a record page whose ark, memorial or AAD record is not the record
+the step asks for, a results page where the step asks for one record, and a
+results page of a collection the citation is not of all contradict it. A step
+the page contradicts, or the plan no longer has, is set aside and the line
+`collect` prints says so; the steps the page's own identity reaches (the
+inference from its collection and the name searched, the same search serving
+other people's steps) are taken beside the key's, and are all it reaches when the
+page has no key. A gravestone photograph carries no key: its bytes are the
+photograph, and its file name names its one step.
+
 A row of a saved
 results page that fits the person (§5–7) is a lead of its own, a fetch step for the
 row's own record under row `search result:`, and is listed as that record's page
@@ -317,7 +339,8 @@ folder (or `--folder`) into `inbox/` and attaches each by its own identity,
 read from the saved-from line the browser wrote (`tools/save_page.js`) when
 that line is a FamilySearch record or search URL, a Find a Grave memorial or
 search, or an AAD record or search — whatever the file is named, since Chrome
-may have sanitized or de-duplicated the name the list printed. A FamilySearch
+may have sanitized or de-duplicated the name the list printed — and to the
+steps its key names. A FamilySearch
 link that is the collection's own search (no ark yet known) is listed to save
 under `familysearch-<collection words>-search-<given>-<surname>.html`, the
 given name and surname the search's own, so the several people's steps one

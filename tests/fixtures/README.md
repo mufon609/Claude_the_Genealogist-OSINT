@@ -214,8 +214,9 @@ literal id or `{person, type, index}`, that person's nth event of the type in th
 `link_on_word`, `living`,
 `transcribe` (a reading typed into the person screen's form: `record`, `form` with the persona's `line` or `bbox` and
 `image_is`, `relations` to bound personas, `about`, `by` the reader, `llm:<model id>` or `user:<name>`), `view`, `save` (a stand-in written under the fetch list's own name for `holder` and `person`, into a `folder`;
-`name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's),
-`collect`, `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
+`name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's; `key` writes the
+key under the page's own saved-from line as `tools/save_page.js` does when the list's call gave it one: `true` for the entry's own steps, or a
+list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
 carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
 owner's own export that the cut leaves out, because another scenario reads its people without it, written as the
 import writes it: `xref` the family's own id in the export, `partners` and `children`, each membership the file's
@@ -240,7 +241,7 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, each one's date as written in date order, `dates`, how many statements each carries, `per_event`, in the same order, and with `record` its `statements` on them by status and `per_event` that record's alone), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
-`checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `search_log`, `named_for`, `audit`, `hints`,
+`checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `fetch_call` (the call the list gives the save script for the page serving a `step`: its `call` text and the steps it `serves`), `search_log`, `named_for`, `audit`, `hints`,
 `living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row,
 `tier` as `catalog.tier_sql` reads it and `collection_tier` its collection's own), `artifact_where`, `classes` (a
 record's statements on a person's events of an `event_type`, or on a family `link`, read by

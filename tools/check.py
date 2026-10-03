@@ -291,6 +291,34 @@ def save_page_kinds():
     if sorted(table) != sorted({k for _, k in expect}): bad.append(f"the script's kinds {sorted(table)} are not the fixtures' {sorted({k for _, k in expect})}")
     return bad
 
+def save_page_key():
+    """The browser script writes the key the attach reads: the saved-from line and the key comment, built from the literals of
+    tools/save_page.js's own `head` with a key and without one, are read back by the readers (fetches.saved_from, attach.saved_steps);
+    the script takes the call's arguments in the order tools/fetches.py prints them (page_call), and ends in the call that the
+    list's call replaces."""
+    import tempfile
+    from attach import saved_steps
+    from fetches import page_call, saved_from
+    with open(os.path.join(ROOT, "tools", "save_page.js"), encoding="utf-8") as fh: js = fh.read()
+    m = re.search(r'const head = \(\) => "(.*?)" \+ location\.href \+ "(.*?)" \+ \(key \? "(.*?)" \+ key \+ "(.*?)" : ""\);', js)
+    if not m: return ["the script's head() is not the saved-from line and the key comment this check reads"]
+    lit = lambda s: s.encode().decode("unicode_escape")                      # the \n of a JavaScript literal
+    url, ids = "https://www.familysearch.org/en/search/record/results?q.surname=Bell", ["01M3ZTFSBTNXKPBMNT654TWQAF", "01M3ZTFSBTNXKPBMNT654TWQAG"]
+    plain = lit(m.group(1)) + url + lit(m.group(2)); keyed = plain + lit(m.group(3)) + ",".join(ids) + lit(m.group(4))
+    bad = []
+    for label, head, steps in (("with a key", keyed, ids), ("without one", plain, [])):
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as fh: fh.write(head + "<html></html>"); path = fh.name
+        try:
+            if saved_from(path) != url: bad.append(f"the saved-from line {label} is not read back as the page's URL")
+        finally: os.remove(path)
+        if saved_steps(head + "<html></html>") != steps: bad.append(f"the page saved {label} names {saved_steps(head)}, expected {steps}")
+    if not re.search(r"\(async function \(name, force, key\) \{", js): bad.append("the script does not take (name, force, key), the order page_call prints")
+    if not js.rstrip().endswith('})("FILENAME.html")'): bad.append('the script does not end in the call ("FILENAME.html") that the list\'s call replaces')
+    for holder, force in (("D03", "false"), ("H05", "true")):
+        got = page_call({"save_as": "a.html", "holder_id": holder, "serves": ["X", "Y"]})
+        if got != f'("a.html", {force}, "X,Y")': bad.append(f"page_call for holder {holder} gave {got}")
+    return bad
+
 def evidence_insert_only():
     """The evidence layer is insert-only (CLAUDE.md hard rule 2): on a scratch catalog holding one real record read into personas
     and facts, an UPDATE and a DELETE on artifact, persona and persona_fact are each refused with the trigger's own words
@@ -352,8 +380,8 @@ def main():
         print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state, a part of a place string against a candidate's names" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
         bad_conn = connectors_offline(); bad += bool(bad_conn)
         print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
-        bad_kinds = save_page_kinds(); bad += bool(bad_kinds)
-        print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
+        bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
+        print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
         bad_ev = evidence_insert_only(); bad += bool(bad_ev)
         print("ok   the evidence layer is insert-only: an UPDATE and a DELETE on artifact, persona and persona_fact are each refused by their trigger, on a catalog holding a real record read" if not bad_ev else "FAIL evidence: " + "; ".join(bad_ev))
         bad += parsers.check(a.keep, a.show)
