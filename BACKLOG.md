@@ -466,15 +466,6 @@ hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it.
 Keep each rule in `catalog.py`, drop what nothing reads (or give it its
 reader), and make `tombstone` the one way a removal is written.
 
-### C31. A results row no longer has a card to close
-
-The matcher proposes no row of a results page (`tools/match.py`), so a row's
-card never sits open beside the record it summarizes, and
-`conclude.close_result_rows` finds nothing: remove it with its call in
-`decide`, its sweep and `row` kind in `reconsider`, the `row` branch of
-`tools/turn.py`'s report and the `closed_rows` line of `tools/conclude.py`'s
-command line.
-
 ### C32. The runner asks the same request once for every name of a place
 
 `run_step.run_connector` tries each name of a place field in turn and stops at

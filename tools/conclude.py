@@ -745,29 +745,6 @@ def decide_place_string(cx, tree_id, p, status, by, note, choice, kind=None):
               else f"\u201c{raw}\u201d is not a place: {n}, none takes it"
     return {"ok": True, "kind": "place_resolution", "status": status, "raw": raw, "place": place, "place_id": leaf, "events": len(events), "placed": placed, "summary": summary}
 
-def close_result_rows(cx, tree_id, person_id, by, ts, dry_run=False):
-    """A results-page row (role result) that names this person is a hint on the page, its own record the document; once the
-    person is accepted directly on the record the row's own ark or memorial id points at, the row's card is superseded: reject
-    it, noted "the record itself is accepted", so the summary row does not sit open beside the record it only summarizes.
-    Returns [(proposal id, persona's own name)] closed, or that would be (dry_run)."""
-    q = _q(cx)
-    closed = []
-    for r in q.execute("""SELECT p.id, pe.region_json, pe.name_text FROM proposal p JOIN persona pe ON pe.id=json_extract(p.payload_json,'$.persona_id')
-                          WHERE p.tree_id=? AND p.status='undecided' AND p.kind='persona_match' AND pe.role_in_record='result'
-                          AND json_extract(p.payload_json,'$.person_id')=?""", (tree_id, person_id)):
-        region = json.loads(r["region_json"] or "{}")
-        kind, value = ("ark", region.get("ark")) if region.get("ark") else ("memorial_id", region.get("memorial_id")) if region.get("memorial_id") else (None, None)
-        if not value: continue
-        if not q.execute("""SELECT 1 FROM person_persona pp JOIN persona pe2 ON pe2.id=pp.persona_id
-                            WHERE pp.person_id=? AND pp.status='accepted' AND pe2.artifact_sha256 IN
-                            (SELECT artifact_sha256 FROM artifact_locator WHERE kind=? AND value=?)""", (person_id, kind, str(value))).fetchone(): continue
-        if not dry_run:
-            q.execute("UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note=? WHERE id=?", (by, ts, "the record itself is accepted", r["id"]))
-            q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-                      (ulid(), tree_id, ts, by, "reject", "proposal", r["id"], dumps({"closed": "the record itself is accepted", "person": person_id})))
-        closed.append((r["id"], r["name_text"]))
-    return closed
-
 def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, alone=False):
     """A decision on a proposal: is this record's persona this person (persona_match), or a person the tree does not have
     (new_person); or, on a place_resolution proposal, the owner's answer on a place card (decide_place, choice naming the
@@ -779,9 +756,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     household the tree has read, the way the runner logs the household's other steps for a connector's answer); on a page
     anyone can edit the
     decision is an identity: the link accepted, the memberships it states created where the tree lacks them with an Undecided
-    assertion, and the facts written undecided. Every other undecided results-page row (role result) naming this person that
-    points at a record the person is now accepted on directly closes rejected, "the record itself is accepted"
-    (close_result_rows): the summary row is superseded by its own record, not left open beside it. Rejected: the link rejected;
+    assertion, and the facts written undecided. Rejected: the link rejected;
     for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link,
     every assertion and the name alias the rule wrote turn rejected, and a step held by the record for this person is planned
     again; one the rule took back (withdraw) is accepted with everything it had written standing again, its name alias
@@ -828,11 +803,10 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
         while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]): eid = later
         match_record(cx, eid, by.split(" for ", 1)[-1] if by.startswith("rule:") else by)
-    closed_rows = close_result_rows(cx, tree_id, person_id, by, ts) if status == "accepted" and person_id else []
     q.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
               (ulid(), tree_id, ts, by, "accept" if status == "accepted" else "reject", "proposal", prop_id,
-               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "released_steps": released, "note": note})))
-    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "closed_rows": closed_rows, "released_steps": released, "note": note,
+               dumps({"kind": p["kind"], "persona": persona_id, "person": person_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "released_steps": released, "note": note})))
+    return {"ok": True, "status": status, "kind": p["kind"], "person": person_id, "persona": persona_id, "identity": identity, "assertions": n, "alias": alias_id, "memberships": members, "answered": answered, "released_steps": released, "note": note,
             "conflicts": conflicts}
 
 def _stands_for(cat, persona, cand, chosen):
@@ -2039,12 +2013,9 @@ def reconsider(cx, tree_id, by, dry_run=False):
     Then the conflicts (rule_conflicts): every conflict the rule resolved examined again, one it would no longer resolve so
     taken back with the event's value restored, and every open conflict on an event's date or place resolved where the
     classes favour one side without doubt (classes_decide), the rest left to the owner with the reason.
-    Last, every results-page row still undecided whose person is already accepted directly on the row's own record closes
-    rejected (close_result_rows): a row can outlive the record it summarizes when the record was accepted before the row's
-    own card was ever written, so this is swept on every run, not only at accept-time.
-    Returns one row per decision, per card superseded, per card, per conflict and per closed row: kind (decision, rematch,
-    card, resolution, conflict or row), the person, kept or taken, why; a card's rows the proposal and the persona, a
-    conflict's the question and its line."""
+    Returns one row per decision, per card superseded, per card and per conflict: kind (decision, rematch, card, resolution
+    or conflict), the person, kept or taken, why; a card's rows the proposal and the persona, a conflict's the question and
+    its line."""
     q = _q(cx); ts = now(); out = []; gone = []
     known = {r["id"] for r in q.execute("SELECT id FROM research_question WHERE tree_id=? AND closed_reason='resolved' AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.by') LIKE 'rule:%'", (tree_id,))}
     rows = q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' ORDER BY decided_at, id", (tree_id,)).fetchall()
@@ -2070,15 +2041,7 @@ def reconsider(cx, tree_id, by, dry_run=False):
             if ok and not dry_run: decide(cx, tree_id, p["id"], "accepted", f"{RULE_ACTOR[p['kind']]} for {by}", note=why); taken = True
             cards[p["id"]] = {"proposal": p["id"], "person": name(pay), "persona": persona(pay), "kind": "card", "taken": ok, "why": why}
     conflicts = rule_conflicts(cx, tree_id, by, dry_run=dry_run, known=known)   # its resolutions examined again, then every open conflict on a date or a place
-    rows_out = []; seen = set()
-    for p in q.execute("SELECT * FROM proposal WHERE tree_id=? AND status='undecided' AND kind='persona_match'", (tree_id,)).fetchall():
-        pid = json.loads(p["payload_json"]).get("person_id")
-        if not pid or pid in seen: continue
-        seen.add(pid)
-        for rid, rname in close_result_rows(cx, tree_id, pid, f"rule:record-accepted for {by}", ts, dry_run=dry_run):
-            rows_out.append({"proposal": rid, "person": q.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()["display_name"], "persona": rname,
-                              "kind": "row", "taken": True, "why": "the record itself is accepted"})
-    return out + list(cards.values()) + conflicts + rows_out
+    return out + list(cards.values()) + conflicts
 
 def main():
     ap = argparse.ArgumentParser(description="The standing rule's decisions examined again; the owner's word on a family link, a divorce, a duplicate or whether a person is alive.")
@@ -2137,7 +2100,6 @@ def main():
                 else: print("   ", f"{nm(m['person'])} {'child' if m['role'] == 'child' else 'spouse'} of {nm(m['of'])}: " + ("a new link, on this record" if m["new"] else "this record accepted as evidence on the link"))
             left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')=(SELECT json_extract(payload_json,'$.artifact_sha256') FROM proposal WHERE id=?)", (tree_id, a.proposal)).fetchone()[0]
             print(f"    {left} card(s) still waiting on this record" if left else "    nothing else waits on this record")
-            for rid, rname in res["closed_rows"]: print("   ", f"{rname} (result), a results-page row for {nm(res['person'])}, closed rejected: the record itself is accepted [{rid[-6:]}]")
             for x in res["conflicts"]:
                 if x["kind"] == "conflict" and x["taken"]: print("   ", f"the rule resolved {x['person']}'s {x['detail'].split(':', 1)[0]}: {x['why']}")
                 elif x["kind"] == "resolution" and not x["kept"]: print("   ", f"the rule took back its resolution of {x['person']}'s {x['detail'].split(':', 1)[0]}: {x['why']}")
@@ -2185,7 +2147,7 @@ def main():
                               else ("would resolve" if a.dry_run else "resolved") if x["taken"] else "left to you"
                     print(f"{verdict:19} {x['person']} [{x['question'][-6:] if x['question'] else 'no question yet'}] {x['detail']}: {x['why']}"); continue
                 verdict = ("kept" if x["kept"] else "would withdraw" if a.dry_run else "withdrawn") if x["kind"] == "decision" \
-                          else ("would close" if a.dry_run else "closed") if x["kind"] == "row" else ("would propose again" if a.dry_run else "proposed again") if x["kind"] == "rematch" \
+                          else ("would propose again" if a.dry_run else "proposed again") if x["kind"] == "rematch" \
                           else ("would take" if x["taken"] and a.dry_run else "taken" if x["taken"] else "refused")
                 print(f"{verdict:19} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: {x['why']}")
             if not rows: print("the rule has made no decision in this tree, and no card or conflict waits")
@@ -2194,7 +2156,7 @@ def main():
                         f"{sum(1 for x in rows if x['kind'] == 'card' and not x['taken'])} refused, "
                         f"{sum(1 for x in rows if x['kind'] == 'resolution' and not x['kept'])} of {sum(1 for x in rows if x['kind'] == 'resolution')} resolution(s) {'it would take back' if a.dry_run else 'taken back'}, "
                         f"{sum(1 for x in rows if x['kind'] == 'conflict' and x['taken'])} conflict(s) {'it would resolve' if a.dry_run else 'resolved'}, "
-                        f"{sum(1 for x in rows if x['kind'] == 'conflict' and not x['taken'])} left to you, {sum(1 for x in rows if x['kind'] == 'row')} results row(s) {'it would close' if a.dry_run else 'closed'}")
+                        f"{sum(1 for x in rows if x['kind'] == 'conflict' and not x['taken'])} left to you")
         elif a.cmd == "link":
             pid = cat.find_person(a.person)
             marriage = None

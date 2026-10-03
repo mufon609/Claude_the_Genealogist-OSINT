@@ -184,7 +184,6 @@ def decided_lines(conn_runs, collect_results, left_results, recon):
     for row in recon:
         if row["kind"] == "card" and row["taken"]: out.append(f"  reconsider: the rule took {row['person']} / {row['persona']}: {row['why']}")
         elif row["kind"] == "decision" and not row["kept"]: out.append(f"  reconsider: withdrew {row['person']} / {row['persona']}: {row['why']}")
-        elif row["kind"] == "row": out.append(f"  reconsider: closed a results-page row for {row['person']} ({row['persona']}), the record itself is accepted")
     return out
 
 def unanswered_lines(cx, conn_runs):
