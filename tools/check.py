@@ -302,7 +302,8 @@ def save_page_kinds():
 
 def save_page_key():
     """The browser script writes the key the attach reads: the saved-from line and the key comment, built from the literals of
-    tools/save_page.js's own `head` with a key and without one, are read back by the readers (fetches.saved_from, attach.saved_steps);
+    tools/save_page.js's own `head` with a key and without one over a real saved page's own URL and document, are read back by the
+    readers (fetches.saved_from, attach.saved_steps);
     the script takes the call's arguments in the order tools/fetches.py prints them (page_call), and ends in the call that the
     list's call replaces."""
     import tempfile
@@ -312,15 +313,17 @@ def save_page_key():
     m = re.search(r'const head = \(\) => "(.*?)" \+ location\.href \+ "(.*?)" \+ \(key \? "(.*?)" \+ key \+ "(.*?)" : ""\);', js)
     if not m: return ["the script's head() is not the saved-from line and the key comment this check reads"]
     lit = lambda s: s.encode().decode("unicode_escape")                      # the \n of a JavaScript literal
-    url, ids = "https://www.familysearch.org/en/search/record/results?q.surname=Bell", ["01M3ZTFSBTNXKPBMNT654TWQAF", "01M3ZTFSBTNXKPBMNT654TWQAG"]
+    page = os.path.join(FIXTURES, "familysearch-search-kentucky-deaths-bell-lena-howard.html")
+    url, ids = saved_from(page), ["01M3ZTFSBTNXKPBMNT654TWQAF", "01M3ZTFSBTNXKPBMNT654TWQAG"]
+    with open(page, encoding="utf-8") as fh: doc = fh.read().partition("\n")[2]   # the page below its own saved-from line
     plain = lit(m.group(1)) + url + lit(m.group(2)); keyed = plain + lit(m.group(3)) + ",".join(ids) + lit(m.group(4))
     bad = []
     for label, head, steps in (("with a key", keyed, ids), ("without one", plain, [])):
-        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as fh: fh.write(head + "<html></html>"); path = fh.name
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as fh: fh.write(head + doc); path = fh.name
         try:
             if saved_from(path) != url: bad.append(f"the saved-from line {label} is not read back as the page's URL")
         finally: os.remove(path)
-        if saved_steps(head + "<html></html>") != steps: bad.append(f"the page saved {label} names {saved_steps(head)}, expected {steps}")
+        if saved_steps(head + doc) != steps: bad.append(f"the page saved {label} names {saved_steps(head)}, expected {steps}")
     if not re.search(r"\(async function \(name, force, key\) \{", js): bad.append("the script does not take (name, force, key), the order page_call prints")
     if not js.rstrip().endswith('})("FILENAME.html")'): bad.append('the script does not end in the call ("FILENAME.html") that the list\'s call replaces')
     for holder, force in (("D03", "false"), ("H05", "true")):

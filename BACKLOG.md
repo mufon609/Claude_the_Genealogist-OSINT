@@ -503,8 +503,8 @@ harness holds more, and some of it is a real answer to another request, which
 reads as the holder saying "nothing" where its real answer holds a record:
 
 - undisclosed stand-ins: `fake_run` in loop `12`, `13` and `63` beside the four
-  the README names; `loop.py`'s geocoder reading only its cache; loop `40`
-  step 3's bare `<html></html>`; the smallest of JPEG files for a gravestone
+  the README names; `loop.py`'s geocoder reading only its cache; the smallest
+  of JPEG files for a gravestone
   photograph and the owner's family photographs (`decisions/50-memorial`,
   `decisions/95-cited-on-the-owners-word`), and a page of nothing but its
   saved-from line for a cited obituary (`decisions/70`, `decisions/97`,

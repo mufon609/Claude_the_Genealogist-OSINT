@@ -36,10 +36,11 @@
    "as": "saved"
   },
   {
-   "say": "an unrelated page beside it, with no saved-from line and no name the list printed",
+   "say": "an unrelated real page beside it, with no saved-from line and no name the list printed: the gravesite locator's results page for Davidson, Noi, as its connector received it",
    "save": {
     "holder": "no-such-holder",
-    "name": "random-note.html",
+    "fixture": "va-gravesite-search-davidson-noi.html",
+    "name": "va-gravesite-search-davidson-noi.html",
     "folder": "$saved.folder"
    }
   },
@@ -92,7 +93,7 @@
     {
      "file_exists": {
       "folder": "$saved.folder",
-      "name": "random-note.html",
+      "name": "va-gravesite-search-davidson-noi.html",
       "is": true
      },
      "why": "no saved-from line the attach reads and no name the list printed, so collect leaves it"
