@@ -1,6 +1,6 @@
 {
  "title": "a place's names that make different requests are each asked",
- "line": "the runner asks a name of a place only when the request it makes differs from every request already made on the run, not only the one before it: names that read as different counties are each asked and the run stops at the first that gets a hit, a name that repeats an earlier request is logged as tried and its request not made again",
+ "line": "the runner asks a name of a place only when the request it makes differs from every request already made on the run, not only the one before it: names that read as different counties are each asked and the run stops at the first that gets a hit, a name that repeats an earlier request is logged as tried and its request not made again; a name whose request the source did not answer, or that repeats such a request, is logged unanswered beside the names tried, the name answered with nothing is not, and the step stays runnable so the next turn asks again",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -98,11 +98,26 @@
          "Hempstead, Queens, New York",
          "Town of Hempstead < Nassau County < New York < United States"
         ],
-        "value": "Town of Hempstead < Nassau County < New York < United States"
+        "value": "Town of Hempstead < Nassau County < New York < United States",
+        "unanswered": [
+         "Hempstead, Nassau, New York",
+         "Town of Hempstead < Nassau County < New York < United States"
+        ]
        }
       }
      },
-     "why": "two requests go out, one per county, neither getting a hit; the third name repeats the first's request, which is not the one just before it, and is the only name left unasked; all three are on the tried list"
+     "why": "two requests go out, one per county, neither getting a hit; the third name repeats the first's request, which is not the one just before it, and is the only name left unasked; all three are on the tried list, and the two whose request the site did not answer, Nassau's and the town's that repeats it, are unanswered: Queens's answer of nothing is an answer"
+    },
+    {
+     "runnable": {
+      "step": {
+       "person": "I332737100409",
+       "row_key": "census household:1950",
+       "kind": "fetch"
+      },
+      "is": true
+     },
+     "why": "a run that left names unanswered never asked the step's fields in full: the next turn asks the census site again"
     }
    ]
   },

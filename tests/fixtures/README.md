@@ -347,7 +347,8 @@ A holder that does not answer is simulated, a control signal and no record:
 
 - `run` and `run_connector` answers carrying an `error`: the connection raises `URLError` whose message begins "the harness's
   stand-in for no answer" (a timeout, a challenge, a refusal): the census page image in loop `21`, `94` (its second run), `96`
-  and `100`; the census site's search in Nassau County in `94`'s first run, so that its second and third names are tried;
+  and `100`; the census site's search in Nassau County in `94`'s first run, so that its second and third names are tried and the
+  first and third, whose request it was, are logged unanswered;
   WikiTree in `22`.
 - The geocoder in a turn (`turn`, `turns`, `resume`): `loop.py` answers it from the resolver's cache alone, and a query the
   cache lacks fails as an endpoint that does not answer, so no request leaves the harness: loop `12` (its second step, the

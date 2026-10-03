@@ -278,17 +278,17 @@ two trees and one archived page, decided in the first and undecided in the
 second, and scope every reader that joins `person_persona`, `proposal` or
 `search_plan` by artifact or persona to its tree.
 
-### C10. A place name whose request got no answer is asked again
+### C10. A run of several requests one of which got no answer is asked again
 
-`run_step.run_connector` tries a step's place names one at a time and logs every
-name it tried; a run with one name's request unanswered (a timeout, a refusal)
-and another's answered with nothing is logged `none` (`outcome_of`: errors and
-an answer), and `log_search.same_fields` reads a run that tried every name as
-the step's own fields, so the step is closed at that source though one of its
-names was never answered (loop scenario `94`'s first run is that shape). Leave a
-name whose request got no answer off the run's tried list, or mark it untried,
-so the next turn asks it again, and show it on that scenario: the step stays
-runnable for the unanswered name alone.
+A run whose step carries one place name, or none, can still send several
+requests: `connectors/ky_vital_index.py` asks one year's file at a time over
+the step's years. One year's file unanswered (a timeout, a refusal) and another
+answered with no row under the surname is logged `none` (`run_step.outcome_of`:
+errors and an answer), and `log_search.same_fields` reads the run as the step's
+own fields, so the step is closed at that source though one year was never
+read. The runner marks only a place name whose request got no answer
+(`unanswered`). Mark the run's unanswered requests whatever made them, so the
+next turn asks again, and show it on a Kentucky index step over two years.
 
 ### C11. A place written one letter apart disagrees
 

@@ -575,9 +575,12 @@ newspapers), builds one request for two names of one place, which a
 rate-limited holder cannot answer differently, so the second name is logged as
 tried and sends nothing, the run's note saying which name's request it
 repeated. Every name tried, asked or not, is on the logged run's
-query, and so is whether the run stopped at a hit. A run that tried them all
-reads back as the step's own fields, and so does a run that stopped at the name
-that got a hit, whatever names follow it and whatever the hit came to: a record
+query, and so is whether the run stopped at a hit. A name one of whose requests
+the source did not answer (a timeout, a challenge, a refusal), or whose request
+repeated such a one, is logged unanswered beside them, and the run does not read
+back as the step's own fields: the step is asked again, as a run logged `error`
+is. Otherwise a run that tried them all reads back as the step's own fields,
+and so does a run that stopped at the name that got a hit, whatever names follow it and whatever the hit came to: a record
 found (a fetch step whose hit came from a connector other than its holder stays
 planned for the holder's own page), a book the Archive only lends (a `none`
 run), a listing none of whose rows fits anyone (a `none` run), and that

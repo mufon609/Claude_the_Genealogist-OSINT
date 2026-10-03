@@ -44,12 +44,14 @@ def same_fields(rendered, ran, outcome=None):
     anyone), the step's names up to and including the one that got it; a name added or dropped before that point, or any name
     added after a run that tried them all, is a change, as is a field the step has dropped or added since. A run says that it
     stopped at a hit by `stopped_at_hit` beside `tried` on its logged place field; a run logged before the mark existed is
-    read by its outcome, which is the run's: found stopped at its hit."""
+    read by its outcome, which is the run's: found stopped at its hit. A run with a name the source did not answer
+    (`unanswered` beside `tried`) never asked the step's fields in full, so it is not the same query: the name is asked again."""
     for k, f in rendered.items():
         r = ran.get(k)
         if r is None: return False
         if not isinstance(r, dict): r = {"value": r}
         if r.get("tried"):
+            if r.get("unanswered"): return False
             names = f["value"] if isinstance(f["value"], list) else [f["value"]]
             tried = list(r["tried"])
             stopped = r["stopped_at_hit"] if "stopped_at_hit" in r else outcome == "found"

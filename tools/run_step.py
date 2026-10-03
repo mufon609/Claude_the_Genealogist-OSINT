@@ -243,7 +243,9 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     is on the logged run's query, the last of them its value, with `stopped_at_hit` saying whether the run stopped at a
     name that got a hit, whatever the hit came to (a record, a book the Archive lends, a listing no row of which fits), so
     a widening try is read back afterwards, and a run that tried every name or stopped at a hit is read as the step's own
-    fields (log_search.same_fields). Returns the run with the records archived, to be read afterwards."""
+    fields (log_search.same_fields). A name one of whose requests got no answer (a timeout, a refusal), its own or the
+    earlier name's it repeated, is listed `unanswered` beside them, and such a run is not the step's own fields: the next
+    run asks it again. Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     from connectors.ia import name_parts
     surname = name_parts(query)[1]
@@ -291,6 +293,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted"))})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
     made, repeated = {}, []                                      # made: a request's identity -> the name that made it; repeated: the notes of the names that made no new request
+    answered, unanswered = {}, []                                # answered: a request's identity -> whether every page of it was answered; unanswered: the names one of whose requests was not
     stopped = False                                              # the run stopped at a name that got a hit, the rest never tried
     for name in names:
         q = query_for(name); creqs = reqs if name == names[0] else conn.requests(q)
@@ -298,16 +301,18 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
         new = [rq for rq in creqs if request_key(rq) not in made]
         if creqs and not new:                                    # every request this name makes was made under another name already
             earlier = dict.fromkeys(made[request_key(rq)] for rq in creqs)
-            repeated.append(f"{name} made the same request as {' and '.join(earlier)}: not asked again"); continue
+            repeated.append(f"{name} made the same request as {' and '.join(earlier)}: not asked again")
+            if name is not None and not all(answered[request_key(rq)] for rq in creqs): unanswered.append(name)
+            continue
         made.update({request_key(rq): name for rq in new})
         before = len(hits)
         for rq in new:
             all_reqs.append(rq["url"])
-            url = rq["url"]; pages = 1
+            url = rq["url"]; pages = 1; answered[request_key(rq)] = True
             while url:                                               # a search pages on while the connector says the total stays small (connector.next_page)
                 first = url == rq["url"]                             # the request as the connector gave it; a later page is a GET of the URL the connector named
                 try: data, meta = fetch(url, rq["kind"], conn, rq.get("data") if first else None)
-                except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); break
+                except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); answered[request_key(rq)] = False; break
                 sha = keep(data, meta, rq["kind"], url, {"request": rq["kind"], "query": q}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
                 rq["archived_sha"] = sha                              # this request's own bytes, for hits() to derive from (connectors/__init__.py)
                 if url == rq["url"]:
@@ -322,11 +327,12 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
                 except ValueError: url = None
                 for h in page_hits:
                     hits_of_page(h)
+        if name is not None and not all(answered[request_key(rq)] for rq in creqs): unanswered.append(name)
         if len(hits) > before: stopped = True; break              # a hit under this name, whatever it turns out to hold: never try the rest
     outcome = outcome_of(hits, errors, shas)
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [a for a in asked if a] + repeated + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
-    if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried, "stopped_at_hit": stopped}}   # every name tried, asked or not, the one the run stopped on, and whether it stopped at a hit
+    if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried, "stopped_at_hit": stopped, **({"unanswered": unanswered} if unanswered else {})}}   # every name tried, asked or not, the one the run stopped on, whether it stopped at a hit, and the names the source did not answer
 
     own = step["kind"] != "fetch" or conn.SOURCE == step["locator_source_id"]   # a fetch step is done by its holder's answer alone: a row-source connector's hit is another paper's page, logged and held, the cited record still to fetch
     lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query, done=own)
