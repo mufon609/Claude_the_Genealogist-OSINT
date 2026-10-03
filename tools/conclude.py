@@ -1845,6 +1845,32 @@ def reopen(cx, tree_id, qid, by, note):
     st = _q(cx).execute("SELECT status FROM research_question WHERE id=?", (res.get("question") or qid,)).fetchone()
     return {"ok": True, "question": res.get("question") or qid, "event": res["event"], "axis": res["axis"], "restored": res["was"], "questions": ids, "open": bool(st and st["status"] == "open")}
 
+def rule_conflict_decisions(rows):
+    """The rows of rule_conflicts that are decisions the rule made: a conflict it resolved (kind conflict, taken) and a
+    resolution of its own it took back (kind resolution, not kept)."""
+    return [x for x in rows if (x["kind"] == "conflict" and x["taken"]) or (x["kind"] == "resolution" and not x["kept"])]
+
+def rule_conflict_line(row):
+    """One decision of the rule on a conflict, in words, as the decision's printout, the person screen and the turn's report
+    tell it: the person, the date or place kept, the rule's reason, and how to give it back (reopen takes the question's id)."""
+    what = row["detail"].split(":", 1)[0]
+    if row["kind"] == "conflict":
+        return f"the rule resolved {row['person']}'s {what}" + (f", kept {row['value']}" if row.get("value") else "") + f": {row['why']} (to take it back: tools/conclude.py reopen {row['question']} --note \"…\")"
+    return f"the rule took back its resolution of {row['person']}'s {what}" + (f" (it had kept {row['value']})" if row.get("value") else "") + f": {row['why']} (the difference is open for you again)"
+
+def rule_conflict_changes(cx, tree_id, after):
+    """The rule's decisions on conflicts written to the audit log after the row `after` (an audit row id, the last one when a
+    turn began), whichever tool wrote them: each resolution (kind conflict, taken) and each resolution it took back (kind
+    resolution, not kept), in the order they were written, as the rows rule_conflicts returns, the reason in the rule's own words."""
+    q = _q(cx); out = []
+    for r in q.execute("""SELECT a.entity_id, a.diff_json, rq.subject_person_id, rq.detail_json FROM audit_log a JOIN research_question rq ON rq.id=a.entity_id
+                          WHERE a.tree_id=? AND a.entity_kind='research_question' AND a.actor LIKE 'rule:%' AND a.id>? AND json_extract(a.diff_json,'$.kept') IS NOT NULL
+                          ORDER BY a.id""", (tree_id, after)):
+        d = json.loads(r["diff_json"]); row = {"person": q.execute("SELECT display_name FROM person WHERE id=?", (r["subject_person_id"],)).fetchone()["display_name"],
+                                                "question": r["entity_id"], "detail": (json.loads(r["detail_json"] or "{}") or {}).get("detail") or "", "value": d["kept"]["value"]}
+        out.append({**row, "kind": "resolution", "kept": False, "why": d["withdrawn"]} if d.get("withdrawn") else {**row, "kind": "conflict", "taken": True, "why": d["note"]})
+    return out
+
 def conflict_lines(cat, pid):
     """The person's conflict lines on an event's date or place as the catalog gives them now (Catalog.disagreements), each
     with its event and axis: [(line, event id, axis)]."""
@@ -1866,9 +1892,9 @@ def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
     whose open conflict questions no longer read as the catalog does is planned again first, so the question resolved is
     the one the catalog gives; dry_run writes nothing and reads the catalog's own lines instead. Returns one row per
     resolution examined (kind resolution: kept, why) and per conflict decided or left (kind conflict: taken, why), each
-    with the person, the question and its line; known, the questions the rule had resolved before a run that decides
-    cards first (reconsider), makes a resolution written since, inside one of those decisions, a row of kind conflict
-    taken, as one this pass wrote."""
+    with the person, the question, its line and the date or place kept (value; none for a conflict left, or one a dry run
+    would resolve); known, the questions the rule had resolved before a run that decides cards first (reconsider), makes a
+    resolution written since, inside one of those decisions, a row of kind conflict taken, as one this pass wrote."""
     from plan import q_key
     q = _q(cx); ts = now(); cat = Catalog(cx, tree_id); out = []
     actor = f"{RULE_ACTOR['conflict']} for {by.split(' for ', 1)[-1] if by.startswith('rule:') else by}"
@@ -1885,15 +1911,15 @@ def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
         ev = q.execute("SELECT * FROM event WHERE id=?", (res["event"],)).fetchone()
         said = owner_decided(cx, tree_id, ev, res["axis"]) if ev else "the event is gone"
         if said:
-            done[spot] = True; out.append({"kind": "resolution", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "kept": True, "why": said}); continue
+            done[spot] = True; out.append({"kind": "resolution", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "kept": True, "value": res["kept"]["value"], "why": said}); continue
         keep, why = classes_decide(cx, tree_id, res["event"], res["axis"])
         holds = keep is not None and (keep == res["kept"]["assertion"] or kept_agrees(cx, keep, res))
         if keep is not None and not holds: why = f"it would now keep another value: {why}"
         if not holds and not dry_run: take_back(cx, tree_id, rq["id"], actor, why, ts)
         done[spot] = holds
         if holds and known is not None and rq["id"] not in known:        # written during this run, inside a decision: told as resolved here
-            out.append({"kind": "conflict", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "taken": True, "why": res.get("note") or why}); continue
-        out.append({"kind": "resolution", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "kept": holds, "why": why})
+            out.append({"kind": "conflict", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "taken": True, "value": res["kept"]["value"], "why": res.get("note") or why}); continue
+        out.append({"kind": "resolution", "person": name(rq["subject_person_id"]), "question": rq["id"], "detail": detail, "kept": holds, "value": res["kept"]["value"], "why": why})
     pids = list(dict.fromkeys(people)) if people is not None else \
            [r["subject_person_id"] for r in q.execute("SELECT DISTINCT subject_person_id FROM research_question WHERE tree_id=? AND kind='conflict' AND status='open' ORDER BY subject_person_id", (tree_id,))]
     opened = lambda pid: {(json.loads(r["detail_json"] or "{}") or {}).get("detail"): r["id"] for r in q.execute("SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", (pid,))}
@@ -1912,11 +1938,12 @@ def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
             elif q.execute("SELECT status FROM research_question WHERE id=?", (qid,)).fetchone()["status"] != "open": seen.add((eid, axis)); continue
             seen.add((eid, axis))
             keep, why = classes_decide(cx, tree_id, eid, axis)
-            taken = keep is not None
+            taken = keep is not None; value = None
             if taken and not dry_run:
                 r = resolve(cx, tree_id, qid, keep, actor, why)
                 if "error" in r: taken, why = False, r["error"]
-            out.append({"kind": "conflict", "person": name(pid), "question": qid, "detail": line, "taken": taken, "why": why})
+                else: value = r["kept"]["value"]
+            out.append({"kind": "conflict", "person": name(pid), "question": qid, "detail": line, "taken": taken, "value": value, "why": why})
     return out
 
 def kept_agrees(cx, keep, res):
@@ -2100,9 +2127,7 @@ def main():
                 else: print("   ", f"{nm(m['person'])} {'child' if m['role'] == 'child' else 'spouse'} of {nm(m['of'])}: " + ("a new link, on this record" if m["new"] else "this record accepted as evidence on the link"))
             left = cx.execute("SELECT COUNT(*) FROM proposal WHERE tree_id=? AND status='undecided' AND json_extract(payload_json,'$.artifact_sha256')=(SELECT json_extract(payload_json,'$.artifact_sha256') FROM proposal WHERE id=?)", (tree_id, a.proposal)).fetchone()[0]
             print(f"    {left} card(s) still waiting on this record" if left else "    nothing else waits on this record")
-            for x in res["conflicts"]:
-                if x["kind"] == "conflict" and x["taken"]: print("   ", f"the rule resolved {x['person']}'s {x['detail'].split(':', 1)[0]}: {x['why']}")
-                elif x["kind"] == "resolution" and not x["kept"]: print("   ", f"the rule took back its resolution of {x['person']}'s {x['detail'].split(':', 1)[0]}: {x['why']}")
+            for x in rule_conflict_decisions(res["conflicts"]): print("   ", rule_conflict_line(x))
         elif a.cmd == "fact":
             from facts import decide_fact
             pid = cat.find_person(a.person)

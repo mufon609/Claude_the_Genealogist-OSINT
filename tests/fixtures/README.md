@@ -206,7 +206,7 @@ detail carries `detail_has`, closed by the owner through `tools/log_search.py --
 owner's word), `archive` (a `fixture`, or a stand-in: `stand_in: "image"`, or a page with only a `saved_from` line,
 `suffix` to make other bytes of the same page; `source`, `collection`, `locator`, or a `manifest`; `extract`, `match`
 (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same, for a page the harness only
-reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`), `withdraw` (a `card`, or with `record` every decision the rule made on it),
+reads by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it),
 `reconsider` (`dry`; its `rows`, and `wrote`, the audit rows the run wrote), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
 `tools/conclude.py assertion`: by `record` and `event_type`, or a `membership` of the file), `place` (a persona fact
 placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact; `event` is a
@@ -264,7 +264,7 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
 person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `turns` (`tools/turns.py` the same way: `turns` for --turns,
 `resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
-into the inbox, then `--resume`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
+into the inbox, then `--resume`; its report, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
 replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, each answer for the first request
 carrying its `url_has` that no earlier request took: a saved real response, or the harness's stand-in for a holder that did not
 answer; a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the

@@ -6,7 +6,7 @@ themselves in the scenario's data (a body, an outcome per request, the field a c
 fakes stay code because they exercise the connectors' contract (requests, hits, fetch); nothing here names a person, a
 place or a page.
 """
-import contextlib, importlib.util, io, json, os, shutil, sys, types
+import contextlib, importlib.util, io, json, os, re, shutil, sys, types
 from common import BY, FIXTURES, TOOLS, run, tool
 import scenario
 from scenario import ACTIONS, EXPECTS, SCENARIOS, has, plant_geocoder
@@ -52,6 +52,10 @@ def geocoder_offline():
 
 # ---------------------------------------------------------------- actions
 
+def reopens(text):
+    """The question ids a report names for tools/conclude.py reopen, in the order it names them."""
+    return re.findall(r"tools/conclude\.py reopen (\S+) ", text)
+
 def a_turn(w, x):
     """tools/turn.py start on a person, run_step.run standing in for the network as the data says, the geocoder's answers the
     fixtures under `geocoder` plant (and no other); the steps it ran and the state it kept beside the database."""
@@ -61,7 +65,7 @@ def a_turn(w, x):
     buf = io.StringIO()
     with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
     st = turn.load_state(w.db)
-    return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue()}
+    return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue(), "reopens": reopens(buf.getvalue())}
 
 def a_resume(w, x):
     """The pages dropped into the inbox as a save would leave them, then tools/turn.py --resume; its report."""
@@ -72,7 +76,7 @@ def a_resume(w, x):
     buf = io.StringIO()
     with geocoder_offline(), contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
     out = buf.getvalue()
-    return {"report": out, "left": out.split("left:", 1)[1] if "left:" in out else "", "state": turn.load_state(w.db)}
+    return {"report": out, "left": out.split("left:", 1)[1] if "left:" in out else "", "state": turn.load_state(w.db), "reopens": reopens(out)}
 
 def a_turns(w, x):
     """tools/turns.py: turn after turn from the queue, run_step.run standing in for the network as the data says (fake_run, as

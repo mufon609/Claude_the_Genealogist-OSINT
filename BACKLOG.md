@@ -265,15 +265,6 @@ two trees and one archived page, decided in the first and undecided in the
 second, and scope every reader that joins `person_persona`, `proposal` or
 `search_plan` by artifact or persona to its tree.
 
-### C10. The turn's report and the person screen do not show the rule's conflict decisions
-
-`conclude.rule_conflicts` decides a conflict the evidence classes settle and
-writes its reason on the question and in the audit log, and `tools/proof.py`
-prints it; `tools/turn.py`'s report and the person screen's decision summary
-name neither the decision nor its reason, so the owner meets it only in the
-proof summary. Name each one where the rule's other decisions are named, with
-`tools/conclude.py reopen` beside it.
-
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card

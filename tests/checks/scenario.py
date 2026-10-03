@@ -316,10 +316,15 @@ def a_match(w, x):
     return {"written": [{"proposal": p, "kind": k, "name": n, "person": pid} for p, k, n, pid in written]}
 
 def a_decide(w, x):
+    """The decision on a card (conclude.decide); with `screen`, through the person screen's own route (server.decide_proposal), whose
+    answer in words comes back as `summary`."""
     from conclude import decide
     card = w.card(x["card"])
     if card is None: raise KeyError(f"no card {short(x['card'])}")
-    r = decide(w.cx, w.tid, card["id"], x.get("status", "accepted"), x.get("by", BY), note=x.get("note", "harness"), choice=x.get("choice"))
+    if x.get("screen"):
+        sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server; server.CFG["by"] = BY
+        r = server.decide_proposal(w.cx, w.tid, card["id"], x.get("status", "accepted"), x.get("note", "harness"), x.get("choice"))
+    else: r = decide(w.cx, w.tid, card["id"], x.get("status", "accepted"), x.get("by", BY), note=x.get("note", "harness"), choice=x.get("choice"))
     return {**r, "card": card["id"], "person_id": json.loads(card["payload_json"]).get("person_id")}
 
 def a_withdraw(w, x):
