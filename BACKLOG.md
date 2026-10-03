@@ -396,6 +396,21 @@ the card pass judge a card on the ground before it the way the re-examination
 does, so one run is the fixed point; until then the live run repeats
 reconsider until a run changes nothing.
 
+### C24. A relationship the record states still reads indirect
+
+`catalog.evidence_classes` overrides only the relationship class when the
+reading marks a family link stated (`computed: false`); the evidence class
+still comes from the table row for the relatives-table heading
+(`familysearch-record`, `relation [Spouses and Children]`: indirect,
+computed), a row written for FamilySearch's own groupings. So a marriage
+register's Husband and Wife read "derivative, primary, indirect, stated",
+and `tools/proof.py` says the spouses fact still owes an argument because no
+statement is both direct and primary. Put to the owner whether a
+relationship the record itself states is direct evidence of it; if so, make
+the reading's mark set the evidence class with the relationship (stated:
+direct, computed: indirect) and say so in `data/DATA-SOURCES.md`; if not,
+record why beside the rule there.
+
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
