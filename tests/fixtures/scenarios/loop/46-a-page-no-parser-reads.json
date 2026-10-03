@@ -1,6 +1,6 @@
 {
  "title": "a page no parser reads is held, unread",
- "line": "a page saved under the fetch list's name from a holder whose pages no parser reads (the Mansfield News Journal's own answer for a cited obituary, a Page Not Found page) is archived and logged unread on the step it was saved for, the run's note saying so: the page is held, still fetched for the person, and the step stays planned and is not listed for saving again while the page waits, the other person's step citing the same page still listed; the 0.7.8 migration turns a found run an older attach logged for such a page to unread with one audit row under its own actor, leaves a run on a page a parser reads and a run on an image found, and refuses, writing nothing, while a step stands done with a run to correct",
+ "line": "a page saved under the fetch list's name from a holder whose pages no parser reads (the Mansfield News Journal's own answer for a cited obituary, a Page Not Found page) is archived and logged unread on the step it was saved for, the run's note saying so: the page is held, still fetched for the person, and the step stays planned and is not listed for saving again while the page waits, the other person's step citing the same page still listed; the 0.7.8 migration turns a found run an older attach logged for such a page to unread with one audit row under its own actor, leaves a run on a page a parser reads and a run on an image found (the image put to the parsers by hand, which none claims: an image is read by the transcription path, never by a parser), and refuses, writing nothing, while a step stands done with a run to correct",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -111,7 +111,7 @@
         "source_id": "H05",
         "outcome": "unread",
         "notes": {
-         "starts": "no parser reads this page"
+         "starts": "no parser reads this record"
         },
         "artifacts": [
          "$collected.sha"
@@ -243,6 +243,31 @@
     }
    },
    "as": "nys"
+  },
+  {
+   "say": "the image put to the parsers by hand (tools/extract.py <sha256>): none claims it, so its one extraction is the failed one",
+   "reread": {
+    "record": "nys"
+   },
+   "expect": [
+    {
+     "last": {
+      "n": {
+       "failed": {
+        "has": "image/jpeg"
+       }
+      }
+     },
+     "why": "no parser reads an image"
+    },
+    {
+     "count": {
+      "extractions_of": "nys",
+      "is": 1
+     },
+     "why": "the failed reading is the image's only one: no transcription of it yet"
+    }
+   ]
   },
   {
    "say": "an older catalog's runs on the other person's step, as the attach logged them before a page no parser reads had a word of its own: found on the page a parser reads and on the image",
@@ -417,7 +442,7 @@
        "some": {
         "outcome": "unread",
         "notes": {
-         "starts": "no parser reads this page; harness: the page no parser reads"
+         "starts": "no parser reads this record; harness: the page no parser reads"
         },
         "artifacts": [
          "$collected.sha"
@@ -469,7 +494,7 @@
        }
       }
      },
-     "why": "a run on an image stays found"
+     "why": "a run on an image stays found, though its every extraction failed: the transcription path reads an image, never a parser"
     },
     {
      "audit": {

@@ -58,19 +58,19 @@ def rebuild_questions(cx: sqlite3.Connection) -> None:
 
 def unread_runs(cx: sqlite3.Connection) -> None:
     """search_log accepts the outcome 'unread' (rebuild_table), and the catalog's one-time correction of the runs an older
-    attach logged found for a web page no parser reads: a found run whose every artifact is a page whose every extraction is
-    the failed one for a page no parser claims (log_search.unread_page; an image, a page a parser or the model or a person
-    read, stays found) is an unread run, its note beginning with log_search.UNREAD, one audit row per run under the
-    migration's own actor, naming the step, the person, the holder and the page, the run as it stood in diff_json. Refused,
-    nothing written, when such a run sits on a step standing done: the run may have closed it, and whether the step
-    stands is the owner's, so each such step is named."""
-    from log_search import UNREAD, unread_page
+    attach logged found for a web page no parser reads: a found run whose every artifact is a record whose every extraction
+    is the failed one for a file no parser claims (log_search.unread_record; an image, a record a parser or the model or a
+    person read, a file no parser was asked to read, stays found) is an unread run, its note beginning with
+    log_search.UNREAD, one audit row per run under the migration's own actor, naming the step, the person, the holder and
+    the page, the run as it stood in diff_json. Refused, nothing written, when such a run sits on a step standing done: the
+    run may have closed it, and whether the step stands is the owner's, so each such step is named."""
+    from log_search import UNREAD, unread_record
     actor, ts = "migration:0.7.8", now()
     runs = []
     for lid, tree, step, shas, source, notes in cx.execute("""SELECT id, tree_id, plan_step_id, artifacts_json, source_id, notes FROM search_log
                                                               WHERE outcome='found' AND artifacts_json IS NOT NULL ORDER BY executed_at, id""").fetchall():
         shas = json.loads(shas)
-        if shas and all(unread_page(cx, s) for s in shas): runs.append((lid, tree, step, shas, source, notes))
+        if shas and all(unread_record(cx, s) for s in shas): runs.append((lid, tree, step, shas, source, notes))
     done = [f"step {step} ({cx.execute('SELECT p.display_name FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=?', (step,)).fetchone()[0]}, "
             f"{source}) stands done with run {lid} on the unread page {', '.join(s[:12] for s in shas)}" for lid, _, step, shas, source, _ in runs
             if step and cx.execute("SELECT status FROM search_plan WHERE id=?", (step,)).fetchone()[0] == "done"]

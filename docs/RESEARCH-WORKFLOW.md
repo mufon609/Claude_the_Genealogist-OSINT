@@ -504,7 +504,8 @@ closes both. A fetch step is done only when a record page holds its
 citation; a done step whose found runs hold only listings or pages no parser
 read (a hand's found run) is planned again by the plan, and a page no parser
 reads is logged `unread` by the attach, never found, and closes no step, nor
-does a connector's answer of such pages (below). When
+does a connector's answer of records no parser reads, a page or a JSON or text
+response alike (below). When
 a step's sources include a holder with a connector as well (the 1950 site),
 the page saved by hand and the connector's own answer are runs of the same
 step, whichever came first.
@@ -555,10 +556,12 @@ table holds for the person, Ahearn then Ahern, the pages merged; a book the
 Archive only lends stops at its metadata and the run is `none` with the
 reason), one `search_log` row holds the exact query, the outcome and every
 hash, and the extractor and matcher run on each hit's record. The run is
-logged before its records are read, so one whose records are all web pages no
-parser reads is then set to `unread`, as the attach logs such a page saved by
-hand: the pages are held on the step's log, the note says so, and no step is
-closed, the other household members' steps a census page was logged on included.
+logged before its records are read, so one whose records are all records no
+parser reads, whatever their form (a web page, a JSON or text response; an
+image or an item's metadata is never read as a record), is then set to
+`unread`, as the attach logs a page no parser reads saved by hand: the records
+are held on the step's log, the note says so, and no step is closed, the other
+household members' steps a census page was logged on included.
 A run with any record a parser reads is `found` (or, when every record is a
 results listing none of whose rows fits anyone, `none`) as before.
 A place field that carries several names (§3) is tried one name at a time, in
@@ -635,10 +638,12 @@ Every execution is a **research log** row: query as actually run, source, date,
 outcome (`found`, `none`, `blocked`, `error`, `unread`), artifacts produced.
 "Searched the 1880 census of Worcester Township for Brant, none found" is
 evidence and stays. `found` is a record or page archived and read; `unread` is
-a web page archived that no parser reads (a failed extraction, no reading of it
-by the model or a person), whether the attach saved it from the browser or a
-connector's answer was archived: held on the step's log, the step stays planned,
-and what a program can rely on is that nothing was read from it.
+a record archived that no parser reads, whatever its form, a web page or a
+connector's JSON or text response (its every extraction failed, no reading of
+it by the model or a person; an image is read by the transcription path, never
+by a parser, and is not this case), whether the attach saved it from the
+browser or a connector's answer was archived: held on the step's log, the step
+stays planned, and what a program can rely on is that nothing was read from it.
 
 A `missing_fact` or `unverified_claim` question is about the absence of a
 claim, so it closes as answered the moment an accepted document supplies the
@@ -703,8 +708,9 @@ full enlistment record to `rule:aad-enlistment@0.1.0`, a 1950 census
 site response to `rule:nara-1950-schedule@0.1.0`, a loc.gov OCR response
 to `rule:loc-gov-ocr@0.1.0`, the Archive's search inside an item to
 `rule:ia-search-inside@0.1.0` and a WikiTree profile with its relatives to
-`rule:wikitree-profile@0.1.0`; a page no parser claims gets a failed extraction
-by `rule:extract@0.1.0` and is reported, its run on the step logged `unread` (§4).
+`rule:wikitree-profile@0.1.0`; a page or response no parser claims gets a
+failed extraction by `rule:extract@0.1.0` and is reported, its run on the step
+logged `unread` (§4).
 The raw parsed page is in
 `extraction.structured_json`. Re-running an
 extractor, at any version, supersedes its earlier extraction (`tools/extract.py
@@ -1304,8 +1310,8 @@ person dismissed stays closed. `tools/log_search.py` (and the person screen)
 record every run with the fields as rendered after include and revise; a
 `found` run marks the step done, a `none` run leaves it planned and visible as
 tried, and so does an `unread` run, the one the attach and the runner log for a
-web page no parser reads (schema 0.7.8: the page is held on the log, nothing is
-read from it). A found run that archived a file records the artifact on the log; the
+record no parser reads, a web page or a JSON or text response alike (schema
+0.7.8: the record is held on the log, nothing is read from it). A found run that archived a file records the artifact on the log; the
 row is then held, and the assertion comes from extraction and review.
 
 ## Rules that hold throughout

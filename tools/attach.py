@@ -23,7 +23,7 @@ citation's collection has the page's collection as a holder (data/holders.csv) a
 name searched. Such a page is the run's own artifact: a found run when a row fits someone (match.fitting_rows), a none run when
 none does, the query as run on the log. A fetch step is done by a found run only when the page is the record it cites
 (log_search.holds_record): a listing points at a record and is not one, so the step stays planned while the run on its fields
-answers the search for the fetch list. A page no parser reads (log_search.unread_page) is held and holds nothing a program
+answers the search for the fetch list. A page no parser reads (log_search.unread_record) is held and holds nothing a program
 knows: its run is `unread`, the step stays planned whatever its kind, and the run on its fields keeps the page off the fetch
 list while it waits. A row that fits is no card (the matcher proposes none) but a lead on the person: the plan is written
 again for the people the page fits, so tools/plan.py's result_row_leads gives each row's own record its fetch step, which
@@ -39,7 +39,7 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
-from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, step_source, unread_page
+from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, step_source, unread_record
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
 from conclude import match_record
@@ -476,7 +476,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     retrieved gives terms and cost; the locator is the step's, or the search URL for a results page), log a found run on every
     step not yet logged with it (a results page's log carries the query as run and the number of results), file the original
     under the tree, then parse and match a page new to the archive. A results page on which no candidate fits has its run set
-    to none, the candidates kept on the artifact; one no parser reads (a web page whose every reading failed, log_search.unread_page)
+    to none, the candidates kept on the artifact; one no parser reads (a page whose every reading failed, log_search.unread_record)
     has it set to unread, the note saying so, and closes nothing. Then the steps the run closes are marked done: a search step by
     the found run; a fetch step only when the page is the record it cites (log_search.holds_record), so a listing that points at
     records leaves it planned. Returns what happened."""
@@ -532,7 +532,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
             for sid, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
             out["outcome"] = "none"
         for person in dict.fromkeys(who for who, _, _ in fits): plan_person(cx, tree_id, person, by)   # the rows' own records are fetch steps now: the plan says so before anyone asks for the next page
-    if steps and logs and unread_page(cx, sha):                   # a page no parser reads: held on the step's log, read by nobody, closing nothing
+    if steps and logs and unread_record(cx, sha):                 # a page no parser reads: held on the step's log, read by nobody, closing nothing
         for sid, lid in logs: hold_unread(cx, lid)
         out["outcome"] = "unread"
     if out.get("outcome") not in ("none", "unread") and logs:     # the found run closes a search step; a fetch step only when the page is the record it cites
