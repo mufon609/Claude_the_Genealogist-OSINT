@@ -1,0 +1,162 @@
+{
+ "title": "a record page saved from the list reaches the step its key names first, then the steps its identity reaches",
+ "line": "the record page the list prints for a lead carries the lead's step as its key; collect puts that step first, with the key as its reason, and the step the listing pointed at the record for follows by the page's own identity; the page names its principal Fred where the citation says Frederick, so it is the key that ties the page to the lead without the name",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word, the name the citation sits on as the search was run",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 90,
+    "step_key": "fetch:1,62308::1",
+    "kind": "fetch",
+    "query_type": "household",
+    "query": {
+     "collection": {
+      "value": "1950 United States Federal Census",
+      "basis": "owner"
+     },
+     "name": {
+      "value": "Frederick Micheal Ahearn",
+      "basis": "owner"
+     }
+    },
+    "locator": {
+     "source": "D03",
+     "kind": "apid",
+     "value": "1,62308::1"
+    },
+    "sources": [
+     "D03"
+    ],
+    "mode": "fetch",
+    "status": "planned",
+    "on": "[]",
+    "rationale": "harness: a 1950 citation on the owner's word; fetch the record at United States, Census, 1950"
+   }
+  },
+  {
+   "say": "the search saved: the first row is his lead, and the row's own record page takes the search link's place on the list",
+   "attach": {
+    "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html"
+   }
+  },
+  {
+   "say": "the record page saved from the list: the call's key, the lead's own step, written under the saved-from line",
+   "save": {
+    "holder": "D03",
+    "person": "I332737036054",
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "folder": "downloads",
+    "key": true
+   },
+   "as": "saved",
+   "expect": [
+    {
+     "last": {
+      "save_as": "familysearch-census-1950-6XYS-NQ16.html",
+      "key": {
+       "len": 1
+      }
+     },
+     "why": "the list's entry for the lead names one step: the lead"
+    },
+    {
+     "fetch_call": {
+      "step": {
+       "person": "I332737036054",
+       "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16"
+      },
+      "call": {
+       "starts": "(\"familysearch-census-1950-6XYS-NQ16.html\", false, \"",
+       "ends": "\")"
+      },
+      "serves": [
+       {
+        "person": "I332737036054",
+        "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16"
+       }
+      ]
+     },
+     "why": "the call the list printed names the lead's step"
+    }
+   ]
+  },
+  {
+   "say": "collect: the lead first, by the key, and the census step the listing pointed at the record for, by the page's own identity",
+   "collect": {
+    "folder": "$saved.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": "ark ark:/61903/1:1:6XYS-NQ16",
+        "left": null,
+        "steps": [
+         [
+          {
+           "any": true
+          },
+          "Frederick Micheal Ahearn Jr",
+          {
+           "starts": "search result"
+          },
+          {
+           "has": "page's own key names this step"
+          }
+         ],
+         [
+          {
+           "any": true
+          },
+          "Frederick Micheal Ahearn Jr",
+          {
+           "starts": "census household"
+          },
+          {
+           "has": "listing pointed at this record"
+          }
+         ]
+        ],
+        "key": {
+         "named": 1,
+         "taken": 1,
+         "aside": []
+        },
+        "unparsed": null
+       }
+      ]
+     },
+     "why": "the key's step leads; the identity's own reach follows, and no step is reached twice"
+    },
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16",
+      "fields": {
+       "status": "done"
+      }
+     },
+     "why": "the lead's record is archived: done"
+    },
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:1,62308::1",
+      "fields": {
+       "status": "done"
+      }
+     },
+     "why": "a record page holds the citation: the step is done"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,361 @@
+{
+ "title": "a key the page's own identity contradicts is set aside, and the inference stands in its place",
+ "line": "a record page whose ark (or memorial) is not the record the named step asks for, a results page where the step asks for one record, and a results page of another collection than the named step's citation are not what the key says: the step is set aside with the reason, the line says so, and the page reaches the steps its own identity reaches, as a page with no key does; a step the plan no longer has is set aside the same way, and the steps of the key that stand are taken",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word, the name the citation sits on as the search was run",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 90,
+    "step_key": "fetch:1,62308::1",
+    "kind": "fetch",
+    "query_type": "household",
+    "query": {
+     "collection": {
+      "value": "1950 United States Federal Census",
+      "basis": "owner"
+     },
+     "name": {
+      "value": "Frederick Micheal Ahearn",
+      "basis": "owner"
+     }
+    },
+    "locator": {
+     "source": "D03",
+     "kind": "apid",
+     "value": "1,62308::1"
+    },
+    "sources": [
+     "D03"
+    ],
+    "mode": "fetch",
+    "status": "planned",
+    "on": "[]",
+    "rationale": "harness: a 1950 citation on the owner's word; fetch the record at United States, Census, 1950"
+   }
+  },
+  {
+   "say": "the search saved: the first row is his lead, and the row's own record page takes the search link's place on the list",
+   "attach": {
+    "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html"
+   }
+  },
+  {
+   "say": "another record's page saved under the lead's key: the tab was on the wrong record",
+   "save": {
+    "name": "familysearch-census-1950-6XYS-NQ16.html",
+    "fixture": "familysearch-census-1940-KQT1-2MF.html",
+    "folder": "downloads",
+    "key": [
+     {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16"
+     }
+    ]
+   },
+   "as": "wrong"
+  },
+  {
+   "say": "collect: the page is the 1940 record, not the 1950 one the lead asks for",
+   "collect": {
+    "folder": "$wrong.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": "ark ark:/61903/1:1:KQT1-2MF",
+        "key": {
+         "named": 1,
+         "taken": 0,
+         "aside": [
+          {
+           "who": "Frederick Micheal Ahearn Jr",
+           "row_key": {
+            "starts": "search result"
+           },
+           "why": {
+            "has": [
+             "the page is ark ark:/61903/1:1:KQT1-2MF",
+             "the step asks for ark ark:/61903/1:1:6XYS-NQ16"
+            ]
+           }
+          }
+         ]
+        }
+       }
+      ],
+      "lines": [
+       {
+        "has": [
+         "the page's key names 1 step(s) set aside, its own identity deciding: Frederick Micheal Ahearn Jr (search result): the page is ark ark:/61903/1:1:KQT1-2MF",
+         "3 step(s) fulfilled: Raymond Earl Davidson (census household: the citation names this census page"
+        ]
+       }
+      ]
+     },
+     "why": "the key's one step is the lead for another record: set aside, the line says why, and the page reaches the Davidson household steps by its own identity as any page does"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737036054",
+       "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16"
+      },
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the lead was not logged with a page that is not its record"
+    },
+    {
+     "step": {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "the lead still waits for its own page"
+    }
+   ]
+  },
+  {
+   "say": "her Kentucky death records search saved from the list's entry, and the key as a session that named a second entry's step and a step the plan no longer has would leave it: the death index citation at the same holder is of another collection, and the last id names no step",
+   "save": {
+    "holder": "D03",
+    "person": "I332737204852",
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "folder": "downloads2",
+    "key": [
+     {
+      "person": "I332737204852",
+      "row_key": "death record:1918",
+      "kind": "fetch",
+      "locator": {
+       "kind": "apid",
+       "value": "1,1222::1373711"
+      }
+     },
+     {
+      "person": "I332737204852",
+      "row_key": "death record:1918",
+      "kind": "fetch",
+      "locator": {
+       "kind": "apid",
+       "value": "1,3077::604157"
+      }
+     },
+     "00000000000000000000000000"
+    ]
+   },
+   "as": "lena"
+  },
+  {
+   "say": "collect: the step of the page's own collection is taken by the key, the other two are set aside",
+   "collect": {
+    "folder": "$lena.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": {
+         "starts": "fs_search "
+        },
+        "left": null,
+        "steps": [
+         [
+          {
+           "any": true
+          },
+          "Lena Howard Bell",
+          "death record:1918",
+          {
+           "has": "page's own key names this step"
+          }
+         ]
+        ],
+        "key": {
+         "named": 3,
+         "taken": 1,
+         "aside": [
+          {
+           "who": "Lena Howard Bell",
+           "why": {
+            "has": "the citation is of no collection this page searches (D03 1417491)"
+           }
+          },
+          {
+           "who": null,
+           "why": "no such step"
+          }
+         ]
+        }
+       }
+      ],
+      "lines": [
+       {
+        "has": "the page's key names 2 step(s) set aside, its own identity deciding: Lena Howard Bell (death record): the citation is of no collection this page searches (D03 1417491), 000000: no such step"
+       }
+      ]
+     },
+     "why": "the death records step stands; the death index citation is of the Kentucky vital record indexes, not the collection this page searched; the last id is no step"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,3077::604157"
+       }
+      },
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the death index step was not logged with a search of another collection"
+    }
+   ]
+  },
+  {
+   "say": "a memorial saved under another memorial's key: the tab was on the wrong grave",
+   "save": {
+    "name": "findagrave-memorial-130509402.html",
+    "fixture": "findagrave-memorial-143847338.html",
+    "folder": "downloads3",
+    "key": [
+     {
+      "person": {
+       "name": "John Y Davidson"
+      },
+      "holder": "E01",
+      "kind": "fetch"
+     }
+    ]
+   },
+   "as": "grave"
+  },
+  {
+   "say": "collect: the page is memorial 143847338, the key's step cites memorial 130509402",
+   "collect": {
+    "folder": "$grave.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": "memorial 143847338",
+        "steps": [
+         [
+          {
+           "any": true
+          },
+          "John Young Davidson",
+          {
+           "starts": "cemetery"
+          },
+          {
+           "has": "the citation carries this memorial"
+          }
+         ]
+        ],
+        "key": {
+         "named": 1,
+         "taken": 0,
+         "aside": [
+          {
+           "who": "John Y Davidson",
+           "why": "the page is memorial 143847338, the step asks for memorial 130509402"
+          }
+         ]
+        }
+       }
+      ]
+     },
+     "why": "the key's step cites another memorial: set aside, and the memorial's own identity reaches the step whose citation carries it"
+    }
+   ]
+  },
+  {
+   "say": "a results page saved under the lead's key: the tab was on a search, not the record's page",
+   "save": {
+    "name": "familysearch-census-1950-6XYS-NQ16.html",
+    "fixture": "familysearch-massachusetts-marriage-search-no-results-annie-e-scannell.html",
+    "folder": "downloads4",
+    "key": [
+     {
+      "person": "I332737036054",
+      "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16"
+     }
+    ]
+   },
+   "as": "listing"
+  },
+  {
+   "say": "collect: a listing points at a record and is not one, so the lead is not logged with it",
+   "collect": {
+    "folder": "$listing.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": {
+         "starts": "fs_search "
+        },
+        "key": {
+         "named": 1,
+         "taken": 0,
+         "aside": [
+          {
+           "who": "Frederick Micheal Ahearn Jr",
+           "why": "the page is a results page, the step asks for ark ark:/61903/1:1:6XYS-NQ16"
+          }
+         ]
+        }
+       }
+      ]
+     },
+     "why": "the key's step asks for one record: a results page is not it, so the key is set aside"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737036054",
+       "step_key": "fetch:row:ark:/61903/1:1:6XYS-NQ16"
+      },
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the lead stays unrun, so its record page is still the next page on the list"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737036054",
+      "url_has": "ark:/61903/1:1:6XYS-NQ16",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "the list still sends someone to the lead's record page"
+    }
+   ]
+  }
+ ]
+}

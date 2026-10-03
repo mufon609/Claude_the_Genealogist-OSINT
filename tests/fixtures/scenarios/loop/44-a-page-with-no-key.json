@@ -1,0 +1,125 @@
+{
+ "title": "a page with no key reaches its steps by its own identity, as before",
+ "line": "a page dropped into the inbox by hand carries no key: it reaches the steps its own identity reaches, each with the inference as its reason and no key in the result; where the inference finds no step, here after the plan rewrote the step's fields, the page is left in the inbox, which is the case the key from the fetch list covers",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a search saved by hand into the download folder: no call, so no key under its saved-from line",
+   "save": {
+    "holder": "D03",
+    "person": "I332737044799",
+    "fixture": "familysearch-massachusetts-marriage-search-no-results-annie-e-scannell.html",
+    "folder": "downloads"
+   },
+   "as": "annie"
+  },
+  {
+   "say": "collect: the steps the search's own fields reach, the inference as the reason",
+   "collect": {
+    "folder": "$annie.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": {
+         "starts": "fs_search "
+        },
+        "left": null,
+        "steps": [
+         [
+          {
+           "any": true
+          },
+          "Annie E Scannell",
+          "marriage record:James Joseph Ahearn",
+          {
+           "has": "citation's own search"
+          }
+         ],
+         [
+          {
+           "any": true
+          },
+          "James Joseph Ahearn",
+          "marriage record:Annie E Scannell",
+          {
+           "has": "citation's own search"
+          }
+         ]
+        ],
+        "key": null,
+        "outcome": "none"
+       }
+      ]
+     },
+     "why": "no key, so the result names no key and every step is reached by the name searched and the collection, as before"
+    }
+   ]
+  },
+  {
+   "say": "the plan writes new fields on a step before a search saved by hand is collected: the name the citation sits on is now the married name",
+   "step_query": {
+    "step": {
+     "person": "I332737204852",
+     "row_key": "death record:1918",
+     "kind": "fetch",
+     "locator": {
+      "kind": "apid",
+      "value": "1,1222::1373711"
+     }
+    },
+    "query": {
+     "collection": {
+      "value": "Kentucky, U.S., Death Records, 1852-1965",
+      "basis": "citation"
+     },
+     "name": {
+      "value": "Lena Howard Davidson",
+      "basis": "citation"
+     }
+    }
+   }
+  },
+  {
+   "say": "her Kentucky search saved by hand, the same page the key's scenario saves from the list",
+   "save": {
+    "holder": "D03",
+    "person": "I332737204852",
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "folder": "downloads2"
+   },
+   "as": "lena"
+  },
+  {
+   "say": "collect: no step cites the name searched, and nothing names the step: the page is left in the inbox",
+   "collect": {
+    "folder": "$lena.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": {
+         "starts": "fs_search "
+        },
+        "steps": [],
+        "left": {
+         "has": "no fetch step's citation was searched for by this name at this holder"
+        },
+        "key": null
+       }
+      ]
+     },
+     "why": "with the key the same page reaches the step it was saved for; without it, the inference by name finds none"
+    }
+   ]
+  }
+ ]
+}

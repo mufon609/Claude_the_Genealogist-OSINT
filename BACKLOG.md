@@ -147,24 +147,19 @@ Pennsylvania State Archives' death index 1906–1975 and birth index 1906–1910
 fall in its years) and Reclaim the Records' Massachusetts death, marriage and
 birth indexes (PDFs whose text layer is empty).
 
-### C2. A saved page carries its fetch-list entry in its own bytes
+### C2. A page of a holder the script knows by no markup is taken by its key
 
-`tools/fetches.py collect` reads a saved page's identity from the bytes (the
-saved-from line `tools/save_page.js` writes), never from its file name, since
-Chrome may sanitize or de-duplicate the name the list printed
-(`docs/RESEARCH-WORKFLOW.md` §4). A FamilySearch search page, or a record page
-whose citation carries no ark of the holder's, then reaches its steps only by
-inference: the page's collection against the citation's holder collection
-and the name searched against the name the citation sits on
-(`attach._steps_by_collection`, `_fetch_steps_searched`, `steps_pointed`, the
-repeat path). That inference is where most of the loop's fixes have landed,
-each real run surfacing a new case (a name ending in a suffix, two census
-searches of one person, a results page with no rows). Have the save script
-write a second comment beside the saved-from line, the list entry's own key
-(the steps it serves), given when the script is run from the list, and have
-collect reach those steps first, the steps the page's identity reaches beside
-them; the inference stays for a file dropped into the inbox by hand
-(`docs/DATA-ARCHITECTURE.md` §7 decision 10). Write §4 as the code lands.
+`tools/fetches.py collect` takes a page at a holder whose pages carry no
+identity the attach reads (an SAR patriot page, a Legacy.com obituary, saved
+with `true`) by the file name the list printed, so a name Chrome sanitized or
+de-duplicated leaves the page in the download folder, though its bytes carry
+the saved-from line and the key `tools/save_page.js` wrote (the plan steps it
+was saved for). Have collect take such a page by its key as well: the named
+steps (`attach.named_steps`, which has no identity to contradict them),
+archived under their holder with the page's own URL as locator, as the
+by-name path does. The test needs a real page of such a holder saved by the
+script with its key; none is archived (the pages of those holders so far came
+through connectors).
 
 ### C3. A page no parser reads is logged found
 

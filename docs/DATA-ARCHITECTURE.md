@@ -342,10 +342,11 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    derivative, the image of the record made at the event original.
 10. **A saved page names the steps it was saved for.** The page-saving script,
    run from the fetch list, writes the list entry's own key beside its
-   saved-from line; collecting the page reaches those steps first, and the
-   inference from the page's own identity stays for a file dropped into the
-   inbox by hand. The owner's hand does not change: the same script, the same
-   save.
+   saved-from line; collecting the page reaches those steps first, unless the
+   page's own identity contradicts one (it is set aside and said so), and the
+   steps the identity reaches follow them; the inference from the page's own
+   identity alone stays for a file dropped into the inbox by hand. The owner's
+   hand does not change: the same script, the same save.
 11. **A year-filed index is asked with the year of the person's accepted
    event.** When a citation gives no year, the connector for an index filed
    by year looks in the year of the person's accepted event of that type. The

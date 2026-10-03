@@ -24,7 +24,10 @@ that settle most steps first. `collect` moves every saved page from the browser'
 `inbox/` and attaches each: a photograph by its own name (it carries no identity in its bytes), any other .html page whose
 saved-from line (the browser's own comment, tools/save_page.js) is a FamilySearch record or search URL, a Find a Grave
 memorial or search, or an AAD record or search, by that identity (tools/attach.py identity) whatever the name says —
-archived once, logged found on every step that cites it, extracted, matched, the rule run; a page from a holder whose
+archived once, logged found on every step that cites it, extracted, matched, the rule run; a page that carries a key (the
+second comment tools/save_page.js writes when the browser ran it with the `call` the list printed: the plan steps the page was
+saved for) reaches those steps first (tools/attach.py named_steps), each checked against the page's own identity, and the steps
+its identity reaches beside them; a page from a holder whose
 pages carry no identity the attach reads, by the name the list printed, to the steps of the one citation and person the
 name carries, archived under that holder with the page's own URL (the saved-from line the browser wrote) as locator,
 logged found, and reported unparsed until a parser claims it. A file with neither a recognised saved-from line nor a
@@ -32,7 +35,9 @@ listed name is left in the folder.
 
 `next [K]` is the browser session's own list: the next K pages (five by default) a turn can send someone to (`openable`: a
 link to open, a step with no run since the plan last wrote its fields), one line each with the link, the file name to save
-under and the people waiting in short, a link that prefills nothing marked and put last. `list` hides the pages whose steps
+under, the people waiting in short and the `call` for the save script (the file name, whether to save a page of no known kind
+anyway, and the key: the steps the page serves), a link that prefills nothing marked and put last; `list` prints the same
+`call` for every page. `list` hides the pages whose steps
 have all been run on unchanged fields (a page saved, or answered, and the plan has not changed the step since) unless --all
 brings them back, and marks a bare form: a holder's search page the citation gave nothing to prefill, whose saved page no
 parser reads and so closes nothing.
@@ -82,8 +87,10 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
 def waiting(cx, tree_id):
     """Every planned fetch step whose holder has no connector, once per page: holder, url, the people and the number of
     steps waiting on it, whether it is a lead from a held record (locator memorial_id) or the file's citation (locator
-    apid), whether the link is a bare form (the holder's own page, the citation gave nothing to prefill it with), and the file
-    name to save under. A step whose holder has a connector never appears here, whether or not that
+    apid), whether the link is a bare form (the holder's own page, the citation gave nothing to prefill it with), the file
+    name to save under, and `serves`, the steps the saved page serves: those of every entry with this entry's link and file name
+    (the page the browser saves is one, whatever census page or citation each entry stands for), the key page_call gives the save
+    script. A step whose holder has a connector never appears here, whether or not that
     connector currently has anything to ask: it runs through tools/run_step.py, which logs a `none` run naming the field
     wanted when it has nothing to ask, so the step is answered on its fields and left for a hand on the person's screen, not
     the browser. Steps citing one census page (the household's record ids) are one page. A page at a holder whose pages carry
@@ -122,7 +129,9 @@ def waiting(cx, tree_id):
             key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
         name = save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link)
         add(s, key, link, holder, name.replace("<ark id>", ark_id(s["locator_value"])).replace("-<year>", "") if s["locator_kind"] == "ark" else name, bare=bare)
-    return sorted(out.values(), key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
+    entries = list(out.values())
+    for e in entries: e["serves"] = [sid for o in entries if (o["url"], o["save_as"]) == (e["url"], e["save_as"]) for sid in o["step_ids"]]
+    return sorted(entries, key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
 
 def annotated(cx, tree_id):
     """Every waiting page (`waiting`) with open_step_ids: the steps among its step_ids with no run at the step's own source
@@ -169,7 +178,8 @@ def collect(cx, tree_id, slug, by, folder=None):
     by its own name (it carries no identity in its bytes), and any .html file whose saved-from line (the browser's own
     comment, tools/save_page.js) is a FamilySearch record or search URL, a Find a Grave memorial or search, or an AAD
     record or search, moved to inbox/ under its own name and attached by that identity (tools/attach.py identity), whatever
-    the name says. A page from a holder whose pages carry no identity the attach reads is taken by the by-name path
+    the name says, to the steps its key names first when it carries one (attach.named_steps). A page from a holder whose pages
+    carry no identity the attach reads is taken by the by-name path
     instead, under the list's own name, and attached to the steps of the one citation and person the name carries, archived
     under that holder with its own URL as locator. A file with neither is left where it is.
     Returns (the names taken, the attach results)."""
@@ -192,11 +202,18 @@ def people_short(names, n=2): return ", ".join(names[:n]) + (f" +{len(names) - n
 
 IDENTITY_HOLDERS = ("D03", "E01", "F01")   # FamilySearch, Find a Grave, AAD: pages save_page.js knows by their own markup; any other holder's page is saved with true
 
+def page_call(e):
+    """The call the browser runs tools/save_page.js with for a page, in place of the ("FILENAME.html") that ends the script: the file name
+    to save under; true at a holder whose pages the script knows by no markup of its own, so it saves the page anyway; and the key, the
+    plan steps the page serves (the entry's own and those of every entry with the same link and name), which the script writes under the
+    saved-from line so that collect reaches those steps first (attach.named_steps)."""
+    return f'("{e["save_as"]}", {"false" if e["holder_id"] in IDENTITY_HOLDERS else "true"}, "{",".join(e["serves"])}")'
+
 def page_line(e):
     """A page to save as one compact line: the link, the file name to save under, the people waiting in short, an image or a bare
-    form marked."""
+    form marked, and the call the save script runs with (page_call; an image carries none: its name is its identity)."""
     return f"{e['url']}  {e['save_as']}  {people_short(e['people'])}" + ("  [image: tools/save_image.js]" if e["how"] == "image" else "") + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "") \
-        + ("  [any page: save_page.js with true]" if e["how"] != "image" and e["holder_id"] not in IDENTITY_HOLDERS else "")
+        + ("  [any page: save_page.js with true]" if e["how"] != "image" and e["holder_id"] not in IDENTITY_HOLDERS else "") + (f"  call {page_call(e)}" if e["how"] != "image" else "")
 
 def next_lines(cx, tree_id, k):
     """The next k openable pages, a line each (page_line), a bare form after every page that prefills something, and the count."""
@@ -219,7 +236,8 @@ def main():
         for e in rows:
             if e["holder"] != last: print(f"-- {e['holder']}"); last = e["holder"]
             print(f"{'lead ' if e['lead'] else 'cited'} {e['url']}  {', '.join(e['people'])}  ({e['steps']} step{'s' if e['steps'] > 1 else ''}: {', '.join(e['rows'])})  save as {e['save_as']}" + ("  (an image: tools/save_image.js in its own tab)" if e["how"] == "image" else "")
-                  + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "") + ("  [already run on unchanged fields]" if a.all and e["url"] and not e["open_step_ids"] else ""))
+                  + ("  [bare form: prefills nothing, no parser reads it]" if e["bare"] else "") + ("  [already run on unchanged fields]" if a.all and e["url"] and not e["open_step_ids"] else "")
+                  + (f"  call {page_call(e)}" if e["url"] and e["how"] != "image" else ""))
         print(f"{len(rows)} page(s) to fetch, one tab per page; then tools/fetches.py collect" + (f" ({len(every) - len(rows)} already run on unchanged fields, hidden: --all)" if len(every) > len(rows) else ""))
     else:
         cx.execute("BEGIN")

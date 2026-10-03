@@ -9,7 +9,10 @@ that photograph on that memorial, archived under the gravestone row (E05) with t
 and read afterwards by the transcription path, never parsed. A page from a holder whose pages carry no identity the attach
 reads (an SAR patriot page, a Legacy.com obituary) is taken by tools/fetches.py collect under the name the list printed and
 attached here as kind "page": archived under the step's holder with the page's own URL as locator, logged found, and parsed
-only when a parser claims it. The steps a record fulfils are the tree's fetch steps whose citation
+only when a parser claims it. A page saved from the fetch list carries the plan steps it was saved for as a second comment under
+its saved-from line (tools/save_page.js, the key): those steps come first (named_steps), each checked against the page's own
+identity, and the steps the identity reaches follow them; a page saved by hand has no key and reaches its steps by identity alone.
+The steps a record fulfils are the tree's fetch steps whose citation
 carries that identity: for a memorial, the memorial URL in the step's fields; for an ark, the record ids the artifact holds
 (catalog.holds: its own and, on the same sheet, those of the people the page names) once it is in the archive, else the
 census page the record page itself names (year, enumeration district, sheet, county and state) against each step's
@@ -131,6 +134,10 @@ def _why(rows, reason):
     """The steps as plain dicts, each with the reason it is fulfilled (kept on the run's log note and printed by the inbox tool)."""
     return [{**dict(r), "reason": reason(r) if callable(reason) else reason} for r in rows]
 
+def _held_at(holder_id, holder_key=None):
+    """The Ancestry collection ids (dbids) a holder holds (data/holders.csv), those of its own collection key only where one is given."""
+    return {d for d, rows in holders().items() for h in rows if h["HolderSourceId"] == holder_id and (holder_key is None or h["HolderKey"] == holder_key)}
+
 def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=None):
     """The fetch steps a results page at a holder was saved for: the citation carries no record id of the holder's to open
     directly, so the holder's own collection search was run by hand on the citation's own details, and the page is that
@@ -141,7 +148,7 @@ def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=Non
     Planned or done: a step found at another holder since still ran this search."""
     pg, sn = name_key((given or "").split()[0]) if (given or "").split() else "", name_key(surname)
     if not sn: return []
-    dbids = {d for d, rows in holders().items() for h in rows if h["HolderSourceId"] == holder_id and (holder_key is None or h["HolderKey"] == holder_key)}
+    dbids = _held_at(holder_id, holder_key)
     if not dbids: return []
     out = []
     for r in cx.execute("""SELECT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE p.tree_id=? AND sp.kind='fetch' AND sp.locator_kind='apid'
@@ -217,6 +224,52 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
             return pointed + [r for r in cites if r["id"] not in {x["id"] for x in pointed}]
         return pointed or _steps_by_collection(cx, tree_id, parsed or {})
     return []
+
+SAVED_KEY = re.compile(r"<!-- for steps ([A-Za-z0-9,]+) -->")
+KEY_REASON = "the page's own key names this step: the fetch list entry it was saved for"
+
+def saved_steps(text):
+    """The plan step ids a page's key names, in order: the comment tools/save_page.js writes under the saved-from line when the fetch
+    list's call gave it one; [] for a page saved by hand."""
+    m = SAVED_KEY.search(text[:4000])
+    return list(dict.fromkeys(i for i in m.group(1).split(",") if i)) if m else []
+
+def _asks_for(step):
+    """The one record a fetch step asks for by the holder's own identity, as ("ark" | "memorial" | "aad_record", value) in the terms a
+    page's identity reads; None when its citation names no record of the holder's (a collection to search)."""
+    if step["locator_kind"] == "ark": return "ark", step["locator_value"]
+    if step["locator_kind"] == "memorial_id": return "memorial", step["locator_value"]
+    m = MEMORIAL_URL.search((json.loads(step["query_json"] or "{}").get("url") or {}).get("value") or "")
+    if m: return "memorial", m.group(1)
+    return ("aad_record", step["locator_value"]) if step["locator_kind"] == "url" else None
+
+def _contradicts(step, kind, value, parsed):
+    """Why the page's own identity contradicts a fetch step its key names, or None: a record page that is another record than the step
+    asks for (its ark, memorial or AAD record), a results page where the step asks for one record, a results page of a collection the
+    step's citation is not of (the holder's own key where the page names one, a FamilySearch f.collectionId)."""
+    asks = _asks_for(step)
+    if kind in ("ark", "memorial", "aad_record"):
+        return f"the page is {kind} {value}, the step asks for {asks[0]} {asks[1]}" if asks and asks != (kind, value) else None
+    if kind not in ("search", "fs_search", "aad_search"): return None
+    if asks: return f"the page is a results page, the step asks for {asks[0]} {asks[1]}"
+    holder = {"search": "E01", "fs_search": "D03", "aad_search": "F01"}[kind]
+    key = ((parsed or {}).get("query") or {}).get("f.collectionId") if kind == "fs_search" else None
+    dbid = dbid_of(step["locator_value"]) if step["locator_kind"] == "apid" else None
+    if dbid and dbid not in _held_at(holder, key): return f"the citation is of no collection this page searches ({holder}{' ' + key if key else ''})"
+    return None
+
+def named_steps(cx, tree_id, ids, kind, value, parsed=None):
+    """The steps a page's key names (saved_steps) that its own identity lets stand, each with the key as its reason, and those set
+    aside with why: a step that is gone, another tree's, no longer planned, a search step (the list names fetch steps only), or one
+    the page's identity contradicts (_contradicts). Returns (steps, set aside as {id, who, row_key, why})."""
+    out, aside = [], []
+    for sid in ids:
+        st = cx.execute("SELECT sp.*, p.tree_id AS tree, p.display_name AS who FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=?", (sid,)).fetchone()
+        why = ("no such step" if not st else "another tree's step" if st["tree"] != tree_id else f"the step is {st['status']}, not planned" if st["status"] != "planned"
+               else "a search step: the fetch list names fetch steps only" if st["kind"] != "fetch" else _contradicts(st, kind, value, parsed))
+        if why: aside.append({"id": sid, "who": st["who"] if st else None, "row_key": st["row_key"] if st else None, "why": why})
+        else: out.append({**dict(st), "reason": KEY_REASON})
+    return out, aside
 
 ROW_OF = [(r"obituar", "obituary"), (r"death", "death record"), (r"birth", "birth record"), (r"marriage", "marriage record"), (r"social security|numident", "Social Security (SSDI / SS-5)"),
           (r"draft", "WWII draft card"), (r"naturali", "naturalization"), (r"find a grave|burial|cemetery", "cemetery / family plot")]
@@ -519,13 +572,16 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
         path = os.path.join(inbox_dir(), os.path.basename(name)); r = {"file": os.path.basename(name), "identity": None, "steps": [], "left": None}
         if not os.path.isfile(path): r["left"] = "not in the inbox"; results.append(r); continue
         with open(path, "rb") as fh: data = fh.read()
-        kind, value, parsed = identity(data.decode("utf-8", errors="replace")) if (mimetypes.guess_type(path)[0] or "").startswith("text/html") else identity_of_name(name)
+        page = (mimetypes.guess_type(path)[0] or "").startswith("text/html"); text = data.decode("utf-8", errors="replace") if page else ""
+        kind, value, parsed = identity(text) if page else identity_of_name(name)
         if not kind and about and not (mimetypes.guess_type(path)[0] or "").startswith("text/html"):   # a family-held original, on the owner's word about whom it concerns
             sha, new = attach_held(cx, tree_id, slug, name, about, by)
             r.update({"identity": "family-held original", "sha256": sha, "held": True, "new": new}); results.append(r); continue
         if not kind: r["left"] = "no record identity read from the file (not a Find a Grave memorial or results page, not a FamilySearch record page, not a photograph under the name the fetch list printed)"; results.append(r); continue
         r["identity"] = f"{kind} {value}"
-        steps = steps_for(cx, tree_id, kind, value, parsed)
+        ids = saved_steps(text); keyed, aside = named_steps(cx, tree_id, ids, kind, value, parsed)   # the steps the page was saved for first, the steps its identity reaches beside them
+        if ids: r["key"] = {"named": len(ids), "taken": len(keyed), "aside": aside}
+        steps = keyed + [s for s in steps_for(cx, tree_id, kind, value, parsed) if s["id"] not in {k["id"] for k in keyed}]
         if kind in ("search", "fs_search", "aad_search") and steps:  # the same search saved again is an answer: a none run on the fields as now rendered, wherever the step wasn't already answered on them
             fresh = []
             for s in steps:
@@ -546,11 +602,17 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
         results.append(r)
     return results
 
+def key_note(r):
+    """What the page's key named that was set aside, for the line: the steps and why, the page's own identity deciding what it
+    reaches; empty when the page had no key or every step it named stood."""
+    aside = (r.get("key") or {}).get("aside") or []
+    return f"; the page's key names {len(aside)} step(s) set aside, its own identity deciding: " + ", ".join(f"{a['who'] or a['id'][-6:]}{' (' + a['row_key'].split(':')[0] + ')' if a['row_key'] else ''}: {a['why']}" for a in aside) if aside else ""
+
 def line(r):
     """One line per file, as the inbox tool prints it."""
     if r.get("repeat"): return f"{r['file']}: {r['identity']}; removed as a repeat: {r['repeat']}"
     if r.get("held"): return f"{r['file']}: a family-held original, archived {r['sha256'][:12]} under M05 on the owner's word{'' if r['new'] else ' (already held)'}; read it on the person's screen, one persona at a time"
-    if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in the inbox: {r['left']}"
+    if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in the inbox: {r['left']}{key_note(r)}"
     who = "; ".join(f"{n} ({rk.split(':')[0]}: {why or 'the step cites it'})" for _, n, rk, why in r["steps"])
     return (f"{r['file']}: {r['identity']}; {len(r['steps'])} step(s) fulfilled: {who}; artifact {r['sha256'][:12]}{'' if r['new'] else ' (already archived)'}; "
-            f"{len(r['logs'])} run(s) logged{' as none' if r.get('outcome') == 'none' else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else ""))
+            f"{len(r['logs'])} run(s) logged{' as none' if r.get('outcome') == 'none' else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else "") + key_note(r))

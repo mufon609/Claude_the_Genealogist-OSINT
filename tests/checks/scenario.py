@@ -411,7 +411,9 @@ def a_person_view(w, x):
 def a_save(w, x):
     """A page or an image saved in the browser, as a stand-in: into the inbox, or into a download folder for collect.
     Under the name the fetch list prints for it, unless `name` gives the file's own name instead (the sanitized shape a
-    browser actually produced, to prove collect takes a page by its saved-from identity whatever it is named)."""
+    browser actually produced, to prove collect takes a page by its saved-from identity whatever it is named). `key` writes the
+    key into the page the way tools/save_page.js does when the fetch list's call gave it one: a second comment under the page's own
+    saved-from line, naming the entry's own steps (true) or the steps given (plan step references, or an id that names no step)."""
     from fetches import waiting
     pid = w.person(x["person"]) if x.get("person") else None
     entries = [e for e in waiting(w.cx, w.tid) if (not x.get("holder") or e["holder_id"] == x["holder"]) and (pid is None or any(s in e["step_ids"] for s in [s[0] for s in w.cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))]))]
@@ -422,13 +424,20 @@ def a_save(w, x):
         name = e["save_as"].replace("<year>", str(x.get("year", "")))
         for k, v in (x.get("fill") or {}).items(): name = name.replace(k, v)
     folder = os.path.join(w.root, x["folder"]) if x.get("folder") else w.treelib.inbox_dir(); os.makedirs(folder, exist_ok=True)
-    with open(os.path.join(folder, name), "wb") as fh: fh.write(w.fixture_bytes({**x, "saved_from": x.get("saved_from") or (e.get("url") if e else None)}))
-    return {"entry": e, "file": name, "folder": folder, "url": e.get("url") if e else None, "save_as": e["save_as"] if e else None, "how": e.get("how") if e else None, "steps": e.get("step_ids") if e else None}
+    data = w.fixture_bytes({**x, "saved_from": x.get("saved_from") or (e.get("url") if e else None)}); key = None
+    if x.get("key"):
+        key = e["serves"] if x["key"] is True else [(w.step(r) or {"id": r})["id"] if isinstance(r, str) else w.step(r)["id"] for r in x["key"]]   # an id that is no step of the plan is written as it is
+        top, nl, rest = data.partition(b"\n")
+        if not top.startswith(b"<!-- saved from "): raise KeyError("a key goes under the page's saved-from line, and this page has none")
+        data = top + nl + f"<!-- for steps {','.join(key)} -->\n".encode() + rest
+    with open(os.path.join(folder, name), "wb") as fh: fh.write(data)
+    return {"entry": e, "file": name, "folder": folder, "url": e.get("url") if e else None, "save_as": e["save_as"] if e else None, "how": e.get("how") if e else None, "steps": e.get("step_ids") if e else None, "key": key}
 
 def a_collect(w, x):
+    from attach import line
     from fetches import collect
     names, res = collect(w.cx, w.tid, w.slug, BY, folder=w.value(x["folder"]))
-    return {"names": names, "results": res, "files": {r["file"]: r for r in res}}
+    return {"names": names, "results": res, "files": {r["file"]: r for r in res}, "lines": [line(r) for r in res]}   # each result as the tool prints it
 
 def a_log(w, x):
     """A run written by hand, as a connector or a saved page would leave it: query true takes the step's own current

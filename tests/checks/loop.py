@@ -346,7 +346,19 @@ def e_file_exists(w, x, want):
     v = os.path.isfile(os.path.join(w.value(x["folder"]), x["name"]))
     return v == x.get("is", True), v
 
-EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows,
+def e_fetch_call(w, x, want):
+    """The call the fetch list gives the save script for the page that serves a step (fetches.page_call): its text, and `serves`, the
+    steps its key names, checked as the steps given (plan step references), in order."""
+    from fetches import page_call, waiting
+    sid = w.step(x["step"])["id"]
+    e = next((e for e in waiting(w.cx, w.tid) if sid in e["step_ids"]), None)
+    if not e: return x.get("exists") is False, None
+    got = {"call": page_call(e), "serves": e["serves"]}
+    ok = has(got["call"], x["call"]) if "call" in x else True
+    if "serves" in x: ok &= got["serves"] == [w.step(r)["id"] for r in x["serves"]]
+    return ok, got
+
+EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows, "fetch_call": e_fetch_call,
                 "place": e_place, "place_card": e_place_card, "place_group": e_place_group, "same_place": e_same_place, "event_place": e_event_place, "file_exists": e_file_exists})
 
 def check(keep, show, only=None):
