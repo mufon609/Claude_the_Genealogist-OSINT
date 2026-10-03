@@ -18,7 +18,7 @@ forbids automation, the loop pauses for the owner's browser.
 | `docs/DATA-ARCHITECTURE.md` | The design: four layers, content-addressed archive, trees/profiles, trust boundaries, aliases. Accepted decisions are recorded there. |
 | `data/data-sources.csv` | Source registry and checklist (type, cost, URL, access, trust tier, status, the collections other holders serve its records under). `data/holders.csv` maps cited Ancestry collections to their free holders; `data/jurisdictions.csv` says which records exist where and who holds them, `data/countries.csv` the world's countries, `data/evidence-classes.csv` the proof standard's classes. `data/evidence-classes.csv` classifies each record kind's fields for the proof standard. `data/DATA-SOURCES.md` has the reasoning. |
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
-| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `proof.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `cite.py`, `queue.py`, `turn.py`, `turns.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `save_page.js` and `save_image.js`, the page-saves-itself and image-saves-itself scripts the owner's browser runs; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. `tests/checks/` holds the harness (`parsers.py`, `scenario.py`, `loop.py`, `cut_gedcom.py`) and `tests/fixtures/` its saved pages, their `.expect.json` sidecars, the scenarios and the harness tree. |
+| `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `proof.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `cite.py`, `queue.py`, `turn.py`, `turns.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `save_page.js` and `save_image.js`, the page-saves-itself and image-saves-itself scripts the owner's browser runs; `tools/connectors/` one module per free source with an endpoint. `tools/hooks/` holds the commit guard. `tests/checks/` holds the harness (`parsers.py`, `scenario.py`, `loop.py`, `imports.py`, `cut_gedcom.py`) and `tests/fixtures/` its saved pages, their `.expect.json` sidecars, the scenarios and the harness tree. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/` (snapshots, ignored). |
 | `inbox/` | Drop zone for files to ingest. |
 | `app/person/` | The person screen: stdlib server plus one page. |
@@ -35,7 +35,8 @@ somewhere else, as a scratch run does.
 ```
 python3 tools/initdb.py
 python3 tools/tree.py create <slug> --name "..."
-python3 tools/ingest_gedcom.py inbox/<file>.ged
+python3 tools/ingest_gedcom.py inbox/<file>.ged   # any GEDCOM; labelled with the exporter its header names
+python3 tools/tree.py home "<person>"           # the home person: the queue and the loop refuse to run without one
 python3 tools/resolve_places.py
 python3 tools/backfill_aliases.py
 python3 tools/checklist.py "Abram C Brant"      # per-person checklist and gaps

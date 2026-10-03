@@ -112,7 +112,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 |---|---|
 | `tools/initdb.py` | Create the catalog and seed reference tables; `--sync-sources` and `--sync-event-types` bring an existing catalog up to the files; `--migrate` applies the schema versions it lacks, never touching decisions. |
 | `tools/tree.py create|list|use|show|overview|home` | Manage trees; `overview` prints the tree as confirmed from the home person upward with its edge, `home` sets that person. |
-| `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM 5.5.1 export as a T4 artifact and load it into the active tree, every claim Undecided; the same tree refuses a repeat. |
+| `tools/ingest_gedcom.py <file.ged>` | Archive a GEDCOM file as a T4 artifact and load it into the active tree, every claim Undecided. The file is read in the encoding its bytes and header say (UTF-8, UTF-16 or ANSI) and refused, nothing recorded, when the encoding does not fit, is not read here (ANSEL) or the file holds no person; it is labelled with the exporter its header names (Ancestry's export is registry row B02, a file naming no exporter the registry has is A05); the same tree refuses a repeat. It ends by saying the tree has no home person and naming `tools/tree.py home`. |
 | `tools/resolve_places.py` | Resolve place strings through Nominatim with hierarchy verification; a unique full match, or one territory under two names, is accepted; the rest is a `place_resolution` card. |
 | `tools/backfill_aliases.py` | Undecided aliases from the names records write, and each place string's variant kind. Re-runnable. |
 | `tools/checklist.py "<person>"` | Read-only foundation, questions, Group A/B rows (held / cited / missing / n/a) and the step per gap (`docs/RESEARCH-CHECKLIST.md` §6a). |
@@ -124,9 +124,9 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/fetches.py next [K] / list / collect` | The pages waiting to be saved in the owner's browser, with the link and the file name to save under: `next` the next K, one line each, `list` all of them; `collect` brings the saved pages in by their own identity. |
 | `tools/run_step.py <step id> / --all` | A step run through the connectors under `tools/connectors/` its sources have, every response archived and logged, then extracted and matched. |
 | `tools/cite.py "<person>" --row … --holder … --field …` | A record the owner cites on their own word: a fetch step with the citation's details, asked at the holder like a record the file cites. |
-| `tools/queue.py [--all]` | Read-only. The next person at the edge of the confirmed tree a turn can act on, and why each other person is passed over. |
+| `tools/queue.py [--all]` | Read-only. The next person at the edge of the confirmed tree a turn can act on, and why each other person is passed over; refused on a tree with no home person. |
 | `tools/turn.py "<person>" / --resume` | One person's plan run end to end; pauses on the pages to save in the browser, and `--resume` collects them and runs the rule again. |
-| `tools/turns.py [--turns N] / --resume` | The loop without a hand on it: the queue's next person, their turn, the next, until a turn pauses, nobody is left or N turns are done. |
+| `tools/turns.py [--turns N] / --resume` | The loop without a hand on it: the queue's next person, their turn, the next, until a turn pauses, nobody is left or N turns are done; refused on a tree with no home person. |
 | `tools/extract.py <sha256 or path>` | Personas, facts and relations from an archived page or a connector's response, one parser per page kind; a page no parser claims is a failed extraction. `--stale` reads again every page an older version of its parser read. |
 | `tools/match.py <extraction id>` | Every persona compared with the persons the record was fetched for and their relatives: one `persona_match` or `new_person` proposal each, its rationale in words. |
 | `tools/conclude.py` | The decision on a document and what it writes, the standing rule and `reconsider` (which also decides the conflicts the evidence classes settle), and the owner's word: `decide`, `fact`, `assertion`, `place`, `resolve`, `reopen`, `link`, `divorce`, `merge`, `living`. |
@@ -137,19 +137,21 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/check.py` | Green in one command: every tool compiles, the pure rules, every parser on its saved page and every scenario on a scratch catalog (`tests/fixtures/README.md`). |
 | `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen. |
-| `tools/treelib.py` | Shared helpers: ULIDs, GEDCOM parsing, data paths, and `connect`. |
+| `tools/treelib.py` | Shared helpers: ULIDs, GEDCOM parsing (its encoding from the byte order mark and the header's `CHAR`), data paths, and `connect`. |
 
 ### How the GEDCOM ingest maps records
 
 | GEDCOM | Catalog |
 |---|---|
-| file | `artifact` (sha256, manifest sidecar, `artifact_copy` on `local`) + one `extraction` by extractor `rule:gedcom-ingest` + one `tree_import` |
-| `SOUR` record | `collection` keyed by Ancestry dbid (dbid learned from citations when the record lacks `_APID`; same dbid or name merges) |
-| `INDI` | `persona` (what the tree says) + `person` + primary `person_name` + `person_persona` Accepted with the extractor as decider (definitional: the entry is the person, `docs/DATA-ARCHITECTURE.md` §1a) + `external_id ancestry_gedcom_xref` |
-| `INDI` event tags | `persona_fact` + `event` + `event_participant` + one Undecided `assertion` per citation, or one Undecided uncited assertion; `asserted_by` is the extractor |
+| file | `artifact` (sha256, manifest sidecar, `artifact_copy` on `local`; its `source_id` the registry row of the exporter `HEAD.SOUR` names, with that row's terms and cost) + one `extraction` by extractor `rule:gedcom-ingest` + one `tree_import` |
+| `SOUR` record | `collection`, keyed by Ancestry dbid where the record carries Ancestry's `_APID` (the dbid learned from citations when the record lacks it); same dbid or name merges |
+| `INDI` | `persona` (what the tree says) + `person` + primary `person_name` + `person_persona` Accepted with the extractor as decider (definitional: the entry is the person, `docs/DATA-ARCHITECTURE.md` §1a) + `external_id` of the file's own entry id, system `ancestry_gedcom_xref` for Ancestry's export, `<exporter>_gedcom_xref` for another exporter the header names, `gedcom_xref` for none |
+| `INDI` event tags | `persona_fact` + `event` + `event_participant` + one Undecided `assertion` per citation, or one Undecided uncited assertion (citation text "the file, no citation"); `asserted_by` is the extractor |
 | `INDI`-level `MARR` etc. | family event on the person's family; each distinct date/place variant is its own event shared by both spouses, so conflicting copies stay visible |
 | `FAM` | `family` + `family_member` (each with an Undecided assertion on the artifact: the file states the link, no persona fact) + family events |
 | `2 SOUR` / `_APID` | `assertion.citation_text` (Undecided); the unique record citations are kept in the extraction JSON for the footprint engine |
-| `OBJE` | media references kept in the extraction JSON (the images are not in the export) |
+| `OBJE` | media references kept in the extraction JSON (Ancestry's export carries no image files: the images stay on Ancestry) |
 | `PLAC` | `place_string` rows, status `undecided` |
-| header `_TREE NOTE` | `note` on the artifact |
+| header `_TREE NOTE` | `note` on the artifact (Ancestry's own tag) |
+| header `SOUR` (`NAME`, `CORP`) | the artifact's registry row (`data/data-sources.csv`: the Hosted Tree row whose name opens one of the names given, else A05) and the label of its manifest |
+| header `CHAR`, byte order mark | the encoding the file is read in; the file is refused when its bytes do not fit it |

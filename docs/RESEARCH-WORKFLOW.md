@@ -947,7 +947,10 @@ the turn, and it does not by itself make the source assisted-only. What a
 turn leaves for the owner are the conflict questions it raised and the cards
 the rule did not take.
 
-`tools/queue.py` names the next person. It walks the overview's own order,
+`tools/queue.py` names the next person. A tree with no home person is
+refused, with the command that sets one (`tools/tree.py home`), since the
+confirmed tree starts from them; `tools/turns.py` refuses the same way. It
+walks the overview's own order,
 the home person's line first, generation by generation, and at each confirmed
 card takes a parent or spouse the file names whose link is not yet accepted
 before the card's own person, then that person when a document waits, a

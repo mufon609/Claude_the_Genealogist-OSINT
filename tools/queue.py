@@ -4,7 +4,9 @@
 usage: tools/queue.py [--tree slug] [--db catalog/tree.db] [--json]
        tools/queue.py --all [--tree slug] [--db catalog/tree.db] [--json]
 
-Read-only (docs/RESEARCH-WORKFLOW.md §8; CLAUDE.md "Working the repo" > "Working a person" §1). Walks
+Read-only (docs/RESEARCH-WORKFLOW.md §8; CLAUDE.md "Working the repo" > "Working a person" §1). The edge is the
+confirmed tree's, and the confirmed tree starts at the tree's home person: a tree with none set is refused, saying so
+(tools/tree.py home "<person>"), rather than walking the file's people in no order that means anything. Walks
 tools/tree.py overview's own order, the home person's line first, generation by generation (a card's parents
 father then mother), then the file's other people in the order overview lists them. At each confirmed card the
 edge is: a parent or spouse the file names whose link is not yet accepted, taken before the card's own person
@@ -43,6 +45,12 @@ def advanceable(cx, cat, tree_id):
         people.update(owner[sid] for sid in e["open_step_ids"] if sid in owner)
     return people
 
+def require_home(cx, tree_id):
+    """The tree's home person, or a refusal that names the command that sets one: the confirmed tree is walked from them."""
+    slug, home = cx.execute("SELECT slug, home_person_id FROM tree WHERE id=?", (tree_id,)).fetchone()
+    if not home: sys.exit(f"tree '{slug}' has no home person: the queue walks the confirmed tree from them. Set one with: python3 tools/tree.py home \"<person>\" --tree {slug}")
+    return home
+
 def edge(cx, tree_id):
     """([{id, name, reason, kind}], [{id, name, reason, kind}]): the queue a turn can act on, in order, then everyone passed
     over (named once each, first reason it surfaces under; kind says which: "parent link" or "spouse link" the file names and
@@ -50,6 +58,7 @@ def edge(cx, tree_id):
     anyone confirmed). A person with no plan yet is always actionable (a turn's own
     first move makes one); one already planned is actionable only while a step of theirs is one a turn can advance
     (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next."""
+    require_home(cx, tree_id)
     cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out, passed = [], []; seen = set()
     can = advanceable(cx, cat, tree_id)
     def add(pid, name, reason, kind):
