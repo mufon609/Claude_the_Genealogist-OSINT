@@ -311,7 +311,7 @@ What is simulated is a holder that does not answer, which is a control signal an
 
 - `run` and `run_connector` answers carrying an `error`: the connection raises `URLError` whose message begins "the harness's
   stand-in for no answer" (a timeout, a challenge, a refusal): the census page image in the loop scenarios
-  `21-the-record-a-connector-archived` and `94-place-names-different-requests`, WikiTree in `22-a-steps-two-connectors`.
+  `21-the-record-a-connector-archived`, `94-place-names-different-requests` and `100-a-hit-on-an-early-name-is-the-same-fields`, WikiTree in `22-a-steps-two-connectors`.
 - `turn` and `turns` with `fake_run`: `run_step.run` replaced by a function that logs the outcome the data gives, only `none` (the
   holder answered nothing) or `error` (it did not answer), with no request, response or record, its note saying "harness: faked,
   no network"; in `10-turn`, `15-turns` (the error is the same stand-in), `60-unnamed-fetch` and `61-browse-only-holder`, to see

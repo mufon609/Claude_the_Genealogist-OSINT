@@ -231,9 +231,9 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     already made on this run is never made again: a connector that reads a place only as a state and a county, or not at
     all, builds the same request for two names of one place, which a rate-limited holder cannot answer differently, so
     such a name is not asked and the run's note says which name's request it repeated. Every name tried, asked or not,
-    is on the logged run's query, the last of them its value, so a widening try is read back afterwards and a run that
-    tried every name is read as the step's own fields (log_search.same_fields). Returns the run with the records
-    archived, to be read afterwards."""
+    is on the logged run's query, the last of them its value, so a widening try is read back afterwards, and a run that
+    tried every name, or a found run that stopped at the name that got the hit, is read as the step's own fields
+    (log_search.same_fields). Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     from connectors.ia import name_parts
     surname = name_parts(query)[1]

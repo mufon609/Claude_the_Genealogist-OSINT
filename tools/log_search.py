@@ -32,18 +32,21 @@ def rendered_query(query_json, revisions_json):
 
 REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
 
-def same_fields(rendered, ran):
+def same_fields(rendered, ran, found=False):
     """Whether a run's fields as logged are the step's rendered fields now, value for value: the same query again. What the run
     added beside the step's fields is not the step's (surname_variants, the alias table's spellings, basis record; a results
     page's fields as searched, basis run); a place field tried name by name is the same when the names tried are the step's
-    own names; a field the step has dropped or added since is a change."""
+    own names, or, for a found run (the run stops at the first name that gets a hit and never tries the rest), the step's
+    names up to the one that got it; a name added or dropped before that point, or any name added after a run that tried
+    them all, is a change, as is a field the step has dropped or added since."""
     for k, f in rendered.items():
         r = ran.get(k)
         if r is None: return False
         if not isinstance(r, dict): r = {"value": r}
         if r.get("tried"):
             names = f["value"] if isinstance(f["value"], list) else [f["value"]]
-            if list(r["tried"]) != list(names): return False
+            tried = list(r["tried"])
+            if tried != names[:len(tried)] or (len(tried) < len(names) and not found): return False
         elif r.get("value") != f["value"]: return False
     return all(k in rendered for k, v in ran.items() if not (isinstance(v, dict) and v.get("basis") in ("run", "record")))
 
@@ -69,7 +72,7 @@ def ran_unchanged(cx, step, rendered, source_id=None):
     fields still closes the step at that source; a source whose runs are all errors is asked again. Read per source: one
     connector's none run on the step's fields does not close the step at another source, which is asked until it answers."""
     a = latest_answer(cx, step, source_id)
-    return a is not None and same_fields(rendered, a[2])
+    return a is not None and same_fields(rendered, a[2], a[0] == "found")
 
 HOUSEHOLD = "the household's record, accepted onto "     # the note prefix of a run written when a household record's persona is accepted onto a person
 ON_WORD = "on the owner's word about "                 # the note prefix of the run attach.on_word writes: the owner's word that a record is a person's, never reopened by the plan
