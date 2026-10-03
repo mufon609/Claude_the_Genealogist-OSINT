@@ -6,11 +6,31 @@ import collections, csv, json, os, re, sqlite3, sys, urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-US_STATES = {"alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia","hawaii",
-             "idaho","illinois","indiana","iowa","kansas","kentucky","louisiana","maine","maryland","massachusetts","michigan",
-             "minnesota","mississippi","missouri","montana","nebraska","nevada","new hampshire","new jersey","new mexico","new york",
-             "north carolina","north dakota","ohio","oklahoma","oregon","pennsylvania","rhode island","south carolina","south dakota",
-             "tennessee","texas","utah","vermont","virginia","washington","west virginia","wisconsin","wyoming"}
+US_STATE_TABLE = {   # each state and the District of Columbia with the abbreviations records write for it, the postal code and the older ones (Penna, Mass., N.J., W.Va.), set down without periods or spaces since a word is looked up without them
+    "Alabama": ("al", "ala"), "Alaska": ("ak",), "Arizona": ("az", "ariz"), "Arkansas": ("ar", "ark"),
+    "California": ("ca", "cal", "calif"), "Colorado": ("co", "col", "colo"), "Connecticut": ("ct", "conn"),
+    "Delaware": ("de", "del"), "District of Columbia": ("dc",), "Florida": ("fl", "fla"), "Georgia": ("ga",),
+    "Hawaii": ("hi",), "Idaho": ("id",), "Illinois": ("il", "ill"), "Indiana": ("in", "ind"), "Iowa": ("ia",),
+    "Kansas": ("ks", "kan", "kans"), "Kentucky": ("ky",), "Louisiana": ("la",), "Maine": ("me",), "Maryland": ("md",),
+    "Massachusetts": ("ma", "mass"), "Michigan": ("mi", "mich"), "Minnesota": ("mn", "minn"), "Mississippi": ("ms", "miss"),
+    "Missouri": ("mo",), "Montana": ("mt", "mont"), "Nebraska": ("ne", "neb", "nebr"), "Nevada": ("nv", "nev"),
+    "New Hampshire": ("nh",), "New Jersey": ("nj",), "New Mexico": ("nm", "nmex"), "New York": ("ny",),
+    "North Carolina": ("nc",), "North Dakota": ("nd", "ndak"), "Ohio": ("oh",), "Oklahoma": ("ok", "okla"),
+    "Oregon": ("or", "ore", "oreg"), "Pennsylvania": ("pa", "penn", "penna"), "Rhode Island": ("ri",),
+    "South Carolina": ("sc",), "South Dakota": ("sd", "sdak"), "Tennessee": ("tn", "tenn"), "Texas": ("tx", "tex"),
+    "Utah": ("ut",), "Vermont": ("vt",), "Virginia": ("va",), "Washington": ("wa", "wash"), "West Virginia": ("wv", "wva"),
+    "Wisconsin": ("wi", "wis", "wisc"), "Wyoming": ("wy", "wyo"),
+}
+US_STATES = {name.lower() for name in US_STATE_TABLE}
+_STATE_WORDS = {**{re.sub(r"\s", "", name.lower()): name for name in US_STATE_TABLE},
+                **{abbr: name for name, abbrs in US_STATE_TABLE.items() for abbr in abbrs}}
+
+def us_state(word):
+    """The state (or the District of Columbia) a word names, written as its name is (New Jersey): the word is the name or an
+    abbreviation records write for it (NJ, N.J., Penna, Mass., W. Va.), in any case, with or without periods and spaces.
+    None for any other word."""
+    return _STATE_WORDS.get(re.sub(r"[.\s]", "", (word or "").lower()))
+
 US_NAMES = {"united states","usa","united states of america","us","british colonies","north america"}
 
 def year(s): return int(s[:4]) if s and s[:4].isdigit() else None
@@ -387,19 +407,6 @@ def same_event(etype, kind, a, b):
     if kind == "attribute" and (a.get("value") or "") != (b.get("value") or ""): return False
     return etype in ONCE or dates_one(a, b)
 
-US_STATE = {   # a record place written as the bare two-letter code stands for the state it abbreviates
-    "al": "alabama", "ak": "alaska", "az": "arizona", "ar": "arkansas", "ca": "california", "co": "colorado",
-    "ct": "connecticut", "de": "delaware", "fl": "florida", "ga": "georgia", "hi": "hawaii", "id": "idaho",
-    "il": "illinois", "in": "indiana", "ia": "iowa", "ks": "kansas", "ky": "kentucky", "la": "louisiana",
-    "me": "maine", "md": "maryland", "ma": "massachusetts", "mi": "michigan", "mn": "minnesota",
-    "ms": "mississippi", "mo": "missouri", "mt": "montana", "ne": "nebraska", "nv": "nevada",
-    "nh": "new hampshire", "nj": "new jersey", "nm": "new mexico", "ny": "new york", "nc": "north carolina",
-    "nd": "north dakota", "oh": "ohio", "ok": "oklahoma", "or": "oregon", "pa": "pennsylvania",
-    "ri": "rhode island", "sc": "south carolina", "sd": "south dakota", "tn": "tennessee", "tx": "texas",
-    "ut": "utah", "vt": "vermont", "va": "virginia", "wa": "washington", "wv": "west virginia",
-    "wi": "wisconsin", "wy": "wyoming",
-}
-
 def collection_state(name):
     """The US state a collection's own name states as its coverage, when the registry names it first ("<State>, U.S.,
     <kind>, <years>", data/data-sources.csv's own naming): the record's own event place, for a bare county place_verdict
@@ -412,25 +419,33 @@ ADMINISTRATIVE = re.compile(r"\b(?:village|borough|city|town) of\b|\b(?:town|bor
 
 def _place_part(p, administrative=False):
     """One piece of a place string normalised for comparison: the country written as usa, a jurisdiction word dropped (a
-    county, a township, a district), an abbreviated word written out, a two-letter US state code (with or without its
-    period) expanded to the state, and with administrative, the unit's own word (Town, Village of, Borough, City, Ward N)
-    dropped too."""
+    county, a township, a district), an abbreviated word written out, and with administrative, the unit's own word (Town,
+    Village of, Borough, City, Ward N) dropped too."""
     s = COUNTRY.sub("usa", p.lower())
     for rx, word in ABBREVIATION: s = rx.sub(word, s)
     s = re.sub(r"\b(county|co\.?|township|twp\.?|magisterial district \d+|district \d+)\b", " ", s)
     if administrative: s = ADMINISTRATIVE.sub(" ", s)
-    s = re.sub(r"\s+", " ", s).strip().rstrip(".").strip()
-    return US_STATE.get(s, s)
+    return re.sub(r"\s+", " ", s).strip().rstrip(".").strip()
+
+def _place_parts(s, administrative=False):
+    """(normalised, as written) for each part of a place string, '<' or ',' apart (_place_part), the last part that is not the
+    country read as the state when it is the state's name or an abbreviation of it (us_state: NJ, N.J., Penna, Mass.): only
+    there is an abbreviation the state, since earlier a word like Penn or Col is a township's or a person's own."""
+    out = [(_place_part(p, administrative), p.strip(" .")) for p in re.split(r"<|,", s)]
+    out = [(n, w) for n, w in out if n]
+    i = next((i for i in range(len(out) - 1, -1, -1) if out[i][0] != "usa"), None)
+    state = us_state(out[i][1]) if i is not None else None
+    if state: out[i] = (state.lower(), out[i][1])
+    return out
 
 def _place_verdict_once(record, tree, supply=None):
-    part = _place_part
-    parts = lambda s: [(part(p), p.strip(" .")) for p in re.split(r"<|,", s) if part(p)]   # (normalised, as written)
+    parts = _place_parts                                              # (normalised, as written)
     tparts = [p for p, _ in parts(tree)]
     below = [p for p in tparts if p != "usa"]
     if not below: return "absent", None                             # a tree place that names only the country says nothing to compare
     rparts = [(p, w) for p, w in parts(record) if p != "usa"]         # the country is not a part to count on either side
     if not rparts: return "absent", None
-    if supply: rparts = rparts + [(part(supply), supply)]            # a bare county takes the record's own event place's state, for comparison only
+    if supply: rparts = rparts + [(_place_part(supply), supply)]            # a bare county takes the record's own event place's state, for comparison only
     finer = rparts[:-len(below)] if len(rparts) > len(below) else []  # what the record names ahead of the tree's own finest part: a finer place, or a cemetery or building ahead of its town; not compared
     rparts = [p for p, _ in rparts[len(finer):]]
     tkeys = {key(p) for p in tparts}
@@ -459,9 +474,7 @@ def _same_granular(record, tree):
     is a part of the longer in the same order, so a county one side leaves out is no difference ("Northampton, Massachusetts"
     and "Northampton, Hampshire, Massachusetts"). A name that differs in a letter or a word is never the same place here:
     North Hampton is not Northampton, Norriton not Norristown."""
-    def parts(s):
-        out = [_place_part(p, administrative=True) for p in re.split(r"<|,", s)]
-        return [p for p in out if p and p != "usa"]
+    def parts(s): return [n for n, _ in _place_parts(s, administrative=True) if n != "usa"]
     r, t = parts(record), parts(tree)
     if not r or not t or r[-1] not in US_STATES or r[-1] != t[-1] or r[0] != t[0]: return None
     short, long_ = (r, t) if len(r) <= len(t) else (t, r)
@@ -781,7 +794,7 @@ class Catalog:
         page anyone can edit), each a statement of the event's own type (a remarriage cited as a divorce's evidence is no
         value of the divorce); place is compared with Catalog.place_verdict, as the place its words are resolved to when they
         are (Auburn, Kentucky is in Logan County), so a coarser or finer record, or one naming a dated former name, agrees
-        rather than disagreeing. A record cited under two collection names but one locator (the same certificate indexed
+        rather than disagreeing, and two statements that are each a part of the event's own place are no disagreement between themselves (a death index's state and an obituary's town, written without the state, are parts of one place). A record cited under two collection names but one locator (the same certificate indexed
         twice) is one statement, not two, and "the file" is the imported file alone. Statements whose values all agree with
         one another (among only those already found disagreeing with something) are grouped as one side, so six comparisons
         that all turn on the same 11th-against-10th read as one question, not six, while a coarse statement agreeing with two
@@ -843,12 +856,14 @@ class Catalog:
                     return v, note
                 accepted = [gk for gk in order if groups[gk]["status"] == "accepted" and value_of(gk) is not None]
                 pairs = []                                    # ("tree", key) or (key, key): a genuine disagreement found, before grouping
+                on_tree = lambda k: axis == "place" and tree_val is not None and cmp(value_of(k), groups[k]["state"], tree_val, None)[0] == "agrees"   # a place that is a part of the event's own place chain
                 for gk in accepted:
                     v, _ = cmp(value_of(gk), groups[gk]["state"], tree_val, None)
                     if v == "disagrees": pairs.append(("tree", gk))
                     for ok in order:
                         if ok == gk or value_of(ok) is None: continue
                         if ok in accepted and order.index(ok) < order.index(gk): continue   # two accepted statements compared once
+                        if v == "agrees" and on_tree(ok): continue                           # two statements that are each a part of the event's own place are parts of one place: a state and a town in it, written without the state, are no disagreement
                         v2, _ = cmp(value_of(gk), groups[gk]["state"], value_of(ok), groups[ok]["state"])
                         if v2 == "disagrees": pairs.append((gk, ok))
                 if not pairs: continue

@@ -1,0 +1,168 @@
+{
+ "title": "a turn reads the place strings of the person it works",
+ "line": "the tail of a turn runs the place resolver on the strings behind the person's own events through the geocoder's cache: a geocoder that does not answer is named once, with how many strings it left, and the strings stay as they were (no card, no resolver) for the next turn; once it answers, the strings a unique full match or one territory under two names settles are resolved in the turn, the one it cannot settle is a card on the fact row, and the report says both; the strings of a record the turn brings are read too",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a turn on the man born at Worcester, paused on the pages to save",
+   "turn": {
+    "person": "I332737038183"
+   }
+  },
+  {
+   "say": "resumed with the geocoder silent: the harness has no network and no answer planted",
+   "resume": {
+    "inbox": []
+   },
+   "expect": [
+    {
+     "last": {
+      "left": {
+       "has": "OpenStreetMap Nominatim (N06) did not answer (the harness has no network) on 5 place strings; they stay unresolved, the next turn asks it again"
+      }
+     },
+     "why": "the silent source is named once, with the count of strings it left"
+    },
+    {
+     "place_string": {
+      "raw": "Norristown, Montgomery, Pennsylvania, United States of America",
+      "status": "undecided",
+      "resolver": {
+       "is": null
+      }
+     },
+     "why": "a string whose request got no answer is left exactly as it was: no resolver tag, so the next run asks again"
+    },
+    {
+     "place_card": {
+      "raw": "Norristown, Montgomery, Pennsylvania, United States of America",
+      "exists": false
+     },
+     "why": "and no card says there is nothing to choose from"
+    }
+   ]
+  },
+  {
+   "say": "the next turn on him, paused again",
+   "turn": {
+    "person": "I332737038183"
+   }
+  },
+  {
+   "say": "resumed with the geocoder's real answers for the five strings behind his events",
+   "resume": {
+    "inbox": [],
+    "geocoder": [
+     "nominatim-norristown-montgomery-pennsylvania-united-states.json", "nominatim-philadelphia-pennsylvania-united-states.json", "nominatim-pottstown-montgomery-pennsylvania-united-states.json", "nominatim-warwick-bucks-pennsylvania-united-states.json",
+     "nominatim-worcester-montgomery-county-pennsylvania-united-states.json", "nominatim-worcester-montgomery-pennsylvania-united-states.json", "nominatim-worcester-pennsylvania-united-states.json"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "report": {
+       "has": "places: 4 of 5 new place string(s) resolved by the geocoder's answer"
+      },
+      "left": {
+       "has": "places: 1 place string(s) the resolver could not settle, a card on the fact row for the owner"
+      }
+     },
+     "why": "the turn says how many strings it resolved and how many it left as a card"
+    },
+    {
+     "last": {
+      "left": {
+       "lacks": "did not answer"
+      }
+     },
+     "why": "every request was answered: no source is named as silent"
+    },
+    {
+     "place_string": {
+      "raw": "Norristown, Montgomery, Pennsylvania, United States of America",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "how": "unique full match"
+      }
+     },
+     "why": "a unique full match is accepted in the turn"
+    },
+    {
+     "place_string": {
+      "raw": "Philadelphia Ward 28, Philadelphia, Pennsylvania, USA",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "how": "coterminous: one territory"
+      }
+     },
+     "why": "a city and the county coterminous with it are one territory"
+    },
+    {
+     "place_card": {
+      "raw": "Worcester, Montgomery County, Pennsylvania, United States of America",
+      "status": "undecided"
+     },
+     "why": "the township and the village stay the owner's to choose between: a card on the fact row"
+    },
+    {
+     "event_place": {
+      "person": "I332737038183",
+      "type": "Birth",
+      "place": {
+       "is": null
+      }
+     },
+     "why": "the birth waits on the owner's answer to its string"
+    }
+   ]
+  },
+  {
+   "say": "a turn on him once more, paused: nothing of his own is left for the resolver to read",
+   "turn": {
+    "person": "I332737038183"
+   }
+  },
+  {
+   "say": "while it is paused a record is archived for another man, the Massachusetts birth register",
+   "attach": {
+    "fixture": "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"
+   },
+   "as": "birth"
+  },
+  {
+   "say": "resumed with the geocoder's real answer for the register's one place string",
+   "resume": {
+    "inbox": [],
+    "geocoder": [
+     "nominatim-northampton-hampshire-massachusetts-united-states.json"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "report": {
+       "has": "places: 1 of 1 new place string(s) resolved by the geocoder's answer"
+      }
+     },
+     "why": "the string the turn's new record brought is resolved in the same turn, though it is no string behind the person's own events"
+    },
+    {
+     "place_string": {
+      "raw": "Northampton, Hampshire, Massachusetts, United States",
+      "status": "accepted",
+      "has_place": true,
+      "notes": {
+       "how": "unique full match"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -118,6 +118,9 @@ contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said
 | `ogau-tonan-iwate-shiwa-japan`, `ogau-tonan-japan` | no answer: the geocoder knows no such place (a former name's words) |
 | `langneundorf-lower-silesia`, `berthelsdorf-sachsen-germany` (six), `berthelsdorf-herrnhut-sachsen-germany`, `berthelsdorf-freiberg-sachsen-germany`, `ballyquirk-ireland` (four) | the answers the gazetteer scenario's resolver run reads |
 | `ballyquirk-cork-ireland` | **Captured for the harness**, one request on 2 October 2026 23:56 UTC through the resolver's own `nominatim()` with the project's User-Agent (the live cache holds no answer to this query): one answer, the Killeagh townland |
+| `new-jersey-united-states`, `pennsylvania-united-states`, `massachusetts-united-states`, `michigan-united-states` (5 and 13 September) | one state boundary each (the state-abbreviation scenario) |
+| `worcester-montgomery-county-pennsylvania-united-states`, `worcester-montgomery-pennsylvania-united-states`, `worcester-pennsylvania-united-states` | the same two places each, the village and the township (one card for one set of places) |
+| `norristown-montgomery-pennsylvania-united-states`, `pottstown-montgomery-pennsylvania-united-states`, `warwick-bucks-pennsylvania-united-states`, `philadelphia-pennsylvania-united-states`, `northampton-hampshire-massachusetts-united-states` | one boundary each, Philadelphia the city and the county coterminous with it (the turn reading its places) |
 
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record

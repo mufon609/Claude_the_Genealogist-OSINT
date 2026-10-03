@@ -423,6 +423,32 @@ differs: whether it is a variant is the owner's question. This governs
 comparing only; resolving a string to a place keeps its own rule, under
 which a village nested in its same-named town stays undecided.
 
+### Resolving a place string
+
+`tools/resolve_places.py` reads a raw string into its parts and asks OpenStreetMap's Nominatim, cached under
+`derivatives/geocode/` and asked at one request a second. The last part of a string that is no country is the state when
+it is a state's name or an abbreviation of it, from the one table in `catalog.py` that `place_verdict` reads too (the fifty
+states and the District of Columbia, with the postal codes and the period abbreviations records write: NJ, N.J., Penna,
+Mass., Tenn.), so a string that is a state alone ("NJ", "Penna") is asked as the state; earlier in a string an abbreviation
+is left as written (Penn, in Penn, Cumberland, Pennsylvania, is a township). A string is accepted when exactly one candidate
+has every part the string gives in its own hierarchy, or when the verified candidates are one territory under two names (a
+city and the county coterminous with it, tested on the geocoder's boxes); a place nested in a larger unit of the same name
+stays undecided with both offered. The words a record writes for the place of another of its lines ("Same House", "Same
+Place", "Same County", listed in `data/place-overrides.json`) are rejected as no place, the reason in the string's notes.
+
+What is not accepted is a `place_resolution` card on the fact row of the person it concerns. Cards that offer the same set
+of places, the same of them verified on every part of their strings, are one question put in different spellings
+("Worcester, Montgomery County, Pennsylvania, USA" and "Worcester, Montgomery, Pennsylvania, United States"): the screen shows
+them as one card naming every spelling it covers, and the owner's answer (`conclude.decide_place`) is every string's, each
+with its own audit row; `conclude.py decide --alone` answers one string only. A geocoder that does not answer leaves its
+strings as they were, with no card, and the run says how many.
+
+A turn (`tools/turn.py`) runs the resolver in its tail, after the records are collected and attached and before the rule
+goes over the conflicts, on the strings no resolver has read that the records the turn brought carry or that lie behind
+the person's own events: a new record's places are resolved or carded in the turn that brought it, and an event whose
+strings are all resolved takes its place before the rule compares it. A geocoder that did not answer is named once in the
+turn's report.
+
 ### Gazetteers for the places the geocoder does not know
 
 `tools/resolve_places.py` asks OpenStreetMap's Nominatim first. When it

@@ -175,10 +175,10 @@ function recordHtml(a){const id=a.sha256.slice(0,12);
   ${opts?`<tr><td><b>relation</b></td><td><select id="tr-${id}-rk"><option value="">—</option>${['spouse','parent','child','sibling','head','boarder','informant','other'].map(k=>`<option>${k}</option>`).join('')}</select> of <select id="tr-${id}-rp">${opts}</select> <input type="text" id="tr-${id}-rt" placeholder="as written" style="width:40%"></td></tr>`:''}
   </table><button onclick="transcribe('${a.sha256}')">Add persona</button></details>`;
  return html}
-function placesHtml(ps){return (ps||[]).filter(s=>s.status==='undecided').map(s=>{const words=`<div class="mut" style="font-size:12px">the record's words: “${h(s.raw)}”`;
+function placesHtml(ps){return (ps||[]).filter(s=>s.status==='undecided').map(s=>{const many=s.covers.length>1,words=`<div class="mut" style="font-size:12px">the record's words${many?`, written ${s.covers.length} ways`:''}: ${s.covers.map(w=>`“${h(w)}”`).join(', ')}`;
  if(!s.proposal)return words+`</div>`;
  const opts=s.candidates.map(c=>`<option value="${c.i}">${h(c.display_name)}</option>`).join('');
- return words+` <select id="pl-${s.proposal}" onchange="placeChoice('${s.proposal}',this)"><option value="">which place?</option>${opts}<option value="none">not a place</option></select><span id="plr-${s.proposal}"></span> <span class="mut">(the answer applies to every fact carrying these words${s.facts>1?`: ${s.facts} do`:''})</span></div>`}).join('')}
+ return words+` <select id="pl-${s.proposal}" onchange="placeChoice('${s.proposal}',this)"><option value="">which place?</option>${opts}<option value="none">not a place</option></select><span id="plr-${s.proposal}"></span> <span class="mut">(the answer applies to ${many?'each way of writing them and to ':''}every fact carrying these words${s.facts>1?`: ${s.facts} do`:''})</span></div>`}).join('')}
 function placeChoice(id,sel){const v=sel.value;if(v==='')return;
  if(v==='none'){$('#plr-'+id).innerHTML=`<span class="reason"><input type="text" id="plq-${id}" placeholder="why these words are not a place"><button onclick="placeDecide('${id}','rejected',null,$('#plq-${id}').value)">Not a place</button></span>`;$('#plq-'+id).focus();return}
  placeDecide(id,'accepted',v,null)}

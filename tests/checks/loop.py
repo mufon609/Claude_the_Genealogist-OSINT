@@ -39,15 +39,27 @@ def patched(module, name, value):
     try: yield
     finally: setattr(module, name, orig)
 
+@contextlib.contextmanager
+def geocoder_offline():
+    """The geocoder answering from the resolver's cache only, for a turn the harness runs in this process: a query the cache lacks
+    fails as an endpoint that does not answer, so no request leaves the harness."""
+    import hashlib, resolve_places
+    def cached(q):
+        path = os.path.join(resolve_places.cache_dir(), hashlib.sha1(q.lower().encode()).hexdigest() + ".json")
+        if not os.path.exists(path): raise OSError("the harness has no network")
+        with open(path, encoding="utf-8") as fh: return json.load(fh)["results"]
+    with patched(resolve_places, "nominatim", cached): yield
+
 # ---------------------------------------------------------------- actions
 
 def a_turn(w, x):
-    """tools/turn.py start on a person, run_step.run standing in for the network as the data says; the steps it ran and the
-    state it kept beside the database."""
+    """tools/turn.py start on a person, run_step.run standing in for the network as the data says, the geocoder's answers the
+    fixtures under `geocoder` plant (and no other); the steps it ran and the state it kept beside the database."""
     import run_step, turn
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
+    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
     buf = io.StringIO()
-    with patched(run_step, "run", fake_run), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
+    with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
     st = turn.load_state(w.db)
     return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue()}
 
@@ -56,8 +68,9 @@ def a_resume(w, x):
     import turn
     os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
+    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
     buf = io.StringIO()
-    with contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
+    with geocoder_offline(), contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
     out = buf.getvalue()
     return {"report": out, "left": out.split("left:", 1)[1] if "left:" in out else "", "state": turn.load_state(w.db)}
 
@@ -71,8 +84,9 @@ def a_turns(w, x):
     if x.get("resume"):
         os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
         for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
+    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
     buf = io.StringIO(); refused = None; st = None
-    with patched(run_step, "run", fake_run), contextlib.redirect_stdout(buf):
+    with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf):
         try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"), resume=bool(x.get("resume")))
         except SystemExit as e: refused = str(e)
     out = buf.getvalue()
@@ -183,15 +197,18 @@ def a_apply_places(w, x):
     return {"applied": apply_to_events(w.cx, w.tid, BY, w.treelib.now())}
 
 def a_decide_place(w, x):
-    """The owner's choice on a place card found by its string (`raw`): the candidate whose gazetteer id is `gazetteer` (a
-    gazetteer's own candidate, or the one attached to a geocoder candidate), or the geocoder's own answer `osm` (type/id), through
-    conclude.decide."""
+    """The owner's answer on a place card found by its string (`raw`), through conclude.decide: the candidate whose gazetteer id is
+    `gazetteer` (a gazetteer's own candidate, or the one attached to a geocoder candidate) or whose OpenStreetMap id is `osm`,
+    or `status` rejected, a string that is not a place; `alone` answers that card's string only."""
     from conclude import decide
     row = w.cx.execute("SELECT id, payload_json FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.raw')=?", (w.tid, x["raw"])).fetchone()
     if not row: raise KeyError(f"no open place card for {x['raw']!r}")
-    cands = json.loads(row[1])["candidates"]
-    i = next(i for i, c in enumerate(cands) if (("gazetteer" in x) and ((c.get("kind") == "gazetteer" and c.get("id") == x["gazetteer"]) or (c.get("gazetteer") or {}).get("id") == x["gazetteer"])) or (("osm" in x) and c.get("osm") == x["osm"]))
-    return decide(w.cx, w.tid, row[0], "accepted", BY, note=x.get("note", "harness: the owner chooses"), choice=i)
+    status = x.get("status", "accepted")
+    def picks(c):
+        if "osm" in x: return c.get("osm") == x["osm"]
+        return (c.get("kind") == "gazetteer" and c.get("id") == x["gazetteer"]) or (c.get("gazetteer") or {}).get("id") == x["gazetteer"]
+    i = None if status == "rejected" else next(i for i, c in enumerate(json.loads(row[1])["candidates"]) if picks(c))
+    return decide(w.cx, w.tid, row[0], status, BY, note=x.get("note", "harness: the owner chooses"), choice=i, alone=bool(x.get("alone")))
 
 def a_step_query(w, x):
     """A step's fields rewritten, as the plan writes new fields on it."""
@@ -300,6 +317,19 @@ def e_place_card(w, x, want):
             if c.get("place_id"): c["place_name"] = (w.cx.execute("SELECT name FROM place WHERE id=?", (c["place_id"],)).fetchone() or [None])[0]
     return has(got, w.value({k: v for k, v in x.items() if k in ("candidates", "names", "status")})), {"names": got["names"], "candidates": [{k: c.get(k) for k in ("kind", "name", "valid_from", "valid_to", "leading", "place_name")} for c in cands]}
 
+def e_place_group(w, x, want):
+    """The words of every string whose open card asks the same as the card of the string `raw`, in order, as the screen shows them
+    on one card (resolve_places.place_groups)."""
+    from resolve_places import place_groups
+    row = w.cx.execute("SELECT id FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.raw')=?", (w.tid, x["raw"])).fetchone()
+    covers = [m["raw"] for m in place_groups(w.cx, w.tid).get(row[0], [])] if row else []
+    return has(covers, x["covers"]), covers
+
+def e_same_place(w, x, want):
+    """Whether the strings `raws` are all accepted to one place."""
+    ids = [(w.cx.execute("SELECT place_id FROM place_string WHERE raw=? AND status='accepted'", (r,)).fetchone() or [None])[0] for r in x["raws"]]
+    return (len(set(ids)) == 1 and ids[0] is not None) == x.get("is", True), ids
+
 def e_event_place(w, x, want):
     """A person's event of a type: the place the event itself carries (after the filler), and the place shown."""
     pid = w.person(x["person"]); cat = w.catalog()
@@ -317,7 +347,7 @@ def e_file_exists(w, x, want):
     return v == x.get("is", True), v
 
 EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows,
-                "place": e_place, "place_card": e_place_card, "event_place": e_event_place, "file_exists": e_file_exists})
+                "place": e_place, "place_card": e_place_card, "place_group": e_place_group, "same_place": e_same_place, "event_place": e_event_place, "file_exists": e_file_exists})
 
 def check(keep, show, only=None):
     return scenario.check(os.path.join(SCENARIOS, "loop"), keep, show, only)
