@@ -1,0 +1,177 @@
+{
+ "title": "reconsider examines the rule's decisions in the order it took them",
+ "line": "two census pages, the owner accepting a son on the 1920 page: one run of reconsider takes the 1940 father on that, then in its next pass the 1940 son, the first card of his page, on his father's decision, both within one second of the clock; a second run examines the father before the son, though the son's card is the older, keeps both, takes nothing and writes nothing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 census page, a household with a son Frederick M among the children: nobody on it is accepted, so the rule takes nobody",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20",
+   "expect": [
+    {
+     "cards": {
+      "record": "c20",
+      "count": 5
+     }
+    }
+   ]
+  },
+  {
+   "say": "the 1940 census page, a household with a father Frederick and a son Frederick, the son's card the first of the page and so the oldest",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40",
+   "expect": [
+    {
+     "cards": {
+      "record": "c40",
+      "count": 4
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts Frederick M on the 1920 page: his name and birth year rest on a trusted source, and nothing else is taken yet",
+   "decide": {
+    "card": {
+     "record": "c20",
+     "persona": "Frederick M Ahearn"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "cards": {
+      "record": "c20",
+      "count": 4
+     },
+     "why": "the other four of the 1920 page wait"
+    },
+    {
+     "cards": {
+      "record": "c40",
+      "count": 4
+     },
+     "why": "the 1940 page waits: none of it is taken by the decision itself"
+    }
+   ]
+  },
+  {
+   "say": "reconsider within one second of the clock: the 1940 father agrees with the accepted name and birth year and is taken first; the 1940 son, a card older than his father's, is taken in the next pass, on his father's decision",
+   "at": "2026-10-01T12:00:00Z",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c40",
+      "persona": "Frederick Ahern",
+      "role": "father",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "decided_at": "2026-10-01T12:00:00Z"
+     }
+    },
+    {
+     "card": {
+      "record": "c40",
+      "persona": "Frederick Ahern",
+      "role": "son",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "decided_at": "2026-10-01T12:00:00Z"
+     },
+     "why": "the same second as his father's: the decided-at column cannot tell which was taken first"
+    },
+    {
+     "cards": {
+      "record": "c40",
+      "count": 2
+     },
+     "why": "the mother and the sister wait for the owner"
+    }
+   ]
+  },
+  {
+   "say": "reconsider again: the father, taken first, is examined first, so the son's ground holds his father's decision; both kept, nothing taken, nothing written",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "first": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Frederick Michael Ahearn",
+        "persona": "Frederick Ahern"
+       }
+      }
+     },
+     "why": "the first decision examined is the father's, though the son's card is the older"
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Frederick Micheal Ahearn Jr"
+       }
+      }
+     }
+    },
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kept": false
+       }
+      }
+     },
+     "why": "no decision withdrawn"
+    },
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "taken": true
+       }
+      }
+     },
+     "why": "nothing taken again"
+    },
+    {
+     "last": {
+      "wrote": 0
+     },
+     "why": "a run that changes nothing writes nothing"
+    },
+    {
+     "cards": {
+      "record": "c40",
+      "status": "accepted",
+      "count": 2
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

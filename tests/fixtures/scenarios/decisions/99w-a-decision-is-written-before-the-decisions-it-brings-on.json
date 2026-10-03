@@ -1,0 +1,69 @@
+{
+ "title": "a decision's accept row is written before the decisions it brings on",
+ "line": "the owner accepts a son on his Social Security record and the rule takes his parents inside that decision, all within one second of the clock: the audit log holds the owner's accept first and the rule's two after it, the order the decisions were taken in, which is the order reconsider examines the rule's decisions in",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Social Security record: a card for him and for the parents it names",
+   "attach": {
+    "fixture": "familysearch-social-security-numident-1956-6KML-FS23.html"
+   },
+   "as": "ssn"
+  },
+  {
+   "say": "the owner accepts him within one second of the clock: the rule takes his father and his mother in the same decision",
+   "at": "2026-10-01T12:00:00Z",
+   "decide": {
+    "card": {
+     "record": "ssn",
+     "person": "I332737099805"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "cards": {
+      "record": "ssn",
+      "status": "accepted",
+      "count": 3
+     },
+     "why": "the son by the owner, his parents by the rule"
+    },
+    {
+     "audit": {
+      "entity": "proposal",
+      "action": "accept",
+      "is": [
+       {
+        "actor": "agent:check"
+       },
+       {
+        "actor": {
+         "starts": "rule:"
+        }
+       },
+       {
+        "actor": {
+         "starts": "rule:"
+        }
+       }
+      ]
+     },
+     "why": "the owner's accept row first, as he decided first; the rule's two inside his decision follow, in the order it took them"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

@@ -1027,10 +1027,12 @@ with the reason it was not taken. The rule creates a person only as above,
 through the fitting check; every other `new_person` proposal is a card for
 the owner. The rule
 can take a decision back: `tools/conclude.py reconsider` examines every
-decision it made, oldest first, as the rule stands now and on the ground that
-stood before it (its own assertions and those of later rule decisions do not
-count), withdraws one it would no longer take, its assertions and the name
-alias it wrote back to undecided, and the record is a card for the owner again
+decision it made, in the order the rule took them (the second it decided, then
+its accept row in the audit log, which `decide` writes as the decision takes
+effect), as the rule stands now and on the ground that stood before it (its own
+assertions and those of later rule decisions do not count), withdraws one it
+would no longer take, its assertions and the name alias it wrote back to
+undecided, and the record is a card for the owner again
 with the reason; accepting that card makes everything the decision had written
 stand again. It then proposes again the cards an older
 matcher wrote, and examines every card still undecided

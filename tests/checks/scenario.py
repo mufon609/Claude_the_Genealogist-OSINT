@@ -7,7 +7,7 @@ tests/fixtures/README.md. People are named by the harness file's own entry ids, 
 under, and nothing in this module names a person, a place or a page: another family's export, fixtures and scenarios run
 through it unchanged.
 """
-import json, os, shutil, sqlite3, subprocess, sys
+import contextlib, json, os, shutil, sqlite3, subprocess, sys
 from common import BY, FIXTURES, ROOT, TOOLS, Fails, connect, done, run, scratch, tool, whole
 
 SCENARIOS = os.path.join(FIXTURES, "scenarios")
@@ -78,6 +78,20 @@ class Walker:
             from plan import plan_person
             for pid, in self.cx.execute("SELECT id FROM person WHERE tree_id=?", (self.tid,)): plan_person(self.cx, self.tid, pid, BY)
             self.cx.commit()
+
+    @contextlib.contextmanager
+    def clock(self, at):
+        """With `at`, the clock every tool reads (treelib.now, which each tool imported by name) stands at that second while the step's action runs,
+        so decisions taken a second apart by the wall clock carry one second, as the rule's decisions within a run may."""
+        if not at: yield; return
+        real = self.treelib.now; fake = lambda: at
+        modules = lambda: [m for m in list(sys.modules.values()) if m is not None and getattr(m, "now", None) in (real, fake)]
+        for m in modules():
+            if m.now is real: m.now = fake
+        try: yield
+        finally:
+            for m in modules():
+                if m.now is fake: m.now = real
 
     def close(self):
         w = whole(self.cx)
@@ -192,7 +206,8 @@ class Walker:
                 if self.show: print("    -", step.get("say") or short({k: v for k, v in step.items() if k not in ("expect", "say")}, 160))
                 action = next((k for k in step if k in ACTIONS), None)
                 if action:
-                    try: self.env["last"] = ACTIONS[action](self, self.value(step[action]) if action not in ("transcribe", "place_card", "step", "fake_run", "fake_fetch", "run", "run_all", "run_connector") else step[action])
+                    try:
+                        with self.clock(step.get("at")): self.env["last"] = ACTIONS[action](self, self.value(step[action]) if action not in ("transcribe", "place_card", "step", "fake_run", "fake_fetch", "run", "run_all", "run_connector") else step[action])
                     except Exception as e:
                         self.fails.append(f"step {self.step_no} ({step.get('say') or action}) raised {type(e).__name__}: {e}"); self.cx.rollback()
                         if self.show: import traceback; traceback.print_exc()
@@ -690,8 +705,8 @@ def e_cards(w, x, want):
 def e_card(w, x, want):
     card = w.card(x)
     if card is None: return x.get("exists") is False, None
-    got = {"status": card["status"], "kind": card["kind"], "decided_by": card["decided_by"], "note": card["decision_note"], "rationale": card["rationale"], "person_name": w.name_of(json.loads(card["payload_json"]).get("person_id"))}
-    pattern = {k: v for k, v in x.items() if k in ("status", "kind", "decided_by", "note", "rationale", "person_name")}
+    got = {"status": card["status"], "kind": card["kind"], "decided_by": card["decided_by"], "decided_at": card["decided_at"], "note": card["decision_note"], "rationale": card["rationale"], "person_name": w.name_of(json.loads(card["payload_json"]).get("person_id"))}
+    pattern = {k: v for k, v in x.items() if k in ("status", "kind", "decided_by", "decided_at", "note", "rationale", "person_name")}
     return x.get("exists", True) and has(got, w.value(pattern)), got
 
 def e_rule(w, x, want):

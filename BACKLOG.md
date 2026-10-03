@@ -510,20 +510,6 @@ or item metadata excepted, as now), so the runner and the attach log such a run
 `unread` alike, and show it on a real archived response no extractor claims, if
 one exists; if none does, record the path in the untested-paths entry.
 
-### C38. reconsider examines the rule's decisions in creation order within a second
-
-`conclude.reconsider` examines the rule's decisions "oldest first" by
-`ORDER BY decided_at, id`, but `decided_at` is kept to the second and `id` is
-the card's creation order, not the order the rule decided. Within one second
-(the live catalog holds several groups of up to four rule decisions sharing a
-second) a card the rule took after a newer card it rests on is examined before
-it, so that newer card's assertions are left out of its ground and the decision
-is withdrawn, then taken again by the card pass, on every run. Order the
-decisions by when each was taken (the ULID of its own accept row in
-`audit_log`, which is minted in order to the millisecond), the card's id where
-none exists, and show it on a real record where the rule takes an older card
-after the newer one it depends on: a second reconsider changes nothing.
-
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
