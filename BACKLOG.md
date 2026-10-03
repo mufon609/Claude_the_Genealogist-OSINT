@@ -502,13 +502,6 @@ record the harness reads is real and only a holder's silence is simulated;
 harness holds more, and some of it is a real answer to another request, which
 reads as the holder saying "nothing" where its real answer holds a record:
 
-- loop `94`, `96` and `100` answer the request for Davidson in Nassau
-  enumeration district 30-392 with the empty answer captured for district
-  30-393; the archive's own answer to 30-392 (sha `9fda2c90…`, 7 Sept) holds a
-  schedule. Their Queens requests are answered empty with nothing captured.
-- loop `22` answers Charlotte Lukens's books search with the Archive's empty
-  newspaper search for Alicia Ahearn, and her WikiTree search with WikiTree's
-  empty answer for Noi Davidson 1929.
 - loop `32`, `33`, `42`, `43` and decisions `97a` plant a 1950 census citation
   with the record ids `1,62308::1` and `::3`, which no export or record holds.
 - decisions `71` and `99f` record readings typed into the scenario as read by
@@ -598,6 +591,18 @@ route (`conclude.claimed_relation_match`, the rule's "name not yet accepted"
 branch) reads ground that `reconsider`'s re-examination does not, make the two
 read the same ground, and show it on that scenario: a reconsider right after the
 decision keeps it.
+
+### C25. A place name whose request got no answer is asked again
+
+`run_step.run_connector` tries a step's place names one at a time and logs every
+name it tried; a run with one name's request unanswered (a timeout, a refusal)
+and another's answered with nothing is logged `none` (`outcome_of`: errors and
+an answer), and `log_search.same_fields` reads a run that tried every name as
+the step's own fields, so the step is closed at that source though one of its
+names was never answered (loop scenario `94`'s first run is that shape). Leave a
+name whose request got no answer off the run's tried list, or mark it untried,
+so the next turn asks it again, and show it on that scenario: the step stays
+runnable for the unanswered name alone.
 
 ## Externally blocked
 

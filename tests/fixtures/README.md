@@ -72,8 +72,9 @@ step's kind), as the extractor reads it on arrival.
 Read by `tools/check.py`'s offline connector checks (`connectors.json` names them) and played back by the loop's `run`
 action as a holder's answer, never parsed as a page of their own. Each is a real response with its manifest beside it:
 where the archive holds the response, the manifest is the archive's own and the sha256 in it is the file's, so
-`sha256sum` against `archive/objects/sha256/…` shows the bytes are the archived ones; the one response captured for the
-harness has its own manifest saying so.
+`sha256sum` against `archive/objects/sha256/…` shows the bytes are the archived ones; a response captured for the
+harness has its own manifest saying so. A saved response answers only the request it was asked at: the loop's `run` refuses
+one whose manifest (or sidecar) names another URL.
 
 | File | Where it came from |
 |---|---|
@@ -87,13 +88,14 @@ harness has its own manifest saying so.
 | `ia-metadata-spinneyfamilygen00phil.json` + `.manifest.json` | The archive's object `ba021857…` (13 September 2026): the Archive's metadata for that lent book (`access-restricted-item` true) |
 | `ia-fts-directories-raymond-davidson-new-jersey-towns.json` + `.manifest.json` | The archive's object `c5219b32…` (18 September 2026): the Archive's full-text search of its city directories for "Raymond Davidson" in directories titled for the towns Raymond Earl Davidson's events name, as the directories connector asks it; its one hit is martindalehubbel0003unse_r8g1, a book the Archive lends |
 | `ia-metadata-martindalehubbel0003unse_r8g1.json` + `.manifest.json` | The archive's object `378d47ed…` (18 September 2026): the Archive's metadata for that lent book, the Martindale-Hubbell Law Directory 2014 (`access-restricted-item` true): the only hit of a run, so a none run whose every hit is lent |
-| `ia-fts-newspapers-alicia-ahearn-empty.json` + `.manifest.json` | The archive's object `d6c20ff8…` (20 September 2026): the Archive's full-text search of its newspapers for "Alicia Ahearn", which holds nothing: the Archive's empty answer |
+| `ia-fts-directories-noi-davidson-towns-empty.json` + `.manifest.json` | The archive's object `6145a559…` (13 September 2026): the Archive's full-text search of its city directories for "Noi Davidson" in directories titled for New Egypt, Tacoma, Arneytown, Ogau Tonan or Mount Holly Township, the towns her events name, as the directories connector asks it, which holds nothing: the Archive's empty answer |
 | `wikitree-search-davidson-noi-1929-empty.json` + `.manifest.json` | The archive's object `eb0a659a…` (13 September 2026): WikiTree's searchPerson for Noi Davidson born 1929, which holds nothing: WikiTree's empty answer |
 | `ny-marriage-index-1959-page-970.jpg` + `.manifest.json` | The archive's object `c3dd7c98…` (7 September 2026): page 970 of Reclaim The Records' New York State marriage index for 1959 on the Internet Archive, as its reader serves the scan (3054 × 3530, 1.2 MB), the groom's row HAHNLE CHRIS M, license issued at HUNTING, 8/14, certificate 32801 among them: the image a scenario's reading is typed from. Never parsed by the harness |
 | `va-gravesite-search-davidson-raymond-e.html` + `.manifest.json` | The archive's object `e6db8c20…` (14 September 2026): the VA Nationwide Gravesite Locator's results page for Davidson, Raymond, middle name beginning E, as the connector's posted search received it: five decedents, Raymond E Davidson (1939–2007) the first |
 | `va-gravesite-search-davidson-noi.html` + `.manifest.json` | The archive's object `17c08be7…` (14 September 2026): the same locator's page for Davidson, Noi: one decedent, Noi Davidson (1929–2015) |
 | `nara-1950-search-davidson-nassau-ed-30-392.json` + `.manifest.json` | The archive's object `9fda2c90…` (7 September 2026): the 1950 census site's own search for Davidson in Nassau County, New York, enumeration district 30-392: the one schedule (`nara-1950-schedule-3947385.json`, read as a page above) |
-| `nara-1950-search-davidson-nassau-ed-30-393-empty.json` + `.manifest.json` | **Captured for the harness**, one request on 3 October 2026 00:06 UTC (2 October local) with the project's User-Agent, at `https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-393&page=1`: the same search within the district beside it, which the site answers with nothing (`{"total":0,"size":25,"page":1,"results":[]}`): the census site's empty answer |
+| `nara-1950-search-davidson-queens-ed-30-392.json` + `.manifest.json` | **Captured for the harness**, one request on 3 October 2026 07:44 UTC with the project's User-Agent, at `https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Queens&ed=30-392&page=1`: the same search in Queens County, the county the town sat in before Nassau County was cut from it in 1899, which the site answers with nothing (`{"total":0,"size":25,"page":1,"results":[]}`): the census site's empty answer |
+| `nara-1950-search-raymond-davidson-nassau.json` + `.manifest.json` | **Captured for the harness**, one request on 3 October 2026 07:57 UTC with the project's User-Agent, at `https://1950census.archives.gov/api/search?name=Raymond%20Davidson&state=NY&county=Nassau&page=1`: the site's search for Raymond Davidson in Nassau County with no district, 1251 schedules of which the first page (25) is the answer and none has a highlighted name carrying both his given name and his surname |
 
 ## Gazetteer answers
 
@@ -284,7 +286,8 @@ under `geocoder` and Wikidata's items under `wikidata` planted for the turn's re
 `resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
 into the inbox and the answers planted as a turn's, then `--resume`; its report, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
 replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, each answer for the first request
-carrying its `url_has` that no earlier request took: a saved real response, or the harness's stand-in for a holder that did not
+carrying its `url_has` that no earlier request took: a saved real response, refused for any request but the one its manifest or
+sidecar says it was asked at, or the harness's stand-in for a holder that did not
 answer; a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
 step's id at every connector; the result's `records` are the sha256 of every record the runner archived and read), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (`run_step.run_connector` with the real `connector` named, answered like `run`: the
@@ -320,16 +323,18 @@ The geocoder's answer for the place the first-level-unit scenario resolves is th
 Every response body, row, page and record the harness reads is real, but for the two stand-ins at the end: a page or response the live archive holds (a connector's
 response with the archive's own manifest beside it, and the check that the bytes are the archive's own), the owner's own export
 cut down (`harness.ged`), the geocoder's and the gazetteers' answers as the live resolver kept them, or one captured from its
-holder for the harness and named so above (three: the Archive's search inside the Schwenkfelder record for Brandt on 2 October 2026,
-Nominatim's answer for "Ballyquirk, Cork, Ireland" on 2 October, the 1950 census site's empty answer for Davidson in district 30-393 on
-3 October UTC); a few were captured by a connector or the resolver on a scratch data root and say so in their rows. A holder's
+holder for the harness and named so above (four: the Archive's search inside the Schwenkfelder record for Brandt on 2 October 2026,
+Nominatim's answer for "Ballyquirk, Cork, Ireland" on 2 October, the 1950 census site's answers for Davidson in Queens within district
+30-392 and for Raymond Davidson in Nassau on 3 October UTC); a few were captured by a connector or the resolver on a scratch data root and say so in their rows. A holder's
 request is asked of a real connector; only the network call is replaced.
 
 What is simulated is a holder that does not answer, which is a control signal and no record:
 
 - `run` and `run_connector` answers carrying an `error`: the connection raises `URLError` whose message begins "the harness's
   stand-in for no answer" (a timeout, a challenge, a refusal): the census page image in the loop scenarios
-  `21-the-record-a-connector-archived`, `94-place-names-different-requests` and `100-a-hit-on-an-early-name-is-the-same-fields`, WikiTree in `22-a-steps-two-connectors`.
+  `21-the-record-a-connector-archived`, `94-place-names-different-requests`, `96-fetch-place-names` and
+  `100-a-hit-on-an-early-name-is-the-same-fields`, the census site's search in Nassau County in `94`'s first run (so that its
+  second and third names are tried), WikiTree in `22-a-steps-two-connectors`.
 - `turn` and `turns` with `fake_run`: `run_step.run` replaced by a function that logs the outcome the data gives, only `none` (the
   holder answered nothing) or `error` (it did not answer), with no request, response or record, its note saying "harness: faked,
   no network"; in `10-turn`, `15-turns` (the error is the same stand-in), `60-unnamed-fetch` and `61-browse-only-holder`, to see

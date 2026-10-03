@@ -103,12 +103,33 @@ def a_turns(w, x):
 def a_clear_state(w, x):
     import turn; turn.clear_state(w.db); return {}
 
+def asked_at(fixture):
+    """Where a saved real response was asked: the locator its manifest gives (<stem>.manifest.json), or the archive locator its
+    sidecar gives (<stem>.expect.json); None for a fixture with neither."""
+    stem = os.path.join(FIXTURES, fixture.rsplit(".", 1)[0])
+    for path, key in ((stem + ".manifest.json", None), (stem + ".expect.json", "archive")):
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as fh: d = json.load(fh)
+            loc = ((d.get(key) if key else d) or {}).get("locator") or {}
+            if loc.get("kind") == "url": return loc["value"]
+    return None
+
+def answers_request(loc, url, data):
+    """Whether a response asked at `loc` is the answer to this request: a GET at the locator's own URL (a fragment marks an
+    excerpt of that answer: #excerpt, #bytes=), or a form posted to the locator's host whose fields carry the values the
+    locator's fragment records (the gravesite locator's #lastName=...&firstName=...)."""
+    import urllib.parse
+    base, _, frag = loc.partition("#")
+    if data: return urllib.parse.urlsplit(url).netloc == urllib.parse.urlsplit(base).netloc and all(str(data.get(k, "")) == v for k, v in urllib.parse.parse_qsl(frag) if k in data)
+    return url == base
+
 def answered_by(fetch):
     """The network call a run is played back with, from the data: `answers`, one for each request, in the order the requests
     come. An answer is for the first request carrying its `url_has` that no earlier request has taken: a saved real response
-    (`fixture` under tests/fixtures/, its `content_type`) or an `error` the source's connection raises, the harness's
-    stand-in for a holder that did not answer (a timeout, a refusal, a challenge). A request the data does not answer fails
-    the run; no `fetch` means no network at all."""
+    (`fixture` under tests/fixtures/, its `content_type`), which answers only the request it was asked at (asked_at), or an
+    `error` the source's connection raises, the harness's stand-in for a holder that did not answer (a timeout, a refusal, a
+    challenge). A request the data does not answer, or answers with another request's response, fails the run; no `fetch`
+    means no network at all."""
     import urllib.error
     used = set()
     def meta(url, content_type): return {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": content_type}
@@ -117,6 +138,8 @@ def answered_by(fetch):
             if i in used or ans["url_has"] not in url: continue
             used.add(i)
             if ans.get("error"): raise urllib.error.URLError(ans["error"])
+            loc = asked_at(ans["fixture"])
+            if loc and not answers_request(loc, url, data): raise AssertionError(f"{ans['fixture']} is the answer to {loc}, not to {url}{' ' + json.dumps(data) if data else ''}")
             with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))
         raise AssertionError(f"a request went out that the data does not answer: {url}")
     return fake_fetch
