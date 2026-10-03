@@ -39,7 +39,7 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
-from log_search import ON_WORD, UNREAD, holds_record, log as log_search, rendered_query, ran_unchanged, step_source, unread_page
+from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, step_source, unread_page
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
 from conclude import match_record
@@ -533,7 +533,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
             out["outcome"] = "none"
         for person in dict.fromkeys(who for who, _, _ in fits): plan_person(cx, tree_id, person, by)   # the rows' own records are fetch steps now: the plan says so before anyone asks for the next page
     if steps and logs and unread_page(cx, sha):                   # a page no parser reads: held on the step's log, read by nobody, closing nothing
-        for sid, lid in logs: cx.execute("UPDATE search_log SET outcome='unread', notes=? || coalesce('; ' || notes, '') WHERE id=?", (UNREAD, lid))
+        for sid, lid in logs: hold_unread(cx, lid)
         out["outcome"] = "unread"
     if out.get("outcome") not in ("none", "unread") and logs:     # the found run closes a search step; a fetch step only when the page is the record it cites
         kinds = {s["id"]: s["kind"] for s in steps}; record = holds_record(cx, sha)

@@ -21,7 +21,9 @@ a record) and the matcher on each extraction; a record no extractor claims is re
 are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
 index's rows under a surname) is found only when a row fits a person, as docs/RESEARCH-WORKFLOW.md §4 has it for a
 results page saved by hand: when no row of any listing fits anyone, the run is set to none with the reason in its note,
-the rows stay on the artifact as candidates, and the step stands as it stood before the run.
+the rows stay on the artifact as candidates, and the step stands as it stood before the run. A run whose records are all
+web pages no parser reads (log_search.unread_page: the extractor failed every one) is set to unread, as the attach logs a page
+saved by hand: the pages are held on the step's log, the note says so, and no step is closed.
 A step whose sources have several connectors runs at each, one log row per source: a search step at the connectors of its
 row's sources, a fetch step at its holder's and at those of its row's sources too (an obituary cited at a closed source runs
 at the Archive's newspapers with the citation's paper and date), the page saved by hand and a connector's answer being runs
@@ -46,7 +48,7 @@ import argparse, http.client, json, os, re, sys, time, urllib.error, urllib.pars
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, collection_tier, first_value
-from log_search import log as log_search, latest_answer, ran_unchanged, rendered_query
+from log_search import hold_unread, log as log_search, latest_answer, ran_unchanged, rendered_query, unread_page
 from extract import extract, RESULTS_LISTINGS
 from conclude import match_record
 import connectors
@@ -187,7 +189,9 @@ def household_steps(cx, tree_id, step):
 def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
     """One step through the connectors still to ask on its current fields (waiting_connectors), or through every one when
     again is set (a step run by its id): one run each (run_connector), then extraction and matching over every record any of
-    them archived. Returns one result per connector: a connector not asked, its source having answered on these fields,
+    them archived; a found run whose records fit no one (every record a results listing none of whose rows fits) is set to
+    none, and one whose records are all pages no parser reads is set to unread, each leaving the step as it stood before the
+    run. Returns one result per connector: a connector not asked, its source having answered on these fields,
     reports that answer (asked False, answered {outcome, at}) instead of a run, so --dry-run says which sources a step would
     ask."""
     conns = connectors_for(cat, step)
@@ -215,6 +219,10 @@ def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
             note = "no candidate fits; " + (cx.execute("SELECT notes FROM search_log WHERE id=?", (r["log"],)).fetchone()[0] or "")
             cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (note.rstrip("; "), r["log"]))   # a none run holds no record: the step stands as it stood before the run
             cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "none"
+        elif r["outcome"] == "found" and extracted and all(unread_page(cx, e["sha256"]) for e in extracted):   # every record is a web page no parser reads: held on the log, read by nobody, closing nothing
+            for lid in r["logs"]: hold_unread(cx, lid)
+            for sid in r["household_steps"]: cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (sid,))   # household_steps takes only planned steps
+            cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "unread"
         out.append({**r, "extracted": extracted})
     return out
 
@@ -251,7 +259,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     if not reqs: gate = f"the fields give the connector nothing to ask; it wants {wants}: not asked"   # no request: a none run with the reason, the step asked again once the plan writes the field
     if gate:                                                     # the source's years miss the step's, or its connector has nothing to ask: a none run with the reason, no request
         lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome="none", artifacts=None, note=gate, query=query)
-        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "none", "log": lid, "artifacts": [], "hits": [], "errors": [], "household_steps": [], "records": [], **({"wants": wants} if wants else {"outside": gate})}
+        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "none", "log": lid, "logs": [lid], "artifacts": [], "hits": [], "errors": [], "household_steps": [], "records": [], **({"wants": wants} if wants else {"outside": gate})}
     src = cx.execute("SELECT trust_tier, terms, cost FROM source WHERE id=?", (conn.SOURCE,)).fetchone()
     tier, terms, cost = (src or (None, None, None))
     cost = next((c for c in ("free", "paid", "member") if (cost or "").strip().lower().startswith(c)), "unknown")
@@ -321,12 +329,12 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
 
     own = step["kind"] != "fetch" or conn.SOURCE == step["locator_source_id"]   # a fetch step is done by its holder's answer alone: a row-source connector's hit is another paper's page, logged and held, the cited record still to fetch
     lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome=outcome, artifacts=shas or None, note=note, query=query, done=own)
-    household = []
+    household, logs = [], [lid]
     if step["kind"] == "fetch" and outcome == "found" and own:      # the page is held for every household member cited on it
         for other in household_steps(cx, tree_id, step):
-            log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
-                       query=rendered_query(other["query_json"], other["revisions_json"])); household.append(other["id"])
-    return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": all_reqs, "outcome": outcome, "log": lid, "artifacts": shas, "hits": hits,
+            logs.append(log_search(cx, tree_id, by, step_id=other["id"], outcome="found", artifacts=shas, note=f"the same page, fetched for {cx.execute('SELECT display_name FROM person WHERE id=?', (step['person_id'],)).fetchone()[0]}",
+                                   query=rendered_query(other["query_json"], other["revisions_json"]))); household.append(other["id"])
+    return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": all_reqs, "outcome": outcome, "log": lid, "logs": logs, "artifacts": shas, "hits": hits,
             "errors": errors, "household_steps": household, "records": records}
 
 def main():

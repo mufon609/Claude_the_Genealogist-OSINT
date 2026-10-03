@@ -11,7 +11,7 @@ include/revise unless --query overrides them. A 'found' outcome marks the step d
 (a fetch step only when the page is the record it cites, holds_record); 'none' leaves
 it planned so it can be retried with different fields, and the log shows it was
 tried; 'unread' is a web page archived that no parser reads (unread_page): tools/attach.py
-writes it, never a hand, the page is held on the step's log and the step stays planned.
+and tools/run_step.py write it, never a hand, the page is held on the step's log and the step stays planned.
 A dismissed question stays closed when the plan is regenerated.
 """
 import argparse, json, os, sys
@@ -100,16 +100,22 @@ def unread_page(cx, sha):
     """Whether an archived file is a web page nobody has read: text/html whose every extraction is the failed one tools/extract.py
     writes for a page no parser claims, and at least one exists. A page a parser claimed or the model or a person read through
     the transcription path (an extraction of its own, complete or partial) is not, nor an image or a file never read: those
-    runs stay as they are. A run whose artifacts are all such pages is logged `unread`, not `found`: the page is held on the
-    step's log and the step stays planned."""
+    runs stay as they are. A run whose pages are all such pages (the attach's one page, a connector's run's records) is logged
+    `unread`, not `found`: the pages are held on the step's log and the step stays planned."""
     mime = cx.execute("SELECT mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if not mime or not (mime[0] or "").startswith("text/html"): return False
     return {s for s, in cx.execute("SELECT status FROM extraction WHERE artifact_sha256=?", (sha,))} == {"failed"}
 
+def hold_unread(cx, log_id):
+    """A run already logged found whose pages no parser reads (unread_page) is an unread run: its outcome set to unread and its
+    note begun with UNREAD, the pages held on the step's log. The caller, which logged the run before the page was read, returns
+    any step the run marked done to the status it had."""
+    cx.execute("UPDATE search_log SET outcome='unread', notes=? || coalesce('; ' || notes, '') WHERE id=?", (UNREAD, log_id))
+
 def closed_by_pointers(cx, step_id):
     """Whether a step's found runs, since it was last reopened, are all pages that point at its record or hold nothing
-    (not holds_record): the step stands done on listings or pages no parser read alone (an unread run, the attach's word for
-    such a page, is not a found run and closes nothing). False when it has no found run since, when
+    (not holds_record): the step stands done on listings or pages no parser read alone (an unread run, the attach's and the runner's word
+    for such a page, is not a found run and closes nothing). False when it has no found run since, when
     a found run carries no artifact (a hand's found: the owner's word) or is the owner's word about a record (ON_WORD), or
     when any found run carries a record."""
     since = cx.execute("SELECT coalesce(max(id), '') FROM search_log WHERE plan_step_id=? AND notes LIKE ?", (step_id, REOPENED + "%")).fetchone()[0]

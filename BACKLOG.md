@@ -193,7 +193,11 @@ pass's other limits (`Catalog.beyond_life`): a parent too young or too old at a
 birth, a statement dated after the death or before the birth (Ruth M Peters's
 public record of 2000–2001 after her 29 February 2000 death, live, needs her
 Social Security pages and that record in the cut), and one person in two places
-in one census year. When a real document
+in one census year; and a connector's run whose records are all web pages no
+parser reads, which `run_step.run` logs `unread` and which closes no step, the
+household's steps with it (every such page the archive holds was saved in the
+browser: no connector has answered with one, so the path has no real response to
+run against). When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
