@@ -273,6 +273,18 @@ two trees and one archived page, decided in the first and undecided in the
 second, and scope every reader that joins `person_persona`, `proposal` or
 `search_plan` by artifact or persona to its tree.
 
+### C10. A place name whose request got no answer is asked again
+
+`run_step.run_connector` tries a step's place names one at a time and logs every
+name it tried; a run with one name's request unanswered (a timeout, a refusal)
+and another's answered with nothing is logged `none` (`outcome_of`: errors and
+an answer), and `log_search.same_fields` reads a run that tried every name as
+the step's own fields, so the step is closed at that source though one of its
+names was never answered (loop scenario `94`'s first run is that shape). Leave a
+name whose request got no answer off the run's tried list, or mark it untried,
+so the next turn asks it again, and show it on that scenario: the step stays
+runnable for the unanswered name alone.
+
 ### C11. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card
@@ -489,49 +501,66 @@ Keep each rule in `catalog.py`, drop what nothing reads (or give it its
 reader), and make `tombstone` the one way a removal is written.
 
 
-### C33. The harness's stand-ins and borrowed answers
+### C33. A family-held photograph in the harness
 
-`docs/DATA-ARCHITECTURE.md` §7 decision 8 says every page, response, row and
-record the harness reads is real and only a holder's silence is simulated;
-`tests/fixtures/README.md` ("What is simulated") names two stand-ins. The
-harness holds more, and some of it is a real answer to another request, which
-reads as the holder saying "nothing" where its real answer holds a record:
+`decisions/95-cited-on-the-owners-word` drops two family-held photographs into
+the inbox, and the harness writes the smallest of JPEG files for them, the one
+stand-in file `tests/fixtures/README.md` ("What is simulated") still names. The
+only family-held photographs the archive holds are marked private and never
+redistributed; whether one may sit in `tests/` is the owner's choice (CLAUDE.md,
+hard rule 7). Once the owner names one, archive it as a fixture with its
+manifest, attach it in place of the stand-in, and drop `stand_in` from
+`tests/checks/scenario.py` and the README.
 
-- loop `94`, `96` and `100` answer the request for Davidson in Nassau
-  enumeration district 30-392 with the empty answer captured for district
-  30-393; the archive's own answer to 30-392 (sha `9fda2c90…`, 7 Sept) holds a
-  schedule. Their Queens requests are answered empty with nothing captured.
-- loop `22` answers Charlotte Lukens's books search with the Archive's empty
-  newspaper search for Alicia Ahearn, and her WikiTree search with WikiTree's
-  empty answer for Noi Davidson 1929.
-- loop `32`, `33`, `42`, `43` and decisions `97a` plant a 1950 census citation
-  with the record ids `1,62308::1` and `::3`, which no export or record holds.
-- decisions `71` and `99f` record readings typed into the scenario as read by
-  `llm:claude-sonnet-5-5`; `99f` types "Huntington, Suffolk County, New York",
-  "groom" and "M" where the image gives HUNTING and neither word.
-- `tools/check.py`'s Kentucky death index check puts a heading line typed in
-  `tests/fixtures/connectors.json` before the real five-line excerpt.
-- loop `12` and `93` plant no Wikidata answers, so a check run with a network
-  asks Wikidata live.
-- undisclosed stand-ins: `fake_run` in loop `12`, `13` and `63` beside the four
-  the README names; `loop.py`'s geocoder reading only its cache; loop `40`
-  step 3's bare `<html></html>`; the smallest of JPEG files for a gravestone
-  photograph and the owner's family photographs (`decisions/50-memorial`,
-  `decisions/95-cited-on-the-owners-word`), and a page of nothing but its
-  saved-from line for a cited obituary (`decisions/70`, `decisions/97`,
-  `loop/70`).
+### C26. Runs that stand for an answer no holder gave
 
-Answer each request with its own real answer (the archive's, or one captured
-from the holder with its URL and date), rewriting a scenario around that answer
-where it changes the outcome; plant the Wikidata items the two place scenarios
-read (the live resolver's cache holds them byte for byte); give a typed reading
-the harness as its reader and the image's own words; replace the planted ids
-with a citation the owner's export carries. The archive holds real pages for
-the last two stand-ins: a Find a Grave gravestone photograph read by the model
-(sha `7b2dd95d001a…`, photo 142698059, registry E05) and a Legacy.com obituary
-page read by the model (sha `0ee95c3d0eba…`, H05); whether a family-held
-photograph, marked private, may sit in `tests/` is the owner's choice (hard
-rule 7). What stays simulated is listed in the README, every instance.
+`docs/DATA-ARCHITECTURE.md` §7 decision 8 lets the harness simulate a holder's
+failure to answer and nothing else, but a turn scenario's `fake_run` logs `none`
+with no request behind it (loop `10`, `12`, `13`, `15`, `60`, `61`, `63`), and
+the `log` action writes `none` and `found` runs by hand (loop `10`, `31`, `50`,
+`63`, `72`, `101`; decisions `90`), each the catalog's word that a holder
+answered nothing, or answered, where no holder did. `tests/fixtures/README.md`
+lists them. Either answer each with a real run (the connectors through `run`
+on the archive's own answers, a saved page through `save` and `collect`) or a
+holder's silence where the path allows it, or have decision 8 say that a run
+written to reach a path is the harness's bookkeeping and no answer.
+
+### C30. A dependent's row on the gravesite locator
+
+The VA locator's row for a veteran's dependent names the veteran the dependent
+is buried with and carries the veteran's rank and branch: Noi Davidson's row
+(`tests/fixtures/va-gravesite-search-davidson-noi.html`) reads "Relationships:
+WIFE OF DAVIDSON, RAYMOND E" and "Rank & Branch: MSGT US AIR FORCE".
+`connectors/va_graves.py` reads no `Relationships` label, and the reader in
+`tools/extract.py` writes the row's rank and branch as the dependent's own
+Military Service. Read the relationship as the row states it (the veteran a
+persona of the record, related as written) and the rank and branch as the
+veteran's, and give that page a sidecar that says so.
+
+### C31. Objects a check run archived into the live archive
+
+Fifteen manifests under the live `archive/manifests/` say `retrieved_by:
+agent:check`, all at 2026-09-15T14:44:31Z: the harness's own fixtures (the
+memorial of Abram C Brant, the 1950 search for Frederick Micheal Ahearn, the
+Hahnle 1950 record page, the 1950 schedule 3947385, the Find a Grave search for
+Robert Davidson, the Schwenkfelder search inside, Hubner-223's profile, two
+gravesite pages, the loc.gov page text and five FamilySearch record pages), each
+under its fixture's own file name, archived by a check run whose data root was
+the live one. For those fixtures the archive's copy proves
+nothing about where the bytes came from, and the live catalog may hold rows
+for them. Find what that run wrote (artifacts, extractions, personas, runs)
+through a tool that reads the catalog, say what the owner should keep, and
+correct the README rows that rest on those copies.
+
+### C32. The same page saved twice
+
+`suffix` adds line feeds to a real page so that a scenario archives the same
+page again as other bytes (decisions `60`, loop `30` and `31`): bytes no save
+produced. The live archive holds a real second save of one page, Reiko Diane
+Davidson's FamilySearch search at collection 2365247, saved twice on 18
+September 2026 (`fbc2a73f…`, `24a52f8d…`, six bytes apart). Make those
+scenarios' second save a real one (that pair, or another the archive holds)
+and drop `suffix` from `tests/checks/scenario.py` and the README.
 
 ### C34. An original names whose record it is
 

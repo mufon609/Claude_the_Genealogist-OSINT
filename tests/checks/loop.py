@@ -9,7 +9,7 @@ place or a page.
 import contextlib, importlib.util, io, json, os, re, shutil, sys, types
 from common import BY, FIXTURES, TOOLS, run, tool
 import scenario
-from scenario import ACTIONS, EXPECTS, SCENARIOS, has, plant_geocoder
+from scenario import ACTIONS, EXPECTS, SCENARIOS, has, plant_geocoder, plant_wikidata
 
 def queue_module():
     """tools/queue.py loaded by path: importing it by name would shadow the standard library's queue."""
@@ -58,21 +58,23 @@ def reopens(text):
 
 def a_turn(w, x):
     """tools/turn.py start on a person, run_step.run standing in for the network as the data says, the geocoder's answers the
-    fixtures under `geocoder` plant (and no other); the steps it ran and the state it kept beside the database."""
+    fixtures under `geocoder` plant (and no other) and Wikidata's items those under `wikidata`; the steps it ran and the state it
+    kept beside the database."""
     import run_step, turn
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
-    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
+    plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
     with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
     st = turn.load_state(w.db)
     return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue(), "reopens": reopens(buf.getvalue())}
 
 def a_resume(w, x):
-    """The pages dropped into the inbox as a save would leave them, then tools/turn.py --resume; its report."""
+    """The pages dropped into the inbox as a save would leave them, the geocoder's answers and Wikidata's items planted as a turn's
+    are, then tools/turn.py --resume; its report."""
     import turn
     os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
-    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
+    plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
     with geocoder_offline(), contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
     out = buf.getvalue()
@@ -80,7 +82,8 @@ def a_resume(w, x):
 
 def a_turns(w, x):
     """tools/turns.py: turn after turn from the queue, run_step.run standing in for the network as the data says (fake_run, as
-    a turn's), --turns as `turns` says, or --resume with the pages `inbox` names dropped into the inbox first; what it
+    a turn's), the geocoder's answers and Wikidata's items planted as a turn's are, --turns as `turns` says, or --resume with
+    the pages `inbox` names dropped into the inbox first; what it
     printed, the summary, the run's state as it ended, what is saved beside the database, the turn's state, and a refusal's
     text when it exited."""
     import run_step, turn, turns
@@ -88,7 +91,7 @@ def a_turns(w, x):
     if x.get("resume"):
         os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
         for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
-    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
+    plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO(); refused = None; st = None
     with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf):
         try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"), resume=bool(x.get("resume")))
@@ -100,12 +103,33 @@ def a_turns(w, x):
 def a_clear_state(w, x):
     import turn; turn.clear_state(w.db); return {}
 
+def asked_at(fixture):
+    """Where a saved real response was asked: the locator its manifest gives (<stem>.manifest.json), or the archive locator its
+    sidecar gives (<stem>.expect.json); None for a fixture with neither."""
+    stem = os.path.join(FIXTURES, fixture.rsplit(".", 1)[0])
+    for path, key in ((stem + ".manifest.json", None), (stem + ".expect.json", "archive")):
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as fh: d = json.load(fh)
+            loc = ((d.get(key) if key else d) or {}).get("locator") or {}
+            if loc.get("kind") == "url": return loc["value"]
+    return None
+
+def answers_request(loc, url, data):
+    """Whether a response asked at `loc` is the answer to this request: a GET at the locator's own URL (a fragment marks an
+    excerpt of that answer: #excerpt, #bytes=), or a form posted to the locator's host whose fields carry the values the
+    locator's fragment records (the gravesite locator's #lastName=...&firstName=...)."""
+    import urllib.parse
+    base, _, frag = loc.partition("#")
+    if data: return urllib.parse.urlsplit(url).netloc == urllib.parse.urlsplit(base).netloc and all(str(data.get(k, "")) == v for k, v in urllib.parse.parse_qsl(frag) if k in data)
+    return url == base
+
 def answered_by(fetch):
     """The network call a run is played back with, from the data: `answers`, one for each request, in the order the requests
     come. An answer is for the first request carrying its `url_has` that no earlier request has taken: a saved real response
-    (`fixture` under tests/fixtures/, its `content_type`) or an `error` the source's connection raises, the harness's
-    stand-in for a holder that did not answer (a timeout, a refusal, a challenge). A request the data does not answer fails
-    the run; no `fetch` means no network at all."""
+    (`fixture` under tests/fixtures/, its `content_type`), which answers only the request it was asked at (asked_at), or an
+    `error` the source's connection raises, the harness's stand-in for a holder that did not answer (a timeout, a refusal, a
+    challenge). A request the data does not answer, or answers with another request's response, fails the run; no `fetch`
+    means no network at all."""
     import urllib.error
     used = set()
     def meta(url, content_type): return {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": content_type}
@@ -114,6 +138,8 @@ def answered_by(fetch):
             if i in used or ans["url_has"] not in url: continue
             used.add(i)
             if ans.get("error"): raise urllib.error.URLError(ans["error"])
+            loc = asked_at(ans["fixture"])
+            if loc and not answers_request(loc, url, data): raise AssertionError(f"{ans['fixture']} is the answer to {loc}, not to {url}{' ' + json.dumps(data) if data else ''}")
             with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))
         raise AssertionError(f"a request went out that the data does not answer: {url}")
     return fake_fetch
@@ -178,10 +204,8 @@ def a_resolve(w, x):
     Wikidata's items in its own, and the gazetteers' answers (GOV's and Wikidata's searches, each fixture a list of the
     resolver's own cache records) under the paths the resolver reads them from, so no request goes out; the strings must
     already be the tree's."""
-    from resolve_places import gazetteer_cache_path, wikidata_cache_dir
-    os.makedirs(wikidata_cache_dir(), exist_ok=True)
-    plant_geocoder(x.get("geocoder", []))
-    for qid, fixture in x.get("wikidata", {}).items(): shutil.copy(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
+    from resolve_places import gazetteer_cache_path
+    plant_geocoder(x.get("geocoder", [])); plant_wikidata(x.get("wikidata"))
     for fixture in x.get("gazetteer", []):
         with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
         for rec in records:

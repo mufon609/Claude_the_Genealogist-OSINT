@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "6145a559fb6cfbdbc7019499ef3df0ace33624ca82ad2108ff89ee31e12a6e14",
+  "bytes": 873,
+  "mime": "application/json",
+  "source_id": "K01",
+  "collection": "Internet Archive city directories",
+  "locator": {
+    "kind": "url",
+    "value": "https://be-api.us.archive.org/fts/v1/search?q=%22Noi%20Davidson%22~3%20AND%20title%3A%28%22New%20Egypt%22%20OR%20%22Tacoma%22%20OR%20%22Arneytown%22%20OR%20%22Ogau%20Tonan%22%20OR%20%22Mount%20Holly%20Township%22%29%20AND%20title%3Adirectory%20AND%20NOT%20collection%3Anewspaperarchive&size=40"
+  },
+  "retrieved_at": "2026-09-13T15:05:34Z",
+  "retrieved_by": "agent:tree-16 for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://be-api.us.archive.org/fts/v1/search?q=%22Noi%20Davidson%22~3%20AND%20title%3A%28%22New%20Egypt%22%20OR%20%22Tacoma%22%20OR%20%22Arneytown%22%20OR%20%22Ogau%20Tonan%22%20OR%20%22Mount%20Holly%20Township%22%29%20AND%20title%3Adirectory%20AND%20NOT%20collection%3Anewspaperarchive&size=40",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "Public domain",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "K01"
+  },
+  "trust_tier": "T1",
+  "pages": 1,
+  "notes": "{\"query\":{\"birth_year\":{\"basis\":\"accepted\",\"tolerance\":2,\"value\":1929},\"given\":{\"basis\":\"accepted\",\"value\":\"Noi\"},\"sex\":{\"basis\":\"accepted\",\"value\":\"F\"},\"spouses\":{\"basis\":\"accepted\",\"value\":[\"Raymond Earl Davidson\"]},\"state\":{\"basis\":\"accepted\",\"value\":\"new jersey\"},\"surname\":{\"basis\":\"accepted\",\"value\":\"Davidson\"},\"towns\":{\"basis\":\"claim\",\"value\":[\"New Egypt\",\"Tacoma\",\"Arneytown\",\"Ogau Tonan\",\"Mount Holly Township\"]},\"variants\":{\"basis\":\"claim\",\"value\":[\"Noi Segawa Davidson\"]}},\"request\":\"search\"}"
+}

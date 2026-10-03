@@ -24,7 +24,7 @@
    }
   },
   {
-   "say": "the resolver run on those and on five strings the file carries, with the geocoder's real answers in its cache",
+   "say": "the resolver run on those and on five strings the file carries, with the geocoder's real answers in its cache and Wikidata's items in its own",
    "resolve": {
     "only": [
      "Cadillac Memorial Gardens West, Westland, Wayne County, Michigan, USA",
@@ -35,6 +35,11 @@
      "Caln Twp, Caln, Chester, Pennsylvania, USA",
      "Northampton Ward 1, Hampshire, Massachusetts, USA"
     ],
+    "wikidata": {
+     "Q936639": "wikidata-Q936639-mount-holly.json",
+     "Q1893417": "wikidata-Q1893417-caln-township.json",
+     "Q49186": "wikidata-Q49186-northampton.json"
+    },
     "geocoder": [
      "nominatim-cadillac-memorial-gardens-west-westland-wayne-county-michigan-united-states.json",
      "nominatim-worchester-montgomery-pennsylvania-united-states.json",

@@ -267,19 +267,66 @@
    ]
   },
   {
-   "say": "the site asked again by hand on the two names, answering both with nothing",
+   "say": "the plan writes the place's one name, the county the town sat in before 1899",
+   "step_query": {
+    "step": "$s.step",
+    "query": {
+     "census place": {
+      "basis": "citation",
+      "value": [
+       "Hempstead, Queens, New York"
+      ]
+     },
+     "citation": {
+      "basis": "citation",
+      "value": "National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950"
+     },
+     "collection": {
+      "basis": "citation",
+      "value": "1950 United States Federal Census"
+     },
+     "enumeration district": {
+      "basis": "citation",
+      "value": "30-392"
+     },
+     "name": {
+      "basis": "citation",
+      "value": "Robert Edgar Davidson"
+     },
+     "page": {
+      "basis": "citation",
+      "value": "29"
+     },
+     "roll": {
+      "basis": "citation",
+      "value": "4390"
+     },
+     "year": {
+      "basis": "citation",
+      "value": "1950"
+     }
+    }
+   },
+   "expect": [
+    {
+     "runnable": {
+      "step": "$s.step",
+      "is": true
+     },
+     "why": "the name the run stopped on is no longer among the step's names: the fields changed"
+    }
+   ]
+  },
+  {
+   "say": "the site asked again by hand on that one name, its own answer to the request holding nothing",
    "run_connector": {
     "step": "$s.step",
     "connector": "nara_1950",
     "fetch": {
      "answers": [
       {
-       "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
-      },
-      {
-       "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+       "url_has": "county=Queens",
+       "fixture": "nara-1950-search-davidson-queens-ed-30-392.json"
       }
      ]
     }
@@ -288,10 +335,12 @@
     {
      "last": {
       "outcome": "none",
+      "requests": [
+       "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Queens&ed=30-392&page=1"
+      ],
       "logged_query": {
        "census place": {
         "tried": [
-         "Hempstead, Nassau, New York",
          "Hempstead, Queens, New York"
         ],
         "value": "Hempstead, Queens, New York",
@@ -299,7 +348,7 @@
        }
       }
      },
-     "why": "both names asked, neither getting a hit: the run tried every name and stopped at none"
+     "why": "the step's one name asked, no hit: the run tried every name and stopped at none"
     },
     {
      "runnable": {
@@ -311,14 +360,13 @@
    ]
   },
   {
-   "say": "the plan adds a third name after the two a none run tried",
+   "say": "the plan adds a second name after the one a none run tried",
    "step_query": {
     "step": "$s.step",
     "query": {
      "census place": {
       "basis": "citation",
       "value": [
-       "Hempstead, Nassau, New York",
        "Hempstead, Queens, New York",
        "Town of Hempstead < Nassau County < New York < United States"
       ]

@@ -8,12 +8,12 @@
  },
  "steps": [
   {
-   "say": "a 1950 citation on the person, planted: the file cites none on him, so the step stands with its record id on the owner's word",
+   "say": "a 1950 citation on the person on the owner's word: the file cites the census on nobody in his household, so the step names the census as the file's own source record for it does (1,62308::0), with no record id of its own",
    "step": {
     "person": "I332737036054",
     "row_key": "census household:1950",
     "seq": 90,
-    "step_key": "fetch:1,62308::1",
+    "step_key": "fetch:1,62308::0",
     "kind": "fetch",
     "query_type": "household",
     "query": {
@@ -29,7 +29,7 @@
     "locator": {
      "source": "D03",
      "kind": "apid",
-     "value": "1,62308::1"
+     "value": "1,62308::0"
     },
     "sources": [
      "D03"

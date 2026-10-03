@@ -1,0 +1,71 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "E01",
+  "locator": {
+   "kind": "apid",
+   "value": "1,60525::117062458"
+  }
+ },
+ "extractor": "findagrave-memorial",
+ "personas": 4,
+ "sequence": {
+  "1": {
+   "name": "Helen Sara Brant Ahearn",
+   "role": "memorial",
+   "region": [
+    "142698059"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "11 Jul 1909",
+     "place": "Pennsylvania"
+    },
+    {
+     "type": "Death",
+     "date": "24 Jan 1986",
+     "place": "Boca Raton"
+    },
+    {
+     "type": "Burial",
+     "place": "Methacton Mennonite Cemetery"
+    }
+   ]
+  }
+ },
+ "toward": {
+  "1": {
+   "parent": 2,
+   "spouse": 1,
+   "only": true
+  }
+ },
+ "parsed": {
+  "photos": [
+   {
+    "id": "117088624",
+    "type": "Grave"
+   },
+   {
+    "id": "117088542",
+    "type": "Person"
+   },
+   {
+    "id": "117088760",
+    "type": "Grave"
+   },
+   {
+    "id": "117088352",
+    "type": "Family"
+   },
+   {
+    "id": "117088371",
+    "type": "Grave",
+    "caption": null,
+    "url": "https://images.findagrave.com/photos/2015/46/142698059_1424121146.jpg"
+   }
+  ],
+  "why": "five photographs as their contributor typed them: three Grave, of which two are family photographs on the farm and the last, uncaptioned, the stone itself"
+ }
+}

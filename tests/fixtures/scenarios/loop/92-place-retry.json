@@ -41,7 +41,7 @@
    "as": "s"
   },
   {
-   "say": "the real census connector builds the identical request for both names, state New York and county Nassau: it is asked once, the site answering nothing, and the second name is logged as tried with the request it repeated",
+   "say": "the real census connector builds the identical request for both names, state New York and county Nassau: it is asked once, the site's own answer to it holding no schedule whose highlighted name is his (1251 schedules, the first page read), and the second name is logged as tried with the request it repeated",
    "run_connector": {
     "step": "$s.step",
     "connector": "nara_1950",
@@ -49,7 +49,7 @@
      "answers": [
       {
        "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+       "fixture": "nara-1950-search-raymond-davidson-nassau.json"
       }
      ]
     }

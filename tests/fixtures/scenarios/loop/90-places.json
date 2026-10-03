@@ -25,7 +25,19 @@
     ],
     "wikidata": {
      "Q200077": "wikidata-Q200077-morioka.json",
-     "Q11643491": "wikidata-Q11643491-tonan.json"
+     "Q11643491": "wikidata-Q11643491-tonan.json",
+     "Q1133193": "wikidata-Q1133193-coatesville.json",
+     "Q1345": "wikidata-Q1345-philadelphia.json",
+     "Q1205932": "wikidata-Q1205932-takizawa.json",
+     "Q1348478": "wikidata-Q1348478-shizukuishi.json",
+     "Q2391361": "wikidata-Q2391361-tamayama.json",
+     "Q11367618": "wikidata-Q11367618-nakano.json",
+     "Q11410107": "wikidata-Q11410107-kuriyagawa.json",
+     "Q11444312": "wikidata-Q11444312-ota.json",
+     "Q11520132": "wikidata-Q11520132-motomiya.json",
+     "Q11557079": "wikidata-Q11557079-asagishi.json",
+     "Q11603862": "wikidata-Q11603862-yanagawa.json",
+     "Q11604013": "wikidata-Q11604013-yonai.json"
     },
     "geocoder": [
      "nominatim-coatesville-chester-pennsylvania.json",

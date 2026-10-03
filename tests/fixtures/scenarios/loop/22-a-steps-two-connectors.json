@@ -8,21 +8,21 @@
  },
  "steps": [
   {
-   "say": "a compiled-genealogy step on a great-great-grandmother, with the fields both connectors want: a state for the Archive's books, a birth year for WikiTree",
+   "say": "a city-directory step on the home person's grandmother with WikiTree planted beside the Archive's directories as a second source, and the fields both connectors want: the towns her events name for the directories, a birth year for WikiTree, as the live runner asked them",
    "step": {
-    "person": "I332737039686",
-    "row_key": "compiled genealogy / family history:",
+    "person": "I332737099804",
+    "row_key": "city directory / tax list:",
     "seq": 1,
-    "step_key": "search:compiled genealogy",
+    "step_key": "search:city directory",
     "kind": "search",
-    "query_type": "name",
+    "query_type": "subject_record",
     "query": {
-     "given": {"value": "Charlotte", "basis": "claim"},
-     "surname": {"value": "Lukens", "basis": "claim"},
-     "birth_year": {"value": "1882", "basis": "claim"},
-     "state": {"value": "Pennsylvania", "basis": "claim"}
+     "given": {"value": "Noi", "basis": "accepted"},
+     "surname": {"value": "Davidson", "basis": "accepted"},
+     "birth_year": {"value": "1929", "basis": "accepted"},
+     "towns": {"value": ["New Egypt", "Tacoma", "Arneytown", "Ogau Tonan", "Mount Holly Township"], "basis": "claim"}
     },
-    "sources": ["L02", "B04"],
+    "sources": ["K01", "B04"],
     "mode": "auto"
    },
    "as": "cg",
@@ -31,12 +31,12 @@
    ]
   },
   {
-   "say": "run once: the Archive answers with nothing, WikiTree's connection times out",
+   "say": "run once: the Archive's own answer to that very search, which holds nothing, and WikiTree's connection timing out",
    "run": {
     "step": "$cg.step",
     "fetch": {
      "answers": [
-      {"url_has": "archive.org", "fixture": "ia-fts-newspapers-alicia-ahearn-empty.json"},
+      {"url_has": "archive.org", "fixture": "ia-fts-directories-noi-davidson-towns-empty.json"},
       {"url_has": "api.wikitree.com", "error": "the harness's stand-in for no answer: timed out"}
      ]
     }
@@ -45,9 +45,9 @@
    "expect": [
     {
      "last": {
-      "connectors": ["ia_books", "wikitree"],
+      "connectors": ["ia_directories", "wikitree"],
       "results": [
-       {"connector": "ia_books", "asked": true, "outcome": "none"},
+       {"connector": "ia_directories", "asked": true, "outcome": "none"},
        {"connector": "wikitree", "asked": true, "outcome": "error"}
       ]
      },
@@ -57,7 +57,7 @@
      "search_log": {
       "step": "$cg.step",
       "is": [
-       {"source_id": "L02", "outcome": "none"},
+       {"source_id": "K01", "outcome": "none"},
        {"source_id": "B04", "outcome": "error", "notes": {"has": "timed out"}}
       ]
      }
@@ -72,7 +72,7 @@
     {
      "last": {
       "results": [
-       {"connector": "ia_books", "asked": false, "answered": {"outcome": "none"}},
+       {"connector": "ia_directories", "asked": false, "answered": {"outcome": "none"}},
        {"connector": "wikitree", "asked": true, "requests": {"len": 1}}
       ]
      },
@@ -81,7 +81,7 @@
    ]
   },
   {
-   "say": "run again: only WikiTree is asked (an Archive request would be a failure of the fake), and it answers with nothing",
+   "say": "run again: only WikiTree is asked (an Archive request would be a failure of the fake), and its own answer to that very search holds nothing",
    "run": {
     "step": "$cg.step",
     "fetch": {
@@ -94,7 +94,7 @@
     {
      "last": {
       "results": [
-       {"connector": "ia_books", "asked": false},
+       {"connector": "ia_directories", "asked": false},
        {"connector": "wikitree", "asked": true, "outcome": "none"}
       ]
      }
@@ -103,7 +103,7 @@
      "search_log": {
       "step": "$cg.step",
       "is": [
-       {"source_id": "L02", "outcome": "none"},
+       {"source_id": "K01", "outcome": "none"},
        {"source_id": "B04", "outcome": "error"},
        {"source_id": "B04", "outcome": "none"}
       ]
@@ -112,7 +112,7 @@
     },
     {"runnable": {"step": "$cg.step", "is": false}, "why": "every source has answered on these fields: the step is closed until the plan changes them"},
     {
-     "step": {"person": "I332737039686", "row_key": "compiled genealogy / family history:", "kind": "search", "fields": {"status": "planned"}},
+     "step": {"person": "I332737099804", "row_key": "city directory / tax list:", "kind": "search", "fields": {"status": "planned"}},
      "why": "none runs leave the step planned"
     }
    ]
@@ -122,11 +122,11 @@
    "step_query": {
     "step": "$cg.step",
     "query": {
-     "given": {"value": "Charlotte", "basis": "claim"},
-     "surname": {"value": "Lukens", "basis": "claim"},
-     "birth_year": {"value": "1882", "basis": "claim"},
-     "death_year": {"value": "1968", "basis": "claim"},
-     "state": {"value": "Pennsylvania", "basis": "claim"}
+     "given": {"value": "Noi", "basis": "accepted"},
+     "surname": {"value": "Davidson", "basis": "accepted"},
+     "birth_year": {"value": "1929", "basis": "accepted"},
+     "death_year": {"value": "2015", "basis": "claim"},
+     "towns": {"value": ["New Egypt", "Tacoma", "Arneytown", "Ogau Tonan", "Mount Holly Township"], "basis": "claim"}
     }
    },
    "expect": [
@@ -140,7 +140,7 @@
     {
      "last": {
       "results": [
-       {"connector": "ia_books", "asked": true, "requests": {"len": 1}},
+       {"connector": "ia_directories", "asked": true, "requests": {"len": 1}},
        {"connector": "wikitree", "asked": true, "requests": {"len": 1}}
       ]
      }

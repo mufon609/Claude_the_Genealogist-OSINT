@@ -56,7 +56,7 @@
    }
   },
   {
-   "say": "the real census connector: Nassau then Queens are two requests, each asked and each answered with nothing; the town's resolved name makes Nassau's request again and is not asked",
+   "say": "the real census connector: Nassau then Queens are two requests, each asked: the site does not answer Nassau's (the harness's stand-in for a holder that does not answer) and answers Queens's with nothing; the town's resolved name makes Nassau's request again and is not asked",
    "run_connector": {
     "step": {
      "person": "I332737100409",
@@ -67,12 +67,12 @@
     "fetch": {
      "answers": [
       {
-       "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+       "url_has": "county=Nassau",
+       "error": "the harness's stand-in for no answer: timed out"
       },
       {
-       "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+       "url_has": "county=Queens",
+       "fixture": "nara-1950-search-davidson-queens-ed-30-392.json"
       }
      ]
     }
@@ -102,7 +102,7 @@
        }
       }
      },
-     "why": "two requests go out, one per county, each answered; the third name repeats the first's request, which is not the one just before it, and is the only name left unasked; all three are on the tried list"
+     "why": "two requests go out, one per county, neither getting a hit; the third name repeats the first's request, which is not the one just before it, and is the only name left unasked; all three are on the tried list"
     }
    ]
   },
@@ -165,11 +165,11 @@
     "fetch": {
      "answers": [
       {
-       "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+       "url_has": "county=Queens",
+       "fixture": "nara-1950-search-davidson-queens-ed-30-392.json"
       },
       {
-       "url_has": "api/search?name=",
+       "url_has": "county=Nassau",
        "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"
       },
       {

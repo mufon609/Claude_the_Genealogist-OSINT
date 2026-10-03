@@ -1,6 +1,6 @@
 {
  "title": "a fetch step's place carries every accurate name, under the citation's own label",
- "line": "plan.citation_fields writes a labelled place part as the list a search step's own place field carries, the citation's own string first, unresolved or not; the runner's name-by-name try reads the citation's label as it reads 'place', every name tried logged on the run, the real census connector asked once for the two names, which make the same request, and the second logged as tried with the request it repeated",
+ "line": "plan.citation_fields writes a labelled place part as the list a search step's own place field carries, the citation's own string first, unresolved or not; the runner's name-by-name try reads the citation's label as it reads 'place': the real census connector's request for the citation's own string gets the household's page, so the run stops at that name, logged as tried under the citation's label, and reads back as the step's own fields",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -77,7 +77,7 @@
    ]
   },
   {
-   "say": "the runner tries the fetch step's several names under the citation's own label, not 'place', through the real census connector: both names read as county Nassau, state New York: one request goes out and the site answers it with nothing, and the second name, making the same request, is not asked",
+   "say": "the runner tries the fetch step's several names under the citation's own label, not 'place', through the real census connector: the first, the citation's own string, reads as county Nassau, state New York, and the site's answer to that request is the household's page, fetched, its image refused; the run stops at that name",
    "run_connector": {
     "step": {
      "person": "I332737100409",
@@ -89,7 +89,15 @@
      "answers": [
       {
        "url_has": "api/search?name=",
-       "fixture": "nara-1950-search-davidson-nassau-ed-30-393-empty.json"
+       "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"
+      },
+      {
+       "url_has": "api/search?scheduleId=3947385",
+       "fixture": "nara-1950-schedule-3947385.json"
+      },
+      {
+       "url_has": "iiif",
+       "error": "the harness's stand-in for no answer: timed out"
       }
      ]
     }
@@ -97,33 +105,29 @@
    "expect": [
     {
      "last": {
-      "outcome": "none",
+      "outcome": "found",
       "requests": [
        "https://1950census.archives.gov/api/search?name=Davidson&state=NY&county=Nassau&ed=30-392&page=1"
       ],
       "logged_note": {
-       "has": "Town of Hempstead < Nassau County < New York < United States made the same request as Hempstead, Nassau, New York: not asked again"
+       "lacks": "not asked again"
       },
       "logged_query": {
        "census place": {
-        "tried": {
-         "first": "Hempstead, Nassau, New York",
-         "len": {
-          ">=": 2
-         }
-        },
-        "value": {
-         "not": "Hempstead, Nassau, New York"
-        }
+        "tried": [
+         "Hempstead, Nassau, New York"
+        ],
+        "value": "Hempstead, Nassau, New York",
+        "stopped_at_hit": true
        }
       }
      },
-     "why": "one request goes out, not two (the list is the requests made, and the harness answers one); both names are tried, in order, under the citation's own label, and the note names the name whose request the second repeated"
+     "why": "one request goes out, the first name's, and gets the hit: the name is tried under the citation's own label, the run stops there, and no name after it is tried"
     }
    ]
   },
   {
-   "say": "a dry run on the same fields: the tried list read back under the citation's own label, not asked blind again",
+   "say": "a dry run on the same fields: the tried name read back under the citation's own label, not asked blind again",
    "run_connector": {
     "step": {
      "person": "I332737100409",
@@ -140,12 +144,12 @@
        "some": {
         "asked": false,
         "answered": {
-         "outcome": "none"
+         "outcome": "found"
         }
        }
       }
      },
-     "why": "the run's tried names, read under 'census place' as the runner wrote them, match the step's own names, the name that made no request among them: the same query again, so the dry run says the connector would not be asked"
+     "why": "the run's tried name, read under 'census place' as the runner wrote it, is the step's names up to the one that got the hit: the same query again, so the dry run says the connector would not be asked"
     }
    ]
   }

@@ -25,7 +25,7 @@
  "death_index_file": {"fixture": "nj-death-index-2006-2017-excerpt.csv", "step_name": "Frederick Micheal Ahearn Jr", "surname": "Ahearn", "rows_under": 31, "first_row_name": "FREDERICK M AHEARN",
                       "first_row_facts": {"birth": ["1932-11-06", "Coatesville, Pennsylvania, United States"], "death": ["2016-04-03", "NJ"], "file_number": "State File Number: 20160019505"},
                       "absent_surname": "Nobody", "other_surname": "Evers", "other_rows": 42, "not_in_derivative": "davidson"},
- "ky_index": {"death_fixture": "ky-death-index-1946-davidson.txt", "birth_fixture": "ky-birth-index-1915-davidson.txt",
+ "ky_index": {"death_fixture": "ky-death-index-1946-davidson.txt", "birth_fixture": "ky-birth-index-1915-davidson.txt", "death_page_fixture": "ky-death-index-1946-page-153-top.txt",
               "death": {"given": "John Y", "surname": "Davidson", "year": 1946, "state": "kentucky", "birth_year": 1875,
                         "url": "https://archive.org/download/reclaim-the-records-kentucky-death-index-01911-1989/Reclaim_The_Records_-_Kentucky_Death_Index_-_01946.TXT",
                         "claim_years": [1945, 1946, 1947], "kept": ["JIMMIE", "JOE", "JOHN", "JOHNIE"], "kept_without_given": 5},
@@ -35,6 +35,5 @@
               "married": {"variants": ["Cassie A Holman", "Cassie Amelia Davidson Holman", "Cassie E Davidson"], "death_surnames": ["Davidson", "Holman"]},
               "citation": {"collection": "Kentucky, U.S., Death Index, 1911-2000", "name": "John Y Davidson", "year": "1946"},
               "other_citation": {"collection": "Tennessee, U.S., Marriage Records, 1780-2002", "name": "John Y Davidson"},
-              "other_state": "ohio", "outside_year": 1905, "absent_surname": "Nobody",
-              "heading": "\u001a                                         DEATH INDEX FOR YEAR 1946                    PAGE NO  153"}
+              "other_state": "ohio", "outside_year": 1905, "absent_surname": "Nobody"}
 }

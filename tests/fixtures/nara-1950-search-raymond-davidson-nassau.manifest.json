@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "cbc908a0c635e5ff8fe1e6b3e28242857300d3cf8a9fe4222d6d2760892e8eab",
+  "bytes": 31476,
+  "mime": "application/json",
+  "source_id": "D05",
+  "collection": "1950 Census (National Archives)",
+  "locator": {
+    "kind": "url",
+    "value": "https://1950census.archives.gov/api/search?name=Raymond%20Davidson&state=NY&county=Nassau&page=1"
+  },
+  "retrieved_at": "2026-10-03T07:57:25Z",
+  "retrieved_by": "agent:harness-real-answers for user:neural",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": "Sat, 03 Oct 2026 02:13:36 GMT",
+    "final_url": "https://1950census.archives.gov/api/search?name=Raymond%20Davidson&state=NY&county=Nassau&page=1",
+    "content_type": "application/json"
+  },
+  "rights": {
+    "terms": "Public domain",
+    "redistributable": true,
+    "cost": "free",
+    "redistributable_by": "D05"
+  },
+  "trust_tier": "T1",
+  "pages": 1,
+  "notes": "{\"captured\": \"one request by the harness's author on 3 October 2026, the 1950 census site's own search for Raymond Davidson in Nassau County, New York, as the census connector asks it for a search step on Raymond Earl Davidson whose place is Hempstead, Nassau, New York\", \"connector\": \"nara_1950\"}"
+}

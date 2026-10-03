@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "0ee95c3d0eba8800a7881b2ef336b86ca795d565387c445cf6c42129473cea95",
+  "bytes": 168990,
+  "mime": "text/html",
+  "source_id": "H05",
+  "collection": "U.S., Obituary Collection, 1930-Current",
+  "locator": {
+    "kind": "url",
+    "value": "https://www.legacy.com/us/obituaries/trentonian/name/noi-davidson-obituary?id=17624767"
+  },
+  "retrieved_at": "2026-09-13T15:02:49Z",
+  "retrieved_by": "agent:tree-16 for user:neural",
+  "rights": {
+    "terms": "ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T3",
+  "original_filename": "h05-obituary-collection-current-2015-ZW0KTA.html",
+  "pages": 1,
+  "notes": "saved in the browser under the fetch list's name at Legacy.com: Legacy.com, the citation's own obituary page"
+}

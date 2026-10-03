@@ -23,7 +23,8 @@ from common import BY, FIXTURES, scratch, tool
 import imports, loop, parsers, scenario
 
 def rules():
-    """The name and place rules as the docs state them, on their own, against tests/fixtures/rules.json."""
+    """The name and place rules as the docs state them, and the version a reader's model id carries, on their own, against
+    tests/fixtures/rules.json."""
     with open(os.path.join(FIXTURES, "rules.json"), encoding="utf-8") as fh: R = json.load(fh)
     from catalog import collection_state, holder_search, kinds_as, place_verdict, prefills_nothing, record_standing, same_surname
     bad = []
@@ -55,6 +56,11 @@ def rules():
     for c in R["place_names"]:
         got = agree(c["part"], c["names"])
         if got != c["agrees"]: bad.append(f"resolve_places.agree({c['part']!r}, {c['names']!r}) gave {got!r}, expected {c['agrees']!r}")
+    sys.path.insert(0, os.path.join(ROOT, "app", "person"))
+    from server import model_version
+    for c in R["model_version"]:
+        got = model_version(c["id"])
+        if got != c["version"]: bad.append(f"model_version({c['id']!r}) gave {got!r}, expected {c['version']!r}")
     names = [tuple(x) for x in R["dated_names"]["names"]]
     for c in R["dated_names"]["cases"]:
         got = place_verdict(c["record"], c["tree"], dated_names=names)
@@ -262,7 +268,7 @@ def connectors_offline():
     say(hb and [r["given"] for r in ky.rows(hb[0]["fetch"][0]["bytes"])] == KB["kept"] and ky.hits(rb0["url"], dbody, rb0) == [], "the birth file's rows read by the birth layout; a death file gives a birth search nothing")
     d, db = scratch(False)
     cx2 = sqlite3.connect(db); cx2.execute("PRAGMA foreign_keys=ON"); cx2.row_factory = sqlite3.Row
-    whole = (K["heading"] + "\r\n").encode("latin-1") + dbody
+    with open(os.path.join(FIXTURES, K["death_page_fixture"]), "rb") as fh: whole = fh.read()
     w_sha, _ = ao(cx2, whole, mime="text/plain", source_id="C06", collection_id=None, locator_kind="url", locator_value=KD["url"], retrieved_by=BY, terms="Public Domain Mark 1.0", cost="free", trust_tier="T2")
     _, nw = ext_fn(cx2, w_sha, BY)
     say(nw.get("failed") and "whole file" in nw["failed"], f"a year file with its headings, read on its own, is refused: {nw}")
@@ -296,7 +302,8 @@ def save_page_kinds():
 
 def save_page_key():
     """The browser script writes the key the attach reads: the saved-from line and the key comment, built from the literals of
-    tools/save_page.js's own `head` with a key and without one, are read back by the readers (fetches.saved_from, attach.saved_steps);
+    tools/save_page.js's own `head` with a key and without one over a real saved page's own URL and document, are read back by the
+    readers (fetches.saved_from, attach.saved_steps);
     the script takes the call's arguments in the order tools/fetches.py prints them (page_call), and ends in the call that the
     list's call replaces."""
     import tempfile
@@ -306,15 +313,17 @@ def save_page_key():
     m = re.search(r'const head = \(\) => "(.*?)" \+ location\.href \+ "(.*?)" \+ \(key \? "(.*?)" \+ key \+ "(.*?)" : ""\);', js)
     if not m: return ["the script's head() is not the saved-from line and the key comment this check reads"]
     lit = lambda s: s.encode().decode("unicode_escape")                      # the \n of a JavaScript literal
-    url, ids = "https://www.familysearch.org/en/search/record/results?q.surname=Bell", ["01M3ZTFSBTNXKPBMNT654TWQAF", "01M3ZTFSBTNXKPBMNT654TWQAG"]
+    page = os.path.join(FIXTURES, "familysearch-search-kentucky-deaths-bell-lena-howard.html")
+    url, ids = saved_from(page), ["01M3ZTFSBTNXKPBMNT654TWQAF", "01M3ZTFSBTNXKPBMNT654TWQAG"]
+    with open(page, encoding="utf-8") as fh: doc = fh.read().partition("\n")[2]   # the page below its own saved-from line
     plain = lit(m.group(1)) + url + lit(m.group(2)); keyed = plain + lit(m.group(3)) + ",".join(ids) + lit(m.group(4))
     bad = []
     for label, head, steps in (("with a key", keyed, ids), ("without one", plain, [])):
-        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as fh: fh.write(head + "<html></html>"); path = fh.name
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as fh: fh.write(head + doc); path = fh.name
         try:
             if saved_from(path) != url: bad.append(f"the saved-from line {label} is not read back as the page's URL")
         finally: os.remove(path)
-        if saved_steps(head + "<html></html>") != steps: bad.append(f"the page saved {label} names {saved_steps(head)}, expected {steps}")
+        if saved_steps(head + doc) != steps: bad.append(f"the page saved {label} names {saved_steps(head)}, expected {steps}")
     if not re.search(r"\(async function \(name, force, key\) \{", js): bad.append("the script does not take (name, force, key), the order page_call prints")
     if not js.rstrip().endswith('})("FILENAME.html")'): bad.append('the script does not end in the call ("FILENAME.html") that the list\'s call replaces')
     for holder, force in (("D03", "false"), ("H05", "true")):
@@ -391,7 +400,7 @@ def main():
         bad_files = compiles(); bad += bool(bad_files)
         print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
         bad_rules = rules(); bad += bool(bad_rules)
-        print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state, a part of a place string against a candidate's names" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+        print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
         bad_conn = connectors_offline(); bad += bool(bad_conn)
         print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
         bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)

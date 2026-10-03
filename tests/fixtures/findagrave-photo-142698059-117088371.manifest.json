@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "7b2dd95d001aff309fe59f431b6a72d52954e98c946ee932aa0be6eab58a8425",
+  "bytes": 1420152,
+  "mime": "image/jpeg",
+  "source_id": "E05",
+  "collection": "Find a Grave memorial photographs",
+  "locator": {
+    "kind": "url",
+    "value": "https://images.findagrave.com/photos/2015/46/142698059_1424121146.jpg"
+  },
+  "retrieved_at": "2026-09-12T01:53:14Z",
+  "retrieved_by": "agent:tree-9 for user:neural",
+  "rights": {
+    "terms": "Find a Grave terms; the contributor's own photograph",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T1",
+  "original_filename": "findagrave-photo-142698059-117088371.jpg",
+  "pages": 1,
+  "notes": "attached from the inbox by identity: photo 142698059:117088371"
+}

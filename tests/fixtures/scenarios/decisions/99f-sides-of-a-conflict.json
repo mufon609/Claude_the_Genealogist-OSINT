@@ -171,7 +171,7 @@
    ]
   },
   {
-   "say": "the 1959 marriage index image of his wife's remarriage, read by the model: the groom's row, the spouse's surname by four letters",
+   "say": "the 1959 marriage index image of his wife's remarriage, its row typed from the image by the harness: HAHNLE CHRIS M, license issued at HUNTING on 8/14, the spouse's surname by four letters, DAVI",
    "seed": {
     "fixture": "ny-marriage-index-1959-page-970.jpg",
     "source": "C08",
@@ -189,10 +189,9 @@
     "record": "nys",
     "form": {
      "name": "Hahnle, Chris M",
-     "sex": "M",
-     "role": "groom",
+     "role": "bride or groom",
      "marriage_date": "14 Aug 1959",
-     "marriage_place": "Huntington, Suffolk County, New York",
+     "marriage_place": "Hunting",
      "as_written": {
       "Spouse surname, first four letters": "DAVI"
      },
@@ -200,7 +199,7 @@
      "bbox": [280, 3086, 2460, 40],
      "image_is": "index"
     },
-    "by": "llm:claude-sonnet-5-5"
+    "by": "user:harness"
    }
   },
   {

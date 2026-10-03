@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, and how a part of a string stands to the names of a candidate. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -734,6 +734,20 @@
     "Northampton"
    ],
    "agrees": false
+  }
+ ],
+ "model_version": [
+  {
+   "id": "claude-fable-5-1",
+   "version": "5.1"
+  },
+  {
+   "id": "claude-sonnet-5-5",
+   "version": "5.5"
+  },
+  {
+   "id": "harness",
+   "version": null
   }
  ]
 }

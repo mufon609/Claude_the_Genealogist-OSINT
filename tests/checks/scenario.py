@@ -11,7 +11,7 @@ import contextlib, json, os, shutil, sqlite3, subprocess, sys
 from common import BY, FIXTURES, ROOT, TOOLS, Fails, connect, done, run, scratch, tool, whole
 
 SCENARIOS = os.path.join(FIXTURES, "scenarios")
-JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9"   # the smallest of JPEG files: a stand-in for a photograph the harness never parses
+JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9"   # the smallest of JPEG files: the stand-in for a family-held photograph, which only the owner may put in tests/
 
 def has(value, wanted):
     """The pattern language every expectation shares: a dict matches the keys given (a value or a pattern each), a list
@@ -190,12 +190,12 @@ class Walker:
         return cid
 
     def fixture_bytes(self, a):
-        """The bytes an archive step archives: a fixture as it is, a stand-in (an image, a page saved from a URL, or
-        nothing but a saved-from comment), with a suffix when the same page must be archived again as other bytes."""
+        """The bytes an archive step archives: a fixture as it is, with a suffix when the same page must be archived again as
+        other bytes, or the stand-in for a family-held photograph (`stand_in: "image"`). The harness writes no page of its own."""
         if a.get("fixture"):
             with open(os.path.join(FIXTURES, a["fixture"]), "rb") as fh: data = fh.read()
         elif a.get("stand_in") == "image": data = JPEG
-        else: data = (f"<!-- saved from {a.get('saved_from', '')} -->\n" if a.get("saved_from") else "").encode() + b"<html></html>"
+        else: raise KeyError("no fixture: every page the harness archives or saves is a real one under tests/fixtures/")
         return data + a.get("suffix", "").encode()
 
     # ---------------------------------------------------------------- the walk
@@ -442,8 +442,8 @@ def a_person_view(w, x):
     return server.person_view(w.cx, w.tid, w.person(x["person"]))
 
 def a_save(w, x):
-    """A page or an image saved in the browser, as a stand-in: into the inbox, or into a download folder for collect. The
-    entry it stands for is the person's at the `holder` whose link has `url_has`, when the person has several there.
+    """A page or an image saved in the browser, a `fixture`: into the inbox, or into a download folder for collect. The
+    entry it is saved for is the person's at the `holder` whose link has `url_has`, when the person has several there.
     Under the name the fetch list prints for it, unless `name` gives the file's own name instead (the sanitized shape a
     browser actually produced, to prove collect takes a page by its saved-from identity whatever it is named). `key` writes the
     key into the page the way tools/save_page.js does when the fetch list's call gave it one: a second comment under the page's own
@@ -459,7 +459,7 @@ def a_save(w, x):
         name = e["save_as"].replace("<year>", str(x.get("year", "")))
         for k, v in (x.get("fill") or {}).items(): name = name.replace(k, v)
     folder = os.path.join(w.root, x["folder"]) if x.get("folder") else w.treelib.inbox_dir(); os.makedirs(folder, exist_ok=True)
-    data = w.fixture_bytes({**x, "saved_from": x.get("saved_from") or (e.get("url") if e else None)}); key = None
+    data = w.fixture_bytes(x); key = None
     if x.get("key"):
         key = e["serves"] if x["key"] is True else [(w.step(r) or {"id": r})["id"] if isinstance(r, str) else w.step(r)["id"] for r in x["key"]]   # an id that is no step of the plan is written as it is
         top, nl, rest = data.partition(b"\n")
@@ -590,6 +590,13 @@ def plant_geocoder(fixtures):
         shutil.copyfile(src, os.path.join(cache_dir(), hashlib.sha1(records[-1]["query"].lower().encode()).hexdigest() + ".json"))
     return records
 
+def plant_wikidata(items):
+    """Wikidata's real items planted in the resolver's own item cache, {qid: fixture}: each fixture under tests/fixtures/ an
+    item as the live resolver kept it (Special:EntityData's answer), copied to the file name the resolver looks it up by."""
+    from resolve_places import wikidata_cache_dir
+    os.makedirs(wikidata_cache_dir(), exist_ok=True)
+    for qid, fixture in (items or {}).items(): shutil.copyfile(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
+
 def a_place_card(w, x):
     """A place_resolution card for a string of the tree, as the resolver would write it, its candidates the results of the
     geocoder's real answers (`geocoder`, plant_geocoder) planted in the cache so no request goes out."""
@@ -664,7 +671,7 @@ def a_cite(w, x):
     return {"step": sid, "refused": None}
 
 def a_seed(w, x):
-    """A stand-in artifact for a record the owner holds and the harness only reads by a typed reading."""
+    """A record no parser reads, archived as a_archive archives it, for the harness to read only by a typed reading."""
     return a_archive(w, x)
 
 def a_question(w, x):

@@ -1,6 +1,6 @@
 {
  "title": "an obituary read by the model",
- "line": "the page the file cites, held as a stand-in the harness never parses and filed under an obituary index, read by the model into a card for the deceased that the rule takes because the text names the husband who already stands as her spouse on the owner's own word; held is the record's own subject, never a relative it merely names",
+ "line": "the page the file cites, the obituary as the archive holds it, filed under the obituary collection it was saved for and read in the model's place (typed by the harness from the page's own words) into a card for the deceased; the husband it names, of whom it gives nothing but his name and the relationship, is no point for her until the owner accepts him on it, and then the rule takes her because the text names the husband who already stands as her spouse on the owner's own word; held is the record's own subject, never a relative it merely names",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,55 +8,34 @@
  },
  "steps": [
   {
-   "say": "the 1940 household accepted first, so her name and her husband rest on a record",
+   "say": "her naturalization petition accepted first, so her name rests on a record",
    "attach": {
-    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+    "fixture": "familysearch-washington-petitions-for-naturalization-1967-6ZR5-N8ML.html"
    },
-   "as": "c40"
+   "as": "nat"
   },
   {
-   "say": "the son",
+   "say": "the petition's card accepted by the owner",
    "decide": {
     "card": {
-     "record": "c40",
-     "person": "I332737036054"
-    },
-    "status": "accepted"
-   }
-  },
-  {
-   "say": "the mother",
-   "decide": {
-    "card": {
-     "record": "c40",
-     "person": "I332737037573"
-    },
-    "status": "accepted"
-   }
-  },
-  {
-   "say": "the father: the couple, FamilySearch's own grouping, written undecided",
-   "decide": {
-    "card": {
-     "record": "c40",
-     "person": "I332737037257"
+     "record": "nat",
+     "person": "I332737099804"
     },
     "status": "accepted"
    },
    "expect": [
     {
      "facts": {
-      "person": "I332737037573",
-      "name": "accepted",
-      "spouses": "undecided"
+      "person": "I332737099804",
+      "name": "accepted"
      }
     }
    ]
   },
   {
-   "say": "the owner accepts the couple: the census's grouping and the file's own claim, on the owner's word",
+   "say": "the owner accepts the couple: the file's own claim, on the owner's word",
    "fact": {
-    "person": "I332737037573",
+    "person": "I332737099804",
     "field": "spouses",
     "status": "accepted",
     "note": "harness: the owner knows the couple"
@@ -64,41 +43,39 @@
    "expect": [
     {
      "facts": {
-      "person": "I332737037573",
+      "person": "I332737099804",
       "spouses": "accepted"
      }
     }
    ]
   },
   {
-   "say": "the obituary page the file cites, held as bytes the harness never parses",
+   "say": "the obituary page the file cites on her (the Trentonian's notice on Legacy.com), the bytes the archive holds, which no parser reads",
    "seed": {
-    "file": "obituary-stand-in.html",
-    "saved_from": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355",
-    "source": "H04",
-    "collection": "U.S., Newspapers.com™ Obituary Index, 1800s-current",
+    "fixture": "legacy-obituary-noi-davidson-17624767.html",
+    "source": "H05",
     "locator": {
      "kind": "url",
-     "value": "https://www.newspapers.com/image/862085883/?article=61bb56de-ea2f-4ab2-9482-d959ba43dfdd&focus=0.0028764878,0.44895956,0.24399705,0.48938012&xid=3355"
-    }
+     "value": "https://www.legacy.com/us/obituaries/trentonian/name/noi-davidson-obituary?id=17624767"
+    },
+    "collection": "U.S., Obituary Collection, 1930-Current"
    },
    "as": "ob"
   },
   {
-   "say": "the deceased, as the model reads her: the file's own claims typed",
+   "say": "the deceased, as the page names her: \"Noi (nee Segawa) Davidson ... age 86\", published in 2015",
    "transcribe": {
     "record": "ob",
     "form": {
-     "name": "Helen Sara Brant",
-     "sex": "F",
+     "name": "Noi Davidson",
      "role": "deceased",
      "line": 1,
      "image_is": "record",
-     "year": "1986",
-     "age": "76"
+     "year": "2015",
+     "age": "86"
     },
     "about": [
-     "I332737037573"
+     "I332737099804"
     ],
     "by": "llm:harness"
    },
@@ -144,15 +121,14 @@
    ]
   },
   {
-   "say": "her husband, named as a survivor",
+   "say": "her husband, as the page names him: \"Noi was predeceased by her husband, Raymond E. Davidson\"",
    "transcribe": {
     "record": "ob",
     "form": {
-     "name": "Frederick Michael Ahearn",
+     "name": "Raymond E. Davidson",
      "role": "husband",
      "line": 2,
-     "image_is": "record",
-     "residence": "Boca Raton, Florida"
+     "image_is": "record"
     },
     "relations": [
      {
@@ -168,17 +144,17 @@
     {
      "rule": {
       "record": "ob",
-      "person": "I332737037573",
-      "taken": true,
+      "person": "I332737099804",
+      "taken": false,
       "why": {
-       "has": "spouse Frederick Michael Ahearn"
+       "has": "the relationship the record gives to Raymond E. Davidson is no point"
       }
      },
-     "why": "an obituary read by the model, filed under an obituary index and so read as an obituary, naming her husband who already stands as her spouse on the owner's word, is taken by the rule, the reason naming him"
+     "why": "the page gives nothing of him but his name and the relationship: a relationship that would be its own proof earns no point"
     },
     {
      "checklist_row": {
-      "person": "I332737037257",
+      "person": "I332737099805",
       "record": "obituary",
       "status": {
        "not": "held"
@@ -188,33 +164,63 @@
    ]
   },
   {
-   "say": "her card accepted: the deceased's own identity; the husband, named beside her, is proposed against her now-open family and taken by the rule on his accepted name and the spouse on a record",
+   "say": "the matcher asked about him on the reading, as the owner's question whether the husband the notice names is Raymond Earl Davidson",
+   "match": {
+    "record": "ob",
+    "about": [
+     "I332737099805"
+    ]
+   },
+   "as": "m"
+  },
+  {
+   "say": "the owner accepts the husband the notice names as him",
    "decide": {
     "card": {
      "record": "ob",
-     "person": "I332737037573"
+     "person": "I332737099805"
+    },
+    "status": "accepted",
+    "note": "harness: the owner's word that the husband the notice names is Raymond Earl Davidson"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "ob",
+      "person": "I332737099804",
+      "taken": true,
+      "why": {
+       "has": "spouse Raymond E. Davidson"
+      }
+     },
+     "why": "an obituary read in the model's place, filed under an obituary collection and so read as an obituary, naming her husband who stands as her spouse on the owner's word and is accepted on it, is taken by the rule, the reason naming him"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737099805",
+      "record": "obituary",
+      "status": {
+       "not": "held"
+      }
+     },
+     "why": "her husband is named as one who went before her, not the record's subject: his own obituary row is never held by a record that only names him"
+    }
+   ]
+  },
+  {
+   "say": "her card accepted: the deceased's own identity",
+   "decide": {
+    "card": {
+     "record": "ob",
+     "person": "I332737099804"
     },
     "status": "accepted",
     "note": "harness: the deceased's own identity"
    },
    "expect": [
     {
-     "card": {
-      "record": "ob",
-      "person": "I332737037257",
-      "status": "accepted",
-      "decided_by": {
-       "starts": "rule:"
-      },
-      "note": {
-       "has": "spouse Helen Sara Brant"
-      }
-     },
-     "why": "the husband's own persona match is proposed on the same record once she is accepted on it, and the rule takes him: his name is accepted and the spouse she is stands on a record"
-    },
-    {
      "checklist_row": {
-      "person": "I332737037573",
+      "person": "I332737099804",
       "record": "obituary",
       "status": "held"
      },
@@ -222,13 +228,12 @@
     },
     {
      "checklist_row": {
-      "person": "I332737037257",
+      "person": "I332737099805",
       "record": "obituary",
       "status": {
        "not": "held"
       }
-     },
-     "why": "her husband is named as a survivor, not the record's subject: his own obituary row is never held by a record that only names him"
+     }
     }
    ]
   },
