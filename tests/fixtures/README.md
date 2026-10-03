@@ -98,8 +98,8 @@ harness has its own manifest saying so.
 ## Gazetteer answers
 
 The place resolver's answers from GOV and Wikidata, fetched on a scratch copy of the live catalog on 2 October 2026 with the
-project's User-Agent, planted by the `resolve` action of the loop's scenarios so no request goes out. GOV's data is CC BY-SA
-(genealogy.net), Wikidata's CC0.
+project's User-Agent, planted by the `resolve` action of the loop's scenarios (and Wikidata's items by `turn`, `resume` and
+`turns` too, under `wikidata`) so no request goes out. GOV's data is CC BY-SA (genealogy.net), Wikidata's CC0.
 
 | File | What it holds |
 |---|---|
@@ -108,8 +108,10 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios so
 | `wikidata-Q5321228-dluzec.json` | Wikidata's item for Dłużec (Lwówek Śląski), with its GOV id (P2503) and SIMC, as Special:EntityData serves it |
 | `wikidata-Q104305769-ballyquirk.json` | Wikidata's item for the townland Ballyquirk in Killeagh, County Cork |
 | `wikidata-Q502553-berthelsdorf-herrnhut.json`, `wikidata-Q27479092-berthelsdorf-weissenborn.json`, `wikidata-Q827807-berthelsdorf-liebstadt.json`, `wikidata-Q65183687-berthelsdorf-hainichen.json` | Wikidata's items for four Saxon Berthelsdorfs the geocoder answers with, read for their GOV ids (P2503); only the Weißenborn one carries one |
-
 | `wikidata-Q200077-morioka.json`, `wikidata-Q11643491-tonan.json` | Wikidata's items for Morioka and for Tonan, its former name (P1365 with its dates): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
+| `wikidata-Q1010236-norristown.json`, `wikidata-Q1345-philadelphia.json`, `wikidata-Q1185890-pottstown.json`, `wikidata-Q1895826-warwick-township.json`, `wikidata-Q49186-northampton.json` | Wikidata's items the resolver reads for the geocoder's candidates in the turn that reads a person's places (loop `12`): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
+| `wikidata-Q936639-mount-holly.json`, `wikidata-Q1893417-caln-township.json` (and Northampton's above) | the same, for the strings a part must name in full (loop `93`) |
+| `wikidata-Q1133193-coatesville.json`, `wikidata-Q1205932-takizawa.json`, `wikidata-Q1348478-shizukuishi.json`, `wikidata-Q2391361-tamayama.json`, `wikidata-Q11367618-nakano.json`, `wikidata-Q11410107-kuriyagawa.json`, `wikidata-Q11444312-ota.json`, `wikidata-Q11520132-motomiya.json`, `wikidata-Q11557079-asagishi.json`, `wikidata-Q11603862-yanagawa.json`, `wikidata-Q11604013-yonai.json` (and Philadelphia's above) | the same, for the resolver's own line (loop `90`) |
 
 ## Geocoder answers
 
@@ -277,9 +279,10 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 `{"is": null}`, `{"any": true}`.
 
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
-person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`), `turns` (`tools/turns.py` the same way: `turns` for --turns,
+person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`; the geocoder's real answers
+under `geocoder` and Wikidata's items under `wikidata` planted for the turn's resolver, as `resolve` plants them), `turns` (`tools/turns.py` the same way: `turns` for --turns,
 `resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
-into the inbox, then `--resume`; its report, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
+into the inbox and the answers planted as a turn's, then `--resume`; its report, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
 replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, each answer for the first request
 carrying its `url_has` that no earlier request took: a saved real response, or the harness's stand-in for a holder that did not
 answer; a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the

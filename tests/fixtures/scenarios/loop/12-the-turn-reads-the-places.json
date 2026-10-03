@@ -53,9 +53,15 @@
    }
   },
   {
-   "say": "resumed with the geocoder's real answers for the five strings behind his events",
+   "say": "resumed with the geocoder's real answers for the five strings behind his events, and Wikidata's items for the places they name",
    "resume": {
     "inbox": [],
+    "wikidata": {
+     "Q1010236": "wikidata-Q1010236-norristown.json",
+     "Q1345": "wikidata-Q1345-philadelphia.json",
+     "Q1185890": "wikidata-Q1185890-pottstown.json",
+     "Q1895826": "wikidata-Q1895826-warwick-township.json"
+    },
     "geocoder": [
      "nominatim-norristown-montgomery-pennsylvania-united-states.json", "nominatim-philadelphia-pennsylvania-united-states.json", "nominatim-pottstown-montgomery-pennsylvania-united-states.json", "nominatim-warwick-bucks-pennsylvania-united-states.json",
      "nominatim-worcester-montgomery-county-pennsylvania-united-states.json", "nominatim-worcester-montgomery-pennsylvania-united-states.json", "nominatim-worcester-pennsylvania-united-states.json"
@@ -136,9 +142,12 @@
    "as": "birth"
   },
   {
-   "say": "resumed with the geocoder's real answer for the register's one place string",
+   "say": "resumed with the geocoder's real answer for the register's one place string, and Wikidata's item for its place",
    "resume": {
     "inbox": [],
+    "wikidata": {
+     "Q49186": "wikidata-Q49186-northampton.json"
+    },
     "geocoder": [
      "nominatim-northampton-hampshire-massachusetts-united-states.json"
     ]

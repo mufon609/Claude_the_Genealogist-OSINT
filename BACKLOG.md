@@ -516,8 +516,6 @@ reads as the holder saying "nothing" where its real answer holds a record:
   "groom" and "M" where the image gives HUNTING and neither word.
 - `tools/check.py`'s Kentucky death index check puts a heading line typed in
   `tests/fixtures/connectors.json` before the real five-line excerpt.
-- loop `12` and `93` plant no Wikidata answers, so a check run with a network
-  asks Wikidata live.
 - undisclosed stand-ins: `fake_run` in loop `12`, `13` and `63` beside the four
   the README names; `loop.py`'s geocoder reading only its cache; loop `40`
   step 3's bare `<html></html>`; the smallest of JPEG files for a gravestone
@@ -528,8 +526,7 @@ reads as the holder saying "nothing" where its real answer holds a record:
 
 Answer each request with its own real answer (the archive's, or one captured
 from the holder with its URL and date), rewriting a scenario around that answer
-where it changes the outcome; plant the Wikidata items the two place scenarios
-read (the live resolver's cache holds them byte for byte); give a typed reading
+where it changes the outcome; give a typed reading
 the harness as its reader and the image's own words; replace the planted ids
 with a citation the owner's export carries. The archive holds real pages for
 the last two stand-ins: a Find a Grave gravestone photograph read by the model

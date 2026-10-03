@@ -590,6 +590,13 @@ def plant_geocoder(fixtures):
         shutil.copyfile(src, os.path.join(cache_dir(), hashlib.sha1(records[-1]["query"].lower().encode()).hexdigest() + ".json"))
     return records
 
+def plant_wikidata(items):
+    """Wikidata's real items planted in the resolver's own item cache, {qid: fixture}: each fixture under tests/fixtures/ an
+    item as the live resolver kept it (Special:EntityData's answer), copied to the file name the resolver looks it up by."""
+    from resolve_places import wikidata_cache_dir
+    os.makedirs(wikidata_cache_dir(), exist_ok=True)
+    for qid, fixture in (items or {}).items(): shutil.copyfile(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
+
 def a_place_card(w, x):
     """A place_resolution card for a string of the tree, as the resolver would write it, its candidates the results of the
     geocoder's real answers (`geocoder`, plant_geocoder) planted in the cache so no request goes out."""

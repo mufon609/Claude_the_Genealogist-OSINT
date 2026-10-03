@@ -9,7 +9,7 @@ place or a page.
 import contextlib, importlib.util, io, json, os, re, shutil, sys, types
 from common import BY, FIXTURES, TOOLS, run, tool
 import scenario
-from scenario import ACTIONS, EXPECTS, SCENARIOS, has, plant_geocoder
+from scenario import ACTIONS, EXPECTS, SCENARIOS, has, plant_geocoder, plant_wikidata
 
 def queue_module():
     """tools/queue.py loaded by path: importing it by name would shadow the standard library's queue."""
@@ -58,21 +58,23 @@ def reopens(text):
 
 def a_turn(w, x):
     """tools/turn.py start on a person, run_step.run standing in for the network as the data says, the geocoder's answers the
-    fixtures under `geocoder` plant (and no other); the steps it ran and the state it kept beside the database."""
+    fixtures under `geocoder` plant (and no other) and Wikidata's items those under `wikidata`; the steps it ran and the state it
+    kept beside the database."""
     import run_step, turn
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
-    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
+    plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
     with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
     st = turn.load_state(w.db)
     return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue(), "reopens": reopens(buf.getvalue())}
 
 def a_resume(w, x):
-    """The pages dropped into the inbox as a save would leave them, then tools/turn.py --resume; its report."""
+    """The pages dropped into the inbox as a save would leave them, the geocoder's answers and Wikidata's items planted as a turn's
+    are, then tools/turn.py --resume; its report."""
     import turn
     os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
-    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
+    plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
     with geocoder_offline(), contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
     out = buf.getvalue()
@@ -80,7 +82,8 @@ def a_resume(w, x):
 
 def a_turns(w, x):
     """tools/turns.py: turn after turn from the queue, run_step.run standing in for the network as the data says (fake_run, as
-    a turn's), --turns as `turns` says, or --resume with the pages `inbox` names dropped into the inbox first; what it
+    a turn's), the geocoder's answers and Wikidata's items planted as a turn's are, --turns as `turns` says, or --resume with
+    the pages `inbox` names dropped into the inbox first; what it
     printed, the summary, the run's state as it ended, what is saved beside the database, the turn's state, and a refusal's
     text when it exited."""
     import run_step, turn, turns
@@ -88,7 +91,7 @@ def a_turns(w, x):
     if x.get("resume"):
         os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
         for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
-    plant_geocoder(x.get("geocoder") or []); w.cx.commit()
+    plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO(); refused = None; st = None
     with patched(run_step, "run", fake_run), geocoder_offline(), contextlib.redirect_stdout(buf):
         try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"), resume=bool(x.get("resume")))
@@ -178,10 +181,8 @@ def a_resolve(w, x):
     Wikidata's items in its own, and the gazetteers' answers (GOV's and Wikidata's searches, each fixture a list of the
     resolver's own cache records) under the paths the resolver reads them from, so no request goes out; the strings must
     already be the tree's."""
-    from resolve_places import gazetteer_cache_path, wikidata_cache_dir
-    os.makedirs(wikidata_cache_dir(), exist_ok=True)
-    plant_geocoder(x.get("geocoder", []))
-    for qid, fixture in x.get("wikidata", {}).items(): shutil.copy(os.path.join(FIXTURES, fixture), os.path.join(wikidata_cache_dir(), qid + ".json"))
+    from resolve_places import gazetteer_cache_path
+    plant_geocoder(x.get("geocoder", [])); plant_wikidata(x.get("wikidata"))
     for fixture in x.get("gazetteer", []):
         with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
         for rec in records:
