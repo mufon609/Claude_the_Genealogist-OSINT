@@ -1,6 +1,6 @@
 {
  "title": "the proof standard's classes and its written conclusion",
- "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from; tools/proof.py writes the conclusion per key fact: the father's sex meets the standard, his birth owes an argument while its birthplace conflict is open (the classes favouring the birth register), his son's parents owe one on secondary information alone, the census stating him the head's son, and his wife's marriage stated by her obituary (read as an obituary through the index it is filed under) beside the census's computed one still owes one on secondary information; the birthplace conflict closed by the owner with a written reason leaves only the research",
+ "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from; tools/proof.py writes the conclusion per key fact: the father's sex meets the standard, his birth owes an argument while its birthplace conflict is open (printed with its question id and the rule's own reading of it: the register states the birth first-hand, but its place is not yet resolved, so the rule would not decide it yet), his son's parents owe one on secondary information alone, the census stating him the head's son, and his wife's marriage stated by her obituary (read as an obituary through the index it is filed under) beside the census's computed one still owes one on secondary information; the birthplace conflict closed by the owner with a written reason leaves only the research",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -238,12 +238,20 @@
         "conflicts": {
          "some": {
           "status": "open",
-          "favours": {
-           "has": [
-            "the classes favour Northampton",
-            "birth register: derivative, primary, direct",
-            "over Pennsylvania"
-           ]
+          "question": {
+           "any": true
+          },
+          "verdict": {
+           "about": "birth place",
+           "keep": {
+            "is": null
+           },
+           "why": {
+            "has": [
+             "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand",
+             "“Northampton, Hampshire, Massachusetts, United States”, is not yet resolved to a place"
+            ]
+           }
           }
          }
         },
@@ -261,7 +269,7 @@
        }
       }
      },
-     "why": "the birthplace conflict is open, so an argument is still owed whatever the evidence; the summary proposes the birth register's side, the record of the event itself"
+     "why": "the birthplace conflict is open, so an argument is still owed whatever the evidence; the summary carries its question id and the rule's own reading of it: the register states the birth first-hand, but its place is not yet resolved, so the rule would not decide it yet"
     },
     {
      "last": {
@@ -286,12 +294,15 @@
        "has": [
         "birth: 22 May 1907",
         "  birth register (Massachusetts, State Vital Records, 1638-1927): derivative, primary, direct; accepted; agrees",
+        "  conflict open [",
+        "]: birth place: the tree, the file, Massachusetts, State Vital Records, 1638-1927 (#1 1,5062::1903623) against United States, Census, 1940 (#2 1,2442::26440834): Northampton, Hampshire, Massachusetts, United States against Pennsylvania",
+        "\n    the rule would not decide it: the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand, but the place it gives",
         "  conclusion: an argument is still owed: a conflict is open",
         "  conclusion: meets the standard"
        ]
       }
      },
-     "why": "the written form says the same in words"
+     "why": "the written form says the same in words: the conflict's question id, each record's locator printed once at its first mention, and the rule's reading on a line of its own"
     }
    ]
   },
@@ -388,7 +399,8 @@
     "person": "I332737037257",
     "detail_has": "birth place",
     "note": "harness: the birth register is the record of the birth itself; the census informant gave the state they lived in"
-   }
+   },
+   "as": "closed"
   },
   {
    "say": "the father's birth once more",
@@ -404,6 +416,7 @@
         "conflicts": {
          "some": {
           "status": "dismissed",
+          "question": "$closed.question",
           "reason": {
            "starts": "harness: the birth register is the record of the birth itself"
           }
@@ -423,9 +436,14 @@
     {
      "last": {
       "text": {
-       "has": "conflict dismissed: birth place"
+       "has": [
+        "conflict dismissed [",
+        "]: birth place"
+       ],
+       "lacks": "the rule would"
       }
-     }
+     },
+     "why": "a conflict closed with the owner's reason carries its question id and no reading of the rule's"
     }
    ]
   }
