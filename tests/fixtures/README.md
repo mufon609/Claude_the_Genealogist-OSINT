@@ -170,8 +170,9 @@ comes back as its `error`), `reopen_conflict` (a conflict the rule resolved, tak
 `tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card
 with the geocoder's
 `candidates` planted in the cache), `older_matcher`, `persona_link` (a person's link to a record's persona of a `role`, and
-`persona` name, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
-decided), `merge`, `cite`, `question` (a research_question row patched by
+`persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
+decided; with `card`, the link that card's decision wrote on another row of the same name before a decision reached only its own
+entry of the page, the shape the 0.7.5 migration corrects), `merge`, `cite`, `question` (a research_question row patched by
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
 a regeneration to be checked against a prior state, such as a legacy truncated key).
 

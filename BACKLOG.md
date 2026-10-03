@@ -181,7 +181,9 @@ both blocked as `scanned_index` holders; the merge's reach by name and year;
 a memorial's listed relative whose one fit moves to another person between two
 acceptances (`conclude.link_family` withdraws the earlier undecided trace); a
 merge folding a family whose child the kept family already holds, and a merge
-completed (`conclude.complete_merge`) folding two same-partner families. When a real document
+completed (`conclude.complete_merge`) folding two same-partner families; the
+0.7.5 migration restoring a row an older decision wrote over (a page naming one
+person twice, each persona decided, which no current parser writes). When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under

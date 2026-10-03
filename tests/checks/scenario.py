@@ -557,15 +557,20 @@ def a_older_matcher(w, x):
 
 def a_persona_link(w, x):
     """A person's decision on a persona of a record that no card carries today (a memorial's listed relative, which an older
-    matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name) on the record's
-    current reading, as conclude.decide writes it."""
+    matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name, and `sequence`,
+    its row on the page) on the record's current reading, as conclude.decide writes it. With `card`, the link that card's
+    decision wrote on every persona of the decided persona's name and role, another row among them, before a decision reached
+    only its own entry of the page: the card's proposal, status and decider, the shape tools/initdb.py's 0.7.5 corrects."""
     q = """SELECT pe.id FROM persona pe JOIN extraction e ON e.id=pe.extraction_id WHERE pe.artifact_sha256=? AND e.superseded_by IS NULL AND pe.role_in_record=?"""
     args = [w.sha(x["record"]), x["role"]]
     if "persona" in x: q += " AND pe.name_text=?"; args.append(x["persona"])
+    if "sequence" in x: q += " AND pe.sequence=?"; args.append(x["sequence"])
     rows = w.cx.execute(q, args).fetchall()
     if len(rows) != 1: raise KeyError(f"{len(rows)} personas for {short(x)}")
-    w.cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,NULL,?,?)",
-                 (w.person(x["person"]), rows[0][0], x["status"], x.get("by", BY), w.treelib.now()))
+    card = w.card(x["card"]) if x.get("card") else None
+    if x.get("card") and card is None: raise KeyError(f"no card {short(x['card'])}")
+    link = (card["status"], card["id"], card["decided_by"], card["decided_at"]) if card else (x["status"], None, x.get("by", BY), w.treelib.now())
+    w.cx.execute("INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (w.person(x["person"]), rows[0][0], *link))
     return {"persona": rows[0][0]}
 
 def a_merge(w, x):

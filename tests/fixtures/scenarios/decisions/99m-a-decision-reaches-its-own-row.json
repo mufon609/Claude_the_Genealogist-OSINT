@@ -1,6 +1,6 @@
 {
  "title": "a decision reaches its own row",
- "line": "a results page that writes two decedents under one name: accepting the first row as the person links that row alone, never the other man of the same name; reading the page again carries the link to the first row's persona in the new reading and writes nothing from the second, and the statement written from the first reading is read through the new one",
+ "line": "a results page that writes two decedents under one name: accepting the first row as the person links that row alone, never the other man of the same name; reading the page again carries the link to the first row's persona in the new reading and writes nothing from the second, and the statement written from the first reading is read through the new one; a link an older decision spread to the second row is removed by the 0.7.5 migration, with an audit row, and the decision's own row stays",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -135,6 +135,95 @@
       ]
      },
      "why": "the death statement, written from the first reading and kept pointing at it, is read through the current one"
+    }
+   ]
+  },
+  {
+   "say": "the link an older decision wrote on the second row too, by name and role",
+   "persona_link": {
+    "record": "grave",
+    "role": "result",
+    "persona": "Raymond E Davidson",
+    "sequence": 2,
+    "person": "I332737099805",
+    "card": {
+     "record": "grave",
+     "person": "I332737099805"
+    }
+   },
+   "expect": [
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "sequence": 2,
+      "is": [
+       "accepted"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog upgraded through the migration that removes a decision's spread links",
+   "migrate": {
+    "reset_to": "0.7.4"
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "ends": "schema 0.7.5"
+      }
+     }
+    },
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "sequence": 2,
+      "is": []
+     },
+     "why": "the second row's link was never anyone's decision: removed"
+    },
+    {
+     "links": {
+      "person": "I332737099805",
+      "record": "grave",
+      "sequence": 1,
+      "is": [
+       "accepted",
+       "accepted"
+      ]
+     },
+     "why": "the decision's own row, and its entry in the other reading, untouched"
+    },
+    {
+     "audit": {
+      "entity": "person_persona",
+      "action": "delete",
+      "is": [
+       {
+        "actor": "migration:0.7.5",
+        "diff": {
+         "removed": {
+          "status": "accepted",
+          "proposal_id": "$taken.card"
+         },
+         "why": {
+          "has": "spread"
+         }
+        }
+       }
+      ]
+     },
+     "why": "one audit row, the removed row in it"
+    },
+    {
+     "assertions_on": {
+      "record": "grave",
+      "accepted": 5
+     }
     }
    ]
   }
