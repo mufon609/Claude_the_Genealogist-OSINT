@@ -224,7 +224,7 @@ says: `catalog.prefills_nothing`) is a fetch step with mode `assisted`: every
 citation of that holder opens the same empty form, so there is no page for this
 citation to save, only a search a person runs, the citation's own details as
 what to look for and the holder's page as where, logged like any assisted
-search. It stays off the fetch list (§4), a turn never pauses on it, and its log
+search. It stays off the fetch list (§4), no person waits on it, and its log
 stays through a re-plan. A holder whose link carries a field of the citation
 stays `fetch`, and so does one with a connector, which asks by the fields and
 not by the link. A **search**
@@ -575,7 +575,16 @@ image or an item's metadata is never read as a record), is then set to
 are held on the step's log, the note says so, and no step is closed, the other
 household members' steps a census page was logged on included.
 A run with any record a parser reads is `found` (or, when every record is a
-results listing none of whose rows fits anyone, `none`) as before.
+results listing none of whose rows fits anyone, `none`) as before. A run that
+fails is an error run, never a stop: when the reading or the matching of its
+records raises (a parser or the matcher failing on a record), what the reading
+wrote is rolled back, the run's own row and the responses it archived are
+kept, and the run is restated as `error` with the exception in its note, every
+step it was logged on back to the status it had; when the connector raises
+before the run is logged (it cannot build its requests from the step's fields),
+what it wrote is rolled back and an `error` run with the exception in its note
+is logged in its place. Either way the step stays runnable at that source, as
+for a source that did not answer, and the runner goes on to the next step.
 A place field that carries several names (§3) is tried one name at a time, in
 that order, and the run stops at the first name that gets a hit. The requests a
 name makes are built before any is sent, and a request already made on the run
@@ -1313,17 +1322,20 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
 ## 8. The loop
 
 A turn is one person's plan run end to end: the cited fetches at holders with
-connectors, the assisted saves made through the owner's own browser session,
-the auto searches, the standing rule's decisions on what comes back, the
-people it creates, and the plan regenerated at the end. The queue a turn
+connectors, the auto searches, the standing rule's decisions on what comes
+back, the people it creates, the plan regenerated at the end, and the pages
+the person still needs from the owner's own browser session named. A page the
+browser must save makes that person wait, never the loop: the loop goes on to
+the next person, and the person's turn is finished once a page of theirs has
+been saved. The queue a turn
 draws from is the edge of the confirmed tree, in the overview's own order
 (`tools/tree.py overview`): the home person's line first, then everyone a
 record names after. The living default (`docs/DATA-ARCHITECTURE.md` §7)
-stands unchanged inside a turn. A challenge at a holder pauses the turn for
-the owner's hand and resumes once they have passed it (§4); it does not stop
-the turn, and it does not by itself make the source assisted-only. What a
-turn leaves for the owner are the conflict questions it raised and the cards
-the rule did not take.
+stands unchanged inside a turn. A challenge in the owner's browser pauses the
+session at the browser for the owner's hand (§4); it stops no turn, and it
+does not by itself make the source assisted-only. What a turn leaves for the
+owner are the conflict questions it raised, the cards the rule did not take
+and the pages to save in the browser.
 
 `tools/queue.py` names the next person. A tree with no home person is
 refused, with the command that sets one (`tools/tree.py home`), since the
@@ -1342,26 +1354,58 @@ the tree grows past the file on evidence, a parent such a record names created
 by the rule from a trusted record (§5–7, the fitting check first) and the next
 card above, at the edge in turn. A person whose open question is now the
 owner's alone (a card to decide, a conflict, an assisted search with no link
-to open), or whose parents' records are all such, is passed over. The command prints the next person with the reason and
+to open), or whose parents' records are all such, is passed over. A person who
+waits on pages to save in the browser (a turn named them, below) is passed over
+while every step a turn could advance for them is one of those pages, with the
+reason and the number of pages: a turn on them would name the same pages again.
+They come back once a page of theirs has been saved: the run it brings is
+logged on their step, so it is no longer a page they wait on, the collect that
+took it finishes their turn, and the queue reads them again as it reads anyone,
+named when a step a turn can advance is left for them. They come back sooner
+when their plan opens a step that is not one of those pages. The command prints the next person with the reason and
 the number passed over; `--all` lists everyone, each person passed over with the
 reason.
 
 `tools/turn.py "<person>"` runs the turn: `tools/plan.py` first, then every
 step a connector can run on this person's plan, one commit each as
 `tools/run_step.py --all` does, the standing rule deciding what comes back and
-creating the people a record names; then this person's own pages at holders
-without a connector (`tools/fetches.py next`'s own pages, narrowed to their
-unrun steps) are printed with the file name to save under, and the turn pauses for the
-owner's browser session, its state kept beside the catalog.
-`tools/turn.py --resume` picks the paused turn up: `tools/fetches.py collect`
-on `downloads/`, `tools/attach_inbox.py` on whatever else the inbox holds, one
-file per transaction (a file that fails stays where it was and is named in the
-report, §4), the place
-resolver on the place strings the turn's new records carry and those behind the
-person's own events (a string it accepts places its events before the rule
-compares them; one it cannot settle is a card on the fact row),
-`tools/conclude.py reconsider`, and the plan regenerated; a turn with nothing
-to fetch runs the same tail in the same call. The turn writes nothing of its
+creating the people a record names. A run that fails is an error run and the
+turn goes on (§4): a connector that cannot build its requests, or a record
+whose reading or matching raises, is logged `error` with the exception in the
+note, the log row kept (a run already logged found is restated as an error
+run, as the Schema section below has a run read again) and the step left
+runnable, so the next turn runs it again. Then the tail, in the same call:
+`tools/fetches.py collect` on `downloads/`, `tools/attach_inbox.py` on
+whatever else the inbox holds, one file per transaction (a file that fails
+stays where it was and is named in the report, §4), the place resolver on the
+place strings the turn's new records carry and those behind the person's own
+events (a string it accepts places its events before the rule compares them;
+one it cannot settle is a card on the fact row), `tools/conclude.py
+reconsider`, and the plan regenerated. Each of these, and the plan that opens
+the turn, runs in a transaction of its own: one that fails is rolled back
+alone, named in the report with its exception, and the turn goes on to the
+next (the steps already planned are run when the opening plan fails); the next
+turn runs it again.
+Last, this person's own pages at holders without a connector (`tools/fetches.py
+next`'s own pages, narrowed to their unrun steps) are printed under the report
+with the file name to save under and the save script's call, and the person
+waits on them: their name and the steps of those pages are kept beside the
+catalog (`<db>.turn-state.json`, one entry for each person who waits, none
+when nobody does), and the turn is over.
+
+A file a collect takes is credited to the people whose steps it reached, and
+for a person who waits that finishes their turn in the same call: the place
+resolver reads the strings behind their own events beside the rest, the plan
+is regenerated for them, and their own report follows, with the files
+credited to them, what the rule took on those files, what is left for the
+owner and the pages they still wait on; with none left they wait no more.
+`tools/turn.py --resume` is that alone, with no turn of its own: it takes
+whatever has been saved (`tools/fetches.py collect` on `downloads/`,
+`tools/attach_inbox.py` on the inbox), credits each file, and finishes the
+turns of the people who wait that it reached, running the resolver,
+`reconsider` and the plans only when a file came in; its own report names the
+files that reached nobody who waits, and with nothing saved it says who waits
+on how many pages. The turn writes nothing of its
 own: every catalog write is one of those tools' under its own name. Its
 report says what was held, what the rule decided (the proposals it took and,
 one line each, the conflicts it resolved or took back while the turn ran, with
@@ -1369,33 +1413,43 @@ the person, the date or place kept, its reason and the question id
 `tools/conclude.py reopen` gives it back by), who was created and what is
 left for the owner, in words; a source that did not answer (a connector, or
 the geocoder for the place strings) is named once, with the rows of the steps it
-was asked on or the number of strings it left, and a file left in the inbox that
+was asked on or the number of strings it left, a run or a part of the tail
+that failed is named once with its exception, and a file left in the inbox that
 fulfils no step is named once per run, not in every report. A record the owner cites on their own word
 (`tools/cite.py`) is a fetch step on the plan a turn runs like any other;
 where the owner's word names who on the record is their person, that persona's
 card is accepted on their word, the decision's note quoting it, and the record
 is read outward from that person as any accepted record is.
-`tools/turns.py` is the loop run without a hand on it: it asks the queue for
-the next person, runs their turn with `tools/turn.py`'s own code, prints the
+`tools/turns.py` is the loop run without a hand on it: it first does what
+`tools/turn.py --resume` does (whatever has been saved in the browser is taken,
+each file credited to the people whose steps it reached, and the turns of the
+people who wait that it reached are finished), then asks the queue for the
+next person, runs their turn with `tools/turn.py`'s own code, prints the
 turn's report and asks the queue again, until the queue names nobody a turn
-can act on, a turn pauses on pages to save (the runner stops with that list
-printed and the turn's state kept; the session at the owner's browser saves
-them and calls `tools/turns.py --resume`, which resumes the paused turn and
-goes on to the next person), or `--turns N` turns are done. A person the
+can act on or `--turns N` turns are done (`--turns 0` finishes the turns of
+the people who wait and starts none). A turn that leaves pages to save never
+stops the run: its person waits and the run goes on to the next person, and
+nobody waiting ever makes the runner refuse. One person's failure never stops
+the next person's turn: a run or a part of the tail that fails is named in the
+turn's report as above, and a turn that fails anywhere else stops there, what
+it had not committed rolled back, is named with its exception, and its person
+is passed over for the rest of the run with that reason. A person the
 queue names again whose last turn held nothing new for them is passed over
-for the rest of the run with that reason. Its own state (the turns run, each
+for the rest of the run with that reason. The run's own count (the turns run, each
 person's held count before and after, the passed-over, the inbox files already
-named) lives beside the
-turn's state file on the same pattern; it writes nothing of its own to the
+named) lives in the run and ends with it; it writes nothing of its own to the
 catalog. A connector's challenge is an error run, the source did not answer,
 and the turn goes on: a challenge or maintenance page served in place of the
 answer, which no reader of the connector parses, is archived as it came and
 logged error with the reader's exception in the note, the step left runnable; a challenge in the browser is the session's pause,
-outside the runner. Its summary says, in words, the turns run, the people
-this run passed over and why, and what is left for the owner as counts by kind
+outside the runner. Its summary says, in words, the turns run, the turns of
+people who waited that it finished, the people this run passed over and why,
+the people who wait on pages to save in the browser with how many pages
+(`tools/fetches.py next` names them; the next run takes what is saved), and
+what is left for the owner as counts by kind
 (documents to decide, conflicts open, key facts undecided, family links the file
 names and nobody has accepted); `--detail` names each person with the reason, as
-`tools/queue.py --all` does.
+`tools/queue.py --all` does, and each person who waits with their pages.
 
 ## Worked example: Thomas Ahearn (1846–1902)
 
