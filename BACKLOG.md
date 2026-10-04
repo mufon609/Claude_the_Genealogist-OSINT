@@ -62,45 +62,31 @@ report has been reviewed.
 
 ### A1. Models run the steps no connector can, tasked and measured by code
 
-`docs/DATA-ARCHITECTURE.md` §7 decision 16: code judges, models investigate.
-No model is launched by code: a page at a holder without a connector waits
-for a session at the owner's browser, a held image for a session at the
-transcription form, an assisted search for a hand, each tasked in prose and
-run on whatever model that session is. Build the runner that sits where a
-connector sits (`tools/run_step.py`: it is handed a step, the runner archives
-what comes back and logs the run), one piece closed before the next:
+`docs/DATA-ARCHITECTURE.md` §7 decisions 16 and 18: code judges, models
+investigate. The fetch task exists (`tools/run_task.py`: the fetch list's
+entry rendered by code, one text for the kind, the launcher, collect judging
+what came in, every launch a `task_run` row), and nothing calls it yet: a
+page at a holder without a connector still waits for a session at the owner's
+browser, a held image for a session at the transcription form, an assisted
+search for a hand. What is left, one piece closed before the next:
 
-1. **The task is the step.** A fetch step's task is the fetch list's own line
-   (`tools/fetches.py next`: the link, the file name, the script's call with
-   the step's key); a search step's is its rendered fields and its holder; a
-   reading's is a held artifact no parser reads. The words a model needs
-   beyond the step are one text per task kind, kept in the repository as
-   `app/person/read_record.md` is for a reading, its sha256 on every run. No
-   task is written by hand.
-2. **The answer is checked, never believed.** The model answers in a JSON
-   schema the runner validates and is given only the tools its task kind
-   needs, none of which writes the catalog: what it saves goes through
-   `tools/fetches.py collect`, the parsers, the matcher and the rule as a
-   hand-saved page does. A fetch counts when the saved page's own identity is
-   the step's locator; a search's `none` is the parser's reading of the
-   archived results page as it was run, never the model's word; a reading
-   enters as an undecided extraction with its lines or boxes; a source or a
-   lead a model proposes becomes a plan step and is judged by that step's run.
-3. **Every run is a row.** An insert-only table of runs: the task kind, the
-   holder, the task text's hash, the model and the effort, the tokens, cost,
-   turns and time the launcher reports, and the outcome as code judged it
-   (the answer valid, the identity matched, the page read, the record taken
-   by the rule, a card, a hint, nothing), joined to the `search_log` row or
-   the extraction the run produced. These measures choose a model and never
-   reach a card (`CLAUDE.md` hard rule 1).
-4. **An estimate is the record of past runs** of the same task kind at the
-   same holder, never a guess. A kind with no runs is calibrated first on
-   work whose answer the catalog already holds: done fetch steps whose record
-   ids are known, pages a parser reads (the model's reading compared with the
-   parser's field by field), readings the owner decided. A calibration task
-   is run more than once at each model and effort, so a model that answers
-   the same task differently is seen.
-5. **The choice is data and one rule, and nothing in it is asked of the
+1. **The first real run.** No launch has driven a browser. The check's one
+   scenario of a page the model saves waits on a capture
+   (`python3 tools/run_task.py capture --model haiku --effort low --out
+   tests/fixtures/task-launcher-answer-saved.json`), which needs a Chrome on
+   this machine, connected, saving into the data root's `downloads/`. That
+   run also shows what is unmeasured: whether a launch given no built-in tool
+   sees the browser's six, and what `denials` reads when the owner's settings
+   allow more. An answer that is not the schema's has no scenario for want of
+   a real one.
+2. **Calibration: an estimate is the record of past runs** of the same task
+   kind at the same holder, never a guess. A kind with no runs is calibrated
+   first on work whose answer the catalog already holds: done fetch steps
+   whose record ids are known, pages a parser reads (the model's reading
+   compared with the parser's field by field), readings the owner decided. A
+   calibration task is run more than once at each model and effort, so a
+   model that answers the same task differently is seen.
+3. **The choice is data and one rule, and nothing in it is asked of the
    owner** (decision 17: what the program can measure is measured). A data
    file lists the models and efforts in order of cost. Where code checks the
    whole result (a fetch: the saved page's identity is the step's), a wrong
@@ -116,6 +102,18 @@ what comes back and logs the run), one piece closed before the next:
    well, so a cheaper model that has become good enough is found. A run is
    stopped at the highest cost its kind's calibration recorded and counted
    failed; the turn's report says what was spent and what it bought.
+4. **The loop runs it.** `tools/turns.py` hands a waiting person's pages to
+   the runner once the choice names a model, one page at a time. A page the
+   model reports blocked leaves a run on its step that says so, so the same
+   page is not launched again until a person has passed the block; today only
+   the `task_run` row holds it.
+5. **The other kinds.** A search at a holder without a connector (C53: its
+   results page is the save, its `none` the parser's reading of that page,
+   never the model's word); a gravestone photograph (`tools/save_image.js`);
+   a reading of a held record no parser reads (`app/person/read_record.md`
+   is its text), entering as an undecided extraction with its lines or boxes;
+   a source or a lead a model proposes, which becomes a plan step and is
+   judged by that step's run.
 6. **A question is a task too.** Anything that waits on a person (a card, a
    conflict, a place, a question about one life) can be handed to the top of
    the ladder as a task of its own kind, built by code from the question as
@@ -129,18 +127,9 @@ what comes back and logs the run), one piece closed before the next:
    the new evidence, a person on a checked argument. The run is a row like
    any other, with the question's class and what settled it.
 
-The launcher (`claude` run non-interactively, its input closed) takes a
-model, an effort, a schema for the answer, the tools allowed, a spending cap
-and the browser integration, and its JSON result carries what a run's row
-needs: the answer as the schema's object, the cost, the tokens in, out and
-cached for each model used, the turns, the time, how the run ended and any
-tool it was refused. The browser tools load without a session; whether a
-browser answers them is for the fetch task's first run to show. A run of one
-sentence on the smallest model costs about a cent before it does anything,
-the standing instructions it loads, so a small task is given only the tools
-and instructions it needs. Start with the fetch task at FamilySearch and Find
-a Grave: the fetch list is its task already, and the done steps at those
-holders are its calibration.
+A launch of one sentence on the smallest model costs about a cent before it
+does anything, the standing instructions it loads, so a small task is given
+only the tools and the text it needs, as the fetch task is.
 
 ### A2. A question reaches a person only after the investigation that could answer it
 
