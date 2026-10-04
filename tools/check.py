@@ -26,10 +26,10 @@ from common import BY, FIXTURES, scratch, tool
 import imports, loop, offline, parsers, scenario
 
 def rules():
-    """The name and place rules as the docs state them, and the version a reader's model id carries, on their own, against
+    """The name, place and date rules as the docs state them, and the version a reader's model id carries, on their own, against
     tests/fixtures/rules.json."""
     with open(os.path.join(FIXTURES, "rules.json"), encoding="utf-8") as fh: R = json.load(fh)
-    from catalog import collection_state, holder_search, kinds_as, place_verdict, prefills_nothing, record_standing, same_surname
+    from catalog import collection_state, date_verdict, holder_search, kinds_as, place_verdict, prefills_nothing, record_standing, same_surname
     bad = []
     for c in R["same_surname"]:
         got = same_surname(c["record"], c["tree"])
@@ -48,6 +48,11 @@ def rules():
     for c in R["place_verdict_with_record_state"]:
         got = place_verdict(c["record"], c["tree"], record_state=c["record_state"])
         if got != (c["verdict"], c["note"]): bad.append(f"place_verdict({c['record']!r}, {c['tree']!r}, record_state={c['record_state']!r}) gave {got!r}, expected {(c['verdict'], c['note'])!r}")
+    from treelib import parse_gedcom_date
+    as_read = lambda t: {k: v for k, v in zip(("start", "end", "qualifier"), (parse_gedcom_date(t)[f] for f in ("date_start", "date_end", "date_qualifier")))}
+    for c in R["date_verdict"]:
+        got = date_verdict(as_read(c["record"]), as_read(c["tree"]))[0]
+        if got != c["verdict"]: bad.append(f"date_verdict({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {c['verdict']!r}")
     for c in R["collection_state"]:
         got = collection_state(c["name"])
         if got != c["state"]: bad.append(f"collection_state({c['name']!r}) gave {got!r}, expected {c['state']!r}")
@@ -402,7 +407,7 @@ def every_check(a):
     bad_files = compiles(); bad += bool(bad_files)
     print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad += bool(bad_rules)
-    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     bad_conn = connectors_offline(); bad += bool(bad_conn)
     print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)

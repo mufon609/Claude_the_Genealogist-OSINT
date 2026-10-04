@@ -356,13 +356,24 @@ COUNTRY = re.compile(r"\b(united states of america|united states|u\.s\.a\.|u\.s\
 
 def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 def date_verdict(rec, tree):
-    """A record date against the tree's, each {"start", "text", "qualifier"}: (verdict, note). Both full dates: compared as dates,
-    a different day in the same year disagrees. Otherwise the years: a bare year against a full date agrees on the year only and
-    the note says which side gives only a year; a date marked about, estimated or calculated on either side agrees within two years."""
-    rs, ts = (rec or {}).get("start"), (tree or {}).get("start")
+    """A record date against the tree's, each {"start", "end", "text", "qualifier"}, a date that gives only its end (before)
+    read from that: (verdict, note). A date bounded before, after or between (BOUNDS) on either side is compared as its range
+    (date_span, its edges inside it): ranges that cannot meet disagree, and a date inside a bound or two ranges that overlap are
+    "within", never "agrees", since a bound names no day or year of its own: it keeps a disagreement from being read where there
+    is none and never earns a point. Both full dates: compared as dates, a different day in the same year disagrees. Otherwise
+    the years: a bare year against a full date agrees on the year only and the note says which side gives only a year; a date
+    marked about, estimated or calculated on either side agrees within two years."""
+    rec, tree = rec or {}, tree or {}
+    rs, ts = rec.get("start") or rec.get("end"), tree.get("start") or tree.get("end")
     if not rs or not ts: return "absent", None
+    if rec.get("qualifier") in BOUNDS or tree.get("qualifier") in BOUNDS:
+        a, b = (date_span(d.get("start"), d.get("end"), d.get("qualifier")) for d in (rec, tree))
+        if a is None or b is None: return "absent", None
+        if (a[0] and b[1] and a[0] > b[1]) or (b[0] and a[1] and b[0] > a[1]): return "disagrees", None
+        return "within", ("the two ranges overlap" if rec.get("qualifier") in BOUNDS and tree.get("qualifier") in BOUNDS
+                          else "a bound on the record, the tree's date inside it" if rec.get("qualifier") in BOUNDS else "a bound in the tree, the record's date inside it")
     if len(rs) == 10 and len(ts) == 10: return ("agrees", None) if rs == ts else ("disagrees", "same year, different day" if rs[:4] == ts[:4] else None)
-    tol = 2 if (rec or {}).get("qualifier") in ("about", "estimated", "calculated") or (tree or {}).get("qualifier") in ("about", "estimated", "calculated") else 0   # either side approximate: two years
+    tol = 2 if rec.get("qualifier") in NEAR or tree.get("qualifier") in NEAR else 0   # either side approximate: two years
     if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
     return "disagrees", None
 
@@ -1039,7 +1050,7 @@ class Catalog:
                                             ORDER BY a.asserted_at, a.id""", pid)):
             if middle_differs(written, rows, [s for _, s in rows]):
                 out.append(f"name: the tree against {coll}" + (f" ({loc})" if loc else "") + f": {shown} against {written}")
-        for e in self.q(f"""SELECT DISTINCT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id FROM event e JOIN event_participant ep ON ep.event_id=e.id
+        for e in self.q(f"""SELECT DISTINCT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
                            WHERE (ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner')) {'AND e.id=?' if event else ''}
                            ORDER BY e.event_type, e.date_start""", pid, pid, *([event] if event else [])):
             place_now = self.place(e[0], e[5])
@@ -1047,7 +1058,7 @@ class Catalog:
             kind = e[1].lower()
             rows = self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)),
                                     ar.locator_value, a.status, a.id, ar.sha256 IN (SELECT artifact_sha256 FROM tree_import), CASE WHEN ps.status='accepted' THEN ps.place_id END,
-                                    ar.sha256, pf.persona_id
+                                    ar.sha256, pf.persona_id, pf.date_end
                              FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                              JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                              WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND pf.fact_type=? ORDER BY a.asserted_at, a.id""", e[0], e[1])
@@ -1060,7 +1071,7 @@ class Catalog:
                 g = groups[gk]
                 g["locator"] = g["locator"] or f[5]
                 if f[4] and f[4] not in g["collections"]: g["collections"].append(f[4])
-                if (f[0] is not None or f[1] is not None) and len(f[1] or "") > len(g["date"][1] if g["date"] else ""): g["date"] = (f[0], f[1], f[2])  # the same record's own most specific date wins (a full date over a bare year)
+                if (f[0] is not None or f[1] is not None or f[12] is not None) and len(f[1] or f[12] or "") > len((g["date"][1] or g["date"][3] or "") if g["date"] else ""): g["date"] = (f[0], f[1], f[2], f[12])  # the same record's own most specific date wins (a full date over a bare year)
                 if f[3] is not None and g["place"] is None: g["place"] = f[3]; g["place_cmp"] = self._place_chain(f[9])["text"] if f[9] else f[3]   # compared as the place its words are resolved to, when they are: Auburn, Kentucky is in Logan County
                 g["state"] = g["state"] or collection_state(f[4])
                 if f[6] == "accepted": g["status"] = "accepted"
@@ -1070,10 +1081,10 @@ class Catalog:
                 name = " / ".join(g["collections"]) if g["collections"] else (g["locator"] or "record")
                 return f"{name} ({g['locator']})" if g["locator"] else name
             for axis in ("date", "place"):
-                value_of = (lambda gk: ({"start": groups[gk]["date"][1], "text": groups[gk]["date"][0], "qualifier": groups[gk]["date"][2]} if groups[gk]["date"] else None)) if axis == "date" \
+                value_of = (lambda gk: ({"start": groups[gk]["date"][1], "end": groups[gk]["date"][3], "text": groups[gk]["date"][0], "qualifier": groups[gk]["date"][2]} if groups[gk]["date"] else None)) if axis == "date" \
                             else (lambda gk: groups[gk]["place_cmp"])
                 text_of = (lambda gk: groups[gk]["date"][0]) if axis == "date" else (lambda gk: groups[gk]["place"])
-                tree_val = {"start": e[3], "text": e[2], "qualifier": e[4]} if axis == "date" else tree_place
+                tree_val = {"start": e[3], "end": e[6], "text": e[2], "qualifier": e[4]} if axis == "date" else tree_place
                 tree_text = e[2] if axis == "date" else tree_place
                 tree_dated = self.dated_names(e[5]) if axis == "place" else None
                 def cmp(av, asa, bv, bsa):
@@ -1239,13 +1250,13 @@ class Catalog:
         with the event's own, or of every statement when none does; "your own word" for a vouch, which accepts the event's own
         date; "no statement" when nothing stands behind it."""
         ev = self.q("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", eid)[0]
-        own = {"start": ev[1] or ev[2], "text": ev[0], "qualifier": ev[3]}
+        own = {"start": ev[1] or ev[2], "end": ev[2], "text": ev[0], "qualifier": ev[3]}
         agree, every = [], []
         for sha, pf, notes, text, start, end, qual in self.q("""SELECT a.artifact_sha256, a.persona_fact_id, a.notes, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier
                                                               FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
                                                               WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", eid):
             label = self._statement(sha, pf, notes); every.append(label)
-            said = own if pf is None else {"start": start or end, "text": text, "qualifier": qual}
+            said = own if pf is None else {"start": start or end, "end": end, "text": text, "qualifier": qual}
             if date_verdict(said, own)[0] == "agrees": agree.append(label)
         return self._labels(agree or every) or "no statement"
     def said_on(self, kind, sid):

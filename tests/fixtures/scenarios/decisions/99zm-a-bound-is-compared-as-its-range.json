@@ -1,0 +1,116 @@
+{
+ "title": "a bound is compared as its range",
+ "line": "a date bounded before, after or between is compared as its range: the newspaper reader's older reading of a loc.gov page gives a Davidson a death before the paper's date, Bef 1918-05-10, and Ellen E McCrary, a Davidson by marriage, has her death day of 16 Mar 1918 on the owner's word; the day lies inside the bound, so the death date neither agrees nor disagrees, is no veto, and the card says so",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's word on Ellen's death, 16 Mar 1918 as the file gives it",
+   "fact": {
+    "person": "I332737209655",
+    "field": "death",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "The Commercial (Union City, Tenn.) of 10 May 1918, page 2, from loc.gov",
+   "archive": {
+    "fixture": "locgov-ocr-sn89058321-1918-05-10-p2.json",
+    "manifest": "locgov-ocr-sn89058321-1918-05-10-p2.manifest.json",
+    "source": "H01",
+    "notes": {
+     "step_type": "obituary"
+    }
+   },
+   "as": "paper"
+  },
+  {
+   "say": "the page's reading as the newspaper reader left it in the owner's catalog, a death before the paper's date for the surname it found",
+   "older_reading": {
+    "record": "paper",
+    "extractor": {
+     "kind": "rule",
+     "name": "loc-gov-ocr",
+     "version": "0.1.0"
+    },
+    "personas": [
+     {
+      "name": "Davidson",
+      "role": "named in the text",
+      "sequence": 1,
+      "region": {
+       "label": "ocr",
+       "offset": 11230,
+       "segment": "/service/ndnp/tu/batch_tu_kathy_ver01/data/sn89058321/00415621486/1918051001/0165.xml",
+       "snippet": ". E. Keiser.\nHenry Hassler.\nClarence Reynolds.\nJ. F. Semones.\nJ. A. Baird.\nMarvin Chapel.\nF. E. Quinn.\nA. J. Harpole.\nW. M. Miles.\nLuther Andrews.\nW. J. [[tag]]Davidson[[/tag]].\n[[tag]]Ollie[[/tag]] Nichols.\nR. E. Craig.\nVernon Hefley.\nV. E. White.\nAvrie Coble.\nDan Glenn.\nA. L. Cox.\nW. C. Farris.\nEd Stone.\nPhil Hyman.\nJ. A. Ha"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Davidson",
+        "region": {
+         "labels": [
+          "text"
+         ]
+        }
+       },
+       {
+        "type": "Death",
+        "date_text": "Bef 1918-05-10",
+        "region": {
+         "labels": [
+          "page date"
+         ]
+        }
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "say": "a card an older matcher left, putting that Davidson to Ellen",
+   "legacy_card": {
+    "record": "paper",
+    "row": 1,
+    "person": "I332737209655",
+    "version": "0.1.0"
+   },
+   "as": "card",
+   "expect": [
+    {
+     "compare": {
+      "card": "$card.card",
+      "disagree": {
+       "none": {
+        "starts": "death date"
+       }
+      },
+      "vetoes": {
+       "none": {
+        "starts": "death date"
+       }
+      },
+      "agree": {
+       "none": {
+        "starts": "death date"
+       }
+      },
+      "absent": {
+       "some": {
+        "starts": "death date within (record Bef 1918-05-10, tree 16 Mar 1918"
+       }
+      },
+      "fields": {
+       "Death date": "within"
+      }
+     },
+     "why": "a death before 10 May 1918 holds a death on 16 Mar 1918: the bound is no day of death, so it neither disagrees with the accepted day, nor vetoes, nor agrees, and the card shows it within"
+    }
+   ]
+  }
+ ]
+}

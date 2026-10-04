@@ -60,20 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A5. A bounded date is compared as its range
-
-`catalog.date_verdict` compares the start year whatever the qualifier: "BET
-1950 AND 1959" disagrees with 1955 and agrees with 1950, "BEF 1900"
-disagrees with 1890, and no year agrees with "AFT 1880". It feeds
-`match.compare`, the rule's vetoes (`conclude._grounded`), its points
-(`ground`, `gives`) and `proof.agreement`; live, the newspaper
-reader writes 27 deaths "Bef <the paper's date>" and six events are bounded.
-`cards.card` also drops the tree's qualifier, so a card says a birth date
-disagrees where the matcher agrees (ABT 1921 against 1920). Compare a bounded
-date as its range (a date inside it agrees, and a bound is never a day of
-birth or death), with examples in `tests/fixtures/rules.json` beside the pure
-rules already there, and report the dry-run reconsider.
-
 ### A6. Nothing rewrites the audit trail, the evidence or the research log
 
 Hard rule 2 and decision 13. The insert-only triggers

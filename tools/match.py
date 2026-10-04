@@ -196,6 +196,7 @@ def compare(cat, persona, cand, chosen, birth_place=True):
         v, note = date_verdict(persona[label], cand[label])
         if v == "absent": absent.append(f"{label} date"); continue
         words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (f": {note}" if note else "") + ")"
+        if v == "within": absent.append(words); continue                 # a bound neither agrees nor disagrees (catalog.date_verdict)
         (agree if v == "agrees" else disagree).append(words); dated = dated or v == "agrees"
     for label in ("birth place", "burial place", "death place"):
         v, note = place_verdict(persona[label], cand[label], record_state=persona.get("record_state"), dated_names=cat.dated_names(cand.get(f"{label}_id")))
@@ -234,7 +235,7 @@ def compare(cat, persona, cand, chosen, birth_place=True):
     return fits, agree, disagree, absent, near
 
 def _date(row):
-    return {"text": row[0], "start": row[1] or row[2], "qualifier": row[3]} if row and (row[1] or row[2]) else {"text": None, "start": None, "qualifier": None}
+    return {"text": row[0], "start": row[1] or row[2], "end": row[2], "qualifier": row[3]} if row and (row[1] or row[2]) else {"text": None, "start": None, "end": None, "qualifier": None}
 
 def personas_of(cx, eid):
     out = []
@@ -343,7 +344,7 @@ def candidate(cat, pid):
     p = cat.person(pid); ev = cat.events(pid)
     def first(t):
         e = next((e for e in ev if e["type"] == t and (e["year"] or e["place"])), None)
-        if not e: return {"text": None, "start": None, "qualifier": None, "place": None, "place_id": None, "event": None}
+        if not e: return {"text": None, "start": None, "end": None, "qualifier": None, "place": None, "place_id": None, "event": None}
         r = cat.cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
         return {**_date(r), "place": e["place"]["text"] if e["place"] else None, "place_id": (e["place"] or {}).get("place_id"), "event": e["id"]}
     b, d, bu = first("Birth"), first("Death"), first("Burial")

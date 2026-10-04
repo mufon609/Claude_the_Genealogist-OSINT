@@ -31,7 +31,7 @@ are ordered by their class words, never scored.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
-from catalog import Catalog, date_verdict, evidence_classes, key, place_verdict, record_of, same_surname, split_name
+from catalog import BOUNDS, Catalog, date_verdict, evidence_classes, key, place_verdict, record_of, same_surname, split_name
 from facts import KEY_FACTS, fact_subjects
 
 INFORMATION = ("primary", "secondary", "indeterminable", None)    # the order the classes favour a side in, best first
@@ -131,7 +131,7 @@ def subject_statements(cat, kind, sid, want=None, relative=None):
     another fact type than want is left out, the owner's own word (no record fact of its own) never."""
     cx, q = cat.cx, _q(cat.cx)
     out = []
-    for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start,
+    for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end,
                                  pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona, pe.id AS persona_id
                           FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           LEFT JOIN persona pe ON pe.id=coalesce(pf.persona_id, a.persona_id)
@@ -141,7 +141,7 @@ def subject_statements(cat, kind, sid, want=None, relative=None):
         except ValueError: notes = {}
         st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"], "persona_id": r["persona_id"],
               "said": re.sub(r"\s+on the record$", "", r["citation_text"] or "") if kind == "family_member" else None,
-              "value": r["value_text"], "date": {"start": r["date_start"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_text"] else None,
+              "value": r["value_text"], "date": {"start": r["date_start"], "end": r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_end"] or r["date_text"] else None,
               "place": r["place"], "apid": notes.get("apid")}
         if notes.get("vouched"): st.update({"kind": "vouch", "classes": {"vouched": True}})
         elif r["mime"] == "text/x-gedcom": st.update({"kind": "file", "classes": evidence_classes(cx, r["id"])})
@@ -158,15 +158,15 @@ def tree_value(cat, pid, field, ev, fam):
         e = cat.canonical_event(ev, field.title())
         if not e: return None, None
         place = e["place"]["text"] if e["place"] else None
-        start = next((r[0] for r in cat.q("SELECT date_start FROM event WHERE id=?", e["id"])), None)
-        qual = next((r[0] for r in cat.q("SELECT date_qualifier FROM event WHERE id=?", e["id"])), None)
-        return ", ".join(x for x in (e["date_text"], place) if x) or None, {"date": {"start": start, "text": e["date_text"], "qualifier": qual}, "place": place}
+        start, end, qual = cat.q("SELECT date_start, date_end, date_qualifier FROM event WHERE id=?", e["id"])[0]
+        return ", ".join(x for x in (e["date_text"], place) if x) or None, {"date": {"start": start, "end": end, "text": e["date_text"], "qualifier": qual}, "place": place}
     names = [n for _, n in fam[field]]
     return (" & ".join(names) if field == "parents" else ", ".join(names)) or None, names
 
 def agreement(field, st, tree):
     """Whether a statement agrees with the tree's value, in words: agrees (with a note: the year only, a coarser place, a
-    spelling variant), or what it says instead. None where there is nothing to compare."""
+    spelling variant), the date within a bound (catalog.date_verdict: neither agrees nor disagrees), or what it says instead.
+    None where there is nothing to compare."""
     if tree is None: return None
     if field == "name" and st["value"]:
         (rg, rs, _), (tg, ts, _) = split_name(st["value"]), split_name(tree)
@@ -182,17 +182,21 @@ def agreement(field, st, tree):
         v = {"male": "M", "female": "F"}.get(st["value"].strip().lower(), st["value"].strip()[:1].upper())
         return "agrees" if v == tree else f"says {st['value']}"
     if field in ("birth", "death"):
-        notes, says = [], []
+        notes, says, bound = [], [], None
         if st["date"]:
             v, n = date_verdict(st["date"], tree["date"])
             if v == "disagrees": says.append(st["date"]["text"])
             elif v == "agrees" and n: notes.append(n.split(";")[0])
+            elif v == "within": bound = f"the date within: {n}"          # a bound neither agrees nor disagrees (catalog.date_verdict)
+        placed = False
         if st["place"]:
             v, n = place_verdict(st["place"], tree["place"])
             if v == "disagrees": says.append(st["place"])
-            elif v == "agrees" and n: notes.append(n)
+            elif v == "agrees": placed = True; notes += [n] if n else []
         if not (st["date"] or st["place"]): return None
-        return f"says {', '.join(says)}" if says else ("agrees" + (f": {'; '.join(notes)}" if notes else ""))
+        if says: return f"says {', '.join(says)}"
+        if bound and not placed: return bound
+        return "agrees" + (f": {'; '.join(notes + ([bound] if bound else []))}" if notes or bound else "")
     return None
 
 # ---------------------------------------------------------------- the groups by original
@@ -260,18 +264,22 @@ def axis_value(axis, st):
     return st["date"] if axis == "date" else st["place"]
 
 def specificity(axis, v):
-    """How specific a value is, for the order sides are formed in: a date's length, a place's named parts."""
-    return len(v.get("start") or "") if axis == "date" else len([p for p in re.split(r"<|,", v) if p.strip()])
+    """How specific a value is, for the order sides are formed in: a date's length, a bounded date (before, after, between)
+    least of all, a place's named parts."""
+    if axis == "date": return 0 if v.get("qualifier") in BOUNDS else len(v.get("start") or "")
+    return len([p for p in re.split(r"<|,", v) if p.strip()])
 
 def same_value(axis, a, b):
-    """Whether two values agree on an axis: dates by catalog.date_verdict, places by catalog.place_verdict read either way
-    (a coarser place agrees with a finer one inside it)."""
-    return date_verdict(a, b)[0] == "agrees" if axis == "date" else (place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees")
+    """Whether two values stand on one side: dates that agree by catalog.date_verdict, or one within the other's bound (a
+    bound differs from no date inside it), places by catalog.place_verdict read either way (a coarser place agrees with a
+    finer one inside it)."""
+    return date_verdict(a, b)[0] in ("agrees", "within") if axis == "date" else (place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees")
 
 def sides(axis, sts):
     """The sides of a date or place conflict: the values the statements give (rejected ones and the owner's own word
-    aside), the most specific first, grouped where they agree; a value that agrees with more than one side (a year
-    against two days of it, a state against two towns in it) takes no side. Each side is {value, statements, best}, best
+    aside), the most specific first and a bounded date last, grouped where they agree (same_value); a value that agrees with
+    more than one side (a year against two days of it, a state against two towns in it, a bound holding two dates) takes no
+    side. Each side is {value, statements, best}, best
     its best statement in the classes' own order, and the sides come in that order."""
     out = []
     for st in sorted((s for s in sts if s["status"] != "rejected" and s["kind"] != "vouch" and axis_value(axis, s)), key=lambda s: -specificity(axis, axis_value(axis, s))):

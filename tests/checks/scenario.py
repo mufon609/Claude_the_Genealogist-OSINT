@@ -659,6 +659,26 @@ def a_legacy_card(w, x):
                   f"{pe['name_text']} ({pe['role_in_record']}) may be {w.name_of(pid)}, on the name alone.", older, t.now()))
     return {"card": prop, "persona": pe["id"]}
 
+def a_older_reading(w, x):
+    """A record's reading planted as an older reader left it, a row of the owner's catalog that its reader no longer writes:
+    the extractor (`kind`, `name`, `version`) and each persona with its facts as the catalog holds them (a fact's date read
+    from its date_text by treelib.parse_gedcom_date, as the reader wrote it). The reading stands as the record's current one."""
+    t = w.treelib; sha = w.sha(x["record"]); ex = x["extractor"]
+    xid = w.cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=? AND prompt_sha256 IS NULL", (ex["kind"], ex["name"], ex["version"])).fetchone()
+    xid = xid[0] if xid else t.ulid()
+    w.cx.execute("INSERT OR IGNORE INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (xid, ex["kind"], ex["name"], ex["version"], t.now()))
+    eid = t.ulid(); w.cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')", (eid, sha, xid, t.now()))
+    for pe in x["personas"]:
+        pid = t.ulid()
+        w.cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)",
+                     (pid, eid, sha, pe["name"], pe.get("sex"), pe["role"], pe["sequence"], t.dumps(pe["region"]) if pe.get("region") else None))
+        for f in pe["facts"]:
+            d = t.parse_gedcom_date(f.get("date_text"))
+            w.cx.execute("""INSERT INTO persona_fact (id,persona_id,fact_type,value_text,date_text,date_start,date_end,date_qualifier,calendar,region_json) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                         (t.ulid(), pid, f["type"], f.get("value"), f.get("date_text"), d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"], t.dumps(f["region"]) if f.get("region") else None))
+    w.cx.commit()
+    return {"extraction": eid}
+
 def a_persona_link(w, x):
     """A person's decision on a persona of a record that no card carries today (a memorial's listed relative, which an older
     matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name, and `sequence`,
@@ -713,6 +733,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed, "copies": a_copies}
 
 ACTIONS["legacy_card"] = a_legacy_card
+ACTIONS["older_reading"] = a_older_reading
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 
@@ -749,6 +770,22 @@ def e_rule(w, x, want):
     got = {"taken": bool(ok), "why": why}
     pattern = {k: v for k, v in x.items() if k in ("taken", "why")}
     return has(got, w.value(pattern)), got
+
+def e_compare(w, x, want):
+    """A card's persona against its person as the matcher compares them (match.compare): what agrees, disagrees and is
+    absent, the disagreements the rule reads as vetoes (conclude.split_disagree), and the card's own fields with their
+    verdicts (cards.card), {field: verdict}."""
+    from cards import card as card_view
+    from catalog import Catalog
+    from conclude import split_disagree
+    from match import candidate, compare, personas_of
+    card = w.card(x["card"]); pay = json.loads(card["payload_json"]); cat = Catalog(w.cx, w.tid)
+    persona = next(p for p in personas_of(w.cx, pay["extraction_id"]) if p["id"] == pay["persona_id"])
+    cand = candidate(cat, pay["person_id"])
+    fits, agree, disagree, absent, near = compare(cat, persona, cand, {})
+    vetoes, claims, conflicts = split_disagree(w.cx, w.tid, cand, persona, disagree, {})
+    got = {"agree": agree, "disagree": disagree, "absent": absent, "vetoes": vetoes, "fields": {f["field"]: f["verdict"] for f in card_view(w.cx, w.tid, card["id"])["fields"]}}
+    return has(got, w.value({k: v for k, v in x.items() if k != "card"})), got
 
 def e_facts(w, x, want):
     from facts import fact_status
@@ -1137,7 +1174,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
-           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins}
+           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "compare": e_compare}
 
 def load(folder):
     """Every scenario file under a folder, in name order."""

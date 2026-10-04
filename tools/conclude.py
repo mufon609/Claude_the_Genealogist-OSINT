@@ -208,7 +208,7 @@ def gives(ev, r, axis, value, day=False):
     for the event's own date and gives no place."""
     if axis == "date":
         src = ev if r["persona_fact_id"] is None else r
-        d = {"start": src["date_start"] or src["date_end"], "text": src["date_text"], "qualifier": src["date_qualifier"]}
+        d = {"start": src["date_start"] or src["date_end"], "end": src["date_end"], "text": src["date_text"], "qualifier": src["date_qualifier"]}
         if not d["start"]: return False
         verdict, note = date_verdict(value, d)
         return verdict == "agrees" and (not day or (len(d["start"]) == 10 and "year only" not in (note or "")))
@@ -278,7 +278,7 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
             day = False
             if axis == "date":
                 own = r["persona_fact_id"] is None
-                d = {"start": r["ev_start" if own else "date_start"] or r["ev_end" if own else "date_end"], "text": r["ev_text" if own else "date_text"], "qualifier": r["ev_qualifier" if own else "date_qualifier"]}
+                d = {"start": r["ev_start" if own else "date_start"] or r["ev_end" if own else "date_end"], "end": r["ev_end" if own else "date_end"], "text": r["ev_text" if own else "date_text"], "qualifier": r["ev_qualifier" if own else "date_qualifier"]}
                 if not d["start"] or date_verdict(value, d)[0] != "agrees": continue
                 day = len(d["start"]) == 10 and len((value or {}).get("start") or "") == 10
             elif axis == "place":
@@ -869,7 +869,7 @@ def record_says(cx, tree_id, pid, sha):
     q = _q(cx)
     cat = Catalog(cx, tree_id); name = lambda i: q.execute("SELECT display_name FROM person WHERE id=?", (i,)).fetchone()["display_name"]
     out = []
-    for a in q.execute("""SELECT a.id, a.status, a.subject_kind, a.subject_id, a.citation_text, pf.fact_type, pf.date_text, pf.date_start, pf.date_qualifier, pf.value_text, ps.raw
+    for a in q.execute("""SELECT a.id, a.status, a.subject_kind, a.subject_id, a.citation_text, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.value_text, ps.raw
                           FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           WHERE a.tree_id=? AND a.artifact_sha256=?
                           AND ((a.subject_kind='person' AND a.subject_id=?) OR (a.subject_kind='event' AND a.subject_id IN (SELECT event_id FROM event_participant WHERE person_id=?))
@@ -881,8 +881,8 @@ def record_says(cx, tree_id, pid, sha):
         else:
             item["fact"] = " ".join(x for x in (a["fact_type"], a["date_text"] or a["value_text"] or "", a["raw"] or "") if x).strip()
             if a["subject_kind"] == "event":
-                ev = q.execute("SELECT id, date_text, date_start, date_qualifier, place_id FROM event WHERE id=?", (a["subject_id"],)).fetchone()
-                dv, _ = date_verdict({"start": a["date_start"], "text": a["date_text"], "qualifier": a["date_qualifier"]}, {"start": ev["date_start"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]})
+                ev = q.execute("SELECT id, date_text, date_start, date_end, date_qualifier, place_id FROM event WHERE id=?", (a["subject_id"],)).fetchone()
+                dv, _ = date_verdict({"start": a["date_start"], "end": a["date_end"], "text": a["date_text"], "qualifier": a["date_qualifier"]}, {"start": ev["date_start"], "end": ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]})
                 tp = cat.place(ev["id"], ev["place_id"])["text"] if ev["place_id"] else None
                 if dv == "disagrees": item["disagrees"] = f"date: the tree says {ev['date_text']}"
                 elif place_verdict(a["raw"], tp)[0] == "disagrees": item["disagrees"] = f"place: the tree says {tp}"
@@ -1083,10 +1083,10 @@ def _grounded(cx, eid, kind, value, primary=False):
                          WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted' AND NOT {marked()}""", (eid,)).fetchall()
     if primary: rows = [r for r in rows if r["persona_fact_id"] is not None and (evidence_classes(cx, r["id"]) or {}).get("information") == "primary"]
     if kind == "date":
-        ev = q.execute("SELECT date_text, date_start, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
+        ev = q.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
         for r in rows:
-            if r["persona_fact_id"] is None: d = {"start": ev["date_start"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]}
-            elif r["date_start"] or r["date_end"]: d = {"start": r["date_start"] or r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]}
+            if r["persona_fact_id"] is None: d = {"start": ev["date_start"], "end": ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]}
+            elif r["date_start"] or r["date_end"]: d = {"start": r["date_start"] or r["date_end"], "end": r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]}
             else: continue
             if date_verdict(value, d)[0] == "disagrees": return True
         return False
@@ -1817,7 +1817,7 @@ def accepted_dates(q, eid):
     for r in q.execute("""SELECT a.persona_fact_id, pf.date_start, pf.date_end, pf.date_qualifier FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
                           WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted'""", (eid,)):
         src = ev if r["persona_fact_id"] is None else r
-        if src["date_start"] or src["date_end"]: out.append({"start": src["date_start"] or src["date_end"], "qualifier": src["date_qualifier"]})
+        if src["date_start"] or src["date_end"]: out.append({"start": src["date_start"] or src["date_end"], "end": src["date_end"], "qualifier": src["date_qualifier"]})
     return out
 
 def _take_lacking(q, kept, other, ts, held=()):
@@ -1830,7 +1830,7 @@ def _take_lacking(q, kept, other, ts, held=()):
     k = q.execute("SELECT date_text, date_start, date_end, date_qualifier, calendar, place_id FROM event WHERE id=?", (kept["id"],)).fetchone()
     o = q.execute("SELECT date_text, date_start, date_end, date_qualifier, calendar, place_id FROM event WHERE id=?", (other["id"],)).fetchone()
     decided, sets = kept["owner"] | kept["rule"], {}
-    taken = {"start": o["date_start"] or o["date_end"], "qualifier": o["date_qualifier"]}
+    taken = {"start": o["date_start"] or o["date_end"], "end": o["date_end"], "qualifier": o["date_qualifier"]}
     if "date" not in decided and not any(date_verdict(h, taken)[0] == "disagrees" for h in held) \
        and fuller_date({"start": k["date_start"], "end": k["date_end"], "qualifier": k["date_qualifier"]},
                        {"start": o["date_start"], "end": o["date_end"], "qualifier": o["date_qualifier"]}):
@@ -2067,16 +2067,16 @@ def resolve(cx, tree_id, qid, keep, by, note):
     if axis == "date" and not (a["date_start"] or a["date_end"]): return {"error": "the statement gives no date to keep"}
     if axis == "place" and not a["raw"]: return {"error": "the statement gives no place to keep"}
     if axis == "place" and not a["place_id"]: return {"error": f"the place the statement gives, “{a['raw']}”, is not yet resolved to a place: answer its words first, then keep it"}
-    kept_value = {"start": a["date_start"] or a["date_end"], "text": a["date_text"], "qualifier": a["date_qualifier"]} if axis == "date" else a["raw"]
+    kept_value = {"start": a["date_start"] or a["date_end"], "end": a["date_end"], "text": a["date_text"], "qualifier": a["date_qualifier"]} if axis == "date" else a["raw"]
     differs = lambda v: (date_verdict(kept_value, v)[0] if axis == "date" else place_verdict(kept_value, v)[0]) == "disagrees"
     set_aside = []
     for r in q.execute("""SELECT a.id, a.citation_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM assertion a
                           JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND a.id<>? AND pf.fact_type=?""", (ev["id"], keep, ev["event_type"])):
-        v = {"start": r["date_start"] or r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if axis == "date" else r["raw"]
+        v = {"start": r["date_start"] or r["date_end"], "end": r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if axis == "date" else r["raw"]
         if (v["start"] if axis == "date" else v) and differs(v): set_aside.append({"assertion": r["id"], "record": r["citation_text"], "value": r["date_text"] if axis == "date" else r["raw"]})
     was = {"date_text": ev["date_text"], "date_start": ev["date_start"], "date_end": ev["date_end"], "date_qualifier": ev["date_qualifier"]} if axis == "date" else {"place_id": ev["place_id"], "place": (cat.place(ev["id"], ev["place_id"]) or {}).get("text")}
-    own = {"start": ev["date_start"] or ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]} if axis == "date" else was["place"]
+    own = {"start": ev["date_start"] or ev["date_end"], "end": ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]} if axis == "date" else was["place"]
     if (own["start"] if axis == "date" else own) and differs(own):     # the event's own value, which the kept one replaces
         set_aside.insert(0, {"assertion": None, "record": "the tree's own value", "value": ev["date_text"] if axis == "date" else was["place"]})
     if axis == "date":
@@ -2177,7 +2177,7 @@ def classes_decide(cx, tree_id, eid, axis):
     vouched = any(s["kind"] == "vouch" and s["status"] == "accepted" for s in sts)
     valued = [s for s in sts if s["kind"] != "vouch" and axis_value(axis, s)]
     if not valued: return None, f"no statement on the {fact} gives a {axis}: nothing to decide"
-    tree = {"start": ev["date_start"] or ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]} if axis == "date" else (cat.place(eid, ev["place_id"]) or {}).get("text")
+    tree = {"start": ev["date_start"] or ev["date_end"], "end": ev["date_end"], "text": ev["date_text"], "qualifier": ev["date_qualifier"]} if axis == "date" else (cat.place(eid, ev["place_id"]) or {}).get("text")
     if not ((tree or {}).get("start") if axis == "date" else tree): tree = None
     shown = lambda s: s["date"]["text"] if axis == "date" else s["raw"]
     trusted = lambda s: str(source_tier(cx, s["sha256"]) or "")[:2] in TRUSTED
@@ -2391,8 +2391,8 @@ def kept_agrees(cx, keep, res):
     if res["axis"] == "date":
         k = _q(cx).execute("""SELECT pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id WHERE a.id=?""", (res["kept"]["assertion"],)).fetchone()
         if not k: return False
-        return same_value("date", {"start": r["date_start"] or r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]},
-                          {"start": k["date_start"] or k["date_end"], "text": k["date_text"], "qualifier": k["date_qualifier"]})
+        return same_value("date", {"start": r["date_start"] or r["date_end"], "end": r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]},
+                          {"start": k["date_start"] or k["date_end"], "end": k["date_end"], "text": k["date_text"], "qualifier": k["date_qualifier"]})
     return bool(r["raw"] and kept and same_value("place", r["raw"], kept))
 
 def living(cx, tree_id, pid, word, by, note):

@@ -273,7 +273,9 @@ comes back as its `error`), `reopen_conflict` (a conflict the rule resolved, tak
 `tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card, its candidates the results of the
 geocoder's real answers named under `geocoder`, planted in the cache), `older_matcher`, `legacy_card` (a card an older matcher wrote for the row at sequence `row`
 of a results page `record`, put to `person`, planted undecided as that matcher's `version`: the matcher writes none now, so only
-an older one can stand for reconsider to meet), `persona_link` (a person's link to a record's persona of a `role`, and
+an older one can stand for reconsider to meet), `older_reading` (a record's reading as an older reader left it in the owner's
+catalog and no reader writes now: the `extractor` and each persona with its facts copied from the catalog's own rows, a date
+read from its `date_text`; it stands as the record's current reading), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided; with `card`, the link that card's decision wrote on another row of the same name before a decision reached only its own
 entry of the page, the shape the 0.7.5 migration corrects), `merge`, `cite`, `question` (a research_question row patched by
@@ -282,7 +284,8 @@ a regeneration to be checked against a prior state, such as a legacy truncated k
 
 Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
 `kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `decided_at`, `note`, `rationale`), `rule` (`taken`, `why`),
-`facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
+`compare` (a `card`'s persona against its person as the matcher compares them: `agree`, `disagree`, `absent`, the
+`vetoes` the rule reads among the disagreements, and the card's `fields`, each field's verdict), `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, each one's date as written in date order, `dates`, how many statements each carries, `per_event`, in the same order, and with `record` its `statements` on them by status and `per_event` that record's alone), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `fetch_call` (the call the list gives the save script for the page serving a `step`: its `call` text and the steps it `serves`), `search_log`, `named_for`, `audit`, `hints`,
@@ -401,8 +404,10 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   the Lena Howard Bell search page's document.
 - Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan
   steps (`step`, `step_query`), events (`event`), a research question's shape (`question`), cards and links an older matcher
-  left (`legacy_card`, `older_matcher`, `persona_link`), a place card on the geocoder's real answers (`place_card`) and place
-  strings of the owner's records (`place_string`). None of them is a page, a response or a record of anyone.
+  left (`legacy_card`, `older_matcher`, `persona_link`), a reading an older reader left (`older_reading`, its rows copied from
+  the owner's catalog), a place card on the geocoder's real answers (`place_card`) and place
+  strings of the owner's records (`place_string`). None of them is a page or a response, and none is a record of anyone but
+  as the owner's catalog already holds it.
 
 One stand-in is not real, and no connector, parser or reading looks inside it; it carries no fact of anyone. The smallest of
 JPEG files, written by `scenario.py`, stands for the two family-held photographs the owner drops into the inbox

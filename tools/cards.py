@@ -81,7 +81,8 @@ def card(cx, tree_id, prop_id):
         first = lambda t: next((e for e in ev if e["type"] == t), None)
         claim = {"name": pr["name"], "sex": pr["sex"]}
         for t in ("Birth", "Death", "Burial"):
-            e = first(t); claim[t.lower()] = {"date": e["date_text"], "start": (cx.execute("SELECT date_start FROM event WHERE id=?", (e["id"],)).fetchone() or [None])[0], "place": e["place"]["text"] if e and e["place"] else None} if e else None
+            e = first(t); d = cx.execute("SELECT date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone() if e else None
+            claim[t.lower()] = {"date": e["date_text"], "start": d[0], "end": d[1], "qualifier": d[2], "place": e["place"]["text"] if e["place"] else None} if e else None
         person = {"id": person_id, "name": pr["name"], "span": [year(claim["birth"]["start"]) if claim["birth"] else None, year(claim["death"]["start"]) if claim["death"] else None], "claim": claim}
         # field by field
         name_f = next((f for f in facts if f["fact_type"] == "Name"), None)
@@ -96,7 +97,7 @@ def card(cx, tree_id, prop_id):
         for t in ("Birth", "Death", "Burial"):                  # a date and a place are two fields: each agrees, disagrees or is absent on its own
             f = next((x for x in facts if x["fact_type"] == t), None); c = claim[t.lower()]
             if not f and not c: continue
-            v, note = date_verdict({"start": f["date_start"] or f["date_end"], "qualifier": f["date_qualifier"]} if f else None, {"start": c["start"]} if c else None)
+            v, note = date_verdict({"start": f["date_start"], "end": f["date_end"], "qualifier": f["date_qualifier"]} if f else None, c)   # the tree's own qualifier and range, as the matcher compares them
             fields.append({"field": f"{t} date", "record": f["date_text"] if f else None, "tree": c["date"] if c else None, "verdict": v, "note": note})
             pv, pnote = _place_verdict(f["place"] if f else None, c["place"] if c else None)
             fields.append({"field": f"{t} place", "record": f["place"] if f else None, "tree": c["place"] if c else None, "verdict": pv, "note": pnote})

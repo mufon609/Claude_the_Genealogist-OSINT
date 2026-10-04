@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -748,6 +748,118 @@
   {
    "id": "harness",
    "version": null
+  }
+ ],
+ "date_verdict": [
+  {
+   "record": "BEF 1900",
+   "tree": "1890",
+   "verdict": "within"
+  },
+  {
+   "record": "BEF Mar 1900",
+   "tree": "Jun 1900",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "BEF 1900",
+   "tree": "1900",
+   "verdict": "within"
+  },
+  {
+   "record": "AFT 1880",
+   "tree": "1885",
+   "verdict": "within"
+  },
+  {
+   "record": "AFT Jun 1880",
+   "tree": "Mar 1880",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "AFT 1880",
+   "tree": "1880",
+   "verdict": "within"
+  },
+  {
+   "record": "BET 1950 AND 1959",
+   "tree": "1955",
+   "verdict": "within"
+  },
+  {
+   "record": "BET Jun 1950 AND 1959",
+   "tree": "Feb 1950",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "BET 1950 AND 1959",
+   "tree": "1950",
+   "verdict": "within"
+  },
+  {
+   "record": "BET 1950 AND 1959",
+   "tree": "1959",
+   "verdict": "within"
+  },
+  {
+   "record": "FROM 1917 TO 1918",
+   "tree": "1918",
+   "verdict": "within"
+  },
+  {
+   "record": "FROM 30 Dec 2000 TO 1 Feb 2001",
+   "tree": "Nov 2000",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "FROM 30 Dec 2000 TO 1 Feb 2001",
+   "tree": "1 Feb 2001",
+   "verdict": "within"
+  },
+  {
+   "record": "1955",
+   "tree": "BET 1950 AND 1959",
+   "verdict": "within"
+  },
+  {
+   "record": "ABT 1921",
+   "tree": "BEF 1920",
+   "verdict": "within"
+  },
+  {
+   "record": "BET 1950 AND 1959",
+   "tree": "BET 1955 AND 1965",
+   "verdict": "within"
+  },
+  {
+   "record": "BEF 1900",
+   "tree": "AFT 1880",
+   "verdict": "within"
+  },
+  {
+   "record": "BEF Mar 1900",
+   "tree": "AFT Jun 1900",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "BET 1950 AND 1959",
+   "tree": "BET 1959 AND 1965",
+   "verdict": "within"
+  },
+  {
+   "record": "BEF 10 May 1918",
+   "tree": "10 May 1918",
+   "verdict": "within"
+  },
+  {
+   "record": "BEF 10 May 1918",
+   "tree": "16 Mar 1918",
+   "verdict": "within"
+  },
+  {
+   "record": "AFT 10 May 1918",
+   "tree": "10 May 1918",
+   "verdict": "within"
   }
  ]
 }
