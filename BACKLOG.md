@@ -95,7 +95,10 @@ stated parent or spouse as the one point the docs name, leave the marked
 statements as they are when a key fact is accepted, have the ground skip
 them, say both in the docs in one sentence each, and report the dry-run
 reconsider. C35 remains for the decisions written before the reader marked
-its relations.
+its relations. A fact decision now records itself on every statement it
+acts on (`assertion.person_decided`), so a `fact … accept` made before this
+change may have marked such a statement as the owner's own accept: list those
+on the scratch copy for the owner rather than changing them.
 
 **Blocked by:** A3.
 
@@ -1018,6 +1021,15 @@ read, so the claim it carried holds whatever the code does. Give each
 expectation and action in `tests/checks/scenario.py`, `loop.py` and
 `imports.py` the keys it reads, and fail a value that carries another, so a
 scenario can say nothing the harness does not check.
+
+### C49. The proof summary names the owner for a statement no person decided
+
+`tools/proof.py`'s decider reads `assertion.asserted_by` alone, so a statement
+whose status a session's re-read or a carry stamped `agent:… for user:…` reads
+"the owner" in the proof summary though no person decided it. Name the owner
+only where `assertion.person_decided` says a person's own decision set the
+status, and say what set it otherwise (the record's acceptance, a re-read, the
+rule).
 
 ## Externally blocked
 
