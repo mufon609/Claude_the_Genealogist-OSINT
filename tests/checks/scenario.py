@@ -288,11 +288,11 @@ def open_questions(w, x):
     return rows
 
 def a_post(w, x):
-    """A POST to the person screen's server, handed to the handler's own do_POST with no socket (app/person/server.py H): `path`
-    is the route's parts joined, a part a string or {"question": ref} / {"step": ref} for the id of that row; `body` its JSON;
-    `headers` the ones that differ from what the page itself sends (Host and Origin the server's own address, Content-Type
-    application/json), a header given as null left out. Returns the response's `code`, its JSON `body` and the `ids` the
-    path's row parts named."""
+    """A request to the person screen's server, handed to the handler's own do_POST with no socket (app/person/server.py H), or
+    to its do_GET when `method` is GET: `path` is the route's parts joined, a part a string or {"question": ref} / {"step": ref}
+    for the id of that row; `body` a POST's JSON; `headers` the ones that differ from what the page itself sends (Host the
+    server's own address and, on a POST, Origin that address and Content-Type application/json), a header given as null left
+    out. Returns the response's `code`, its JSON `body` and the `ids` the path's row parts named."""
     import email.message, io, types
     sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server
     server.CFG["db"], server.CFG["by"] = w.db, BY
@@ -303,16 +303,18 @@ def a_post(w, x):
         return p
     body = json.dumps(x.get("body") or {}).encode()
     own = "127.0.0.1:8765"
-    headers = {"Host": own, "Origin": f"http://{own}", "Content-Type": "application/json", "Content-Length": str(len(body)), **(x.get("headers") or {})}
+    method = x.get("method", "POST")
+    sent = {"Host": own} if method == "GET" else {"Host": own, "Origin": f"http://{own}", "Content-Type": "application/json", "Content-Length": str(len(body))}
+    headers = {**sent, **(x.get("headers") or {})}
     h = server.H.__new__(server.H)
     h.server = types.SimpleNamespace(server_address=("127.0.0.1", 8765))
     h.path = "".join(part(p) for p in x["path"]) + f"?tree={w.slug}"
-    h.command, h.request_version, h.requestline = "POST", "HTTP/1.0", f"POST {h.path} HTTP/1.0"
+    h.command, h.request_version, h.requestline = method, "HTTP/1.0", f"{method} {h.path} HTTP/1.0"
     h.headers = email.message.Message()
     for k, v in headers.items():
         if v is not None: h.headers[k] = v
     h.rfile, h.wfile = io.BytesIO(body), io.BytesIO()
-    h.do_POST()
+    getattr(h, "do_" + method)()
     head, _, payload = h.wfile.getvalue().partition(b"\r\n\r\n")
     return {"code": int(head.split(b" ")[1]), "body": json.loads(payload), "ids": ids}
 

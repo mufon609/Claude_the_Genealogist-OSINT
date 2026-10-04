@@ -84,22 +84,6 @@ plan in the turn's tail fail the same way. A record that cannot be read or
 matched is an error run named in the turn's report, the step left runnable,
 and the turn goes on.
 
-### A9. The person screen is safe and quick
-
-The screen's Dismiss stands on every open question, conflicts included
-(`app/person/index.html`), and closes a conflict through `log_search.dismiss`
-with no value kept and no reason, against decision 5 (`tools/conclude.py
-resolve --keep … --note`): a conflict is resolved by keeping a side with a
-reason, or stays open. §5–7 lets a person dismiss a conflict; say whether a
-dismissal needs a reason, and have the screen ask for it if so. The server's POSTs check no Origin or Host, so another
-site open in the owner's browser can post decisions to it. A person's page
-takes about 15 s (John Y Davidson: 14,024 statements): `catalog.page_people`'s
-correlated subquery scans every Birth fact once per persona on a catalog never
-analysed (`ANALYZE` alone brings it to under a second on a copy), and
-module-level `holdings()` calls rebuild the Catalog's cached holdings about
-23 times a view. The page's `list()` and `/api/people` are a queue-shaped
-table reading fields nothing returns: remove them.
-
 ### A3. A date shown as accepted is one an accepted statement gives
 
 `Catalog.basis` reads an event's shown date and place as accepted when any
@@ -1373,7 +1357,8 @@ sidecar once, never over one that exists; compare sidecars with rows in
 No route of `app/person/server.py` serves an archived object, so the card's
 archived copy cannot be opened and an image cannot be seen while it is read;
 `revise_step` writes no audit row; and a conflict's resolution with its
-reason, `reopen`, `place` (C12), `merge` and `link` have no control. A person
+reason, `reopen`, `place` (C12), `merge` and `link` have no control, while the
+revise route takes a fetch step the page offers no control for. A person
 who runs no terminal cannot finish a person's work on the screen
 (`docs/DATA-ARCHITECTURE.md` §7 decision 17).
 

@@ -11,8 +11,9 @@ an audit row. A plan step can be logged (nothing found, blocked, found with a
 file from inbox/) and its fields included or revised for the search; every run
 is written to search_log with the fields as rendered. The screen runs no
 search itself: an auto step runs through its connector from tools/run_step.py,
-and a record page saved in the browser comes in through inbox/. A POST is taken
-only from the screen itself (H.refusal): anything else is answered 403 and writes nothing.
+and a record page saved in the browser comes in through inbox/. The server answers
+only at its own address, and takes a POST only from the screen itself (H.refusal):
+anything else is answered 403 and writes nothing.
 """
 import argparse, glob, hashlib, json, mimetypes, os, re, sys, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -348,6 +349,8 @@ class H(BaseHTTPRequestHandler):
         b = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
         self.send_response(code); self.send_header("Content-Type", ctype); self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
     def do_GET(self):
+        why = self.refusal(post=False)
+        if why: self.send({"error": why}, code=403); return
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query); cx = db()
         try:
             if u.path == "/" or u.path.startswith("/person/"):
@@ -367,14 +370,16 @@ class H(BaseHTTPRequestHandler):
                 self.send(person_view(cx, tree_id, m.group(1))); return
             self.send({"error": "not found"}, code=404)
         finally: cx.close()
-    def refusal(self):
-        """Why this POST is not the screen's own, in words, or None when it is. A decision is accepted only from the page this
-        server serves: its Host is the address the server is bound to (a page on another name that resolves here is refused),
-        its Origin, when the browser sends one, is that address (a page of another site posting from the owner's browser is
-        refused), and its content type is the JSON the page sends (a form or a plain-text post cannot carry it)."""
+    def refusal(self, post=True):
+        """Why this request is not the screen's own, in words, or None when it is. Every request's Host is the address the
+        server is bound to: a page on another name that resolves here is refused, so it can neither read the tree nor post to
+        it. A decision (a POST) is accepted only from the page this server serves: its Origin, when the browser sends one, is
+        that address (a page of another site posting from the owner's browser is refused), and its content type is the JSON
+        the page sends (a form or a plain-text post cannot carry it)."""
         host, port = self.server.server_address[:2]
         own = f"{host}:{port}"
         if self.headers.get("Host") != own: return f"refused: this screen answers only at http://{own}/"
+        if not post: return None
         if self.headers.get("Origin") not in (None, f"http://{own}"): return "refused: the request comes from another site"
         if (self.headers.get("Content-Type") or "").split(";")[0].strip().lower() != "application/json": return "refused: a decision is posted as application/json"
         return None

@@ -303,6 +303,50 @@
      "why": "the second row holds what the first wrote as the revisions before"
     }
    ]
+  },
+  {
+   "say": "a page on another name that resolves to this machine asks to read the tree",
+   "post": {
+    "method": "GET",
+    "path": [
+     "/api/tree"
+    ],
+    "headers": {
+     "Host": "evil.example:8765"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 403,
+      "body": {
+       "error": {
+        "has": "http://127.0.0.1:8765/"
+       }
+      }
+     },
+     "why": "the tree is read only at the address the screen answers at"
+    }
+   ]
+  },
+  {
+   "say": "the screen's own GET",
+   "post": {
+    "method": "GET",
+    "path": [
+     "/api/tree"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 200,
+      "body": {
+       "by": "agent:check"
+      }
+     }
+    }
+   ]
   }
  ]
 }

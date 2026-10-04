@@ -162,15 +162,17 @@ def person_named(cx, person_id, people):
 
 def page_people(cx, sha):
     """The people a record page holds, as written: (name, birth year or None) per persona of its current extraction (the latest
-    not superseded, not failed), the year from the persona's Birth fact, calculated from an age or given. The Birth fact is
-    read through ix_persona_fact_persona by name: on a catalog with no statistics the planner treats the persona and the fact
-    type as equally selective and walks every Birth fact in the catalog once per persona, and the named index fails the
-    statement instead of letting a dropped index go unnoticed."""
+    not superseded, not failed), the year from the persona's Birth fact, calculated from an age or given. The page's dated
+    facts are read by persona and the Birth ones kept here: a query that names the fact type lets a planner with no statistics
+    walk every Birth fact in the catalog once per persona."""
     e = cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND status<>'failed' AND superseded_by IS NULL ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
     if not e: return []
-    return [(n, year(b)) for n, b in cx.execute("""SELECT pe.name_text, (SELECT f.date_start FROM persona_fact f INDEXED BY ix_persona_fact_persona
-                                                                       WHERE f.persona_id=pe.id AND f.fact_type='Birth' AND f.date_start IS NOT NULL LIMIT 1)
-                                                   FROM persona pe WHERE pe.extraction_id=? ORDER BY pe.sequence""", (e[0],))]
+    births = {}
+    for persona_id, fact_type, start in cx.execute("""SELECT f.persona_id, f.fact_type, f.date_start FROM persona pe JOIN persona_fact f ON f.persona_id=pe.id
+                                                      WHERE pe.extraction_id=? AND f.date_start IS NOT NULL ORDER BY f.id""", (e[0],)):
+        if fact_type == "Birth":
+            births.setdefault(persona_id, start)
+    return [(name, year(births.get(persona_id))) for persona_id, name in cx.execute("SELECT id, name_text FROM persona WHERE extraction_id=? ORDER BY sequence", (e[0],))]
 
 def cited_persons(cx, apid):
     """The persons a citation sits on: the subject of every assertion carrying this record id, through the event's participant."""

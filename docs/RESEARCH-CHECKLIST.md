@@ -246,8 +246,10 @@ footprint, no unlinked persons; the duplicate check and the limits of one life
 ## 6b. The screen as built
 
 `app/person/server.py` serves it at http://127.0.0.1:8765/ (stdlib only,
-localhost only). A decision is a POST, and the server takes a POST only from
-the screen itself: its Host is the address the server is bound to, its Origin
+localhost only). The server answers a request only at the address it is bound
+to (its Host), so a page on another name that resolves to this machine can
+neither read the tree nor post to it. A decision is a POST, and the server
+takes a POST only from the screen itself: its Origin
 (when the browser sends one) is that address, and its content type is the JSON
 the page sends; any other is refused with 403 and writes nothing, so a page
 from another site open in the owner's browser cannot post a decision to it.
