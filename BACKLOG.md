@@ -191,12 +191,18 @@ what comes back and logs the run), one piece closed before the next:
    the new evidence, a person on a checked argument. The run is a row like
    any other, with the question's class and what settled it.
 
-The launcher (`claude` run non-interactively) takes a model, an effort, a
-schema for the answer, the tools allowed, a spending cap and the browser
-integration. Confirm first what its result reports of tokens and cost, and
-that the browser integration answers without a session. Start with the fetch
-task at FamilySearch and Find a Grave: the fetch list is its task already,
-and the done steps at those holders are its calibration.
+The launcher (`claude` run non-interactively, its input closed) takes a
+model, an effort, a schema for the answer, the tools allowed, a spending cap
+and the browser integration, and its JSON result carries what a run's row
+needs: the answer as the schema's object, the cost, the tokens in, out and
+cached for each model used, the turns, the time, how the run ended and any
+tool it was refused. The browser tools load without a session; whether a
+browser answers them is for the fetch task's first run to show. A run of one
+sentence on the smallest model costs about a cent before it does anything,
+the standing instructions it loads, so a small task is given only the tools
+and instructions it needs. Start with the fetch task at FamilySearch and Find
+a Grave: the fetch list is its task already, and the done steps at those
+holders are its calibration.
 
 ### A2. A question reaches a person only after the investigation that could answer it
 
@@ -291,13 +297,9 @@ tells the two apart, which is then put to the owner as a change to that rule.
 Nothing lowers what the rule takes: the rule is given more evidence. What
 still reaches a person says what was tried.
 
-What a waiting question shows, proposed by the owner on 4 Oct 2026 and not
-yet an accepted decision: "anything a human is currently gated" on "should
-have a system of hints or questions with an action button that will run a
-more intense model on the question at hand and try and resolve the issue",
-and that must not "stop the direction we are going with good process, code
-and smaller well defined agents to tackle this for common issues." So each
-waiting question says, in words a person who knows no genealogy can act on:
+What a waiting question shows (`docs/DATA-ARCHITECTURE.md` §7 decision 18).
+Each waiting question says, in words a person who knows no genealogy can act
+on:
 what is asked; why the rule did not take it (its reason is words already);
 what was tried; what would settle it, worked out by code from the reason
 (the record that would supply the missing point, the decision it waits on);

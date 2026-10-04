@@ -472,6 +472,25 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    today, and a difference between two place strings a conflict at once: the
    work is in `BACKLOG.md`.
 
+18. **A question that waits on a person says what would settle it, and can be
+   handed to a stronger model.** The owner: "anything a human is currently
+   gated" on "should have a system of hints or questions with an action button
+   that will run a more intense model on the question at hand and try and
+   resolve the issue", and that must not "stop the direction we are going with
+   good process, code and smaller well defined agents to tackle this for
+   common issues." Each waiting question says in plain words what is asked,
+   why the rule did not take it, what was tried and what would settle it,
+   worked out by code from the rule's own reason. A question put to the person
+   is one only their family can answer, recorded as their word and used to
+   guide the search. A control hands the question to the top of the model
+   ladder (decision 16). That model never decides: it returns records, on
+   which the rule decides, and an argument for and against whose every
+   statement names the row or the file it rests on, checked by code; a person
+   decides on a checked argument. Each ground the stronger model finds that
+   recurs becomes code or a small task, and the share of questions that needed
+   it is reported and should fall. No such control exists today: the work is
+   in `BACKLOG.md`.
+
 ## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**
