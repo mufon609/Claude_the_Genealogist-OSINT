@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 38 tables, 6 views. Schema 0.8.1. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 39 tables, 6 views. Schema 0.8.2. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; the insert-only triggers on the archive's rows, the evidence, the research log and the audit trail. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -21,9 +21,9 @@ holders of cited collections) is read by the tools directly.
 3 EVIDENCE     extractor, extraction, persona, persona_fact, persona_relation, same_record
 4 CONCLUSIONS  tree, tree_import, person, person_name, family, family_member, event,
                event_participant, person_persona, assertion, proposal, external_id, alias, note,
-               research_question, search_plan, search_log
+               research_question, search_plan, search_log, task_run
                (tree-scoped: person, family, event, assertion, proposal, note, tree_import,
-                research_question, search_log; search_plan through its person)
+                research_question, search_log, task_run; search_plan through its person)
 OPS            schema_migration, audit_log, storage_target, artifact_copy
 VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
                v_artifact_under_replicated, v_external_id_collision, v_person_search_key
@@ -32,7 +32,7 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 ## Invariants (enforced by DB where possible, otherwise by the app)
 
 - `artifact`, `artifact_locator`, `tombstone`, `extractor`, `extraction`, `persona`,
-  `persona_fact`, `persona_relation`, `same_record`, `search_log` and `audit_log` are
+  `persona_fact`, `persona_relation`, `same_record`, `search_log`, `task_run` and `audit_log` are
   insert-only: triggers abort every UPDATE and DELETE but the write-once `superseded_by`
   on `extraction` and `search_log`, set from empty to the row that restates the old one.
   Corrections are new rows; removals are `tombstone` rows. A run read again (its records
@@ -40,6 +40,17 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   is a new row restating it (`log_search.restate`), and every reader reads the rows whose
   `superseded_by` is empty. `tools/check.py` tries each column of each table. The 0.8.1
   migration (`tools/initdb.py`'s `insert_only`) added the column and the triggers.
+- A model launched on a step is one `task_run` row (`tools/run_task.py`; `docs/DATA-ARCHITECTURE.md` §7 decision 16,
+  `docs/RESEARCH-WORKFLOW.md` §4), insert-only, a task run again being a new row. `task_kind` (`fetch`), `holder_id` and
+  `plan_step_ids_json` say what was asked and where; `task_json` is the task as code rendered it and `task_text_sha256` the
+  kind's one text, so two runs are of one task form only when both agree; `model` and `effort` are what the launcher was
+  asked for. `input_tokens`, `output_tokens`, `cost_usd`, `turns`, `duration_ms`, `usage_json` (per model), `ended` and
+  `denials` are the launcher's own report, empty when it gave none (`ended` then `timeout`, `exit <n>` or `no result`).
+  `answer_json` is the model's report; `outcome` is what code found (`no_answer`, `invalid`, `nothing`, `mismatch`, or what
+  the attach made of a page whose identity is the step's: `unread`, `none`, `read`, `card`, `taken`), `differs` is set where
+  the two disagree with the reason in `note`, and `search_log_id` is the run the page's attach logged on a step of the task.
+  The measures say what a task costs at a model; none is a score on a card. The 0.8.2 migration (`tools/initdb.py`'s
+  `task_runs`) added the table and its triggers.
 - One record is one source wherever it is held (`docs/DATA-ARCHITECTURE.md` §7 decision 15):
   `same_record` joins two archived copies of one record, insert-only (triggers abort
   UPDATE/DELETE), a copy being a whole file or one numbered row of a listing (`a_entry`/`b_entry`,
@@ -188,6 +199,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/attach_inbox.py [file ...] [--about "<person>"]` | Every inbox file to the steps its own identity fulfils: archived once, logged, extracted and matched; a step is done only when the page is the record it cites. `--about` takes one file on the owner's word: a record no step cites, or a family-held photograph or scan. |
 | `tools/attach.py` | The attach path `attach_inbox.py`, `fetches.py collect` and the person screen share. |
 | `tools/fetches.py next [K] / list / collect` | The pages waiting to be saved in the owner's browser, with the link, the file name to save under and the save script's call, whose key names the steps the page serves: `next` the next K, one line each, `list` all of them; `collect` brings the saved pages in by their own identity and the steps their key names. |
+| `tools/run_task.py show [K] / fetch [K] --model M --effort E / capture --out FILE` | A model launched on a page the fetch list names (`claude -p`, its input closed, the browser's tools only): the task rendered from the entry, the text of its kind under `tools/tasks/`, the answer checked by `collect` and never believed, one `task_run` row per launch. `show` prints the tasks and launches nothing; `capture` writes one launch's output for the check's fixtures. |
 | `tools/run_step.py <step id> / --all` | A step run through the connectors under `tools/connectors/` its sources have, every response archived and logged, then extracted and matched; a run whose requests or whose records' reading fail is an error run, its row kept and the step left runnable. |
 | `tools/cite.py "<person>" --row … --holder … --field …` | A record the owner cites on their own word: a fetch step with the citation's details, asked at the holder like a record the file cites. |
 | `tools/queue.py [--all]` | Read-only. The next person at the edge of the confirmed tree a turn can act on, and why each other person is passed over; refused on a tree with no home person. |

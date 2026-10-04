@@ -1,0 +1,76 @@
+{
+ "title": "the page that came in is judged, not the model's report, and the row says where they differ",
+ "line": "a launcher's real result reporting not_saved while the step's own page lands in downloads/ with its key: collect takes the page, its identity is the step's, the run's outcome is what the attach made of it and the row names the search_log row the attach wrote, marked as differing from the report with the reason in its note",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task: the captured result says not_saved, and the memorial's real page comes into downloads/ under the entry's name with its key",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "captured": "task-launcher-answer-not-saved.json",
+    "saves": {
+     "fixture": "findagrave-memorial-143847338.html",
+     "key": true
+    },
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "outcome": "card",
+        "differs": true,
+        "log": {
+         "outcome": "found",
+         "step_key": {
+          "any": true
+         }
+        },
+        "note": {
+         "has": [
+          "the model reported not_saved",
+          "a page of the step's came in",
+          "memorial 143847338"
+         ]
+        }
+       }
+      ]
+     },
+     "why": "code's finding is the outcome; the report is kept and the difference said"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": [
+       {
+        "outcome": "found",
+        "artifacts": {
+         "len": 1
+        }
+       }
+      ]
+     },
+     "why": "the page went through collect as a page saved by hand does"
+    }
+   ]
+  }
+ ]
+}

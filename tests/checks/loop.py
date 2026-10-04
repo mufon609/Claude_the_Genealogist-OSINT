@@ -332,7 +332,45 @@ def a_fetch_list(w, x):
     if x.get("search_links"): rows = [e for e in rows if e["holder_id"] == "D03" and "/search/record/results" in (e.get("url") or "")]
     return {"names": [e["save_as"] for e in rows]}
 
-ACTIONS.update({"decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
+def a_task(w, x):
+    """run_task.run_fetch on the fetch list's entry serving a step, the launcher's process replaced (run_task.spawn) as the data
+    says and nothing else: `silent` a launcher that does not answer (`timeout`: it outlives the timeout; `exit`: it exits with
+    that status and prints nothing), or `captured` a fixture holding a launcher's own output, printed as it was captured. `saves`
+    is a real page that comes into the data root's downloads/ while the launcher runs, as the owner's browser leaves it: a
+    `fixture` under the entry's own file name (or `name`), with the entry's key written under its saved-from line when `key` is
+    true. The run's row as run_fetch returns it, and the command the launcher was started with."""
+    import subprocess, run_task
+    from fetches import openable
+    sid = w.step(x["step"])["id"]
+    e = next(e for e in openable(w.cx, w.tid) if sid in e["step_ids"])
+    seen = {}
+    def stand_in(cmd, timeout, cwd):
+        seen["cmd"] = cmd
+        if x.get("saves"):
+            page = x["saves"]
+            data = w.fixture_bytes(page)
+            if page.get("key"):
+                top, nl, rest = data.partition(b"\n")
+                if not top.startswith(b"<!-- saved from "): raise KeyError("a key goes under the page's saved-from line, and this page has none")
+                data = top + nl + f"<!-- for steps {','.join(e['serves'])} -->\n".encode() + rest
+            with open(os.path.join(w.treelib.downloads_dir(), page.get("name") or e["save_as"]), "wb") as fh:
+                fh.write(data)
+        if x.get("silent") == "timeout":
+            raise subprocess.TimeoutExpired(cmd, timeout)
+        if "silent" in x:
+            return int(x["exit"]), ""
+        with open(os.path.join(FIXTURES, x["captured"]), encoding="utf-8") as fh:
+            return 0, fh.read()
+    w.cx.commit()
+    with patched(run_task, "spawn", stand_in):
+        r = run_task.run_fetch(w.cx, w.tid, w.slug, e, BY, x["model"], x["effort"], x.get("budget", 0.05), x.get("timeout", 5))
+    cmd = seen.get("cmd") or []
+    after = lambda flag: cmd[cmd.index(flag) + 1] if flag in cmd else None
+    return {**r, "printed": run_task.run_line(r), "entry": e,
+            "command": {"flags": [c for c in cmd if c.startswith("-")], "model": after("--model"), "effort": after("--effort"), "tools": after("--tools"), "budget": after("--max-budget-usd"),
+                        "prompt": after("-p"), "system_prompt_is_the_text": after("--system-prompt") == run_task.task_text("fetch")[0], "schema": json.loads(after("--json-schema") or "null")}}
+
+ACTIONS.update({"task": a_task, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
                 "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 
@@ -482,7 +520,24 @@ def e_fetch_call(w, x, want):
     if "serves" in x: ok &= got["serves"] == [w.step(r)["id"] for r in x["serves"]]
     return ok, got
 
-EXPECTS.update({"queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows, "fetch_call": e_fetch_call,
+def e_task_run(w, x, want):
+    """The task_run rows, in the order written, each with its JSON columns read (`steps`, `task`, `usage`, `answer`), `differs` as
+    a boolean, `text_is_current` saying whether its hash is tools/tasks/<kind>.md's now, and `log` the search_log row it names
+    (its step's key and its outcome), or none."""
+    import run_task
+    rows = [dict(r) for r in w.cx.execute("SELECT * FROM task_run WHERE tree_id=? ORDER BY id", (w.tid,))]
+    for r in rows:
+        r["steps"] = json.loads(r.pop("plan_step_ids_json"))
+        r["task"] = json.loads(r.pop("task_json"))
+        r["usage"] = json.loads(r.pop("usage_json") or "null")
+        r["answer"] = json.loads(r.pop("answer_json") or "null")
+        r["differs"] = bool(r["differs"])
+        r["text_is_current"] = r["task_text_sha256"] == run_task.task_text(r["task_kind"])[1]
+        log = w.cx.execute("SELECT l.outcome, sp.step_key FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.id=?", (r["search_log_id"],)).fetchone()
+        r["log"] = dict(log) if log else None
+    return has(rows, w.value(x["is"])), [{k: r[k] for k in ("task_kind", "holder_id", "model", "effort", "ended", "outcome", "differs", "cost_usd", "turns", "input_tokens", "output_tokens", "answer", "note", "log")} for r in rows]
+
+EXPECTS.update({"task_run": e_task_run, "queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows, "fetch_call": e_fetch_call,
                 "place": e_place, "place_card": e_place_card, "place_group": e_place_group, "same_place": e_same_place, "event_place": e_event_place, "file_exists": e_file_exists})
 
 def check(keep, show, only=None):

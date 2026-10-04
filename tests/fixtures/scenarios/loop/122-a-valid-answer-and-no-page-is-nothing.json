@@ -1,0 +1,70 @@
+{
+ "title": "a valid answer with no page is nothing, and the row carries what the launcher measured",
+ "line": "a launcher's real result (captured, the model answering not_saved) with no page in downloads/ is a task_run row whose outcome is nothing: the cost, the tokens of each model summed, the turns, the time and the terminal reason are the launcher's own, the answer is kept as given, the report and the finding agree, and no run is logged on the step",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task answered by a captured launcher result: the model reports not_saved, and no page comes in",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "captured": "task-launcher-answer-not-saved.json",
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "ended": "completed",
+        "outcome": "nothing",
+        "differs": false,
+        "cost_usd": 0.02528,
+        "turns": 2,
+        "duration_ms": 1829,
+        "input_tokens": 12180,
+        "output_tokens": 186,
+        "denials": 0,
+        "usage": {
+         "claude-haiku-4-5-20251001": {
+          "costUSD": 0.02528
+         }
+        },
+        "answer": {
+         "status": "not_saved",
+         "line": "probe"
+        },
+        "log": null,
+        "note": "no page came into the folder"
+       }
+      ]
+     },
+     "why": "the measures are read from the launcher's own result, the outcome from the folder"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step: nothing came in, and nothing is logged on a model's word"
+    }
+   ]
+  }
+ ]
+}

@@ -10,7 +10,9 @@ the fixtures (tests/fixtures/README.md): <stem>.expect.json beside each page for
 under tests/fixtures/scenarios/ for tests/checks/scenario.py, tests/checks/loop.py and tests/checks/imports.py, tests/fixtures/rules.json for the
 pure rules here and tests/fixtures/connectors.json for the offline connector checks here; the harness tree is
 tests/fixtures/harness.ged, the owner's own export cut down. A failing check prints its FAIL line with every reason and
-the run ends with one line, `green: N checks` or the failure count; exit status 1 on any failure. --verbose prints the
+the run ends with one line, `green: N checks` or the failure count; exit status 1 on any failure. A scenario that reads a
+capture not yet made (its `awaits`: a launcher's output only the owner's browser can produce) prints a `wait` line naming the
+file, is counted neither ok nor failed, and the last line says how many wait. --verbose prints the
 ok line of every check too; --show prints what each reading and each scenario step did, for writing a sidecar (and the ok
 lines); --keep leaves the scratch directories in place and prints their paths; --scenario NAME runs only the scenarios whose file name
 has NAME in it (`104`, `a-constituent-country`), none of the other checks, and fails when none is named so. No check sends a request:
@@ -340,12 +342,12 @@ def save_page_key():
     return bad
 
 INSERT_ONLY = {"artifact": None, "artifact_locator": None, "tombstone": None, "extractor": None, "extraction": "superseded_by", "persona": None,
-               "persona_fact": None, "persona_relation": None, "same_record": None, "search_log": "superseded_by", "audit_log": None}   # table: its write-once column
+               "persona_fact": None, "persona_relation": None, "same_record": None, "search_log": "superseded_by", "task_run": None, "audit_log": None}   # table: its write-once column
 
 def insert_only():
     """The evidence, the research log and the audit trail are insert-only (CLAUDE.md hard rule 2, schema/sqlite_extras.sql): on a
     scratch catalog holding three real records read into personas, facts and a relation, a run logged on each with its audit row, a
-    locator, a tombstone and the owner's word keeping two apart, an UPDATE of each column of every table in INSERT_ONLY and a
+    locator, a tombstone, the owner's word keeping two apart and a task run that got no answer, an UPDATE of each column of every table in INSERT_ONLY and a
     DELETE of its row are each refused with the trigger's own words, so a dropped trigger, or a column a trigger leaves out,
     turns this red; a write-once column is refused set from empty to empty, allowed from empty to a value once, then refused to
     another value and back to empty. The rows are all still there afterwards."""
@@ -366,6 +368,8 @@ def insert_only():
         cx.execute("INSERT INTO tree (id,slug,name,created_at,updated_at) VALUES (?,?,?,?,?)", (tid, "check", "the check's tree", ts, ts))
         cx.execute("INSERT INTO same_record (id,tree_id,a_sha256,b_sha256,same,basis,decided_by,decided_at) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tid, shas[0], shas[1], False, "owner", BY, ts))
         for sha in shas: log(cx, tid, BY, source_id="E03", outcome="found", artifacts=[sha], query={"surname": {"value": "Davidson", "basis": "accepted"}})
+        cx.execute("""INSERT INTO task_run (id,tree_id,task_kind,holder_id,plan_step_ids_json,task_json,task_text_sha256,model,effort,started_at,launched_by,duration_ms,ended,outcome,differs,note)
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (ulid(), tid, "fetch", "E03", "[]", "{}", "0" * 64, "check", "low", ts, BY, 0, "timeout", "no_answer", False, "check: a task_run row to try"))
         cx.commit()
         before = {t: cx.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in INSERT_ONLY}
         for table, once in INSERT_ONLY.items():
@@ -441,12 +445,12 @@ def compiles():
 class OkLines:
     """stdout that counts the `ok` lines of the checks and prints them only when asked; every other line (a FAIL with its
     reasons, --show's detail, a kept scratch path) prints as it comes."""
-    def __init__(self, out, verbose): self.out, self.verbose, self.ok, self.failed, self.pending = out, verbose, 0, 0, ""
+    def __init__(self, out, verbose): self.out, self.verbose, self.ok, self.failed, self.waits, self.pending = out, verbose, 0, 0, 0, ""
     def write(self, text):
         self.pending += text
         while "\n" in self.pending:
             line, self.pending = self.pending.split("\n", 1)
-            self.ok += line.startswith("ok   "); self.failed += line.startswith("FAIL")
+            self.ok += line.startswith("ok   "); self.failed += line.startswith("FAIL"); self.waits += line.startswith("wait ")
             if self.verbose or not line.startswith("ok   "): self.out.write(line + "\n")
     def flush(self): self.out.flush()
 
@@ -462,7 +466,7 @@ def every_check(a):
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
     print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
     bad_ev = insert_only(); bad += bool(bad_ev)
-    print("ok   the evidence, the research log and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on extraction and search_log is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
+    print("ok   the evidence, the research log, the record of task runs and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on extraction and search_log is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
     bad_db = data_root(); bad += bool(bad_db)
     print("ok   the data root: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT, a --db outside it is refused, and collect takes saved pages from <DATA_ROOT>/downloads/, never the home's download folder" if not bad_db else "FAIL data root: " + "; ".join(bad_db))
     bad += parsers.check(a.keep, a.show)
@@ -481,7 +485,8 @@ def main():
         else: bad += every_check(a)
         bad_net = offline.words(offline.sent()); bad += bool(bad_net)
         print("ok   no check sent a request: every process a check starts refused any connection to a host but this machine, and none tried" if not bad_net else "FAIL network: " + "; ".join(bad_net))
-    print(f"green: {lines.ok} checks" if not bad else f"{bad} failure(s) of {lines.ok + lines.failed} checks")
+    waits = f"; {lines.waits} scenario(s) not run, awaiting a capture" if lines.waits else ""
+    print((f"green: {lines.ok} checks" if not bad else f"{bad} failure(s) of {lines.ok + lines.failed} checks") + waits)
     sys.exit(1 if bad else 0)
 
 if __name__ == "__main__": main()

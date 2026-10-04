@@ -1,0 +1,121 @@
+{
+ "title": "a launcher that times out is a task run with no answer, and the step stands as it stood",
+ "line": "a fetch task whose launcher outlives its timeout is one task_run row, ended timeout, outcome no_answer, nothing measured but the time, the task's text hash the text's own; no run is logged on the step and the page is still on the fetch list; the launcher was started with the task's text as the system prompt, the entry rendered as the prompt, the model, the effort, the answer schema, a spending limit, the browser and no built-in tool",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task at a launcher that never returns: the harness's stand-in for a launcher that times out",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "silent": "timeout",
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "last": {
+      "outcome": "no_answer",
+      "ended": "timeout",
+      "differs": null,
+      "search_log": null,
+      "command": {
+       "flags": [
+        "-p",
+        "--output-format",
+        "--model",
+        "--effort",
+        "--system-prompt",
+        "--json-schema",
+        "--tools",
+        "--allowedTools",
+        "--permission-prompts",
+        "--max-budget-usd",
+        "--no-session-persistence",
+        "--chrome"
+       ],
+       "model": "haiku",
+       "effort": "low",
+       "tools": "",
+       "budget": "0.05",
+       "system_prompt_is_the_text": true,
+       "schema": {
+        "required": [
+         "status",
+         "line"
+        ]
+       },
+       "prompt": {
+        "has": [
+         "link: https://www.findagrave.com/memorial/143847338/\n",
+         "file: findagrave-memorial-143847338.html\n",
+         "script:\n// The page saves itself",
+         "})(\"findagrave-memorial-143847338.html\", false, \""
+        ],
+        "ends": "\")\n"
+       }
+      }
+     },
+     "why": "the launcher's command is the task: the kind's text, the entry rendered with the script's call in place of the one that ends it, and the limits"
+    },
+    {
+     "task_run": {
+      "is": [
+       {
+        "task_kind": "fetch",
+        "holder_id": "E01",
+        "model": "haiku",
+        "effort": "low",
+        "ended": "timeout",
+        "outcome": "no_answer",
+        "differs": false,
+        "cost_usd": null,
+        "turns": null,
+        "input_tokens": null,
+        "answer": null,
+        "text_is_current": true,
+        "steps": {
+         "len": 1
+        },
+        "task": {
+         "file": "findagrave-memorial-143847338.html",
+         "link": "https://www.findagrave.com/memorial/143847338/",
+         "script_sha256": {
+          "len": 64
+         }
+        },
+        "log": null,
+        "note": {
+         "has": "timeout"
+        }
+       }
+      ]
+     },
+     "why": "the launch is a row whatever came of it"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step: nothing came in, and nothing is logged on a model's word"
+    }
+   ]
+  }
+ ]
+}

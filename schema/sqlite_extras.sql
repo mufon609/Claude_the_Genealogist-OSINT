@@ -111,3 +111,9 @@ END;
 CREATE TRIGGER trg_same_record_no_delete BEFORE DELETE ON same_record BEGIN
   SELECT RAISE(ABORT, 'same_record rows are never deleted; the owner keeps two copies apart with a row of their own');
 END;
+CREATE TRIGGER trg_task_run_no_update BEFORE UPDATE ON task_run BEGIN
+  SELECT RAISE(ABORT, 'task_run rows are immutable; a task run again is a new row');
+END;
+CREATE TRIGGER trg_task_run_no_delete BEFORE DELETE ON task_run BEGIN
+  SELECT RAISE(ABORT, 'task_run rows are never deleted');
+END;

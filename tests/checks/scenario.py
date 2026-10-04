@@ -1249,6 +1249,9 @@ def check(folder, keep, show, only=None):
     bad = 0
     for f, spec in load(folder):
         if only and only not in f: continue
+        if spec.get("awaits") and not os.path.exists(os.path.join(FIXTURES, spec["awaits"])):   # a scenario on a capture only the owner's browser can make: named, never counted ok
+            print(f"wait {spec.get('title', f)}: not run, it reads tests/fixtures/{spec['awaits']}, which is not captured yet ({spec.get('capture', 'tests/fixtures/README.md')})")
+            continue
         os.environ[offline.WHO] = spec.get("title", "scenario")        # a request any process of this scenario is refused is named for it
         try: fails = Walker(spec, keep, show).walk()
         except Exception as e: fails = [f"raised {type(e).__name__}: {e}"]

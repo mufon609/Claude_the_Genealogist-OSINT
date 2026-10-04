@@ -405,6 +405,47 @@ step's current fields, the note naming the earlier artifact, wherever the
 step wasn't already answered on those fields. Never encode a page and read
 it out through the model in slices.
 
+**A model saves the page.** `tools/run_task.py fetch` hands a page on the fetch
+list to a model in place of a hand (`docs/DATA-ARCHITECTURE.md` §7 decision
+16). The task is the list's own entry, rendered by code: the link, the file
+name, and `tools/save_page.js` with the entry's call in place of the
+`("FILENAME.html")` that ends it. What the model needs beyond the entry is
+one text for the kind of task, `tools/tasks/fetch.md`, the method above in the
+model's terms and the standing rules on sources (one page, the link as given,
+a challenge or a sign-in reported and never passed); nothing is written for
+one task. The launcher starts `claude -p` once per page with its input closed:
+the text as the system prompt, the rendered entry as the prompt, the model and
+the effort it was told, a JSON schema for the answer (`saved`, `blocked` or
+`not_saved`, and the script's one line), a spending limit, the owner's browser
+(`--chrome`), and no tool but the browser's tabs, navigation and script. The
+model writes nothing to the catalog: the page it saves lands in the data
+root's `downloads/` as a page saved by hand does, and `collect` takes it.
+
+The answer is checked, never believed. After the launcher returns, whatever it
+returned, `collect` runs, and the run's outcome is what code finds: `no_answer`
+(the launcher timed out, failed or gave no result, and no page came in:
+a holder's silence), `invalid` (a result whose answer is not the schema's),
+`nothing` (a valid answer and no page), `mismatch` (a page came in and did not
+reach the entry's steps: its own identity is another record's, or `collect`
+left it), and, for a page whose own identity is the step's, what the attach
+made of it: `unread`, `none`, `read`, `card` (the matcher's proposals wait for
+the owner) or `taken` (the rule took one). No run is logged on a step on the
+model's word: a `blocked` answer leaves the step as it stood, and the run's
+row says what the model reported. Where the report and the finding differ (the
+model says saved and no page of the step's came in, or says not saved and one
+did), the row is marked and its note says how.
+
+Every launch is a row of `task_run`, insert-only: the kind of task, the
+holder, the steps, the task as rendered, the text's sha256, the model and the
+effort asked for, the tokens, cost, turns and time the launcher reported with
+its per-model usage, how the run ended (the launcher's own terminal reason, or
+`timeout`, `exit <n>`, `no result`), the tools it was denied, the answer, the
+outcome, and the `search_log` row the page's attach wrote. These measures say
+what a task costs at a model and never reach a card. `tools/run_task.py show`
+prints the rendered tasks and launches nothing; which model and effort a task
+gets is the caller's to say on the command line, and a gravestone photograph
+(`tools/save_image.js`) is not yet a task.
+
 **When the site blocks the fetch.** When a source answers a page save or a
 search in the owner's browser with a challenge or a sign-in (the script's
 `BLOCKED` line), the session notifies the owner and waits; once the owner has

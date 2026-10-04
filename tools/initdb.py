@@ -258,6 +258,18 @@ def insert_only(cx: sqlite3.Connection) -> None:
         for trigger in re.findall(rf"^CREATE TRIGGER trg_{table}_\w+ BEFORE (?:UPDATE|DELETE).*?^END;", extras, re.S | re.M):
             cx.execute(trigger.replace("CREATE TRIGGER ", "CREATE TRIGGER IF NOT EXISTS ", 1))
 
+def task_runs(cx: sqlite3.Connection) -> None:
+    """The task_run table with its index and its insert-only triggers (tools/run_task.py: one row per model launched on a step),
+    as schema/catalog.sql and schema/sqlite_extras.sql define them. No row changes."""
+    ddl = read("schema/catalog.sql")
+    extras = read("schema/sqlite_extras.sql")
+    start = ddl.index("CREATE TABLE task_run")
+    index = "CREATE INDEX ix_task_run_kind ON task_run(task_kind, holder_id, model, effort);\n"
+    script = ddl[start:ddl.index(index, start)] + index + extras[extras.index("CREATE TRIGGER trg_task_run_no_update"):]
+    for word in ("TABLE", "INDEX", "TRIGGER"):
+        script = script.replace(f"CREATE {word} ", f"CREATE {word} IF NOT EXISTS ")   # a catalog born with the table, replaying its migrations, keeps it
+    cx.executescript(script)
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -283,6 +295,8 @@ MIGRATIONS = [
      [person_decided]),
     ("0.8.1", "insert-only: artifact_locator, tombstone, extractor, extraction, persona_relation, search_log and audit_log take no UPDATE but a write-once superseded_by on extraction and search_log, and no DELETE; search_log.superseded_by names the row restating a run read again or carried by a merge",
      [insert_only]),
+    ("0.8.2", "task_run: one insert-only row per model launched on a step no connector can take (tools/run_task.py), with the launcher's measures, the outcome as code judged it and the search_log row the run produced",
+     [task_runs]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

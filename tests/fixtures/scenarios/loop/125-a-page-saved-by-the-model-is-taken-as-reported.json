@@ -1,0 +1,61 @@
+{
+ "title": "a page the model saved is taken by collect, and the report and the finding agree",
+ "line": "a launcher's real result from the owner's browser reporting the page saved, and the page it saved: collect takes it, the outcome is what the attach made of it, the row names the run logged and is not marked as differing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "awaits": "task-launcher-answer-saved.json",
+ "capture": "with the owner's browser connected on this machine and saving into the data root's downloads/: python3 tools/run_task.py capture --model haiku --effort low --out tests/fixtures/task-launcher-answer-saved.json",
+ "steps": [
+  {
+   "say": "the memorial's task answered by the capture: the model reports saved with the script's ok line, and the page it saved comes in with its key",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "captured": "task-launcher-answer-saved.json",
+    "saves": {
+     "fixture": "findagrave-memorial-143847338.html",
+     "key": true
+    },
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "ended": "completed",
+        "outcome": {
+         "in": [
+          "read",
+          "card",
+          "taken"
+         ]
+        },
+        "differs": false,
+        "answer": {
+         "status": "saved",
+         "line": {
+          "starts": "ok "
+         }
+        },
+        "log": {
+         "outcome": "found"
+        }
+       }
+      ]
+     },
+     "why": "the model's report is true and code found it so"
+    }
+   ]
+  }
+ ]
+}

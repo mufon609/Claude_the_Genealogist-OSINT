@@ -26,11 +26,12 @@ Rules that keep the layers honest:
 - Layer 3 may not contain a fact without a link to a layer 2 hash and a region
   (page, frame, line, bounding box) inside it.
 - Layer 2 is never edited. A correction is a new object plus a note.
-- The archive's rows, the evidence, the research log and the audit trail are
+- The archive's rows, the evidence, the research log, the record of task
+  runs and the audit trail are
   insert-only, enforced by triggers (`schema/sqlite_extras.sql`): `artifact`,
   `artifact_locator`, `tombstone`, `extractor`, `extraction`, `persona`,
-  `persona_fact`, `persona_relation`, `same_record`, `search_log` and
-  `audit_log` take no UPDATE and no DELETE, but for `superseded_by` on
+  `persona_fact`, `persona_relation`, `same_record`, `search_log`, `task_run`
+  and `audit_log` take no UPDATE and no DELETE, but for `superseded_by` on
   `extraction` and `search_log`, written once, from empty, to the row that
   restates the old one (a re-read extraction; a run read again or carried by a
   merge, `docs/RESEARCH-WORKFLOW.md`'s schema). A reset or a correction is a
@@ -171,6 +172,7 @@ Core tables (the full map by layer is in `schema/README.md`):
 | `proposal` | AI output awaiting a decision; answers a question about a person. |
 | `alias` | Variant and erroneous forms kept as search keys (§8). |
 | `research_question`, `search_plan`, `search_log` | A fact-level question about a person; an executable step on a checklist row of a person (a fetch with its locator, or a typed search with per-field basis); every run of a step including negatives (`docs/RESEARCH-WORKFLOW.md`). |
+| `task_run` | One row per model launched on a step no connector can take (decision 16), insert-only: the kind of task, the holder, the task as rendered and its text's hash, the model and effort, what the launcher measured, the outcome as code judged it and the `search_log` row the run produced (`docs/RESEARCH-WORKFLOW.md` §4). |
 | `external_id` | Any vendor ID for any entity (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
 | `place`, `place_name`, `place_string` | Normalized place hierarchy with dated names; every raw string ever seen and what it resolved to. |
 
@@ -448,9 +450,12 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    (decision 13; `docs/RESEARCH-WORKFLOW.md` §5–7). No task is a prompt
    written by hand, by a person or a session. The standing rules on sources
    hold inside every task (decision 4; a challenge or a sign-in is the owner's
-   to pass; Find a Grave and Ancestry are never scraped). No model is launched
-   by code today: the runner, its record of runs and the choice of model are
-   deferred work in `BACKLOG.md`.
+   to pass; Find a Grave and Ancestry are never scraped). One kind of task is
+   launched by code today, the fetch of a page on the fetch list
+   (`tools/run_task.py`, `docs/RESEARCH-WORKFLOW.md` §4), each launch a row of
+   `task_run`; the model and effort are the caller's to name. The other kinds
+   of task, the calibration and the choice of model from the record of runs
+   are deferred work in `BACKLOG.md`.
 
 17. **A question reaches a person only when the investigation that could
    answer it is done.** The owner: "the goal is more the human to step back

@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.1
+-- tree catalog schema  v0.8.2
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -8,8 +8,8 @@
 --   * JSON is stored as TEXT (json_* functions exist on both engines).
 --   * booleans are BOOLEAN (SQLite stores 0/1).
 --   * SQLite-only objects (FTS, triggers) live in sqlite_extras.sql, the insert-only triggers among them: artifact,
---     artifact_locator, tombstone, extractor, extraction, persona, persona_fact, persona_relation, same_record, search_log
---     and audit_log take no UPDATE but a write-once superseded_by, and no DELETE.
+--     artifact_locator, tombstone, extractor, extraction, persona, persona_fact, persona_relation, same_record, search_log,
+--     task_run and audit_log take no UPDATE but a write-once superseded_by, and no DELETE.
 --   * DECISIONS: wherever a human decides, the column is `status` with exactly
 --     three values: 'undecided' | 'accepted' | 'rejected'. No numeric confidence.
 --     Machine details (match scores, OCR certainty) stay inside notes/JSON.
@@ -534,6 +534,37 @@ CREATE TABLE search_log (
 );
 CREATE INDEX ix_search_log_step ON search_log(plan_step_id);
 CREATE INDEX ix_search_log_question ON search_log(question_id);
+
+-- A model launched on a step no connector can take (tools/run_task.py; docs/DATA-ARCHITECTURE.md decision 16), one row per
+-- launch, insert-only. The measures are the launcher's own report; the outcome is what code found, never what the model
+-- reported. These numbers say what a task costs at a model and never reach a card.
+CREATE TABLE task_run (
+  id                 TEXT PRIMARY KEY,
+  tree_id            TEXT NOT NULL REFERENCES tree(id),
+  task_kind          TEXT NOT NULL CHECK (task_kind IN ('fetch')),
+  holder_id          TEXT REFERENCES source(id),           -- where the task was run: the fetch list entry's holder
+  plan_step_ids_json TEXT NOT NULL,                        -- the steps the task was rendered from: the entry's key
+  task_json          TEXT NOT NULL,                        -- the task as rendered: link, file, call, the save script's sha256
+  task_text_sha256   TEXT NOT NULL,                        -- the kind's one text (tools/tasks/<kind>.md) as it stood
+  model              TEXT NOT NULL,                        -- as asked of the launcher
+  effort             TEXT NOT NULL,
+  started_at         TEXT NOT NULL,
+  launched_by        TEXT NOT NULL,                        -- agent:run_task | agent:<session> for user:<name>
+  input_tokens       INTEGER,                              -- every model's input, cache reads and writes included; NULL when the launcher gave no result
+  output_tokens      INTEGER,
+  cost_usd           REAL,
+  turns              INTEGER,
+  duration_ms        INTEGER NOT NULL,                     -- the launcher's own, or the clock's when it reported none
+  usage_json         TEXT,                                 -- the launcher's usage per model, as reported
+  ended              TEXT NOT NULL,                        -- the launcher's terminal reason | timeout | exit <n> | no result
+  denials            INTEGER,                              -- the tool calls the launcher refused the model
+  answer_json        TEXT,                                 -- the model's answer as given; a report, never the outcome
+  outcome            TEXT NOT NULL CHECK (outcome IN ('no_answer','invalid','nothing','mismatch','unread','none','read','card','taken')),
+  differs            BOOLEAN NOT NULL,                     -- the model's report and code's finding differ; note says how
+  note               TEXT,
+  search_log_id      TEXT REFERENCES search_log(id)        -- the run the page's attach logged on a step of the task
+);
+CREATE INDEX ix_task_run_kind ON task_run(task_kind, holder_id, model, effort);
 
 -- Any vendor identifier for any entity. Never a primary key.
 CREATE TABLE external_id (

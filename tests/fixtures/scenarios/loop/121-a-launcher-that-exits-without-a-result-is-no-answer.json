@@ -1,0 +1,56 @@
+{
+ "title": "a launcher that exits without a result is a task run with no answer",
+ "line": "a fetch task whose launcher exits with a status and prints no result is a task_run row ended `exit 1`, outcome no_answer; no run is logged on the step",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task at a launcher that fails: the harness's stand-in for a launcher that exits with status 1 and prints nothing",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "silent": "exit",
+    "exit": 1,
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "ended": "exit 1",
+        "outcome": "no_answer",
+        "differs": false,
+        "cost_usd": null,
+        "log": null
+       }
+      ]
+     },
+     "why": "a launcher that fails is a holder's silence"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step: nothing came in, and nothing is logged on a model's word"
+    }
+   ]
+  }
+ ]
+}

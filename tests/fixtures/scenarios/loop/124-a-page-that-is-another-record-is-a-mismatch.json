@@ -1,0 +1,64 @@
+{
+ "title": "a page whose own identity is another record's is a mismatch, whatever its key and name say",
+ "line": "a FamilySearch record's real page lands in downloads/ under the memorial task's file name and carrying the task's key, the launcher timing out: collect sets the key's step aside on the page's own identity and leaves the page in the inbox, the task's outcome is mismatch with collect's own line as its note, and no run is logged on the task's step",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task: the page that comes in under its name and key is a 1950 census record at FamilySearch, another record at another holder",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "silent": "timeout",
+    "saves": {
+     "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+     "key": true
+    },
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "ended": "timeout",
+        "outcome": "mismatch",
+        "differs": false,
+        "log": null,
+        "note": {
+         "has": [
+          "ark:/61903/1:1:6XYS-NQ16",
+          "the step asks for memorial 143847338"
+         ]
+        }
+       }
+      ]
+     },
+     "why": "the saved page's own identity is not the step's: refused whichever model saved it"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step: nothing came in, and nothing is logged on a model's word"
+    }
+   ]
+  }
+ ]
+}
