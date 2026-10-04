@@ -1,6 +1,6 @@
 {
  "title": "a creation taken back on a superseded reading",
- "line": "a person the rule created from a death record, the creation taken back after the page was read again and its card left undecided on the superseded reading as an older matcher's, is no new person when reconsider matches the current reading again: the persona is put to the person the creation made, never a second one, and the rule takes it again, the creation's statements, left undecided with its closed card, standing again with it",
+ "line": "a person the rule created from a death record, the creation taken back after the page was read again and its card left undecided on the superseded reading as an older matcher's, is no new person when reconsider matches the current reading again: the persona is put to the person the creation made, never a second one, and is the owner's card, since the son's one link to his mother is the record's own and no claim of the file's; accepted, the creation's statements, left undecided with its closed card, stand again with it",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -107,7 +107,7 @@
    ]
   },
   {
-   "say": "reconsider closes the card on the superseded reading and matches the current reading again: the persona is put to the person the creation made, never proposed as a new person, and the rule takes it as it took the creation",
+   "say": "reconsider closes the card on the superseded reading and matches the current reading again: the persona is put to the person the creation made, never proposed as a new person, and stays the owner's: his name is no accepted fact, and his link to his mother is the record's own",
    "reconsider": {},
    "expect": [
     {
@@ -126,13 +126,26 @@
       "persona": "Ollie Duke Davidson",
       "extraction": "$again.extraction",
       "kind": "persona_match",
-      "status": "accepted",
-      "person_name": "Ollie Duke Davidson",
-      "decided_by": {
-       "starts": "rule:"
+      "status": "undecided",
+      "person_name": "Ollie Duke Davidson"
+     },
+     "why": "the current reading's persona of his entry, proposed as the person the creation made; the one link the tree holds of him is the one the creation wrote from this record, which claims nothing"
+    },
+    {
+     "rule": {
+      "record": "kd",
+      "persona": "Ollie Duke Davidson",
+      "extraction": "$again.extraction",
+      "taken": false,
+      "why": {
+       "has": [
+        "the name is not accepted yet",
+        "parent Lena Howard Bell",
+        "neither accepted nor the file's own claim"
+       ]
       }
      },
-     "why": "the current reading's persona of his entry, proposed as the person the creation made, and taken by the rule through the son the record states she bore"
+     "why": "the record would be its own proof: the reason names the link and why it does not count"
     },
     {
      "persons": {
@@ -145,11 +158,40 @@
       "person": {
        "created": "Ollie Duke Davidson"
       },
+      "name": "undecided",
+      "death": "undecided",
+      "parents": "undecided"
+     },
+     "why": "the statements the withdrawal left undecided wait on the card"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts him on the current reading",
+   "decide": {
+    "card": {
+     "record": "kd",
+     "persona": "Ollie Duke Davidson",
+     "extraction": "$again.extraction"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": {
+       "created": "Ollie Duke Davidson"
+      },
       "name": "accepted",
       "death": "accepted",
       "parents": "accepted"
      },
      "why": "the statements the withdrawal left undecided stand again with the decision on the current reading: closing a card judged nothing it stated"
+    },
+    {
+     "persons": {
+      "count": 28
+     }
     }
    ]
   },

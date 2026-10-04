@@ -60,24 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A3. A claim is the file's word and nothing else
-
-`docs/RESEARCH-WORKFLOW.md` §0 defines a claim as what the imported file
-says without a record behind it, and the proof standard says a claim whose
-own citation is the record under decision never counts. `Catalog.family` and
-`Catalog.basis` call every membership a claim whose statements are not all
-rejected, so the claimed-relationship route (`conclude.claimed_relation_match`,
-and the route and the one-point "a link the file claims" branch in
-`rule_points`) takes as the file's word an editable page's undecided
-membership, an indexer's computed grouping, the rule's own undecided sibling
-placement, and a placement written from the very record under decision.
-Taken that way on 3 Oct 2026: Daisy Bell Rothberg on obituary `243f18dc92f5`
-(her one link a placement from that obituary, by a card since superseded),
-Dennis Scannell on `fceaa7dbde67`, Joe Davidson and Lura Dinning (undecided
-placements alone). A claim is the import's own statement of the membership,
-not rejected. Show the Rothberg shape on a scenario, correct C5's account of
-Joe Davidson if the data says otherwise, and report the dry-run reconsider.
-
 ### A4. The rule counts what the docs list, and no more
 
 On a page anyone can edit the identity takes three of four things (§0, §5–7):
@@ -94,13 +76,16 @@ forbid ("counts once at most, is never an obituary's survivor"). Count a
 stated parent or spouse as the one point the docs name, leave the marked
 statements as they are when a key fact is accepted, have the ground skip
 them, say both in the docs in one sentence each, and report the dry-run
-reconsider. C35 remains for the decisions written before the reader marked
-its relations. A fact decision now records itself on every statement it
-acts on (`assertion.person_decided`), so a `fact … accept` made before this
-change may have marked such a statement as the owner's own accept: list those
-on the scratch copy for the owner rather than changing them.
-
-**Blocked by:** A3.
+reconsider. The parent or spouse the identity counts must be that relative in
+the tree "claimed or accepted, a claim the file cites to that very page not
+among them", but the identity branch's `joined` reads every membership not
+rejected: another page's membership, a sibling placement, and a claim citing
+that page all count; read it through `conclude.claimed_or_accepted`, as the
+claimed-relationship route does. C35 remains for the decisions written before
+the reader marked its relations. A fact decision now records itself on every
+statement it acts on (`assertion.person_decided`), so a `fact … accept` made
+before this change may have marked such a statement as the owner's own accept:
+list those on the scratch copy for the owner rather than changing them.
 
 ### A5. A bounded date is compared as its range
 
@@ -271,10 +256,7 @@ steps assisted with the page's own link and say so in
 
 `conclude.rule_points` grounds a stated relationship on the accepted statements
 of either membership joining the two people (`ground` over both rows), so one
-person's link stands in for the other's: Joe Davidson, whom the file alone
-places as Lena Howard Bell's child and who was born seven years after her
-death, takes "sibling Robert Edgar Davidson" on his brother's obituary from
-Robert's own accepted child row, and a parent's accepted marriage grounds a
+person's link stands in for the other's: a parent's accepted marriage grounds a
 child's claimed parentage. `docs/RESEARCH-WORKFLOW.md` ("What the rule counts")
 says a point rests on the tree's statement of that very link. Requiring both
 rows withdraws decisions that are sound, because the tree states a couple's
@@ -288,10 +270,14 @@ the Ahearn and Davidson records above.
 
 Decision wanted first, measured on a copy of the live catalog of 3 Oct 2026:
 requiring both rows of one family withdraws 14 rule decisions, and the
-entry's own cases do not read as it says. Joe Davidson was taken through the
-claimed-relationship route ("your tree already links them so, claimed or
-accepted"), which reads no `ground()` at all: requiring both rows leaves his
-decision standing (the route is C3's). Mary Castello's partner row carries
+entry's own cases do not read as it says. Joe Davidson is not in the file: the
+owner created him from his brother's memorial, and his place in Lena Howard
+Bell's family rests on undecided statements alone (sibling placements from his
+brother's obituary and memorial, and the membership his father's memorial
+states). He was taken on the obituary through the claimed-relationship route,
+which reads no `ground()` at all and counts none of those statements as the
+file's claim, so a dry-run `reconsider` withdraws that decision whichever rows a
+point stands on. Mary Castello's partner row carries
 only an undecided statement, from the 1917 death index; the 1901 marriage
 index's parentage is on Annie's child row, and the couple Dennis Scannell and
 Mary is not accepted, so no couple clause keeps her 1917 card. Dan Davidson's
@@ -1030,6 +1016,23 @@ whose status a session's re-read or a carry stamped `agent:… for user:…` rea
 only where `assertion.person_decided` says a person's own decision set the
 status, and say what set it otherwise (the record's acceptance, a re-read, the
 rule).
+
+### C50. A persona put to the person its own record created
+
+The rule creates a person a trusted record names in a stated relationship to
+someone accepted on it, nobody else fitting (`conclude.rule_creates`). When the
+record is read again and the creation's card closes on the superseded reading,
+`reconsider` puts the current reading's persona to the person the creation made,
+and no route takes it: the name rests on that record alone, and the one link is
+the one the creation wrote from it, which the claimed-relationship route never
+counts. The card is the owner's though the record and its terms are those the
+rule created the person on: Daisy Bell Rothberg on her brother's obituary and
+Dennis Scannell on the 1917 Massachusetts death index, live, and scenario
+`99z-a-creation-taken-back-on-a-superseded-reading`; the person stays with
+nothing accepted. Decide whether the rule takes such a persona on the
+creation's own terms (a T1–T2 record or a read obituary, a stated relationship
+to a person accepted on it, nobody but the person that record created fitting),
+state it in `docs/RESEARCH-WORKFLOW.md` §5–7, and show it on `99z`.
 
 ## Externally blocked
 

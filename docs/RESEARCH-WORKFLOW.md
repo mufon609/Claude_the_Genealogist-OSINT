@@ -1031,7 +1031,13 @@ a relationship the record states (child, parent, spouse, sibling; never one its
 indexer computed) to a persona accepted on the same record as a person the tree
 links to the candidate by that relation, claimed or accepted, when the given
 name and surname agree with the candidate's and a birth year agrees where both
-have one; the record's own name fact then documents the name. A stated sibling
+have one; the record's own name fact then documents the name. The tree links
+the two so when, in a family joining them, each one's membership carries an
+accepted statement or the file's claim, which is the import's own statement of
+that membership, not rejected, and nothing else: a sibling placement, a page
+anyone can edit, an indexer's grouping, a statement from the record under
+decision on any of its copies and a claim whose own citation is that record
+claim nothing. A stated sibling
 of a person accepted on the record fits a candidate who is a child of that
 person's parents, claimed or accepted, or who has no parents in the tree and
 whose surname agrees, and is placed as a child of those parents with an

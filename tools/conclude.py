@@ -1084,17 +1084,46 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
         else: vetoes.append(d)
     return vetoes, claims, conflicts
 
-def claimed_relation_match(fam, relations, accepted_on_record):
+MEMBERSHIPS = {"parents": ("child", "partner"), "children": ("partner", "child"), "spouses": ("partner", "partner"), "siblings": ("child", "child")}   # a relation group: the person's own role in the family joining the two, then the relative's
+
+def claimed_or_accepted(cx, tree_id, pid, other, group, rec, keys, without=(), claim_only=False):
+    """Whether the tree links a person to another by a relation group (parents, children, spouses, siblings), claimed or
+    accepted (docs/RESEARCH-WORKFLOW.md §5–7): in a family joining the two, the membership of each carries an accepted
+    statement or the file's claim of it, the import's own statement (on a file this tree imported, tree_import), not
+    rejected; with claim_only, the file's claim alone. Nothing else is the file's word: an undecided statement from a page
+    anyone can edit, an indexer's grouping, a sibling placement or a link a withdrawn decision left claims nothing. A
+    statement from the record under decision on any of its copies (rec: record_self), a claim whose own citation is that
+    record (keys: record_keys) and one a decision in without wrote (reconsider) never count."""
+    q = _q(cx); mine, theirs = MEMBERSHIPS[group]
+    def stands(fid, who, role):
+        for r in q.execute("""SELECT a.status, a.artifact_sha256, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?) AS imported
+                              FROM assertion a WHERE a.tree_id=? AND a.subject_kind='family_member' AND a.subject_id=? AND a.status<>'rejected'""",
+                           (tree_id, tree_id, dumps([fid, who, role]))).fetchall():
+            if r["artifact_sha256"] in rec["copies"]: continue
+            try: notes = json.loads(r["notes"] or "{}")
+            except ValueError: notes = {}
+            notes = notes if isinstance(notes, dict) else {}
+            if notes.get("proposal") in without: continue
+            if r["imported"]:
+                if not cites_record(notes, keys): return True
+            elif r["status"] == "accepted" and not claim_only: return True
+        return False
+    return any(stands(fid, pid, mine) and stands(fid, other, theirs)
+               for fid, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
+                                        WHERE fm.person_id=? AND fm.role=?""", (other, theirs, pid, mine)).fetchall())
+
+def claimed_relation_match(relations, accepted_on_record, linked):
     """Whether the persona's stated relationship names a persona already accepted on this very record as a person the tree
     links to the candidate by that relation, claimed or accepted (docs/RESEARCH-WORKFLOW.md §5-7): (group, other candidate,
     other name) when so, else None. relations: (kind, other persona, computed, other name), a relationship the record's
     indexer computed being no statement of the record's. accepted_on_record: persona id -> candidate, from person_persona
-    rows already decided accepted on this extraction — not the fitting check's own guesses."""
+    rows already decided accepted on this extraction — not the fitting check's own guesses. linked(group, other person id):
+    whether the tree links the two so (claimed_or_accepted)."""
     for kind, other_pid, computed, other_name in relations:
         other_cand = accepted_on_record.get(other_pid)
         if computed or not other_cand: continue
         group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
-        if group and any(rid == other_cand["id"] for rid, _ in fam[group]): return group, other_cand, other_name
+        if group and linked(group, other_cand["id"]): return group, other_cand, other_name
     return None
 
 def dated_with_parents(cx, extraction_id):
@@ -1201,9 +1230,11 @@ def rule_points(cx, tree_id, prop, without=()):
     an automated kind is taken on the accepted name and two points, nothing disagreeing against an accepted value
     (split_disagree); each point stands on the tree's own statements as ground() finds them, and a date to the day or a
     relationship counts double where the tree holds it on such ground, whatever its information class (the classes decide
-    conflicts, not whether two records that agree are about one person). A persona whose
+    conflicts, not whether two records that agree are about one person); a link no such statement grounds counts once where
+    the file itself claims it, and nothing else stands in for the file (claimed_or_accepted). A persona whose
     name the tree does not hold on such ground is taken only through a relationship the record states to a persona already
-    accepted on it. A page anyone can edit (T4) of an identity kind gives the identity alone. without: proposal ids whose
+    accepted on it whom the tree links to the candidate so, claimed or accepted (claimed_or_accepted). A page anyone can edit
+    (T4) of an identity kind gives the identity alone. without: proposal ids whose
     assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by the
     relationship route, as it was taken."""
     q = _q(cx)
@@ -1296,7 +1327,8 @@ def rule_points(cx, tree_id, prop, without=()):
     if any(a.startswith("surname agrees, one letter apart") for a in agree): return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"
     relations = stated(persona)
     def joined(kind, other_pid):
-        """The relative a stated relation names, when the tree links the two so, claimed or accepted: (group, candidate) or None."""
+        """The relative a stated relation names, when the tree links the two so on a membership not rejected (Catalog.family):
+        (group, candidate) or None."""
         oc = chosen.get(other_pid); group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
         return (group, oc) if oc and group and any(rid == oc["id"] for rid, _ in fam[group]) else None
     if identity:
@@ -1315,12 +1347,14 @@ def rule_points(cx, tree_id, prop, without=()):
                                            "and a stated parent or spouse agree: here " + (", ".join(points) + (" agree" if len(points) > 1 else " agrees") if points else "the name alone agrees") + own_note)
         return True, "identity on a page anyone can edit: the name, " + ", ".join(points) + " agree with the tree; the page's facts are written undecided, never accepted" + own_note + claim_note
     if cat.basis("person", pid) != "accepted" or not trusted_evidence(cx, tree_id, "person", [pid], without=without):   # the name is a claim, or accepted on nothing the rule may count here: the route through a stated relationship
-        rel = claimed_relation_match(fam, relations, accepted_on_record)
+        rel = claimed_relation_match(relations, accepted_on_record, lambda group, other: claimed_or_accepted(cx, tree_id, pid, other, group, rec, keys, without))
         unplaced = None if rel or fam["parents"] else next(((accepted_on_record[o], n) for k, o, c, n in relations if k == "sibling" and not c and o in accepted_on_record), None)   # a stated sibling of someone accepted here, and the tree holds no parents to contradict it
         if not rel and not unplaced:
+            loose = [f"{REL_OF[j[0]]} {n}" for k, o, c, n in relations if not c and o in accepted_on_record and (j := joined(k, o))]   # a link the tree shows, on nothing that claims it
+            loose = f"; your tree holds the {', '.join(dict.fromkeys(loose))} only on statements neither accepted nor the file's own claim (a sibling placement, a page anyone can edit, an indexer's grouping, this record's own)" if loose else ""
             if any(c and o in accepted_on_record for k, o, c, n in relations):
-                return False, "the name is not accepted yet, and the record's relationship to the person accepted on it is its indexer's, not the record's own statement"
-            return False, "the name is not accepted yet" if cat.basis("person", pid) != "accepted" else "the accepted name rests on no trusted source and not on your own word"
+                return False, "the name is not accepted yet, and the record's relationship to the person accepted on it is its indexer's, not the record's own statement" + loose
+            return False, ("the name is not accepted yet" if cat.basis("person", pid) != "accepted" else "the accepted name rests on no trusted source and not on your own word") + loose
         if any(d.startswith("birth date disagrees") for d in disagree): return False, "the name is not accepted yet, and the birth year disagrees with the claimed relative's record"
         if unplaced: return True, f"a stated sibling: sibling {unplaced[1]}, already accepted on this record, and your tree holds no parents for {cand['name']}, so nothing contradicts it; the name and birth year agree, so the record's own name fact documents it, and they are placed beside {unplaced[1]} as a child of the same parents, undecided, where the tree holds those" + claim_note
         group, other_cand, other_name = rel
@@ -1356,12 +1390,14 @@ def rule_points(cx, tree_id, prop, without=()):
                 for who, r in ((pid, role), (oc["id"], other_role))]   # the membership that joins these two, read from either side: the child's under the parent, a partner's beside the other, a sibling's child row beside the other's
         gs, shared = ground(cx, tree_id, "family_member", rows, sha, rec, without=without)
         pt = f"{REL_OF[group]} {other_name}"
-        if computed: points.append((f"{pt}, once (the record's indexer, not the record, states it" + ("" if gs else "; a link the file claims") + ")", 1))
-        elif gs:
+        claimed = lambda: claimed_or_accepted(cx, tree_id, pid, oc["id"], group, rec, keys, without, claim_only=True)   # the file's own claim of the link, read where nothing grounds it
+        if computed and (gs or claimed()): points.append((f"{pt}, once (the record's indexer, not the record, states it" + ("" if gs else "; a link the file claims") + ")", 1))
+        elif gs and not computed:
             rel_points.append(pt)                                  # a survivor the tree holds on trusted evidence: an obituary's ground
             points.append((f"{pt} ({_on(gs)})", 2))
         elif shared: one_source(f"the {pt}", shared)
-        else: points.append((f"{pt} (a link the file claims, the relative's own persona here fitting on more than a name)", 1))   # grounded above: a link the file claims counts once, never double, and is no obituary's ground
+        elif not computed and claimed(): points.append((f"{pt} (a link the file claims, the relative's own persona here fitting on more than a name)", 1))   # grounded above: a link the file claims counts once, never double, and is no obituary's ground
+        else: left.append(f"the {pt}, a link the tree holds neither on trusted ground nor as the file's own claim")
     bare_note = ("; the relationship the record gives to " + ", ".join(dict.fromkeys(bare)) + " is no point: the record gives nothing of them but the name and the relationship itself, and they are not accepted on it") if bare else ""
     left_note = ("; no point for " + "; ".join(left)) if left else ""
     if sum(n for _, n in points) < 2: return False, "agrees with the accepted name" + (f" and {points[0][0]}" if points else "") + " only, counting facts from trusted sources; two are needed" + bare_note + left_note

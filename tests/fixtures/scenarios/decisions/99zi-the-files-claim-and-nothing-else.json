@@ -1,0 +1,219 @@
+{
+ "title": "the file's claim and nothing else",
+ "line": "the claimed-relationship route takes a person the file itself claims, and nothing else stands in for the file: the parents an obituary names are taken on the file's own claim of them, while the sister it names, created by the rule and placed beside her brother from that very notice, is a card for the owner once her creation is taken back on a superseded reading, her one link the notice's own placement",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's word on his parents: the file's own claim of them accepted, so he is an accepted child of the couple",
+   "fact": {
+    "person": "I332737100409",
+    "fields": [
+     "parents"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "his obituary, the file's own citation, archived and read",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "say": "the owner accepts him on it: the rule takes his parents through the link the file claims, and creates the sister the notice names, placing her beside him",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "person": "I332737204852",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
+       "has": [
+        "a claimed relationship",
+        "child Mr Robert Edgar Davidson"
+       ]
+      }
+     },
+     "why": "the mother holds no accepted name yet: the notice states her his mother, he is accepted on it, and the file itself claims the link, so the route takes her"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Daisy Bell Rothberg",
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:creates-named-relative"
+      }
+     },
+     "why": "a sister the notice states, whom nobody in the tree fits: created by the rule"
+    },
+    {
+     "memberships": {
+      "person": {
+       "created": "Daisy Bell Rothberg"
+      },
+      "is": [
+       {
+        "role": "child",
+        "status": "undecided",
+        "placed": "sibling"
+       }
+      ]
+     },
+     "why": "placed beside her brother as a child of his accepted parents, undecided: the notice states a sister, not her parents"
+    },
+    {
+     "persons": {
+      "count": 36
+     }
+    }
+   ]
+  },
+  {
+   "say": "the notice read again while the creation stands: her link carries to the new reading",
+   "reread": {
+    "record": "obit"
+   },
+   "as": "again"
+  },
+  {
+   "say": "the rule takes the creation back: its card undecided again on the superseded reading, the person and the placement written from this notice staying",
+   "withdraw": {
+    "card": {
+     "record": "obit",
+     "persona": "Daisy Bell Rothberg"
+    }
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Daisy Bell Rothberg",
+      "kind": "new_person",
+      "status": "undecided"
+     }
+    },
+    {
+     "memberships": {
+      "person": {
+       "created": "Daisy Bell Rothberg"
+      },
+      "is": [
+       {
+        "role": "child",
+        "status": "undecided",
+        "placed": "sibling"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the record's open cards marked as an older matcher's",
+   "older_matcher": {
+    "record": "obit"
+   }
+  },
+  {
+   "say": "reconsider closes the card on the superseded reading and puts the current reading's persona to the person the creation made: the placement from this very notice is no claim of the file's, so the card is the owner's",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Daisy Bell Rothberg",
+      "kind": "new_person",
+      "status": "rejected",
+      "note": "superseded"
+     }
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Daisy Bell Rothberg",
+      "extraction": "$again.extraction",
+      "kind": "persona_match",
+      "person_name": "Daisy Bell Rothberg",
+      "status": "undecided"
+     },
+     "why": "her name is no accepted fact, and her one link to the family is the sibling placement written from this notice: the record would be its own proof"
+    },
+    {
+     "rule": {
+      "record": "obit",
+      "persona": "Daisy Bell Rothberg",
+      "extraction": "$again.extraction",
+      "taken": false,
+      "why": {
+       "has": [
+        "the name is not accepted yet",
+        "sibling Mr Robert Edgar Davidson",
+        "neither accepted nor the file's own claim"
+       ]
+      }
+     },
+     "why": "the reason names the link and why it does not count"
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Lena Howard Bell",
+        "why": {
+         "has": "a claimed relationship"
+        }
+       }
+      }
+     },
+     "why": "the mother's decision stands on the file's own claim"
+    },
+    {
+     "persons": {
+      "count": 36
+     },
+     "why": "never a second Daisy Bell Rothberg"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}
