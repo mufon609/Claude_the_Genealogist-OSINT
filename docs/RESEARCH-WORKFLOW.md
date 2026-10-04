@@ -322,7 +322,10 @@ those is not saved, and the line says why: `BLOCKED signin`, `BLOCKED
 challenge`, `EMPTY no-script fallback` (nothing rendered), or `UNKNOWN <title>`
 (true as the script's second argument saves it anyway). That line is the check:
 look at the page only when it says something else than ok, and never run a fetch
-loop in the page. The browser saves into the data root's own `downloads/`
+loop in the page. The script is one awaited call (`await (async function …`):
+the browser tool returns an awaited value and gives `{}` for a promise still
+pending, so a bare call saves the page and returns no line, and whoever ran it
+runs it again and saves the page twice. The browser saves into the data root's own `downloads/`
 folder (the repository's `downloads/` for the live tree): the owner sets it as
 the browser's download location once, in a browser profile kept for tree work
 if they prefer, and no tool reads the owner's own download folder. If the browser is set to ask where to save each
@@ -418,7 +421,9 @@ model's terms and the standing rules on sources (one page, the link as given,
 a challenge or a sign-in reported and never passed); nothing is written for
 one task. The model writes nothing to the catalog: the page it saves lands in
 the data root's `downloads/` as a page saved by hand does, and `collect` takes
-it.
+it. The browser's download location is the owner's setting, made once: a page
+the browser saves anywhere else is not found, and the run says so (the model
+reported the page saved, and no page came in).
 
 What starts the task and returns its measures is a launcher, and there are
 two behind one seam; what renders the task, judges the answer and records the

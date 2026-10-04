@@ -1,37 +1,89 @@
 {
  "title": "a page the model saved is taken by collect, and the report and the finding agree",
- "line": "a launcher's real result from the owner's browser reporting the page saved, and the page it saved: collect takes it, the outcome is what the attach made of it, the row names the run logged and is not marked as differing",
+ "line": "the session's launcher on a page a model saved in the owner's browser into the data root's downloads/: the session's real report (the subagent answered saved with the script's ok line) and the page it saved, as the browser left it with its key: collect takes it, the outcome is what the attach made of it, the row carries the session's measures, names the run logged and is not marked as differing",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
   "plan": true
  },
- "awaits": "task-launcher-answer-saved.json",
- "capture": "with the owner's browser connected on this machine and saving into the data root's downloads/: python3 tools/run_task.py capture --model haiku --effort low --out tests/fixtures/task-launcher-answer-saved.json",
+ "awaits": "task-session-report-saved.json",
+ "capture": "with the owner present and the browser saving into the data root's downloads/: the tree-fetch skill, its report kept with python3 tools/run_task.py done --out tests/fixtures/task-session-report-saved.json, and the page it saved copied beside it from the archive",
  "steps": [
   {
-   "say": "the memorial's task answered by the capture: the model reports saved with the script's ok line, and the page it saved comes in with its key",
+   "say": "the lead the live plan held for James Joseph Ahearn's draft registration record, written as the owner's catalog holds it",
+   "step": {
+    "person": "I332737043939",
+    "row_key": "search result:",
+    "seq": 4,
+    "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2",
+    "kind": "fetch",
+    "query_type": "subject_record",
+    "query": {
+     "collection": {
+      "basis": "record",
+      "value": "United States, World War I Draft Registration Cards, 1917-1918"
+     },
+     "found on": {
+      "basis": "record",
+      "value": "FamilySearch record collections results page https://www.familysearch.org/en/search/record/results?f.collectionId=1968530&q.givenName=James%20Joseph&q.surname=Ahearn, row 9"
+     },
+     "listed": {
+      "basis": "record",
+      "value": "birth 25 May 1873, , , United States"
+     },
+     "name": {
+      "basis": "record",
+      "value": "James Joseph Ahearn"
+     },
+     "url": {
+      "basis": "record",
+      "value": "https://www.familysearch.org/ark:/61903/1:1:4X3T-LGW2?lang=en"
+     },
+     "year": {
+      "basis": "record",
+      "value": "1873"
+     }
+    },
+    "locator": {
+     "source": "D03",
+     "kind": "ark",
+     "value": "ark:/61903/1:1:4X3T-LGW2"
+    },
+    "sources": [
+     "D03"
+    ],
+    "mode": "fetch",
+    "expected": "the record the row stands for: the person's own facts as the record states them",
+    "status": "planned",
+    "rationale": "row 9 of a FamilySearch record collections results page fits this person: given name agrees (record James Joseph Ahearn, tree James Joseph Ahearn); surname agrees (record James Joseph Ahearn, tree James Joseph Ahearn); birth date agrees (record 25 May 1873, tree 25 May 1873). A lead, not a card: fetch the row's own record",
+    "on": "[]"
+   },
+   "as": "lead"
+  },
+  {
+   "say": "the record page's task handed to a session and reported done with the session's own report; the page the model saved comes into downloads/ while the task is out, as the browser left it",
    "task": {
     "step": {
-     "person": {
-      "name": "John Young Davidson"
-     },
-     "holder": "E01",
-     "kind": "fetch"
+     "person": "I332737043939",
+     "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2"
     },
-    "captured": "task-launcher-answer-saved.json",
+    "session": {
+     "captured": "task-session-report-saved.json"
+    },
     "saves": {
-     "fixture": "findagrave-memorial-143847338.html",
-     "key": true
+     "fixture": "familysearch-united-states-world-war-i-draft-registra-1873-4X3T-LGW2.html"
     },
-    "model": "haiku",
-    "effort": "low"
+    "model": "haiku"
    },
    "expect": [
     {
      "task_run": {
       "is": [
        {
+        "launcher": "session",
+        "holder_id": "D03",
+        "model": "haiku",
+        "effort": "low",
         "ended": "completed",
         "outcome": {
          "in": [
@@ -41,19 +93,39 @@
          ]
         },
         "differs": false,
+        "cost_usd": null,
+        "turns": null,
         "answer": {
          "status": "saved",
          "line": {
-          "starts": "ok "
+          "starts": "ok fs-record "
          }
         },
         "log": {
-         "outcome": "found"
+         "outcome": "found",
+         "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2"
         }
        }
       ]
      },
      "why": "the model's report is true and code found it so"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737043939",
+       "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2"
+      },
+      "is": [
+       {
+        "outcome": "found",
+        "artifacts": {
+         "len": 1
+        }
+       }
+      ]
+     },
+     "why": "the page went through collect as a page saved by hand does"
     }
    ]
   }

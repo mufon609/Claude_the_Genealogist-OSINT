@@ -61,6 +61,7 @@
          "link: https://www.findagrave.com/memorial/143847338/\n",
          "file: findagrave-memorial-143847338.html\n",
          "script:\n// The page saves itself",
+         "\nawait (async function (name, force, key) {\n",
          "})(\"findagrave-memorial-143847338.html\", false, \""
         ],
         "ends": "\")\n"
@@ -68,7 +69,7 @@
        "mcp_config": "{\"mcpServers\":{}}"
       }
      },
-     "why": "the launcher's command is the task: the kind's text, the entry rendered with the script's call in place of the one that ends it, and the limits; no MCP configuration but an empty one is read, so no connector's tools load"
+     "why": "the launcher's command is the task: the kind's text, the entry rendered with the script's call in place of the one that ends it, and the limits; no MCP configuration but an empty one is read, so no connector's tools load; the script's call is awaited, so the browser tool returns its line"
     },
     {
      "task_run": {

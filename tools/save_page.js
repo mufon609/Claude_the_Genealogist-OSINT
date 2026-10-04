@@ -5,8 +5,10 @@
 // a download (a page that renders inside open shadow roots, archive.org's, whose plain copy is nearly empty, is serialized with its
 // shadow roots as declarative shadow DOM), and returns one line: ok <kind> <bytes>B, BLOCKED signin | challenge,
 // EMPTY <why>, or UNKNOWN <title> (not saved). Kinds: fs-search (FamilySearch results rows, or its "No Results"), fs-record,
-// fg-memorial, fg-search, aad. One download per tab: Chrome lets a page start one without a hand on it.
-(async function (name, force, key) {
+// fg-memorial, fg-search, aad. One download per tab: Chrome lets a page start one without a hand on it. The call is awaited: the
+// browser tool that runs the script returns an awaited value and gives {} for a promise still pending, so the bare call saves the
+// page and returns no line.
+await (async function (name, force, key) {
   const KINDS = {
     "fs-search": h => /<tr[^>]*\bdata-testid="\/ark:\/61903\/1:1:/.test(h) || />No Results Found</.test(h),
     "fs-record": h => /data-testid="documentInformationCitation"[\s\S]{0,400}?familysearch\.org\/ark:\/61903\/1:1:/.test(h),

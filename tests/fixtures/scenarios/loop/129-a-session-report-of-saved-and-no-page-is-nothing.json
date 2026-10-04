@@ -1,0 +1,158 @@
+{
+ "title": "a session's report that the page is saved, with no page in the folder, is nothing, and the row says they differ",
+ "line": "the session's launcher on the first task a model ran in the owner's browser, as it happened: the step as the live plan held it, a session's real report (the subagent answered saved with the script's ok line; 12799 tokens, 9 tool uses, 63068 ms) and no page in the data root's downloads/, the browser having saved it to another folder: a task_run row of the session launcher whose outcome is nothing, marked as differing from the report, the session's measures on it and no run logged on the step",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the lead the live plan held for James Joseph Ahearn's draft registration record, a row of a results page that fits him, written as the owner's catalog holds it",
+   "step": {
+    "person": "I332737043939",
+    "row_key": "search result:",
+    "seq": 4,
+    "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2",
+    "kind": "fetch",
+    "query_type": "subject_record",
+    "query": {
+     "collection": {
+      "basis": "record",
+      "value": "United States, World War I Draft Registration Cards, 1917-1918"
+     },
+     "found on": {
+      "basis": "record",
+      "value": "FamilySearch record collections results page https://www.familysearch.org/en/search/record/results?f.collectionId=1968530&q.givenName=James%20Joseph&q.surname=Ahearn, row 9"
+     },
+     "listed": {
+      "basis": "record",
+      "value": "birth 25 May 1873, , , United States"
+     },
+     "name": {
+      "basis": "record",
+      "value": "James Joseph Ahearn"
+     },
+     "url": {
+      "basis": "record",
+      "value": "https://www.familysearch.org/ark:/61903/1:1:4X3T-LGW2?lang=en"
+     },
+     "year": {
+      "basis": "record",
+      "value": "1873"
+     }
+    },
+    "locator": {
+     "source": "D03",
+     "kind": "ark",
+     "value": "ark:/61903/1:1:4X3T-LGW2"
+    },
+    "sources": [
+     "D03"
+    ],
+    "mode": "fetch",
+    "expected": "the record the row stands for: the person's own facts as the record states them",
+    "status": "planned",
+    "rationale": "row 9 of a FamilySearch record collections results page fits this person: given name agrees (record James Joseph Ahearn, tree James Joseph Ahearn); surname agrees (record James Joseph Ahearn, tree James Joseph Ahearn); birth date agrees (record 25 May 1873, tree 25 May 1873). A lead, not a card: fetch the row's own record",
+    "on": "[]"
+   },
+   "as": "lead"
+  },
+  {
+   "say": "the record page's task handed to a session and reported done with the session's own report of the run; nothing comes into downloads/",
+   "task": {
+    "step": {
+     "person": "I332737043939",
+     "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2"
+    },
+    "session": {
+     "captured": "task-session-report-saved-elsewhere.json"
+    },
+    "model": "haiku"
+   },
+   "expect": [
+    {
+     "last": {
+      "launcher": "session",
+      "outcome": "nothing",
+      "search_log": null,
+      "state": {
+       "model": "haiku",
+       "effort": "low",
+       "opened": {
+        "task": {
+         "holder_id": "D03",
+         "link": "https://www.familysearch.org/ark:/61903/1:1:4X3T-LGW2?lang=en",
+         "file": "familysearch-united-states-world-war-i-draft-registra-1873-4X3T-LGW2.html"
+        }
+       }
+      },
+      "handout": {
+       "has": [
+        "agent: tree-fetch\nmodel: haiku\nprompt:\nlink: https://www.familysearch.org/ark:/61903/1:1:4X3T-LGW2?lang=en\nfile: familysearch-united-states-world-war-i-draft-registra-1873-4X3T-LGW2.html\nscript:\n",
+        "\nawait (async function (name, force, key) {\n",
+        "})(\"familysearch-united-states-world-war-i-draft-registra-1873-4X3T-LGW2.html\", false, \""
+       ]
+      },
+      "printed": {
+       "has": [
+        "nothing (the session launcher ended completed, 9 tool use(s), 12799 tokens, 63068 ms, no cost reported; the model reported saved)",
+        "the report and the finding differ"
+       ]
+      }
+     },
+     "why": "the task handed out is the one the run was given: the same link and file name, rendered by the same code"
+    },
+    {
+     "task_run": {
+      "is": [
+       {
+        "launcher": "session",
+        "task_kind": "fetch",
+        "holder_id": "D03",
+        "model": "haiku",
+        "effort": "low",
+        "ended": "completed",
+        "outcome": "nothing",
+        "differs": true,
+        "total_tokens": 12799,
+        "tool_uses": 9,
+        "duration_ms": 63068,
+        "cost_usd": null,
+        "turns": null,
+        "input_tokens": null,
+        "output_tokens": null,
+        "usage": null,
+        "denials": null,
+        "answer": {
+         "status": "saved",
+         "line": "ok fs-record 137015B"
+        },
+        "text_is_current": true,
+        "log": null,
+        "note": {
+         "has": [
+          "the model reported the page saved (ok fs-record 137015B)",
+          "no page of the step's came in",
+          "no page came into the folder"
+         ]
+        }
+       }
+      ]
+     },
+     "why": "the outcome is what the folder holds, never the report; the session's measures are recorded as it gave them, and what it was not given stays empty"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737043939",
+       "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step: it stays open for the next task"
+    }
+   ]
+  }
+ ]
+}

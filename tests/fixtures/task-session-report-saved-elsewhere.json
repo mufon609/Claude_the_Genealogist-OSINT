@@ -1,0 +1,21 @@
+{
+ "answer": "{\"status\": \"saved\", \"line\": \"ok fs-record 137015B\"}",
+ "tokens": 12799,
+ "tool_uses": 9,
+ "duration_ms": 63068,
+ "model": "haiku",
+ "effort": "low",
+ "task": {
+  "kind": "fetch",
+  "holder_id": "D03",
+  "holder": "FamilySearch record collections",
+  "link": "https://www.familysearch.org/ark:/61903/1:1:4X3T-LGW2?lang=en",
+  "file": "familysearch-united-states-world-war-i-draft-registra-1873-4X3T-LGW2.html",
+  "call": "(\"familysearch-united-states-world-war-i-draft-registra-1873-4X3T-LGW2.html\", false, \"01M3ZMSCBTTNS1QT33AM1X6R54\")",
+  "steps": [
+   "01M3ZMSCBTTNS1QT33AM1X6R54"
+  ]
+ },
+ "task_text_sha256": "18185d4d8cd2792da5c3689096428f60a93cf8c564610385c12622d3ba3ce4d8",
+ "captured_at": "2026-10-04T20:23:50Z"
+}

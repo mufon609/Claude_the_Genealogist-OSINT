@@ -115,7 +115,17 @@ launcher's place (`tools/run_task.py capture` writes one).
 |---|---|
 | `task-launcher-answer-not-saved.json` | **Captured for the harness** on 4 October 2026: one launch on the smallest model (`haiku`, effort low) with the fetch task's own flags (the answer schema, no built-in tool, `--chrome`, a spending limit, input closed), asked by a probe's prompt and not a rendered task to answer `not_saved` with the line `probe`, no browser tool called: the launcher's result with its measures (2 turns, 1829 ms, $0.02528, the model's usage) and a valid answer. The scenarios read its measures and its `not_saved`; nothing in it is about a page |
 | `task-launcher-answer-denied.json` | **Captured for the harness** on 4 October 2026: one launch on the smallest model (`haiku`, effort low) of a rendered fetch task (`tools/run_task.py capture`, the live list's first page) with a browser connected: the launcher's result as it came, the launcher having refused the model the browser action that opens a tab (`permission_denials`: a headless launch has nobody to approve a browser action), the model answering `not_saved`; no page was saved. The scenario reads its measures, its refusal and its `not_saved`; nothing in it is about a page |
-| `task-launcher-answer-saved.json` | **Not captured yet**: the launcher's output for a rendered fetch task in the owner's browser on this machine, the model reporting the page saved. Loop `125` reads it and waits for it (`awaits`) |
+
+## A session's report
+
+What a session reported of the subagent it spawned on a handed task, as `tools/run_task.py done --out` wrote it when the run
+was reported: the subagent's last message as it came (`answer`), the tokens, tool uses and time the session was given for it, the
+model it was spawned on, the agent file's effort and the task as handed out. Played back by the loop's `task` action with `session`.
+
+| File | Where it came from |
+|---|---|
+| `task-session-report-saved-elsewhere.json` | **Captured for the harness** on 4 October 2026 on the live catalog, the owner present: the first fetch task a model ran in the owner's browser, the agent `tree-fetch` spawned on `haiku` (effort low) with the rendered task of the live list's first page, James Joseph Ahearn's record in United States, World War I Draft Registration Cards (ark:/61903/1:1:4X3T-LGW2). The subagent answered `saved` with the script's line `ok fs-record 137015B`; the session was given 12799 tokens, 9 tool uses and 63068 ms. The browser's download location was the home's download folder and not the data root's `downloads/`, so no page came in and the run's row on the live catalog is `nothing`, marked as differing. Loop `129` plays it back on the same step with nothing in the folder: the run as it happened |
+| `task-session-report-saved.json` | **Not captured yet**: a session's report of a fetch task whose page the browser saved into the data root's `downloads/`, with that page beside it. Loop `125` reads both and waits for the report (`awaits`) |
 
 ## Gazetteer answers
 
@@ -410,7 +420,9 @@ A holder that does not answer is simulated, a control signal and no record:
   `124`) or exits with a status and prints nothing (`exit`, loop `121`): a launcher that does not answer, no result invented.
   With `captured` the process prints a launcher's real output; the page under `saves` is a real saved page, written into
   `downloads/` as the browser would leave it (loop `123`, `124`). With `session: "silent"` the session reports its subagent
-  done with no message and no measures (loop `128`): the same silence at the other launcher.
+  done with no message and no measures (loop `128`): the same silence at the other launcher. With `session: {"captured": …}`
+  nothing is simulated: the report is a session's own (loop `125`, `129`), and the step it is played back on is written by
+  hand as the owner's catalog holds it.
 
 The runner's runs are simulated where a scenario is about what happens after one, not about a holder's answer:
 
