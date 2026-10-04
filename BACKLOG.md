@@ -53,8 +53,8 @@ blocked" at the foot of this file.
 
 ## A. Priority sequence
 
-Items with ordering or coupling constraints: the healthy baseline, in order.
-Each is closed in full (a scenario failing before the change, the docs, the
+Items with ordering or coupling constraints: the healthy baseline, in order,
+then the work that stands on it. Each is closed in full (a scenario failing before the change, the docs, the
 checks green, pushed) before the next starts; an entry that changes what the
 rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
@@ -91,6 +91,67 @@ analysed (`ANALYZE` alone brings it to under a second on a copy), and
 module-level `holdings()` calls rebuild the Catalog's cached holdings about
 23 times a view. The page's `list()` and `/api/people` are a queue-shaped
 table reading fields nothing returns: remove them.
+
+### A1. Models run the steps no connector can, tasked and measured by code
+
+**Blocked by:** A8 (the fetch list every waiting person's pages join is the
+list a model works through).
+
+`docs/DATA-ARCHITECTURE.md` §7 decision 16: code judges, models investigate.
+No model is launched by code: a page at a holder without a connector waits
+for a session at the owner's browser, a held image for a session at the
+transcription form, an assisted search for a hand, each tasked in prose and
+run on whatever model that session is. Build the runner that sits where a
+connector sits (`tools/run_step.py`: it is handed a step, the runner archives
+what comes back and logs the run), one piece closed before the next:
+
+1. **The task is the step.** A fetch step's task is the fetch list's own line
+   (`tools/fetches.py next`: the link, the file name, the script's call with
+   the step's key); a search step's is its rendered fields and its holder; a
+   reading's is a held artifact no parser reads. The words a model needs
+   beyond the step are one text per task kind, kept in the repository as
+   `app/person/read_record.md` is for a reading, its sha256 on every run. No
+   task is written by hand.
+2. **The answer is checked, never believed.** The model answers in a JSON
+   schema the runner validates and is given only the tools its task kind
+   needs, none of which writes the catalog: what it saves goes through
+   `tools/fetches.py collect`, the parsers, the matcher and the rule as a
+   hand-saved page does. A fetch counts when the saved page's own identity is
+   the step's locator; a search's `none` is the parser's reading of the
+   archived results page as it was run, never the model's word; a reading
+   enters as an undecided extraction with its lines or boxes; a source or a
+   lead a model proposes becomes a plan step and is judged by that step's run.
+3. **Every run is a row.** An insert-only table of runs: the task kind, the
+   holder, the task text's hash, the model and the effort, the tokens, cost,
+   turns and time the launcher reports, and the outcome as code judged it
+   (the answer valid, the identity matched, the page read, the record taken
+   by the rule, a card, a hint, nothing), joined to the `search_log` row or
+   the extraction the run produced. These measures choose a model and never
+   reach a card (`CLAUDE.md` hard rule 1).
+4. **An estimate is the record of past runs** of the same task kind at the
+   same holder, never a guess. A kind with no runs is calibrated first on
+   work whose answer the catalog already holds: done fetch steps whose record
+   ids are known, pages a parser reads (the model's reading compared with the
+   parser's field by field), readings the owner decided. A calibration task
+   is run more than once at each model and effort, so a model that answers
+   the same task differently is seen.
+5. **The choice is data and one rule.** A data file lists the models and
+   efforts in order of cost and, per task kind, the bar the owner sets. The
+   runner takes the cheapest that has met the bar for that kind and holder;
+   sends a task code judged failed one step up, both runs recorded; at an
+   interval the file sets runs a task one step down as well, so a cheaper
+   model that has become good enough is found; and stops a turn's spending
+   at the file's cap, the turn's report saying what was spent and what it
+   bought.
+
+The launcher (`claude` run non-interactively) takes a model, an effort, a
+schema for the answer, the tools allowed, a spending cap and the browser
+integration. Confirm first what its result reports of tokens and cost, and
+that the browser integration answers without a session. Decision wanted from
+the owner: the bar per task kind, the cap per turn, and which records stay a
+person's to read. Start with the fetch task at FamilySearch and Find a Grave:
+the fetch list is its task already, and the done steps at those holders are
+its calibration.
 
 ---
 
@@ -876,19 +937,6 @@ before the 0.8.1 triggers but not for a later migration that rebuilds a
 protected table. Make the DDL order right, list every construct the port must
 change, carry the triggers over (and recreate them after any rebuild), and
 make each migration one transaction that names the code it needs.
-
-### C43. A reader in the loop
-
-"AI in the core" has no place in the code: no model is called anywhere, every
-reading the loop makes is one of fifteen parsers of one site each, and the
-eleven model readings the catalog holds were typed through the screen's
-transcription path by a session. So an obituary's text, a gravestone
-photograph and a scanned index wait for a session however long the loop runs
-(C24 is one such case). Decision wanted from the owner before code: whether a
-turn calls a model to read a held record no parser reads (`app/person/
-read_record.md` is already its instruction, the reading recorded with its
-model and prompt hash), within what cost per turn (decision 6), and which
-records stay a person's to read.
 
 ### C44. A live reconsider reaches its end in one run
 

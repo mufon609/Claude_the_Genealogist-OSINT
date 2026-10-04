@@ -432,6 +432,26 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    still count once for the rule (the owner, 3 Oct 2026: count once), though the
    profile cites them as two.
 
+16. **Code judges; models investigate.** The owner: "the point is to have a
+   solid process that is repeatable" in the judgement calls of the proof
+   standard and of how the tree is built, and "code is what makes this
+   possible"; searching for records and finding them is the work of models,
+   "whether through in house connectors or the manual browser extension -
+   anyway possible, creativity allowed." A model is tasked by code in one
+   repeatable form, so that the project can estimate what a task costs, track
+   what each model and effort level did with it, and adjust which is used,
+   from the record of similar tasks: a costlier model than a task needs is
+   money wasted, and one that does the task poorly or differently each time is
+   worse. "Trust should be eliminated by code" at every point possible: a
+   model's answer is checked by code and never believed, a model writes
+   nothing to the catalog, and what it finds is decided as any record is
+   (decision 13; `docs/RESEARCH-WORKFLOW.md` §5–7). No task is a prompt
+   written by hand, by a person or a session. The standing rules on sources
+   hold inside every task (decision 4; a challenge or a sign-in is the owner's
+   to pass; Find a Grave and Ancestry are never scraped). No model is launched
+   by code today: the runner, its record of runs and the choice of model are
+   deferred work in `BACKLOG.md`.
+
 ## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**
