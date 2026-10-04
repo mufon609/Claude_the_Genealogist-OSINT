@@ -1233,7 +1233,11 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   rests on: the information class weighs which of two statements that differ
   is right (Conflicts, below), while a day or a relative two records nobody
   can edit both give marks one person whoever informed them
-  (`docs/DATA-ARCHITECTURE.md` §7 decision 14). A relationship the record's
+  (`docs/DATA-ARCHITECTURE.md` §7 decision 14). A date bounded before, after
+  or between (from–to) is compared as its range, edges included: a date or
+  range wholly outside it disagrees, and one inside it or overlapping it
+  neither agrees nor disagrees, so a bound is never a day or a year of birth
+  or death, never a point and never a veto. A relationship the record's
   indexer computed counts once at most, is never an obituary's survivor and
   never an accepted family link. A statement marked as a sibling placement, a
   value the page keeps beneath the one it shows or a link the record's indexer
