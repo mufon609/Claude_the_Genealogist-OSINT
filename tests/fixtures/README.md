@@ -114,6 +114,7 @@ launcher's place (`tools/run_task.py capture` writes one).
 | File | Where it came from |
 |---|---|
 | `task-launcher-answer-not-saved.json` | **Captured for the harness** on 4 October 2026: one launch on the smallest model (`haiku`, effort low) with the fetch task's own flags (the answer schema, no built-in tool, `--chrome`, a spending limit, input closed), asked by a probe's prompt and not a rendered task to answer `not_saved` with the line `probe`, no browser tool called: the launcher's result with its measures (2 turns, 1829 ms, $0.02528, the model's usage) and a valid answer. The scenarios read its measures and its `not_saved`; nothing in it is about a page |
+| `task-launcher-answer-denied.json` | **Captured for the harness** on 4 October 2026: one launch on the smallest model (`haiku`, effort low) of a rendered fetch task (`tools/run_task.py capture`, the live list's first page) with a browser connected: the launcher's result as it came, the launcher having refused the model the browser action that opens a tab (`permission_denials`: a headless launch has nobody to approve a browser action), the model answering `not_saved`; no page was saved. The scenario reads its measures, its refusal and its `not_saved`; nothing in it is about a page |
 | `task-launcher-answer-saved.json` | **Not captured yet**: the launcher's output for a rendered fetch task in the owner's browser on this machine, the model reporting the page saved. Loop `125` reads it and waits for it (`awaits`) |
 
 ## Gazetteer answers

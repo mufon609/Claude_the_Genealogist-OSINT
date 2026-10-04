@@ -70,15 +70,24 @@ page at a holder without a connector still waits for a session at the owner's
 browser, a held image for a session at the transcription form, an assisted
 search for a hand. What is left, one piece closed before the next:
 
-1. **The first real run.** No launch has driven a browser. The check's one
-   scenario of a page the model saves waits on a capture
-   (`python3 tools/run_task.py capture --model haiku --effort low --out
-   tests/fixtures/task-launcher-answer-saved.json`), which needs a Chrome on
-   this machine, connected, saving into the data root's `downloads/`. That
-   run also shows what is unmeasured: whether a launch given no built-in tool
-   sees the browser's six, and what `denials` reads when the owner's settings
-   allow more. An answer that is not the schema's has no scenario for want of
-   a real one.
+1. **A browser action needs a person's approval, and a launch has nobody to
+   give it.** Measured on 4 Oct 2026 with a Chrome on this machine connected:
+   a launch sees the browser the owner picked last on the account, and the
+   launcher lets the model list browsers and read tabs, but refuses the first
+   action (opening a tab) with "Claude in Chrome requires permission": the
+   tool allowlist does not grant it, and Claude Code's documentation names no
+   way to grant it ahead of time to a run with no one to prompt. So a model
+   launched by code cannot save a page today, and the check's one scenario of
+   a page the model saves still waits on its capture. A session with a person
+   at it can: the approval prompt reaches them. Decide with the owner how a
+   browser task gets its approval (the task run from a session where the
+   owner approves once, the runner still rendering, judging and recording
+   it; or an approval the runner answers by code for exactly the task's own
+   link and script, if the launcher allows one), then build that. Beside it:
+   the launch names the browser it uses instead of taking the one picked
+   last; it loads no connector's tools (`--strict-mcp-config`), which a
+   two-turn launch on the smallest model now pays about three cents for; and
+   an answer that is not the schema's has no scenario for want of a real one.
 2. **Calibration: an estimate is the record of past runs** of the same task
    kind at the same holder, never a guess. A kind with no runs is calibrated
    first on work whose answer the catalog already holds: done fetch steps

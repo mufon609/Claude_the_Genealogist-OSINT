@@ -1,0 +1,65 @@
+{
+ "title": "a launch the launcher refuses its browser tool saves nothing, and the row counts the refusal",
+ "line": "a launcher's real result on a rendered fetch task (captured: the launcher refused the model the browser action that opens a tab, nobody being there to approve it, and the model answered not_saved) with no page in downloads/ is a task_run row whose outcome is nothing, its denials 1, the report and the finding agreeing, and no run logged on the step",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task answered by the captured result of a launch whose browser action was refused",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "captured": "task-launcher-answer-denied.json",
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "ended": "completed",
+        "outcome": "nothing",
+        "differs": false,
+        "cost_usd": 0.0180114,
+        "turns": 4,
+        "duration_ms": 10597,
+        "input_tokens": 43242,
+        "output_tokens": 817,
+        "denials": 1,
+        "answer": {
+         "status": "not_saved",
+         "line": "Claude in Chrome tools require approval, not available in this session"
+        },
+        "log": null,
+        "note": "no page came into the folder"
+       }
+      ]
+     },
+     "why": "a refused tool is counted from the launcher's own result, and the outcome is what the folder holds"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step"
+    }
+   ]
+  }
+ ]
+}
