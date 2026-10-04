@@ -452,6 +452,26 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    by code today: the runner, its record of runs and the choice of model are
    deferred work in `BACKLOG.md`.
 
+17. **A question reaches a person only when the investigation that could
+   answer it is done.** The owner: "the goal is more the human to step back
+   while the program runs, we want people with no real knowledge of genealogy
+   to run and trust this program", and "currently, not enough investigation is
+   done before the user is asked for advice. most question have clear answers,
+   more context is needed". The person running the program is not assumed to
+   know genealogy, and a question put to them is the last resort: before a
+   record, a conflict or a place is a person's to decide, the program seeks
+   what would answer it (the record that would supply the missing point, the
+   decision it waits on, the context that tells two places apart or shows them
+   to be one), and what still reaches a person says what was tried. Caution
+   stands ("always be cautious"): nothing here lowers what the rule takes; the
+   rule is given more evidence. Which questions investigation answers is found
+   by trial on a copy of the live catalog, for every kind of question that
+   reaches a person. The same holds for the project's own settings: what the
+   program can measure (whether a model does a task, what a task costs) is
+   measured, not asked. A record the rule does not take is a card at once
+   today, and a difference between two place strings a conflict at once: the
+   work is in `BACKLOG.md`.
+
 ## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**

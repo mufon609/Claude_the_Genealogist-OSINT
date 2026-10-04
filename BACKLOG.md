@@ -135,23 +135,77 @@ what comes back and logs the run), one piece closed before the next:
    parser's field by field), readings the owner decided. A calibration task
    is run more than once at each model and effort, so a model that answers
    the same task differently is seen.
-5. **The choice is data and one rule.** A data file lists the models and
-   efforts in order of cost and, per task kind, the bar the owner sets. The
-   runner takes the cheapest that has met the bar for that kind and holder;
-   sends a task code judged failed one step up, both runs recorded; at an
-   interval the file sets runs a task one step down as well, so a cheaper
-   model that has become good enough is found; and stops a turn's spending
-   at the file's cap, the turn's report saying what was spent and what it
-   bought.
+5. **The choice is data and one rule, and nothing in it is asked of the
+   owner** (decision 17: what the program can measure is measured). A data
+   file lists the models and efforts in order of cost. Where code checks the
+   whole result (a fetch: the saved page's identity is the step's), a wrong
+   answer is refused whichever model gave it, so the runner takes the model
+   and effort with the lowest recorded cost per result that passed. Where
+   code cannot check the whole result (a reading), a model and effort
+   qualifies only when no reading of its calibration differs from the known
+   one, and in use a record is read twice, independently, and stands where
+   the two agree: where they differ it goes one step up, and to a person only
+   when the top step still differs, so no kind of record is a person's to
+   read beforehand. A task code judged failed goes one step up, both runs
+   recorded; at an interval the file sets, a task is run one step down as
+   well, so a cheaper model that has become good enough is found. A run is
+   stopped at the highest cost its kind's calibration recorded and counted
+   failed; the turn's report says what was spent and what it bought.
 
 The launcher (`claude` run non-interactively) takes a model, an effort, a
 schema for the answer, the tools allowed, a spending cap and the browser
 integration. Confirm first what its result reports of tokens and cost, and
-that the browser integration answers without a session. Decision wanted from
-the owner: the bar per task kind, the cap per turn, and which records stay a
-person's to read. Start with the fetch task at FamilySearch and Find a Grave:
-the fetch list is its task already, and the done steps at those holders are
-its calibration.
+that the browser integration answers without a session. Start with the fetch
+task at FamilySearch and Find a Grave: the fetch list is its task already,
+and the done steps at those holders are its calibration.
+
+### A2. A question reaches a person only after the investigation that could answer it
+
+`docs/DATA-ARCHITECTURE.md` §7 decision 17. A record the rule does not take
+is a card at once, a difference between two place strings a conflict at once,
+and a string the geocoder leaves open a place card at once, whatever the
+program could still find out. Measured on the live catalog of 4 Oct 2026
+(`tools/cards.py --all` with the rule's reason on each card, the open
+questions, the undecided place proposals), what waits on the owner:
+
+- **62 record cards.** 13 are pages anyone can edit short of their three
+  points because the tree holds the matching day or burial only as a claim;
+  10 are trusted records one point short; 13 wait on a name or a relative's
+  link nobody has accepted yet; 16 differ on a name (a woman under her birth
+  surname whose parents the tree holds, a middle initial, an indexer's slip,
+  a short form); 7 are no decision (no full name to create a person under, a
+  relation of "other", an informant); 2 differ on a birth year; 1 is a kind
+  the classes table has no row for.
+- **28 open conflict and identity questions.** 10 are a couple's repeated
+  marriage events in the file; 11 are places, among them one cemetery under
+  its own name and under its locality, a town against the county it lies in,
+  and a bare town name against its state; 2 are names, 1 a birth date, 2 a
+  person's two events of one kind, 2 the limits of one life.
+- **106 place cards.** 13 are a bare name that needs context; 26 are one
+  place among candidates that are its own boundary or no place at all; 19
+  are several candidates verifying; 11 a same-named nested unit; 20 no
+  candidate matching every part; 8 no candidate; the rest carry notes of
+  their own.
+
+For each class, write what would answer it, try it on a scratch copy of the
+live catalog, and report what closes without a person and what still does
+not; the owner's own past decisions on cards of the class are the check that
+an answer found this way is the one a person gave. The first answers to try:
+a card short of a point is first a lead for the record that would supply it
+(the death record for a day of death, a trusted burial record), and a card
+only once that record is held or searched for with nothing found; a card
+waiting on another decision comes after it; a place difference is compared
+once both strings are resolved in the record's own context (its collection's
+place, the record's other fields, the person's other places), and is a
+conflict only when they resolve apart; a bare place name is resolved in that
+context; a persona nobody could be created from is a hint, not a card; a name
+that differs is tested against what the tree holds of the person (the
+parents' surname, a spouse's, the aliases) before it is a person's. The
+same-named nested unit stays undecided as `CLAUDE.md` has it unless a trial
+shows context that tells the two apart, which is then put to the owner as a
+change to that rule. Nothing lowers what the rule takes: the rule is given
+more evidence. What still reaches a person says what was tried. Docs first
+(§0, §5–7, `docs/RESEARCH-CHECKLIST.md` §6b), a class at a time.
 
 ---
 
