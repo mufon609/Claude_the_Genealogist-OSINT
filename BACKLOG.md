@@ -60,6 +60,35 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
+### A1. A re-read keeps the person its record created, and a withdrawal takes the links it wrote
+
+Two defects stand between the claim fix and its live run; the live reconsider
+waits on this entry and applies both. (1) `docs/RESEARCH-WORKFLOW.md` §5–7
+already says a decision written on an earlier reading of a page is judged on
+the persona of the same entry in the reading that superseded it. A creation
+(`conclude.rule_creates`) is not: when the record is read again its card
+closes as superseded, the current reading's persona is put to the person the
+creation made, and no route takes it, since the name rests on that record
+alone and the one link is the creation's own (scenario
+`99z-a-creation-taken-back-on-a-superseded-reading`). Judge the creation on
+the same entry of the current reading by the creation's own terms (a T1–T2
+record or a read obituary, a relationship the record states, never its
+indexer's, to a person accepted on it), the fitting check not counting the
+person that creation itself made; a creation whose terms the current reading
+no longer meets is withdrawn. Live, Daisy Bell Rothberg on her brother's
+obituary `243f18dc92f5`; Dennis Scannell on the 1917 Massachusetts death
+index `fceaa7dbde67`, whose relationship the dry run calls the indexer's, so
+say which his creation is. (2) A family link a record states is accepted
+when both people it relates are accepted on that record, and stays when one
+of the two decisions is withdrawn: Ollie Duke Davidson's link to his mother
+Lena Howard Bell, written from his Kentucky death record `c8e38d9e9f26`,
+stays accepted when his own decisions on that record are withdrawn, and his
+obituary decision is then kept on that link. A withdrawal takes back the
+links its decision was one of the two acceptances for, a link a person
+decided on its own (`person_decided`) excepted. Show each on a scenario, then
+dry-run reconsider on a scratch copy of the live catalog with the claim fix
+in place and report every change, with the route of each decision kept.
+
 ### A4. The rule counts what the docs list, and no more
 
 On a page anyone can edit the identity takes three of four things (§0, §5–7):
@@ -86,6 +115,8 @@ the reader marked its relations. A fact decision now records itself on every
 statement it acts on (`assertion.person_decided`), so a `fact … accept` made
 before this change may have marked such a statement as the owner's own accept:
 list those on the scratch copy for the owner rather than changing them.
+
+**Blocked by:** A1.
 
 ### A5. A bounded date is compared as its range
 
@@ -1017,22 +1048,19 @@ only where `assertion.person_decided` says a person's own decision set the
 status, and say what set it otherwise (the record's acceptance, a re-read, the
 rule).
 
-### C50. A persona put to the person its own record created
+### C50. "Claim" means two things in the code
 
-The rule creates a person a trusted record names in a stated relationship to
-someone accepted on it, nobody else fitting (`conclude.rule_creates`). When the
-record is read again and the creation's card closes on the superseded reading,
-`reconsider` puts the current reading's persona to the person the creation made,
-and no route takes it: the name rests on that record alone, and the one link is
-the one the creation wrote from it, which the claimed-relationship route never
-counts. The card is the owner's though the record and its terms are those the
-rule created the person on: Daisy Bell Rothberg on her brother's obituary and
-Dennis Scannell on the 1917 Massachusetts death index, live, and scenario
-`99z-a-creation-taken-back-on-a-superseded-reading`; the person stays with
-nothing accepted. Decide whether the rule takes such a persona on the
-creation's own terms (a T1–T2 record or a read obituary, a stated relationship
-to a person accepted on it, nobody but the person that record created fitting),
-state it in `docs/RESEARCH-WORKFLOW.md` §5–7, and show it on `99z`.
+`docs/RESEARCH-WORKFLOW.md` §0 defines a claim as the imported file's word.
+`Catalog.basis`, `link_basis` and `family` label as `claim` every membership
+whose statements are not all rejected, a page anyone can edit and a sibling
+placement included, and their readers take the label at §0's word: the queue's
+edge "a parent or spouse the file names" (`tools/queue.py`) counts a parent the
+tree links only by a placement, and the limits of one life (§5–7,
+`docs/DATA-ARCHITECTURE.md` §7 decision 12, `Catalog.beyond_life`) are said to
+test "accepted or the file's claims" while they test every link not rejected.
+The rule's own reader is `conclude.claimed_or_accepted`. Call Catalog's label
+what it is, have each reader that means the file's word read the file's word,
+and make the docs say what each test reads.
 
 ## Externally blocked
 
