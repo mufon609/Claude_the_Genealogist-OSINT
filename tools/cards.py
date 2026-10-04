@@ -49,12 +49,13 @@ def persona_status(cx, tree_id, persona_id):
     if pr["status"] == "undecided": return f"proposed as {pr['display_name']}" if pr["kind"] == "persona_match" else "proposed as a new person"
     return f"{pr['status']}: {pr['kind'].replace('_', ' ')}" + (f" {pr['display_name']}" if pr["display_name"] else "")
 
-def card(cx, tree_id, prop_id):
-    """The decision card for one proposal, as data."""
+def card(cx, tree_id, prop_id, cat=None):
+    """The decision card for one proposal, as data. cat is the caller's Catalog when it builds many cards (the person screen's
+    view): the cards then share its holdings and page groups, built once; one is made here when not given."""
     cx.row_factory = sqlite3.Row
     p = cx.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if not p or p["kind"] not in ("persona_match", "new_person"): return None
-    pay = json.loads(p["payload_json"]); cat = Catalog(cx, tree_id)
+    pay = json.loads(p["payload_json"]); cat = cat or Catalog(cx, tree_id)
     pe = cx.execute("SELECT id, name_text, sex, role_in_record, region_json, artifact_sha256, extraction_id FROM persona WHERE id=?", (pay["persona_id"],)).fetchone()
     sha = pe["artifact_sha256"]
     a = cx.execute(f"""SELECT a.sha256, a.mime, {tier_sql('a')} AS trust_tier, a.locator_kind, a.locator_value, a.original_filename, a.retrieved_at, a.source_id, s.name AS source_name, c.name AS collection

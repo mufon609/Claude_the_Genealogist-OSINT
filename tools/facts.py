@@ -41,11 +41,12 @@ def fact_status(cx, pid, field):
     if sts and sts <= {"rejected"}: return "rejected"
     return "undecided"
 
-def evidence_rows(cx, pid, field):
+def evidence_rows(cx, pid, field, hs=None):
     """The statements behind one key fact as the person screen shows them, each with the record it is a statement of: record,
     the key of that record (catalog.record_of: one record is one source wherever it is held, so the screen cites it once
-    with its copies beneath), the same for every copy of it; marked, whether it carries one of conclude.MARKS."""
-    hs = holdings(cx)
+    with its copies beneath), the same for every copy of it; marked, whether it carries one of conclude.MARKS. hs is the
+    archive's holdings (catalog.holdings) when the caller reads many facts of a view, built once for all; built here when not given."""
+    if hs is None: hs = holdings(cx)
     out = []
     tree_id = cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0]
     for k, i in fact_subjects(cx, pid, field):

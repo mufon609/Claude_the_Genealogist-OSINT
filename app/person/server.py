@@ -47,16 +47,17 @@ def tree_of(cx, slug=None):
 
 # ------------------------------------------------------------------ what supports a key fact: tools/facts.py
 # ------------------------------------------------------------------ views
-def plan_view(cx, pid):
-    """The person's open fact-level questions and every step, each with its log and its fields as rendered."""
+def plan_view(cx, cat, pid):
+    """The person's open fact-level questions and every step, each with its log and its fields as rendered; a fetch step's held
+    record is read from the catalog's own holdings (Catalog.holdings), built once for the view."""
     questions = [{"id": q["id"], "kind": q["kind"], "detail": json.loads(q["detail_json"] or "{}"),
                   "steps": cx.execute("SELECT COUNT(*) FROM search_plan WHERE question_id=?", (q["id"],)).fetchone()[0]}
                  for q in cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' ORDER BY kind", (pid,))]
-    steps = []; hs = holdings(cx)
+    steps = []
     for s in cx.execute("SELECT * FROM search_plan WHERE person_id=? ORDER BY seq", (pid,)):
         logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY executed_at", (s["id"],))]
         col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
-        if s["locator_kind"] == "apid": sha = held_for(cx, s["locator_value"], pid, hs)
+        if s["locator_kind"] == "apid": sha = cat.held_for(s["locator_value"], pid)
         else: a = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None; sha = a["sha256"] if a else None
         fields = json.loads(s["query_json"])
         steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"], "archived": sha,
@@ -105,7 +106,8 @@ def artifact_view(cx, tree_id, sha, pid):
     relatives is fetched for all of them, and each proposal names the person it concerns."""
     a = cx.execute(f"SELECT ar.sha256, ar.mime, {tier_sql()} AS trust_tier, ar.locator_kind, ar.locator_value, ar.original_filename, ar.collection_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
     if not a: return None
-    cited = Catalog(cx, tree_id).cited().get(a["locator_value"], {}) if a["locator_kind"] == "apid" else {}
+    cat = Catalog(cx, tree_id)
+    cited = cat.cited().get(a["locator_value"], {}) if a["locator_kind"] == "apid" else {}
     col = cx.execute("SELECT name FROM collection WHERE id=?", (a["collection_id"],)).fetchone() if a["collection_id"] else None
     hints = hints_on(cx, tree_id, sha, pid) if pid else {}
     exts = []
@@ -125,7 +127,7 @@ def artifact_view(cx, tree_id, sha, pid):
     for r in cx.execute("""SELECT p.id, p.kind, p.status, p.rationale, p.payload_json, p.decided_by, p.decision_note, c.display_name AS candidate FROM proposal p
                            LEFT JOIN person c ON c.id=json_extract(p.payload_json,'$.person_id')
                            WHERE p.tree_id=? AND json_extract(p.payload_json,'$.artifact_sha256')=? ORDER BY p.created_at""", (tree_id, sha)):
-        c = decision_card(cx, tree_id, r["id"]) if r["kind"] in ("persona_match", "new_person") else None      # the same card the cards tool prints
+        c = decision_card(cx, tree_id, r["id"], cat) if r["kind"] in ("persona_match", "new_person") else None      # the same card the cards tool prints
         proposals.append({"id": r["id"], "kind": r["kind"], "status": r["status"], "rationale": r["rationale"], "persona_id": json.loads(r["payload_json"])["persona_id"],
                           "person_id": json.loads(r["payload_json"])["person_id"], "person": r["candidate"], "card": c, "card_text": render_card(c) if c else None,
                           "by_rule": (r["decided_by"] or "").startswith("rule:"), "note": r["decision_note"]})
@@ -305,16 +307,17 @@ def other_facts(cx, cat, pid, groups):
                            WHERE ep.person_id=? AND e.event_type NOT IN ('Birth','Death') ORDER BY e.date_start, e.event_type""", (pid,)):
         f = f"event:{e['id']}"
         out.append({"field": f, "type": e["event_type"], "date": e["date_text"], "place": cat.place(e["id"], e["place_id"])["text"] if e["place_id"] else None, "value": e["description"],
-                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f), "places": place_strings(cx, cat.tree_id, e["id"], groups)})
+                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f, cat.holdings()), "places": place_strings(cx, cat.tree_id, e["id"], groups)})
     return out
 
 def person_view(cx, tree_id, pid):
-    cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, pid); r["living"] = cat.living(pid); groups = place_groups(cx, tree_id)
-    r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f),
+    """The person's page as data. The archive's holdings are built once, on the Catalog, and every part of the view reads them."""
+    cat = Catalog(cx, tree_id); r = build(cat, pid); r["plan"] = plan_view(cx, cat, pid); r["living"] = cat.living(pid); groups = place_groups(cx, tree_id)
+    r["review"] = {f: {"status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f, cat.holdings()),
                        "places": [s for k, i in fact_subjects(cx, pid, f) if k == "event" for s in place_strings(cx, tree_id, i, groups)]} for f in KEY_FACTS}
     r["facts"] = other_facts(cx, cat, pid, groups)
     r["waiting"] = cat.waiting(pid)
-    r["documents"] = [c for c in (decision_card(cx, tree_id, row[0]) for row in cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
+    r["documents"] = [c for c in (decision_card(cx, tree_id, row[0], cat) for row in cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='undecided' AND kind IN ('persona_match','new_person')
         AND (json_extract(payload_json,'$.person_id')=? OR (kind='new_person' AND json_extract(payload_json,'$.subject_person_id')=?)) ORDER BY created_at""", (tree_id, pid, pid))) if c]
     r["candidates"] = [{"sha256": c["sha256"], "text": render_search(c)} for c in search_cards_for(cx, tree_id, pid)]
     r["decided"] = [{"id": d["id"], "kind": d["kind"], "status": d["status"], "by_rule": (d["decided_by"] or "").startswith("rule:"), "note": d["decision_note"], "at": d["decided_at"],
@@ -389,7 +392,7 @@ class H(BaseHTTPRequestHandler):
                 else:
                     cx.commit()
                     if mf: res["review"] = {f: fact_status(cx, pid, f) for f in KEY_FACTS}
-                    if mp: res["plan"] = plan_view(cx, pid)
+                    if mp: res["plan"] = plan_view(cx, Catalog(cx, tree_id), pid)
                     self.send(res)
             except RegistryOutOfStep as e: cx.rollback(); self.send({"error": str(e)}, code=400)   # the plan regeneration inside a decision found the registry out of step
             except Exception as e: cx.rollback(); self.send({"error": repr(e)}, code=500)
