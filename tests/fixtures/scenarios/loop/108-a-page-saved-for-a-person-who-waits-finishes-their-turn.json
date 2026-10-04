@@ -1,0 +1,161 @@
+{
+ "title": "a page saved for a person who waits finishes their turn",
+ "line": "a turn on the grandfather leaves two pages for the browser and he waits on them; his 1940 census household, saved from the list with its key, is taken in by the next run before any turn: the file is credited to him and his turn finished, his own report naming the file, what it left for the owner and the one page he still waits on, and the queue passes him over on that one page; a run with --turns 0 starts no turn, and a resume with nothing saved finishes nobody's",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so the grandfather is at the edge",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": [
+     "I332737035563",
+     "I332737044283"
+    ],
+    "kind": "child",
+    "record": "import"
+   }
+  },
+  {
+   "say": "a turn on the grandfather: two pages for the browser, and he waits on them",
+   "turn": {
+    "person": "I332737036054",
+    "geocoder_silent": true
+   },
+   "expect": [
+    {
+     "turn_state": {
+      "person": "I332737036054",
+      "is": {
+       "steps": {
+        "len": 2
+       }
+      }
+     },
+     "why": "his entry, the steps of the two pages he waits on"
+    }
+   ]
+  },
+  {
+   "say": "the 1940 census household of Caln Township saved from the list's call for his 1940 census search, its key under the saved-from line",
+   "save": {
+    "holder": "D03",
+    "person": "I332737036054",
+    "url_has": "residenceDate.from=1940",
+    "fixture": "familysearch-census-1940-KQX1-VT9.html",
+    "folder": "downloads",
+    "key": true
+   },
+   "as": "saved"
+  },
+  {
+   "say": "the next run, starting no turn: what was saved is taken in first",
+   "turns": {
+    "geocoder_silent": true,
+    "turns": 0
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "is": null
+      },
+      "printed": {
+       "has": [
+        "turn: Frederick Micheal Ahearn Jr [",
+        "], finished on the pages saved for them",
+        "familysearch-census-1940-search-frederick-micheal-ahearn.html: ark ark:/61903/1:1:KQX1-VT9; 1 step(s) fulfilled: Frederick Micheal Ahearn Jr (census household: the page's own key names this step",
+        "Frederick Micheal Ahearn Jr: 1 document(s) still waiting for a decision",
+        "waits on 1 page(s) to save in the browser",
+        "familysearch-pennsylvania-and-new-jersey-church-and-t-search-helen-sara-brant.html"
+       ]
+      },
+      "summary": {
+       "has": [
+        "0 turn(s) done",
+        "finished on the pages saved for them:\n  Frederick Micheal Ahearn Jr [",
+        "1 person(s) wait on 1 page(s)"
+       ]
+      }
+     },
+     "why": "the file is credited to the person whose step it reached, and his turn is finished with a report of its own: what came in, what it left for the owner, the page he still waits on"
+    },
+    {
+     "turns_run": {
+      "turns": [],
+      "finished": [
+       "I332737036054"
+      ]
+     }
+    },
+    {
+     "turn_state": {
+      "person": "I332737036054",
+      "is": {
+       "steps": {
+        "len": 1
+       }
+      }
+     },
+     "why": "he waits on the one page still open for him"
+    },
+    {
+     "locator_known": {
+      "kind": "ark",
+      "value": "ark:/61903/1:1:KQX1-VT9"
+     },
+     "why": "the household's record page is archived"
+    },
+    {
+     "file": {
+      "name": "$saved.file",
+      "folder": "$saved.folder",
+      "exists": false
+     },
+     "why": "and gone from the download folder"
+    },
+    {
+     "queue": {
+      "passed": [
+       "I332737036054"
+      ],
+      "reasons": {
+       "I332737036054": {
+        "has": "waits on 1 page(s) to save in the browser"
+       }
+      }
+     },
+     "why": "the page saved is no longer one he waits on: the queue reads him again, and passes him over on the one page still open"
+    }
+   ]
+  },
+  {
+   "say": "a resume with nothing saved",
+   "resume": {
+    "geocoder_silent": true
+   },
+   "expect": [
+    {
+     "last": {
+      "report": {
+       "has": "nothing saved in the browser has come in; 1 person(s) wait on 1 page(s) to save in the browser"
+      },
+      "finished": []
+     },
+     "why": "nothing came in, so no turn is finished, and the report says who waits on how many pages"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

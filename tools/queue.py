@@ -29,7 +29,11 @@ nobody has vouched or decided, an assisted search with no link to open, an auto 
 logged error, the source not answering, is not such a run), a fetch logged blocked) is passed over: named, with why, but
 never named next, since running a turn on them would do nothing.
 A person at the edge for their parents' records is named only while one of those steps is one a turn can advance (or no
-plan has been made for them yet), and passed over otherwise.
+plan has been made for them yet), and passed over otherwise. A person who waits on pages to save in the browser (a turn
+named them: tools/turn.py, its state beside the database) is passed over while every step a turn could advance for them is
+one of those pages, with the number of pages: a turn would name the same pages again. Once a page of theirs has been saved
+its run is logged on their step, which is then no page they wait on, and they are read as anyone is; a step their plan opens
+that is not one of those pages names them sooner.
 Without --all, prints the first person found and the number passed over (queue.py --all lists the rest, each passed-over
 person with the reason).
 """
@@ -39,15 +43,17 @@ from treelib import DB, connect, dumps, resolve_tree
 from catalog import Catalog
 from checklist import names_parents
 from overview import overview
+from turn import waits
 import run_step, fetches
 
 def advanceable(cx, cat, tree_id):
     """The steps a turn can advance, by id: one the runner takes now (run_step.runnable: a connector can run it and it has no
     run since the plan last wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to open, and
-    this person's own step in the entry with no run on unchanged fields either)."""
+    this person's own step in the entry with no run on unchanged fields either); and the fetch list's entries, read once."""
     steps = {r["id"] for r in run_step.runnable(cx, cat, tree_id)}
-    for e in fetches.openable(cx, tree_id): steps.update(e["open_step_ids"])
-    return steps
+    entries = fetches.openable(cx, tree_id)
+    for e in entries: steps.update(e["open_step_ids"])
+    return steps, entries
 
 def require_home(cx, tree_id):
     """The tree's home person, or a refusal that names the command that sets one: the confirmed tree is walked from them."""
@@ -55,23 +61,33 @@ def require_home(cx, tree_id):
     if not home: sys.exit(f"tree '{slug}' has no home person: the queue walks the confirmed tree from them. Set one with: python3 tools/tree.py home \"<person>\" --tree {slug}")
     return home
 
-def edge(cx, tree_id):
+def edge(cx, tree_id, waits=None):
     """([{id, name, reason, kind}], [{id, name, reason, kind}]): the queue a turn can act on, in order, then everyone passed
     over (named once each, first reason it surfaces under; kind says which: "parent link" or "spouse link" the file names and
     nobody has accepted, "open question" on a confirmed person, "parents records" for a confirmed person whose parents nobody
     has accepted and the file names none, "unlinked" for a person the file names with no accepted link to anyone confirmed). A person with no plan yet is always actionable (a turn's own
     first move makes one); one already planned is actionable only while a step of theirs is one a turn can advance
-    (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next."""
+    (advanceable) -- otherwise their open question is the owner's alone and they are passed over, not named next. waits:
+    {person id: the steps of the pages they wait on} (tools/turn.py waits): a person all of whose steps a turn could advance
+    are pages they wait on is passed over too, with the number of pages, since a turn would name the same pages again;
+    once a page of theirs has been saved its step is no longer one a turn can advance, and they are read as anyone is."""
     require_home(cx, tree_id)
     cat = Catalog(cx, tree_id); ov = overview(cx, tree_id); out, passed = [], []; seen = set()
-    can = advanceable(cx, cat, tree_id)
+    can, entries = advanceable(cx, cat, tree_id)
+    waits = waits or {}
     def add(pid, name, reason, kind, counts=lambda row_key: True):
         """counts: which of the person's steps answer the reason (all of them, or the records that name parents)."""
         if pid in seen: return
         seen.add(pid)
         planned = cat.q("SELECT id, row_key FROM search_plan WHERE person_id=?", pid)
-        if planned and not any(sid in can and counts(rk) for sid, rk in planned):
+        open_steps = {sid for sid, rk in planned if sid in can and counts(rk)}
+        waited = open_steps & set(waits.get(pid, ()))
+        if planned and not open_steps:
             passed.append({"id": pid, "name": name, "reason": f"nothing left for a turn to run or fetch: {reason}", "kind": kind})
+        elif planned and open_steps == waited:
+            pages = [e for e in entries if waited & set(e["open_step_ids"])]
+            why = f"waits on {len(pages)} page(s) to save in the browser: {reason}"
+            passed.append({"id": pid, "name": name, "reason": why, "kind": kind, "waits": len(pages)})
         else:
             out.append({"id": pid, "name": name, "reason": reason, "kind": kind})
     for gen in ov["generations"]:
@@ -105,7 +121,7 @@ def main():
     ap.add_argument("--tree"); ap.add_argument("--db", default=DB)
     a = ap.parse_args()
     cx = connect(a.db, rows=True); tree_id, slug = resolve_tree(cx, a.tree)
-    q, passed = edge(cx, tree_id)
+    q, passed = edge(cx, tree_id, waits(cx, a.db, tree_id))
     if a.json: print(dumps({"next": q if a.all else q[:1], "passed_over": passed})); return
     if a.all:
         for e in passed: print(f"passed over: {e['name']} [{e['id'][-6:]}]  {e['reason']}")

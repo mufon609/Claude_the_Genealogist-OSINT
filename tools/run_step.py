@@ -20,7 +20,12 @@ done. An answer no reader of the connector parses (any exception from its total,
 challenge or maintenance page a holder serves with status 200 in place of its answer) is archived as it came and counts as
 no answer: the note gives the exception's type and message, and a run none of whose requests was answered is logged error,
 so the step stays runnable and the turn goes on (docs/RESEARCH-WORKFLOW.md §8). Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
-a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed. A run whose records
+a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed. A run that fails is an
+error run, never a stop (docs/RESEARCH-WORKFLOW.md §4): when the reading or the matching of its records raises, what the
+reading wrote is rolled back, the run's rows and the responses it archived are kept, and each row is restated as error
+with the exception in its note; when the connector raises before the run is logged (it cannot build its requests), what it
+wrote is rolled back and an error run is logged in its place. Either way the step stays runnable at that source and --all
+goes on to the next step. A run whose records
 are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
 index's rows under a surname) is found only when a row fits a person, as docs/RESEARCH-WORKFLOW.md §4 has it for a
 results page saved by hand: when no row of any listing fits anyone, the run is read again as none with the reason in its note
@@ -199,13 +204,15 @@ def household_steps(cx, tree_id, step):
 
 def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
     """One step through the connectors still to ask on its current fields (waiting_connectors), or through every one when
-    again is set (a step run by its id): one run each (run_connector), then extraction and matching over every record any of
-    them archived; a found run whose records fit no one (every record a results listing none of whose rows fits) is read
-    again as none, and one whose records are all records no parser reads, a page or a response alike, as unread
+    again is set (a step run by its id): one run each (connector_run), then extraction and matching over every record any of
+    them archived (read_records); a found run whose records fit no one (every record a results listing none of whose rows
+    fits) is read again as none, and one whose records are all records no parser reads, a page or a response alike, as unread
     (log_search.restate: a new row superseding the found one, whose id the result then names), each leaving the step as it
-    stood before the run. Returns one result per connector: a connector not asked, its source having answered
-    on these fields, reports that answer (asked False, answered {outcome, at}) instead of a run, so --dry-run says which
-    sources a step would ask."""
+    stood before the run. A run that fails is an error run, never an exception: the connector raising before the run is
+    logged (connector_run) or the reading or matching of its records raising (read_records) leaves an error run on the step,
+    the exception in its note and under `failed` in the result, and the step runnable at that source. Returns one result per
+    connector: a connector not asked, its source having answered on these fields, reports that answer (asked False,
+    answered {outcome, at}) instead of a run, so --dry-run says which sources a step would ask."""
     conns = connectors_for(cat, step)
     if not conns: return [{"error": "no source of this step has a connector"}]
     q = rendered_query(step["query_json"], step["revisions_json"])
@@ -216,26 +223,80 @@ def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
         a = latest_answer(cx, step, conn.SOURCE)
         if conn not in todo:
             out.append({"connector": name, "source": conn.SOURCE, "asked": False, "answered": {"outcome": a[0], "at": a[1]}}); continue
-        r = run_connector(cx, cat, tree_id, step, conn, by, dry_run)
-        if dry_run: out.append({**r, "source": conn.SOURCE, "asked": True, **({"answered": {"outcome": a[0], "at": a[1]}} if a else {})}); continue
+        if dry_run:
+            r = run_connector(cx, cat, tree_id, step, conn, by, dry_run=True)
+            answered = {"answered": {"outcome": a[0], "at": a[1]}} if a else {}
+            out.append({**r, "source": conn.SOURCE, "asked": True, **answered})
+            continue
+        r = connector_run(cx, cat, tree_id, step, conn, by, q)
         r = {**r, "source": conn.SOURCE, "asked": True}
-        if "error" in r: out.append(r); continue
-        extracted, read = [], []                                 # read: (a results listing, fits someone) per record read
-        for sha in r.pop("records"):                             # a hit's own record; the search response is the query's evidence, not a record
-            eid, n = extract(cx, sha, by)
-            if "failed" in n: extracted.append({"sha256": sha, "unparsed": n["failed"]}); continue
-            props, taken = match_record(cx, eid, by)
-            extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
-            read.append((listing(cx, eid), fits(cx, tree_id, eid, props)))
-        if r["outcome"] == "found" and read and all(l for l, _ in read) and not any(f for _, f in read):
-            r["log"] = r["logs"][0] = restate(cx, by, r["log"], outcome="none", note="no candidate fits")   # a none run holds no record: the step stands as it stood before the run
-            cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "none"
-        elif r["outcome"] == "found" and extracted and all(unread_record(cx, e["sha256"]) for e in extracted):   # every record is one no parser reads, page or response: held on the log, read by nobody, closing nothing
-            r["logs"] = [hold_unread(cx, by, lid) for lid in r["logs"]]; r["log"] = r["logs"][0]
-            for sid in r["household_steps"]: cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (sid,))   # household_steps takes only planned steps
-            cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "unread"
-        out.append({**r, "extracted": extracted})
+        out.append(read_records(cx, tree_id, step, r, by))
     return out
+
+def failure(what, e):
+    """A failure of the runner's own work on a step, as the run's note and the turn's report show it: what failed, then the
+    exception's type and message."""
+    return f"{what} failed ({type(e).__name__}: {e})"
+
+def connector_run(cx, cat, tree_id, step, conn, by, query):
+    """run_connector in a savepoint of its own: the run, or, when it raises (a connector that cannot build its requests from
+    the step's fields), what it wrote rolled back and an error run logged in its place at the connector's source, the
+    exception in the note and under `failed`, so the step stays runnable there."""
+    cx.execute("SAVEPOINT connector_run")
+    try:
+        r = run_connector(cx, cat, tree_id, step, conn, by)
+    except (Exception, SystemExit) as e:
+        cx.execute("ROLLBACK TO connector_run")
+        cx.execute("RELEASE connector_run")
+        said = failure("the connector's run", e)
+        lid = log_search(cx, tree_id, by, step_id=step["id"], source_id=conn.SOURCE, outcome="error", artifacts=None, note=said, query=query)
+        return {"connector": conn.__name__.split(".")[-1], "query": query, "requests": [], "outcome": "error", "log": lid, "logs": [lid],
+                "artifacts": [], "hits": [], "errors": [said], "household_steps": [], "records": [], "failed": said}
+    cx.execute("RELEASE connector_run")
+    return r
+
+def read_records(cx, tree_id, step, r, by):
+    """A run's records read and matched (read) in a savepoint of its own. When the reading or the matching raises, what it
+    wrote is rolled back, the run's rows and the responses it archived are kept, and every row the run logged is restated as
+    an error run (log_search.restate), the exception in its note and under `failed`, each step it marked done back to the
+    status it had: the step stays runnable. Returns the run with its outcome, its rows and what each record read gave."""
+    records = r.pop("records")
+    cx.execute("SAVEPOINT reading")
+    try:
+        extracted, outcome, logs = read(cx, tree_id, step, r, records, by)
+    except (Exception, SystemExit) as e:
+        cx.execute("ROLLBACK TO reading")
+        cx.execute("RELEASE reading")
+        said = failure("reading and matching its records", e)
+        logs = [restate(cx, by, lid, outcome="error", note=said) for lid in r["logs"]]
+        for sid in r["household_steps"]: cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (sid,))   # household_steps takes only planned steps
+        cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"]))
+        return {**r, "outcome": "error", "log": logs[0], "logs": logs, "errors": r["errors"] + [said], "failed": said, "extracted": []}
+    cx.execute("RELEASE reading")
+    return {**r, "outcome": outcome, "log": logs[0], "logs": logs, "extracted": extracted}
+
+def read(cx, tree_id, step, r, records, by):
+    """Extraction and matching over a run's records, then the run read again when they say so: as none when every record is
+    a results listing none of whose rows fits anyone, as unread when every record is one no parser reads. Returns (what each
+    record read gave, the run's outcome, its rows)."""
+    extracted, readings = [], []                                 # readings: (a results listing, fits someone) per record read
+    for sha in records:                                          # a hit's own record; the search response is the query's evidence, not a record
+        eid, n = extract(cx, sha, by)
+        if "failed" in n: extracted.append({"sha256": sha, "unparsed": n["failed"]}); continue
+        props, taken = match_record(cx, eid, by)
+        extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
+        readings.append((listing(cx, eid), fits(cx, tree_id, eid, props)))
+    outcome, logs = r["outcome"], list(r["logs"])
+    if outcome == "found" and readings and all(l for l, _ in readings) and not any(f for _, f in readings):
+        logs[0] = restate(cx, by, logs[0], outcome="none", note="no candidate fits")   # a none run holds no record: the step stands as it stood before the run
+        cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"]))
+        outcome = "none"
+    elif outcome == "found" and extracted and all(unread_record(cx, e["sha256"]) for e in extracted):   # every record is one no parser reads, page or response: held on the log, read by nobody, closing nothing
+        logs = [hold_unread(cx, by, lid) for lid in logs]
+        for sid in r["household_steps"]: cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (sid,))   # household_steps takes only planned steps
+        cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"]))
+        outcome = "unread"
+    return extracted, outcome, logs
 
 def request_key(rq):
     """What makes two requests one: the URL and the form data posted to it."""

@@ -1,6 +1,6 @@
 {
  "title": "a turn on a person",
- "line": "the queue names the home person's own unconfirmed parents first; a turn runs every runnable step once, keeps going past a source that did not answer, pauses on the assisted fetch list with its state beside the database naming that source; a step logged error stays runnable and a none run after it closes the step; resumed, the state is cleared, the report still names the source under left, and an unrelated page saved into the inbox is read for its identity and left there",
+ "line": "the queue names the home person's own unconfirmed parents first; a turn runs every runnable step once, keeps going past a source that did not answer, runs its tail and ends with her report naming that source under left and the pages she waits on, her entry kept beside the database; a step logged error stays runnable and a none run after it closes the step; a resume that brings in nothing for her leaves her waiting, and an unrelated page saved into the inbox is read for its identity and left there",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -61,7 +61,8 @@
      "first": "error",
      "then": "none",
      "error": "the harness's stand-in for no answer: timed out"
-    }
+    },
+    "geocoder_silent": true
    },
    "as": "turn",
    "expect": [
@@ -122,20 +123,9 @@
     },
     {
      "turn_state": {
-      "person": "I332737039686",
-      "is": {
-       "unanswered": {
-        "len": 2,
-        "every": {
-         "has": [
-          "did not answer",
-          "timed out"
-         ]
-        }
-       }
-      }
+      "person": "I332737039686"
      },
-     "why": "the turn paused on her assisted fetch list, its state naming each source that did not answer, by the registry's name, with what it said"
+     "why": "she waits on her assisted fetch list, her entry kept beside the database"
     },
     {
      "runnable": {
@@ -152,6 +142,20 @@
      "why": "a step logged none on these fields is not runnable"
     },
     {
+     "last": {
+      "left": {
+       "has": [
+        "did not answer",
+        "timed out",
+        "the next turn asks it again",
+        "waits on",
+        "page(s) to save in the browser"
+       ]
+      }
+     },
+     "why": "the turn's own report names each source that did not answer under left, so the next turn asks it again, and the pages she waits on after it"
+    },
+    {
      "step_count": {
       "person": "I332737039686",
       "kind": "fetch",
@@ -161,7 +165,7 @@
        ">=": 1
       }
      },
-     "why": "she still has an assisted fetch step waiting: what the turn paused on"
+     "why": "she still has an assisted fetch step waiting: what she waits on"
     }
    ]
   },
@@ -203,7 +207,7 @@
    ]
   },
   {
-   "say": "resumed after the browser session, an unrelated page saved into the inbox by hand",
+   "say": "a resume after the browser session, an unrelated page saved into the inbox by hand",
    "resume": {
     "geocoder_silent": true,
     "inbox": [
@@ -213,20 +217,23 @@
    "expect": [
     {
      "turn_state": {
-      "is": null
+      "person": "I332737039686"
      },
-     "why": "the state file is cleared once a turn is resumed"
+     "why": "nothing saved for her came in: she still waits"
     },
     {
      "last": {
-      "left": {
+      "report": {
        "has": [
-        "the next turn asks it again",
-        "did not answer"
+        "nothing saved in the browser has come in",
+        "1 person(s) wait on",
+        "familysearch-census-1940-KQX1-VT9.html",
+        "left in the inbox"
        ]
-      }
+      },
+      "finished": []
      },
-     "why": "the resumed turn's report still names the source that did not answer, under left, so the next turn asks it again"
+     "why": "the resume finishes nobody's turn and names the unrelated page it left in the inbox"
     },
     {
      "locator_known": {

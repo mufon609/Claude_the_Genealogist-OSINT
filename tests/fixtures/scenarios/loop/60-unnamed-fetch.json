@@ -1,6 +1,6 @@
 {
  "title": "a fetch step at a scanned-index holder is blocked",
- "line": "the state marriage index the two grandparents cite, and one person's two citations of the New Jersey index, are blocked by their holder's kind alone (scanned index pages, no page-locating step built), the reason naming the holder; none of the four steps reaches the fetch list, and a turn on one of them does not pause",
+ "line": "the state marriage index the two grandparents cite, and one person's two citations of the New Jersey index, are blocked by their holder's kind alone (scanned index pages, no page-locating step built), the reason naming the holder; none of the four steps reaches the fetch list, and a turn on one of them leaves nobody waiting",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -103,7 +103,7 @@
    ]
   },
   {
-   "say": "a turn on one of the grandparents does not pause on the blocked page",
+   "say": "a turn on one of the grandparents does not wait on the blocked page",
    "turn": {
     "person": "I332737036894",
     "fake_run": {
@@ -123,7 +123,7 @@
      "turn_state": {
       "is": null
      },
-     "why": "nothing pauses, so no state is kept"
+     "why": "nobody waits, so no entry is kept"
     },
     {
      "step": {

@@ -18,13 +18,16 @@ def queue_module():
 
 def fake_answers(fake):
     """A run_step.run stand-in whose outcomes come from the data: the first run's outcome, then the rest's, one log row per
-    connector of the step under that connector's own source, as run_step.run logs them, the errors as the data words them."""
+    connector of the step under that connector's own source, as run_step.run logs them, the errors as the data words them;
+    `raise` for a run that raises the data's error instead, the harness's stand-in for a turn that fails outside its runs'
+    own reading and requests."""
     seen = []
     def fake_run(cx, cat, tree_id, step, by, dry_run=False, again=False):
         import run_step
         from log_search import log as log_search
         seen.append(step["id"])
         outcome = fake["first"] if len(seen) == 1 else fake.get("then", "none")
+        if outcome == "raise": raise RuntimeError(fake["error"])
         errors = [fake["error"]] if outcome == "error" and fake.get("error") else []
         out = []
         for conn in run_step.connectors_for(cat, step) or [types.SimpleNamespace(__name__="fake", SOURCE=None)]:
@@ -55,60 +58,116 @@ def silence(x):
     """geocoder_silent when the step's data asks for it, nothing otherwise."""
     return geocoder_silent() if x.get("geocoder_silent") else contextlib.nullcontext()
 
+def raiser(said):
+    def fail(*a, **k): raise RuntimeError(said)
+    return fail
+
+@contextlib.contextmanager
+def failing(x):
+    """The harness's stand-ins for the runner's or the turn's own work failing, as the step's data says under `fails`: a
+    code path that raises, never a page or a record. `reading`: every record's reading raises (run_step's extract);
+    `requests`: the connector named cannot build its requests from the step's fields; `reconsider`: the tail's reconsider
+    raises."""
+    import run_step, turn
+    from connectors import load
+    f = x.get("fails") or {}
+    stand_ins = {"reading": (run_step, "extract", "a reader that fails"),
+                 "requests": (load(f["requests"]) if f.get("requests") else None, "requests", "a connector that cannot build its requests"),
+                 "reconsider": (turn, "reconsider", "a reconsider that fails")}
+    with contextlib.ExitStack() as stack:
+        for key, (module, name, what) in stand_ins.items():
+            if f.get(key): stack.enter_context(patched(module, name, raiser(f"the harness's stand-in for {what}")))
+        yield
+
+def state_of(w):
+    """This tree's entries of the people who wait, as the file beside the database holds them (<db>.turn-state.json: a
+    `waiting` list, or one entry in the one-turn shape), read from the file itself."""
+    try:
+        with open(w.db + ".turn-state.json", encoding="utf-8") as fh: st = json.load(fh)
+    except FileNotFoundError:
+        return []
+    return [e for e in (st["waiting"] if "waiting" in st else [st]) if e["tree_id"] == w.tid]
+
 # ---------------------------------------------------------------- actions
 
 def reopens(text):
     """The question ids a report names for tools/conclude.py reopen, in the order it names them."""
     return re.findall(r"tools/conclude\.py reopen (\S+) ", text)
 
+def unanswered(fetch):
+    """answered_by over the data, and the requests no answer of the data covered: a run that swallows the refusal still fails
+    the step (checked)."""
+    missed = []
+    return answered_by(fetch, missed), missed
+
+def checked(missed):
+    """A request the data does not answer fails the step, whatever the code under check made of the refusal."""
+    if missed: raise AssertionError(missed[0])
+
 def a_turn(w, x):
     """tools/turn.py start on a person, run_step.run standing in for the network as the data says, or with `fetch` the real
     runner and connectors with only the network call replaced (answered_by), the geocoder's answers the
-    fixtures under `geocoder` plant (a query they lack is a request, which fails the scenario unless the step says `geocoder_silent`) and Wikidata's items those under `wikidata`; the steps it ran and the state it
-    kept beside the database."""
+    fixtures under `geocoder` plant (a query they lack is a request, which fails the scenario unless the step says `geocoder_silent`) and Wikidata's items those under `wikidata`,
+    and the stand-ins for the runner's or the turn's own work failing under `fails` (failing); the steps it ran, what it
+    printed, and the entries of the people who wait kept beside the database."""
     import run_step, turn
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
+    fetch, missed = unanswered(x.get("fetch"))
     plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
-    network = patched(run_step, "fetch", answered_by(x["fetch"])) if x.get("fetch") else patched(run_step, "run", fake_run)
-    with network, silence(x), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
-    st = turn.load_state(w.db)
-    return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue(), "reopens": reopens(buf.getvalue())}
+    network = patched(run_step, "fetch", fetch) if x.get("fetch") else patched(run_step, "run", fake_run)
+    with network, silence(x), failing(x), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
+    checked(missed)
+    out = buf.getvalue()
+    return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": state_of(w), "printed": out,
+            "left": out.split("left:", 1)[1] if "left:" in out else "", "reopens": reopens(out)}
 
 def a_resume(w, x):
     """The pages dropped into the inbox as a save would leave them, the geocoder's answers and Wikidata's items planted as a turn's
-    are, then tools/turn.py --resume; its report."""
+    are, then tools/turn.py --resume; its report, and the entries of the people who wait as it left them."""
     import turn
     os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
     plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
-    with silence(x), contextlib.redirect_stdout(buf): turn.resume(w.cx, w.tid, w.slug, BY, w.db)
+    with silence(x), failing(x), contextlib.redirect_stdout(buf): tail = turn.resume(w.cx, w.tid, w.slug, BY, w.db)
     out = buf.getvalue()
-    return {"report": out, "left": out.split("left:", 1)[1] if "left:" in out else "", "state": turn.load_state(w.db), "reopens": reopens(out)}
+    return {"report": out, "left": out.split("left:", 1)[1] if "left:" in out else "", "state": state_of(w), "reopens": reopens(out),
+            "finished": list(tail["credited"])}
 
 def a_turns(w, x):
-    """tools/turns.py: turn after turn from the queue, run_step.run standing in for the network as the data says (fake_run, as
-    a turn's), the geocoder's answers and Wikidata's items planted as a turn's are, --turns as `turns` says, or --resume with
-    the pages `inbox` names dropped into the inbox first; what it
-    printed, the summary, the run's state as it ended, what is saved beside the database, the turn's state, and a refusal's
-    text when it exited."""
-    import run_step, turn, turns
+    """tools/turns.py: what was saved taken in, then turn after turn from the queue, run_step.run standing in for the network as
+    the data says (fake_run, as a turn's), the geocoder's answers and Wikidata's items planted as a turn's are, the stand-ins
+    under `fails` as a turn's, --turns as `turns` says, the pages `inbox` names dropped into the inbox first; what it
+    printed, the summary, the run's count as it ended, the entries of the people who wait, and a refusal's text when it exited."""
+    import run_step, turns
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
-    if x.get("resume"):
-        os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
-        for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
+    os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
+    for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
     plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO(); refused = None; st = None
-    with patched(run_step, "run", fake_run), silence(x), contextlib.redirect_stdout(buf):
-        try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"), resume=bool(x.get("resume")))
+    with patched(run_step, "run", fake_run), silence(x), failing(x), contextlib.redirect_stdout(buf):
+        try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"))
         except SystemExit as e: refused = str(e)
     out = buf.getvalue()
-    return {"printed": out, "summary": out.split("\nloop:", 1)[1] if "\nloop:" in out else "", "state": st, "saved": turns.load_state(w.db), "turn_state": turn.load_state(w.db),
+    return {"printed": out, "summary": out.split("\nloop:", 1)[1] if "\nloop:" in out else "", "state": st, "turn_state": state_of(w),
             "seen": seen, "refused": refused, "turn_people": [t["person"] for t in (st or {}).get("turns", [])], "passed_people": [p["person"] for p in (st or {}).get("passed", [])]}
 
 def a_clear_state(w, x):
-    import turn; turn.clear_state(w.db); return {}
+    import turn; turn.write_state(w.db, []); return {}
+
+def a_old_turn_state(w, x):
+    """A state kept beside the database in the one-turn shape, a turn on `person` paused on its pages, its keys as the
+    owner's own state file holds them: the tree, the person, the moment it paused (`at`), who existed then, and the held,
+    decided and unanswered lines of the turn so far, empty. No page or record of anyone: who the turn was on, by the
+    harness's own people."""
+    import turn
+    pid = w.person(x["person"])
+    before = dict(w.cx.execute("SELECT id, display_name FROM person WHERE tree_id=?", (w.tid,)).fetchall())
+    st = {"tree_id": w.tid, "tree": w.slug, "person_id": pid, "person": w.name_of(pid), "started_at": x["at"],
+          "before_ids": before, "held": [], "decided": [], "unanswered": []}
+    with open(turn.state_path(w.db), "w", encoding="utf-8") as fh: json.dump(st, fh)
+    return {"person_id": pid}
 
 def asked_at(fixture):
     """Where a saved real response was asked: the locator its manifest gives (<stem>.manifest.json), or the archive locator its
@@ -132,18 +191,22 @@ def answers_request(loc, url, data):
 
 CHALLENGE = b"<!DOCTYPE html><html><head><title>Just a moment...</title></head><body>the harness's stand-in for a holder's challenge page</body></html>"
 
-def answered_by(fetch):
+def answered_by(fetch, missed=None):
     """The network call a run is played back with, from the data: `answers`, one for each request, in the order the requests
     come. An answer is for the first request carrying its `url_has` that no earlier request has taken (with `every`, for every
     such request): a saved real response (`fixture` under tests/fixtures/, its `content_type`), which answers only the request
     it was asked at (asked_at); an `error` the source's connection raises, the harness's stand-in for a holder that did not
     answer (a timeout, a refusal); or `challenge`, the harness's stand-in for a challenge or maintenance page a holder serves
     with status 200 in place of its answer (CHALLENGE, text/html), which carries no record of anyone (docs/DATA-ARCHITECTURE.md
-    §7 decision 8). A request the data does not answer, or answers with another request's response, fails the run; no `fetch`
-    means no network at all."""
+    §7 decision 8). A request the data does not answer, or answers with another request's response, fails the run, and is
+    written to `missed` so that the step fails even when the runner makes an error run of it (checked); no `fetch` means no
+    network at all."""
     import urllib.error
-    used = set()
+    used = set(); missed = [] if missed is None else missed
     def meta(url, content_type): return {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": content_type}
+    def refused(said):
+        missed.append(said)
+        return AssertionError(said)
     def fake_fetch(url, kind, c, data=None):
         for i, ans in enumerate((fetch or {}).get("answers", [])):
             if i in used or ans["url_has"] not in url: continue
@@ -151,23 +214,27 @@ def answered_by(fetch):
             if ans.get("error"): raise urllib.error.URLError(ans["error"])
             if ans.get("challenge"): return CHALLENGE, meta(url, "text/html; charset=utf-8")
             loc = asked_at(ans["fixture"])
-            if loc and not answers_request(loc, url, data): raise AssertionError(f"{ans['fixture']} is the answer to {loc}, not to {url}{' ' + json.dumps(data) if data else ''}")
+            if loc and not answers_request(loc, url, data): raise refused(f"{ans['fixture']} is the answer to {loc}, not to {url}{' ' + json.dumps(data) if data else ''}")
             with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))
-        raise AssertionError(f"a request went out that the data does not answer: {url}")
+        raise refused(f"a request went out that the data does not answer: {url}")
     return fake_fetch
 
 def a_run(w, x):
     """tools/run_step.py run on one step through its real connectors, only the network call replaced (answered_by); `dry` for
-    --dry-run, no request allowed, `again` for a run by the step's id, every connector asked. The result carries each
-    connector's run and, under `records`, the sha256 of every record the runner archived and read."""
+    --dry-run, no request allowed, `again` for a run by the step's id, every connector asked; the stand-ins under `fails`
+    (failing). The result carries each connector's run (`failed`, the failure a run that failed names) and, under `records`,
+    the sha256 of every record the runner archived and read, and under `archived` of every response it archived."""
     import run_step
     st = w.step(x["step"]); cat = w.catalog()
-    with patched(run_step, "fetch", answered_by(None if x.get("dry") else x.get("fetch"))):
+    fetch, missed = unanswered(None if x.get("dry") else x.get("fetch"))
+    with patched(run_step, "fetch", fetch), failing(x):
         w.cx.execute("BEGIN"); res = run_step.run(w.cx, cat, w.tid, st, BY, dry_run=bool(x.get("dry")), again=bool(x.get("again"))); w.cx.commit()
+    checked(missed)
     return {"step": st["id"], "results": [{"connector": r.get("connector"), "source": r.get("source"), "asked": r.get("asked"), "answered": r.get("answered"), "outcome": r.get("outcome"),
-                                          "requests": r.get("requests"), "wants": r.get("wants"), "error": r.get("error"), "errors": r.get("errors"),
+                                          "requests": r.get("requests"), "wants": r.get("wants"), "error": r.get("error"), "errors": r.get("errors"), "failed": r.get("failed"),
                                           "proposals": (r.get("extracted") or [{}])[0].get("proposals"), "extraction": (r.get("extracted") or [{}])[0].get("extraction")} for r in res],
             "records": [e["sha256"] for r in res for e in r.get("extracted") or [] if "extraction" in e],
+            "archived": [a for r in res for a in r.get("artifacts") or []],
             "connectors": [c.__name__.split(".")[-1] for c in run_step.connectors_for(cat, st)]}
 
 def a_run_all(w, x):
@@ -207,7 +274,9 @@ def a_run_connector(w, x):
     if x.get("dry"):
         res = run_step.run(w.cx, w.catalog(), w.tid, st, BY, dry_run=True)
         return {"results": [{"connector": r.get("connector"), "asked": r.get("asked"), "answered": r.get("answered")} for r in res]}
-    with patched(run_step, "fetch", answered_by(x.get("fetch"))): r = run_step.run_connector(w.cx, w.catalog(), w.tid, st, conn, BY)
+    fetch, missed = unanswered(x.get("fetch"))
+    with patched(run_step, "fetch", fetch): r = run_step.run_connector(w.cx, w.catalog(), w.tid, st, conn, BY)
+    checked(missed)
     logged = w.cx.execute("SELECT query_json, notes FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY executed_at DESC, id DESC", (st["id"],)).fetchone()
     return {"outcome": r.get("outcome"), "requests": r.get("requests"), "logged_query": json.loads(logged[0]) if logged else {}, "logged_note": logged[1] if logged else None}
 
@@ -263,14 +332,17 @@ def a_fetch_list(w, x):
     if x.get("search_links"): rows = [e for e in rows if e["holder_id"] == "D03" and "/search/record/results" in (e.get("url") or "")]
     return {"names": [e["save_as"] for e in rows]}
 
-ACTIONS.update({"decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
+ACTIONS.update({"decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
+                "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 
 # ---------------------------------------------------------------- expectations
 
 def e_queue(w, x, want):
-    """tools/queue.py's edge: who is named next and who is passed over, each with the reason."""
-    out, passed = queue_module().edge(w.cx, w.tid)
+    """tools/queue.py's edge, the people who wait read from beside the database as the tool reads them: who is named next and
+    who is passed over, each with the reason."""
+    import turn
+    out, passed = queue_module().edge(w.cx, w.tid, turn.waits(w.cx, w.db, w.tid))
     got = {"named": [{"name": e["name"], "reason": e["reason"]} for e in out], "passed": [{"name": e["name"], "reason": e["reason"]} for e in passed]}
     ok = True
     for ref in x.get("named", []): ok &= any(e["id"] == w.person(ref) for e in out)
@@ -291,26 +363,37 @@ def e_runnable(w, x, want):
     return v == x.get("is", True), v
 
 def e_turn_state(w, x, want):
-    import turn
-    st = turn.load_state(w.db)
-    if x.get("is") is None and "person" not in x: return st is None, st
-    ok = st is not None and (("person" not in x) or st.get("person_id") == w.person(x["person"])) and has(st, x.get("is", {}))
-    return ok, st
+    """The people who wait, as kept beside the database (this tree's entries): with `person`, that person's entry, matching
+    `is` when given, or with `is` null no entry for them; without, `is` null for nobody waiting, or a pattern over the
+    entries."""
+    entries = state_of(w)
+    if "person" not in x: return (not entries if x.get("is") is None else has(entries, x["is"])), entries
+    mine = next((e for e in entries if e["person_id"] == w.person(x["person"])), None)
+    if "is" in x and x["is"] is None: return mine is None, mine
+    return mine is not None and has(mine, x.get("is", {})), mine
 
 def e_turns_run(w, x, want):
-    """The runner's state as the last turns action left it: the turns in order (each a person, whether it paused, whether it
-    held nothing new) and the people passed over this run."""
+    """The runner's count as the last turns action left it: the turns in order (each a person, whether it held nothing new,
+    whether it failed, and whether the person waits on pages to save now), the people passed over this run and the people
+    who waited whose turns it finished."""
     st = (w.env.get("last") or {}).get("state") or {}
-    got = {"turns": [{"person": t["person_id"], "paused": t.get("held_after") is None, "nothing_new": t.get("held_after") == t["held_before"]} for t in st.get("turns", [])],
-           "passed": [p["person_id"] for p in st.get("passed", [])]}
+    waiting_now = {e["person_id"] for e in state_of(w)}
+    turns = []
+    for t in st.get("turns", []):
+        nothing_new = t.get("held_after") == t["held_before"]
+        turns.append({"person": t["person_id"], "nothing_new": nothing_new, "failed": bool(t.get("failed")), "waits": t["person_id"] in waiting_now})
+    got = {"turns": turns, "passed": [p["person_id"] for p in st.get("passed", [])], "finished": [p["person_id"] for p in st.get("finished", [])]}
     ok = True
     if "turns" in x:
         ok &= len(got["turns"]) == len(x["turns"])
         for g, wnt in zip(got["turns"], x["turns"]):
-            ok &= g["person"] == w.person(wnt["person"]) and all(g[k] == wnt[k] for k in ("paused", "nothing_new") if k in wnt)
+            ok &= g["person"] == w.person(wnt["person"]) and all(g[k] == wnt[k] for k in ("nothing_new", "failed", "waits") if k in wnt)
     for ref in x.get("passed", []): ok &= w.person(ref) in got["passed"]
     for ref in x.get("not_passed", []): ok &= w.person(ref) not in got["passed"]
-    return ok, {"turns": [{**t, "name": w.name_of(t["person"])} for t in got["turns"]], "passed": [w.name_of(p) for p in got["passed"]]}
+    if "finished" in x: ok &= got["finished"] == [w.person(r) for r in x["finished"]]
+    named = {"turns": [{**t, "name": w.name_of(t["person"])} for t in got["turns"]]}
+    named.update({k: [w.name_of(p) for p in got[k]] for k in ("passed", "finished")})
+    return ok, named
 
 def e_locator_known(w, x, want):
     v = w.cx.execute("SELECT 1 FROM artifact_locator WHERE kind=? AND value=?", (x["kind"], x["value"])).fetchone() is not None

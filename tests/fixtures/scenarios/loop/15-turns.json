@@ -1,6 +1,6 @@
 {
  "title": "the runner, turn after turn",
- "line": "the runner takes the queue's first person, runs their turn with the network standing in (a challenge at a connector is an error run and the turn goes on), names them again and passes them over once their turn held nothing new, runs the next person and stops with the turn's state kept when that turn pauses on pages to save, refusing a fresh run while it is paused; --resume picks the paused turn up, passes its person over the same way when nothing came back, goes on to the next person, who has nothing to pause on once her marriage-index citation is blocked, and the run finishes its own turn budget with its state cleared; a fresh run starts the count again",
+ "line": "the runner takes in what was saved first, then the queue's first person, runs their turn with the network standing in, names them again and passes them over once their turn held nothing new, runs the next person, whose turn leaves pages to save in the browser, and goes on past him to the next: he waits, his entry kept beside the database, and the queue passes him over with the number of pages; a fresh run while he waits is not refused, starts the count again, and passes him over the same way",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -20,14 +20,12 @@
    }
   },
   {
-   "say": "two turns: the first person's turn holds nothing new (a challenge at the first connector, an error run; nothing at the rest), and the queue names them again, so they are passed over; the next person's turn pauses on pages to save",
+   "say": "three turns: the home person's holds nothing new and the queue names him again, so he is passed over; the grandfather's leaves two pages to save in the browser, and the run goes on to the grandmother",
    "turns": {
     "geocoder_silent": true,
-    "turns": 2,
+    "turns": 3,
     "fake_run": {
-     "first": "error",
-     "then": "none",
-     "error": "the harness's stand-in for no answer: 403, a challenge page"
+     "first": "none"
     }
    },
    "as": "first",
@@ -37,148 +35,95 @@
       "turns": [
        {
         "person": "I332737035562",
-        "paused": false,
-        "nothing_new": true
+        "nothing_new": true,
+        "waits": false
        },
        {
         "person": "I332737036054",
-        "paused": true
+        "waits": true
+       },
+       {
+        "person": "I332737036894",
+        "waits": false
        }
       ],
       "passed": [
        "I332737035562"
+      ],
+      "not_passed": [
+       "I332737036054"
       ]
      },
-     "why": "the home person's turn ran and held nothing new; named again, he is passed over; the grandfather's turn paused"
+     "why": "the grandfather's pages make him wait, never the run: it goes on to the grandmother, the third turn of its budget"
     },
     {
      "turn_state": {
-      "person": "I332737036054"
+      "person": "I332737036054",
+      "is": {
+       "steps": {
+        "len": 2
+       }
+      }
      },
-     "why": "the paused turn's own state is kept, as turn.py keeps it"
+     "why": "his entry is kept beside the database, the steps of the two pages he waits on"
     },
     {
      "last": {
-      "saved": {
-       "turns": {
-        "len": 2
-       }
+      "printed": {
+       "has": [
+        "waits on 2 page(s) to save in the browser",
+        "familysearch-census-1940-search-frederick-micheal-ahearn.html"
+       ]
       },
       "summary": {
        "has": [
-        "paused",
+        "3 turn(s) done",
         "held nothing new",
-        "turns.py --resume"
-       ]
+        "waiting on pages to save in the browser:\n  1 person(s) wait on 2 page(s)"
+       ],
+       "lacks": "--resume"
       }
      },
-     "why": "the runner's state is kept beside the turn's, and the summary says what stopped it"
+     "why": "his turn's report names the pages he waits on, with the file name to save under, and the summary counts who waits on how many pages"
     },
     {
-     "last": {
-      "seen": {
-       "len": {
-        ">=": 1
+     "queue": {
+      "passed": [
+       "I332737036054"
+      ],
+      "reasons": {
+       "I332737036054": {
+        "has": "waits on 2 page(s) to save in the browser"
        }
       }
-     }
-    },
-    {
-     "runnable": {
-      "step": "$first.seen.0",
-      "is": true
      },
-     "why": "the challenge is an error run: the source did not answer, the step stays runnable and the next turn asks it again"
+     "why": "every step a turn could advance for him is a page he waits on: the queue passes him over with the number of pages"
     }
    ]
   },
   {
-   "say": "a fresh run while a turn is paused is refused",
+   "say": "a fresh run while he waits: not refused, the count started again",
    "turns": {
+    "geocoder_silent": true,
     "turns": 1
    },
    "expect": [
     {
      "last": {
       "refused": {
-       "has": "paused"
-      },
-      "state": {
-       "is": null
-      }
-     }
-    }
-   ]
-  },
-  {
-   "say": "resumed with nothing saved: the paused turn is finished and its person, named again with nothing new, is passed over; the grandmother's own marriage-index citation is blocked (no page-locating step), so her turn has nothing to pause on and finishes too; the run's own budget of three turns is done, and its state is cleared",
-   "turns": {
-    "geocoder_silent": true,
-    "resume": true,
-    "inbox": [],
-    "turns": 3
-   },
-   "expect": [
-    {
-     "turns_run": {
-      "turns": [
-       {
-        "person": "I332737035562",
-        "nothing_new": true
-       },
-       {
-        "person": "I332737036054",
-        "paused": false,
-        "nothing_new": true
-       },
-       {
-        "person": "I332737036894",
-        "paused": false,
-        "nothing_new": true
-       }
-      ],
-      "passed": [
-       "I332737035562",
-       "I332737036054"
-      ]
-     },
-     "why": "the resumed turn counts as the second; its person is passed over once named again; the grandmother is the third, and pauses on nothing now that her marriage-index citation is blocked"
-    },
-    {
-     "turn_state": {
-      "is": null
-     },
-     "why": "nobody pauses, so no state is kept"
-    },
-    {
-     "last": {
-      "saved": {
        "is": null
       },
       "summary": {
-       "has": [
-        "3 turn(s) done",
-        "named again"
-       ]
+       "has": "1 turn(s) done"
       }
      },
-     "why": "the run ends on its own turn budget, its state file gone"
-    }
-   ]
-  },
-  {
-   "say": "a fresh run starts the count again: the queue names the home person first as before, and nobody is passed over for the last run's reasons",
-   "turns": {
-    "geocoder_silent": true,
-    "turns": 1
-   },
-   "expect": [
+     "why": "nobody waiting ever makes the runner refuse"
+    },
     {
      "turns_run": {
       "turns": [
        {
         "person": "I332737035562",
-        "paused": false,
         "nothing_new": true
        }
       ],
@@ -190,11 +135,10 @@
      "why": "a new run: the home person's turn runs once more, nobody passed over yet"
     },
     {
-     "last": {
-      "saved": {
-       "is": null
-      }
-     }
+     "turn_state": {
+      "person": "I332737036054"
+     },
+     "why": "he still waits: nothing saved for him has come in"
     }
    ]
   },

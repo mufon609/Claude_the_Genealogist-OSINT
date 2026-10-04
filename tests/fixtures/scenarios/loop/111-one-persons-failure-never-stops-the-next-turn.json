@@ -1,0 +1,85 @@
+{
+ "title": "one person's failure never stops the next person's turn",
+ "line": "a turn that fails outside its runs' own reading and requests and its tail's parts stops there, what it had not committed rolled back; the runner names it with its exception, passes its person over for the rest of the run with that reason, and goes on to the next person's turn",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so the grandparents are at the edge",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": [
+     "I332737035563",
+     "I332737044283"
+    ],
+    "kind": "child",
+    "record": "import"
+   }
+  },
+  {
+   "say": "three turns, the first connector run of the run raising (the harness's stand-in for a turn that fails): it is the grandfather's",
+   "turns": {
+    "geocoder_silent": true,
+    "turns": 3,
+    "fake_run": {
+     "first": "raise",
+     "then": "none",
+     "error": "the harness's stand-in for a turn that fails"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "is": null
+      },
+      "printed": {
+       "has": "the turn failed (RuntimeError: the harness's stand-in for a turn that fails): it stopped there, what it had not committed rolled back"
+      },
+      "summary": {
+       "has": [
+        "3 turn(s) done",
+        "Frederick Micheal Ahearn Jr [",
+        "]: failed; held"
+       ]
+      }
+     },
+     "why": "the failure is named with its exception, and the run finishes its budget"
+    },
+    {
+     "turns_run": {
+      "turns": [
+       {
+        "person": "I332737035562",
+        "failed": false
+       },
+       {
+        "person": "I332737036054",
+        "failed": true
+       },
+       {
+        "person": "I332737036894",
+        "failed": false
+       }
+      ],
+      "passed": [
+       "I332737036054"
+      ]
+     },
+     "why": "the grandfather's turn failed and he is passed over for the rest of the run; the grandmother's turn runs next"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

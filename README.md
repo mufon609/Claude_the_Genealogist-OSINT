@@ -11,7 +11,8 @@ foundation of documents." and "The human should only be used if there are
 serious doubts." The work is a loop: the next person at the edge of the
 confirmed tree, the records that should exist for them, fetched, read and
 decided by the owner's written rules, then the next person; where a source
-forbids automation, the loop pauses for the owner's browser.
+forbids automation, that person waits on the owner's browser and the loop goes
+on to the next.
 
 | Where | What |
 |---|---|
@@ -43,6 +44,6 @@ python3 tools/resolve_places.py
 python3 tools/backfill_aliases.py
 python3 tools/checklist.py "Abram C Brant"      # per-person checklist and gaps
 python3 tools/queue.py && python3 tools/turn.py "<person>"   # the loop: the next person at the tree's edge, their plan run end to end
-python3 tools/turns.py --turns 2                             # the loop run without a hand on it: turn after turn from the queue, pausing for the browser session (--resume)
+python3 tools/turns.py --turns 2                             # the loop run without a hand on it: what was saved in the browser taken in, then turn after turn from the queue; a person whose pages wait for the browser waits, the loop goes on
 python3 app/person/server.py                    # the person screen, http://127.0.0.1:8765/
 ```

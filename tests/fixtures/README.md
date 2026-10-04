@@ -316,16 +316,23 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 `{"is": null}`, `{"any": true}`.
 
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
-person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`, or with `fetch` the real runner
+person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`, `raise` an outcome for a run
+that raises the data's `error`, or with `fetch` the real runner
 and connectors answered as `run` is; the geocoder's real answers
-under `geocoder` and Wikidata's items under `wikidata` planted for the turn's resolver, as `resolve` plants them), `turns` (`tools/turns.py` the same way: `turns` for --turns,
-`resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
-into the inbox and the answers planted as a turn's, then `--resume`; its report, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
+under `geocoder` and Wikidata's items under `wikidata` planted for the turn's resolver, as `resolve` plants them; `fails` for the
+harness's stand-ins for the runner's or the turn's own work failing: `reading` every record's reading raising, `requests` the connector
+named unable to build its requests, `reconsider` the tail's reconsider raising; what it printed, `left` the report from its
+`left:` on, and `state`, the entries of the people who wait as the file beside the database holds them), `turns` (`tools/turns.py` the same way: `turns` for --turns,
+`inbox` the pages dropped into the inbox first; what it printed, its summary, the run's count as it ended, `turn_state` the entries of
+the people who wait, a refusal's text), `resume` (pages
+into the inbox and the answers planted as a turn's, then `--resume`; its report, `finished` the people who waited whose turns it finished, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `old_turn_state` (the
+state beside the database written in the one-turn shape, a turn on `person` paused at `at`, its keys as the owner's own state file holds
+them), `run` (one step through `tools/run_step.py` and its real connectors, only the network call
 replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error | challenge}]}`, each answer for the first request
 carrying its `url_has` that no earlier request took (with `every`, for every such request): a saved real response, refused for any request but the one its manifest or
 sidecar says it was asked at, or the harness's stand-in for a holder that did not
-answer (`error`) or served a challenge page in place of its answer (`challenge`); a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
-step's id at every connector; the result's `records` are the sha256 of every record the runner archived and read), `run_all` (`--all` with a run that regenerates
+answer (`error`) or served a challenge page in place of its answer (`challenge`); a request nothing answers fails the step, whatever the runner made of the refusal; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
+step's id at every connector, `fails` as a turn's; each connector's result names `failed`, the failure of a run that failed; the result's `records` are the sha256 of every record the runner archived and read, `archived` of every response), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (`run_step.run_connector` with the real `connector` named, answered like `run`: the
 place names the step carries tried one at a time; the answers are taken in the order the requests come, one for each request the
 runner sends, and a name that makes a request already made on the run sends none, so it takes no answer; the result adds the
@@ -333,8 +340,11 @@ runner sends, and a name that makes a request already made on the run sends none
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
-`not_named`, `passed`, `not_passed`, `reasons`: by person, or a list of `[person, pattern]` pairs for a person the rule created), `runnable`, `turn_state`, `turns_run` (the runner's turns in
-order, each `person`, `paused`, `nothing_new`, and its `passed` / `not_passed`), `locator_known`, `steps_by_collection`,
+`not_named`, `passed`, `not_passed`, `reasons`: by person, or a list of `[person, pattern]` pairs for a person the rule created; the
+people who wait read as the tool reads them), `runnable`, `turn_state` (the entries of the people who wait: with `person` that person's,
+matching `is`, or none with `is` null; without, `is` null for nobody waiting), `turns_run` (the runner's turns in
+order, each `person`, `nothing_new`, `failed`, `waits` (whether the person waits on pages now), its `passed` / `not_passed`, and
+`finished`, the people who waited whose turns the run finished), `locator_known`, `steps_by_collection`,
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
 `wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' and the runner's contract; what they are asked with
 and answer with is in the scenario. `connectors.json` holds the same for the offline connector checks in `tools/check.py`: the
@@ -379,8 +389,8 @@ A holder that does not answer is simulated, a control signal and no record:
   titled "Just a moment..." saying it is the harness's stand-in for a holder's challenge page, served in place of the answer a JSON
   connector reads: every request of loop `106`'s turns.
 - The geocoder in a turn (`turn`, `turns`, `resume`) whose step says `geocoder_silent`: `loop.py` answers it from the resolver's cache
-  alone, and a query the cache lacks fails as an endpoint that does not answer, so no request is made: loop `12` (its second step,
-  the geocoder silent on purpose), `10` (its resume), `13` (each resume) and `15` (its first, third and fourth turns), whose turns read
+  alone, and a query the cache lacks fails as an endpoint that does not answer, so no request is made: loop `12` (its first step,
+  the geocoder silent on purpose), `10`, `13`, `15`, `61`, `106`, `108`, `109`, `110` and `111`, whose turns read
   place strings no answer is planted for. A step that does not say it has the geocoder's answers it plants and no others, and a query
   they lack is a request, which fails the scenario.
 
@@ -388,8 +398,14 @@ The runner's runs are simulated where a scenario is about what happens after one
 
 - `turn` and `turns` with `fake_run` (`{"first": "none"}` when the step gives none): `run_step.run` replaced by a function that
   logs the outcome the data gives, `none` or `error`, with no request, response or record, its note saying "harness: faked, no
-  network": loop `10` and `15` (an error, the same stand-in, then none), `12`, `13`, `60`, `61` and `63` (none). A `none` here
-  stands for an answer of nothing that no holder gave.
+  network": loop `10` (an error, the same stand-in, then none), `12`, `13`, `15`, `60`, `61`, `63`, `108`, `109` and `110` (none). A `none` here
+  stands for an answer of nothing that no holder gave. With `raise`, the function raises the data's error instead, the
+  harness's stand-in for a turn that fails outside its runs' own reading and requests (loop `111`).
+- `fails`: a code path replaced by one that raises, saying it is the harness's stand-in: the extractor the runner calls
+  (`reading`), a connector's `requests` (`requests`), the tail's `reconsider` (`reconsider`), for a run or a turn whose own work
+  fails (loop `110`). No page, response or record is touched; the response the failed reading was given is a real one.
+- `old_turn_state`: the state beside the database written in the one-turn shape, its keys as the owner's own file holds them and
+  its people the harness's own (loop `109`); no page or record of anyone.
 - `log`: a run written by hand, as a connector or a saved page would leave it, its outcome and its artifacts (real pages the
   scenario archived) as the step gives them: decisions `60`, `90`, `99zd` (a search step's run finding the christening record); loop `10`, `31`, `32`, `46`, `50`, `63`, `70`, `72`, `101`.
 - `run_all`: `run_step.run` replaced by a function that regenerates the plan or raises `SystemExit`, no request; which steps are
@@ -407,7 +423,7 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   `bbox` is the full name's line; on the obituary each persona's line is the order the notice names them.
 - `save`: a real page or image written into the inbox or a download folder as the owner's browser leaves it, under the fetch
   list's name or the one given; with `key`, the save script's key comment written under the page's own saved-from line, as
-  `tools/save_page.js` writes it (loop `41`, `42`, `43`). `tools/check.py`'s test of that script writes the script's own head over
+  `tools/save_page.js` writes it (loop `41`, `42`, `43`, `108`). `tools/check.py`'s test of that script writes the script's own head over
   the Lena Howard Bell search page's document.
 - `block_filing`: the place a saved page's original is filed under taken by a folder, so the attach is refused after its rows are
   written, the stand-in for a file whose transaction fails (loop `107`); no page or record is touched.

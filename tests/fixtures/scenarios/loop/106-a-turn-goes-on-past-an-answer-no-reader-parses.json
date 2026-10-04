@@ -1,6 +1,6 @@
 {
  "title": "a turn goes on past an answer no reader parses",
- "line": "a holder that serves a challenge page with status 200 in place of the JSON its connector reads gives an answer no reader parses: the run is logged error with the exception's type and message in its note, the page archived as it came, the step left runnable, and the turn goes on to its pause, its report naming the source once with the exception; the next turn asks that source again and goes on the same way",
+ "line": "a holder that serves a challenge page with status 200 in place of the JSON its connector reads gives an answer no reader parses: the run is logged error with the exception's type and message in its note, the page archived as it came, the step left runnable, and the turn goes on to its tail and the pages she waits on, its report naming the source once with the exception; the next turn asks that source again and goes on the same way",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -52,8 +52,8 @@
      "last": {
       "printed": {
        "has": [
-        "page(s) to fetch, one tab per page",
-        "not answered:",
+        "page(s) to save in the browser, one tab each",
+        "left:",
         "Chronicling America via loc.gov API (H01) did not answer (an answer no reader parses (JSONDecodeError: ",
         "Internet Archive newspapers (H07) did not answer (an answer no reader parses (JSONDecodeError: ",
         "(D05) did not answer (an answer no reader parses (JSONDecodeError: ",
@@ -66,7 +66,7 @@
        "any": true
       }
      },
-     "why": "the turn goes on past both to its pause on the pages for the browser, and names each source once with the exception plainly, every JSON connector her plan asked"
+     "why": "the turn goes on past both to its tail and the pages she waits on, and names each source once with the exception plainly, every JSON connector her plan asked"
     },
     {
      "search_log": {
@@ -129,7 +129,7 @@
      "last": {
       "printed": {
        "has": [
-        "page(s) to fetch, one tab per page",
+        "page(s) to save in the browser, one tab each",
         "(H01) did not answer (an answer no reader parses (JSONDecodeError: ",
         "(H07) did not answer (an answer no reader parses (JSONDecodeError: "
        ]

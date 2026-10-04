@@ -1,0 +1,259 @@
+{
+ "title": "a run that fails is an error run",
+ "line": "a run whose records' reading raises keeps its row and the response it archived, restated as an error run with the exception in its note, nothing of the reading kept and the step back to planned and runnable, so the next run reads the same answer whole; a connector that cannot build its requests from the step's fields leaves an error run with the exception in its place, the step runnable; a turn whose tail's reconsider raises names it under left and goes on to the plan and its report",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the gravesite step on Raymond Earl Davidson, the locator's own response to his search played back, every record's reading raising (the harness's stand-in for a reader that fails)",
+   "run": {
+    "step": {
+     "person": "I332737099805",
+     "row_key": "cemetery / family plot:",
+     "kind": "fetch",
+     "holder": "E03"
+    },
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "gravelocator.cem.va.gov",
+       "fixture": "va-gravesite-search-davidson-raymond-e.html",
+       "content_type": "text/html"
+      }
+     ]
+    },
+    "fails": {
+     "reading": true
+    }
+   },
+   "as": "failed",
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "connector": "va_graves",
+        "source": "E03",
+        "outcome": "error",
+        "failed": "reading and matching its records failed (RuntimeError: the harness's stand-in for a reader that fails)",
+        "extraction": null
+       }
+      ],
+      "archived": {
+       "len": 1
+      },
+      "records": {
+       "len": 0
+      }
+     },
+     "why": "the run is an error run, the exception named; the response it archived is kept, and nothing was read"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737099805",
+       "row_key": "cemetery / family plot:",
+       "kind": "fetch",
+       "holder": "E03"
+      },
+      "is": [
+       {
+        "source_id": "E03",
+        "outcome": "error",
+        "artifacts": [
+         "$failed.archived.0"
+        ],
+        "notes": {
+         "has": "reading and matching its records failed (RuntimeError: the harness's stand-in for a reader that fails)"
+        }
+       }
+      ]
+     },
+     "why": "the run's row is kept and restated as an error run, the response on it and the exception in its note"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737099805",
+       "row_key": "cemetery / family plot:",
+       "kind": "fetch",
+       "holder": "E03"
+      },
+      "superseded": true,
+      "is": [
+       {
+        "outcome": "found",
+        "superseded": true
+       },
+       {
+        "outcome": "error",
+        "superseded": false
+       }
+      ]
+     },
+     "why": "the found row the run first logged stays, superseded by the error row that restates it: the log is insert-only"
+    },
+    {
+     "step": {
+      "person": "I332737099805",
+      "row_key": "cemetery / family plot:",
+      "kind": "fetch",
+      "holder": "E03",
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "the step the found run marked done is back to planned"
+    },
+    {
+     "runnable": {
+      "step": {
+       "person": "I332737099805",
+       "row_key": "cemetery / family plot:",
+       "kind": "fetch",
+       "holder": "E03"
+      }
+     },
+     "why": "an error run is no run on the step's fields: the runner asks again"
+    },
+    {
+     "count": {
+      "extractions_of": "failed.archived.0",
+      "is": 0
+     },
+     "why": "nothing the failed reading wrote is kept: no reading of the response stands"
+    }
+   ]
+  },
+  {
+   "say": "the same step run again, the same answer played back, the reader whole",
+   "run": {
+    "step": {
+     "person": "I332737099805",
+     "row_key": "cemetery / family plot:",
+     "kind": "fetch",
+     "holder": "E03"
+    },
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "gravelocator.cem.va.gov",
+       "fixture": "va-gravesite-search-davidson-raymond-e.html",
+       "content_type": "text/html"
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "connector": "va_graves",
+        "outcome": "found",
+        "failed": null,
+        "proposals": 1
+       }
+      ]
+     },
+     "why": "read and matched as any run is: the failed reading left nothing in the way"
+    }
+   ]
+  },
+  {
+   "say": "the gravesite step on Noi Davidson, the connector unable to build its requests from the step's fields (the harness's stand-in for a connector that fails)",
+   "run": {
+    "step": {
+     "person": "I332737099804",
+     "row_key": "cemetery / family plot:",
+     "kind": "fetch",
+     "holder": "E03"
+    },
+    "fails": {
+     "requests": "va_graves"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "connector": "va_graves",
+        "source": "E03",
+        "outcome": "error",
+        "requests": [],
+        "failed": "the connector's run failed (RuntimeError: the harness's stand-in for a connector that cannot build its requests)"
+       }
+      ]
+     },
+     "why": "no request went out: the run is an error run with the exception"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737099804",
+       "row_key": "cemetery / family plot:",
+       "kind": "fetch",
+       "holder": "E03"
+      },
+      "is": [
+       {
+        "source_id": "E03",
+        "outcome": "error",
+        "notes": {
+         "has": "the connector's run failed (RuntimeError: "
+        }
+       }
+      ]
+     },
+     "why": "logged in its place under the connector's source"
+    },
+    {
+     "runnable": {
+      "step": {
+       "person": "I332737099804",
+       "row_key": "cemetery / family plot:",
+       "kind": "fetch",
+       "holder": "E03"
+      }
+     },
+     "why": "the step stays runnable at that source"
+    }
+   ]
+  },
+  {
+   "say": "a turn on the home person, his tail's reconsider raising (the harness's stand-in for a reconsider that fails)",
+   "turn": {
+    "person": "I332737035562",
+    "geocoder_silent": true,
+    "fails": {
+     "reconsider": true
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "left": {
+       "has": "reconsider failed (RuntimeError: the harness's stand-in for a reconsider that fails): what it had not committed is rolled back, and the next turn runs it again"
+      },
+      "printed": {
+       "has": "\nplan: {\""
+      }
+     },
+     "why": "the failure is named under left, and the turn goes on to the plan and its report"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

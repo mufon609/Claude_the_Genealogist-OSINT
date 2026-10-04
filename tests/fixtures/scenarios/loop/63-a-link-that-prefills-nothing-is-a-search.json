@@ -203,7 +203,7 @@
    ]
   },
   {
-   "say": "a turn on Elizabeth D'Armand has no page to pause on",
+   "say": "a turn on Elizabeth D'Armand has no page to wait on",
    "turn": {
     "person": "I332738926170",
     "fake_run": {
@@ -215,7 +215,7 @@
      "turn_state": {
       "is": null
      },
-     "why": "the turn kept no state: it paused on no page, for the search form is never offered as a page to save"
+     "why": "she waits on no page, so no entry is kept for her: the search form is never offered as a page to save"
     },
     {
      "last": {

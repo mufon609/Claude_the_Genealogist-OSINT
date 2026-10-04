@@ -1,6 +1,6 @@
 {
  "title": "a turn reads the place strings of the person it works",
- "line": "the tail of a turn runs the place resolver on the strings behind the person's own events through the geocoder's cache: a geocoder that does not answer is named once, with how many strings it left, and the strings stay as they were (no card, no resolver) for the next turn; once it answers, the strings a unique full match or one territory under two names settles are resolved in the turn, the one it cannot settle is a card on the fact row, and the report says both; the strings of a record the turn brings are read too",
+ "line": "the tail of a turn runs the place resolver on the strings behind the person's own events through the geocoder's cache: a geocoder that does not answer is named once, with how many strings it left, and the strings stay as they were (no card, no resolver) for the next turn; once it answers, the strings a unique full match or one territory under two names settles are resolved in the turn, the one it cannot settle is a card on the fact row, and the report says both; the strings of a record a resume brings in are read in the same call, though they are no strings behind anyone's own events",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,16 +8,10 @@
  },
  "steps": [
   {
-   "say": "a turn on the man born at Worcester, paused on the pages to save",
+   "say": "a turn on the man born at Worcester, the geocoder silent: the harness has no network and no answer planted",
    "turn": {
-    "person": "I332737038183"
-   }
-  },
-  {
-   "say": "resumed with the geocoder silent: the harness has no network and no answer planted",
-   "resume": {
-    "geocoder_silent": true,
-    "inbox": []
+    "person": "I332737038183",
+    "geocoder_silent": true
    },
    "expect": [
     {
@@ -48,15 +42,9 @@
    ]
   },
   {
-   "say": "the next turn on him, paused again",
+   "say": "the next turn on him, with the geocoder's real answers for the five strings behind his events, and Wikidata's items for the places they name",
    "turn": {
-    "person": "I332737038183"
-   }
-  },
-  {
-   "say": "resumed with the geocoder's real answers for the five strings behind his events, and Wikidata's items for the places they name",
-   "resume": {
-    "inbox": [],
+    "person": "I332737038183",
     "wikidata": {
      "Q1010236": "wikidata-Q1010236-norristown.json",
      "Q1345": "wikidata-Q1345-philadelphia.json",
@@ -64,14 +52,19 @@
      "Q1895826": "wikidata-Q1895826-warwick-township.json"
     },
     "geocoder": [
-     "nominatim-norristown-montgomery-pennsylvania-united-states.json", "nominatim-philadelphia-pennsylvania-united-states.json", "nominatim-pottstown-montgomery-pennsylvania-united-states.json", "nominatim-warwick-bucks-pennsylvania-united-states.json",
-     "nominatim-worcester-montgomery-county-pennsylvania-united-states.json", "nominatim-worcester-montgomery-pennsylvania-united-states.json", "nominatim-worcester-pennsylvania-united-states.json"
+     "nominatim-norristown-montgomery-pennsylvania-united-states.json",
+     "nominatim-philadelphia-pennsylvania-united-states.json",
+     "nominatim-pottstown-montgomery-pennsylvania-united-states.json",
+     "nominatim-warwick-bucks-pennsylvania-united-states.json",
+     "nominatim-worcester-montgomery-county-pennsylvania-united-states.json",
+     "nominatim-worcester-montgomery-pennsylvania-united-states.json",
+     "nominatim-worcester-pennsylvania-united-states.json"
     ]
    },
    "expect": [
     {
      "last": {
-      "report": {
+      "printed": {
        "has": "places: 4 of 5 new place string(s) resolved by the geocoder's answer"
       },
       "left": {
@@ -130,22 +123,11 @@
    ]
   },
   {
-   "say": "a turn on him once more, paused: nothing of his own is left for the resolver to read",
-   "turn": {
-    "person": "I332737038183"
-   }
-  },
-  {
-   "say": "while it is paused a record is archived for another man, the Massachusetts birth register",
-   "attach": {
-    "fixture": "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"
-   },
-   "as": "birth"
-  },
-  {
-   "say": "resumed with the geocoder's real answer for the register's one place string, and Wikidata's item for its place",
+   "say": "the Massachusetts birth register, a record for another man, saved into the inbox; a resume takes it in, with the geocoder's real answer for its one place string and Wikidata's item for its place",
    "resume": {
-    "inbox": [],
+    "inbox": [
+     "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"
+    ],
     "wikidata": {
      "Q49186": "wikidata-Q49186-northampton.json"
     },
@@ -160,7 +142,7 @@
        "has": "places: 1 of 1 new place string(s) resolved by the geocoder's answer"
       }
      },
-     "why": "the string the turn's new record brought is resolved in the same turn, though it is no string behind the person's own events"
+     "why": "the string the record brought is resolved in the call that brought it in, though it is no string behind anyone's own events"
     },
     {
      "place_string": {

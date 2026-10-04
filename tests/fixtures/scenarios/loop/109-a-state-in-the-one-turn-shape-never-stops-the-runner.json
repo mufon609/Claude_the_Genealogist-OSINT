@@ -1,0 +1,145 @@
+{
+ "title": "a state in the one-turn shape never stops the runner",
+ "line": "a state kept beside the database in the one-turn shape (one turn paused on its pages, its keys as the owner's own state file holds them) never makes the runner refuse: a run reads it as that person waiting on the pages the fetch list holds for them now, writes it back as an entry of the people who wait, the queue passes them over on those pages, and the run goes on to its turn; a state in that shape whose person has no page open is dropped, the run's report naming them as waiting no more",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so the grandparents are at the edge",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": [
+     "I332737035563",
+     "I332737044283"
+    ],
+    "kind": "child",
+    "record": "import"
+   }
+  },
+  {
+   "say": "a turn on the grandfather: his connector steps run, two pages left for the browser",
+   "turn": {
+    "person": "I332737036054",
+    "geocoder_silent": true
+   }
+  },
+  {
+   "say": "the grandmother planned: no page for the browser on her plan",
+   "plan": [
+    "I332737036894"
+   ]
+  },
+  {
+   "say": "the state beside the database written over in the one-turn shape: that turn on the grandfather paused on his pages",
+   "old_turn_state": {
+    "person": "I332737036054",
+    "at": "2026-09-20T13:00:36Z"
+   }
+  },
+  {
+   "say": "a run of one turn",
+   "turns": {
+    "geocoder_silent": true,
+    "turns": 1
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "is": null
+      },
+      "summary": {
+       "has": [
+        "1 turn(s) done",
+        "1 person(s) wait on 2 page(s)"
+       ]
+      }
+     },
+     "why": "the state never makes the runner refuse: it is the grandfather waiting on his two pages, and the run goes on"
+    },
+    {
+     "turns_run": {
+      "turns": [
+       {
+        "person": "I332737035562"
+       }
+      ],
+      "not_passed": [
+       "I332737036054"
+      ]
+     },
+     "why": "the run's one turn is the queue's first person, the home person"
+    },
+    {
+     "turn_state": {
+      "person": "I332737036054",
+      "is": {
+       "since": "2026-09-20T13:00:36Z",
+       "steps": {
+        "len": 2
+       }
+      }
+     },
+     "why": "written back as an entry of the people who wait: the steps of the pages he waits on, since the moment the turn paused"
+    },
+    {
+     "queue": {
+      "passed": [
+       "I332737036054"
+      ],
+      "reasons": {
+       "I332737036054": {
+        "has": "waits on 2 page(s) to save in the browser"
+       }
+      }
+     },
+     "why": "the queue passes him over on those pages"
+    }
+   ]
+  },
+  {
+   "say": "a state in the one-turn shape on the grandmother, who has no page open",
+   "old_turn_state": {
+    "person": "I332737036894",
+    "at": "2026-09-20T13:00:36Z"
+   }
+  },
+  {
+   "say": "a run starting no turn",
+   "turns": {
+    "geocoder_silent": true,
+    "turns": 0
+   },
+   "expect": [
+    {
+     "last": {
+      "refused": {
+       "is": null
+      },
+      "printed": {
+       "has": "waits no more (none of their pages is open on the fetch list now: saved, or the plan has changed):\n  Carol Evers (waiting since 2026-09-20T13:00:36Z)"
+      }
+     },
+     "why": "she waits on nothing: the run says she waits no more"
+    },
+    {
+     "turn_state": {
+      "is": null
+     },
+     "why": "nobody waits, so nothing is kept beside the database"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

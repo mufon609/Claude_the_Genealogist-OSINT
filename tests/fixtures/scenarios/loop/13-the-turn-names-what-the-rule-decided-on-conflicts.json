@@ -43,29 +43,16 @@
    }
   },
   {
-   "say": "a turn on him, paused on the pages to save",
+   "say": "a turn on him: its tail's reconsider takes the resolution back, and the report says so, the date it had kept and why",
    "turn": {
-    "person": "I332737204849"
-   },
-   "as": "turn_a",
-   "expect": [
-    {
-     "turn_state": {
-      "person": "I332737204849"
-     }
-    }
-   ]
-  },
-  {
-   "say": "resumed: the tail's reconsider takes the resolution back, and the report says so, the date it had kept and why",
-   "resume": {
+    "person": "I332737204849",
     "geocoder_silent": true
    },
    "as": "back",
    "expect": [
     {
      "last": {
-      "report": {
+      "printed": {
        "has": [
         "decided:\n  the rule took back its resolution of John Y Davidson's death date (it had kept 11 Jun 1946): no side holds primary information about the death",
         "(the difference is open for you again)"
@@ -109,22 +96,16 @@
    ]
   },
   {
-   "say": "a turn on him, paused again",
+   "say": "a turn on him again: its tail's reconsider resolves it, and the report names the person, the date kept, the rule's reason and the question to reopen it by",
    "turn": {
-    "person": "I332737204849"
-   },
-   "as": "turn_b"
-  },
-  {
-   "say": "resumed: the tail's reconsider resolves it, and the report names the person, the date kept, the rule's reason and the question to reopen it by",
-   "resume": {
+    "person": "I332737204849",
     "geocoder_silent": true
    },
    "as": "made",
    "expect": [
     {
      "last": {
-      "report": {
+      "printed": {
        "has": [
         "decided:\n  the rule resolved John Y Davidson's death date, kept 11 Jun 1946: the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand, 11 Jun 1946 (derivative, primary, direct); 10 June 1946 rests only on the file's claim (to take it back: tools/conclude.py reopen ",
         " --note \"…\")"
@@ -177,22 +158,16 @@
    ]
   },
   {
-   "say": "a turn on him once more, paused",
+   "say": "a turn on him once more: the conflict is the owner's now, and the report has nothing to name",
    "turn": {
-    "person": "I332737204849"
-   },
-   "as": "turn_c"
-  },
-  {
-   "say": "resumed: the conflict is the owner's now, and the report has nothing to name",
-   "resume": {
+    "person": "I332737204849",
     "geocoder_silent": true
    },
    "as": "after",
    "expect": [
     {
      "last": {
-      "report": {
+      "printed": {
        "has": "decided:\n  nothing for the rule to take",
        "lacks": [
         "the rule resolved",

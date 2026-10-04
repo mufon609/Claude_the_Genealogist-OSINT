@@ -1,6 +1,6 @@
 {
  "title": "a browse-only FamilySearch holder is off the fetch list, with the reason kept on the step",
- "line": "the Franklin County probate citation's holder is a FamilySearch catalog description (fs_images), browsed film by film by a hand, no search or record page for the browser to save: the step stays on the plan, fetch, with the reason in its rationale, but never reaches tools/fetches.py's list, and a turn does not pause on it; no name with an unfilled <year> or <ark id> placeholder is ever printed",
+ "line": "the Franklin County probate citation's holder is a FamilySearch catalog description (fs_images), browsed film by film by a hand, no search or record page for the browser to save: the step stays on the plan, fetch, with the reason in its rationale, but never reaches tools/fetches.py's list, and nobody waits on it; no name with an unfilled <year> or <ark id> placeholder is ever printed",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -47,12 +47,13 @@
    ]
   },
   {
-   "say": "a turn on Thomas Ahearn does not pause on the browse-only page",
+   "say": "a turn on Thomas Ahearn does not wait on the browse-only page",
    "turn": {
     "person": "I332737059537",
     "fake_run": {
      "first": "none"
-    }
+    },
+    "geocoder_silent": true
    },
    "expect": [
     {
