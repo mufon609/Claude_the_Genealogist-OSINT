@@ -18,7 +18,8 @@ trusted foundation of documents." and "The human should only be used if there
 are serious doubts." The work is a loop: the next person at the edge of the
 confirmed tree, the records that should exist for them, fetched, read and
 decided by the owner's written rules, then the next person; where a source
-forbids automation, the loop pauses for the owner's browser.
+forbids automation, that person waits on the owner's browser and the loop goes
+on to the next.
 
 ## Where decisions live
 
@@ -98,9 +99,9 @@ and `--help` have the rest. The ones a session uses:
 python3 tools/check.py                      # green in one command; a failure in full, --verbose every check, --scenario NAME one scenario
 python3 tools/initdb.py --migrate           # after a pull that moves the schema, once backed up: every tool refuses a catalog behind it
 python3 tools/initdb.py --sync-sources      # after any change to data/data-sources.csv (--sync-event-types for the event types)
-python3 tools/turns.py [--turns N]          # the loop: the next person at the edge, their turn, the next; pauses on pages to save in the browser
+python3 tools/turns.py [--turns N]          # the loop: what was saved taken in, then the next person at the edge, their turn, the next; a person whose pages wait for the browser waits, the loop goes on
 python3 tools/fetches.py next [K]           # the pages to save, one line each (`list` for all); then `tools/fetches.py collect`
-python3 tools/turns.py --resume             # after the browser session: the paused turn, then on
+python3 tools/turns.py --turns 0            # after the browser session: what was saved taken in, the turns of those who waited finished
 python3 tools/cards.py "<person>"           # the records waiting for a decision, one card each; --full every field
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
@@ -124,12 +125,15 @@ catalog; a scratch copy is for testing code, never for decisions.
    parents, first in their plan; never a person two links away from anyone
    confirmed. `tools/turn.py "<person>"` runs their plan: every
    step a connector can run, the rule's decisions, the plan again.
-2. A turn pauses on pages a connector cannot fetch: save the ones
+2. A turn that leaves pages a connector cannot fetch lists them, and its
+   person waits on them while the loop goes on: save the ones
    `tools/fetches.py next` names in the owner's browser by the
-   page-saves-itself method (§4), then `--resume`. When a site blocks a save
-   or a search (a challenge, a sign-in), notify the owner and wait; continue
-   once they have passed it by hand. Never pass it yourself, and a block does
-   not by itself make the source assisted-only.
+   page-saves-itself method (§4); the next `tools/turns.py` (or
+   `tools/turn.py --resume`) takes them in and finishes the turns of the
+   people they were saved for. When a site blocks a save or a search (a
+   challenge, a sign-in), notify the owner and wait; continue once they have
+   passed it by hand. Never pass it yourself, and a block does not by itself
+   make the source assisted-only.
 3. What is left is the owner's: the cards (`tools/cards.py`, decided with
    `tools/conclude.py decide`), the key facts (`name`, `sex`, `birth`,
    `death`, `parents`, `spouses`, `children`, decided with

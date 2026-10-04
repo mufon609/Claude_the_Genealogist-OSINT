@@ -60,30 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A8. One person's pages never stop the loop
-
-`tools/turns.py` refuses to run while `<db>.turn-state.json` exists,
-`turn.start` pauses the whole run as soon as one person has one page for the
-browser, and nothing abandons or expires a pause. The live loop has stood on
-Catherine Bonn VAN FOSSEN Rittenhouse since 20 Sept 2026, with about 225
-connector steps waiting across the tree and nothing archived since. A pause
-belongs to the person, not the loop: the turn runs its connector steps, the
-rule and the tail, its pages join the fetch list, the person waits, and the
-loop goes on to the next; a resume takes whatever has been saved for any
-waiting person. A state written before the turn kept `since` and
-`audit_mark` credits nothing later to that turn (`turn.resume`). The commit
-hook refuses the state files, which hold people's names. Write the change
-into §8 first, then the code and its scenarios; the live loop is restarted
-once it is reviewed.
-
-One record's failure stops later runs the same way: `turn.run_connectors`
-re-raises an exception from a step's reading, matching or requests
-(`run_step.run`, `run_connector`), the rollback takes the run's log row with
-it, and the same step is first again on the next run; `reconsider` and the
-plan in the turn's tail fail the same way. A record that cannot be read or
-matched is an error run named in the turn's report, the step left runnable,
-and the turn goes on.
-
 ### A3. A date shown as accepted is one an accepted statement gives
 
 `Catalog.basis` reads an event's shown date and place as accepted when any
@@ -104,9 +80,6 @@ give. It changes what the rule decides, so it ends with the dry-run
 reconsider this section requires, and it comes before the loop is restarted.
 
 ### A1. Models run the steps no connector can, tasked and measured by code
-
-**Blocked by:** A8 (the fetch list every waiting person's pages join is the
-list a model works through).
 
 `docs/DATA-ARCHITECTURE.md` §7 decision 16: code judges, models investigate.
 No model is launched by code: a page at a holder without a connector waits
@@ -1117,7 +1090,9 @@ reads, and run `ANALYZE` after a migration. `overview.overview` builds a card
 for every person on each load, `Catalog.tiers` walks the tree once per
 instance and instances are made per call, and `assertion` has no index on
 `persona_fact_id` or `persona_id`; `ANALYZE` has never run on the live
-catalog.
+catalog. Every turn's tail runs `conclude.reconsider` over the whole tree,
+two to three minutes a turn at 145 people: a turn re-examines what its own
+records and decisions touch.
 
 ### C46. Tools no check runs
 
@@ -1370,6 +1345,17 @@ composite keys JSON; a card's person, persona and artifact are in
 by pattern. `foreign_key_check` sees none of them (none dangles on 4 Oct
 2026), and 93 `json_extract` calls across 11 files read them. Beside C29 and
 C45: give each link the column it is, with its foreign key, a link at a time.
+
+### C65. A turn run by hand, and a page that comes in outside a collect
+
+`tools/turn.py "<person>"` run by hand still stops on a failure outside its
+runs and its tail's parts, where `tools/turns.py` catches it, names it and
+goes on. A page attached outside a collect (the person screen's log, an
+attach run by hand) ends its person's wait with no report of the turn it
+finishes: the person simply waits no more. And the state kept beside a
+catalog is written in place, so a stop in mid-write leaves a file no run can
+read. Give the hand-run turn the runner's guard, the finished turn its report
+wherever the page came in, and the state a write that replaces the file whole.
 
 ## Externally blocked
 
