@@ -60,25 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A3. A date shown as accepted is one an accepted statement gives
-
-`Catalog.basis` reads an event's shown date and place as accepted when any
-statement on the event is accepted, whatever that statement gives, and
-`tools/proof.py` prints the value as accepted and decided. Measured on the
-live catalog of 4 Oct 2026, 8 of the 29 birth and death events that read
-accepted with a full date hold that day only on the file's claim or a page
-anyone can edit: Lena Howard Bell's birth reads 6 April 1880, accepted, where
-her one accepted record, the 1900 census, gives the year. The rule's veto
-reads the same shown value, so a record that agrees with a shown claim and
-contradicts the accepted statements is not refused. Against hard rule 3 (a
-page anyone can edit never builds a person's facts) and every fact tracing to
-its record (`README.md`). Read the basis per value: a date or place is
-accepted to the precision an accepted statement gives, and what the event
-shows beyond that is labelled the claim it is, on the screen, in the overview
-and in the proof; the veto and the points read what the accepted statements
-give. It changes what the rule decides, so it ends with the dry-run
-reconsider this section requires, and it comes before the loop is restarted.
-
 ### A1. Models run the steps no connector can, tasked and measured by code
 
 `docs/DATA-ARCHITECTURE.md` §7 decision 16: code judges, models investigate.
@@ -1356,6 +1337,27 @@ finishes: the person simply waits no more. And the state kept beside a
 catalog is written in place, so a stop in mid-write leaves a file no run can
 read. Give the hand-run turn the runner's guard, the finished turn its report
 wherever the page came in, and the state a write that replaces the file whole.
+
+### C66. What the reading of an event's value per part leaves
+
+`docs/RESEARCH-WORKFLOW.md` §5–7 (what of an event's value is accepted) reads
+a date per part everywhere and a place per part where it is shown; five
+places still read the value the event shows, and each change to them changes
+what the rule decides, so each ends with a dry-run `reconsider` on a copy of
+the live catalog. A place's point (`conclude.rule_points`, `ground`) needs an
+accepted statement that gives the shown place whole, so a record agreeing
+with an accepted place earns nothing where the event shows another on a
+claim. The matcher compares with the shown values (`match.candidate`,
+`compare`), so a reading that differs from the claims on both dates is a
+hint, never a card, though it agrees with the accepted statements.
+`facts.decide_fact` accepts the file's claim citing a held record with the
+file's own value, so accepting a birth whose held census gives a calculated
+year makes the file's day read accepted. The veto (`conclude.against`) never
+reads a place the owner's own word gives, where `ground` and
+`trusted_evidence` do. `Catalog.disagreements` never compares two places both
+finer than the event's own. Beside them: `checklist.build` gives the field
+for a country abroad the year's basis, and `catalog.place_given` reads
+`place_verdict`'s words (C34).
 
 ## Externally blocked
 

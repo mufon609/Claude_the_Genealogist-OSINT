@@ -307,13 +307,16 @@ def place_strings(cx, tree_id, eid, groups):
 
 def other_facts(cx, cat, pid, groups):
     """Every event or attribute of the person beyond the key facts (burial, residences, occupation, an inscription, ...), each a
-    fact decided under the same three states with the same evidence rule, keyed event:<id>."""
+    fact decided under the same three states with the same evidence rule, keyed event:<id>; claimed, the parts of an accepted
+    fact's date and place no accepted statement gives, in words (Catalog.value_basis)."""
     out = []
     for e in cx.execute("""SELECT e.id, e.event_type, e.date_text, e.place_id, e.description FROM event e JOIN event_participant ep ON ep.event_id=e.id
                            WHERE ep.person_id=? AND e.event_type NOT IN ('Birth','Death') ORDER BY e.date_start, e.event_type""", (pid,)):
         f = f"event:{e['id']}"
+        status = fact_status(cx, pid, f)
+        claimed = cat.claim_words(cat.value_basis(e["id"])) if status == "accepted" else []   # the parts of an accepted fact's value that are a claim
         out.append({"field": f, "type": e["event_type"], "date": e["date_text"], "place": cat.place(e["id"], e["place_id"])["text"] if e["place_id"] else None, "value": e["description"],
-                    "status": fact_status(cx, pid, f), "evidence": evidence_rows(cx, pid, f, cat.holdings()), "places": place_strings(cx, cat.tree_id, e["id"], groups)})
+                    "status": status, "claimed": claimed, "evidence": evidence_rows(cx, pid, f, cat.holdings()), "places": place_strings(cx, cat.tree_id, e["id"], groups)})
     return out
 
 def person_view(cx, tree_id, pid):
@@ -336,7 +339,13 @@ def person_view(cx, tree_id, pid):
     r["family"] = {k: [{"id": i, "name": n, "accepted": fact_status(cx, pid, k) == "accepted" if k in ("parents", "spouses", "children") else None} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
     for sp in r["family"]["spouses"]:                                    # what the couple's family says: married when, divorced when
         f = next((x for x in fam["families"] if x["spouse_id"] == sp["id"]), None)
-        if f: sp["married"] = [m["year"] for m in f["marriages"] if m["year"]]; sp["divorced"] = [d["date"] or str(d["year"]) for d in f["divorces"]]
+        if not f: continue
+        def given(e, levels=("whole", "month", "year")):
+            """Whether an accepted statement gives the event's date to one of these levels (Catalog.value_basis)."""
+            reading = cat.value_basis(e["id"]) if e["basis"] == "accepted" else None
+            return bool(reading and reading["date"] and reading["date"]["level"] in levels)
+        sp["married"] = [m["year"] if given(m) else f"{m['year']}, a claim" for m in f["marriages"] if m["year"]]
+        sp["divorced"] = [(d["date"] or str(d["year"])) + ("" if given(d, ("whole",)) else ", a claim") for d in f["divorces"]]
     cited = cat.cited()
     for row in r["checklist"]["A"] + r["checklist"]["B"]:
         for c in row["citations"]: c.update(fetch_target(c["apid"], cited.get(c["apid"], {}).get("url"))); c["sha256"] = cat.held_for(c["apid"], pid); c["held"] = bool(c["sha256"])   # a held row opens its record through the artifact
