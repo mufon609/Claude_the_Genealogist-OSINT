@@ -178,6 +178,18 @@ what comes back and logs the run), one piece closed before the next:
    well, so a cheaper model that has become good enough is found. A run is
    stopped at the highest cost its kind's calibration recorded and counted
    failed; the turn's report says what was spent and what it bought.
+6. **A question is a task too.** Anything that waits on a person (a card, a
+   conflict, a place, a question about one life) can be handed to the top of
+   the ladder as a task of its own kind, built by code from the question as
+   the catalog holds it: the card, the rule's reason, the person and their
+   relatives, what was tried. The model answers in a schema: the records it
+   found, saved through the fetch task so the rule decides on them; an
+   argument, for and against, whose every statement names the row or the
+   file it rests on; and, where it could not settle the question, what
+   would. Code checks each statement against the catalog and drops what it
+   cannot find. The model's verdict is never a decision: the rule decides on
+   the new evidence, a person on a checked argument. The run is a row like
+   any other, with the question's class and what settled it.
 
 The launcher (`claude` run non-interactively) takes a model, an effort, a
 schema for the answer, the tools allowed, a spending cap and the browser
@@ -278,6 +290,28 @@ unit stays undecided as `CLAUDE.md` has it unless a trial shows context that
 tells the two apart, which is then put to the owner as a change to that rule.
 Nothing lowers what the rule takes: the rule is given more evidence. What
 still reaches a person says what was tried.
+
+What a waiting question shows, proposed by the owner on 4 Oct 2026 and not
+yet an accepted decision: "anything a human is currently gated" on "should
+have a system of hints or questions with an action button that will run a
+more intense model on the question at hand and try and resolve the issue",
+and that must not "stop the direction we are going with good process, code
+and smaller well defined agents to tackle this for common issues." So each
+waiting question says, in words a person who knows no genealogy can act on:
+what is asked; why the rule did not take it (its reason is words already);
+what was tried; what would settle it, worked out by code from the reason
+(the record that would supply the missing point, the decision it waits on);
+and a control that hands the question to the stronger model (A1, point 6),
+with what such a run has cost for questions of its class. A question put to
+the person is one only their family can answer (whether a man married
+again), recorded as their word and used to guide the search. The stronger
+model is for what the common grounds do not reach: of the 25 cards the trial
+left, 22 want a routine step (a record fetched, a page saved again, a copy
+joined, a second reading) and 3 want it (the marriage entry of two names, the
+half-brother's mother). Each ground it finds that recurs becomes code or a
+small task: the classes the stronger model settled and code does not yet are
+that work's list, and their share of all questions is reported and should
+fall.
 
 ---
 
