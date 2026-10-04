@@ -253,6 +253,17 @@ its county or its state), to be shown by resolving both strings in the
 record's own context; the 10 on repeated marriage events sit on people more
 than one link from the confirmed tree (C54).
 
+The loop's automatic half was rehearsed the same day on a scratch copy, every
+step a connector can run: 229 steps in 39 minutes with no error run; 73 found
+and 301 `none`, 236 of those with no request sent (C28, C55); 159 files
+archived and 860 personas read, nearly all names in a book's running text;
+one record taken by the rule, none of the 62 waiting cards answered, and 3
+new cards, each a namesake's profile at WikiTree. Re-reading the 106 waiting
+place strings with the current resolver settled 6 (state abbreviations and
+one village the gazetteer knows): the cards were written by the resolver's
+first version, and nothing re-reads a string an older version left open, as
+`tools/extract.py --stale` re-reads a page.
+
 The work, a class at a time, the docs first (§0, §5–7,
 `docs/RESEARCH-CHECKLIST.md` §6b), each ground written as a test the rule
 makes and shown on a copy of the live catalog before the live run: the
