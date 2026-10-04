@@ -1065,7 +1065,11 @@ rule takes the identity alone, when the name agrees and at least three of birth
 date to the day, death date to the day, burial place, and a stated parent or
 spouse who is that relative in the tree agree with the tree, claimed or
 accepted, a claim the file cites to that very page not among them (the reason
-names what it left out). However many relatives the page lists, they make one
+names what it left out). A date or a place is claimed or accepted as a link is:
+the event carries the file's claim of it or an accepted statement giving it, so
+an undecided fact another page anyone can edit types, a value a page keeps
+beneath the one it shows and a statement a withdrawal left undecided count for
+nothing. However many relatives the page lists, they make one
 of the four at most: a parent or a spouse the page states, never a child or a
 sibling, whom the tree links to the person as the route through a stated
 relationship reads a link (claimed or accepted, above). A date or place the page
@@ -1233,8 +1237,8 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   indexer computed counts once at most, is never an obituary's survivor and
   never an accepted family link. A statement marked as a sibling placement, a
   value the page keeps beneath the one it shows or a link the record's indexer
-  computed is never the ground of a point, nor a link the tree holds against a
-  record or claims, whatever its status: the record does not state it. A place
+  computed is never the ground of a point, nor a link, a date or a place the tree
+  holds against a record or claims, whatever its status: the record does not state it. A place
   the record gives coarser than the tree's own (a state or a county against a
   town) agrees, is said in the reason, and earns nothing. A record
   counts once wherever it is held: a statement from any copy of the record
