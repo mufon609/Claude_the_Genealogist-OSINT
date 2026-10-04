@@ -285,17 +285,18 @@ def render_compact(c, rule, claim=True):
     out = [f"CARD {c['id']}  [{c['kind'].replace('_', ' ')}]  {pe['name']}" + (f" ({pe['role']})" if pe["role"] else "") + (f" may be {p['name']}" if p else " is nobody in the tree yet")]
     if p:
         if claim: out.append(L("Claim", f"the file's: {claim_text(p)}"))
-        agrees, differs = [], []
+        agrees, differs, within = [], [], []
         for f in c["fields"]:
             if f["verdict"] == "absent": continue
             note = f.get("note"); note = None if not note or note.startswith("(record") else note
             text = f"{f['field']} {f['record']}" + (f" (tree {f['tree']})" if f["tree"] not in (None, f["record"]) else "") + (f" [{note}]" if note else "")
-            (agrees if f["verdict"] == "agrees" else differs).append(text)
+            {"agrees": agrees, "within": within}.get(f["verdict"], differs).append(text)   # a bound neither agrees nor differs (catalog.date_verdict)
         beyond = [(what, v) for what, v in matcher_words(c["rationale"]) if what not in FIELD_WORDS]
         agrees += _said(beyond, "agrees"); differs += _said(beyond, "disagrees")
         if agrees: out.append(L("Agrees", "; ".join(agrees)))
         if differs: out.append(L("Differs", "; ".join(differs)))
-        if not agrees and not differs: out.append(L("Compare", "nothing the record and the tree both state"))
+        if within: out.append(L("Within", "; ".join(within)))
+        if not agrees and not differs and not within: out.append(L("Compare", "nothing the record and the tree both state"))
     else:
         out.append(L("Person", f"nobody yet; the record is about the family of {c['subject']}" if c["subject"] else "nobody yet"))
         stated = [f"{f['field']} {f['record']}" for f in c["fields"] if f["record"]]
