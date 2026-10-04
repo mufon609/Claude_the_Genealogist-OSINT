@@ -60,23 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A6. Nothing rewrites the audit trail, the evidence or the research log
-
-Hard rule 2 and decision 13. The insert-only triggers
-(`schema/sqlite_extras.sql`) cover `artifact`, `persona`, `persona_fact` and
-`same_record`. Written over today: `audit_log` (`tools/resolve_places.py
---reset` deletes the resolver's rows, and was run live on 13 Sept),
-`extraction` (`ingest_gedcom.py` rewrites `structured_json`) and
-`search_log` (`run_step.py`, `attach.py` and `log_search.py` turn `found`
-into `none` or `unread` with no audit row). Unprotected though nothing
-rewrites them yet: `persona_relation`, `artifact_locator`, `extractor`,
-`tombstone`. `tools/backup.py` writes `storage_target` and `artifact_copy`
-with no `--by` and no audit row. Make the reset and the run's corrected
-outcome new rows (say which in `docs/RESEARCH-WORKFLOW.md`'s schema
-section), stop the ingest's rewrite, give the backup's writes a `--by` and
-their audit rows, then add the triggers with a check that each refuses. The
-tombstone's own writer and readers stay C29.
-
 ### A7. A turn survives a bad answer and a failed file
 
 `run_step.run` catches network errors around the fetch alone: `conn.total`

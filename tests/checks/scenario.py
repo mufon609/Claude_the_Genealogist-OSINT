@@ -925,10 +925,13 @@ def e_fetch_entries(w, x, want):
     return has(got, w.value(x["is"])), got
 
 def e_search_log(w, x, want):
+    """A step's runs as every reader reads them, the rows no restatement superseded; {"superseded": true} every row the step
+    holds, each with `superseded` saying whether a later row restates it, in the order written."""
     st = w.step(x["step"])
-    rows = [dict(r) for r in w.cx.execute("SELECT id, source_id, outcome, notes, artifacts_json, query_json FROM search_log WHERE plan_step_id=? ORDER BY id", (st["id"],))] if st else []
-    for r in rows: r["artifacts"] = json.loads(r["artifacts_json"] or "[]"); r["query"] = json.loads(r["query_json"] or "{}")
-    return has(rows, w.value(x["is"])), [{k: r[k] for k in ("source_id", "outcome", "notes", "artifacts")} for r in rows]
+    rows = [dict(r) for r in w.cx.execute("SELECT id, source_id, outcome, notes, artifacts_json, query_json, superseded_by FROM search_log WHERE plan_step_id=?"
+                                          + ("" if x.get("superseded") else " AND superseded_by IS NULL") + " ORDER BY id", (st["id"],))] if st else []
+    for r in rows: r["artifacts"] = json.loads(r["artifacts_json"] or "[]"); r["query"] = json.loads(r["query_json"] or "{}"); r["superseded"] = r["superseded_by"] is not None
+    return has(rows, w.value(x["is"])), [{k: r[k] for k in ("source_id", "outcome", "notes", "artifacts", "superseded")} for r in rows]
 
 def e_named_for(w, x, want):
     from match import persons_for
@@ -1128,7 +1131,7 @@ def e_file(w, x, want):
 def e_count(w, x, want):
     """A count from one of the catalog's tables, for a few plain questions: the rows of a table for a person."""
     q = {"persona_links_of": "SELECT COUNT(*) FROM person_persona WHERE person_id=?", "family_rows_of": "SELECT COUNT(*) FROM family_member WHERE person_id=?",
-         "steps_of": "SELECT COUNT(*) FROM search_plan WHERE person_id=?", "personas_of": "SELECT COUNT(*) FROM persona WHERE artifact_sha256=?", "logs_of_step": "SELECT COUNT(*) FROM search_log WHERE plan_step_id=?",
+         "steps_of": "SELECT COUNT(*) FROM search_plan WHERE person_id=?", "personas_of": "SELECT COUNT(*) FROM persona WHERE artifact_sha256=?", "logs_of_step": "SELECT COUNT(*) FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL",
          "events_of": "SELECT COUNT(*) FROM event_participant WHERE person_id=?", "extractions_of": "SELECT COUNT(*) FROM extraction WHERE artifact_sha256=?"}
     kind = next(k for k in q if k in x)
     arg = w.sha(x[kind]) if kind in ("personas_of", "extractions_of") else w.step(x[kind])["id"] if kind == "logs_of_step" else w.person(x[kind])

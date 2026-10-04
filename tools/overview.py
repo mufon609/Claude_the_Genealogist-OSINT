@@ -56,7 +56,7 @@ def origins(cx, tree_id):
     ORDER = ("hand", "citation", "lead", "search")
     first = {}                                                   # sha256 -> (moment of its earliest run, the classes of the runs at that moment)
     for arts, at, note, kind, q in cx.execute("""SELECT sl.artifacts_json, sl.executed_at, sl.notes, sp.kind, sp.query_json FROM search_log sl LEFT JOIN search_plan sp ON sp.id=sl.plan_step_id
-                                                 WHERE sl.tree_id=? AND sl.artifacts_json IS NOT NULL ORDER BY sl.executed_at, sl.id""", (tree_id,)):
+                                                 WHERE sl.tree_id=? AND sl.artifacts_json IS NOT NULL AND sl.superseded_by IS NULL ORDER BY sl.executed_at, sl.id""", (tree_id,)):
         if (note or "").startswith((REOPENED, HOUSEHOLD)): continue
         bases = {v.get("basis") for v in json.loads(q or "{}").values() if isinstance(v, dict)}
         cls = "hand" if kind is None or (note or "").startswith(ON_WORD) or "owner" in bases else "search" if kind == "search" else "lead" if "record" in bases else "citation"

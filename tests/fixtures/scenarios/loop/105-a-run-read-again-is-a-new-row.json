@@ -1,0 +1,181 @@
+{
+ "title": "a run read again is a new row, and the plan reads it",
+ "line": "Lena Howard Bell's search of FamilySearch's Kentucky deaths, saved in the browser, reaches the fetch step whose citation was searched for by her name and is logged found before it is read; no row fits her, so the run is read again as none: a new row restating it with the outcome none and the reason first in its note, the found row kept beside it and superseded by it (search_log is insert-only), one audit row naming the row superseded; the plan written again, the fetch list and the checklist read the none row alone: the step stays planned, the page is not listed for saving again on the same fields, and her death row is not held",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the search saved, under a name of the owner's own",
+   "attach": {
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "as_file": "kentucky-deaths-search-saved.html"
+   },
+   "as": "ky",
+   "expect": [
+    {
+     "last": {
+      "left": null,
+      "proposals": [],
+      "outcome": "none"
+     },
+     "why": "the page names her only as a mother with no dates: no row fits, the run is read as none"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": [
+       {
+        "outcome": "none",
+        "notes": {
+         "starts": "no candidate fits; "
+        },
+        "artifacts": [
+         "$ky.sha"
+        ],
+        "superseded": false
+       }
+      ]
+     },
+     "why": "every reader reads the one row no restatement superseded: the none run"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "superseded": true,
+      "is": [
+       {
+        "outcome": "found",
+        "artifacts": [
+         "$ky.sha"
+        ],
+        "superseded": true
+       },
+       {
+        "outcome": "none",
+        "notes": {
+         "starts": "no candidate fits; "
+        },
+        "artifacts": [
+         "$ky.sha"
+        ],
+        "superseded": false
+       }
+      ]
+     },
+     "why": "the found row the page was logged with before it was read stays as written, superseded by the row restating it: nothing in search_log is written over"
+    },
+    {
+     "audit": {
+      "entity": "search_log",
+      "action": "insert",
+      "diff_key": "supersedes",
+      "is": [
+       {
+        "actor": "agent:check",
+        "action": "insert",
+        "diff": {
+         "outcome": "none",
+         "artifacts": [
+          "$ky.sha"
+         ],
+         "was": {
+          "outcome": "found"
+         }
+        }
+       }
+      ]
+     },
+     "why": "one audit row for the restatement, naming the row it supersedes"
+    }
+   ]
+  },
+  {
+   "say": "her plan written again",
+   "plan": [
+    "I332737204852"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737204852",
+      "row_key": "death record:1918",
+      "kind": "fetch",
+      "locator": {
+       "kind": "apid",
+       "value": "1,1222::1373711"
+      },
+      "fields": {
+       "status": "planned"
+      }
+     },
+     "why": "the plan reads the none run: the record the step cites is not held, the step stays planned"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {
+        "kind": "apid",
+        "value": "1,1222::1373711"
+       }
+      },
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "the plan logs nothing, and the superseded row is not read"
+    },
+    {
+     "fetch_entries": {
+      "person": "I332737204852",
+      "url_has": "f.collectionId=1417491",
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "the none run on the step's own fields keeps the search off the list to save"
+    },
+    {
+     "checklist_row": {
+      "person": "I332737204852",
+      "record": "death record",
+      "instance": "1918",
+      "status": {
+       "not": "held"
+      }
+     },
+     "why": "the found row the none run superseded holds nothing for her death row"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

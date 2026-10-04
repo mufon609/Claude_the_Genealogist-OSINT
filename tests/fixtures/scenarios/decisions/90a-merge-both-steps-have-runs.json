@@ -1,0 +1,142 @@
+{
+ "title": "two entries of one person merged (both steps carry a run)",
+ "line": "a step collision where both entries' steps carry runs keeps the kept person's own step, and carries the duplicate's run onto it as a new row restating it (search_log is insert-only): the duplicate's step stays on its row, skipped, holding the run it superseded, and the kept step reads both runs",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a found run on the kept person's own step of the key both plans share",
+   "log": {
+    "step": {
+     "person": "I332737059537",
+     "step_key": "fetch:1,2511::15589360"
+    },
+    "source": "D03",
+    "outcome": "found",
+    "note": "harness: a run on the kept person's own step",
+    "done": true
+   }
+  },
+  {
+   "say": "and a none run on the duplicate's step of that key",
+   "log": {
+    "step": {
+     "person": "I332737068288",
+     "step_key": "fetch:1,2511::15589360"
+    },
+    "source": "D03",
+    "outcome": "none",
+    "note": "harness: a run on the duplicate's own step"
+   },
+   "as": "dl"
+  },
+  {
+   "say": "the duplicate merged into the kept person",
+   "merge": {
+    "duplicate": "I332737068288",
+    "kept": "I332737059537"
+   },
+   "expect": [
+    {
+     "last": {
+      "plan_steps_dropped": 1,
+      "log_rows_carried": 1,
+      "dropped_steps": [
+       {
+        "step_key": "fetch:1,2511::15589360",
+        "reason": "the kept person's own step of this key carries search_log runs already"
+       }
+      ]
+     },
+     "why": "the kept person's own step stays; the duplicate's one run is carried onto it"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737059537",
+       "step_key": "fetch:1,2511::15589360"
+      },
+      "is": [
+       {
+        "outcome": "found",
+        "notes": "harness: a run on the kept person's own step"
+       },
+       {
+        "outcome": "none",
+        "notes": "harness: a run on the duplicate's own step",
+        "superseded": false
+       }
+      ]
+     },
+     "why": "the kept step reads both runs, the duplicate's restated on it"
+    },
+    {
+     "step": {
+      "person": "I332737068288",
+      "step_key": "fetch:1,2511::15589360",
+      "fields": {
+       "status": "skipped"
+      }
+     },
+     "why": "the duplicate's step stays on its row, out of the plan, holding the run it superseded"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737068288",
+       "step_key": "fetch:1,2511::15589360"
+      },
+      "superseded": true,
+      "is": [
+       {
+        "outcome": "none",
+        "superseded": true
+       }
+      ]
+     },
+     "why": "the duplicate's run is kept as written, superseded by its restatement on the kept step"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737068288",
+       "step_key": "fetch:1,2511::15589360"
+      },
+      "is": {
+       "len": 0
+      }
+     },
+     "why": "no reader reads it there"
+    },
+    {
+     "audit": {
+      "entity": "search_log",
+      "action": "insert",
+      "diff_key": "supersedes",
+      "is": [
+       {
+        "actor": "agent:check",
+        "diff": {
+         "outcome": "none",
+         "supersedes": "$dl.log"
+        }
+       }
+      ]
+     },
+     "why": "one audit row for the carry, naming the run it supersedes"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

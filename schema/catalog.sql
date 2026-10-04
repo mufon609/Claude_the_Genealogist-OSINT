@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.0
+-- tree catalog schema  v0.8.1
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -7,7 +7,9 @@
 --   * dates in records use the date_* column group (see persona_fact / event).
 --   * JSON is stored as TEXT (json_* functions exist on both engines).
 --   * booleans are BOOLEAN (SQLite stores 0/1).
---   * SQLite-only objects (FTS, triggers) live in sqlite_extras.sql.
+--   * SQLite-only objects (FTS, triggers) live in sqlite_extras.sql, the insert-only triggers among them: artifact,
+--     artifact_locator, tombstone, extractor, extraction, persona, persona_fact, persona_relation, same_record, search_log
+--     and audit_log take no UPDATE but a write-once superseded_by, and no DELETE.
 --   * DECISIONS: wherever a human decides, the column is `status` with exactly
 --     three values: 'undecided' | 'accepted' | 'rejected'. No numeric confidence.
 --     Machine details (match scores, OCR certainty) stay inside notes/JSON.
@@ -201,7 +203,7 @@ CREATE TABLE extractor (
 );
 
 -- One run of one extractor over one artifact (or page). Never updated in place;
--- a re-run inserts a new row and sets superseded_by on the old one.
+-- a re-run inserts a new row and sets superseded_by on the old one, written once from empty.
 CREATE TABLE extraction (
   id              TEXT PRIMARY KEY,
   artifact_sha256 TEXT NOT NULL REFERENCES artifact(sha256),
@@ -511,7 +513,10 @@ CREATE INDEX ix_search_plan_locator  ON search_plan(locator_kind, locator_value)
 -- Every execution of a step, including the ones that found nothing. found: a page or record was archived and read, and
 -- marks the step done when it is the record the step cites; none: the source answered with nothing; blocked; error: the
 -- source did not answer; unread: a record was archived and no parser reads it, a web page or a connector's JSON or text response
--- alike (tools/attach.py, tools/run_step.py), held on the step's log, the step stays planned.
+-- alike (tools/attach.py, tools/run_step.py), held on the step's log, the step stays planned. Insert-only: a run read again (a
+-- found run whose records fit no one, or that no parser reads) or carried onto the kept person's step by a merge is a new row
+-- restating it (log_search.restate), and the old row's superseded_by, written once from empty, names that row; every reader
+-- reads the rows whose superseded_by is empty.
 CREATE TABLE search_log (
   id              TEXT PRIMARY KEY,
   tree_id         TEXT NOT NULL REFERENCES tree(id),
@@ -523,7 +528,8 @@ CREATE TABLE search_log (
   query_json      TEXT NOT NULL,                        -- exactly the fields used, after include/revise
   outcome         TEXT NOT NULL CHECK (outcome IN ('found','none','blocked','error','unread')),
   artifacts_json  TEXT,                                 -- sha256s archived by this run
-  notes           TEXT
+  notes           TEXT,
+  superseded_by   TEXT REFERENCES search_log(id)        -- the row restating this run; NULL on every row a reader reads
 );
 CREATE INDEX ix_search_log_step ON search_log(plan_step_id);
 CREATE INDEX ix_search_log_question ON search_log(question_id);
@@ -586,6 +592,7 @@ CREATE INDEX ix_note_entity ON note(entity_kind, entity_id);
 -- OPS
 -- =============================================================================
 
+-- Who did what, one row per change. Insert-only: a reset or a correction is a row of its own, never a row removed.
 CREATE TABLE audit_log (
   id          TEXT PRIMARY KEY,
   tree_id     TEXT REFERENCES tree(id),

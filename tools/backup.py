@@ -2,9 +2,12 @@
 """Fixity and backup for the archive: verify the objects on disk against their hashes, package them as a BagIt bag with a
 plain-SQL dump of the catalog beside them, and check a bag on the drive it was written to.
 
-usage: tools/backup.py verify [--sample N] [--db catalog/tree.db]           every object (or a random N) hashed and compared
-       tools/backup.py bag <dest dir> [--target <name>] [--db catalog/tree.db]   a bag at <dest dir>/<date>-tree/, the catalog dumped into it
-       tools/backup.py check <bag dir> [--target <name>] [--db catalog/tree.db]  the bag's payload hashed against its manifest
+usage: tools/backup.py verify [--sample N] [--db catalog/tree.db] [--by user:neural]           every object (or a random N) hashed and compared
+       tools/backup.py bag <dest dir> [--target <name>] [--db catalog/tree.db] [--by …]   a bag at <dest dir>/<date>-tree/, the catalog dumped into it
+       tools/backup.py check <bag dir> [--target <name>] [--db catalog/tree.db] [--by …]  the bag's payload hashed against its manifest
+
+Every write to the catalog (artifact_copy, a storage_target made) carries an audit row under --by (default the shell user):
+one per storage target a run records copies on, naming the objects that failed, and one per storage target made.
 
 verify: for every artifact that is not tombstoned, the object under archive/objects is hashed and compared with its sha256;
 artifact_copy for the local target records when and whether it verified. A missing or altered object is reported and marked
@@ -22,9 +25,9 @@ committed or shared.
 check: a bag's payload hashed against its own manifest, for the drive that holds it; with --target the result is recorded on
 artifact_copy for the objects in it.
 """
-import argparse, datetime as dt, hashlib, os, random, shutil, sqlite3, sys
+import argparse, datetime as dt, hashlib, json, os, random, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, archive_dir, now, object_path
+from treelib import DB, archive_dir, now, object_path, ulid
 
 def sha256_of(path):
     h = hashlib.sha256()
@@ -36,15 +39,22 @@ def record_copy(cx, sha, target, ok, ts):
     cx.execute("""INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)
                   ON CONFLICT(artifact_sha256,target_name) DO UPDATE SET last_verified=excluded.last_verified, verify_ok=excluded.verify_ok""", (sha, target, ts, ts, ok))
 
-def ensure_target(cx, name, uri):
+def audit(cx, by, ts, action, target, diff):
+    """One audit row for what a run wrote on a storage target; the archive is shared by every tree, so the row names none."""
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+               (ulid(), None, ts, by, action, "storage_target", target, json.dumps(diff)))
+
+def ensure_target(cx, name, uri, by):
     if not cx.execute("SELECT 1 FROM storage_target WHERE name=?", (name,)).fetchone():
         cx.execute("INSERT INTO storage_target (name,kind,uri,is_master,object_lock,enabled,notes) VALUES (?,?,?,0,0,1,?)", (name, "local", uri, "BagIt bags written by tools/backup.py"))
+        audit(cx, by, now(), "insert", name, {"kind": "local", "uri": uri})
 
 def artifacts(cx):
     return [r[0] for r in cx.execute("SELECT sha256 FROM artifact a WHERE NOT EXISTS (SELECT 1 FROM tombstone t WHERE t.artifact_sha256=a.sha256) ORDER BY sha256")]
 
-def verify(cx, sample=None):
-    """(checked, bad): every object, or a random sample, hashed against its sha256; artifact_copy 'local' updated."""
+def verify(cx, by, sample=None):
+    """(checked, bad): every object, or a random sample, hashed against its sha256; artifact_copy 'local' updated, and one audit
+    row naming how many were verified and every bad one."""
     shas = artifacts(cx)
     if sample: shas = random.sample(shas, min(sample, len(shas)))
     ts = now(); bad = []
@@ -52,13 +62,14 @@ def verify(cx, sample=None):
         p = object_path(sha); ok = os.path.isfile(p) and sha256_of(p) == sha
         record_copy(cx, sha, "local", ok, ts)
         if not ok: bad.append((sha, "missing" if not os.path.isfile(p) else "altered"))
+    audit(cx, by, ts, "verify", "local", {"verified": len(shas), "sample": sample, "bad": bad})
     return len(shas), bad
 
 def dump_sql(cx, path):
     with open(path, "w", encoding="utf-8") as fh:
         for line in cx.iterdump(): fh.write(line + "\n")
 
-def write_bag(cx, dest, target=None):
+def write_bag(cx, dest, by, target=None):
     """The bag directory written and its payload verified; returns (bag dir, objects bagged, bad objects)."""
     day = dt.date.today().isoformat(); bag = os.path.join(os.path.abspath(dest), f"{day}-tree")
     if os.path.exists(bag): raise SystemExit(f"{bag} exists; a bag is written once, check it or bag into another directory")
@@ -80,7 +91,7 @@ def write_bag(cx, dest, target=None):
     with open(os.path.join(bag, "tagmanifest-sha256.txt"), "w", encoding="utf-8") as fh:
         for f in ("bagit.txt", "bag-info.txt", "manifest-sha256.txt"): fh.write(f"{sha256_of(os.path.join(bag, f))}  {f}\n")
     bagged, bad = objects_in(entries)
-    if target: note_copies(cx, target, os.path.abspath(dest), bagged, bad)
+    if target: note_copies(cx, target, os.path.abspath(dest), bagged, bad, by, bag)
     return bag, len(bagged), bad
 
 def objects_in(entries):
@@ -93,15 +104,17 @@ def objects_in(entries):
             else: bad.append((parts[-1], "altered"))
     return good, bad
 
-def note_copies(cx, target, uri_dir, good, bad):
-    ensure_target(cx, target, "file://" + uri_dir); ts = now()
+def note_copies(cx, target, uri_dir, good, bad, by, bag):
+    """The bag's objects recorded as copies on the target, made when missing, and one audit row naming the bag, how many
+    copies verified and every bad one."""
+    ensure_target(cx, target, "file://" + uri_dir, by); ts = now()
     known = set(artifacts(cx))
-    for sha in good:
-        if sha in known: record_copy(cx, sha, target, True, ts)
-    for sha, _ in bad:
-        if sha in known: record_copy(cx, sha, target, False, ts)
+    good, bad = [s for s in good if s in known], [(s, why) for s, why in bad if s in known]
+    for sha in good: record_copy(cx, sha, target, True, ts)
+    for sha, _ in bad: record_copy(cx, sha, target, False, ts)
+    audit(cx, by, ts, "verify", target, {"bag": bag, "verified": len(good), "bad": bad})
 
-def check_bag(bag, cx=None, target=None):
+def check_bag(bag, cx=None, target=None, by=None):
     """A bag's payload against its manifest: (files checked, [(path, why)]); with a target, the objects' copies recorded."""
     man = os.path.join(bag, "manifest-sha256.txt")
     if not os.path.isfile(man): raise SystemExit(f"{bag} has no manifest-sha256.txt")
@@ -115,7 +128,7 @@ def check_bag(bag, cx=None, target=None):
     if target and cx is not None:
         good, _ = objects_in(entries); broken = {rel for rel, _ in bad}
         note_copies(cx, target, os.path.dirname(os.path.abspath(bag)), [s for s in good if not any(r.endswith(s) for r in broken)],
-                    [(rel.split("/")[-1], why) for rel, why in bad if "/objects/" in rel])
+                    [(rel.split("/")[-1], why) for rel, why in bad if "/objects/" in rel], by, os.path.abspath(bag))
     return len(entries), bad
 
 def main():
@@ -124,19 +137,19 @@ def main():
     v = sub.add_parser("verify", help="hash every object (or a random sample) against its sha256 and record the result"); v.add_argument("--sample", type=int)
     b = sub.add_parser("bag", help="write a BagIt bag of the archive with a plain-SQL dump of the catalog"); b.add_argument("dest"); b.add_argument("--target", help="record the bag as a copy on this storage target (the drive's name)")
     c = sub.add_parser("check", help="hash a bag's payload against its manifest"); c.add_argument("bag"); c.add_argument("--target")
-    for x in (v, b, c): x.add_argument("--db", default=DB)
+    for x in (v, b, c): x.add_argument("--db", default=DB); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
     cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
     if a.cmd == "verify":
-        n, bad = verify(cx, a.sample); cx.commit()
+        n, bad = verify(cx, a.by, a.sample); cx.commit()
         for sha, why in bad: print(f"{why}: {sha}")
         print(f"{n} object(s) verified, {len(bad)} bad; under-replicated: {cx.execute('SELECT COUNT(*) FROM v_artifact_under_replicated').fetchone()[0]}")
     elif a.cmd == "bag":
-        bag, n, bad = write_bag(cx, a.dest, a.target); cx.commit()
+        bag, n, bad = write_bag(cx, a.dest, a.by, a.target); cx.commit()
         for sha, why in bad: print(f"{why}: {sha}")
         print(f"{bag}: {n} object(s) bagged with the catalog dump, {len(bad)} bad" + (f"; recorded as copies on {a.target}; under-replicated now: {cx.execute('SELECT COUNT(*) FROM v_artifact_under_replicated').fetchone()[0]}" if a.target else ""))
     else:
-        n, bad = check_bag(a.bag, cx, a.target); cx.commit()
+        n, bad = check_bag(a.bag, cx, a.target, a.by); cx.commit()
         for rel, why in bad: print(f"{why}: {rel}")
         print(f"{a.bag}: {n} file(s) checked, {len(bad)} bad")
 

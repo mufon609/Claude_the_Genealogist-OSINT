@@ -240,7 +240,7 @@ def result_row_leads(cx, tree_id, cat, pid):
     out = []; seen = set(); known = {}; q = cx.cursor(); q.row_factory = sqlite3.Row; f = lambda v: {"value": v, "basis": "record"}
     for page in q.execute(f"""SELECT DISTINCT e.id AS eid, x.name AS parser, ar.source_id, ar.locator_value AS url, e.ran_at FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id,
                                json_each(l.artifacts_json) j JOIN extraction e ON e.artifact_sha256=j.value JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
-                               WHERE sp.person_id=? AND e.superseded_by IS NULL AND e.status='complete' AND x.name IN ({','.join('?' * len(POINTING_LISTINGS))}) ORDER BY e.ran_at, e.id""", (pid, *POINTING_LISTINGS)).fetchall():
+                               WHERE sp.person_id=? AND l.superseded_by IS NULL AND e.superseded_by IS NULL AND e.status='complete' AND x.name IN ({','.join('?' * len(POINTING_LISTINGS))}) ORDER BY e.ran_at, e.id""", (pid, *POINTING_LISTINGS)).fetchall():
         holder = cat.sources.get(page["source_id"], {}).get("name") or page["source_id"]
         for _, pr, agree in fitting_rows(cx, page["eid"], pid, known):
             region = json.loads(q.execute("SELECT region_json FROM persona WHERE id=?", (pr["id"],)).fetchone()[0] or "{}")

@@ -1414,7 +1414,7 @@ search_plan       (id, person_id, row_key, question_id?, seq, step_key, kind fet
                    locator_source_id, locator_kind, locator_value, collection_id, on_json, sources_json, mode fetch|blocked|auto|assisted|awaiting_approval,
                    expected, status planned|done|skipped, rationale, revisions_json, created_at)
                    row_key: "<record>:<instance>" of the checklist row, or "footprint:<locator>" for a record on a relative
-search_log        (id, tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome found|none|blocked|error|unread, artifacts_json, notes)
+search_log        (id, tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome found|none|blocked|error|unread, artifacts_json, notes, superseded_by?)
 proposal.question_id
 source.connector
 ```
@@ -1434,6 +1434,23 @@ tried, and so does an `unread` run, the one the attach and the runner log for a
 record no parser reads, a web page or a JSON or text response alike (schema
 0.7.8: the record is held on the log, nothing is read from it). A found run that archived a file records the artifact on the log; the
 row is then held, and the assertion comes from extraction and review.
+
+The log is insert-only, like the evidence and the audit trail. A run read
+again is a new row, never a row written over: a run is logged found before its
+records are read, so that the matcher sees every person they were fetched for,
+and when its records turn out to fit no one it is read again as `none`, and
+when no parser reads them as `unread`; a merge carries the duplicate's run
+onto the kept person's step the same way. The new row restates the run (its
+moment, actor, source, fields and artifacts) with the outcome, note or step it
+is now read with, and the old row's `superseded_by`, the one column written
+after insert and only once, from empty, names it (`log_search.restate`, with
+an audit row naming the row superseded), as a re-read extraction supersedes
+the old one. Every reader (the plan, the runner, the fetch list, the
+checklist, the queue, the screen, the cards, the proof) reads the rows whose
+`superseded_by` is empty; a superseded row stays as the record of what was
+first logged. The correction is a new row with a marker, not a second column
+holding the corrected outcome: a merge's carry moves a run to another step,
+which no write-once column can say, and one form serves both.
 
 ## Rules that hold throughout
 

@@ -345,7 +345,7 @@ def research(cat, pid, field, rows):
         steps = cat.q("SELECT id, kind, mode, sources_json, locator_source_id FROM search_plan WHERE person_id=? AND row_key=? AND status<>'skipped'", pid, f"{r['record']}:{r.get('instance') or ''}")
         searched, blocked = bool(steps), False
         for sid, kind, mode, sources, holder in steps:
-            runs = cat.q("SELECT source_id, outcome FROM search_log WHERE plan_step_id=?", sid)
+            runs = cat.q("SELECT source_id, outcome FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL", sid)
             if mode == "blocked" or any(o == "blocked" for _, o in runs): blocked = True
             want = {holder} if kind == "fetch" and holder else set(json.loads(sources or "[]"))
             if not (want and want <= {s for s, o in runs if o == "none"}): searched = False

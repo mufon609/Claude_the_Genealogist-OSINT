@@ -11,7 +11,8 @@ What happens
      names: Ancestry's member-tree export is registry row B02 with its terms; an exporter with a Hosted Tree row in
      data/data-sources.csv gets that row; any other file is registry row A05, a family tree file of unknown origin.
      --source names the row instead.
-  2. One extraction (extractor rule:gedcom-ingest) is recorded over it.
+  2. One extraction (extractor rule:gedcom-ingest) is recorded over it, written once at the end of the run with its JSON whole
+     (the summary, the media and the cited records), the personas it reads checked against it as the run commits.
   3. Every INDI becomes a persona (what this tree says) + a person (conclusion)
      linked by an accepted person_persona. Every event becomes a persona_fact
      and an assertion back to the fact and the artifact, on its person's or its family's event: the file's repeated facts
@@ -141,9 +142,7 @@ class Ingest:
         if not row:
             self.cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)",
                             (self.extractor_id, *EXTRACTOR, self.ts))
-        self.extraction_id = ulid()
-        self.cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')",
-                        (self.extraction_id, sha, self.extractor_id, self.ts))
+        self.extraction_id = ulid()                     # its row is written by run(), last, once its JSON is known
 
     # ------------------------------------------------------------ reference
     def place_string(self, raw):
@@ -447,6 +446,9 @@ class Ingest:
 
     # ------------------------------------------------------------ run
     def run(self):
+        """The file archived and read into the tree in the caller's open transaction, the extraction row written last with its
+        JSON whole: the personas name it before it exists, so the transaction's foreign keys are checked as it commits."""
+        self.cx.execute("PRAGMA defer_foreign_keys=ON")
         roots = parse_gedcom(self.path)
         if not any(r.tag == "INDI" for r in roots): sys.exit(f"{self.path}: no INDI record, so no person to import; nothing was recorded")
         head = next((r for r in roots if r.tag == "HEAD"), None)
@@ -473,8 +475,8 @@ class Ingest:
         self.resolve_deferred_family_events()
         media = self.collect_media(roots); cited = self.collect_cited_records()
         summary = dict(self.stats)
-        self.cx.execute("UPDATE extraction SET structured_json=? WHERE id=?",
-                        (dumps({"summary": summary, "media": media, "cited_records": cited}), self.extraction_id))
+        self.cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'complete',?)",
+                        (self.extraction_id, self.sha, self.extractor_id, self.ts, dumps({"summary": summary, "media": media, "cited_records": cited})))
         self.cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                         (ulid(), self.tree_id, self.ts, self.by, "import", "artifact", self.sha, dumps(summary)))
         self.import_id = ulid()

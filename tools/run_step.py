@@ -20,11 +20,12 @@ done. Then the extractor runs on each hit's own transcription or text (the searc
 a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed. A run whose records
 are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
 index's rows under a surname) is found only when a row fits a person, as docs/RESEARCH-WORKFLOW.md §4 has it for a
-results page saved by hand: when no row of any listing fits anyone, the run is set to none with the reason in its note,
-the rows stay on the artifact as candidates, and the step stands as it stood before the run. A run whose records are all
+results page saved by hand: when no row of any listing fits anyone, the run is read again as none with the reason in its note
+(log_search.restate: a new row superseding the found one, search_log being insert-only), the rows stay on the artifact as
+candidates, and the step stands as it stood before the run. A run whose records are all
 records no parser reads, whatever their form (log_search.unread_record: a web page or a JSON or text response, every reading
-of it failed; an image or an item's metadata is never read as a record), is set to unread, as the attach logs a page saved
-by hand: the records are held on the step's log, the note says so, and no step is closed.
+of it failed; an image or an item's metadata is never read as a record), is read again as unread the same way, as the
+attach logs a page saved by hand: the records are held on the step's log, the note says so, and no step is closed.
 A step whose sources have several connectors runs at each, one log row per source: a search step at the connectors of its
 row's sources, a fetch step at its holder's and at those of its row's sources too (an obituary cited at a closed source runs
 at the Archive's newspapers with the citation's paper and date), the page saved by hand and a connector's answer being runs
@@ -49,7 +50,7 @@ import argparse, http.client, json, os, re, sys, time, urllib.error, urllib.pars
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, collection_tier, first_value
-from log_search import hold_unread, log as log_search, latest_answer, ran_unchanged, rendered_query, unread_record
+from log_search import hold_unread, log as log_search, latest_answer, ran_unchanged, rendered_query, restate, unread_record
 from extract import extract, RESULTS_LISTINGS
 from conclude import match_record
 import connectors
@@ -190,9 +191,10 @@ def household_steps(cx, tree_id, step):
 def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
     """One step through the connectors still to ask on its current fields (waiting_connectors), or through every one when
     again is set (a step run by its id): one run each (run_connector), then extraction and matching over every record any of
-    them archived; a found run whose records fit no one (every record a results listing none of whose rows fits) is set to
-    none, and one whose records are all records no parser reads, a page or a response alike, is set to unread, each leaving
-    the step as it stood before the run. Returns one result per connector: a connector not asked, its source having answered
+    them archived; a found run whose records fit no one (every record a results listing none of whose rows fits) is read
+    again as none, and one whose records are all records no parser reads, a page or a response alike, as unread
+    (log_search.restate: a new row superseding the found one, whose id the result then names), each leaving the step as it
+    stood before the run. Returns one result per connector: a connector not asked, its source having answered
     on these fields, reports that answer (asked False, answered {outcome, at}) instead of a run, so --dry-run says which
     sources a step would ask."""
     conns = connectors_for(cat, step)
@@ -217,11 +219,10 @@ def run(cx, cat, tree_id, step, by, dry_run=False, again=False):
             extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})
             read.append((listing(cx, eid), fits(cx, tree_id, eid, props)))
         if r["outcome"] == "found" and read and all(l for l, _ in read) and not any(f for _, f in read):
-            note = "no candidate fits; " + (cx.execute("SELECT notes FROM search_log WHERE id=?", (r["log"],)).fetchone()[0] or "")
-            cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (note.rstrip("; "), r["log"]))   # a none run holds no record: the step stands as it stood before the run
+            r["log"] = r["logs"][0] = restate(cx, by, r["log"], outcome="none", note="no candidate fits")   # a none run holds no record: the step stands as it stood before the run
             cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "none"
         elif r["outcome"] == "found" and extracted and all(unread_record(cx, e["sha256"]) for e in extracted):   # every record is one no parser reads, page or response: held on the log, read by nobody, closing nothing
-            for lid in r["logs"]: hold_unread(cx, lid)
+            r["logs"] = [hold_unread(cx, by, lid) for lid in r["logs"]]; r["log"] = r["logs"][0]
             for sid in r["household_steps"]: cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (sid,))   # household_steps takes only planned steps
             cx.execute("UPDATE search_plan SET status=? WHERE id=?", (step["status"], step["id"])); r["outcome"] = "unread"
         out.append({**r, "extracted": extracted})

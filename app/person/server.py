@@ -54,7 +54,7 @@ def plan_view(cx, pid):
                  for q in cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' ORDER BY kind", (pid,))]
     steps = []; hs = holdings(cx)
     for s in cx.execute("SELECT * FROM search_plan WHERE person_id=? ORDER BY seq", (pid,)):
-        logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at", (s["id"],))]
+        logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY executed_at", (s["id"],))]
         col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
         if s["locator_kind"] == "apid": sha = held_for(cx, s["locator_value"], pid, hs)
         else: a = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None; sha = a["sha256"] if a else None

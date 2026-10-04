@@ -53,10 +53,11 @@ Rules
   * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
   * Every string the resolver accepts, rejects or resets (--reset) gets one audit row
     under the person or agent who ran it (--by), the resolver's tag and the change in
-    the diff, so a reset-and-rerun can be read back afterwards. --reset undoes every
-    AI resolution; --reset --only "raw string" narrows it to that one string, leaving
-    every other AI resolution and its audit trail untouched, and (since the string's
-    resolver is cleared) the same run resolves it again under the current rules.
+    the diff, and so does every event whose place a reset clears, so a reset-and-rerun
+    can be read back afterwards; the audit trail is insert-only, and a reset removes
+    none of it. --reset undoes every AI resolution; --reset --only "raw string" narrows
+    it to that one string, leaving every other AI resolution untouched, and (since the
+    string's resolver is cleared) the same run resolves it again under the current rules.
 """
 import argparse, datetime, difflib, hashlib, json, math, os, re, sys, time, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
@@ -794,7 +795,7 @@ def apply_to_events(cx, tree_id, actor, ts):
 
 def audit_string(cx, tree_id, ts, by, psid, diff):
     """One audit row per place string whose status or place the resolver changes, under the person or agent who ran it (the
-    resolver's own tag is in the diff), so a reset, which clears the resolver's rows, leaves the record of what it undid."""
+    resolver's own tag is in the diff), so a reset leaves the record of what it undid beside the rows of what it had done."""
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "update", "place_string", psid, dumps(diff)))
 
@@ -804,24 +805,22 @@ def reset_ai_resolutions(cx, tree_id, by, ts, only=None):
     AI-reviewed string is left alone, since re-querying it costs a Nominatim call for nothing already wrong. --only
     narrows to one raw value and drops that scoping: naming a string is enough to ask for it fresh, whatever its
     current status — the case that matters is a rule change that would now decide an already-reviewed Undecided string
-    differently. Either way, every other AI resolution, its events and its audit trail stay untouched; the run-level
-    'resolve' summary rows are left standing too, since a narrowed reset leaves most of what they describe still true.
-    One audit row per string reset."""
+    differently. Either way, every other AI resolution and its events stay untouched. Nothing is removed from the audit
+    trail: the resolver's rows and its runs' summary rows stand as what it did, and one audit row per string reset and per
+    event whose place it clears records the undoing."""
     only_sql = " AND raw=?" if only else ""; only_args = (only,) if only else ()
     scope = "" if only else " AND (status<>'undecided' OR place_id IS NOT NULL)"
     psids = [r[0] for r in cx.execute("SELECT id FROM place_string WHERE resolver LIKE 'ai:%'" + scope + only_sql, only_args).fetchall()]
     if not psids: return
     qm = ",".join("?" * len(psids))
-    ev_ids = [r[0] for r in cx.execute(f"""SELECT DISTINCT e.id FROM event e
+    events = [tuple(r) for r in cx.execute(f"""SELECT DISTINCT e.id, e.place_id FROM event e
         JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id AND a.status<>'rejected'
         JOIN persona_fact pf ON pf.id=a.persona_fact_id
         WHERE e.tree_id=? AND e.place_id IS NOT NULL AND pf.place_string_id IN ({qm})""", (tree_id, *psids)).fetchall()]
-    if ev_ids:
-        eqm = ",".join("?" * len(ev_ids))
-        cx.execute(f"UPDATE event SET place_id=NULL WHERE tree_id=? AND id IN ({eqm})", (tree_id, *ev_ids))
-        cx.execute(f"DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action='update' AND entity_kind='event' AND entity_id IN ({eqm})", (tree_id, *ev_ids))
-    cx.execute(f"DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action='update' AND entity_kind='place_string' AND entity_id IN ({qm})", (tree_id, *psids))
-    if not only: cx.execute("DELETE FROM audit_log WHERE tree_id=? AND actor LIKE 'ai:%' AND action='resolve'", (tree_id,))
+    for eid, place_id in events:
+        cx.execute("UPDATE event SET place_id=NULL WHERE id=?", (eid,))
+        cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                   (ulid(), tree_id, ts, by, "update", "event", eid, dumps({"place_id": None, "from": place_id, "reset": True})))
     cx.execute(f"DELETE FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.place_string_id') IN ({qm})", (tree_id, *psids))
     for psid, raw, status, place_id, resolver in cx.execute(f"SELECT id, raw, status, place_id, resolver FROM place_string WHERE id IN ({qm})", psids).fetchall():
         audit_string(cx, tree_id, ts, by, psid, {"raw": raw, "reset": True, "resolver": resolver, "from": {"status": status, "place_id": place_id}, "to": {"status": "undecided", "place_id": None}})

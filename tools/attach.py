@@ -39,7 +39,7 @@ import json, mimetypes, os, re, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
 from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
-from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, step_source, unread_record
+from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
 from conclude import match_record
@@ -334,7 +334,7 @@ def steps_pointed(cx, tree_id, ark, parsed):
     row is accepted as them, and the row is not rejected for them; the step's row year, where it has one, within two of the
     record's own (_row_of), as the collection fallback reads it. The citation on the person themselves first."""
     _, year = _row_of(parsed)
-    rows = cx.execute(f"""SELECT DISTINCT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id JOIN search_log l ON l.plan_step_id=sp.id AND l.outcome='found'
+    rows = cx.execute(f"""SELECT DISTINCT sp.* FROM search_plan sp JOIN person p ON p.id=sp.person_id JOIN search_log l ON l.plan_step_id=sp.id AND l.outcome='found' AND l.superseded_by IS NULL
                           JOIN persona pe ON l.artifacts_json LIKE '%"' || pe.artifact_sha256 || '"%' JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id
                           WHERE e.superseded_by IS NULL AND e.status='complete' AND x.name IN ({','.join(repr(n) for n in POINTING_LISTINGS)})
                           AND json_extract(pe.region_json,'$.ark')=:ark AND p.tree_id=:tree AND sp.kind='fetch' AND sp.status='planned'
@@ -373,7 +373,7 @@ def _repeat_save(cx, step_id, kind, parsed):
     nothing to the record of that run; a later run of the same search that answers with other rows is a new run. None when
     this page is not a repeat of anything already logged on the step."""
     parse = {"search": parse_search, "fs_search": parse_fs_search, "aad_search": parse_aad_search}[kind]
-    for arts, in cx.execute("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL", (step_id,)):
+    for arts, in cx.execute("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND superseded_by IS NULL", (step_id,)):
         for sha in json.loads(arts or "[]"):
             loc = cx.execute("SELECT locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
             if not loc or loc[0] != parsed.get("url"): continue
@@ -431,7 +431,7 @@ def on_word(cx, tree_id, pid, sha, by, note=None, parsed=None):
                      VALUES (?,?,?,NULL,?,?,'fetch','subject_record',?,?,?,?,?,'[]',?,'fetch',?,'planned',?,?)""",
                   (sid, pid, row_key, seq, key, dumps(fields), ar["source_id"], lkind, lvalue, ar["collection_id"], dumps([ar["source_id"]] if ar["source_id"] else []),
                    "the record the owner named as this person's, read for what it says about them", f"attached on the owner's word as {who}'s: no step of the plan cited it", ts))
-    if q.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (sid, f'%"{sha}"%')).fetchone(): return sid, None
+    if q.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ? AND superseded_by IS NULL", (sid, f'%"{sha}"%')).fetchone(): return sid, None
     return sid, log_search(cx, tree_id, by, step_id=sid, outcome="found", artifacts=[sha], note="; ".join(x for x in (f"{ON_WORD}{who}", note) if x), query=fields)
 
 def cite_on_word(cx, tree_id, pid, row_key, holder, fields, by, note=None, query_type=None):
@@ -475,9 +475,10 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     """Archive one inbox file for these steps (provenance from the first: the record's kind gives the trust tier, where it was
     retrieved gives terms and cost; the locator is the step's, or the search URL for a results page), log a found run on every
     step not yet logged with it (a results page's log carries the query as run and the number of results), file the original
-    under the tree, then parse and match a page new to the archive. A results page on which no candidate fits has its run set
-    to none, the candidates kept on the artifact; one no parser reads (a page whose every reading failed, log_search.unread_record)
-    has it set to unread, the note saying so, and closes nothing. Then the steps the run closes are marked done: a search step by
+    under the tree, then parse and match a page new to the archive. A results page on which no candidate fits has its run read
+    again as none, the candidates kept on the artifact; one no parser reads (a page whose every reading failed,
+    log_search.unread_record) has it read again as unread, the note saying so, and closes nothing; each a new row superseding
+    the found one (log_search.restate), whose id `logs` then names. Then the steps the run closes are marked done: a search step by
     the found run; a fetch step only when the page is the record it cites (log_search.holds_record), so a listing that points at
     records leaves it planned. Returns what happened."""
     src = os.path.join(inbox_dir(), os.path.basename(name))
@@ -516,7 +517,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     logs = []
     if not steps and about: logs.append(on_word(cx, tree_id, about, sha, by, note=note, parsed=parsed or {}))   # the owner's word: a fetch step on their plan, done with the found run, so the record is fetched for them from now on
     for s in steps:                                              # logged before the page is read, so the matcher sees every person it was fetched for; done below, once read
-        if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (s["id"], f'%"{sha}"%')).fetchone(): continue
+        if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ? AND superseded_by IS NULL", (s["id"], f'%"{sha}"%')).fetchone(): continue
         fields = rendered_query(s["query_json"], s["revisions_json"])   # the step's own fields, and for a results page the fields as searched beside them (basis run)
         logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query={**fields, **(query or {})}, done=False)))
     out = {"sha256": sha, "new": new, "mime": mime, "logs": logs, "extraction": None, "proposals": [], "unparsed": None}
@@ -529,11 +530,11 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
                                         WHERE e.id=? AND x.name IN ({','.join('?' * len(RESULTS_LISTINGS))})""", (eid, *RESULTS_LISTINGS)).fetchone()
         fits = fitting_rows(cx, eid)                              # the rows of a pointing listing that fit a person the page was fetched for: leads, never proposals
         if is_results_page and not out["proposals"] and not fits and logs:   # a results page whose own rows fit nobody: the run found nothing for the person, the candidates stay on the artifact
-            for sid, lid in logs: cx.execute("UPDATE search_log SET outcome='none', notes=? WHERE id=?", (f"no candidate fits; {note}", lid))
+            logs = out["logs"] = [(sid, restate(cx, by, lid, outcome="none", note="no candidate fits")) for sid, lid in logs]
             out["outcome"] = "none"
         for person in dict.fromkeys(who for who, _, _ in fits): plan_person(cx, tree_id, person, by)   # the rows' own records are fetch steps now: the plan says so before anyone asks for the next page
     if steps and logs and unread_record(cx, sha):                 # a page no parser reads: held on the step's log, read by nobody, closing nothing
-        for sid, lid in logs: hold_unread(cx, lid)
+        logs = out["logs"] = [(sid, hold_unread(cx, by, lid)) for sid, lid in logs]
         out["outcome"] = "unread"
     if out.get("outcome") not in ("none", "unread") and logs:     # the found run closes a search step; a fetch step only when the page is the record it cites
         kinds = {s["id"]: s["kind"] for s in steps}; record = holds_record(cx, sha)

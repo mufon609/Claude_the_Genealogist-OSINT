@@ -69,7 +69,7 @@ def latest_answer(cx, step, source_id=None):
     reopen's own row is bookkeeping, not a run, and a run logged error is a source that did not answer (a timeout, a challenge,
     a reset connection): both are looked past. With a source named, that source's own rows alone (search_log.source_id): a step
     whose sources have two connectors is answered by each on its own; with none, the latest answer whatever its source."""
-    for q, note, outcome, sid, at, arts in cx.execute("SELECT query_json, notes, outcome, source_id, executed_at, artifacts_json FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step["id"],)):
+    for q, note, outcome, sid, at, arts in cx.execute("SELECT query_json, notes, outcome, source_id, executed_at, artifacts_json FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY executed_at DESC, id DESC", (step["id"],)):
         if (note or "").startswith(REOPENED) or outcome == "error": continue
         if source_id and sid != source_id: continue
         return outcome, at, json.loads(q or "{}"), json.loads(arts or "[]")
@@ -112,11 +112,30 @@ def unread_record(cx, sha):
     if not mime or (mime[0] or "").startswith("image/"): return False
     return {s for s, in cx.execute("SELECT status FROM extraction WHERE artifact_sha256=?", (sha,))} == {"failed"}
 
-def hold_unread(cx, log_id):
-    """A run already logged found whose records no parser reads (unread_record) is an unread run: its outcome set to unread and
-    its note begun with UNREAD, the records held on the step's log. The caller, which logged the run before the records were
-    read, returns any step the run marked done to the status it had."""
-    cx.execute("UPDATE search_log SET outcome='unread', notes=? || coalesce('; ' || notes, '') WHERE id=?", (UNREAD, log_id))
+def restate(cx, by, log_id, outcome=None, note=None, step_id=None):
+    """A run read again, as a new row: the run's own moment, actor, source, fields and artifacts restated, with the outcome its
+    records are read as (outcome), its note begun with what they were read as (note, the run's own note kept after it), or on
+    another step (step_id: a merge carrying the duplicate's run onto the kept person's step); the old row's superseded_by,
+    written once, names the new one, and every reader reads the rows whose superseded_by is empty (search_log is insert-only,
+    schema/sqlite_extras.sql). One audit row under `by` naming the row superseded. Returns the new row's id."""
+    old = cx.execute("SELECT tree_id, plan_step_id, question_id, executed_at, executed_by, source_id, query_json, outcome, artifacts_json, notes FROM search_log WHERE id=? AND superseded_by IS NULL", (log_id,)).fetchone()
+    if not old: raise SystemExit(f"no run {log_id} that is not superseded")
+    tree, step, question, at, executed_by, source, query, was, arts, notes = old
+    lid, outcome, step = ulid(), outcome or was, step_id or step
+    notes = "; ".join(x for x in (note, notes) if x) or None
+    cx.execute("""INSERT INTO search_log (id,tree_id,plan_step_id,question_id,executed_at,executed_by,source_id,query_json,outcome,artifacts_json,notes)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (lid, tree, step, question, at, executed_by, source, query, outcome, arts, notes))
+    cx.execute("UPDATE search_log SET superseded_by=? WHERE id=?", (lid, log_id))
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+               (ulid(), tree, now(), by, "insert", "search_log", lid, dumps({"step": step, "outcome": outcome, "artifacts": json.loads(arts or "[]"), "supersedes": log_id,
+                                                                           "was": {"outcome": was, **({"step": old[1]} if step != old[1] else {})}})))
+    return lid
+
+def hold_unread(cx, by, log_id):
+    """A run already logged found whose records no parser reads (unread_record) is an unread run: restated (restate) with the
+    outcome unread and its note begun with UNREAD, the records held on the step's log. The caller, which logged the run before
+    the records were read, returns any step the run marked done to the status it had. Returns the new row's id."""
+    return restate(cx, by, log_id, outcome="unread", note=UNREAD)
 
 def closed_by_pointers(cx, step_id):
     """Whether a step's found runs, since it was last reopened, are all pages that point at its record or hold nothing
@@ -124,8 +143,8 @@ def closed_by_pointers(cx, step_id):
     for a record no parser reads, is not a found run and closes nothing). False when it has no found run since, when
     a found run carries no artifact (a hand's found: the owner's word) or is the owner's word about a record (ON_WORD), or
     when any found run carries a record."""
-    since = cx.execute("SELECT coalesce(max(id), '') FROM search_log WHERE plan_step_id=? AND notes LIKE ?", (step_id, REOPENED + "%")).fetchone()[0]
-    runs = cx.execute("SELECT artifacts_json, notes FROM search_log WHERE plan_step_id=? AND outcome='found' AND id > ?", (step_id, since)).fetchall()
+    since = cx.execute("SELECT coalesce(max(id), '') FROM search_log WHERE plan_step_id=? AND notes LIKE ? AND superseded_by IS NULL", (step_id, REOPENED + "%")).fetchone()[0]
+    runs = cx.execute("SELECT artifacts_json, notes FROM search_log WHERE plan_step_id=? AND outcome='found' AND id > ? AND superseded_by IS NULL", (step_id, since)).fetchall()
     if not runs: return False
     for arts, note in runs:
         shas = json.loads(arts or "[]")
@@ -145,7 +164,7 @@ def hold_household(cx, tree_id, person_id, sha, by):
     name = cx.execute("SELECT display_name FROM person WHERE id=?", (person_id,)).fetchone()[0]
     out = []
     for sid, qj, rj in cx.execute("SELECT id, query_json, revisions_json FROM search_plan WHERE person_id=? AND row_key=? AND status='planned' ORDER BY seq", (person_id, row)).fetchall():
-        if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ?", (sid, f'%"{sha}"%')).fetchone(): continue
+        if cx.execute("SELECT 1 FROM search_log WHERE plan_step_id=? AND artifacts_json LIKE ? AND superseded_by IS NULL", (sid, f'%"{sha}"%')).fetchone(): continue
         log(cx, tree_id, by, step_id=sid, outcome="found", artifacts=[sha], note=f"{HOUSEHOLD}{name}", query=rendered_query(qj, rj))
         out.append(sid)
     return out
@@ -155,8 +174,8 @@ def release_household(cx, tree_id, person_id, sha, by):
     persona is rejected for them: the record no longer holds their row. Returns the step ids reopened."""
     out = []
     for sid, in cx.execute("""SELECT DISTINCT l.plan_step_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
-                              WHERE sp.person_id=? AND sp.status='done' AND l.outcome='found' AND l.notes LIKE ? AND l.artifacts_json LIKE ?
-                              AND NOT EXISTS (SELECT 1 FROM search_log r WHERE r.plan_step_id=l.plan_step_id AND r.notes LIKE ? AND r.id > l.id)""",
+                              WHERE sp.person_id=? AND sp.status='done' AND l.outcome='found' AND l.notes LIKE ? AND l.artifacts_json LIKE ? AND l.superseded_by IS NULL
+                              AND NOT EXISTS (SELECT 1 FROM search_log r WHERE r.plan_step_id=l.plan_step_id AND r.notes LIKE ? AND r.id > l.id AND r.superseded_by IS NULL)""",
                            (person_id, HOUSEHOLD + "%", f'%"{sha}"%', REOPENED + "%")).fetchall():
         reopen(cx, tree_id, by, sid, "the record's persona is rejected for this person: it no longer holds the row"); out.append(sid)
     return out
@@ -170,7 +189,7 @@ def reopen(cx, tree_id, by, step_id, note):
     st = cx.execute("SELECT id, status FROM search_plan WHERE id=?", (step_id,)).fetchone()
     if not st: raise SystemExit(f"no step {step_id}")
     cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (step_id,))
-    last = next((sid for sid, n in cx.execute("SELECT source_id, notes FROM search_log WHERE plan_step_id=? ORDER BY executed_at DESC, id DESC", (step_id,))
+    last = next((sid for sid, n in cx.execute("SELECT source_id, notes FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY executed_at DESC, id DESC", (step_id,))
                  if not (n or "").startswith(REOPENED)), None)
     return log(cx, tree_id, by, step_id=step_id, source_id=last, outcome="none", note=f"{REOPENED}{note}")
 
@@ -212,7 +231,7 @@ def main():
         cat = Catalog(cx, tree_id); pid = cat.find_person(a.list)
         print(f"{'step id':26}  {'kind':6} {'mode':17} {'status':8} {'row':34} {'locator':20} runs (outcome@date)  -- rationale")
         for row in cx.execute("""SELECT sp.id, sp.kind, sp.mode, sp.status, sp.row_key, sp.locator_value, sp.rationale,
-                                        (SELECT GROUP_CONCAT(l.outcome || '@' || substr(l.executed_at,1,10), ' ') FROM search_log l WHERE l.plan_step_id=sp.id)
+                                        (SELECT GROUP_CONCAT(l.outcome || '@' || substr(l.executed_at,1,10), ' ') FROM search_log l WHERE l.plan_step_id=sp.id AND l.superseded_by IS NULL)
                                  FROM search_plan sp WHERE sp.person_id=? ORDER BY sp.seq""", (pid,)):
             print(f"{row[0]}  {row[1]:6} {row[2]:17} {row[3]:8} {row[4][:34]:34} {(row[5] or '')[:20]:20} {row[7] or ''}  -- {row[6][:50]}")
         return

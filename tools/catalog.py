@@ -882,7 +882,7 @@ def record_kinds(cx, sha, extraction_id=None):
     elif xkind in ("llm", "human"):
         src = cx.execute("SELECT ar.source_id, c.name FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?", (sha,)).fetchone()
         rows = [rk.split(":", 1)[0] for rk, in cx.execute("""SELECT sp.row_key FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
-                                                           WHERE l.artifacts_json LIKE ? ORDER BY l.executed_at""", (f'%"{sha}"%',))]
+                                                           WHERE l.artifacts_json LIKE ? AND l.superseded_by IS NULL ORDER BY l.executed_at""", (f'%"{sha}"%',))]
         said = {"index": ["reading of an index"], "record": ["reading"]}.get(parsed.get("image_is"), [])   # the reader's own word on what the image is comes first
         own = said + [k for k in ((src[1], src[0]) if src else ()) if k] + rows + ["reading"]
         yr = str(parsed["year"]) if parsed.get("year") else None
@@ -1585,7 +1585,7 @@ class Catalog:
         this value, is what a household row's own status_of check reads."""
         out = {}
         for sid, rk, lkind, lval, on in self.q("SELECT id, row_key, locator_kind, locator_value, on_json FROM search_plan WHERE person_id=? AND status='done'", pid):
-            shas = {s for js, in self.q("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]'", sid) for s in json.loads(js)}
+            shas = {s for js, in self.q("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]' AND superseded_by IS NULL", sid) for s in json.loads(js)}
             if not shas and lkind == "apid" and lval:
                 h = self.held_for(lval, pid)
                 if h: shas.add(h)

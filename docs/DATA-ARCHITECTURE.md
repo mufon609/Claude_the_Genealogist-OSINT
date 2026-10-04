@@ -26,6 +26,15 @@ Rules that keep the layers honest:
 - Layer 3 may not contain a fact without a link to a layer 2 hash and a region
   (page, frame, line, bounding box) inside it.
 - Layer 2 is never edited. A correction is a new object plus a note.
+- The archive's rows, the evidence, the research log and the audit trail are
+  insert-only, enforced by triggers (`schema/sqlite_extras.sql`): `artifact`,
+  `artifact_locator`, `tombstone`, `extractor`, `extraction`, `persona`,
+  `persona_fact`, `persona_relation`, `same_record`, `search_log` and
+  `audit_log` take no UPDATE and no DELETE, but for `superseded_by` on
+  `extraction` and `search_log`, written once, from empty, to the row that
+  restates the old one (a re-read extraction; a run read again or carried by a
+  merge, `docs/RESEARCH-WORKFLOW.md`'s schema). A reset or a correction is a
+  row of its own: nothing is removed from the audit trail.
 - AI output enters layer 3 as an *extraction* and layer 4 as a *proposal*. A
   human accepts a proposal to make it a conclusion, or the human's standing
   rule does so on their behalf when the record agrees with what they already

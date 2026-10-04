@@ -1014,7 +1014,7 @@ def context_for(cx, sha):
     man = cx.execute("SELECT manifest_json FROM artifact WHERE sha256=?", (sha,)).fetchone()
     notes = (json.loads(man[0]) if man and man[0] else {}).get("notes") or ""
     ctx = {"notes": json.loads(notes) if notes.startswith("{") else {}, "step_type": None, "query": {}}
-    row = cx.execute("SELECT sp.query_type, l.query_json FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? ORDER BY l.executed_at DESC LIMIT 1", (f'%"{sha}"%',)).fetchone()
+    row = cx.execute("SELECT sp.query_type, l.query_json FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? AND l.superseded_by IS NULL ORDER BY l.executed_at DESC LIMIT 1", (f'%"{sha}"%',)).fetchone()
     if row: ctx["step_type"], ctx["query"] = row[0], {k: (v.get("value") if isinstance(v, dict) else v) for k, v in json.loads(row[1] or "{}").items()}
     else: ctx["step_type"] = ctx["notes"].get("step_type")          # a response read on its own: the runner noted the step's kind on it
     return ctx

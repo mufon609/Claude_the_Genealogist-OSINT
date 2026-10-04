@@ -378,7 +378,7 @@ def search_card(cx, tree_id, sha, person_id=None):
     e = cx.execute("""SELECT e.id, e.structured_json, x.name AS parser FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND x.name IN ('findagrave-search','aad-search','familysearch-search') AND e.superseded_by IS NULL ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
     if not a or not e: return None
     parsed = json.loads(e["structured_json"] or "{}"); cat = Catalog(cx, tree_id)
-    runs = cx.execute("""SELECT l.executed_at, l.executed_by, l.outcome, l.notes, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? ORDER BY l.executed_at""", (tree_id, f'%"{sha}"%')).fetchall()
+    runs = cx.execute("""SELECT l.executed_at, l.executed_by, l.outcome, l.notes, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? AND l.superseded_by IS NULL ORDER BY l.executed_at""", (tree_id, f'%"{sha}"%')).fetchall()
     person_id = person_id or (runs[0]["person_id"] if runs else None)
     if not person_id: return None
     cand = match_candidate(cat, person_id); pr = cat.person(person_id)
@@ -420,7 +420,7 @@ def search_cards_for(cx, tree_id, pid=None):
     """Candidate cards for the search results pages logged on a person's search steps (or anyone's), except a page whose every
     fitting row has its own record fetched (the lead done): its work is finished. A page no row fits stays, its rows kept as candidates."""
     rows = cx.execute(f"""SELECT DISTINCT l.artifacts_json, sp.person_id FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id JOIN person p ON p.id=sp.person_id
-                          WHERE p.tree_id=? AND sp.kind='search' AND l.artifacts_json IS NOT NULL {'AND sp.person_id=?' if pid else ''}""", (tree_id, pid) if pid else (tree_id,)).fetchall()
+                          WHERE p.tree_id=? AND sp.kind='search' AND l.artifacts_json IS NOT NULL AND l.superseded_by IS NULL {'AND sp.person_id=?' if pid else ''}""", (tree_id, pid) if pid else (tree_id,)).fetchall()
     out = []
     for arts, person_id in rows:
         for sha in json.loads(arts):
@@ -446,7 +446,7 @@ def grouped(cx, tree_id, cards, pid=None):
         by.setdefault(sha, []).append(c)
     latest = {}
     for sha in by:
-        r = cx.execute(f"""SELECT MAX(l.executed_at) FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? {'AND sp.person_id=?' if pid else ''}""",
+        r = cx.execute(f"""SELECT MAX(l.executed_at) FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.tree_id=? AND l.artifacts_json LIKE ? AND l.superseded_by IS NULL {'AND sp.person_id=?' if pid else ''}""",
                        (tree_id, f'%"{sha}"%', *([pid] if pid else []))).fetchone()
         latest[sha] = r[0] or ""
     out = []

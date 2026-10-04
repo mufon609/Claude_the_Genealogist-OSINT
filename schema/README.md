@@ -2,9 +2,9 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 38 tables, 6 views. Schema 0.8.0. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 38 tables, 6 views. Schema 0.8.1. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
-| `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; immutability triggers on archive and evidence rows. |
+| `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; the insert-only triggers on the archive's rows, the evidence, the research log and the audit trail. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
 
 Build a fresh catalog with `tools/initdb.py` (add `--force` to overwrite). It seeds
@@ -31,8 +31,15 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 
 ## Invariants (enforced by DB where possible, otherwise by the app)
 
-- `artifact`, `persona`, `persona_fact` are insert-only. Triggers abort UPDATE/DELETE.
-  Corrections are new rows; removals are `tombstone` rows.
+- `artifact`, `artifact_locator`, `tombstone`, `extractor`, `extraction`, `persona`,
+  `persona_fact`, `persona_relation`, `same_record`, `search_log` and `audit_log` are
+  insert-only: triggers abort every UPDATE and DELETE but the write-once `superseded_by`
+  on `extraction` and `search_log`, set from empty to the row that restates the old one.
+  Corrections are new rows; removals are `tombstone` rows. A run read again (its records
+  fit no one, or no parser reads them) or carried onto the kept person's step by a merge
+  is a new row restating it (`log_search.restate`), and every reader reads the rows whose
+  `superseded_by` is empty. `tools/check.py` tries each column of each table. The 0.8.1
+  migration (`tools/initdb.py`'s `insert_only`) added the column and the triggers.
 - One record is one source wherever it is held (`docs/DATA-ARCHITECTURE.md` §7 decision 15):
   `same_record` joins two archived copies of one record, insert-only (triggers abort
   UPDATE/DELETE), a copy being a whole file or one numbered row of a listing (`a_entry`/`b_entry`,
@@ -78,8 +85,9 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   event of theirs). `v_unsupported_person` lists the rest; after an import that
   is everyone, by design.
 - A `person.merged_into` (`tools/conclude.py merge`) marks a duplicate found and merged
-  (RESEARCH-WORKFLOW §2's `duplicate_person`): its persona links, assertions, plan steps,
-  search log rows and open questions move to the kept person, one `proposal` of kind
+  (RESEARCH-WORKFLOW §2's `duplicate_person`): its persona links, assertions, plan steps
+  and open questions move to the kept person, a run on a step the kept person also has is
+  carried onto the kept step as a new row (the duplicate's step left on its row, skipped), one `proposal` of kind
   `duplicate_person` and one `audit_log` row record what moved, and the row itself stays,
   out of every listing, overview, plan and matcher run.
 - One statement, one event: a record's event fact is asserted on one `event` of its type,
@@ -193,7 +201,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/proof.py "<person>" [--fact …] [--json]` | Read-only. The proof standard's written conclusion per key fact: the value, the evidence grouped by original with its class words (`data/evidence-classes.csv`) and citations, each conflict with its question id and, while open, the rule's own reading of it, the research by checklist row, who decided, and whether it meets the standard or an argument is still owed. |
 | `tools/overview.py` | The tree as confirmed from the home person upward, shared by `tree.py overview` and the screen, and where the tree comes from (`origins`). |
 | `tools/check.py` | Green in one command: every tool compiles, the pure rules, every parser on its saved page and every scenario on a scratch catalog, none of them sending a request, `--scenario NAME` for one (`tests/fixtures/README.md`). |
-| `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. |
+| `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. Every write carries an audit row under `--by`. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen. |
 | `tools/treelib.py` | Shared helpers: ULIDs, GEDCOM parsing (its encoding from the byte order mark and the header's `CHAR`), data paths, and `connect`. |
 

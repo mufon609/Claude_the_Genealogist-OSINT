@@ -67,8 +67,9 @@ def unread_runs(cx: sqlite3.Connection) -> None:
     from log_search import UNREAD, unread_record
     actor, ts = "migration:0.7.8", now()
     runs = []
-    for lid, tree, step, shas, source, notes in cx.execute("""SELECT id, tree_id, plan_step_id, artifacts_json, source_id, notes FROM search_log
-                                                              WHERE outcome='found' AND artifacts_json IS NOT NULL ORDER BY executed_at, id""").fetchall():
+    live = " AND superseded_by IS NULL" if "superseded_by" in [r[1] for r in cx.execute("PRAGMA table_info(search_log)")] else ""   # a run a later row restates is not read, and stays as it is
+    for lid, tree, step, shas, source, notes in cx.execute(f"""SELECT id, tree_id, plan_step_id, artifacts_json, source_id, notes FROM search_log
+                                                               WHERE outcome='found' AND artifacts_json IS NOT NULL{live} ORDER BY executed_at, id""").fetchall():
         shas = json.loads(shas)
         if shas and all(unread_record(cx, s) for s in shas): runs.append((lid, tree, step, shas, source, notes))
     done = [f"step {step} ({cx.execute('SELECT p.display_name FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=?', (step,)).fetchone()[0]}, "
@@ -243,6 +244,20 @@ def person_decided(cx: sqlite3.Connection) -> None:
                     json.dumps({"person_decided": True, "decision": {"kind": kind, "by": actor, "at": at, "status": status},
                                 **({} if mine else {"stamp": {"was": [row[2], row[3]], "now": [actor, at]}})})))
 
+INSERT_ONLY = ("artifact_locator", "tombstone", "extractor", "extraction", "persona_relation", "search_log", "audit_log")   # the tables 0.8.1 makes insert-only
+
+def insert_only(cx: sqlite3.Connection) -> None:
+    """search_log.superseded_by, and schema/sqlite_extras.sql's insert-only triggers on the archive's locators and tombstones, the
+    extractors, extractions and relations of the evidence, the research log and the audit trail (docs/DATA-ARCHITECTURE.md §1):
+    every UPDATE refused but the write-once superseded_by on extraction and search_log, every DELETE refused. No row changes."""
+    import re
+    if "superseded_by" not in [r[1] for r in cx.execute("PRAGMA table_info(search_log)")]:   # a catalog whose search_log an earlier rebuild made from today's DDL has it
+        cx.execute("ALTER TABLE search_log ADD COLUMN superseded_by TEXT REFERENCES search_log(id)")
+    extras = read("schema/sqlite_extras.sql")
+    for table in INSERT_ONLY:
+        for trigger in re.findall(rf"^CREATE TRIGGER trg_{table}_\w+ BEFORE (?:UPDATE|DELETE).*?^END;", extras, re.S | re.M):
+            cx.execute(trigger.replace("CREATE TRIGGER ", "CREATE TRIGGER IF NOT EXISTS ", 1))
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -266,6 +281,8 @@ MIGRATIONS = [
      [same_records]),
     ("0.8.0", "assertion.person_decided: a statement whose status a person's own decision on it set, which no acceptance of its record, re-read, carry or withdrawal changes; the statements the audit log shows a person decided marked",
      [person_decided]),
+    ("0.8.1", "insert-only: artifact_locator, tombstone, extractor, extraction, persona_relation, search_log and audit_log take no UPDATE but a write-once superseded_by on extraction and search_log, and no DELETE; search_log.superseded_by names the row restating a run read again or carried by a merge",
+     [insert_only]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

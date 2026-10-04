@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, the evidence layer
-is insert-only, every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
+"""Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, the evidence layer,
+the research log and the audit trail are insert-only, every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
 usage: tools/check.py [--verbose] [--show] [--keep] [--scenario NAME]
@@ -339,34 +339,65 @@ def save_page_key():
         if got != f'("a.html", {force}, "X,Y")': bad.append(f"page_call for holder {holder} gave {got}")
     return bad
 
-def evidence_insert_only():
-    """The evidence layer is insert-only (CLAUDE.md hard rule 2): on a scratch catalog holding one real record read into personas
-    and facts, an UPDATE and a DELETE on artifact, persona and persona_fact are each refused with the trigger's own words
-    (schema/sqlite_extras.sql), so a dropped trigger turns this red; the rows are all still there afterwards."""
-    from treelib import archive_object
+INSERT_ONLY = {"artifact": None, "artifact_locator": None, "tombstone": None, "extractor": None, "extraction": "superseded_by", "persona": None,
+               "persona_fact": None, "persona_relation": None, "same_record": None, "search_log": "superseded_by", "audit_log": None}   # table: its write-once column
+
+def insert_only():
+    """The evidence, the research log and the audit trail are insert-only (CLAUDE.md hard rule 2, schema/sqlite_extras.sql): on a
+    scratch catalog holding three real records read into personas, facts and a relation, a run logged on each with its audit row, a
+    locator, a tombstone and the owner's word keeping two apart, an UPDATE of each column of every table in INSERT_ONLY and a
+    DELETE of its row are each refused with the trigger's own words, so a dropped trigger, or a column a trigger leaves out,
+    turns this red; a write-once column is refused set from empty to empty, allowed from empty to a value once, then refused to
+    another value and back to empty. The rows are all still there afterwards."""
+    from treelib import archive_object, now, ulid
     from extract import extract
-    name = "va-gravesite-search-davidson-raymond-2007"
-    with open(os.path.join(FIXTURES, name + ".expect.json"), encoding="utf-8") as fh: a = json.load(fh)["archive"]
-    with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
+    from log_search import log
     d, db = scratch(False); bad = []
     try:
         cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
-        sha, _ = archive_object(cx, data, mime=a["mime"], source_id=a["source"], collection_id=None, locator_kind=a["locator"]["kind"], locator_value=a["locator"]["value"], retrieved_by=BY, terms=None, cost="free", trust_tier=None)
-        extract(cx, sha, BY); cx.commit()
-        before = {t: cx.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("artifact", "persona", "persona_fact")}
-        for table, key, update_says, delete_says in (("artifact", "sha256", "immutable", "never deleted"), ("persona", "id", "immutable", "never deleted"), ("persona_fact", "id", "immutable", "never deleted")):
-            row = cx.execute(f"SELECT {key} FROM {table} LIMIT 1").fetchone()
-            if not row: bad.append(f"{table} holds no row to try"); continue
-            for sql, says in ((f"UPDATE {table} SET {key}={key} WHERE {key}=?", update_says), (f"DELETE FROM {table} WHERE {key}=?", delete_says)):
-                try: cx.execute(sql, (row[0],)); bad.append(f"{sql.split()[0]} on {table} was allowed")
-                except sqlite3.IntegrityError as e:
-                    if says not in str(e): bad.append(f"{sql.split()[0]} on {table} was refused, but not by its trigger: {e}")
-                cx.rollback()
+        shas = []
+        for name in ("va-gravesite-search-davidson-raymond-2007", "va-gravesite-search-davidson-noi", "va-gravesite-search-davidson-raymond-e"):
+            with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
+            sha, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=None, locator_kind="file", locator_value=name + ".html", retrieved_by=BY, terms=None, cost="free", trust_tier=None)
+            extract(cx, sha, BY); shas.append(sha)
+        ts = now(); tid = ulid()
+        cx.execute("INSERT INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (shas[0], "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007"))
+        cx.execute("INSERT INTO tombstone (artifact_sha256,reason,disposition,tombstoned_at,tombstoned_by) VALUES (?,?,?,?,?)", (shas[1], "check: a tombstone row to try", "quarantined", ts, BY))
+        cx.execute("INSERT INTO tree (id,slug,name,created_at,updated_at) VALUES (?,?,?,?,?)", (tid, "check", "the check's tree", ts, ts))
+        cx.execute("INSERT INTO same_record (id,tree_id,a_sha256,b_sha256,same,basis,decided_by,decided_at) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tid, shas[0], shas[1], False, "owner", BY, ts))
+        for sha in shas: log(cx, tid, BY, source_id="E03", outcome="found", artifacts=[sha], query={"surname": {"value": "Davidson", "basis": "accepted"}})
+        cx.commit()
+        before = {t: cx.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in INSERT_ONLY}
+        for table, once in INSERT_ONLY.items():
+            rows = [r[0] for r in cx.execute(f"SELECT rowid FROM {table} ORDER BY rowid")]
+            if not rows: bad.append(f"{table} holds no row to try"); continue
+            for col in [r[1] for r in cx.execute(f"PRAGMA table_info({table})") if r[1] != once]:
+                bad += _refused(cx, f"UPDATE {table} SET {col}={col} WHERE rowid=?", (rows[0],), "immutable")
+            bad += _refused(cx, f"DELETE FROM {table} WHERE rowid=?", (rows[0],), "never deleted")
+            if not once: continue
+            ids = [r[0] for r in cx.execute(f"SELECT id FROM {table} ORDER BY rowid")]
+            if len(ids) < 3: bad.append(f"{table} holds {len(ids)} row(s), three wanted to try its write-once {once}"); continue
+            bad += _refused(cx, f"UPDATE {table} SET {once}={once} WHERE id=?", (ids[0],), "written once")
+            try: cx.execute(f"UPDATE {table} SET {once}=? WHERE id=?", (ids[1], ids[0]))
+            except sqlite3.DatabaseError as e: bad.append(f"{table}.{once} set from empty was refused: {e}"); cx.rollback(); continue
+            bad += _refused(cx, f"UPDATE {table} SET {once}=? WHERE id=?", (ids[2], ids[0]), "written once", keep=True)
+            bad += _refused(cx, f"UPDATE {table} SET {once}=NULL WHERE id=?", (ids[0],), "written once", keep=True)
+            cx.rollback()
         after = {t: cx.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in before}
         if after != before: bad.append(f"rows changed: {before} then {after}")
         cx.close()
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
+
+def _refused(cx, sql, args, says, keep=False):
+    """[] when the statement is refused by an insert-only trigger saying `says`, else what happened. The transaction is rolled
+    back after, unless keep: a write-once column's allowed write stands for the statements tried after it."""
+    out = []
+    try: cx.execute(sql, args); out.append(f"{sql} was allowed")
+    except sqlite3.DatabaseError as e:
+        if says not in str(e): out.append(f"{sql} was refused, but not by its trigger: {e}")
+    if not keep: cx.rollback()
+    return out
 
 def default_catalog():
     """A tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT (treelib.DB), never the owner's: on a fresh
@@ -412,8 +443,8 @@ def every_check(a):
     print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
     print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
-    bad_ev = evidence_insert_only(); bad += bool(bad_ev)
-    print("ok   the evidence layer is insert-only: an UPDATE and a DELETE on artifact, persona and persona_fact are each refused by their trigger, on a catalog holding a real record read" if not bad_ev else "FAIL evidence: " + "; ".join(bad_ev))
+    bad_ev = insert_only(); bad += bool(bad_ev)
+    print("ok   the evidence, the research log and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on extraction and search_log is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
     bad_db = default_catalog(); bad += bool(bad_db)
     print("ok   a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT" if not bad_db else "FAIL default catalog: " + "; ".join(bad_db))
     bad += parsers.check(a.keep, a.show)

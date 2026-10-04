@@ -56,7 +56,7 @@ def held_count(cx, pid):
     """How many records the person holds: the artifacts found and unread runs on their own steps name (a record no parser reads is
     held all the same), and those their accepted personas are on, counted once each. Read-only; what a turn is measured by,
     before and after."""
-    shas = {s for js, in cx.execute("SELECT l.artifacts_json FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE sp.person_id=? AND l.outcome IN ('found','unread') AND l.artifacts_json IS NOT NULL", (pid,)) for s in json.loads(js or "[]")}
+    shas = {s for js, in cx.execute("SELECT l.artifacts_json FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE sp.person_id=? AND l.outcome IN ('found','unread') AND l.artifacts_json IS NOT NULL AND l.superseded_by IS NULL", (pid,)) for s in json.loads(js or "[]")}
     shas |= {s for s, in cx.execute("SELECT pe.artifact_sha256 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pp.person_id=? AND pp.status='accepted'", (pid,))}
     return len(shas)
 

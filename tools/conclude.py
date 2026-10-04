@@ -99,7 +99,7 @@ from catalog import ONCE, RECORD_FACTS, date_span, date_verdict, evidence_classe
 from catalog import key as surname_key
 from match import MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
 from plan import plan_person
-from log_search import release_household
+from log_search import release_household, restate
 from backfill_aliases import classify, clean, key
 
 NAMED_SURVIVORS = "obituary"                            # the kind (data/evidence-classes.csv) that identifies a person only through who it names (docs/RESEARCH-WORKFLOW.md §0: "then the named survivors decide"): the rule's ground there is a stated relative, never a date or a place alone
@@ -1925,8 +1925,9 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     open questions move onto the person it duplicates, `person.merged_into` is set so the duplicate's own row stays for the
     audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records the
     decision with the owner's note; the duplicate_person question between the two, on either side, closes answered by it. A
-    moved step the kept person's plan already has by step_key keeps whichever of the two carries search_log runs (neither carrying runs keeps the kept person's own); the other's log rows, if any, are repointed
-    onto the survivor rather than lost. A dropped step or question is named in the audit row by its key, row (a step's) and
+    moved step the kept person's plan already has by step_key keeps whichever of the two carries search_log runs (neither carrying runs keeps the kept person's own); the duplicate's runs, if any, are carried
+    onto the survivor rather than lost, each a new row restating it (log_search.restate), the duplicate's step left on its row,
+    skipped, holding the runs it superseded. A dropped step or question is named in the audit row by its key, row (a step's) and
     rationale, and why it was dropped, the way plan.py's own audit row names what it drops.
 
     The duplicate's events join the kept person's, and the kept person's events of one type that are then one event are
@@ -1951,7 +1952,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     ts = now()
     moved = {"persona_links": 0, "assertions": 0, "event_participants": 0, "events_folded": 0, "event_assertions_folded": 0,
              "family_memberships": 0, "families_folded": 0, "family_children_moved": 0, "family_events_moved": 0,
-             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_repointed": 0, "questions_moved": 0, "questions_dropped": 0, "questions_answered": 0,
+             "plan_steps_moved": 0, "plan_steps_dropped": 0, "log_rows_carried": 0, "questions_moved": 0, "questions_dropped": 0, "questions_answered": 0,
              "dropped_steps": [], "dropped_questions": [], "folded_events": [], "folded_families": []}   # each drop or fold named by its key/type/family, the way plan.py's own audit row does: the audit row is the only trace of it afterwards
 
     for persona_id, in q.execute("SELECT persona_id FROM person_persona WHERE person_id=?", (dup_id,)).fetchall():
@@ -1992,8 +1993,12 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
             q.execute("DELETE FROM search_plan WHERE id=?", (existing["id"],))
             q.execute("UPDATE search_plan SET person_id=? WHERE id=?", (kept_id, step["id"])); moved["plan_steps_moved"] += 1
         else:
-            moved["log_rows_repointed"] += q.execute("UPDATE search_log SET plan_step_id=? WHERE plan_step_id=?", (existing["id"], step["id"])).rowcount
-            q.execute("DELETE FROM search_plan WHERE id=?", (step["id"],)); moved["plan_steps_dropped"] += 1
+            runs = [lid for lid, in q.execute("SELECT id FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY id", (step["id"],)).fetchall()]
+            for lid in runs: restate(cx, by, lid, step_id=existing["id"])
+            moved["log_rows_carried"] += len(runs)
+            if runs: q.execute("UPDATE search_plan SET status='skipped' WHERE id=?", (step["id"],))   # its rows stay on it, each superseded by its restatement on the kept step
+            else: q.execute("DELETE FROM search_plan WHERE id=?", (step["id"],))
+            moved["plan_steps_dropped"] += 1
             moved["dropped_steps"].append({"step_key": step["step_key"], "row_key": step["row_key"], "rationale": step["rationale"],
                                            "reason": "the kept person's own step of this key carries search_log runs already" if kept_has_runs
                                                      else "the kept person's own step of this key is kept; neither carries a search_log run"})
@@ -2851,7 +2856,7 @@ def main():
             else: print(f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s), {res['assertions']} assertion(s), "
                   f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s), "
                   f"{res['plan_steps_moved']} plan step(s) moved ({res['plan_steps_dropped']} dropped as already on the kept person's plan, "
-                  f"{res['log_rows_repointed']} log row(s) repointed onto it), {res['questions_moved']} question(s) moved "
+                  f"{res['log_rows_carried']} run(s) carried onto it), {res['questions_moved']} question(s) moved "
                   f"({res['questions_dropped']} already open on the kept person), {res['questions_answered']} duplicate question(s) answered; proposal {res['proposal']}")
             for line in superseded_lines(rematch_people(cx, tree_id, a.by, [kept_id])): print("   ", line)
         cx.commit()
