@@ -16,7 +16,10 @@ name, stopping at the first that gets a hit (the run's logged place says so), an
 made again: a name that makes one is logged as tried, the note saying whose request it repeated. One search_log
 row records the exact query, the outcome (found when a hit was archived, none when the source answered with nothing,
 error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
-done. Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
+done. An answer no reader of the connector parses (any exception from its total, narrow, hits, next_page or follow: a
+challenge or maintenance page a holder serves with status 200 in place of its answer) is archived as it came and counts as
+no answer: the note gives the exception's type and message, and a run none of whose requests was answered is logged error,
+so the step stays runnable and the turn goes on (docs/RESEARCH-WORKFLOW.md §8). Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
 a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed. A run whose records
 are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
 index's rows under a surname) is found only when a row fits a person, as docs/RESEARCH-WORKFLOW.md §4 has it for a
@@ -133,12 +136,18 @@ def variants_of(cx, person_id, surname):
     """The spelling variants of the surname the alias table holds for the person (spelling_variants over the aliases not rejected)."""
     return spelling_variants(surname, [v for v, in cx.execute("SELECT value FROM alias WHERE entity_kind='person' AND entity_id=? AND status<>'rejected'", (person_id,))])
 
-def outcome_of(hits, errors, shas):
-    """found when a hit gave a record; error when the source did not answer; none when it answered with nothing, or when
-    every hit is a book the Archive lends and does not serve (the note says so)."""
+def outcome_of(hits, errors, answered):
+    """found when a hit gave a record; error when the source answered no request (a timeout, a refusal, or an answer no reader
+    parses: a challenge or maintenance page served in place of the answer); none when it answered with nothing, or when every
+    hit is a book the Archive lends and does not serve (the note says so)."""
     if any(not h.get("restricted") for h in hits): return "found"
-    if errors and not shas: return "error"
+    if errors and not answered: return "error"
     return "none"
+
+def unreadable(url, e):
+    """An answer no reader of the connector parses, as the run's note and the turn's report show it: the exception's type and
+    message first, so a challenge page and a reader's own defect both read plainly, then the URL."""
+    return f"an answer no reader parses ({type(e).__name__}: {e}) at {url}"
 
 def listing(cx, eid):
     """Whether an extraction read a results listing (extract.RESULTS_LISTINGS), one persona per row."""
@@ -286,7 +295,7 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
                 except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{f['url']}: {e}"); continue
             if hasattr(conn, "follow"):                          # first, so what the response taught (the pages chosen) is in this artifact's notes
                 try: todo += conn.follow(f, d2, h)
-                except ValueError as e: errors.append(f"{f['url']}: {e}")
+                except Exception as e: errors.append(unreadable(f["url"], e))
             got.append(keep(d2, h2, f["kind"], f["url"], {**h["notes"], "hit": h["label"], "locator": h["locator"], "step_type": step["query_type"], "connector": conn.__name__.split(".")[-1],
                                                           **({"page_number": f["page"]} if f.get("page") else {}), **({"spelling": f["spelling"]} if f.get("spelling") else {})},
                             derived_from=f.get("derived_from")))   # the step's kind and the connector on the response itself, so it reads the same on its own
@@ -316,21 +325,20 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
                 except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, http.client.HTTPException) as e: errors.append(f"{url}: {e}"); answered[request_key(rq)] = False; break
                 sha = keep(data, meta, rq["kind"], url, {"request": rq["kind"], "query": q}, locator=(rq.get("locator") if first else f"{rq['locator']}&page={pages}") if rq.get("locator") else None)
                 rq["archived_sha"] = sha                              # this request's own bytes, for hits() to derive from (connectors/__init__.py)
-                if url == rq["url"]:
-                    try: totals.append(conn.total(data))
-                    except ValueError: totals.append(None)
-                    try: asked.append(conn.narrow(url, data) if hasattr(conn, "narrow") else None)
-                    except ValueError: pass
-                page_hits = conn.hits(url, data, rq) if conn.hits.__code__.co_argcount > 2 else conn.hits(url, data)
+                try:                                                 # an answer no reader parses (a challenge page served with status 200) is no answer: the request is unanswered
+                    total = conn.total(data) if first else None
+                    narrow = conn.narrow(url, data) if first and hasattr(conn, "narrow") else None
+                    page_hits = conn.hits(url, data, rq) if conn.hits.__code__.co_argcount > 2 else conn.hits(url, data)
+                    nxt = conn.next_page(url, data) if hasattr(conn, "next_page") and rq["kind"] == "search" else None
+                except Exception as e: errors.append(unreadable(url, e)); answered[request_key(rq)] = False; break
+                if first: totals.append(total); asked.append(narrow)
                 if rq.get("record") and page_hits: records.append(sha)   # the response is the record itself (a results page listing what was found); an empty answer is not a record
-                pages += 1
-                try: url = conn.next_page(url, data) if hasattr(conn, "next_page") and rq["kind"] == "search" else None
-                except ValueError: url = None
+                pages += 1; url = nxt
                 for h in page_hits:
                     hits_of_page(h)
         if name is not None and not all(answered[request_key(rq)] for rq in creqs): unanswered.append(name)
         if len(hits) > before: stopped = True; break              # a hit under this name, whatever it turns out to hold: never try the rest
-    outcome = outcome_of(hits, errors, shas)
+    outcome = outcome_of(hits, errors, any(answered.values()))
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [a for a in asked if a] + repeated + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
     if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried, "stopped_at_hit": stopped, **({"unanswered": unanswered} if unanswered else {})}}   # every name tried, asked or not, the one the run stopped on, whether it stopped at a hit, and the names the source did not answer

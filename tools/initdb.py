@@ -18,7 +18,7 @@ version this catalog lacks runs once and is recorded in schema_migration. Stdlib
 """
 import argparse, csv, datetime as dt, json, os, sqlite3, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, SCHEMA_VERSION, archive_dir
+from treelib import DB, SCHEMA_VERSION, archive_dir, in_data_root
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
@@ -350,6 +350,7 @@ def main() -> int:
     ap.add_argument("--sync-event-types", action="store_true", help="add the event types schema/seed_event_type.sql has that an existing catalog lacks; nothing else changes")
     ap.add_argument("--migrate", action="store_true", help="bring an existing catalog's structure up to schema/catalog.sql's current version; nothing decided changes")
     a = ap.parse_args()
+    in_data_root(a.db)
 
     if a.sync_sources:
         cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")

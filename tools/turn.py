@@ -15,8 +15,9 @@ nothing is written to the catalog by pausing), and the process exits for the own
 challenge at a holder pauses the same way (docs/RESEARCH-WORKFLOW.md §4): it does not stop the turn, and passing
 it is the owner's own hand.
 
-`--resume` picks up the paused turn: `tools/fetches.py collect` moves what was saved into the inbox and attaches
-it by identity, `tools/attach_inbox.py` takes whatever collect's own naming left behind, the place resolver
+`--resume` picks up the paused turn: `tools/fetches.py collect` moves what was saved in the data root's downloads/ folder
+into the inbox and attaches it by identity, `tools/attach_inbox.py` takes whatever else the inbox holds, one file per
+transaction both (a file that fails is rolled back alone, stays where it was, and is named with the exception in the report), the place resolver
 (`tools/resolve_places.py`) reads the place strings the turn's new records brought and the strings behind this person's own
 events, through its cache and the public endpoint's rate (a string it accepts is placed, one it cannot settle is a card on
 the person's fact row, and the events whose strings are all resolved take their place before the rule goes over the
@@ -32,7 +33,8 @@ report names each conflict the rule resolved or took back while it ran, one line
 kept, the rule's reason and the question id `tools/conclude.py reopen` gives it back by; conclude.rule_conflict_changes
 reads them from the audit log after the last row there when the turn began), and every source that did not answer once,
 with what it was asked and what it said: a connector step (a run logged error) stays runnable, and a place string the geocoder did not answer stays unresolved, so the next turn asks that
-source again. A file left in the inbox that fulfils no step is
+source again. A connector's answer no reader parses (a challenge page served in place of the answer) is such a run, its
+exception named in what the source said (tools/run_step.py). A file left in the inbox that fulfils no step is
 named once per run (the runner passes the files already named, tools/turns.py), not in every turn's report.
 """
 import argparse, json, os, sys
@@ -42,7 +44,7 @@ from catalog import Catalog
 from plan import plan_person
 import run_step
 import fetches
-from attach import attach_inbox as attach_inbox_files, line
+from attach import attach_each, inbox_files, line
 from conclude import reconsider, rule_conflict_changes, rule_conflict_line
 from resolve_places import resolve_strings
 
@@ -146,15 +148,12 @@ def places_left_lines(cx, places):
     return out
 
 def finish(cx, tree_id, slug, pid, by, since=None):
-    """The shared tail: fetches.py collect, attach_inbox.py on whatever it leaves, the place resolver on the new place strings
+    """The shared tail: fetches.py collect, attach_inbox.py on whatever else the inbox holds, each one file per transaction (a
+    file that fails is rolled back alone, left where it was and named in the report), the place resolver on the new place strings
     (before the rule goes over the conflicts, so an event the answers place is compared as placed), conclude.py reconsider, the
     plan regenerated for the person. Runs whether a turn had nothing to fetch or is resuming after one that did."""
-    cx.execute("BEGIN")
-    try: names, collect_results = fetches.collect(cx, tree_id, slug, by); cx.commit()
-    except Exception: cx.rollback(); raise
-    cx.execute("BEGIN")
-    try: left_results = attach_inbox_files(cx, tree_id, slug, by); cx.commit()
-    except Exception: cx.rollback(); raise
+    names, collect_results = fetches.collect(cx, tree_id, slug, by)
+    left_results = attach_each(cx, tree_id, slug, by, [f for f in inbox_files() if f not in names])
     places = resolve_places(cx, tree_id, pid, since, by)
     cx.execute("BEGIN")
     try: recon = reconsider(cx, tree_id, by); cx.commit()

@@ -1,0 +1,161 @@
+{
+ "title": "a turn goes on past an answer no reader parses",
+ "line": "a holder that serves a challenge page with status 200 in place of the JSON its connector reads gives an answer no reader parses: the run is logged error with the exception's type and message in its note, the page archived as it came, the step left runnable, and the turn goes on to its pause, its report naming the source once with the exception; the next turn asks that source again and goes on the same way",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the home person's grandmother, her baseline reviewed on the file's claims",
+   "fact": {
+    "person": "I332737099804",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "deceased on the owner's word, so her searches run unattended",
+   "living": {
+    "person": "I332737099804",
+    "word": "deceased",
+    "note": "harness: so the steps are auto"
+   }
+  },
+  {
+   "say": "her turn, every holder answering with a challenge page (the harness's stand-in, decision 8): no JSON reader of the Library of Congress, the Archive's newspapers, directories and books, the 1950 census site or WikiTree can parse it",
+   "turn": {
+    "person": "I332737099804",
+    "geocoder_silent": true,
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "",
+       "challenge": true,
+       "every": true
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": [
+        "page(s) to fetch, one tab per page",
+        "not answered:",
+        "Chronicling America via loc.gov API (H01) did not answer (an answer no reader parses (JSONDecodeError: ",
+        "Internet Archive newspapers (H07) did not answer (an answer no reader parses (JSONDecodeError: ",
+        "(D05) did not answer (an answer no reader parses (JSONDecodeError: ",
+        "(K01) did not answer (an answer no reader parses (JSONDecodeError: ",
+        "(L02) did not answer (an answer no reader parses (JSONDecodeError: ",
+        "(B04) did not answer (an answer no reader parses (JSONDecodeError: "
+       ]
+      },
+      "state": {
+       "any": true
+      }
+     },
+     "why": "the turn goes on past both to its pause on the pages for the browser, and names each source once with the exception plainly, every JSON connector her plan asked"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737099804",
+       "step_key": "fetch:1,7545::502601691"
+      },
+      "is": {
+       "some": {
+        "source_id": "H01",
+        "outcome": "error",
+        "artifacts": {
+         "len": 1
+        },
+        "notes": {
+         "has": "an answer no reader parses (JSONDecodeError: "
+        }
+       }
+      }
+     },
+     "why": "the run is an error run, the challenge page archived as it came and the exception in its note"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737099804",
+       "step_key": "fetch:1,7545::502601691"
+      },
+      "is": {
+       "some": {
+        "source_id": "H07",
+        "outcome": "error",
+        "notes": {
+         "has": "an answer no reader parses (JSONDecodeError: "
+        }
+       }
+      }
+     },
+     "why": "the Archive's newspapers the same"
+    }
+   ]
+  },
+  {
+   "say": "the next turn: the step is still runnable at both, asked again, and the turn goes on the same way",
+   "turn": {
+    "person": "I332737099804",
+    "geocoder_silent": true,
+    "fetch": {
+     "answers": [
+      {
+       "url_has": "",
+       "challenge": true,
+       "every": true
+      }
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": [
+        "page(s) to fetch, one tab per page",
+        "(H01) did not answer (an answer no reader parses (JSONDecodeError: ",
+        "(H07) did not answer (an answer no reader parses (JSONDecodeError: "
+       ]
+      }
+     },
+     "why": "an error run leaves the step runnable: the next turn asks the source again, and an answer no reader parses never stops a turn"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737099804",
+       "step_key": "fetch:1,7545::502601691"
+      },
+      "is": {
+       "some": {
+        "source_id": "H01",
+        "outcome": "error"
+       },
+       "len": {
+        ">=": 2
+       }
+      }
+     },
+     "why": "two error runs at the Library of Congress, one per turn"
+    }
+   ]
+  }
+ ]
+}

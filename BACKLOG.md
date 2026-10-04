@@ -60,25 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A7. A turn survives a bad answer and a failed file
-
-`run_step.run` catches network errors around the fetch alone: `conn.total`
-is guarded for `ValueError` and `conn.hits` not at all, so a holder's
-challenge or maintenance page served with status 200 to a JSON connector
-raises, `turn.run_connectors` rolls back and re-raises, no error run is
-logged, and every later turn crashes on the same step (§8: a challenge is an
-error run and the turn goes on). `turn.finish` runs `fetches.collect` and
-the attach as one transaction for the batch while `attach.py` moves each
-original out of the inbox and `archive_object` writes the object before the
-commit, so one failing file rolls back the rows of the files before it whose
-originals have already left the inbox, never retried; `tools/attach_inbox.py`
-already takes one file per transaction. And `--db` does not move the
-archive, inbox and downloads (`treelib.py` reads them from `DATA_ROOT`), so a
-scratch `--db` writes into the live archive, the cause of C31. Log an answer
-no reader can parse as an error run, take one file per transaction, and make
-the data root follow `--db` or refuse a `--db` outside it; a scenario for
-each, the holder's challenge simulated as decision 8 allows.
-
 ### A8. One person's pages never stop the loop
 
 `tools/turns.py` refuses to run while `<db>.turn-state.json` exists,
@@ -94,8 +75,6 @@ waiting person. A state written before the turn kept `since` and
 hook refuses the state files, which hold people's names. Write the change
 into §8 first, then the code and its scenarios; the live loop is restarted
 once it is reviewed.
-
-**Blocked by:** A7.
 
 ### A9. The person screen is safe and quick
 
@@ -658,8 +637,9 @@ the live one. For those fixtures the archive's copy proves
 nothing about where the bytes came from, and the live catalog may hold rows
 for them. Find what that run wrote (artifacts, extractions, personas, runs)
 through a tool that reads the catalog, say what the owner should keep, and
-correct the README rows that rest on those copies. The cause, a `--db` that
-leaves the archive at the live data root, is A7's.
+correct the README rows that rest on those copies. A tool refuses a `--db`
+outside its data root (`treelib.in_data_root`) and every check runs under a
+scratch `DATA_ROOT`, so this entry is the cleanup alone.
 
 ### C35. Family links accepted on a grouping the record does not state
 
@@ -1008,6 +988,21 @@ held his link to Annie only on that record's own statement). Say the indexer's
 only when no stated relationship to a person accepted on the record is there,
 and otherwise name the stated one and why it does not count, as the clause
 naming the link the tree holds on nothing that claims it already does.
+
+### C52. A challenge page a non-JSON reader takes for an empty answer is logged none
+
+A JSON connector raises on a challenge or maintenance page served with status
+200 in place of its answer, and the run is logged error (`run_step.unreadable`).
+The CSV and HTML connectors read such a page as an answer with nothing in it:
+`nj_death_index.rows` and `ky_vital_index`'s readers find no row under the
+surname, `va_graves.total` gives None and `results` an empty list where the page
+lacks its table. The run is logged `none`, the holder's word that it holds
+nothing, and `log_search.same_fields` closes the step at that source. Give each
+such connector a test that the body is its answer (the index file's header
+line, the year file's layout, the gravesite page's own result or no-result
+markers), raising when it is not, so the page is an error run and the step is
+asked again; show it on loop `106`'s turn, where New Jersey's index and the
+gravesite locator log `none` on the harness's challenge page.
 
 ## Externally blocked
 

@@ -6,14 +6,15 @@ usage: tools/attach_inbox.py [--tree slug] [--db catalog/tree.db] [--by user:<yo
 For each file (all inbox files when none are named): the record's identity is read from the file (a Find a Grave memorial
 id, a FamilySearch ark), every fetch step whose citation carries it is found, the file is archived once and a found run is
 logged on each of those steps, then the extractor and the matcher run once. A file whose identity matches no step stays in
-the inbox and is reported. Prints one line per file: identity, steps fulfilled with their people, artifact hash,
+the inbox and is reported. Each file is its own transaction (attach.attach_each): one that fails is rolled back alone,
+stays in the inbox untouched for the next try and is named with the exception, the others attached. Prints one line per file: identity, steps fulfilled with their people, artifact hash,
 extraction id, proposals written. Re-running changes nothing: attached files have left the inbox, and a copy of an archived
 file logs no step twice. See tools/attach.py, which the person screen shares.
 """
 import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, connect, inbox_dir, resolve_tree
-from attach import attach_inbox, line
+from treelib import DB, connect, resolve_tree
+from attach import attach_each, inbox_files, line
 from catalog import Catalog
 
 def main():
@@ -24,12 +25,7 @@ def main():
     tree_id, slug = resolve_tree(cx, a.tree)
     if a.about and not a.files: ap.error("--about names the person one file is about: name the file too")
     about = Catalog(cx, tree_id).find_person(a.about) if a.about else None
-    names = a.files or sorted(f for f in os.listdir(inbox_dir()) if os.path.isfile(os.path.join(inbox_dir(), f)) and not f.startswith("."))
-    results = []
-    for name in names:                                            # one file, one transaction: a failure leaves that file in the inbox and the others attached
-        cx.execute("BEGIN")
-        try: results += attach_inbox(cx, tree_id, slug, a.by, [name], about=about); cx.commit()
-        except Exception as e: cx.rollback(); results.append({"file": name, "identity": None, "steps": [], "left": f"failed: {type(e).__name__}: {e}"})
+    results = attach_each(cx, tree_id, slug, a.by, a.files or inbox_files(), about=about)   # one file, one transaction: a failure leaves that file in the inbox and the others attached
     for r in results: print(line(r))
     if not results: print("inbox empty")
 

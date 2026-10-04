@@ -186,6 +186,7 @@ extraction they came from and are regenerable; they are not archived.
 ```
 tree/
   inbox/         drop zone: put a file here, run an ingest tool, it is moved out
+  downloads/     where the browser saves the pages a turn waits on (git-ignored); collect moves them to inbox/
   archive/       layer 2: objects/ manifests/ bags/  (git-ignored; backed up by bag)
   catalog/       tree.db + .active-tree             (git-ignored; dumped to SQL into a bag)
   derivatives/   thumbnails, OCR text, tiles        (regenerable, not backed up)
@@ -199,6 +200,15 @@ tree/
   docs/          this file and its siblings
   app/person/    the person screen: stdlib server + one page, and read_record.md (what a reader of a record image writes)
 ```
+
+These data folders (`inbox/`, `downloads/`, `archive/`, `catalog/`,
+`derivatives/`, a tree's `imports/` and `exports/`) live under the data root:
+the repository, or the folder `DATA_ROOT` names for a scratch run. A tool's
+`--db` must lie inside the data root and is refused otherwise, so a catalog's
+records are always archived beside it, never into another data root's archive.
+The owner sets the browser's download location to `downloads/` once (a browser
+profile kept for tree work if they prefer); no tool reads the owner's own
+download folder.
 
 The archive is the permanent home of every file's bytes. `trees/<slug>/imports/`
 holds a second, human-named copy so a person can find "the GEDCOM I exported on

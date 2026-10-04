@@ -20,8 +20,10 @@ carries the search's own given name and surname, so the several people's steps o
 from any other holder carries no identity the attach reads, so it is listed once per citation and person waiting on it,
 under a name that carries the citation's own record locator and ends in that person's six characters): the leads from
 held records first (a persona accepted as a person, whose memorial the record links), then the file's citations, the pages
-that settle most steps first. `collect` moves every saved page from the browser's download folder (or --folder) into
-`inbox/` and attaches each: a photograph by its own name (it carries no identity in its bytes), any other .html page whose
+that settle most steps first. Saved pages go to the data root's own `downloads/` folder (the repository's `downloads/` for
+the live tree; a scratch run's under its DATA_ROOT): the owner points the browser's download location there once, a separate
+browser profile for tree work if they prefer, and no tool reads the owner's own download folder. `collect` moves every saved
+page from that folder (or --folder) into `inbox/` and attaches each: a photograph by its own name (it carries no identity in its bytes), any other .html page whose
 saved-from line (the browser's own comment, tools/save_page.js) is a FamilySearch record or search URL, a Find a Grave
 memorial or search, or an AAD record or search, by that identity (tools/attach.py identity) whatever the name says —
 archived once, logged found on every step that cites it, extracted, matched, the rule run; a page that carries a key (the
@@ -31,7 +33,9 @@ its identity reaches beside them; a page from a holder whose
 pages carry no identity the attach reads, by the name the list printed, to the steps of the one citation and person the
 name carries, archived under that holder with the page's own URL (the saved-from line the browser wrote) as locator,
 logged unread (held on the step's log, the step planned), and reported unparsed until a parser claims it. A file with neither a recognised saved-from line nor a
-listed name is left in the folder.
+listed name is left in the folder. Each file is attached in a transaction of its own: one that fails is rolled back alone,
+named with the exception, and left where it was (a page taken by name in the folder, a page taken by identity in the inbox),
+the others attached.
 
 `next [K]` is the browser session's own list: the next K pages (five by default) a turn can send someone to (`openable`: a
 link to open, a step with no run since the plan last wrote its fields), one line each with the link, the file name to save
@@ -42,10 +46,10 @@ have all been run on unchanged fields (a page saved, or answered, and the plan h
 brings them back. A step at a holder whose link takes nothing from the citation is planned assisted, a search a person runs
 by hand (tools/plan.py), never a page on this list.
 """
-import argparse, json, os, re, shutil, subprocess, sys, urllib.parse
+import argparse, json, os, re, shutil, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, connect, dumps, inbox_dir, resolve_tree
-from attach import ark_id, attach, attach_inbox, line
+from treelib import DB, connect, downloads_dir, dumps, inbox_dir, resolve_tree
+from attach import ark_id, attach, attach_each, failed, line
 from catalog import Catalog, fetch_target, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
 import connectors
@@ -151,10 +155,6 @@ def openable(cx, tree_id):
     people whose own step is still unrun."""
     return [e for e in annotated(cx, tree_id) if e["url"] and e["open_step_ids"]]
 
-def downloads_dir():
-    try: return subprocess.run(["xdg-user-dir", "DOWNLOAD"], capture_output=True, text=True, timeout=5).stdout.strip() or os.path.expanduser("~/Downloads")
-    except Exception: return os.path.expanduser("~/Downloads")
-
 PHOTO_NAME = re.compile(r"findagrave-photo-\d+-\d+\.(jpe?g|png|webp|gif)$", re.I)
 SAVED_FROM_IDENTITY = re.compile(r"familysearch\.org/(?:[a-z]{2}/)?(?:ark:/\d+/[\w:.$-]+|search/record/results)"
                                   r"|findagrave\.com/memorial/(?:\d+(?:/|$)|search)"
@@ -172,29 +172,39 @@ def saved_from(path):
     return m.group(1) if m else None
 
 def collect(cx, tree_id, slug, by, folder=None):
-    """Every page in the download folder (or the folder given) saved under a name the list printed: a gravestone photograph
-    by its own name (it carries no identity in its bytes), and any .html file whose saved-from line (the browser's own
-    comment, tools/save_page.js) is a FamilySearch record or search URL, a Find a Grave memorial or search, or an AAD
+    """Every page in the data root's downloads folder (or the folder given) saved under a name the list printed: a gravestone
+    photograph by its own name (it carries no identity in its bytes), and any .html file whose saved-from line (the browser's
+    own comment, tools/save_page.js) is a FamilySearch record or search URL, a Find a Grave memorial or search, or an AAD
     record or search, moved to inbox/ under its own name and attached by that identity (tools/attach.py identity), whatever
     the name says, to the steps its key names first when it carries one (attach.named_steps). A page from a holder whose pages
     carry no identity the attach reads is taken by the by-name path
     instead, under the list's own name, and attached to the steps of the one citation and person the name carries, archived
-    under that holder with its own URL as locator. A file with neither is left where it is.
+    under that holder with its own URL as locator. A file with neither is left where it is. The pages taken by name go first,
+    then those taken by identity, each file in a transaction of its own (attach.attach_each): a file whose transaction fails
+    is rolled back alone and named with the failure, a page taken by name put back in the folder it was saved in (only collect
+    takes a page by its name), a page taken by identity left in the inbox (attach_inbox.py, and the next turn, take it again).
     Returns (the names taken, the attach results)."""
-    folder = folder or downloads_dir(); names, results = [], []
+    folder = folder or downloads_dir(); by_identity, results = [], []
     entries = waiting(cx, tree_id)
     for f in sorted(os.listdir(folder)):
         path = os.path.join(folder, f)
-        if PHOTO_NAME.fullmatch(f) or (f.lower().endswith(".html") and SAVED_FROM_IDENTITY.search(saved_from(path) or "")):
-            shutil.move(path, os.path.join(inbox_dir(), f)); names.append(f); continue
+        if not os.path.isfile(path): continue
+        if PHOTO_NAME.fullmatch(f) or (f.lower().endswith(".html") and SAVED_FROM_IDENTITY.search(saved_from(path) or "")): by_identity.append(f); continue
         e = named_for(f, entries)
         if not e or not f.lower().endswith(".html"): continue
-        shutil.move(os.path.join(folder, f), os.path.join(inbox_dir(), f))
-        url = saved_from(os.path.join(inbox_dir(), f)) or e["url"]
-        steps = [{**dict(r), "reason": "saved under the name the fetch list printed for this page"} for sid in e["step_ids"] for r in cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,))]
-        r = {"file": f, "identity": f"page {url}", "steps": [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"], s["reason"]) for s in steps], "left": None}
-        r.update(attach(cx, tree_id, slug, f, steps, by, note=f"saved in the browser under the fetch list's name at {e['holder']}", kind="page", value=url)); results.append(r)
-    return names + [r["file"] for r in results], (attach_inbox(cx, tree_id, slug, by, names) if names else []) + results
+        dst = os.path.join(inbox_dir(), f); shutil.move(path, dst)
+        cx.execute("BEGIN")
+        try:
+            url = saved_from(dst) or e["url"]
+            steps = [{**dict(r), "reason": "saved under the name the fetch list printed for this page"} for sid in e["step_ids"] for r in cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,))]
+            r = {"file": f, "identity": f"page {url}", "steps": [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"], s["reason"]) for s in steps], "left": None}
+            r.update(attach(cx, tree_id, slug, f, steps, by, note=f"saved in the browser under the fetch list's name at {e['holder']}", kind="page", value=url)); cx.commit()
+        except Exception as ex:
+            cx.rollback(); r = failed(f, ex, folder)
+            if os.path.exists(dst): shutil.move(dst, path)   # the attach files the original last, so a failure before that leaves it in the inbox to put back
+        results.append(r)
+    for f in by_identity: shutil.move(os.path.join(folder, f), os.path.join(inbox_dir(), f))
+    return by_identity + [r["file"] for r in results], attach_each(cx, tree_id, slug, by, by_identity) + results
 
 def people_short(names, n=2): return ", ".join(names[:n]) + (f" +{len(names) - n}" if len(names) > n else "")
 
@@ -219,10 +229,12 @@ def next_lines(cx, tree_id, k):
     return [page_line(e) for e in rows[:k]] + [f"{min(k, len(rows))} of {len(rows)} openable page(s); one tab each, then tools/fetches.py collect"] if rows else ["no page waiting that a turn can open"]
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("cmd", choices=["next", "list", "collect"]); ap.add_argument("count", nargs="?", type=int, default=5, help="next: how many pages")
+    ap = argparse.ArgumentParser(description="The pages waiting to be saved by hand, and collect: the pages saved in the data root's downloads/ folder (the browser's "
+                                             "download location, set once), or --folder, taken into inbox/ and attached; the owner's own download folder is never read.")
+    ap.add_argument("cmd", choices=["next", "list", "collect"]); ap.add_argument("count", nargs="?", type=int, default=5, help="next: how many pages")
     ap.add_argument("--json", action="store_true"); ap.add_argument("--all", action="store_true", help="list: the pages already run on unchanged fields too"); ap.add_argument("--tree")
     ap.add_argument("--db", default=DB); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
-    ap.add_argument("--folder", help="collect: the folder to take saved pages from, instead of the browser's own download folder")
+    ap.add_argument("--folder", help="collect: the folder to take saved pages from, instead of the data root's downloads/ folder (the browser's download location, set once)")
     a = ap.parse_args()
     cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree)
@@ -238,9 +250,7 @@ def main():
                   + (f"  call {page_call(e)}" if e["url"] and e["how"] != "image" else ""))
         print(f"{len(rows)} page(s) to fetch, one tab per page; then tools/fetches.py collect" + (f" ({len(every) - len(rows)} already run on unchanged fields, hidden: --all)" if len(every) > len(rows) else ""))
     else:
-        cx.execute("BEGIN")
-        try: names, results = collect(cx, tree_id, slug, a.by, folder=a.folder); cx.commit()
-        except Exception: cx.rollback(); raise
+        names, results = collect(cx, tree_id, slug, a.by, folder=a.folder)
         for r in results: print(line(r))
         if not names: print(f"nothing saved in {a.folder or downloads_dir()}")
 

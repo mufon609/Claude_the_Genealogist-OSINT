@@ -1,10 +1,11 @@
 """Shared helpers for tree tools: ULIDs, timestamps, GEDCOM date parsing, data paths.
 
 ROOT is the repository. DATA_ROOT is where the data directories live (catalog/,
-archive/, derivatives/, inbox/, trees/<slug>/imports, trees/<slug>/exports): the
-repository by default, or the directory named by the environment variable
+archive/, derivatives/, inbox/, downloads/, trees/<slug>/imports, trees/<slug>/exports):
+the repository by default, or the directory named by the environment variable
 DATA_ROOT, so a scratch run keeps its files apart from the owner's. DB is the
-catalog every tool opens when no --db is given, the one under DATA_ROOT.
+catalog every tool opens when no --db is given, the one under DATA_ROOT; a --db
+outside DATA_ROOT is refused (in_data_root).
 """
 import codecs, datetime as dt, hashlib, json, os, re, sqlite3, time
 
@@ -46,6 +47,12 @@ def archive_dir() -> str:
 
 def inbox_dir() -> str:
     return os.path.join(DATA_ROOT, "inbox")
+
+def downloads_dir() -> str:
+    """Where the owner's browser saves the pages a turn waits on, and where collect takes them from: the data root's own downloads/
+    folder, created on first use. No tool reads the owner's own download folder."""
+    d = os.path.join(DATA_ROOT, "downloads"); os.makedirs(d, exist_ok=True)
+    return d
 
 def derivatives_dir() -> str:
     return os.path.join(DATA_ROOT, "derivatives")
@@ -238,9 +245,20 @@ def active_tree_slug(explicit=None):
     except FileNotFoundError:
         return None
 
+def in_data_root(db: str) -> str:
+    """The catalog path when it lies inside the data root; a --db outside it is refused. Every tool writes the archive, the inbox,
+    the downloads folder and the tree's imports beside the catalog under DATA_ROOT, so a catalog elsewhere would have its records
+    archived into another data root's archive (a scratch catalog into the owner's)."""
+    root, path = os.path.realpath(DATA_ROOT), os.path.realpath(db)
+    if os.path.commonpath([root, path]) != root:
+        raise SystemExit(f"{db} is outside the data root {DATA_ROOT}: run with DATA_ROOT set to the folder whose catalog/ holds it (DATA_ROOT=<dir> python3 tools/<tool>.py)")
+    return db
+
 def connect(db: str, rows: bool = False) -> sqlite3.Connection:
-    """The catalog a tool works on, foreign keys on, sqlite3.Row rows when asked. Refused when no catalog is there or when it is
-    behind the code's schema, so no tool reads or writes a catalog its migrations have not reached."""
+    """The catalog a tool works on, foreign keys on, sqlite3.Row rows when asked. Refused when it lies outside the data root
+    (in_data_root), when no catalog is there or when it is behind the code's schema, so no tool reads or writes a catalog its
+    migrations have not reached, or archives its records into another data root."""
+    in_data_root(db)
     if not os.path.exists(db): raise SystemExit(f"no catalog at {db}: create one with python3 tools/initdb.py --db {db}")
     cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON")
     try: have = {v for v, in cx.execute("SELECT version FROM schema_migration")}

@@ -1,0 +1,108 @@
+{
+ "title": "a file whose attach fails stays for the next try, and the files before it stay attached",
+ "line": "collect takes one file per transaction: two saved pages, the second of which fails after its rows are written, leave the first attached (its run logged, its original filed under the tree) and the second rolled back alone, in the inbox untouched and named with the failure; the next try attaches it, the object already in the archive harmless",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "her Kentucky death records search saved from the fetch list into the download folder",
+   "save": {
+    "holder": "D03",
+    "person": "I332737204852",
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "folder": "downloads"
+   },
+   "as": "search"
+  },
+  {
+   "say": "John Young Davidson's memorial saved beside it, its name after the search's",
+   "save": {
+    "holder": "E01",
+    "person": {"name": "John Young Davidson"},
+    "fixture": "findagrave-memorial-143847338.html",
+    "folder": "downloads"
+   },
+   "as": "memorial"
+  },
+  {
+   "say": "the place the memorial's original is filed under is already taken: the harness's stand-in for a file whose attach fails after its rows are written",
+   "block_filing": {
+    "file": "findagrave-memorial-143847338.html",
+    "date": "2026-10-04"
+   }
+  },
+  {
+   "say": "collect: the search is attached and stays attached; the memorial's transaction fails and is rolled back alone",
+   "at": "2026-10-04T12:00:00Z",
+   "collect": {
+    "folder": "$search.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {"file": "$search.file", "identity": {"starts": "fs_search "}, "left": null, "outcome": "none"},
+       {"file": "findagrave-memorial-143847338.html", "left": {"starts": "failed: Error: "}}
+      ],
+      "lines": {"some": {"has": ["findagrave-memorial-143847338.html", "left in the inbox: failed: Error: ", "already exists"]}}
+     },
+     "why": "the search reaches its step as it always does; the memorial's failure is named with the exception's type and message, on the line the tool prints"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737204852",
+       "row_key": "death record:1918",
+       "kind": "fetch",
+       "locator": {"kind": "apid", "value": "1,1222::1373711"}
+      },
+      "is": {"some": {"outcome": "none", "notes": {"has": "no candidate fits"}}}
+     },
+     "why": "the search's run is committed in its own transaction: the memorial failing after it does not roll it back, though its original has left the inbox"
+    },
+    {
+     "file": {"name": "$search.file", "folder": "$search.folder", "exists": false},
+     "why": "the search left the download folder"
+    },
+    {
+     "file": {"name": "$search.file", "exists": false},
+     "why": "and the inbox: it is filed under the tree, its rows committed"
+    },
+    {
+     "file": {"name": "findagrave-memorial-143847338.html", "exists": true},
+     "why": "the memorial whose transaction failed is in the inbox, untouched, for the next try"
+    },
+    {
+     "count": {"logs_of_step": "$memorial.steps.0", "is": 0},
+     "why": "nothing of the memorial's attach is left in the catalog"
+    }
+   ]
+  },
+  {
+   "say": "the filing place cleared",
+   "block_filing": {
+    "file": "findagrave-memorial-143847338.html",
+    "date": "2026-10-04",
+    "clear": true
+   }
+  },
+  {
+   "say": "the next try: tools/attach_inbox.py's own path over the memorial left in the inbox",
+   "at": "2026-10-04T12:00:00Z",
+   "attach_inbox": {},
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {"file": "findagrave-memorial-143847338.html", "left": null, "new": true, "steps": {"len": {">=": 1}}}
+      ]
+     },
+     "why": "attached now: the object the failed try wrote into the archive is the same bytes under the same hash, and the artifact row is written new"
+    }
+   ]
+  }
+ ]
+}

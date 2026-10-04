@@ -62,14 +62,16 @@ def reopens(text):
     return re.findall(r"tools/conclude\.py reopen (\S+) ", text)
 
 def a_turn(w, x):
-    """tools/turn.py start on a person, run_step.run standing in for the network as the data says, the geocoder's answers the
+    """tools/turn.py start on a person, run_step.run standing in for the network as the data says, or with `fetch` the real
+    runner and connectors with only the network call replaced (answered_by), the geocoder's answers the
     fixtures under `geocoder` plant (a query they lack is a request, which fails the scenario unless the step says `geocoder_silent`) and Wikidata's items those under `wikidata`; the steps it ran and the state it
     kept beside the database."""
     import run_step, turn
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
     plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
-    with patched(run_step, "run", fake_run), silence(x), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
+    network = patched(run_step, "fetch", answered_by(x["fetch"])) if x.get("fetch") else patched(run_step, "run", fake_run)
+    with network, silence(x), contextlib.redirect_stdout(buf): turn.start(w.cx, w.tid, w.slug, w.person(x["person"]), BY, w.db)
     st = turn.load_state(w.db)
     return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": st, "printed": buf.getvalue(), "reopens": reopens(buf.getvalue())}
 
@@ -128,12 +130,16 @@ def answers_request(loc, url, data):
     if data: return urllib.parse.urlsplit(url).netloc == urllib.parse.urlsplit(base).netloc and all(str(data.get(k, "")) == v for k, v in urllib.parse.parse_qsl(frag) if k in data)
     return url == base
 
+CHALLENGE = b"<!DOCTYPE html><html><head><title>Just a moment...</title></head><body>the harness's stand-in for a holder's challenge page</body></html>"
+
 def answered_by(fetch):
     """The network call a run is played back with, from the data: `answers`, one for each request, in the order the requests
-    come. An answer is for the first request carrying its `url_has` that no earlier request has taken: a saved real response
-    (`fixture` under tests/fixtures/, its `content_type`), which answers only the request it was asked at (asked_at), or an
-    `error` the source's connection raises, the harness's stand-in for a holder that did not answer (a timeout, a refusal, a
-    challenge). A request the data does not answer, or answers with another request's response, fails the run; no `fetch`
+    come. An answer is for the first request carrying its `url_has` that no earlier request has taken (with `every`, for every
+    such request): a saved real response (`fixture` under tests/fixtures/, its `content_type`), which answers only the request
+    it was asked at (asked_at); an `error` the source's connection raises, the harness's stand-in for a holder that did not
+    answer (a timeout, a refusal); or `challenge`, the harness's stand-in for a challenge or maintenance page a holder serves
+    with status 200 in place of its answer (CHALLENGE, text/html), which carries no record of anyone (docs/DATA-ARCHITECTURE.md
+    §7 decision 8). A request the data does not answer, or answers with another request's response, fails the run; no `fetch`
     means no network at all."""
     import urllib.error
     used = set()
@@ -141,8 +147,9 @@ def answered_by(fetch):
     def fake_fetch(url, kind, c, data=None):
         for i, ans in enumerate((fetch or {}).get("answers", [])):
             if i in used or ans["url_has"] not in url: continue
-            used.add(i)
+            if not ans.get("every"): used.add(i)
             if ans.get("error"): raise urllib.error.URLError(ans["error"])
+            if ans.get("challenge"): return CHALLENGE, meta(url, "text/html; charset=utf-8")
             loc = asked_at(ans["fixture"])
             if loc and not answers_request(loc, url, data): raise AssertionError(f"{ans['fixture']} is the answer to {loc}, not to {url}{' ' + json.dumps(data) if data else ''}")
             with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))

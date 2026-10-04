@@ -18,7 +18,7 @@ every process a check starts refuses a connection to any host but this machine, 
 (tests/checks/offline.py), so a holder's answer is data planted before the run. Nothing in the harness names a person: another family's
 export, pages and sidecars run through it unchanged.
 """
-import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys
+import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys, tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
@@ -145,7 +145,7 @@ def connectors_offline():
     lent = next((x for x in ia_books.hits(rql[0]["url"], saved(LT["fixture"]), rql[0]) if x["notes"]["item"] == LT["item"]), None)
     say(lent and ia.follow(lent["fetch"][0], saved(LT["metadata"]), lent) == [] and lent["notes"].get("restricted") is True, "a book the Archive lends stops at its metadata, marked restricted")
     from run_step import outcome_of
-    say(outcome_of([{"restricted": True}], [], ["a"]) == "none" and outcome_of([{"restricted": True}, {"restricted": False}], [], ["a"]) == "found" and outcome_of([], ["x"], []) == "error" and outcome_of([], [], ["a"]) == "none",
+    say(outcome_of([{"restricted": True}], [], True) == "none" and outcome_of([{"restricted": True}, {"restricted": False}], [], True) == "found" and outcome_of([], ["x"], False) == "error" and outcome_of([], [], True) == "none",
         "a run whose every hit is a lent book is none; one read is found; no answer at all is error")
     from connectors import loc_gov, ia_newspapers
     O = C["obituary"]
@@ -399,15 +399,33 @@ def _refused(cx, sql, args, says, keep=False):
     if not keep: cx.rollback()
     return out
 
-def default_catalog():
-    """A tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT (treelib.DB), never the owner's: on a fresh
-    scratch catalog holding one tree, tools/tree.py list run without --db names that tree."""
-    d, db = scratch(False); bad = []
+def data_root():
+    """The data root's paths, on fresh scratch catalogs: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT
+    (treelib.DB), never the owner's; a --db outside DATA_ROOT is refused, by a tool that opens a catalog and by tools/initdb.py
+    that makes one, so no scratch catalog archives into another data root; and collect run with no --folder takes the pages
+    saved in <DATA_ROOT>/downloads/, never the download folder of the user's home (a home of the check's own, its Downloads named
+    as the user's download directory, holding a real saved page of its own)."""
+    d, db = scratch(False); other = tempfile.mkdtemp(prefix="tree-check-other-"); bad = []
+    env = {**os.environ, "DATA_ROOT": d}
     try:
-        subprocess.run([sys.executable, tool("tree.py"), "--db", db, "create", "scratch-default", "--name", "the scratch catalog"], capture_output=True, text=True, check=True)
-        r = subprocess.run([sys.executable, tool("tree.py"), "list"], capture_output=True, text=True, env={**os.environ, "DATA_ROOT": d})
+        subprocess.run([sys.executable, tool("tree.py"), "--db", db, "create", "scratch-default", "--name", "the scratch catalog"], capture_output=True, text=True, check=True, env=env)
+        r = subprocess.run([sys.executable, tool("tree.py"), "list"], capture_output=True, text=True, env=env)
         if r.returncode or "scratch-default" not in r.stdout: bad.append(f"tools/tree.py list without --db did not open {db}: {r.stdout.strip() or r.stderr.strip()}")
-    finally: shutil.rmtree(d, ignore_errors=True)
+        odb = os.path.join(other, "catalog", "tree.db")
+        r = subprocess.run([sys.executable, tool("initdb.py"), "--db", odb], capture_output=True, text=True, env=env)
+        if not r.returncode or "outside the data root" not in r.stderr or os.path.exists(odb): bad.append(f"tools/initdb.py made a catalog outside the data root: {r.stdout.strip() or r.stderr.strip()}")
+        shutil.copy(db, os.path.join(other, "tree.db"))
+        r = subprocess.run([sys.executable, tool("tree.py"), "--db", os.path.join(other, "tree.db"), "list"], capture_output=True, text=True, env=env)
+        if not r.returncode or "outside the data root" not in r.stderr: bad.append(f"tools/tree.py opened a --db outside the data root: {r.stdout.strip() or r.stderr.strip()}")
+        page = "findagrave-memorial-143847338.html"; home = os.path.join(other, "home")
+        os.makedirs(os.path.join(home, ".config")); os.makedirs(os.path.join(home, "Downloads")); os.makedirs(os.path.join(d, "downloads"), exist_ok=True)
+        with open(os.path.join(home, ".config", "user-dirs.dirs"), "w", encoding="utf-8") as fh: fh.write('XDG_DOWNLOAD_DIR="$HOME/Downloads"\n')
+        for where in (os.path.join(home, "Downloads"), os.path.join(d, "downloads")): shutil.copy(os.path.join(FIXTURES, page), where)
+        r = subprocess.run([sys.executable, tool("fetches.py"), "collect", "--tree", "scratch-default", "--by", BY], capture_output=True, text=True, env={**env, "HOME": home, "XDG_CONFIG_HOME": os.path.join(home, ".config")})
+        if r.returncode: bad.append(f"tools/fetches.py collect failed: {r.stdout.strip()} {r.stderr.strip()}")
+        if os.path.exists(os.path.join(d, "downloads", page)) or not os.path.exists(os.path.join(d, "inbox", page)): bad.append(f"collect did not take the page saved in {d}/downloads into the inbox: {r.stdout.strip()}")
+        if not os.path.exists(os.path.join(home, "Downloads", page)): bad.append("collect took a page from the home's own download folder")
+    finally: shutil.rmtree(d, ignore_errors=True); shutil.rmtree(other, ignore_errors=True)
     return bad
 
 def compiles():
@@ -445,8 +463,8 @@ def every_check(a):
     print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
     bad_ev = insert_only(); bad += bool(bad_ev)
     print("ok   the evidence, the research log and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on extraction and search_log is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
-    bad_db = default_catalog(); bad += bool(bad_db)
-    print("ok   a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT" if not bad_db else "FAIL default catalog: " + "; ".join(bad_db))
+    bad_db = data_root(); bad += bool(bad_db)
+    print("ok   the data root: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT, a --db outside it is refused, and collect takes saved pages from <DATA_ROOT>/downloads/, never the home's download folder" if not bad_db else "FAIL data root: " + "; ".join(bad_db))
     bad += parsers.check(a.keep, a.show)
     bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
     bad += loop.check(a.keep, a.show)

@@ -76,7 +76,7 @@ around it.
 6. **Plain over clever.** No bells and whistles. If a feature is not in the
    design docs, ask before building it.
 7. **Data never enters git.** `archive/`, `catalog/*.db`, `derivatives/`,
-   `inbox/`, `trees/*/imports`, `trees/*/exports` are ignored, and the commit hook refuses them:
+   `inbox/`, `downloads/`, `trees/*/imports`, `trees/*/exports` are ignored, and the commit hook refuses them:
    install it once with `git config core.hooksPath tools/hooks`. Any archived
    document the owner chooses may sit in `tests/` as a fixture: these are the
    owner's family documents in the owner's repository, and none is excluded.
@@ -108,7 +108,7 @@ python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "â€
 python3 tools/proof.py "<person>"           # each key fact against the proof standard: evidence and its classes, research, conflicts
 python3 tools/tree.py overview              # the tree as confirmed, from the home person upward, its edge, and where it comes from
 python3 app/person/server.py --by user:<you>   # the person screen on http://127.0.0.1:8765/
-DATA_ROOT=<scratch> python3 tools/<tool>.py   # a scratch run, for testing code: the catalog, archive and inbox under <scratch>
+DATA_ROOT=<scratch> python3 tools/<tool>.py   # a scratch run, for testing code: the catalog, archive, inbox and downloads under <scratch>; a --db outside DATA_ROOT is refused
 ```
 
 ## Working a person

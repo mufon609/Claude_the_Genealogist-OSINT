@@ -27,7 +27,7 @@ artifact_copy for the objects in it.
 """
 import argparse, datetime as dt, hashlib, json, os, random, shutil, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, archive_dir, now, object_path, ulid
+from treelib import DB, archive_dir, in_data_root, now, object_path, ulid
 
 def sha256_of(path):
     h = hashlib.sha256()
@@ -139,7 +139,7 @@ def main():
     c = sub.add_parser("check", help="hash a bag's payload against its manifest"); c.add_argument("bag"); c.add_argument("--target")
     for x in (v, b, c): x.add_argument("--db", default=DB); x.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
     a = ap.parse_args()
-    cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+    cx = sqlite3.connect(in_data_root(a.db)); cx.execute("PRAGMA foreign_keys=ON")
     if a.cmd == "verify":
         n, bad = verify(cx, a.by, a.sample); cx.commit()
         for sha, why in bad: print(f"{why}: {sha}")

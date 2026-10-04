@@ -260,7 +260,7 @@ listing's row as `{record, number}`, `same` false for two records, `note`; the `
 `save` (a `fixture` written under the fetch list's own name for `holder` and `person` (the entry whose link has `url_has`, when the person has several there), into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's; `key` writes the
 key under the page's own saved-from line as `tools/save_page.js` does when the list's call gave it one: `true` for the entry's own steps, or a
-list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it, its `sha` the record when one page came in), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
+list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it, its `sha` the record when one page came in), `attach_inbox` (`tools/attach_inbox.py` over every file in the inbox, one file per transaction: its `results` and `lines`), `block_filing` (the place a `file`'s original is filed under on `date` already taken, so its attach fails after writing its rows; `clear` takes it away), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
 carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
 owner's own export that the cut leaves out, because another scenario reads its people without it, written as the
 import writes it: `xref` the family's own id in the export, `partners` and `children`, each membership the file's
@@ -313,14 +313,15 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 `{"is": null}`, `{"any": true}`.
 
 The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
-person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`; the geocoder's real answers
+person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`, or with `fetch` the real runner
+and connectors answered as `run` is; the geocoder's real answers
 under `geocoder` and Wikidata's items under `wikidata` planted for the turn's resolver, as `resolve` plants them), `turns` (`tools/turns.py` the same way: `turns` for --turns,
 `resume` with `inbox` for --resume; its summary, its state as the run ended, what is saved, a refusal's text), `resume` (pages
 into the inbox and the answers planted as a turn's, then `--resume`; its report, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `run` (one step through `tools/run_step.py` and its real connectors, only the network call
-replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error}]}`, each answer for the first request
-carrying its `url_has` that no earlier request took: a saved real response, refused for any request but the one its manifest or
+replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error | challenge}]}`, each answer for the first request
+carrying its `url_has` that no earlier request took (with `every`, for every such request): a saved real response, refused for any request but the one its manifest or
 sidecar says it was asked at, or the harness's stand-in for a holder that did not
-answer; a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
+answer (`error`) or served a challenge page in place of its answer (`challenge`); a request nothing answers fails the run; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
 step's id at every connector; the result's `records` are the sha256 of every record the runner archived and read), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (`run_step.run_connector` with the real `connector` named, answered like `run`: the
 place names the step carries tried one at a time; the answers are taken in the order the requests come, one for each request the
@@ -371,6 +372,9 @@ A holder that does not answer is simulated, a control signal and no record:
   and `100`; the census site's search in Nassau County in `94`'s first run, so that its second and third names are tried and the
   first and third, whose request it was, are logged unanswered;
   WikiTree in `22`.
+- `turn` answers carrying `challenge`: the connection answers with status 200 and `loop.py`'s `CHALLENGE`, a few bytes of HTML
+  titled "Just a moment..." saying it is the harness's stand-in for a holder's challenge page, served in place of the answer a JSON
+  connector reads: every request of loop `106`'s turns.
 - The geocoder in a turn (`turn`, `turns`, `resume`) whose step says `geocoder_silent`: `loop.py` answers it from the resolver's cache
   alone, and a query the cache lacks fails as an endpoint that does not answer, so no request is made: loop `12` (its second step,
   the geocoder silent on purpose), `10` (its resume), `13` (each resume) and `15` (its first, third and fourth turns), whose turns read
@@ -402,6 +406,8 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   list's name or the one given; with `key`, the save script's key comment written under the page's own saved-from line, as
   `tools/save_page.js` writes it (loop `41`, `42`, `43`). `tools/check.py`'s test of that script writes the script's own head over
   the Lena Howard Bell search page's document.
+- `block_filing`: the place a saved page's original is filed under taken by a folder, so the attach is refused after its rows are
+  written, the stand-in for a file whose transaction fails (loop `107`); no page or record is touched.
 - Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan
   steps (`step`, `step_query`), events (`event`), a research question's shape (`question`), cards and links an older matcher
   left (`legacy_card`, `older_matcher`, `persona_link`), a reading an older reader left (`older_reading`, its rows copied from

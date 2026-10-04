@@ -7,6 +7,8 @@ catalog/*.turn-state.json
 derivatives/
 inbox/*
 !inbox/.gitkeep
+downloads/*
+!downloads/.gitkeep
 trees/*/imports/
 trees/*/exports/
 __pycache__/

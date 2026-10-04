@@ -319,8 +319,10 @@ those is not saved, and the line says why: `BLOCKED signin`, `BLOCKED
 challenge`, `EMPTY no-script fallback` (nothing rendered), or `UNKNOWN <title>`
 (true as the script's second argument saves it anyway). That line is the check:
 look at the page only when it says something else than ok, and never run a fetch
-loop in the page. Move the file from the download folder to `inbox/` and log
-the step as found with it. If the browser is set to ask where to save each
+loop in the page. The browser saves into the data root's own `downloads/`
+folder (the repository's `downloads/` for the live tree): the owner sets it as
+the browser's download location once, in a browser profile kept for tree work
+if they prefer, and no tool reads the owner's own download folder. If the browser is set to ask where to save each
 download, turn that off first or answer the dialog by hand; a dialog left open
 blocks every later browser call. Chrome lets a page start one download without
 a hand on it: a second page saved in the same tab lands nowhere, so each page
@@ -359,8 +361,8 @@ and is not one. A step at a browse-only holder (`catalog.browse_only`:
 a FamilySearch images-only collection, browsed by hand, film by film, with no
 search or record page for a browser to save) stays on the plan, fetchable,
 with the reason in its rationale, but never reaches this list.
-`tools/fetches.py collect` then moves every saved page from the download
-folder (or `--folder`) into `inbox/` and attaches each by its own identity,
+`tools/fetches.py collect` then moves every saved page from `downloads/`
+(or `--folder`) into `inbox/` and attaches each by its own identity,
 read from the saved-from line the browser wrote (`tools/save_page.js`) when
 that line is a FamilySearch record or search URL, a Find a Grave memorial or
 search, or an AAD record or search — whatever the file is named, since Chrome
@@ -429,7 +431,13 @@ identity (a record page a listing pointed at reaches the lead its row made and
 the steps the listing was logged on, for the person its row fits), marks the step done when
 the page is the record it cites, and runs the extractor and matcher once; the screen's own attach
 does the same for the step the person chose plus every other step the record
-fulfils. A file whose identity matches no step stays in the inbox.
+fulfils. A file whose identity matches no step stays in the inbox. Collect
+and the inbox's attach take one file per transaction: a file whose attach fails
+is rolled back alone, named with the failure, and left where it was (a page
+taken by its name in `downloads/`, any other in `inbox/`) for the next try,
+the files before and after it attached. An object the failed try already
+wrote into the archive is harmless: the archive is content-addressed, so the
+next try writes the same bytes under the same hash, with its artifact row.
 
 **A link on the owner's word.** When a record stops short of naming both
 parties in full (a marriage index that gives the spouse's surname by four
@@ -1340,8 +1348,10 @@ creating the people a record names; then this person's own pages at holders
 without a connector (`tools/fetches.py next`'s own pages, narrowed to their
 unrun steps) are printed with the file name to save under, and the turn pauses for the
 owner's browser session, its state kept beside the catalog.
-`tools/turn.py --resume` picks the paused turn up: `tools/fetches.py collect`,
-`tools/attach_inbox.py` on whatever collect's naming left behind, the place
+`tools/turn.py --resume` picks the paused turn up: `tools/fetches.py collect`
+on `downloads/`, `tools/attach_inbox.py` on whatever else the inbox holds, one
+file per transaction (a file that fails stays where it was and is named in the
+report, §4), the place
 resolver on the place strings the turn's new records carry and those behind the
 person's own events (a string it accepts places its events before the rule
 compares them; one it cannot settle is a card on the fact row),
@@ -1373,7 +1383,9 @@ person's held count before and after, the passed-over, the inbox files already
 named) lives beside the
 turn's state file on the same pattern; it writes nothing of its own to the
 catalog. A connector's challenge is an error run, the source did not answer,
-and the turn goes on; a challenge in the browser is the session's pause,
+and the turn goes on: a challenge or maintenance page served in place of the
+answer, which no reader of the connector parses, is archived as it came and
+logged error with the reader's exception in the note, the step left runnable; a challenge in the browser is the session's pause,
 outside the runner. Its summary says, in words, the turns run, the people
 this run passed over and why, and what is left for the owner as counts by kind
 (documents to decide, conflicts open, key facts undecided, family links the file

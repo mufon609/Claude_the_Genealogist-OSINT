@@ -565,6 +565,27 @@ def attach_held(cx, tree_id, slug, name, about_id, by, note=None):
     shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
     return sha, new
 
+def inbox_files():
+    """The files waiting in the inbox, by name."""
+    return sorted(f for f in os.listdir(inbox_dir()) if os.path.isfile(os.path.join(inbox_dir(), f)) and not f.startswith("."))
+
+def failed(name, e, folder=None):
+    """The result of a file whose transaction failed: left where it was (the inbox, or the folder named), the exception's type and
+    message plain."""
+    return {"file": os.path.basename(name), "identity": None, "steps": [], "left": f"failed: {type(e).__name__}: {e}", **({"folder": folder} if folder else {})}
+
+def attach_each(cx, tree_id, slug, by, names, about=None):
+    """attach_inbox on the files named, one file per transaction: a file whose attach fails is rolled back alone and stays in
+    the inbox untouched for the next try, named with the failure, and the files before and after it stay attached. An object
+    the failed try already wrote into the archive is harmless: the archive is content-addressed, and the next try writes the
+    same bytes under the same hash with its artifact row."""
+    results = []
+    for name in names:
+        cx.execute("BEGIN")
+        try: results += attach_inbox(cx, tree_id, slug, by, [name], about=about); cx.commit()
+        except Exception as e: cx.rollback(); results.append(failed(name, e))
+    return results
+
 def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
     """Every file in the inbox (or the named ones): identity from the file, the steps it fulfils, attach. A file with no
     identity or no step stays in the inbox, unless the owner says whom a record is about (about: person id): then a record
@@ -572,7 +593,7 @@ def attach_inbox(cx, tree_id, slug, by, names=None, about=None):
     run (on_word), and put before the matcher for them; and a file that is no web page and carries no record identity (a
     photograph or scan of something the family holds) is a family-held original (attach_held). Returns one result per
     file."""
-    names = names or sorted(f for f in os.listdir(inbox_dir()) if os.path.isfile(os.path.join(inbox_dir(), f)) and not f.startswith("."))
+    names = names or inbox_files()
     results = []
     for name in names:
         path = os.path.join(inbox_dir(), os.path.basename(name)); r = {"file": os.path.basename(name), "identity": None, "steps": [], "left": None}
@@ -618,7 +639,7 @@ def line(r):
     """One line per file, as the inbox tool prints it."""
     if r.get("repeat"): return f"{r['file']}: {r['identity']}; removed as a repeat: {r['repeat']}"
     if r.get("held"): return f"{r['file']}: a family-held original, archived {r['sha256'][:12]} under M05 on the owner's word{'' if r['new'] else ' (already held)'}; read it on the person's screen, one persona at a time"
-    if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in the inbox: {r['left']}{key_note(r)}"
+    if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in {r.get('folder') or 'the inbox'}: {r['left']}{key_note(r)}"
     who = "; ".join(f"{n} ({rk.split(':')[0]}: {why or 'the step cites it'})" for _, n, rk, why in r["steps"])
     return (f"{r['file']}: {r['identity']}; {len(r['steps'])} step(s) fulfilled: {who}; artifact {r['sha256'][:12]}{'' if r['new'] else ' (already archived)'}; "
             f"{len(r['logs'])} run(s) logged{' as ' + r['outcome'] if r.get('outcome') in ('none', 'unread') else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else "") + key_note(r))

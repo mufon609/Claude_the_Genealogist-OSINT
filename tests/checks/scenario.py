@@ -293,6 +293,13 @@ def a_attach(w, x):
             "outcome": r.get("outcome"), "identity": r.get("identity"), "extraction": r.get("extraction"), "unparsed": r.get("unparsed"), "results": res,
             "taken": [(n, why) for _, n, why in (r.get("accepted_by_rule") or [])], "step_people": [n for _, n, _, _ in (r.get("steps") or [])]}
 
+def a_attach_inbox(w, x):
+    """tools/attach_inbox.py over every file in the inbox, one file per transaction (attach.attach_each, as a turn's tail takes
+    what collect left): each file's result and its line as the tool prints it."""
+    from attach import attach_each, inbox_files, line
+    res = attach_each(w.cx, w.tid, w.slug, BY, inbox_files())
+    return {"results": res, "lines": [line(r) for r in res]}
+
 def a_archive(w, x):
     """A page archived as the runner or the owner would archive it, under a source and collection, and read; matched for
     the people named when asked."""
@@ -493,6 +500,16 @@ def a_collect(w, x):
     names, res = collect(w.cx, w.tid, w.slug, BY, folder=w.value(x["folder"]))
     return {"names": names, "results": res, "files": {r["file"]: r for r in res}, "lines": [line(r) for r in res],   # each result as the tool prints it
             "sha": res[0].get("sha256") if len(res) == 1 else None}                                        # the record, when one page came in
+
+def a_block_filing(w, x):
+    """The harness's stand-in for a file whose attach fails after it has written its rows: the place tools/attach.py files the
+    original under (trees/<slug>/imports/records/<date>_<file>) already taken by a folder holding an entry of the file's own
+    name, so the move that ends the attach is refused; `clear` takes the folder away again. A filing refused, not a holder's
+    answer: no page or record is invented."""
+    path = os.path.join(w.treelib.imports_dir(w.slug), "records", f"{x['date']}_{x['file']}")
+    if x.get("clear"): shutil.rmtree(path, ignore_errors=True); return {"path": path, "blocked": False}
+    os.makedirs(os.path.join(path, x["file"]), exist_ok=True)
+    return {"path": path, "blocked": True}
 
 def a_log(w, x):
     """A run written by hand, as a connector or a saved page would leave it: query true takes the step's own current
@@ -728,7 +745,7 @@ def a_question(w, x):
 
 ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "proof": a_proof, "dismiss": a_dismiss, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
-           "person_view": a_person_view, "save": a_save, "collect": a_collect,
+           "person_view": a_person_view, "save": a_save, "collect": a_collect, "block_filing": a_block_filing, "attach_inbox": a_attach_inbox,
            "question": a_question,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed, "copies": a_copies}
 
