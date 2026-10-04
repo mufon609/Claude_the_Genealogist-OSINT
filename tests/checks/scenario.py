@@ -390,11 +390,13 @@ def a_fact(w, x):
 
 def a_assertion(w, x):
     """One statement of one record decided on its own, through tools/conclude.py assertion: the assertion found by the
-    record, the person and the event type (or the subject kind)."""
+    record, the person and the event type (or the subject kind); a membership's first statement, the record's own when a
+    record is given."""
     pid = w.person(x["person"]); sha = w.sha(x["record"]) if x.get("record") else None
-    if x.get("membership"):                          # the file's own claim of a family link: the family found through one of its partners
+    if x.get("membership"):                          # a family link: the family found through one of its partners
         m = x["membership"]; fid = w.cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", (w.person(m["family_of"]),)).fetchone()[0]
-        row = w.cx.execute("SELECT id FROM assertion WHERE tree_id=? AND subject_kind='family_member' AND subject_id=? ORDER BY asserted_at", (w.tid, w.treelib.dumps([fid, pid, m["role"]]))).fetchone()
+        row = w.cx.execute("SELECT id FROM assertion WHERE tree_id=? AND subject_kind='family_member' AND subject_id=?" + (" AND artifact_sha256=?" if sha else "") + " ORDER BY asserted_at",
+                           (w.tid, w.treelib.dumps([fid, pid, m["role"]]), *([sha] if sha else []))).fetchone()
     elif x.get("event_type"):
         row = w.cx.execute("""SELECT a.id FROM assertion a JOIN event e ON e.id=a.subject_id JOIN event_participant ep ON ep.event_id=e.id
                               WHERE a.tree_id=? AND a.subject_kind='event' AND a.artifact_sha256=? AND e.event_type=? AND ep.person_id=? AND a.status=? ORDER BY a.asserted_at""", (w.tid, sha, x["event_type"], pid, x.get("was", "accepted"))).fetchone()

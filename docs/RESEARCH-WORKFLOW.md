@@ -745,7 +745,8 @@ closes with the note `superseded`, as a re-read closes the cards of the reading
 it supersedes, and its record's current reading is matched again: the matcher
 proposes the persona afresh as it stands and the rule takes what it takes, so a
 person the rule created and took back comes back as a card for that person,
-never a second one, and a persona that is a hint now leaves the cards and stays
+never a second one, judged by the creation's own terms (the standing rule,
+below), and a persona that is a hint now leaves the cards and stays
 a hint on the page. A withdrawn decision closed on a superseded reading leaves
 what the withdrawal took back undecided (its statements and its name alias):
 closing a card judges nothing it stated, so a family membership resting on it
@@ -1044,7 +1045,13 @@ whose surname agrees, and is placed as a child of those parents with an
 undecided assertion. A persona a trusted record (T1–T2, or an obituary once
 read) names in a relationship it states to a person accepted on it, who fits
 nobody in the tree after the fitting check, is created by the rule with the
-record's facts and the family link accepted, and enters the queue. The fitting
+record's facts and the family link accepted, and enters the queue. A creation
+written on an earlier reading of the record is judged on the same entry of the
+reading that superseded it by these same terms, the fitting check not counting
+the person it made: while that reading meets them the creation stands on the
+entry and a card putting the entry to that person is taken on them where nothing
+it states disagrees against an accepted value, and when it no longer meets them
+the creation is withdrawn. The fitting
 check, run before any creation, looks across the whole tree: a person whose
 surname or birth surname agrees, as written or as a spelling variant, and whose
 birth year lies within the matcher's window where both give one (a person
@@ -1118,7 +1125,12 @@ would no longer take, its assertions and the name alias it wrote back to
 undecided, recorded as the rule's (a statement a person has decided on its own
 since keeps the state they gave it), and the record is a card for the owner again
 with the reason; accepting that card makes everything the decision had written
-stand again. It then matches again every card the evidence has passed by
+stand again. A withdrawal also takes back the family links its decision was one
+of the two acceptances for (a link another decision on the record wrote between
+the two people, with the family facts written with a spouse link), unless another
+pair accepted on the record still states it or a person decided its status on
+their own, and a decision examined after it in the same pass stands on none of
+them. It then matches again every card the evidence has passed by
 (above: one an older matcher wrote, one left on a superseded reading, a
 decision it has just withdrawn there included, and one the matcher would no
 longer put to that person), and examines every card still undecided

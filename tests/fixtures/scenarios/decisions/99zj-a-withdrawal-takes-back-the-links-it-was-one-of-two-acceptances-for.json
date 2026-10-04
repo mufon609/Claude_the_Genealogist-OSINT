@@ -1,0 +1,256 @@
+{
+ "title": "a withdrawal takes back the links it was one of two acceptances for",
+ "line": "a family link a record states stands on both people it relates being accepted on that record, and the second acceptance writes it: when the rule withdraws its decision on the husband, the spouse link his wife's acceptance wrote from his death certificate goes back to undecided with it, save the statement the owner decided on its own, in the dry run's words as in the run itself; accepting his card again writes it again",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's word on his name: the rule counts his decision on its points, not through a claimed relationship",
+   "fact": {
+    "person": "I332737204849",
+    "field": "name",
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "FamilySearch's page of his death certificate, matched for the four people it names: him, his wife and his parents",
+   "archive": {
+    "fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html",
+    "source": "D03",
+    "collection": "Kentucky, Deaths, 1911-1967",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849",
+     "I332737204852",
+     "I332737209655",
+     "I332737209721"
+    ]
+   },
+   "as": "page"
+  },
+  {
+   "say": "the rule took him on the ground that stood then: the first of the two acceptances, which writes no link yet",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "family_member",
+      "is": []
+     },
+     "why": "nobody else is accepted on the certificate yet"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts his wife on it: the second acceptance writes the spouse link the certificate states, both partners' statements under her decision",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "person_decided": false
+       }
+      ]
+     }
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204852",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "person_decided": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner decides her own statement of the marriage on its own",
+   "assertion": {
+    "person": "I332737204852",
+    "record": "page",
+    "membership": {
+     "family_of": "I332737204849",
+     "role": "partner"
+    },
+    "verdict": "accept",
+    "note": "harness: the owner's own decision on the statement"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204852",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "person_decided": true
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "a dry run of reconsider: the rule would no longer take him, the certificate's own link being no ground for itself, and it names the link that goes with him",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": false,
+        "person": "John Y Davidson",
+        "why": {
+         "has": "with it the family links it was one of the two acceptances for: John Y Davidson's spouse link (Wife on the record)",
+         "lacks": "Lena Howard Bell's spouse link"
+        }
+       }
+      },
+      "wrote": 0
+     },
+     "why": "his wife's acceptance wrote the link, his own was the other half of it; her statement is the owner's own decision"
+    }
+   ]
+  },
+  {
+   "say": "reconsider withdraws his decision, and the link that stood on it",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "page",
+      "person": "I332737204849",
+      "status": "undecided"
+     }
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "undecided",
+        "by": {
+         "starts": "rule:agrees-with-accepted for "
+        },
+        "person_decided": false
+       }
+      ]
+     },
+     "why": "his statement of the marriage, written by his wife's acceptance, goes back to undecided with the decision it stood on"
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204852",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "a statement whose status a person decided on its own keeps it"
+    },
+    {
+     "card": {
+      "record": "page",
+      "person": "I332737204852",
+      "status": "accepted",
+      "decided_by": "agent:check"
+     },
+     "why": "her decision, the owner's, stands"
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204852",
+      "kind": "person",
+      "is": {
+       "every": {
+        "status": "accepted"
+       }
+      }
+     },
+     "why": "only the link rested on his acceptance: what her decision wrote of her stands"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts his card: the link is written again",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "by": "agent:check",
+        "person_decided": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

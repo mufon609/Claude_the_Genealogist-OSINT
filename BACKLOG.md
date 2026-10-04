@@ -60,35 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A1. A re-read keeps the person its record created, and a withdrawal takes the links it wrote
-
-Two defects stand between the claim fix and its live run; the live reconsider
-waits on this entry and applies both. (1) `docs/RESEARCH-WORKFLOW.md` §5–7
-already says a decision written on an earlier reading of a page is judged on
-the persona of the same entry in the reading that superseded it. A creation
-(`conclude.rule_creates`) is not: when the record is read again its card
-closes as superseded, the current reading's persona is put to the person the
-creation made, and no route takes it, since the name rests on that record
-alone and the one link is the creation's own (scenario
-`99z-a-creation-taken-back-on-a-superseded-reading`). Judge the creation on
-the same entry of the current reading by the creation's own terms (a T1–T2
-record or a read obituary, a relationship the record states, never its
-indexer's, to a person accepted on it), the fitting check not counting the
-person that creation itself made; a creation whose terms the current reading
-no longer meets is withdrawn. Live, Daisy Bell Rothberg on her brother's
-obituary `243f18dc92f5`; Dennis Scannell on the 1917 Massachusetts death
-index `fceaa7dbde67`, whose relationship the dry run calls the indexer's, so
-say which his creation is. (2) A family link a record states is accepted
-when both people it relates are accepted on that record, and stays when one
-of the two decisions is withdrawn: Ollie Duke Davidson's link to his mother
-Lena Howard Bell, written from his Kentucky death record `c8e38d9e9f26`,
-stays accepted when his own decisions on that record are withdrawn, and his
-obituary decision is then kept on that link. A withdrawal takes back the
-links its decision was one of the two acceptances for, a link a person
-decided on its own (`person_decided`) excepted. Show each on a scenario, then
-dry-run reconsider on a scratch copy of the live catalog with the claim fix
-in place and report every change, with the route of each decision kept.
-
 ### A4. The rule counts what the docs list, and no more
 
 On a page anyone can edit the identity takes three of four things (§0, §5–7):
@@ -115,8 +86,6 @@ the reader marked its relations. A fact decision now records itself on every
 statement it acts on (`assertion.person_decided`), so a `fact … accept` made
 before this change may have marked such a statement as the owner's own accept:
 list those on the scratch copy for the owner rather than changing them.
-
-**Blocked by:** A1.
 
 ### A5. A bounded date is compared as its range
 
@@ -1061,6 +1030,20 @@ test "accepted or the file's claims" while they test every link not rejected.
 The rule's own reader is `conclude.claimed_or_accepted`. Call Catalog's label
 what it is, have each reader that means the file's word read the file's word,
 and make the docs say what each test reads.
+
+### C51. A refusal says the indexer's when the record also states the relationship
+
+When the claimed-relationship route finds nothing, `conclude.rule_points` says
+"the record's relationship to the person accepted on it is its indexer's, not
+the record's own statement" whenever any relationship the indexer computed ties
+the persona to a person accepted on the record, even beside one the record
+states. Dennis Scannell on the 1917 Massachusetts death index is the father of
+Annie Scannell Ahearn, which the index states; his couple with Mary Costello is
+FamilySearch's grouping, so the reason misnames why the route failed (the tree
+held his link to Annie only on that record's own statement). Say the indexer's
+only when no stated relationship to a person accepted on the record is there,
+and otherwise name the stated one and why it does not count, as the clause
+naming the link the tree holds on nothing that claims it already does.
 
 ## Externally blocked
 

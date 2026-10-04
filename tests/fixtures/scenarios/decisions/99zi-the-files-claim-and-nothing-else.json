@@ -1,6 +1,6 @@
 {
  "title": "the file's claim and nothing else",
- "line": "the claimed-relationship route takes a person the file itself claims, and nothing else stands in for the file: the parents an obituary names are taken on the file's own claim of them, while the sister it names, created by the rule and placed beside her brother from that very notice, is a card for the owner once her creation is taken back on a superseded reading, her one link the notice's own placement",
+ "line": "the claimed-relationship route takes a person the file itself claims, and nothing else stands in for the file: the parents an obituary names are taken on the file's own claim of them, while the sister it names, created by the rule and placed beside her brother from that very notice, is never taken on that placement once her creation is taken back on a superseded reading: the rule takes her card as the creation it stands for, on the creation's own terms",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -142,7 +142,7 @@
    }
   },
   {
-   "say": "reconsider closes the card on the superseded reading and puts the current reading's persona to the person the creation made: the placement from this very notice is no claim of the file's, so the card is the owner's",
+   "say": "reconsider closes the card on the superseded reading and puts the current reading's persona to the person the creation made: the placement from this very notice is no claim of the file's, and the rule takes the card as the creation it stands for",
    "reconsider": {},
    "expect": [
     {
@@ -161,25 +161,19 @@
       "extraction": "$again.extraction",
       "kind": "persona_match",
       "person_name": "Daisy Bell Rothberg",
-      "status": "undecided"
-     },
-     "why": "her name is no accepted fact, and her one link to the family is the sibling placement written from this notice: the record would be its own proof"
-    },
-    {
-     "rule": {
-      "record": "obit",
-      "persona": "Daisy Bell Rothberg",
-      "extraction": "$again.extraction",
-      "taken": false,
-      "why": {
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      },
+      "note": {
        "has": [
-        "the name is not accepted yet",
-        "sibling Mr Robert Edgar Davidson",
-        "neither accepted nor the file's own claim"
-       ]
+        "judged on this reading as that creation",
+        "Sister of Robert Edgar Davidson, accepted on this record"
+       ],
+       "lacks": "a claimed relationship"
       }
      },
-     "why": "the reason names the link and why it does not count"
+     "why": "her name is no accepted fact and her one link to the family is the sibling placement written from this notice, which claims nothing: the card is taken as the creation it stands for, never through that placement"
     },
     {
      "last": {
