@@ -1,0 +1,275 @@
+{
+ "title": "a value is accepted as far as an accepted record gives it",
+ "line": "John Y Davidson's own 1900 household, accepted by the owner, gives his birth as April 1875 where the file claims 24 April 1876: his birth's key fact is decided, but its date is the file's claim, and the proof, the foundation and the cards say so; his death certificate, its image read for his birth on the 24th of April 1875, earns the birth's point on the census though the event shows the file's day; his memorial, born on the file's day, agrees with that claim and disagrees with the accepted census, and is refused on it; once the owner keeps the file's day over the census, the census set aside refuses it no longer",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "John Y's own 1900 household page arrives: the head born April 1875 in Kentucky",
+   "attach": {
+    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+   },
+   "as": "c00"
+  },
+  {
+   "say": "the owner accepts it as his: the census's April 1875 is accepted on his birth, which keeps the file's 24 April 1876",
+   "decide": {
+    "card": {
+     "record": "c00",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737204849",
+      "birth": "accepted"
+     },
+     "why": "a record stating his birth is accepted: the key fact is decided"
+    },
+    {
+     "foundation": {
+      "person": "I332737204849",
+      "field": "birth",
+      "basis": "accepted in part"
+     },
+     "why": "the search foundation reads the event's value per part: its place, Kentucky, is the census's; its day, the file's alone"
+    }
+   ]
+  },
+  {
+   "say": "his birth's written conclusion",
+   "proof": {
+    "person": "I332737204849",
+    "fact": "birth"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "basis": "accepted in part",
+        "claimed": [
+         {
+          "starts": "the date 24 April 1876 a claim, resting on the file",
+          "has": "an accepted record gives Apr 1875"
+         }
+        ],
+        "verdict": "an argument is still owed",
+        "why": {
+         "has": "the date 24 April 1876 rests on a claim"
+        }
+       }
+      }
+     },
+     "why": "April 1875 does not lie inside 24 April 1876: no part of the date the event shows is accepted, and the census's own month and year is named beside it"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "birth: 24 April 1876",
+        "accepted in part (",
+        "\n  the date 24 April 1876 a claim, resting on the file"
+       ]
+      }
+     },
+     "why": "the written form says the same in words, the claim on its own line under the value"
+    }
+   ]
+  },
+  {
+   "say": "his death certificate's image, archived under the file's citation",
+   "seed": {
+    "fixture": "familysearch-kentucky-death-records-1946-N983-M2R.jpg",
+    "source": "D03",
+    "collection": "Kentucky, U.S., Death Index, 1911-2000",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    }
+   },
+   "as": "image"
+  },
+  {
+   "say": "the model reads the deceased's name, birth and place of death from the image, typed by the harness from its own words: John Young Davidson, born April 24th, 1875, 71 years old in 1946, died at Franklin, Simpson County, state file 14205 (his day of death, which differs from the file's as his birth does, left unread: a persona differing from the tree on both its dates is a hint, never a card)",
+   "transcribe": {
+    "record": "image",
+    "form": {
+     "name": "John Young Davidson",
+     "role": "deceased",
+     "sex": "M",
+     "age": "71",
+     "year": 1946,
+     "birth_date": "24 Apr 1875",
+     "death_place": "Franklin, Simpson, Ky.",
+     "number": "14205",
+     "bbox": [
+      290,
+      660,
+      1310,
+      32
+     ],
+     "image_is": "record"
+    },
+    "about": [
+     "I332737204849"
+    ],
+    "by": "llm:harness"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "image",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "starts": "agrees with the accepted name and birth date only",
+       "lacks": "disagrees: "
+      }
+     },
+     "why": "the certificate's 24 April 1875 agrees with the census's April 1875, an accepted statement nobody can edit at will, though the event shows the file's 24 April 1876: that is the birth's point, and the file's day it differs from vetoes nothing; one point is not two"
+    }
+   ]
+  },
+  {
+   "say": "his memorial, a page anyone can edit: born the 24th of April 1876, as the file claims",
+   "attach": {
+    "fixture": "findagrave-memorial-130509402.html"
+   },
+   "as": "jmem",
+   "expect": [
+    {
+     "compare": {
+      "card": {
+       "record": "jmem",
+       "person": "I332737204849"
+      },
+      "vetoes": {
+       "some": {
+        "starts": "birth date disagrees with an accepted statement (record 24 Apr 1876, accepted Apr 1875"
+       }
+      }
+     },
+     "why": "the page agrees with the day the event shows, which is the file's claim, and disagrees with the census's accepted April 1875: the veto reads the accepted statement, never the shown value"
+    },
+    {
+     "rule": {
+      "record": "jmem",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "starts": "disagrees: birth date disagrees with an accepted statement"
+      }
+     },
+     "why": "the census's birth is secondary information, so the page's day is no contradiction kept beside a primary record: it disagrees against an accepted value, and the card is the owner's"
+    }
+   ]
+  },
+  {
+   "say": "the person screen: his memorial's card names what of the tree's value is a claim",
+   "person_view": {
+    "person": "I332737204849"
+   },
+   "expect": [
+    {
+     "last": {
+      "documents": {
+       "some": {
+        "person": {
+         "claim": {
+          "birth": {
+           "date": "24 April 1876",
+           "basis": "accepted in part",
+           "claimed": [
+            "the date a claim"
+           ]
+          }
+         }
+        }
+       }
+      },
+      "foundation": {
+       "some": {
+        "field": "birth",
+        "claimed": {
+         "some": {
+          "starts": "the date 24 April 1876 a claim"
+         }
+        }
+       }
+      }
+     },
+     "why": "the card's side of the tree and the foundation the screen renders say the day is a claim"
+    }
+   ]
+  },
+  {
+   "say": "the owner keeps the file's day over the census: the census's April 1875 is set aside",
+   "resolve_conflict": {
+    "person": "I332737204849",
+    "detail_has": "birth date:",
+    "keep": {
+     "record": "import",
+     "event_type": "Birth"
+    },
+    "note": "harness: the family's own word on the day"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "jmem",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "starts": "a page anyone can edit identifies a person only when",
+       "has": "here birth date to the day"
+      }
+     },
+     "why": "a statement the event's value was decided against vetoes nothing: the page is judged on its points again, and two are not three"
+    }
+   ]
+  },
+  {
+   "say": "his birth's written conclusion once the census is set aside",
+   "proof": {
+    "person": "I332737204849",
+    "fact": "birth"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "basis": "accepted in part",
+        "claimed": [
+         {
+          "starts": "the date 24 April 1876 a claim, resting on the file",
+          "lacks": "Apr 1875"
+         }
+        ]
+       }
+      }
+     },
+     "why": "the owner kept the file's day: it is still the file's claim, no record accepted gives it, and the census set aside is named no longer beside it"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

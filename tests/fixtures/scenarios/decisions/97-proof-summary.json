@@ -411,15 +411,17 @@
           }
          }
         ],
+        "basis": "accepted in part",
         "verdict": "an argument is still owed",
         "why": [
          "it rests only on indirect evidence",
-         "it rests only on secondary information"
+         "it rests only on secondary information",
+         "the date 11 Jul 1909 rests on a claim"
         ]
        }
       }
      },
-     "why": "the census's age worked into a year is indirect evidence and secondary information: an argument is still owed"
+     "why": "the census's age worked into a year is indirect evidence and secondary information, and a calculated year accepts no part of the day the file gives: an argument is still owed, the day resting on the file's claim"
     },
     {
      "last": {

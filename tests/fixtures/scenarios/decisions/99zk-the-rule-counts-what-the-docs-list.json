@@ -1,6 +1,6 @@
 {
  "title": "the rule counts what the docs list",
- "line": "a page anyone can edit is taken on the name and three of birth day, death day, burial place and a stated parent or spouse, the relatives it lists making one of the four at most: John Y Davidson's memorial, born on the tree's day and listing his parents, his wife and his children, his son Robert Edgar among them, whose death and burial the file has only from a claim citing that very page, is refused on two; the parent or spouse is that relative in the tree only on the file's claim or an accepted statement, so Abram C Brant's wife, once the file's claim of his marriage is rejected and the marriage stands on the memorial's own undecided statement, earns nothing and reconsider would withdraw his memorial; a key fact accepted leaves FamilySearch's grouping of a couple undecided, and that grouping, accepted on its own by the owner, is no ground for the rule: on the 1900 household naming the wife the marriage counts once, on the file's claim; and a grouping accepted on its own makes no relative of the tree for a page anyone can edit",
+ "line": "a page anyone can edit is taken on the name and three of birth day, death day, burial place and a stated parent or spouse, the relatives it lists making one of the four at most: John Y Davidson's memorial, born on the tree's day and listing his parents, his wife and his children, his son Robert Edgar among them, whose death and burial the file has only from a claim citing that very page, is refused on two; the parent or spouse is that relative in the tree only on the file's claim or an accepted statement, so Abram C Brant's wife, once the file's claim of his marriage is rejected and the marriage stands on the memorial's own undecided statement, earns nothing and reconsider would withdraw his memorial; a key fact accepted leaves FamilySearch's grouping of a couple undecided, and that grouping, accepted on its own by the owner, is no ground for the rule: on the 1900 household naming the wife the marriage counts once, on the file's claim; that household, taken, gives his birth as April 1875, so his memorial's day, the file's claim of it alone, disagrees with an accepted value; and, the census's birth set aside, a grouping accepted on its own makes no relative of the tree for a page anyone can edit",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -245,6 +245,30 @@
     "field": "parents",
     "status": "rejected",
     "note": "harness: the file's parents set aside"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "jmem",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "starts": "disagrees: birth date disagrees with an accepted statement (record 24 Apr 1876, accepted Apr 1875",
+       "lacks": "Lena"
+      }
+     },
+     "why": "the census the rule took gives his birth as April 1875: the memorial's 24 April 1876 agrees only with the file's claim the event shows, and disagrees with an accepted value"
+    }
+   ]
+  },
+  {
+   "say": "the owner sets the census's own birth statement aside: nothing accepted gives his birth against the memorial's now",
+   "assertion": {
+    "person": "I332737204849",
+    "record": "c00",
+    "event_type": "Birth",
+    "verdict": "reject",
+    "note": "harness: the census's birth set aside"
    },
    "expect": [
     {

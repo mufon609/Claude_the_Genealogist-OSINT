@@ -434,6 +434,62 @@ def same_event(etype, kind, a, b):
     if kind == "attribute" and (a.get("value") or "") != (b.get("value") or ""): return False
     return etype in ONCE or dates_one(a, b)
 
+# A statement's marks in assertion.notes: a sibling placement, a value the page keeps beneath the one it shows, a link the
+# record's indexer computed. The record does not state what such a statement says: no acceptance of the record or of a key
+# fact accepts it, it gives nothing of an event's value, and it is never the rule's ground, whatever its status
+# (docs/RESEARCH-WORKFLOW.md, the proof standard).
+MARKS = ("placed", "alternate", "computed")
+DATE_LEVELS = ("whole", "month", "year")                 # how much of an event's own date a statement gives, finest first (date_given)
+
+def date_given(said, own):
+    """How much of an event's own date (own) a statement's date (said) gives, each {"start", "end", "qualifier"}
+    (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted): "whole" when said lies wholly inside own as own
+    states it (6 April 1880 inside 1880, 1880 inside about 1880 or inside a bound around it); else "month" or "year" when it
+    lies inside that part of a day or month own names, the rest beyond it (1880 against 6 April 1880: the year); else None:
+    a range around own (CAL 1879 against 6 April 1880) or another date. Each is read as date_span reads it."""
+    s = date_span(said.get("start"), said.get("end"), said.get("qualifier")) if said else None
+    o = (own.get("start") or own.get("end") or "") if own else ""
+    if not s or not o: return None
+    q = own.get("qualifier")
+    levels = [("whole", date_span(own.get("start"), own.get("end"), q))]
+    if q not in BOUNDS and q not in NEAR and not own.get("end"):
+        levels += [(level, date_span(o[:n])) for level, n in (("month", 7), ("year", 4)) if len(o) > n]
+    def inside(a, b):
+        return b is not None and (b[0] is None or (a[0] is not None and a[0] >= b[0])) and (b[1] is None or (a[1] is not None and a[1] <= b[1]))
+    return next((level for level, span in levels if inside(s, span)), None)
+
+def place_given(said, own, record_state=None, dated_names=None):
+    """How much of an event's own place (own: its resolved chain, or its words) a statement's place (said) gives
+    (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), as place_verdict reads the two: 0 when it gives it
+    whole (the place itself, a place inside it, a name it held, the same place at another granularity); n when it names it
+    only from its nth part below the country up, the n parts ahead of that beyond it (Kentucky against Logan County < Kentucky
+    < United States: 1); None when the two do not agree."""
+    v, note = place_verdict(said, own, record_state=record_state, dated_names=dated_names)
+    if v != "agrees": return None
+    if "the record gives only" not in (note or ""): return 0
+    below = [n for n, _ in _place_parts(own) if n != "usa"]
+    mine = [n for n, _ in _place_parts(said) if n != "usa"]
+    return next((i for i, n in enumerate(below) if mine and key(n) == key(mine[0])), None)
+
+def place_beyond(own, n):
+    """(the first n parts of a place, own, as written; its nth part, the finest of the rest), each in words: what of a place a
+    statement giving it from its nth part up leaves a claim, and the finest part it gives (place_given)."""
+    parts = [w for _, w in _place_parts(own)]
+    return (" < " if "<" in own else ", ").join(parts[:n]), parts[n]
+
+def set_aside(cx, eid, axis):
+    """The statements a standing resolution of this event's date or place set aside, the event's value decided against them
+    (tools/conclude.py resolve; a resolution taken back no longer stands, and a statement a later resolution kept is set aside
+    no longer): a set of assertion ids."""
+    out = set()
+    for d, in cx.execute("""SELECT detail_json FROM research_question WHERE kind='conflict' AND closed_reason='resolved' AND json_valid(detail_json)
+                            AND json_extract(detail_json,'$.resolution.event')=? AND json_extract(detail_json,'$.resolution.axis')=?
+                            ORDER BY json_extract(detail_json,'$.resolution.at')""", (eid, axis)).fetchall():
+        res = json.loads(d)["resolution"]
+        out |= {s["assertion"] for s in res.get("set_aside") or [] if s.get("assertion")}
+        out.discard((res.get("kept") or {}).get("assertion"))
+    return out
+
 LIMITS = None                                    # data/life-limits.csv, read once per process by life_limits
 
 def life_limits():
@@ -1265,6 +1321,121 @@ class Catalog:
             said = own if pf is None else {"start": start or end, "end": end, "text": text, "qualifier": qual}
             if date_verdict(said, own)[0] == "agrees": agree.append(label)
         return self._labels(agree or every) or "no statement"
+    MARK_WORDS = {"alternate": "a value a page keeps beneath the one it shows", "placed": "a sibling placement", "computed": "a grouping the indexer computed"}
+    def value_basis(self, eid):
+        """What of an event's own value is accepted (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), its
+        date and its place each: {shown, level, given, claim, on, beside}, or None for an axis the event shows nothing on.
+        level is how much of the value accepted statements give: for a date "whole", "month", "year" (date_given) or None, for
+        a place 0 for the whole, n for all but its first n parts (place_given) or None. An accepted statement gives its own
+        date and place, the place as its words are resolved when they are; one of another type than the event's, one carrying
+        a mark (MARKS) and one a standing resolution set aside (set_aside) give nothing; the owner's own word (a vouch, a link
+        or a divorce on their word: notes vouched) gives the whole. given is the accepted part in words (the date to its level,
+        the finest part of the place), claim the part beyond it (the whole value when nothing of it is accepted), on what the
+        claim rests on, in words (the statements not accepted that give more than is accepted: the file, a page anyone can
+        edit, a record not yet accepted, a value a page keeps beneath), beside each accepted statement that gives no part of
+        the value, its value and its record in words."""
+        etype, text, start, end, qual, place_id = self.q("""SELECT event_type, date_text, date_start, date_end, date_qualifier, place_id
+                                                            FROM event WHERE id=?""", eid)[0]
+        own_date = {"start": start or end, "end": end, "text": text, "qualifier": qual} if (start or end) else None
+        shown_place = self.place(eid, place_id)
+        own_place = shown_place["text"] if shown_place else None
+        dated = self.dated_names(place_id)
+        rows = self.q(f"""SELECT a.id, a.status, a.notes, a.artifact_sha256, pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end,
+                                 pf.date_qualifier, ps.raw, CASE WHEN ps.status='accepted' THEN ps.place_id END,
+                                 a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import), {tier_sql()}, c.name
+                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                          LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                          LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
+                          LEFT JOIN collection c ON c.id=ar.collection_id
+                          WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", eid)
+        statements = []
+        for aid, status, notes, sha, pf, ftype, dtext, dstart, dend, dqual, raw, ps_place, imported, tier, coll in rows:
+            try: n = json.loads(notes) if notes and notes.startswith("{") else {}
+            except ValueError: n = {}
+            n = n if isinstance(n, dict) else {}
+            mark = next((m for m in MARKS if n.get(m) is not None), None)
+            word = bool(n.get("vouched"))
+            if not word and (pf is None or ftype != etype): continue        # a statement of another type is no value of this event
+            if mark: kind = self.MARK_WORDS[mark]
+            elif imported: kind = "the file"
+            elif (tier or "")[:2] == "T4": kind = "a page anyone can edit"
+            else: kind = "a record not yet accepted"
+            place = None
+            if raw: place = self._place_chain(ps_place)["text"] if ps_place else raw
+            date = {"start": dstart or dend, "end": dend, "text": dtext, "qualifier": dqual} if (dstart or dend) else None
+            statements.append({"id": aid, "accepted": status == "accepted" and not mark, "word": word, "kind": kind, "sha": sha,
+                               "state": collection_state(coll), "date": date, "place": place})
+        out = {}
+        for axis, own in (("date", own_date), ("place", own_place)):
+            if not own:
+                out[axis] = None
+                continue
+            def gives(s):
+                """How much of the value a statement gives (date_given, place_given; the owner's word the whole)."""
+                if s["word"]: return "whole" if axis == "date" else 0
+                if axis == "date": return date_given(s["date"], own) if s["date"] else None
+                return place_given(s["place"], own, record_state=s["state"], dated_names=dated) if s["place"] else None
+            def finer(a, b):
+                """Whether a gives more of the value than b (None gives nothing)."""
+                if a is None: return False
+                if b is None: return True
+                return DATE_LEVELS.index(a) < DATE_LEVELS.index(b) if axis == "date" else a < b
+            aside = set_aside(self.cx, eid, axis) if any(s["accepted"] for s in statements) else set()
+            accepted = [(s, gives(s)) for s in statements if s["accepted"] and s["id"] not in aside]
+            level = None
+            for _, g in accepted:
+                if finer(g, level): level = g
+            beside = []
+            for s, g in accepted:
+                said = (s["date"]["text"] or s["date"]["start"]) if axis == "date" and s["date"] else s["place"] if axis == "place" else None
+                if g is None and said: beside.append(f"{said} ({self.record_label(s['sha'])})")
+            on = list(dict.fromkeys(s["kind"] for s in statements if not s["accepted"] and finer(gives(s), level)))
+            if axis == "date":
+                shown = text or start or end
+                if level is None: given, claim = None, shown
+                elif level == "whole": given, claim = shown, None
+                elif level == "month": given, claim = f"{calendar.month_name[int(start[5:7])]} {start[:4]}", "the day"
+                else: given, claim = start[:4], "the day and month" if len(start) == 10 else "the month"
+            else:
+                shown = own
+                if level is None: given, claim = None, shown
+                elif level == 0: given, claim = shown, None
+                else: claim, given = place_beyond(shown, level)
+            out[axis] = {"shown": shown, "level": level, "given": given, "claim": claim, "on": on, "beside": list(dict.fromkeys(beside))}
+        return out
+    @staticmethod
+    def claim_words(reading):
+        """The parts of an event's value that are a claim (value_basis), one phrase each, date then place: "the date 6 April
+        1880 a claim, resting on the file and a page anyone can edit; an accepted record gives CAL 1879 (…)", "the place
+        accepted to Kentucky, Logan County a claim, resting on the file". [] when every part it shows is accepted."""
+        out = []
+        for axis in ("date", "place"):
+            r = (reading or {}).get(axis)
+            if not r or r["claim"] is None: continue
+            head = f"the {axis} {r['shown']} a claim" if r["given"] is None else f"the {axis} accepted to {r['given']}, {r['claim']} a claim"
+            rests = ", resting on " + " and ".join(r["on"]) if r["on"] else ", resting on no statement"
+            besides = ("; an accepted record gives " if len(r["beside"]) == 1 else "; accepted records give ") + " and ".join(r["beside"]) if r["beside"] else ""
+            out.append(head + rests + besides)
+        return out
+    @staticmethod
+    def claim_tags(reading):
+        """The parts of an event's value that are a claim (value_basis), short, for a line that names the value already: "the
+        date a claim", "the place accepted to Kentucky". [] when every part it shows is accepted."""
+        return [f"the {axis} a claim" if r["given"] is None else f"the {axis} accepted to {r['given']}"
+                for axis in ("date", "place") for r in [(reading or {}).get(axis)] if r and r["claim"] is not None]
+    @staticmethod
+    def claim_reasons(reading):
+        """The parts of an event's value that are a claim (value_basis) as the reasons a written conclusion owes an argument:
+        "the date 6 April 1880 rests on a claim", "the day and month of 6 April 1880 rest on a claim", "Logan County rests on a
+        claim". [] when every part it shows is accepted."""
+        out = []
+        for axis in ("date", "place"):
+            r = (reading or {}).get(axis)
+            if not r or r["claim"] is None: continue
+            if r["given"] is None: out.append(f"the {axis} {r['shown']} rests on a claim")
+            elif axis == "date": out.append(f"{r['claim']} of {r['shown']} {'rest' if ' and ' in r['claim'] else 'rests'} on a claim")
+            else: out.append(f"{r['claim']} {'rest' if ' < ' in r['claim'] or ', ' in r['claim'] else 'rests'} on a claim")
+        return out
     def said_on(self, kind, sid):
         """The records behind a subject's statements that are not rejected, in words: "the file", "your own word" for a vouch."""
         return self._labels([self._statement(sha, pf, notes) for sha, pf, notes in self.q("""SELECT artifact_sha256, persona_fact_id, notes FROM assertion

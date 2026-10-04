@@ -417,7 +417,7 @@ The owner's own hand, and the model's, are played by the harness on real pages:
 
 - Readings (`transcribe`): every reading is typed by the harness from the page's or the image's own words, and its reader names
   the harness, `llm:harness` in the model's place (decisions `50`, the Ahearn stone; `70` and `97`, Noi Davidson's obituary;
-  `71`, the 1959 marriage index; `99ze`, John Y Davidson's death certificate; loop `70`, the obituary) and `user:harness` in a
+  `71`, the 1959 marriage index; `99ze` and `99zn`, John Y Davidson's death certificate; loop `70`, the obituary) and `user:harness` in a
   person's (decisions `71`, `99f`, the marriage index). On the marriage index each persona's line is counted on the image and
   its row's `bbox` is in the image's own pixels; on the stone the `bbox` is the inscription's panel; on the certificate the
   `bbox` is the full name's line; on the obituary each persona's line is the order the notice names them.

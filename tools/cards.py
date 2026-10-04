@@ -5,9 +5,10 @@ usage: tools/cards.py "<person>" [--tree slug] [--db catalog/tree.db] [--full | 
        tools/cards.py --all [--tree slug] [--full | --json]          # every person with an Undecided proposal
 
 One card per proposal, in the shape the owner approved (docs/RESEARCH-CHECKLIST.md §6b, the decision card): a one-line
-highlight of what the record is and the links it makes; the person and the fact or link with the file's claim; the record
+highlight of what the record is and the links it makes; the person and the fact or link with the tree's value, each date or
+place that is a claim beyond what an accepted statement gives said to be one (docs/RESEARCH-WORKFLOW.md §5–7); the record
 with its holder, collection, own identity and trust tier; the primary document as the archived path and the holder's page;
-what the record says field by field against the tree's claim, as agrees, disagrees or absent; the relationships the record
+what the record says field by field against the tree's value, as agrees, disagrees or absent; the relationships the record
 states and who on it is already matched or accepted; what accepting closes, from the person's open questions when the step
 carries one and from the checklist row otherwise; anything odd. No scores. The person screen's proposal panel shows the same
 card from card() and render() here, so the two never drift. hints_on gives the record's hints for a person, the rows that
@@ -75,15 +76,19 @@ def card(cx, tree_id, prop_id, cat=None):
     page = region.get("url") if pe["role_in_record"] == "result" else (fetch_target(a["locator_value"], cited.get("url"))["url"] if a["locator_kind"] == "apid" else a["locator_value"] if a["locator_kind"] == "url" else None)
     ORDER = {"Name": 0, "Sex": 1, "Birth": 2, "Death": 3, "Burial": 4, "Age": 5}
     facts = sorted(persona_facts(cx, pe["id"]), key=lambda f: ORDER.get(f["fact_type"], 9))
-    # ---- the person and the file's claim
+    # ---- the person and the tree's value
     person_id = pay.get("person_id"); person = None; fields = []
     if person_id:
         pr = cat.person(person_id); ev = cat.events(person_id)
         first = lambda t: next((e for e in ev if e["type"] == t), None)
-        claim = {"name": pr["name"], "sex": pr["sex"]}
+        claim = {"name": pr["name"], "sex": pr["sex"]}               # the tree's value, each event with what of it is accepted (docs/RESEARCH-WORKFLOW.md §5–7)
         for t in ("Birth", "Death", "Burial"):
             e = first(t); d = cx.execute("SELECT date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone() if e else None
-            claim[t.lower()] = {"date": e["date_text"], "start": d[0], "end": d[1], "qualifier": d[2], "place": e["place"]["text"] if e["place"] else None} if e else None
+            r = cat.value_basis(e["id"]) if e and e["basis"] == "accepted" else None
+            tags = cat.claim_tags(r)
+            basis = ("accepted in part" if tags else "accepted") if r else (e["basis"] if e else None)
+            claim[t.lower()] = {"date": e["date_text"], "start": d[0], "end": d[1], "qualifier": d[2], "place": e["place"]["text"] if e["place"] else None,
+                                "basis": basis, "claimed": tags} if e else None
         person = {"id": person_id, "name": pr["name"], "span": [year(claim["birth"]["start"]) if claim["birth"] else None, year(claim["death"]["start"]) if claim["death"] else None], "claim": claim}
         # field by field
         name_f = next((f for f in facts if f["fact_type"] == "Name"), None)
@@ -190,9 +195,7 @@ def render(c):
     w = 10; L = lambda k, v: f"{k:<{w}}{v}"
     out = [f"CARD {c['id']}  [{c['kind'].replace('_', ' ')}]", L("", c["highlight"])]
     if c["person"]:
-        cl = c["person"]["claim"]; claim = "; ".join(x for x in [f"born {_fmt(cl['birth']['date'], cl['birth']['place'])}" if cl["birth"] else None, f"died {_fmt(cl['death']['date'], cl['death']['place'])}" if cl["death"] else None,
-                                                              f"buried {_fmt(cl['burial']['date'], cl['burial']['place'])}" if cl["burial"] else None] if x) or "no dates"
-        out.append(L("Person", f"{c['person']['name']}  file's claim: {claim}"))
+        out.append(L("Person", f"{c['person']['name']}  the tree: {claim_text(c['person'])}"))
     else: out.append(L("Person", f"nobody yet; the record is about the family of {c['subject']}" if c["subject"] else "nobody yet"))
     r = c["record"]; out.append(L("Record", f"{r['holder'] or r['holder_id']}; {r['collection'] or 'collection unknown'}; {', '.join(r['identity'])}; tier {r['tier']}"))
     out.append(L("Document", f"{r['archived']}" + (f"  |  {r['page']}" if r["page"] else "")))
@@ -272,20 +275,27 @@ def relation_lines(relationships):
             for (direction, word, status, mapped), names in groups.items()]
 
 def claim_text(p):
-    """What the file claims of a person, in words: born, died, buried."""
+    """The tree's value of a person, in words: born, died, buried, each with what of it is a claim (docs/RESEARCH-WORKFLOW.md
+    §5–7, what of an event's value is accepted): nothing added where all of it is accepted, the parts accepted only in part
+    ("the date a claim; the place accepted to Kentucky"), "a claim" where no accepted statement stands behind it."""
     cl = p["claim"]
-    return "; ".join(x for x in [f"born {_fmt(cl['birth']['date'], cl['birth']['place'])}" if cl["birth"] else None, f"died {_fmt(cl['death']['date'], cl['death']['place'])}" if cl["death"] else None,
-                                 f"buried {_fmt(cl['burial']['date'], cl['burial']['place'])}" if cl["burial"] else None] if x) or "no dates"
+    def said(word, e):
+        if e.get("basis") == "accepted": tag = ""
+        elif e.get("claimed"): tag = f" ({'; '.join(e['claimed'])})"
+        elif e.get("basis") == "rejected": tag = " (rejected)"
+        else: tag = " (a claim)"
+        return f"{word} {_fmt(e['date'], e['place'])}{tag}"
+    return "; ".join(said(w, cl[k]) for w, k in (("born", "birth"), ("died", "death"), ("buried", "burial")) if cl[k]) or "no dates"
 
 def render_compact(c, rule, claim=True):
-    """A record's card as the command line prints it: who it may be, the file's claim (unless the caller has said it once for
+    """A record's card as the command line prints it: who it may be, the tree's value (unless the caller has said it once for
     everyone), the comparison once (the fields both sides speak to, then what only the matcher compares), what the record
     states when it is about nobody yet, who else is on it, what accepting closes, anything odd the comparison does not already
     say, and the rule's verdict."""
     w = 10; L = lambda k, v: f"{k:<{w}}{v}"; pe = c["persona"]; p = c["person"]
     out = [f"CARD {c['id']}  [{c['kind'].replace('_', ' ')}]  {pe['name']}" + (f" ({pe['role']})" if pe["role"] else "") + (f" may be {p['name']}" if p else " is nobody in the tree yet")]
     if p:
-        if claim: out.append(L("Claim", f"the file's: {claim_text(p)}"))
+        if claim: out.append(L("Tree", claim_text(p)))
         agrees, differs, within = [], [], []
         for f in c["fields"]:
             if f["verdict"] == "absent": continue
@@ -339,8 +349,8 @@ def render_search_compact(c):
 def render_cli(cx, tree_id, cards, pid=None):
     """The cards as the command line prints them by default, grouped by record: a results-page row one line, a search page its
     rows, a record its header once and each card compact with the rule's verdict."""
-    one = next((c["person"] for c in cards if c.get("kind") != "search" and c["person"]), None) if pid else None     # a person's own cards share the file's claim: said once
-    blocks, rows = [f"{one['name']}: the file's claim: {claim_text(one)}"] if one else [], []
+    one = next((c["person"] for c in cards if c.get("kind") != "search" and c["person"]), None) if pid else None     # a person's own cards share the tree's value: said once
+    blocks, rows = [f"{one['name']}: the tree: {claim_text(one)}"] if one else [], []
     for sha, _, group in grouped(cx, tree_id, cards, pid):
         if group[0].get("kind") == "search": blocks.append(render_search_compact(group[0])); continue
         if all(c["persona"]["role"] == "result" for c in group): rows += [row_line(c, rule_verdict(cx, tree_id, c), pid is None) for c in group]; continue

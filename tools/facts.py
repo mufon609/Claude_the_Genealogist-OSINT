@@ -1,7 +1,9 @@
 """A person's key facts as the screen and the command line decide them: what supports a fact, its status from the assertions
 behind it, the evidence rows a person can see, a vouch on the owner's own knowledge, and the decision itself.
 
-A fact's status comes from the documents accepted about the person. Accept touches only assertions whose evidence is visible
+A fact's status comes from the documents accepted about the person: it is the decision on the fact, and a birth or a death
+accepted on a record is not thereby accepted in all its event shows, the parts of its date or place no accepted statement
+gives being a claim (claimed_parts, docs/RESEARCH-WORKFLOW.md §5–7). Accept touches only assertions whose evidence is visible
 (the file's uncited claim, a held record) and that state the fact: one carrying a mark (conclude.MARKS: a sibling placement, a
 value the page keeps beneath the one it shows, a link the record's indexer computed) stays as it is. When no such assertion is
 there, the accept is the person's own knowledge, recorded as a vouch on the tree file's persona. Reject and Undecided apply to
@@ -40,6 +42,14 @@ def fact_status(cx, pid, field):
     if "accepted" in sts: return "accepted"
     if sts and sts <= {"rejected"}: return "rejected"
     return "undecided"
+
+def claimed_parts(cat, pid, field):
+    """The parts of a birth's or a death's value that are a claim though its key fact is accepted (Catalog.value_basis on the
+    event the tree shows, Catalog.claim_words), in words: [] for any other fact, for one whose status is not accepted (all of
+    it is then a claim, and its status says so) and for one all of whose value an accepted statement gives."""
+    if field not in ("birth", "death") or fact_status(cat.cx, pid, field) != "accepted": return []
+    e = cat.canonical_event(cat.events(pid), field.title())
+    return cat.claim_words(cat.value_basis(e["id"])) if e and e["basis"] == "accepted" else []
 
 def evidence_rows(cx, pid, field, hs=None):
     """The statements behind one key fact as the person screen shows them, each with the record it is a statement of: record,

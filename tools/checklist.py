@@ -6,7 +6,9 @@ usage: tools/checklist.py "<person name or id>" [--tree slug] [--json]
 
 Read-only. For one person it reports:
   foundation  the facts search would be seeded with, each marked accepted or claim
-              (an Undecided fact is a claim; nothing runs on claims until reviewed), and the
+              (an Undecided fact is a claim; nothing runs on claims until reviewed; a date or a place
+              is accepted only as far as an accepted statement gives it, Catalog.value_basis, and a
+              birth or death showing more than that is accepted in part, the claim said in words), and the
               living default's reading of the person (Catalog.living: the tier, held death
               evidence, the owner's word), which sets a search step's mode
   questions   generated from gaps in the tree (missing parents, no surname, ...)
@@ -76,6 +78,31 @@ def build(cat: Catalog, pid: str):
     foreign_born = bool(birth and birth["place"] and birth["place"]["country"] and birth["place"]["country"] != "united states")
     sex = p["sex"]
 
+    # ---- what of each event's value is accepted (docs/RESEARCH-WORKFLOW.md §5–7): a date or a place is accepted only as far as an accepted statement gives it
+    readings = {}
+    def reading(e):
+        """Catalog.value_basis of an event some accepted statement stands behind, read once; None for any other."""
+        if not e or e.get("basis") != "accepted": return None
+        if e["id"] not in readings: readings[e["id"]] = cat.value_basis(e["id"])
+        return readings[e["id"]]
+    def year_basis(e):
+        """accepted when an accepted statement gives the event's year (its date whole, or to the month or the year); rejected
+        for an event every statement of which is rejected; claim otherwise."""
+        if e and e.get("basis") == "rejected": return "rejected"
+        r = reading(e)
+        return "accepted" if r and r["date"] and r["date"]["level"] is not None else "claim"
+    def place_basis(e, whole=True):
+        """accepted when an accepted statement gives the event's place whole, or with whole False at least its last part below
+        the country (the state); rejected for an event every statement of which is rejected; claim otherwise."""
+        if e and e.get("basis") == "rejected": return "rejected"
+        r = reading(e)
+        return "accepted" if r and r["place"] and r["place"]["level"] is not None and (r["place"]["level"] == 0 or not whole) else "claim"
+    def value_word(e):
+        """accepted when all an event shows is accepted, accepted in part when some of it is a claim, else the event's basis."""
+        r = reading(e)
+        if r is None: return e["basis"] if e else None
+        return "accepted in part" if cat.claim_words(r) else "accepted"
+
     # ---- foundation
     def field(label, value, basis, extra=None):
         return {"field": label, "value": value, "basis": basis, **(extra or {})}
@@ -84,12 +111,14 @@ def build(cat: Catalog, pid: str):
                   field("sex", sex, cat.basis("person", pid)),
                   field("living", life["status"] + (", confirm with tools/conclude.py living" if life["status"] == "unknown" else ""), life["reason"])]
     for label, e in (("birth", birth), ("death", death)):
-        if e: foundation.append(field(label, {"year": e["year"], "date": e["date_text"], "place": e["place"]["text"] if e["place"] else None}, e["basis"]))
+        if e: foundation.append(field(label, {"year": e["year"], "date": e["date_text"], "place": e["place"]["text"] if e["place"] else None}, value_word(e),
+                                      {"claimed": cat.claim_words(reading(e))}))   # the parts that are a claim, in words, for the screen to say beside the value
+    stays = [e for e in ev if e["type"] == "Residence"]
     foundation += [field("parents", [n for _, n in fam["parents"]], cat.link_basis(pid, "parents")),
                    field("spouses", [n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")),
                    field("children", [n for _, n in fam["children"]], cat.link_basis(pid, "children")),
-                   field("residences", [{"year": e["year"], "place": e["place"]["text"] if e["place"] else e["date_text"], "basis": e["basis"]} for e in ev if e["type"] == "Residence"],
-                         "accepted" if ev and all(e["basis"] == "accepted" for e in ev if e["type"] == "Residence") else "claim")]
+                   field("residences", [{"year": e["year"], "place": e["place"]["text"] if e["place"] else e["date_text"], "basis": value_word(e)} for e in stays],
+                         "accepted" if ev and all(value_word(e) == "accepted" for e in stays) else "claim")]
     baseline = cat.baseline(pid, ev); reviewed = baseline["complete"]
     # ---- the fields every query is built from: {value, basis}; a rejected or absent fact is left out
     def F(value, basis):
@@ -102,9 +131,9 @@ def build(cat: Catalog, pid: str):
         names = cat.place_search_names(place.get("place_id"), year=year, person_id=pid) if place.get("place_id") else ([place["text"]] if place.get("text") else [])
         return {"value": names, "basis": basis or "claim"} if names else None
     ROW = lambda v: {"value": v, "basis": "row"}                  # set by the checklist row, not a fact about the person
-    bb = birth["basis"] if birth and birth["year"] else "claim"    # an estimated year is a claim
-    db = death["basis"] if death and death["year"] else (burial["basis"] if burial and burial["year"] else "claim")
-    sb = "accepted" if any(e["basis"] == "accepted" and e["place"] and us_state(e["place"]) == home_state for e in ev) else "claim"
+    bb = year_basis(birth) if birth and birth["year"] else "claim"    # an estimated year is a claim
+    db = year_basis(death) if death and death["year"] else (year_basis(burial) if burial and burial["year"] else "claim")
+    sb = "accepted" if any(e["place"] and us_state(e["place"]) == home_state and place_basis(e, whole=False) == "accepted" for e in ev) else "claim"
     fields = lambda **extra: {k: v for k, v in {**fnd, **extra}.items() if v is not None}
 
     # ---- questions from gaps in the tree
@@ -197,7 +226,7 @@ def build(cat: Catalog, pid: str):
             note = "head of household only; counted, not named" if y < 1850 else "everyone in the house: ages, birthplaces, relationships"
             near = next((e for e in ev if e["type"] == "Residence" and e["year"] and abs(e["year"] - y) <= 5 and e["place"]), None)
             row("A", "census household", MATCH["census"](y), ["D05" if y == 1950 else "D01", "D03"], note,
-                ("household", fields(year=ROW(y), place=PLACES(near["place"], near["basis"], year=y) if near else None)),
+                ("household", fields(year=ROW(y), place=PLACES(near["place"], place_basis(near), year=y) if near else None)),
                 household=True, instance=str(y))
         for st_, (years, holders) in STATE_CENSUS.items():
             if st_ in states:
@@ -227,11 +256,11 @@ def build(cat: Catalog, pid: str):
         if m_country and m_country != "united states": r["settles"] += f"; married in {m_country.title()}: church register"
         if my and src[0] and my < src[0]: r["settles"] += f"; before statewide registration in {st_.title()} ({src[0]}): county book or church register"
         if r["status"] == "cited" or (r["status"] == "missing" and reviewed):
-            mb = m["basis"] if m else "claim"
-            r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, mb if m and m["place"] else sb)),
+            mb = year_basis(m) if m else "claim"
+            r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, place_basis(m, whole=False) if m and m["place"] else sb)),
                            "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"], r["record"]), "free_mode": mode_for(r["sources"], r["record"]), "expect": r["settles"]}
         A.append(r)
-    dplace = PLACES(death["place"], death["basis"], year=d) if death and death["place"] else F(home_state, sb)
+    dplace = PLACES(death["place"], place_basis(death), year=d) if death and death["place"] else F(home_state, sb)
     if known_death and known_death >= 1800:
         row("A", "obituary", MATCH["obituary"], ([] if abroad else (["H05"] if known_death >= 1999 else []) + ["H01", "H07", "H03"]) + ["H04"], "survivors, maiden names, places",
             ("obituary", fields(death_year=F(d, db), place=dplace)))   # the United States papers (H05, Legacy.com, from 1999 on, searched first for a death in its window; H01, H07, H03) for any person but one whose places all lie abroad; Newspapers.com (H04) reaches beyond them
@@ -251,14 +280,14 @@ def build(cat: Catalog, pid: str):
         if not (e.get("place") and e["place"]["text"]): continue
         t = re.sub(r"^(Town|City|Village|Borough|Township) of ", "", e["place"]["text"].split(" < ")[0].split(",")[0].strip())
         if t and not re.search(r"\d", t) and t.lower() not in US_STATES and t.lower() not in US_NAMES and not re.search(r"\bcounty\b", t, re.I) and t not in towns: towns.append(t)
-        if e.get("basis") != "accepted": tb = "claim"
+        if place_basis(e) != "accepted": tb = "claim"
     if in_us and b and 1822 <= (d or 1995): row("A", "city directory / tax list", MATCH["directory"], ["K01"], "residence, occupation, adult sons", ("subject_record", fields(towns=F(towns, tb) if towns else None)), household=True)
     row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03", "B04"], "hints for everything; never proof", ("name", fields()), household=True)
     # B: individual records
     for label, e, kind in (("death record", death, "death"), ("birth record", birth, "birth")):
-        yr = e["year"] if e else (d if kind == "death" else b); yb = e["basis"] if e and e["year"] else (db if kind == "death" else bb)
+        yr = e["year"] if e else (d if kind == "death" else b); yb = year_basis(e) if e and e["year"] else (db if kind == "death" else bb)
         country = (e["place"]["country"] if e and e["place"] and e["place"]["country"] else None) or ("united states" if in_us else next(iter(countries), None))
-        st_ = us_state(e["place"] if e else None) or home_state; stb = e["basis"] if e and us_state(e["place"]) else sb
+        st_ = us_state(e["place"] if e else None) or home_state; stb = place_basis(e, whole=False) if e and us_state(e["place"]) else sb
         if country and country != "united states":
             civil = CIVIL_ABROAD.get(country)
             before_civil = civil and yr and yr < civil
@@ -299,6 +328,7 @@ def render(r):
             continue
         v = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v
         out.append(f"  {f['field']:11} {str(v)[:70]:70} {f['basis'] or '-'}" + (f"  variants: {', '.join(f['variants'])}" if f.get("variants") else ""))
+        for c in f.get("claimed") or []: out.append(f"  {'':11} {c}")
     out.append("\nQUESTIONS")
     for q in r["questions"] or [{"kind": "(none)"}]: out.append(f"  {q['kind']:20} {q.get('detail','')}")
     fp = r["footprint"]

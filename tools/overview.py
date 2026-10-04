@@ -4,6 +4,7 @@ and what waits on each. Shared by the screen's overview and `tools/tree.py overv
 Confirmed means: the home person, and every person reached from them by a parents link the owner accepted (the family_member
 assertions behind it accepted, on a record or on the owner's word). The walk stops at the last accepted link; beyond it the
 file's claim of parents is named on the card as a claim, and the people it names stay outside until a decision puts them in.
+A card's years and a marriage's are the events' own; one no accepted statement gives is said to be a claim.
 The summary says where the tree comes from (origins): the people the file brought in and those a record did, and the
 accepted documents by what fetched them, so the owner sees whether the file or the evidence is building the tree.
 """
@@ -14,17 +15,28 @@ from facts import KEY_FACTS, fact_status
 
 def person_card(cx, cat, pid):
     """One person as the overview shows them: name, years, how many key facts are accepted, the spouses the owner accepted
-    with the marriage and divorce dates accepted on the family, the spouses the file claims as claims, and what waits."""
+    with the marriage and divorce dates on the family that an accepted statement stands behind, the spouses the file claims as
+    claims, and what waits. A year, or a marriage's or a divorce's date, shown though no accepted statement gives it is said
+    to be a claim (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted): claimed_years, and ", a claim" on
+    the marriage's or divorce's own date."""
     name, sex = cx.execute("SELECT display_name, sex FROM person WHERE id=?", (pid,)).fetchone()
-    ev = cat.events(pid); b = next((e["year"] for e in ev if e["type"] == "Birth"), None); d = next((e["year"] for e in ev if e["type"] == "Death"), None)
+    ev = cat.events(pid)
+    be, de = next((e for e in ev if e["type"] == "Birth"), None), next((e for e in ev if e["type"] == "Death"), None)
+    b, d = be["year"] if be else None, de["year"] if de else None
+    def given(e, level=("whole", "month", "year")):
+        """Whether an accepted statement gives the event's date to one of these levels (Catalog.value_basis)."""
+        r = cat.value_basis(e["id"]) if e["basis"] == "accepted" else None
+        return bool(r and r["date"] and r["date"]["level"] in level)
     fam = cat.family(pid); spouses, claimed = [], []
     for f in fam["families"]:
         if not f["spouse_id"]: continue
         if cat.basis("family_member", dumps([f["id"], pid, "partner"])) == "accepted" and cat.basis("family_member", dumps([f["id"], f["spouse_id"], "partner"])) == "accepted":
-            spouses.append({"id": f["spouse_id"], "name": f["spouse"], "married": [m["year"] for m in f["marriages"] if m["year"] and m["basis"] == "accepted"],
-                            "divorced": [x["date"] or str(x["year"]) for x in f["divorces"] if x["basis"] == "accepted"]})
+            married = [m["year"] if given(m) else f"{m['year']}, a claim" for m in f["marriages"] if m["year"] and m["basis"] == "accepted"]
+            divorced = [(x["date"] or str(x["year"])) + ("" if given(x, ("whole",)) else ", a claim") for x in f["divorces"] if x["basis"] == "accepted"]
+            spouses.append({"id": f["spouse_id"], "name": f["spouse"], "married": married, "divorced": divorced})
         else: claimed.append(f["spouse"])
-    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS),
+    return {"id": pid, "name": name, "sex": sex, "span": [b, d], "claimed_years": [e["year"] for e in (be, de) if e and e["year"] and not given(e)],
+            "accepted": sum(1 for f in KEY_FACTS if fact_status(cx, pid, f) == "accepted"), "key_facts": len(KEY_FACTS),
             "spouses": spouses, "claimed_spouses": claimed, **cat.waiting(pid)}
 
 def people(cx, tree_id, q=""):
@@ -109,7 +121,8 @@ def render(o, cx):
                      "rests on sources anyone can edit" if c["editable_only"] else None, "parents link rests on an editable source" if c["link_trusted"] is False else None]
             sp = "; ".join(f"spouse {x['name']}" + (f" m. {', '.join(map(str, x['married']))}" if x["married"] else "") for x in c["spouses"])
             claim = ("the file names parents " + " and ".join(c["claimed_parents"]) + ": not confirmed") if c["claimed_parents"] else ("" if c["parents"] else "no parents claimed")
-            out.append(f"  {c['name']} ({c['span'][0] or '?'}-{c['span'][1] or ''}) [{c['id'][-6:]}]  {c['accepted']} of {c['key_facts']} key facts" + (f"; {sp}" if sp else "") +
+            years = (f"; {' and '.join(map(str, c['claimed_years']))} a claim") if c["claimed_years"] else ""   # a year no accepted statement gives
+            out.append(f"  {c['name']} ({c['span'][0] or '?'}-{c['span'][1] or ''}) [{c['id'][-6:]}]  {c['accepted']} of {c['key_facts']} key facts" + years + (f"; {sp}" if sp else "") +
                        ("; " + "; ".join(w for w in waits if w) if any(waits) else "") + (f"\n      edge: {claim}" if claim else ""))
     out.append(f"-- {o['unconfirmed']} more people in the file, not connected by an accepted link; {len(o['others'])} of them with a document or a conflict waiting")
     p, d = o["origins"]["people"], o["origins"]["documents"]

@@ -5,9 +5,11 @@
 usage: tools/proof.py "<person>" [--fact name|sex|birth|death|parents|spouses|children] [--json] [--tree slug] [--db catalog/tree.db]
 
 For each key fact:
-  value       the value the tree holds, its basis (accepted, claim, rejected) and who decided it: the owner, a session
-              acting for the owner, the rule, or the owner's own word (a vouch); the tree file's own claim and how many of
-              its citations are held
+  value       the value the tree holds, its basis (accepted, accepted in part, claim, rejected) and who decided it: the owner, a
+              session acting for the owner, the rule, or the owner's own word (a vouch); the tree file's own claim and how
+              many of its citations are held; for a birth or a death accepted only in part, each part that is a claim beyond
+              what the accepted statements give, what it rests on and what they give instead (Catalog.value_basis,
+              docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted)
   evidence    the records behind it, each record once with its copies beneath it (same_record: one record is one source
               wherever it is held), named by the original its classes give (data/evidence-classes.csv), each with its class
               words (source: original, derivative or authored; information: primary, secondary or indeterminable; evidence:
@@ -21,7 +23,8 @@ For each key fact:
               searched
   conclusion  meets the standard (an accepted statement both direct and primary, no open conflict, every row held or
               searched); an argument is still owed, with the reasons (only indirect evidence, only secondary information,
-              no statement both, an open conflict); research still open; or no record accepted.
+              no statement both, a part of the value resting on a claim, an open conflict); research still open; or no
+              record accepted.
 The default prints a few lines per fact, the best records first; --fact prints one fact with every record and its
 citation (Evidence Explained style: a FamilySearch page's own "Cite This Record" with its film and image, else the
 collection, holder, locator and date retrieved); --json the whole. A record's locator is printed once per proof, at its
@@ -186,7 +189,9 @@ def agreement(field, st, tree):
         if st["date"]:
             v, n = date_verdict(st["date"], tree["date"])
             if v == "disagrees": says.append(st["date"]["text"])
-            elif v == "agrees" and n: notes.append(n.split(";")[0])
+            elif v == "agrees" and n:
+                near = re.search(r"within (\d+) years", n)        # another year, inside the two an about or calculated date allows, is not the year
+                notes.append(f"within {near.group(1)} years" if near else n.split(";")[0])
             elif v == "within": bound = f"the date within: {n}"          # a bound neither agrees nor disagrees (catalog.date_verdict)
         placed = False
         if st["place"]:
@@ -360,8 +365,9 @@ def rows_text(rows):
     return ", ".join(rec + (" " + ", ".join(str(i) for i in insts if i) if any(insts) else "") for rec, insts in by.items())
 
 # ---------------------------------------------------------------- the conclusion
-def conclusion(basis, accepted, vouched, open_conflicts, rows):
-    """(verdict, reasons): the written conclusion's own words."""
+def conclusion(basis, accepted, vouched, open_conflicts, rows, claimed=()):
+    """(verdict, reasons): the written conclusion's own words. claimed: the parts of the value that rest on a claim
+    (Catalog.claim_reasons), each owing an argument."""
     if basis is None: return "no claim", []
     if basis == "rejected": return "rejected", []
     if not accepted:
@@ -372,6 +378,7 @@ def conclusion(basis, accepted, vouched, open_conflicts, rows):
     if not any(c.get("information") == "primary" for c in cls):
         owed.append("it rests only on secondary information" if all(c.get("information") == "secondary" for c in cls) else "it rests only on secondary or indeterminable information")
     if not owed and not any(c.get("evidence") == "direct" and c.get("information") == "primary" for c in cls): owed.append("no statement is both direct and primary")
+    owed += list(claimed)
     if open_conflicts: owed.append(f"{'a conflict is' if open_conflicts == 1 else f'{open_conflicts} conflicts are'} open")
     if owed: return "an argument is still owed", owed
     left = {}
@@ -382,7 +389,9 @@ def conclusion(basis, accepted, vouched, open_conflicts, rows):
 
 def build(cat, pid, only=None):
     """The proof summary of a person's key facts (one when only names it), as a dict: the person, then per fact its value,
-    basis, deciders, the file's claim, the evidence groups, the conflicts, the research and the conclusion."""
+    basis, deciders, the file's claim, the evidence groups, the conflicts, the research and the conclusion. A birth or death
+    whose key fact is accepted carries what of its event's value is accepted (Catalog.value_basis, as reading) and the parts
+    that are a claim in words (claimed); with any, its basis reads "accepted in part" and each part owes an argument."""
     from checklist import build as checklist
     from conclude import conflict_lines
     ev, fam = cat.events(pid), cat.family(pid)
@@ -403,8 +412,12 @@ def build(cat, pid, only=None):
         accepted = [s for s in sts if s["kind"] == "record" and s["status"] == "accepted"]
         cf = conflicts(cat, pid, field, spots)
         rs = research(cat, pid, field, rows)
-        verdict, why = conclusion(basis[field], accepted, vouched, sum(1 for c in cf if c["status"] == "open"), rs)
-        facts.append({"fact": field, "value": value, "basis": basis[field],
+        event = cat.canonical_event(ev, field.title()) if field in ("birth", "death") and basis[field] == "accepted" else None
+        reading = cat.value_basis(event["id"]) if event else None
+        claimed = cat.claim_words(reading)
+        fact_basis = "accepted in part" if claimed else basis[field]
+        verdict, why = conclusion(fact_basis, accepted, vouched, sum(1 for c in cf if c["status"] == "open"), rs, claimed=cat.claim_reasons(reading))
+        facts.append({"fact": field, "value": value, "basis": fact_basis, "reading": reading, "claimed": claimed,
                       "decided_by": list(dict.fromkeys(s["by"] for s in sts if s["status"] == "accepted")),
                       "file": {"claims": bool(files), "citations": len(apids), "held": len(held)} if files else None,
                       "vouched": bool(vouched), "evidence": gs, "conflicts": cf, "research": rs, "verdict": verdict, "why": why})
@@ -451,6 +464,7 @@ def render(r, full=False):
         if f["decided_by"]: head += f" ({', '.join(f['decided_by'])})"
         if f["file"]: head += "; the file claims it" + (f", citing {f['file']['citations']} record(s), {f['file']['held']} held" if f["file"]["citations"] else ", citing none")
         out.append(head)
+        for c in f.get("claimed") or []: out.append(f"  {c}")
         shown = f["evidence"] if full else f["evidence"][:SHOWN]
         for g in shown:
             who = f" [{'; '.join(g['said'])}{': ' + ', '.join(g['relatives']) if g['relatives'] and f['fact'] in ('spouses', 'children') else ''}]" if g["said"] else ""
