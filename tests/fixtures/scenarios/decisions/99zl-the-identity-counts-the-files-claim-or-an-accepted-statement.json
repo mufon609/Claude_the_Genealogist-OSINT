@@ -1,0 +1,156 @@
+{
+ "title": "the identity counts the file's claim or an accepted statement",
+ "line": "a page anyone can edit is taken on the name and three of birth day, death day, burial place and a stated parent or spouse, each claimed or accepted, a claim the file cites to that very page not among them: Helen Sara Brant's gravestone, read, is taken by the rule on her name and birth day, both her own word, and gives her death day; once that decision is withdrawn its statements stand undecided, neither the file's claim nor accepted, so her memorial, whose death day the tree has only from them and whose burial only from a claim citing the memorial itself, agrees on her birth day and her father alone and is refused, its reason naming what it left out",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's word on Helen's name and birth day; the file's claims of her death set aside",
+   "fact": {
+    "person": "I332737037573",
+    "fields": [
+     "name",
+     "birth"
+    ],
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737037573",
+    "field": "death",
+    "status": "rejected",
+    "note": "harness: the file's death set aside"
+   }
+  },
+  {
+   "say": "her gravestone's photograph, archived under its memorial's photographs",
+   "archive": {
+    "fixture": "findagrave-photo-142698059-117088371.jpg",
+    "source": "E05",
+    "collection": "Find a Grave memorial photographs",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "url",
+     "value": "https://images.findagrave.com/photos/2015/46/142698059_1424121146.jpg"
+    }
+   },
+   "as": "photo"
+  },
+  {
+   "say": "the stone read, typed by the harness in the model's place from the image's own words (AHEARN over her panel: HELEN BRANT, JULY 11 1909, JAN 24, 1986): taken by the rule on her name and birth day",
+   "transcribe": {
+    "record": "$photo.sha",
+    "form": {
+     "name": "Helen Brant Ahearn",
+     "role": "named on the stone",
+     "birth_date": "11 Jul 1909",
+     "death_date": "24 Jan 1986",
+     "bbox": [
+      1626,
+      1279,
+      812,
+      345
+     ],
+     "image_is": "record"
+    },
+    "by": "llm:harness",
+    "about": "I332737037573"
+   },
+   "as": "stone",
+   "expect": [
+    {
+     "card": {
+      "record": "$stone.sha",
+      "person": "I332737037573",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     },
+     "why": "a gravestone's photograph once read is a kind the rule takes: her name and her birth day, her own word, agree"
+    },
+    {
+     "states": {
+      "person": "I332737037573",
+      "record": "$stone.sha",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "accepted"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule's decision on the stone withdrawn: its statement of her death day stands undecided",
+   "withdraw": {
+    "record": "stone"
+   },
+   "expect": [
+    {
+     "states": {
+      "person": "I332737037573",
+      "record": "$stone.sha",
+      "event_type": "Death",
+      "is": [
+       {
+        "status": "undecided",
+        "person_decided": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "her memorial, a page anyone can edit: born and died on the stone's days, buried at Methacton, her parents and her husband listed",
+   "attach": {
+    "fixture": "findagrave-memorial-142698059.html"
+   },
+   "as": "mem",
+   "expect": [
+    {
+     "rule": {
+      "record": "mem",
+      "person": "I332737037573",
+      "taken": false,
+      "why": {
+       "has": [
+        "here birth date to the day, parent",
+        "not counted: death date to the day, which the tree has only from a statement left undecided",
+        "burial place, which the tree has only from a claim citing this very page"
+       ]
+      }
+     },
+     "why": "a statement a withdrawal left undecided is neither the file's claim nor accepted: the birth day and her father are two of the four"
+    },
+    {
+     "card": {
+      "record": "mem",
+      "person": "I332737037573",
+      "status": "undecided"
+     },
+     "why": "a card for the owner"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

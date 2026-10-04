@@ -60,30 +60,13 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A1. The identity's dates and burial place count only what is claimed or accepted
-
-On a page anyone can edit the identity counts a birth day, a death day and a
-burial place that agree with the tree, "claimed or accepted, a claim the file
-cites to that very page not among them" (`docs/RESEARCH-WORKFLOW.md` §5–7).
-The identity branch of `conclude.rule_points` reads those three through
-`conclude.rests_elsewhere`, which takes every statement on the event not
-rejected: an undecided fact another page anyone can edit types, a value
-FamilySearch keeps beneath the one it shows (marked alternate) and a statement
-a withdrawal left undecided all count as the tree's. Read the three on the
-file's claim or an accepted statement, as `conclude.claimed_or_accepted` reads
-a link, have the reason name what it left out, show it on a scenario, and
-report the dry-run reconsider. The date and place veto (`conclude._grounded`)
-still counts an accepted statement marked alternate: none stands live and no
-fact decision writes one now, but read the veto through the same marks
-(`conclude.marked`) so nothing marked is ever a veto either.
-
 ### A5. A bounded date is compared as its range
 
 `catalog.date_verdict` compares the start year whatever the qualifier: "BET
 1950 AND 1959" disagrees with 1955 and agrees with 1950, "BEF 1900"
 disagrees with 1890, and no year agrees with "AFT 1880". It feeds
 `match.compare`, the rule's vetoes (`conclude._grounded`), its points
-(`ground`, `rests_elsewhere`) and `proof.agreement`; live, the newspaper
+(`ground`, `gives`) and `proof.agreement`; live, the newspaper
 reader writes 27 deaths "Bef <the paper's date>" and six events are bounded.
 `cards.card` also drops the tree's qualifier, so a card says a birth date
 disagrees where the matcher agrees (ABT 1921 against 1920). Compare a bounded
@@ -357,7 +340,15 @@ persona whose birth place differs from a finer one another decision gave the
 tree's person, which the rule reads as fitting all the same (`match.compare`
 with `birth_place=False`): the harness's places for Robert Edgar Davidson's
 birth stay unresolved strings, so no scenario reaches the Auburn the live
-catalog holds against his obituary's Woodburn. No scenario reaches the rule's own wording for a page's date kept as a
+catalog holds against his obituary's Woodburn. No scenario reaches a statement carrying a mark on a birth, a death, a burial
+or a death place: every value FamilySearch keeps beneath a shown birth or death
+date in the fixtures says the same as the shown one and is no fact of its own,
+so neither the date and place veto skipping an accepted value a page keeps
+beneath (`conclude._grounded`) nor the identity naming one it left out
+(`conclude.event_claimed_or_accepted`) has a record to run on; nor does the
+identity's naming of an undecided fact another page anyone can edit types (the
+harness holds one page anyone can edit per person) or of a later decision of
+the rule during reconsider. No scenario reaches the rule's own wording for a page's date kept as a
 contradiction of a primary record: no trusted fixture gives John Y Davidson's
 burial, so his memorial cannot reach three points, and his certificate's image,
 which shows burial at Franklin, Kentucky, cannot be read so because the
