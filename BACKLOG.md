@@ -70,24 +70,29 @@ page at a holder without a connector still waits for a session at the owner's
 browser, a held image for a session at the transcription form, an assisted
 search for a hand. What is left, one piece closed before the next:
 
-1. **A browser action needs a person's approval, and a launch has nobody to
-   give it.** Measured on 4 Oct 2026 with a Chrome on this machine connected:
-   a launch sees the browser the owner picked last on the account, and the
-   launcher lets the model list browsers and read tabs, but refuses the first
-   action (opening a tab) with "Claude in Chrome requires permission": the
-   tool allowlist does not grant it, and Claude Code's documentation names no
-   way to grant it ahead of time to a run with no one to prompt. So a model
-   launched by code cannot save a page today, and the check's one scenario of
-   a page the model saves still waits on its capture. A session with a person
-   at it can: the approval prompt reaches them. Decide with the owner how a
-   browser task gets its approval (the task run from a session where the
-   owner approves once, the runner still rendering, judging and recording
-   it; or an approval the runner answers by code for exactly the task's own
-   link and script, if the launcher allows one), then build that. Beside it:
-   the launch names the browser it uses instead of taking the one picked
-   last; it loads no connector's tools (`--strict-mcp-config`), which a
-   two-turn launch on the smallest model now pays about three cents for; and
-   an answer that is not the schema's has no scenario for want of a real one.
+1. **Two launchers behind one seam** (`docs/DATA-ARCHITECTURE.md` §7
+   decision 19). Measured on 4 Oct 2026 with a Chrome on this machine
+   connected: a headless launch sees the browser the owner picked last on the
+   account, and the launcher lets the model list browsers and read tabs, but
+   refuses the first action (opening a tab) with "Claude in Chrome requires
+   permission", which no allow rule grants and Claude Code's documentation
+   names no way to grant ahead of time. So a browser task is spawned by a
+   session the owner is at, where the prompt reaches them, and a headless
+   prompt is for a task that needs no approval. Build the second launcher
+   without touching what judges and records: `tools/run_task.py` hands out
+   the next task as rendered and, when the session reports the subagent
+   done, collects, judges and records it with the measures the session was
+   given (tokens, tool uses, time); the fixed words are an agent file and a
+   skill file of the project (`.claude/agents/`, `.claude/skills/`), written
+   by code from the kind's one text with the tools the kind may call, and a
+   check holds them to it; the session's part is the skill and nothing it
+   composes. Then the first page saved by a model, whose capture the check's
+   waiting scenario reads. Beside it: the headless launch loads no
+   connector's tools (`--strict-mcp-config`), which a two-turn launch on the
+   smallest model pays about three cents for; a launch names the browser it
+   uses instead of taking the one picked last; `.claude/worktrees/` and
+   `.claude/settings.local.json` are ignored by git; and an answer that is
+   not the schema's has no scenario for want of a real one.
 2. **Calibration: an estimate is the record of past runs** of the same task
    kind at the same holder, never a guess. A kind with no runs is calibrated
    first on work whose answer the catalog already holds: done fetch steps

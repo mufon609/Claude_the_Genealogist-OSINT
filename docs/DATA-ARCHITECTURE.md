@@ -496,6 +496,24 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    it is reported and should fall. No such control exists today: the work is
    in `BACKLOG.md`.
 
+19. **Claude runs the project, and the launch is a seam.** The owner: the
+   project is "a git based project folder" that "desktop or cli versions" of
+   Claude run, and "claude will be the only agent used for this project so we
+   can tailor the agents and skills files" to it, with no neutrality toward
+   other models. A task is started one of two ways: as a single headless
+   prompt, or by a director session that spawns it as a subagent. And it is
+   built "in a way that can be easily tweaked to fit the eventual user front
+   end": what starts a task and returns its measures is one seam, and the
+   rest (the task rendered from the step, the answer judged, the run
+   recorded: decision 16) does not know which launcher ran it, so a front end
+   is one more launcher. The fixed words a task kind needs live where Claude
+   reads them, an agent or a skill file of the project, written from the
+   kind's one text by code. As measured, a task that acts in the browser
+   needs a person's approval, which a headless prompt has nobody to give: it
+   is spawned by a session the owner is at; a task that needs no approval may
+   be a headless prompt. Only the headless launcher exists today: the work is
+   in `BACKLOG.md`.
+
 ## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**
