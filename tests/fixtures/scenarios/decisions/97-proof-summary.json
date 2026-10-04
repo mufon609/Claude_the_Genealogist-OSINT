@@ -1,6 +1,6 @@
 {
  "title": "the proof standard's classes and its written conclusion",
- "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from; tools/proof.py writes the conclusion per key fact: the father's sex meets the standard, his birth owes an argument while its birthplace conflict is open (printed with its question id and the rule's own reading of it: the register states the birth first-hand, but its place is not yet resolved, so the rule would not decide it yet), his son's parents owe one on secondary information alone, the census stating him the head's son, his wife's marriage, which the census computes, owes one on indirect evidence and secondary information, and the home person's grandmother's, which her obituary states (the page the archive holds, read in the model's place and read as an obituary through the collection it is filed under), owes one on secondary information; the birthplace conflict closed by the owner with a written reason leaves only the research",
+ "line": "a household's census and a birth register read by data/evidence-classes.csv: the census a derivative whose birth is secondary information and indirect evidence (an age worked into a year), its residence primary, its parents a relationship FamilySearch computed; the birth register's own birth primary and direct, each record named by the original it was copied from; tools/proof.py writes the conclusion per key fact: the father's sex meets the standard, his birth owes an argument while its birthplace conflict is open (printed with its question id and the rule's own reading of it: the register states the birth first-hand, but its place is not yet resolved, so the rule would not decide it yet), his son's parents owe one on secondary information alone, the census stating him the head's son, his wife's birth, an age on the census worked into a year, owes one on indirect evidence and secondary information, and her marriage, which only the census's own grouping gives, rests on the file's claim the owner accepted, the grouping left undecided, and the home person's grandmother's, which her obituary states (the page the archive holds, read in the model's place and read as an obituary through the collection it is filed under), owes one on secondary information; the birthplace conflict closed by the owner with a written reason leaves only the research",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -78,7 +78,7 @@
    ]
   },
   {
-   "say": "the owner accepts the couple: the census's grouping and the file's own claim, on the owner's word",
+   "say": "the owner accepts the couple: the file's own claim, on the owner's word; the census's grouping is left as it was",
    "fact": {
     "person": "I332737037573",
     "field": "spouses",
@@ -392,21 +392,20 @@
    ]
   },
   {
-   "say": "the mother's spouse: a relationship the census computed",
+   "say": "the mother's birth and spouse: her birth an age the census worked into a year, her marriage only the census's own grouping",
    "proof": {
-    "person": "I332737037573",
-    "fact": "spouses"
+    "person": "I332737037573"
    },
    "expect": [
     {
      "last": {
       "fact": {
-       "spouses": {
+       "birth": {
         "evidence": [
          {
           "original": "1940 census schedule",
+          "status": "accepted",
           "classes": {
-           "relationship": "computed",
            "evidence": "indirect",
            "information": "secondary"
           }
@@ -420,7 +419,31 @@
        }
       }
      },
-     "why": "the census's own table computes him (indirect evidence, secondary information): it gives the marriage neither directly nor first hand, so an argument is still owed"
+     "why": "the census's age worked into a year is indirect evidence and secondary information: an argument is still owed"
+    },
+    {
+     "last": {
+      "fact": {
+       "spouses": {
+        "evidence": [
+         {
+          "original": "1940 census schedule",
+          "status": "undecided",
+          "classes": {
+           "relationship": "computed",
+           "evidence": "indirect",
+           "information": "secondary"
+          }
+         }
+        ],
+        "verdict": "no record accepted",
+        "why": [
+         "it rests on the file's claim"
+        ]
+       }
+      }
+     },
+     "why": "the census's own table computes the couple: the owner's accept of the marriage leaves that grouping undecided, so the marriage rests on the file's claim the owner accepted"
     }
    ]
   },

@@ -1,6 +1,6 @@
 {
  "title": "a relationship is no proof of itself",
- "line": "a couple's marriage index, two names and a date, is not taken on the couple the tree holds on the owner's word: the wife's persona fits only through her relation to the husband under decision, so the relationship earns nothing and both stay cards; a memorial's burial place that the file has only from a claim citing that very memorial is no point of its identity",
+ "line": "a couple's marriage index, two names and a date, is not taken on the couple the tree holds on the owner's word (the file's claim, the death record's grouping of the couple left undecided): the wife's persona fits only through her relation to the husband under decision, so the relationship earns nothing and both stay cards; a memorial's burial place that the file has only from a claim citing that very memorial is no point of its identity",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -48,7 +48,7 @@
    ]
   },
   {
-   "say": "the owner accepts the couple: the page's grouping and the file's own claim, on the owner's word",
+   "say": "the owner accepts the couple: the file's own claim, on the owner's word; the page's grouping is left as it was",
    "fact": {
     "person": "I332737204852",
     "field": "spouses",
@@ -57,16 +57,23 @@
    },
    "expect": [
     {
-     "memberships": {
+     "facts": {
       "person": "I332737204852",
-      "is": {
-       "some": {
-        "role": "partner",
-        "status": "accepted"
-       }
-      }
+      "spouses": "accepted"
      },
      "why": "the couple now stands on the owner's word: a relationship the rule would count double"
+    },
+    {
+     "memberships": {
+      "person": "I332737204852",
+      "is": [
+       {
+        "role": "partner",
+        "status": "undecided"
+       }
+      ]
+     },
+     "why": "the page's grouping stays undecided: the record does not state the couple"
     }
    ]
   },

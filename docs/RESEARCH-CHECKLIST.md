@@ -308,7 +308,10 @@ no evidence behind a fact is visible, Accept is the person's own knowledge: a
 vouch, one Accepted assertion by the person on the tree file's persona, so
 the fact traces to the file as the archived claim and the acceptance to the
 person, the cited records still get fetched, and held evidence later sits
-beside the vouch. A
+beside the vouch. Accept leaves as it was a statement marked as a sibling
+placement, a value the page keeps beneath the one it shows or a link the
+record's indexer computed, since the record does not state the fact there, and
+with nothing else visible behind the fact it is a vouch. A
 "Generate plan" button materializes the questions and steps into the catalog;
 every checklist row and footprint record then shows its step, its log, and
 three ways to log a run: nothing found, blocked, or found with a file picked

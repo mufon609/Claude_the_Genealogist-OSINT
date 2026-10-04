@@ -1,6 +1,6 @@
 {
  "title": "a memorial, a page anyone can edit",
- "line": "the rule takes its subject as an identity (the name, both dates to the day, the burial place and the relatives it lists agreeing with the tree's claims), writes every fact undecided and none accepted; the ten relatives it lists get no card at all, fit or not, and create nobody, but his wife and his daughter, each fitting exactly one person of the tree by name and birth year, get an undecided membership and an undecided persona link the same acceptance, while his parents and his six siblings, fitting nobody, get neither, so his own parents fact still has nothing to decide; reconsider keeps the identity, a withdrawn one is taken again and leaves the memberships as they were; a re-read carries the decided link and accepts no fact; the owner's accept is an identity too; the plan turns each listed relative into a fetch step for their own memorial, on the tree person their name and birth year plainly fit when exactly one does (his wife, his daughter, each under their own cemetery row) and otherwise as a lead on the subject's own plan (his parents, his six siblings), named apart from documents to decide; the photograph a memorial types Grave is a fetch step under the cemetery row, his one and, once her memorial arrives, his daughter's three; her gravestone photograph is saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it, typed by the harness in the model's place, is a card the rule leaves to the owner",
+ "line": "the rule takes its subject as an identity (the name, both dates to the day and his wife agreeing with the tree's claims, his daughter no point, a child being none of the four), writes every fact undecided and none accepted; the ten relatives it lists get no card at all, fit or not, and create nobody, but his wife and his daughter, each fitting exactly one person of the tree by name and birth year, get an undecided membership and an undecided persona link the same acceptance, while his parents and his six siblings, fitting nobody, get neither, so his own parents fact still has nothing to decide; reconsider keeps the identity, a withdrawn one is taken again and leaves the memberships as they were; a re-read carries the decided link and accepts no fact; the owner's accept is an identity too; the plan turns each listed relative into a fetch step for their own memorial, on the tree person their name and birth year plainly fit when exactly one does (his wife, his daughter, each under their own cemetery row) and otherwise as a lead on the subject's own plan (his parents, his six siblings), named apart from documents to decide; the photograph a memorial types Grave is a fetch step under the cemetery row, his one and, once her memorial arrives, his daughter's three; her gravestone photograph is saved under the list's name, brought in by collect, archived tier 1 unparsed, and a reading of it, typed by the harness in the model's place, is a card the rule leaves to the owner",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -25,14 +25,14 @@
           "birth date to the day",
           "death date to the day",
           "burial place",
-          "Charlotte",
-          "Helen"
-         ]
+          "Charlotte"
+         ],
+         "lacks": "Helen"
         }
        ]
       ]
      },
-     "why": "the rule takes the memorial's subject as an identity on a page anyone can edit; its reason names the day of birth, the day of death, the burial place and the relatives listed"
+     "why": "the rule takes the memorial's subject as an identity on a page anyone can edit; its reason names the day of birth, the day of death, the burial place it leaves out and his wife, the one relative of the four, never his daughter"
     },
     {
      "card": {

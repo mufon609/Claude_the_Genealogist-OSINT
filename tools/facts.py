@@ -2,16 +2,18 @@
 behind it, the evidence rows a person can see, a vouch on the owner's own knowledge, and the decision itself.
 
 A fact's status comes from the documents accepted about the person. Accept touches only assertions whose evidence is visible
-(the file's uncited claim, a held record); when none is, the accept is the person's own knowledge, recorded as a vouch on the
-tree file's persona. Reject and Undecided apply to every assertion behind the fact. Each statement the decision acts on
-records it as the person's own decision on that statement (assertion.person_decided, docs/RESEARCH-WORKFLOW.md §5–7), its
-status unchanged or not, so no re-read, carry, acceptance of its record or withdrawal by the rule changes it afterwards.
-Every decision writes an audit row and regenerates the person's plan.
+(the file's uncited claim, a held record) and that state the fact: one carrying a mark (conclude.MARKS: a sibling placement, a
+value the page keeps beneath the one it shows, a link the record's indexer computed) stays as it is. When no such assertion is
+there, the accept is the person's own knowledge, recorded as a vouch on the tree file's persona. Reject and Undecided apply to
+every assertion behind the fact. Each statement the decision acts on records it as the person's own decision on that
+statement (assertion.person_decided, docs/RESEARCH-WORKFLOW.md §5–7), its status unchanged or not, so no re-read, carry,
+acceptance of its record or withdrawal by the rule changes it afterwards. Every decision writes an audit row and regenerates
+the person's plan.
 """
 import json, re
 from treelib import dumps, now, ulid
 from catalog import fetch_target, held_for, holdings, record_of, tier_sql
-from conclude import answer_questions, rematch_people
+from conclude import MARKS, answer_questions, rematch_people
 
 KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
 
@@ -42,7 +44,7 @@ def fact_status(cx, pid, field):
 def evidence_rows(cx, pid, field):
     """The statements behind one key fact as the person screen shows them, each with the record it is a statement of: record,
     the key of that record (catalog.record_of: one record is one source wherever it is held, so the screen cites it once
-    with its copies beneath), the same for every copy of it."""
+    with its copies beneath), the same for every copy of it; marked, whether it carries one of conclude.MARKS."""
     hs = holdings(cx)
     out = []
     tree_id = cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0]
@@ -61,7 +63,8 @@ def evidence_rows(cx, pid, field):
             rec = record_of(cx, tree_id, r["artifact_sha256"], r["persona"]) if r["artifact_sha256"] else None
             out.append({"id": r["id"], "citation": r["citation_text"], "status": r["status"], "apid": apid, "sha256": r["artifact_sha256"], "ident": ident,
                         "record": f"{rec[0]}{rec[1]}" if rec else None,
-                        **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": visible})
+                        **fetch_target(apid, n.get("url")), "uncited": uncited, "vouched": vouched, "tier": r["trust_tier"], "held": visible,
+                        "marked": any(n.get(m) for m in MARKS)})
     return out
 
 def vouch(cx, tree_id, pid, field, ts, by):
@@ -83,23 +86,25 @@ def vouch(cx, tree_id, pid, field, ts, by):
     return out
 
 def decide_fact(cx, tree_id, pid, field, status, note, by):
-    """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held);
-    a citation to a record not yet fetched stays Undecided. When no assertion behind the fact has visible evidence, the accept
-    is the person's own knowledge: a vouch (see vouch). Reject and Undecided apply to every assertion behind the fact. Every
-    statement the decision acts on is recorded as the person's own decision on it (person_decided, asserted_by and asserted_at
-    the person's and now), whether its status changes or not; assertions counts the ones whose status changed.
+    """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held) and
+    that state the fact; a citation to a record not yet fetched stays Undecided, and so does a statement carrying one of
+    conclude.MARKS (a sibling placement, a value the page keeps beneath, a link the indexer computed), which the decision leaves
+    as it is. When no such assertion is behind the fact, the accept is the person's own knowledge: a vouch (see vouch). Reject
+    and Undecided apply to every assertion behind the fact. Every statement the decision acts on is recorded as the person's
+    own decision on it (person_decided, asserted_by and asserted_at the person's and now), whether its status changes or not;
+    assertions counts the ones whose status changed.
     An accept regenerates the plan and marks the questions it closes answered by the proposal that brought the evidence.
     Whatever the decision, the person's undecided cards are matched again on the evidence as it now stands
     (conclude.rematch_people), rematched the rows."""
     if (field not in KEY_FACTS and not (field.startswith("event:") and fact_subjects(cx, pid, field))) or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
     ts = now(); n = 0; vouched = []
-    ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or e["held"]]
+    ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or (e["held"] and not e["marked"])]
     for aid in ids:
         n += cx.execute("SELECT status<>? FROM assertion WHERE id=?", (status, aid)).fetchone()[0]
         cx.execute("UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, person_decided=TRUE WHERE id=?", (status, by, ts, aid))
     if status == "accepted" and not ids:
         vouched = vouch(cx, tree_id, pid, field, ts, by); ids = list(vouched); n += len(vouched)   # a vouch counts as an assertion accepted
-        if not vouched: return {"error": "nothing to accept: no held record supports this fact and the tree file makes no claim of it to vouch for; fetch the cited record, or accept a record that states it"}
+        if not vouched: return {"error": "nothing to accept: no held record states this fact and the tree file makes no claim of it to vouch for; fetch the cited record, or accept a record that states it"}
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, ts, by, "accept" if status == "accepted" else ("reject" if status == "rejected" else "update"),
                 "person", pid, dumps({"fact": field, "status": status, "assertions": n, "statements": ids, "vouched": vouched, "note": note or None})))

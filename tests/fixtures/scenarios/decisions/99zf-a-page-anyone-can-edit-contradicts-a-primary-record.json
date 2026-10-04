@@ -1,6 +1,6 @@
 {
  "title": "a page anyone can edit that contradicts a primary record",
- "line": "John Y Davidson's death certificate, as FamilySearch's index entry of it, gives the 11th first-hand and the rule keeps it; his Find a Grave memorial gives the 10th. The memorial is not trusted for a fact: the certificate's day stands, and the memorial's 10th, written undecided, is a contradiction the conflict names, while the memorial's identity is taken on its own agreements (the owner, 3 Oct 2026: use the primary document and tag the page anyone can edit as a contradiction)",
+ "line": "John Y Davidson's death certificate, as FamilySearch's index entry of it, gives the 11th first-hand and the rule keeps it; his Find a Grave memorial gives the 10th. The memorial is not trusted for a fact: its 10th is no veto, and the rule refuses the memorial only for want of a third of the four (his birth day and his father agree, his death and burial the file has only from the memorial itself); once the owner accepts the memorial as his, the certificate's day stands and the memorial's 10th, written undecided, is a contradiction the conflict names, which reconsider keeps (the owner, 3 Oct 2026: use the primary document and tag the page anyone can edit as a contradiction)",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -44,16 +44,40 @@
      "rule": {
       "record": "memorial",
       "person": "I332737204849",
-      "taken": true,
+      "taken": false,
       "why": {
-       "has": [
-        "identity on a page anyone can edit",
-        "the page's value is kept as a contradiction",
-        "death date disagrees (record 10 Jun 1946, tree 11 Jun 1946"
-       ]
+       "starts": "a page anyone can edit identifies a person only when",
+       "has": "here birth date to the day, parent John Davidson agree"
       }
      },
-     "why": "the memorial's 10th is no veto against the certificate's first-hand day: the identity is taken on what agrees"
+     "why": "the memorial's 10th against the certificate's first-hand day is no veto: the identity is refused on its count alone, two of the four"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     },
+     "why": "the primary record's day stands"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the memorial as his: an identity, its facts undecided",
+   "decide": {
+    "card": {
+     "record": "memorial",
+     "person": "I332737204849"
+    },
+    "status": "accepted",
+    "note": "harness: the owner's word that the memorial is his"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "identity": true
+     }
     },
     {
      "event": {
@@ -81,20 +105,24 @@
    ]
   },
   {
-   "say": "reconsider keeps the identity",
+   "say": "reconsider keeps the rule's reading of the conflict",
    "reconsider": {},
    "expect": [
     {
      "last": {
       "rows": {
        "some": {
-        "kind": "decision",
-        "kept": true,
-        "why": {
-         "has": "kept as a contradiction"
-        }
+        "kind": "resolution",
+        "kept": true
        }
       }
+     }
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
      }
     }
    ]

@@ -20,8 +20,9 @@ relationship counting double whatever its information class, a statement of any 
 memorial, a WikiTree profile) identifies a person but never builds their facts: accepting it, by the owner or by the rule,
 writes the persona link and the memberships the page states, Undecided, and every fact the page types as an Undecided
 assertion; the rule takes such an identity on the name and three of birth day, death day, burial place, a stated parent or
-spouse. Whatever the route, identity is tested before the rule takes a record or creates a person from it (identity_refused,
-docs/DATA-ARCHITECTURE.md §7 decision 12): nobody else of the tree fits the persona as well, the person holds no other
+spouse, the relatives the page lists one of the four at most and only one the tree links so, claimed or accepted
+(claimed_or_accepted). Whatever the route, identity is tested before the rule takes a record or creates a person from it
+(identity_refused, docs/DATA-ARCHITECTURE.md §7 decision 12): nobody else of the tree fits the persona as well, the person holds no other
 persona on that reading of the record, and nothing the record would add falls outside the person's accepted life
 (data/life-limits.csv); a test that fails is a refusal with its reason. The rule acts on the owner's word, is recorded as
 such on the proposal and in the audit log, and the owner can reject what it accepted: the link and every assertion it wrote turn rejected. The rule can also take a decision back (reconsider): every
@@ -109,6 +110,11 @@ FAMILY_WORD = re.compile(r"\bhalf\b|grand(?:son|daughter|child)|in-law", re.I)  
 IN_LAW = {"mother-in-law": "parent", "father-in-law": "parent", "son-in-law": "spouse", "daughter-in-law": "spouse", "brother-in-law": "sibling", "sister-in-law": "sibling"}   # the kind an in-law's own word resolves toward, once the relative it is in-law to is found (resolve_in_law)
 RULE_ACTOR = {"persona_match": "rule:agrees-with-accepted", "new_person": "rule:creates-named-relative", "conflict": "rule:classes-favour-one-side"}   # the rule as the decider, by what it did
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).
+MARKS = ("placed", "alternate", "computed")             # a statement's marks in assertion.notes: a sibling placement, a value the page keeps beneath the one it shows, a link the record's indexer computed. The record does not state what such a statement says: no acceptance of the record or of a key fact accepts it, and it is never the rule's ground, whatever its status (docs/RESEARCH-WORKFLOW.md, the proof standard)
+
+def marked(a="a"):
+    """The SQL true of a statement, the assertion row under alias a, that carries one of the MARKS."""
+    return f"(json_valid({a}.notes) AND coalesce(" + ", ".join(f"json_extract({a}.notes,'$.{m}')" for m in MARKS) + ") IS NOT NULL)"
 
 def unless(without):
     """The SQL leaving out of a reading of assertion a the statements reconsider does not count, and its arguments: every
@@ -124,8 +130,10 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()
     fact that rests only on a source anyone can edit does not count for the rule. stating "date" or "place": the assertion
     must itself state one (its persona fact's; the event's own for a vouch with no fact), so a record that states an event
     with no date or no place, asserted on the person's one event of the type, is never ground for a date or a place another
-    source gave that event. day: the assertion must itself state a full date. without: proposal ids whose assertions do not
-    count (a rule decision under reconsideration and every rule decision after it), and statements that do not (unless)."""
+    source gave that event. day: the assertion must itself state a full date. A statement carrying one of the MARKS (a sibling
+    placement, a value the page keeps beneath, a link the indexer computed) never counts, whatever its status. without:
+    proposal ids whose assertions do not count (a rule decision under reconsideration and every rule decision after it), and
+    statements that do not (unless)."""
     q = _q(cx)
     skip, skipped = unless(without)
     full = "AND length(coalesce(pf.date_start, CASE WHEN pf.id IS NULL THEN ev.date_start END)) = 10" if day else ""
@@ -134,7 +142,7 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()
     for sid in ids:
         if q.execute(f"""SELECT 1 FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                          LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN event ev ON a.subject_kind='event' AND ev.id=a.subject_id
-                         WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' {skip} {full}
+                         WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} {skip} {full}
                          AND (substr({tier_sql()},1,2) IN ('T1','T2','T3') OR (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1)))""",
                      (tree_id, kind, sid, *skipped)).fetchone(): return True
     return False
@@ -202,7 +210,8 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
     """The tree's statements the standing rule may stand on for one point about the record under decision (sha; rec, what it
     is: record_self): accepted assertions on these subjects (the event compared, or the memberships joining two people)
     resting on a trusted source (T1–T3) or on the owner's own word (a vouch, or the file's uncited claim the owner accepted),
-    never the record itself on any of its copies (same_record: one record is one source wherever it is held), a claim whose
+    never a statement carrying one of the MARKS (a sibling placement, a value the page keeps beneath, a link the indexer
+    computed), the record itself on any of its copies (same_record: one record is one source wherever it is held), a claim whose
     own citation is it, or a statement from the same original about the same person's same event: a record whose classes
     name the same original (catalog.evidence_classes, record_original), the record of the same person (record_owners) and,
     where both give one, of the same year, which the code cannot show to be another copy of it and still counts once with it
@@ -229,7 +238,7 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
                                FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                                LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                                LEFT JOIN event ev ON a.subject_kind='event' AND ev.id=a.subject_id
-                               WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' {skip} ORDER BY a.asserted_at, a.id""", (tree_id, kind, sid, *skipped)).fetchall():
+                               WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} {skip} ORDER BY a.asserted_at, a.id""", (tree_id, kind, sid, *skipped)).fetchall():
             if r["artifact_sha256"] == sha: continue
             try: notes = json.loads(r["notes"] or "{}")
             except ValueError: notes = {}
@@ -260,8 +269,7 @@ def editable(cx, sha):
     return str(source_tier(cx, sha) or "")[:2] == "T4"
 
 TRUSTED_ARTIFACT = f"substr((SELECT {tier_sql('ar', 's')} FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=assertion.artifact_sha256),1,2) IN ('T1','T2','T3')"   # in an UPDATE on assertion: the statement's record is one nobody can edit at will
-ACCEPTED_WITH_RECORD = ("json_extract(notes,'$.placed') IS NULL AND json_extract(notes,'$.alternate') IS NULL AND json_extract(notes,'$.computed') IS NULL AND "
-                        + TRUSTED_ARTIFACT)   # in an UPDATE on assertion: a statement a decision accepts with its record, and so the one a withdrawal takes back; a sibling placement, a value the page keeps beneath the one it shows, a link the record's indexer computed, and a fact or family link a page anyone can edit states are written undecided and stay so
+ACCEPTED_WITH_RECORD = f"NOT {marked('assertion')} AND " + TRUSTED_ARTIFACT   # in an UPDATE on assertion: a statement a decision accepts with its record, and so the one a withdrawal takes back; one carrying a mark (MARKS), and a fact or family link a page anyone can edit states, are written undecided and stay so
 
 class _q:
     """execute() on a fresh cursor each time, rows readable by column name whatever the caller's connection does, so a query
@@ -1103,13 +1111,14 @@ def claimed_or_accepted(cx, tree_id, pid, other, group, rec, keys, without=(), c
     accepted (docs/RESEARCH-WORKFLOW.md §5–7): in a family joining the two, the membership of each carries an accepted
     statement or the file's claim of it, the import's own statement (on a file this tree imported, tree_import), not
     rejected; with claim_only, the file's claim alone. Nothing else is the file's word: an undecided statement from a page
-    anyone can edit, an indexer's grouping, a sibling placement or a link a withdrawn decision left claims nothing. A
-    statement from the record under decision on any of its copies (rec: record_self), a claim whose own citation is that
-    record (keys: record_keys), one a decision in without wrote and one in without itself (reconsider, unless) never count."""
+    anyone can edit or a link a withdrawn decision left claims nothing, and an indexer's grouping or a sibling placement
+    (MARKS) nothing whatever its status. A statement from the record under decision on any of its copies (rec: record_self),
+    a claim whose own citation is that record (keys: record_keys), one a decision in without wrote and one in without itself
+    (reconsider, unless) never count."""
     q = _q(cx); mine, theirs = MEMBERSHIPS[group]
     def stands(fid, who, role):
-        for r in q.execute("""SELECT a.id, a.status, a.artifact_sha256, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?) AS imported
-                              FROM assertion a WHERE a.tree_id=? AND a.subject_kind='family_member' AND a.subject_id=? AND a.status<>'rejected'""",
+        for r in q.execute(f"""SELECT a.id, a.status, a.artifact_sha256, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?) AS imported
+                               FROM assertion a WHERE a.tree_id=? AND a.subject_kind='family_member' AND a.subject_id=? AND a.status<>'rejected' AND NOT {marked()}""",
                            (tree_id, tree_id, dumps([fid, who, role]))).fetchall():
             if r["artifact_sha256"] in rec["copies"] or r["id"] in without: continue
             try: notes = json.loads(r["notes"] or "{}")
@@ -1268,7 +1277,9 @@ def rule_points(cx, tree_id, prop, without=()):
     the file itself claims it, and nothing else stands in for the file (claimed_or_accepted). A persona whose
     name the tree does not hold on such ground is taken only through a relationship the record states to a persona already
     accepted on it whom the tree links to the candidate so, claimed or accepted (claimed_or_accepted). A page anyone can edit
-    (T4) of an identity kind gives the identity alone. without: proposal ids whose
+    (T4) of an identity kind gives the identity alone, on the name and three of birth day, death day, burial place and one
+    stated parent or spouse whom the tree links so, claimed or accepted, a claim citing the page not among them, however
+    many relatives it lists; a child or a sibling is none of the four. without: proposal ids whose
     assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by the
     relationship route, as it was taken."""
     q = _q(cx)
@@ -1372,10 +1383,12 @@ def rule_points(cx, tree_id, prop, without=()):
             if day(t): (points if rests_elsewhere(cx, cand["events"][et], sha, "date", persona[t], day=True, keys=keys, copies=rec["copies"]) else own).append(w)
         if any(a.startswith("burial place agrees") for a in agree):
             (points if cand["events"].get("Burial") and rests_elsewhere(cx, cand["events"]["Burial"], sha, "place", persona["burial place"], keys=keys, copies=rec["copies"]) else own).append("burial place")
-        named = set()
-        for kind, other_pid, computed, other_name in relations:
-            j = joined(kind, other_pid) if kind != "sibling" and not computed else None     # a stated parent or spouse counts here, never a sibling
-            if j and j[1]["id"] not in named and grounded(other_pid): named.add(j[1]["id"]); points.append(f"{REL_OF[j[0]]} {other_name}")
+        anywhere = (set(), set(), set())                           # no record's keys: the file's claim read whatever it cites
+        for kind, other_pid, computed, other_name in relations:    # however many relatives the page lists, a stated parent or spouse is one of the four; a child or a sibling never
+            group, oc = {"child": "parents", "spouse": "spouses"}.get(kind), chosen.get(other_pid)
+            if computed or not group or not oc or not grounded(other_pid): continue
+            if claimed_or_accepted(cx, tree_id, pid, oc["id"], group, rec, keys, without): points.append(f"{REL_OF[group]} {other_name}"); break
+            if claimed_or_accepted(cx, tree_id, pid, oc["id"], group, rec, anywhere, without): own.append(f"{REL_OF[group]} {other_name}")
         own_note = ("; not counted: " + ", ".join(own) + ", which the tree has only from a claim citing this very page") if own else ""
         if len(points) < 3: return False, ("a page anyone can edit identifies a person only when the name and three of birth date to the day, death date to the day, burial place "
                                            "and a stated parent or spouse agree: here " + (", ".join(points) + (" agree" if len(points) > 1 else " agrees") if points else "the name alone agrees") + own_note)

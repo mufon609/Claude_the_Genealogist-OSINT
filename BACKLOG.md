@@ -60,33 +60,6 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
-### A4. The rule counts what the docs list, and no more
-
-On a page anyone can edit the identity takes three of four things (§0, §5–7):
-birth day, death day, burial place, and a stated parent or spouse who is that
-relative in the tree. `rule_points` counts every stated relative but a
-sibling, children included, each as its own point: John Y Davidson's memorial
-was taken on its birth day and twelve relatives, two of the four on the docs'
-terms. And `facts.decide_fact` accepts every statement behind a key fact,
-FamilySearch's alternates, indexer-computed links and sibling placements
-among them, while `conclude.ground` and `trusted_evidence` never read the
-`computed`, `alternate` or `placed` marks, so `fact parents accept` turns a
-grouping into trusted ground and an obituary's survivor, which the docs
-forbid ("counts once at most, is never an obituary's survivor"). Count a
-stated parent or spouse as the one point the docs name, leave the marked
-statements as they are when a key fact is accepted, have the ground skip
-them, say both in the docs in one sentence each, and report the dry-run
-reconsider. The parent or spouse the identity counts must be that relative in
-the tree "claimed or accepted, a claim the file cites to that very page not
-among them", but the identity branch's `joined` reads every membership not
-rejected: another page's membership, a sibling placement, and a claim citing
-that page all count; read it through `conclude.claimed_or_accepted`, as the
-claimed-relationship route does. C35 remains for the decisions written before
-the reader marked its relations. A fact decision now records itself on every
-statement it acts on (`assertion.person_decided`), so a `fact … accept` made
-before this change may have marked such a statement as the owner's own accept:
-list those on the scratch copy for the owner rather than changing them.
-
 ### A5. A bounded date is compared as its range
 
 `catalog.date_verdict` compares the start year whatever the qualifier: "BET
@@ -1043,6 +1016,20 @@ held his link to Annie only on that record's own statement). Say the indexer's
 only when no stated relationship to a person accepted on the record is there,
 and otherwise name the stated one and why it does not count, as the clause
 naming the link the tree holds on nothing that claims it already does.
+
+### C52. The identity's dates and burial place count statements neither claimed nor accepted
+
+On a page anyone can edit the identity counts a birth day, a death day and a
+burial place that agree with the tree, "claimed or accepted, a claim the file
+cites to that very page not among them" (`docs/RESEARCH-WORKFLOW.md` §5–7).
+The identity branch of `conclude.rule_points` reads those three through
+`conclude.rests_elsewhere`, which takes every statement on the event not
+rejected: an undecided fact another page anyone can edit types, a value
+FamilySearch keeps beneath the one it shows (marked alternate) and a statement
+a withdrawal left undecided all count as the tree's. Read the three on the
+file's claim or an accepted statement, as `conclude.claimed_or_accepted` reads
+a link, have the reason name what it left out, show it on a scenario, and
+report the dry-run reconsider.
 
 ## Externally blocked
 

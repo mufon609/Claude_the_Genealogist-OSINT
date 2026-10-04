@@ -1,0 +1,276 @@
+{
+ "title": "the rule counts what the docs list",
+ "line": "a page anyone can edit is taken on the name and three of birth day, death day, burial place and a stated parent or spouse, the relatives it lists making one of the four at most: John Y Davidson's memorial, born on the tree's day and listing his parents, his wife and his children, his son Robert Edgar among them, whose death and burial the file has only from a claim citing that very page, is refused on two; the parent or spouse is that relative in the tree only on the file's claim or an accepted statement, so Abram C Brant's wife, once the file's claim of his marriage is rejected and the marriage stands on the memorial's own undecided statement, earns nothing and reconsider would withdraw his memorial; a key fact accepted leaves FamilySearch's grouping of a couple undecided, and that grouping, accepted on its own by the owner, is no ground for the rule: on the 1900 household naming the wife the marriage counts once, on the file's claim; and a grouping accepted on its own makes no relative of the tree for a page anyone can edit",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "John Y Davidson's memorial: born the 24th of April 1876 as the file says; his death and burial the file cites to this memorial alone; his parents, his wife and his children listed, his parents, his wife and his son Robert Edgar the tree's",
+   "attach": {
+    "fixture": "findagrave-memorial-130509402.html"
+   },
+   "as": "jmem",
+   "expect": [
+    {
+     "rule": {
+      "record": "jmem",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "has": [
+        "three of birth date to the day, death date to the day, burial place and a stated parent or spouse",
+        "here birth date to the day, parent John Davidson agree",
+        "not counted: death date to the day, burial place, which the tree has only from a claim citing this very page"
+       ],
+       "lacks": [
+        "Ellen",
+        "Lena",
+        "Robert"
+       ]
+      }
+     },
+     "why": "the relatives the page lists make one of the four at most, and a child none: the birth day and his father are two"
+    },
+    {
+     "card": {
+      "record": "jmem",
+      "person": "I332737204849",
+      "status": "undecided"
+     },
+     "why": "a card for the owner"
+    }
+   ]
+  },
+  {
+   "say": "Abram C Brant's memorial: his birth and death days rest on the file's claims citing his certificates, his wife and his daughter listed",
+   "attach": {
+    "fixture": "findagrave-memorial-78019650.html"
+   },
+   "as": "amem",
+   "expect": [
+    {
+     "last": {
+      "taken": [
+       [
+        "Abram C Brant",
+        {
+         "has": [
+          "identity",
+          "birth date to the day",
+          "death date to the day",
+          "spouse Charlotte"
+         ],
+         "lacks": "Helen"
+        }
+       ]
+      ]
+     },
+     "why": "the birth day, the death day and his wife: three; his daughter is no point"
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects the file's claim that Abram is a partner in that marriage: his membership stands now on the memorial's own undecided statement alone",
+   "assertion": {
+    "person": "I332737038183",
+    "membership": {
+     "family_of": "I332737038183",
+     "role": "partner"
+    },
+    "verdict": "reject",
+    "note": "harness: the file's claim set aside"
+   }
+  },
+  {
+   "say": "reconsider, dry: the memorial's own statement of the marriage is no link the tree holds, so his wife earns nothing",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": false,
+        "person": "Abram C Brant",
+        "why": {
+         "has": "here birth date to the day, death date to the day agree",
+         "lacks": "Charlotte"
+        }
+       }
+      }
+     },
+     "why": "a statement from the record under decision, an undecided one at that, claims nothing: two of the four"
+    }
+   ]
+  },
+  {
+   "say": "the Kentucky death record naming Lena the deceased's mother, on the owner's word hers",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-records-1911-1967-1_1-NSGC-PXX-ollie-duke-davidson.html",
+    "about": "I332737204852"
+   },
+   "as": "kd"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "kd",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "John Y accepted on it by the owner: FamilySearch's own grouping of the couple written undecided",
+   "decide": {
+    "card": {
+     "record": "kd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "as": "jkd",
+   "expect": [
+    {
+     "last": {
+      "memberships": {
+       "some": {
+        "role": "partner",
+        "computed": true,
+        "undecided": true
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the grouping on Lena's membership, that one statement on its own",
+   "assertion": {
+    "person": "I332737204852",
+    "record": "kd",
+    "membership": {
+     "family_of": "I332737204852",
+     "role": "partner"
+    },
+    "verdict": "accept",
+    "note": "harness: the grouping accepted on its own"
+   },
+   "expect": [
+    {
+     "trusted": {
+      "membership": {
+       "family": "$jkd.memberships.0.family",
+       "person": "I332737204852",
+       "role": "partner"
+      },
+      "is": false
+     },
+     "why": "a link the record's indexer computed is never ground, whatever its status"
+    }
+   ]
+  },
+  {
+   "say": "the 1900 household, John Y's own page: the census states Lena his wife and Ellan his mother",
+   "attach": {
+    "fixture": "familysearch-census-1900-M9HX-SWP.html"
+   },
+   "as": "c00",
+   "expect": [
+    {
+     "rule": {
+      "record": "c00",
+      "person": "I332737204849",
+      "taken": true,
+      "why": {
+       "has": "spouse Lena H Davidson (a link the file claims",
+       "lacks": "information)"
+      }
+     },
+     "why": "the wife counts once, on the file's claim of the marriage, never twice on the grouping the owner accepted on its own"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts John Y's spouses: the file's own claim, never the grouping",
+   "fact": {
+    "person": "I332737204849",
+    "field": "spouses",
+    "note": "harness: the owner knows the couple"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737204849",
+      "spouses": "accepted"
+     }
+    },
+    {
+     "states": {
+      "person": "I332737204849",
+      "record": "kd",
+      "kind": "family_member",
+      "is": {
+       "every": {
+        "status": "undecided",
+        "person_decided": false
+       }
+      }
+     },
+     "why": "the record does not state the couple: the key fact leaves the grouping as it was"
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects the file's claim of Lena's side of the marriage: her membership stands now on the grouping the owner accepted on its own",
+   "assertion": {
+    "person": "I332737204852",
+    "membership": {
+     "family_of": "I332737204852",
+     "role": "partner"
+    },
+    "verdict": "reject",
+    "note": "harness: the file's claim set aside"
+   }
+  },
+  {
+   "say": "and John Y's parents, rejected: his memorial is left his wife alone to name",
+   "fact": {
+    "person": "I332737204849",
+    "field": "parents",
+    "status": "rejected",
+    "note": "harness: the file's parents set aside"
+   },
+   "expect": [
+    {
+     "rule": {
+      "record": "jmem",
+      "person": "I332737204849",
+      "taken": false,
+      "why": {
+       "has": "here birth date to the day agrees",
+       "lacks": "Lena"
+      }
+     },
+     "why": "a grouping accepted on its own is no link the tree holds: his wife is not that relative in the tree"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}
