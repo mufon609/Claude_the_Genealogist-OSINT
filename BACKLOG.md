@@ -893,8 +893,7 @@ same way. `HEAD_ONLY` and `DATED_WITH_PARENTS` are labels of
 `data/evidence-classes.csv` written in code, which no check holds to the file:
 renaming the kind there turns off the pre-1850 census guard, which also passes
 when the census year is unknown and takes the year from the collection's name
-by pattern when the record gives none. `identity_refused` reads the card's own
-reading where `rule_points` reads the current one (§5–7 says current). Give
+by pattern when the record gives none. Give
 `compare` and `place_verdict` a structured result the rule reads, with the
 words made from it for the card; check the labels against the file.
 
