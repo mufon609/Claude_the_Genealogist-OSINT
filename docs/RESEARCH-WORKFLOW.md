@@ -18,7 +18,9 @@ does not need a name until a name has been found.
 
 **Claim.** What the imported file or a searcher says without a record behind it.
 An Undecided fact in a query carries basis `claim`; an Accepted one carries
-`accepted`; a citation's own detail carries `citation`, a checklist row's value
+`accepted`, a date or a place only as far as an accepted statement gives it
+(§5–7, what of an event's value is accepted: a birth year the accepted census
+gives is accepted, a day only the file gives is a claim); a citation's own detail carries `citation`, a checklist row's value
 `row`, what a held record itself says (the name as written, the record it
 links) `record`, and the search as it was run on a saved results page `run`.
 Nothing is searched on claims alone.
@@ -128,7 +130,8 @@ the live checklist says where the review stands now.
   agrees with what they already accepted.
 - Only Accepted facts feed searches. An Undecided fact is a claim and is
   labelled as such in every query: every query field is `{value, basis}` with
-  basis `accepted` or `claim`. A Rejected fact is left out, and a relative
+  basis `accepted` or `claim`, a date or a place `accepted` only as far as an
+  accepted statement gives the value the field carries (§5–7). A Rejected fact is left out, and a relative
   whose family link is Rejected is not a relative to the footprint or the
   checklist.
 - Review is person-centred: one person, their claims, the records behind each,
@@ -982,6 +985,47 @@ record marks becomes the birth surname), the persona link Accepted, the same
 assertions and the same family links. Rejecting writes the proposal rejected
 and nothing else.
 
+**What of an event's value is accepted.** An event shows one date and one
+place, its own value, which the import, a fold or a resolution set and which
+no record's statement overwrites. Of that value, what an accepted statement on
+the event gives is accepted, and only that. The date is accepted to the day
+where an accepted statement gives that day, to the month or the year where one
+gives no more than that month or year, and a date the event shows as about,
+calculated, estimated or bounded is accepted only where an accepted statement's
+own date lies wholly inside it: an accepted census's year worked from an age
+(CAL 1879) accepts no part of 6 April 1880, and the event's 6 April 1880 is
+then a claim beside it. The place is accepted to the level an accepted
+statement names (the state, where the record gives only the state; the whole,
+where one names the place itself, a place inside it, the same place at another
+granularity or by a name it held). The owner's own word on the fact (a vouch,
+or the owner's word on a link or a divorce) gives the event's value whole. A
+statement gives nothing accepted when it is not accepted, when it is not of the
+event's own type, when it carries a mark (a sibling placement, a value a page
+keeps beneath the one it shows, a grouping the indexer computed), and when a
+standing resolution set it aside, the event's value decided against it. What
+the event shows beyond what is accepted is a claim, and is said to be one, with
+what it rests on (the file's claim, a page anyone can edit, a record not yet
+accepted), wherever the value is shown or read: the proof summary, the person
+screen's foundation and the fields its searches are built from, the decision
+card's side of the tree, and the tree overview; an accepted statement that gives
+no part of it (that calculated year, or another date) is named beside it. A key
+fact is decided once a record stating it is accepted (§1), and deciding it is
+not accepting all its event shows. The standing rule reads what the accepted
+statements give, never the shown value on its own (What the rule counts,
+below). A date's point rests on an accepted statement that gives the date the
+record gives, whatever the event shows beside it; a place's on one that gives
+the place the event shows, whole, so a place the event shows on a claim earns
+nothing. A record is refused when its date, or its death or
+burial place, disagrees with what an accepted statement on the event gives,
+though it agrees with a claim the event shows; a record that disagrees only
+with a claim the event shows is not refused, and the difference becomes a
+conflict question once it is taken. Two places that each name a part of the
+event's own place, neither a place inside it, do not disagree (a death index's
+state and an obituary's town written without it), as the conflict questions
+read them. A birth place never vetoes, and a page
+anyone can edit that contradicts an accepted statement holding primary
+information is a contradiction of it, not a veto (the standing rule, below).
+
 **One event, folded.** A person's events of one type, or a family's, are one
 event when their places agree or one is absent and either the type is one a
 life holds once or their dates agree on the year without giving a different
@@ -1033,9 +1077,12 @@ On a record nobody can edit at will (T1–T3) the rule takes the persona when th
 given name and surname agree with the accepted name (a wife under her married
 surname agrees too — that is how her own obituary can name her at all; a
 surname one letter apart is a card), the facts that agree make two points (What
-the rule counts, below) and nothing disagrees against an accepted value. A
-disagreement with a value that rests on no accepted assertion is no veto and
-becomes a conflict question once the record is taken; a stated relationship
+the rule counts, below) and nothing disagrees against an accepted value: what
+the accepted statements on the event give, never what the event shows (What of
+an event's value is accepted, above), so a record agreeing with a date the
+event shows on the file's claim alone is refused where an accepted statement
+gives another. A disagreement with a value that rests on no accepted assertion
+is no veto and becomes a conflict question once the record is taken; a stated relationship
 vetoes only against a link the tree holds on accepted evidence (a sister the
 file alone places in another family is no veto); a birth place, secondary on
 nearly every record and never a point, never vetoes. An obituary or newspaper
@@ -1085,8 +1132,10 @@ accepted, a claim the file cites to that very page not among them (the reason
 names what it left out). A date or a place is claimed or accepted as a link is:
 the event carries the file's claim of it or an accepted statement giving it, so
 an undecided fact another page anyone can edit types, a value a page keeps
-beneath the one it shows and a statement a withdrawal left undecided count for
-nothing. However many relatives the page lists, they make one
+beneath the one it shows, a statement a withdrawal left undecided and one a
+standing resolution set aside count for nothing; what the event itself shows
+counts only through a statement that gives it, and a day the page gives counts
+on such a statement whatever day the event shows. However many relatives the page lists, they make one
 of the four at most: a parent or a spouse the page states, never a child or a
 sibling, whom the tree links to the person as the route through a stated
 relationship reads a link (claimed or accepted, above). A date or place the page
@@ -1252,7 +1301,11 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   and it rests on the tree's own statement of that very date, place or link:
   accepted, from a source nobody can edit at will or on the owner's own word (a
   vouch, or the file's uncited claim the owner accepted), giving the value
-  compared. A date agreeing to the day, or a relationship, counts double, and
+  compared (What of an event's value is accepted, above): a record whose date
+  agrees with such a statement earns its point though the event shows a claim
+  beside it, one whose date agrees only with a claim the event shows earns
+  none for it, and a place earns its point where such a statement gives the
+  place the event shows, whole. A date agreeing to the day, or a relationship, counts double, and
   any other date once, whatever the information class of the statement it
   rests on: the information class weighs which of two statements that differ
   is right (Conflicts, below), while a day or a relative two records nobody
@@ -1305,11 +1358,13 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   rows, each held, searched with nothing found at every source, cited and not
   yet fetched, or blocked. It is stated with the conclusion, not a gate.
 - **The written conclusion.** `tools/proof.py "<person>"` writes, for each
-  key fact, the value, the evidence, each record once with its copies beneath
+  key fact, the value with what of it is accepted and what is a claim (What of
+  an event's value is accepted, above), the evidence, each record once with its copies beneath
   it, with its class words and its citation, what agrees, each conflict with its question id (the
   one `tools/conclude.py resolve` and `reopen` take) and how it was resolved,
-  the research by row, and who decided; a fact resting on indirect evidence or
-  an open conflict says that an argument is still owed. An open conflict on an
+  the research by row, and who decided; a fact resting on indirect evidence,
+  a value part of which is a claim, or an open conflict says that an argument
+  is still owed. An open conflict on an
   event's date or place carries the rule's own reading of it, from the test
   that decides it (`classes_decide`): the statement the rule would keep and why,
   or why it would not decide (no side primary, primary on both sides, a place

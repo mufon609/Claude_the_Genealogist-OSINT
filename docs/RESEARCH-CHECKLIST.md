@@ -227,7 +227,10 @@ Layout rules that keep it clean:
 
 `tools/checklist.py "<person>"` produces everything above for one person from
 the catalog, read-only: the foundation with each field marked `accepted` or
-`claim`, the generated questions, the Group A and Group B rows with
+`claim` (a date or a place `accepted` only as far as an accepted statement
+gives it, `docs/RESEARCH-WORKFLOW.md` §5–7; a birth or death whose event shows
+more than its accepted statements give marked `accepted in part`, saying in
+words what of its value is a claim), the generated questions, the Group A and Group B rows with
 held / cited / missing / n/a, the relative a citation sits on when it is not on
 the person, and the pre-built search step per gap with its execution mode per
 source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record,
@@ -269,14 +272,17 @@ the page. A badge is a plain count of what waits:
 documents to decide, steps that run on their own, steps that need a hand,
 conflicts, and "rests on sources anyone can edit" when every accepted fact of
 the person comes from a T4 source; a person with every key fact accepted and
-nothing waiting says so.
+nothing waiting says so. A card's years, and a marriage's, are the events' own;
+a year no accepted statement gives is said to be a claim
+(`docs/RESEARCH-WORKFLOW.md` §5–7, what of an event's value is accepted).
 The
 person page puts the documents first: every record waiting for a decision
 about this person as its card (the highlight, the record with holder,
-collection, identity and tier, the tree's claim, each field as agrees,
+collection, identity and tier, the tree's value, each field as agrees,
 disagrees or absent, the relationships stated, what adding it closes), with
 Add and Ignore; then what is known (key facts with the documents they rest
-on, then every other fact, the per-fact buttons kept for the owner's own
+on, a birth's or a death's value saying what of it is accepted and what is a
+claim, then every other fact, the per-fact buttons kept for the owner's own
 knowledge and for undoing a claim; beside them the living line, the status
 with its reason, and on a person whose status is unknown the two controls,
 living and deceased, that write the owner's word through
@@ -381,9 +387,10 @@ result.
 **The decision card.** Every proposal put to the owner, on the screen and from
 `tools/cards.py`, is one card with the same parts in the same order: a one-line
 highlight of what the record is and the links it makes; the person and the
-fact or link, with the file's claim; the record with its holder, collection,
+fact or link, with the tree's value, a date or a place that is a claim beyond
+what an accepted statement gives said to be one; the record with its holder, collection,
 own identity and trust tier; the primary document, as the archived copy and the
-holder's page; what the record says field by field against the claim, each
+holder's page; what the record says field by field against the tree's value, each
 field agrees, disagrees or absent (a date and a place are two fields); the
 relationships it states and how each persona on the record stands (accepted
 as, proposed as, a new person, no proposal); what accepting closes, from the
