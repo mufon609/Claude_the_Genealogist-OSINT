@@ -15,13 +15,12 @@ table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:5px 8px 
 .seg button.on-accepted{background:var(--ok);color:#fff}.seg button.on-rejected{background:var(--bad);color:#fff}.seg button.on-undecided{background:var(--line)}
 pre.card-text{white-space:pre-wrap;font-size:12px;margin:4px 0 6px;padding:6px 8px;background:var(--bg);border:1px solid var(--line);border-radius:4px}.st{display:inline-block;min-width:58px;font-size:12px;color:var(--mut)}.st.held{color:var(--ok);font-weight:600}.st.cited{color:var(--acc)}.st.missing{color:var(--fg)}
 tr.row{cursor:pointer}tr.row:hover td{background:var(--sel)}tr.row.on td{background:var(--sel)}
-input[type=text],input[type=search]{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
+input[type=text]{font:inherit;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--fg)}
 .fx{display:flex;gap:16px;align-items:flex-start}.fx>*{flex:1;min-width:0}
 details summary{cursor:pointer;color:var(--mut);margin:8px 0}
 .q{padding:4px 0;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:baseline}.q b{font-weight:600}.q .sp{flex:1}
 #results{position:sticky;top:12px}#results .card{min-height:120px}
 .pill{display:inline-block;padding:0 6px;border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--mut);margin-left:4px}
-.list td:first-child{width:38%}
 .gen{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:6px 0 18px}.gen+.gen{border-top:1px dashed var(--line);padding-top:16px}
 .pc{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-width:190px;max-width:240px;text-decoration:none;color:var(--fg);display:block}
 .pc:hover{border-color:var(--acc)}.pc b{display:block;font-weight:600}.pc .yrs{color:var(--mut);font-size:12px}.pc .w{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
@@ -61,12 +60,6 @@ async function overview(){const o=await api('/api/overview');const labels=['you'
  html+=`<p class="mut">The file names ${o.unconfirmed} more people not connected to this tree by an accepted link. They are claims, not the tree; each enters when a document you accept places them.</p>`;
  if(o.others.length)html+=`<details><summary>Not yet connected, with a document waiting (${o.others.length})</summary><div class="gen" style="justify-content:flex-start">${o.others.map(cardHtml).join('')}</div></details>`;
  $('#main').innerHTML=html}
-async function list(q=''){const rows=await api('/api/people?q='+encodeURIComponent(q));
- $('#main').innerHTML=`<h1>People</h1><p class="mut">Open a person. Nothing is searched until their key facts are reviewed.</p>
- <p><input type="search" id="q" placeholder="name" value="${h(q)}"></p>
- <table class="list"><tr><th>person</th><th>years</th><th>key facts accepted</th><th>household records missing</th><th>cited, not held</th><th>questions</th></tr>
- ${rows.map(r=>`<tr><td><a href="/person/${r.id}">${h(r.name)}</a></td><td>${r.span[0]??''}–${r.span[1]??''}</td><td>${r.accepted} of ${r.key_facts}</td><td>${r.gaps}</td><td>${r.to_fetch}</td><td>${r.questions}</td></tr>`).join('')}</table>`;
- $('#q').oninput=e=>{clearTimeout(window._t);window._t=setTimeout(()=>list(e.target.value),250)};$('#q').focus()}
 async function person(id){P=await api('/api/person/'+id);render()}
 async function reload(){P=await api('/api/person/'+P.person.id);render();if(SEL)show(SEL.grp,SEL.i)}
 function verdict(v){return `<span class="v ${v}">${v}</span>`}
@@ -115,7 +108,7 @@ function render(){const p=P.person, rv=P.review, fam=P.family, F=Object.fromEntr
  html+=`<h2>What the plan does next</h2><div class="card">`;
  if(!plan.questions.length&&!plan.steps.length)html+=`<span class="mut">No plan yet.</span> <button onclick="makePlan()">Generate plan from the checklist</button>`;
  else{html+=`<div class="mut">${plan.questions.length} open question(s); ${nf} fetch step(s) and ${ns} search step(s) on the rows below. <button onclick="makePlan()">Refresh plan</button></div>`;
-  for(const q of plan.questions){html+=`<div class="q"><b>${h(q.kind.replace(/_/g,' '))}</b> <span class="mut">${h(q.detail.detail||'')}</span>${q.steps?` <span class="pill">${q.steps} steps</span>`:''}<span class="sp"></span><button onclick="dismiss('${q.id}')">Dismiss</button></div>`}}
+  for(const q of plan.questions){html+=`<div class="q"><b>${h(q.kind.replace(/_/g,' '))}</b> <span class="mut">${h(q.detail.detail||'')}</span>${q.steps?` <span class="pill">${q.steps} steps</span>`:''}<span class="sp"></span><button onclick="dismiss('${q.id}','${q.kind}')">Dismiss</button><span id="dq-${q.id}"></span></div>`}}
  html+=`</div>`;
  html+=`<div class="fx"><div><h2>Records that should exist</h2>`;
  const fp=P.footprint;
@@ -193,7 +186,9 @@ async function transcribe(sha){const id=sha.slice(0,12);const v=k=>$('#tr-'+id+'
 async function inbox(){const els=document.querySelectorAll('select.lfile');if(!els.length)return;const f=await api('/api/inbox');els.forEach(el=>{el.innerHTML='<option value="">— file in inbox —</option>'+f.map(x=>`<option>${h(x)}</option>`).join('')})}
 function fail(msg){$('#rc').insertAdjacentHTML('beforeend','<div style="color:var(--bad)">'+h(msg)+'</div>')}
 async function makePlan(){const r=await post('/api/person/'+P.person.id+'/plan');if(r.error){fail(r.error);return}P.plan=r.plan;render();if(SEL)show(SEL.grp,SEL.i)}
-async function dismiss(qid){const r=await post('/api/question/'+qid+'/dismiss');if(r.error){fail(r.error);return}reload()}
+function dismiss(qid,kind){if(kind!=='conflict'){dismissed(qid);return}
+ $('#dq-'+qid).innerHTML=`<span class="reason"><input type="text" id="dqr-${qid}" placeholder="why it is dismissed; no side is kept"><button onclick="dismissed('${qid}',$('#dqr-${qid}').value)">Dismiss</button></span>`;$('#dqr-'+qid).focus()}
+async function dismissed(qid,note){const r=await post('/api/question/'+qid+'/dismiss',{note});if(r.error){fail(r.error);return}reload()}
 function findStep(id){return (P.plan||{steps:[]}).steps.find(s=>s.id===id)||null}
 async function revise(id,field,what,val){const s=findStep(id);const rev={...s.revisions};const cur={...(rev[field]||{})};
  if(what==='include'){if(val)delete cur.include;else cur.include=false}else{if(val)cur.value=val;else delete cur.value}

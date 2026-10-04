@@ -11,7 +11,8 @@ an audit row. A plan step can be logged (nothing found, blocked, found with a
 file from inbox/) and its fields included or revised for the search; every run
 is written to search_log with the fields as rendered. The screen runs no
 search itself: an auto step runs through its connector from tools/run_step.py,
-and a record page saved in the browser comes in through inbox/.
+and a record page saved in the browser comes in through inbox/. A POST is taken
+only from the screen itself (H.refusal): anything else is answered 403 and writes nothing.
 """
 import argparse, glob, hashlib, json, mimetypes, os, re, sys, threading, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -27,7 +28,7 @@ from attach import attach as attach_file, identity as attach_identity, steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
 from conclude import carry, decide as decide_document, join_copies, living, match_record, record_says, rule_conflict_decisions, rule_conflict_line
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
-from overview import overview, people, person_card
+from overview import overview
 from resolve_places import place_groups
 
 LOCK = threading.Lock()
@@ -92,10 +93,14 @@ def log_step(cx, tree_id, slug, step_id, body):
     return {"ok": True, "log": lid, "artifacts": [], "unparsed": None}
 
 def revise_step(cx, tree_id, step_id, body):
-    """Store the person's include/revise for a step: {field: {"include": false} | {"value": "..."}}."""
-    if not cx.execute("SELECT 1 FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone(): return {"error": "step not found"}
+    """Store the person's include/revise for a step: {field: {"include": false} | {"value": "..."}}, with one audit row holding
+    the revisions before and after."""
+    st = cx.execute("SELECT sp.revisions_json FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone()
+    if not st: return {"error": "step not found"}
     rev = {k: v for k, v in (body.get("revisions") or {}).items() if isinstance(v, dict) and (v.get("include") is False or v.get("value") not in (None, ""))}
     cx.execute("UPDATE search_plan SET revisions_json=? WHERE id=?", (dumps(rev) if rev else None, step_id))
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+               (ulid(), tree_id, now(), CFG["by"], "update", "search_plan", step_id, dumps({"revisions": rev, "was": json.loads(st["revisions_json"] or "{}")})))
     return {"ok": True, "revisions": rev}
 
 def artifact_view(cx, tree_id, sha, pid):
@@ -350,7 +355,6 @@ class H(BaseHTTPRequestHandler):
             tree_id, slug, tname = tree_of(cx, q.get("tree", [None])[0])
             if tree_id is None: self.send({"error": "no tree"}, code=400); return
             if u.path == "/api/tree": self.send({"slug": slug, "name": tname, "by": CFG["by"], "trees": [r["slug"] for r in cx.execute("SELECT slug FROM tree ORDER BY slug")]}); return
-            if u.path == "/api/people": self.send(people(cx, tree_id, q.get("q", [""])[0])); return
             if u.path == "/api/overview": self.send(overview(cx, tree_id)); return
             if u.path == "/api/inbox": self.send(sorted(os.path.basename(f) for f in glob.glob(os.path.join(inbox_dir(), "*")) if os.path.isfile(f) and not f.endswith(".gitkeep"))); return
             ma = re.match(r"^/api/artifact/([0-9a-f]{64})$", u.path)
@@ -363,7 +367,20 @@ class H(BaseHTTPRequestHandler):
                 self.send(person_view(cx, tree_id, m.group(1))); return
             self.send({"error": "not found"}, code=404)
         finally: cx.close()
+    def refusal(self):
+        """Why this POST is not the screen's own, in words, or None when it is. A decision is accepted only from the page this
+        server serves: its Host is the address the server is bound to (a page on another name that resolves here is refused),
+        its Origin, when the browser sends one, is that address (a page of another site posting from the owner's browser is
+        refused), and its content type is the JSON the page sends (a form or a plain-text post cannot carry it)."""
+        host, port = self.server.server_address[:2]
+        own = f"{host}:{port}"
+        if self.headers.get("Host") != own: return f"refused: this screen answers only at http://{own}/"
+        if self.headers.get("Origin") not in (None, f"http://{own}"): return "refused: the request comes from another site"
+        if (self.headers.get("Content-Type") or "").split(";")[0].strip().lower() != "application/json": return "refused: a decision is posted as application/json"
+        return None
     def do_POST(self):
+        why = self.refusal()
+        if why: self.send({"error": why}, code=403); return
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0)) or 0) or b"{}")
         mf = re.match(r"^/api/person/([A-Z0-9]+)/fact/([a-z]+|event:[A-Z0-9]+)$", u.path); mp = re.match(r"^/api/person/([A-Z0-9]+)/plan$", u.path)

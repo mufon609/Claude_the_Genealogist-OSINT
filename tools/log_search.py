@@ -3,7 +3,7 @@
 
 usage: tools/log_search.py --step <search_plan id> --outcome found|none|blocked|error [--artifact sha256 ...] [--note ...] [--query '{...}']
        tools/log_search.py --question <research_question id> --source <registry id> --outcome ... --query '{...}'   (a search not on the plan)
-       tools/log_search.py --dismiss <research_question id> [--note ...]
+       tools/log_search.py --dismiss <research_question id> [--note ...]   (--note is required for a conflict: its written reason)
        tools/log_search.py --list "<person>"
 
 The query recorded is exactly what was run: the step's fields after the person's
@@ -214,12 +214,20 @@ def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome
     return lid
 
 def dismiss(cx, tree_id, by, question_id, note=None):
-    """Close a question as dismissed by a person; the planner never reopens it."""
+    """Close a question as dismissed by a person; the planner never reopens it. A conflict is never dismissed without a
+    written reason (docs/RESEARCH-WORKFLOW.md §5–7): note is required for one and refused when it is empty. The reason, who
+    gave it and when are kept on the closed question (its detail's dismissal) and on the audit row. A dismissal keeps neither
+    side of a conflict and changes no event: keeping a statement is tools/conclude.py resolve."""
     ts = now()
-    if not cx.execute("SELECT 1 FROM research_question WHERE id=? AND tree_id=? AND status='open'", (question_id, tree_id)).fetchone(): raise SystemExit("no open question with that id in this tree")
-    cx.execute("UPDATE research_question SET status='closed', closed_reason='dismissed', closed_at=? WHERE id=?", (ts, question_id))
+    q = cx.execute("SELECT kind, detail_json FROM research_question WHERE id=? AND tree_id=? AND status='open'", (question_id, tree_id)).fetchone()
+    if not q: raise SystemExit("no open question with that id in this tree")
+    note = (note or "").strip() or None
+    if q[0] == "conflict" and not note:
+        raise SystemExit("a conflict is dismissed with a written reason (--note); to keep one side of it use tools/conclude.py resolve")
+    detail = {**json.loads(q[1] or "{}"), "dismissal": {"note": note, "by": by, "at": ts}}
+    cx.execute("UPDATE research_question SET status='closed', closed_reason='dismissed', closed_at=?, detail_json=? WHERE id=?", (ts, dumps(detail), question_id))
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-               (ulid(), tree_id, ts, by, "update", "research_question", question_id, dumps({"status": "closed", "closed_reason": "dismissed", "note": note or None})))
+               (ulid(), tree_id, ts, by, "update", "research_question", question_id, dumps({"status": "closed", "closed_reason": "dismissed", "note": note})))
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--step"); ap.add_argument("--question"); ap.add_argument("--source"); ap.add_argument("--outcome", choices=["found", "none", "blocked", "error"])

@@ -241,8 +241,11 @@ migration already recorded applied, so a correction is met the way an older cata
 `"refused": true` when the correction refusing is the outcome expected, what it printed coming back as `refused`),
 `sync_sources` (`tools/initdb.py --sync-sources` on the scratch catalog itself: the registry's rows and every
 collection's tier, its printed line), `proof` (`tools/proof.py`'s summary of a `person`, one `fact` when named: its
-whole, each fact also under `fact.<name>`, and its `text`), `dismiss` (a person's one open conflict question whose
-detail carries `detail_has`, closed by the owner through `tools/log_search.py --dismiss` with a `note`), `attach`
+whole, each fact also under `fact.<name>`, and its `text`), `dismiss` (a person's one open question of `kind`, a conflict when none is
+named, whose detail carries `detail_has`, closed by the owner through `tools/log_search.py --dismiss` with a `note`; a refusal comes back
+as `error`), `post` (a POST handed to the person screen's own handler with no socket: `path`, its parts joined, a part a string or
+`{"question": ref}` / `{"step": ref}` for that row's id; `body`; `headers` that differ from the ones the page sends, null for one left out;
+the result is the response's `code` and JSON `body`, and the `ids` the path's row parts named), `attach`
 (`fixture` into the inbox and `tools/attach_inbox.py`, or `stand_in: "image"` under `as_file`, `about` for the
 owner's word), `archive` (a `fixture`; `source`, `collection`, `locator`, or a
 `manifest`; `extract`, `match` (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same,

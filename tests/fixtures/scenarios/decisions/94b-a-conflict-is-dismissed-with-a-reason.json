@@ -1,0 +1,283 @@
+{
+ "title": "a conflict is dismissed with a written reason",
+ "line": "a conflict is never dismissed without a reason, by the command or by the person screen's own route: an empty or blank one is refused and the question stays open; with one it closes dismissed, the reason, who gave it and when kept on the question and on its audit row, and the event keeps the value it had, since a dismissal keeps no side; a question that is no conflict is dismissed with none",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner accepts his death as the file gives it, on their own word",
+   "fact": {
+    "person": "I332737204849",
+    "field": "death",
+    "note": "harness: the family's own date"
+   }
+  },
+  {
+   "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "accepted: the 11th against the 10th the owner vouched for is a conflict question the rule leaves to the owner",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "dismissed by the command with no reason: refused",
+   "dismiss": {
+    "person": "I332737204849",
+    "detail_has": "death date:"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": [
+        "written reason",
+        "tools/conclude.py resolve"
+       ]
+      }
+     },
+     "why": "the refusal says what a conflict needs and where keeping a side is done"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:"
+     },
+     "why": "the question stays open"
+    }
+   ]
+  },
+  {
+   "say": "dismissed by the command with a blank reason: refused the same",
+   "dismiss": {
+    "person": "I332737204849",
+    "detail_has": "death date:",
+    "note": "   "
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": "written reason"
+      }
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the person screen's Dismiss with no reason: refused, the answer the page shows",
+   "post": {
+    "path": [
+     "/api/question/",
+     {
+      "question": {
+       "person": "I332737204849",
+       "kind": "conflict",
+       "detail_has": "death date:"
+      }
+     },
+     "/dismiss"
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 400,
+      "body": {
+       "error": {
+        "has": "written reason"
+       }
+      }
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:"
+     },
+     "why": "nothing written: the question is open"
+    }
+   ]
+  },
+  {
+   "say": "the person screen's Dismiss with the reason: closed",
+   "post": {
+    "path": [
+     "/api/question/",
+     {
+      "question": {
+       "person": "I332737204849",
+       "kind": "conflict",
+       "detail_has": "death date:"
+      }
+     },
+     "/dismiss"
+    ],
+    "body": {
+     "note": "the family keeps the 10th; the index is a clerk's copy"
+    }
+   },
+   "as": "closed",
+   "expect": [
+    {
+     "last": {
+      "code": 200,
+      "body": {
+       "ok": true
+      }
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "closed",
+      "detail_has": "the family keeps the 10th; the index is a clerk's copy"
+     },
+     "why": "the reason is kept on the closed question"
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:",
+      "exists": false
+     },
+     "why": "and nothing of it is open"
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "id": "$closed.ids.0",
+      "is": [
+       {
+        "actor": "agent:check",
+        "action": "update",
+        "diff": {
+         "status": "closed",
+         "closed_reason": "dismissed",
+         "note": "the family keeps the 10th; the index is a clerk's copy"
+        }
+       }
+      ]
+     },
+     "why": "one audit row carries the reason"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946",
+      "events": 1
+     },
+     "why": "a dismissal keeps no side: the event has the value it had"
+    }
+   ]
+  },
+  {
+   "say": "the plan regenerated: the dismissed conflict stays closed",
+   "expect": [
+    {
+     "plan_idempotent": [
+      "I332737204849"
+     ]
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:",
+      "exists": false
+     }
+    }
+   ]
+  },
+  {
+   "say": "a question that is no conflict is dismissed with none",
+   "post": {
+    "path": [
+     "/api/question/",
+     {
+      "question": {
+       "person": "I332737035562",
+       "kind": "missing_spouse"
+      }
+     },
+     "/dismiss"
+    ]
+   },
+   "as": "plain",
+   "expect": [
+    {
+     "last": {
+      "code": 200,
+      "body": {
+       "ok": true
+      }
+     }
+    },
+    {
+     "question": {
+      "person": "I332737035562",
+      "kind": "missing_spouse",
+      "status": "closed"
+     }
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "id": "$plain.ids.0",
+      "is": [
+       {
+        "action": "update",
+        "diff": {
+         "closed_reason": "dismissed",
+         "note": null
+        }
+       }
+      ]
+     }
+    },
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

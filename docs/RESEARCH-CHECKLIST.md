@@ -246,7 +246,12 @@ footprint, no unlinked persons; the duplicate check and the limits of one life
 ## 6b. The screen as built
 
 `app/person/server.py` serves it at http://127.0.0.1:8765/ (stdlib only,
-localhost only). The entry page is the tree overview, whose goal in one
+localhost only). A decision is a POST, and the server takes a POST only from
+the screen itself: its Host is the address the server is bound to, its Origin
+(when the browser sends one) is that address, and its content type is the JSON
+the page sends; any other is refused with 403 and writes nothing, so a page
+from another site open in the owner's browser cannot post a decision to it.
+The entry page is the tree overview, whose goal in one
 sentence: the overview shows the family as people cards; a badge on a card
 says how many documents wait for a decision and what can run next; opening a
 card is the person screen, where the waiting documents are decided first and
@@ -321,11 +326,14 @@ log and on every other step the record's own identity fulfils (the memorial id
 or ark read from the file), then parses and matches the page; the same path
 `tools/attach_inbox.py` runs over the whole inbox. No assertion is written by
 the attach; that comes from extraction and review. A fact-level question has one Dismiss control, and a dismissed
-question stays closed when the plan is refreshed. Name and sex share the
+question stays closed when the plan is refreshed; on a conflict Dismiss asks for the reason first and keeps no side
+(`docs/RESEARCH-WORKFLOW.md` §5–7: a conflict is never dismissed without a written reason, and keeping a statement is
+`tools/conclude.py resolve`). Name and sex share the
 person-level citations from the import, so deciding one decides the other,
 and accepting a person's children accepts the same link seen from the child's
 side as parents. Include and revise live on the step: a search step lists its
-fields with a checkbox and a revise box, saved on the step, and every logged
+fields with a checkbox and a revise box, saved on the step with one audit row
+(the revisions before and after), and every logged
 run records the fields as rendered, each with its basis. Until the baseline
 is reviewed the page says in one line what review unlocks (searches, the
 family footprint, unlinked persons) and that fetching cited records is open. A held row's

@@ -271,14 +271,50 @@ def a_proof(w, x):
     return {**r, "fact": {f["fact"]: f for f in r["facts"]}, "text": render(r, full=bool(x.get("fact")))}
 
 def a_dismiss(w, x):
-    """A conflict question closed by the owner (tools/log_search.py --dismiss): the person's one open question of kind
-    conflict whose detail carries `detail_has`, closed with the owner's `note`."""
+    """A question closed by the owner (tools/log_search.py --dismiss): the person's one open question of the `kind` (conflict
+    when none is given) whose detail carries `detail_has`, closed with the owner's `note`; a refusal comes back as {"error": ...}."""
     from log_search import dismiss
-    pid = w.person(x["person"])
-    rows = [r for r in w.cx.execute("SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict' AND status='open'", (pid,)) if x["detail_has"] in (r[1] or "")]
-    if len(rows) != 1: raise KeyError(f"{len(rows)} open conflict questions carry {x['detail_has']!r}, expected exactly one")
-    dismiss(w.cx, w.tid, BY, rows[0][0], x.get("note"))
+    rows = open_questions(w, {"kind": "conflict", **x})
+    try: dismiss(w.cx, w.tid, BY, rows[0][0], x.get("note"))
+    except SystemExit as e: return {"error": str(e), "question": rows[0][0]}
     return {"question": rows[0][0]}
+
+def open_questions(w, x):
+    """The person's open questions of a `kind` (any when none is given) whose detail carries `detail_has`: exactly one."""
+    q = "SELECT id, detail_json FROM research_question WHERE subject_person_id=? AND status='open'"; args = [w.person(x["person"])]
+    if x.get("kind"): q += " AND kind=?"; args.append(x["kind"])
+    rows = [r for r in w.cx.execute(q, args) if x.get("detail_has", "") in (r[1] or "")]
+    if len(rows) != 1: raise KeyError(f"{len(rows)} open questions match {short(x)}, expected exactly one")
+    return rows
+
+def a_post(w, x):
+    """A POST to the person screen's server, handed to the handler's own do_POST with no socket (app/person/server.py H): `path`
+    is the route's parts joined, a part a string or {"question": ref} / {"step": ref} for the id of that row; `body` its JSON;
+    `headers` the ones that differ from what the page itself sends (Host and Origin the server's own address, Content-Type
+    application/json), a header given as null left out. Returns the response's `code`, its JSON `body` and the `ids` the
+    path's row parts named."""
+    import email.message, io, types
+    sys.path.insert(0, os.path.join(ROOT, "app", "person")); import server
+    server.CFG["db"], server.CFG["by"] = w.db, BY
+    ids = []
+    def part(p):
+        if isinstance(p, dict) and "question" in p: ids.append(open_questions(w, p["question"])[0][0]); return ids[-1]
+        if isinstance(p, dict) and "step" in p: ids.append(w.step(p["step"])["id"]); return ids[-1]
+        return p
+    body = json.dumps(x.get("body") or {}).encode()
+    own = "127.0.0.1:8765"
+    headers = {"Host": own, "Origin": f"http://{own}", "Content-Type": "application/json", "Content-Length": str(len(body)), **(x.get("headers") or {})}
+    h = server.H.__new__(server.H)
+    h.server = types.SimpleNamespace(server_address=("127.0.0.1", 8765))
+    h.path = "".join(part(p) for p in x["path"]) + f"?tree={w.slug}"
+    h.command, h.request_version, h.requestline = "POST", "HTTP/1.0", f"POST {h.path} HTTP/1.0"
+    h.headers = email.message.Message()
+    for k, v in headers.items():
+        if v is not None: h.headers[k] = v
+    h.rfile, h.wfile = io.BytesIO(body), io.BytesIO()
+    h.do_POST()
+    head, _, payload = h.wfile.getvalue().partition(b"\r\n\r\n")
+    return {"code": int(head.split(b" ")[1]), "body": json.loads(payload), "ids": ids}
 
 def a_attach(w, x):
     """A fixture dropped into the inbox as a save would leave it and attached: the record's sha and the attach's report."""
@@ -746,7 +782,7 @@ def a_question(w, x):
 ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "proof": a_proof, "dismiss": a_dismiss, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect, "block_filing": a_block_filing, "attach_inbox": a_attach_inbox,
-           "question": a_question,
+           "question": a_question, "post": a_post,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed, "copies": a_copies}
 
 ACTIONS["legacy_card"] = a_legacy_card

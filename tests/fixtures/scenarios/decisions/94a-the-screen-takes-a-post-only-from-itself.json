@@ -1,0 +1,308 @@
+{
+ "title": "the person screen takes a POST only from itself",
+ "line": "a POST that comes from another site's page (its Origin is not the screen's), on a name that is not the address the server is bound to (its Host), or in a content type the page does not send is refused with 403 and writes nothing; the page's own POST, with or without an Origin, is taken, and a step's include or revise is written with one audit row holding the revisions before and after",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "another site's page, open in the owner's browser, posts a revision of a step to the screen: its Origin is that site's",
+   "post": {
+    "path": [
+     "/api/step/",
+     {
+      "step": {
+       "person": "I332737204849",
+       "step_key": "fetch:1,3077::604036"
+      }
+     },
+     "/revise"
+    ],
+    "body": {
+     "revisions": {
+      "collection": {
+       "include": false
+      }
+     }
+    },
+    "headers": {
+     "Origin": "http://evil.example"
+    }
+   },
+   "as": "other_site",
+   "expect": [
+    {
+     "last": {
+      "code": 403,
+      "body": {
+       "error": {
+        "has": "another site"
+       }
+      }
+     },
+     "why": "a decision posted from a page of another site is refused"
+    },
+    {
+     "step": {
+      "person": "I332737204849",
+      "step_key": "fetch:1,3077::604036",
+      "fields": {
+       "revisions_json": {
+        "is": null
+       }
+      }
+     },
+     "why": "and nothing is written"
+    },
+    {
+     "audit": {
+      "entity": "search_plan",
+      "id": "$other_site.ids.0",
+      "is": []
+     },
+     "why": "not even an audit row"
+    }
+   ]
+  },
+  {
+   "say": "a page on another name that resolves to this machine reaches the server with its own Host",
+   "post": {
+    "path": [
+     "/api/step/",
+     {
+      "step": {
+       "person": "I332737204849",
+       "step_key": "fetch:1,3077::604036"
+      }
+     },
+     "/revise"
+    ],
+    "body": {
+     "revisions": {
+      "collection": {
+       "include": false
+      }
+     }
+    },
+    "headers": {
+     "Host": "evil.example:8765",
+     "Origin": "http://evil.example:8765"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 403,
+      "body": {
+       "error": {
+        "has": "http://127.0.0.1:8765/"
+       }
+      }
+     },
+     "why": "the refusal names the one address the screen answers at"
+    },
+    {
+     "step": {
+      "person": "I332737204849",
+      "step_key": "fetch:1,3077::604036",
+      "fields": {
+       "revisions_json": {
+        "is": null
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "a form posting plain text, which a page of another site can send without asking the browser's leave, carries no JSON",
+   "post": {
+    "path": [
+     "/api/step/",
+     {
+      "step": {
+       "person": "I332737204849",
+       "step_key": "fetch:1,3077::604036"
+      }
+     },
+     "/revise"
+    ],
+    "body": {
+     "revisions": {
+      "collection": {
+       "include": false
+      }
+     }
+    },
+    "headers": {
+     "Content-Type": "text/plain"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 403,
+      "body": {
+       "error": {
+        "has": "application/json"
+       }
+      }
+     },
+     "why": "the content type the page sends is the one the server takes"
+    },
+    {
+     "step": {
+      "person": "I332737204849",
+      "step_key": "fetch:1,3077::604036",
+      "fields": {
+       "revisions_json": {
+        "is": null
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the page's own POST: the screen's Host and Origin and its JSON",
+   "post": {
+    "path": [
+     "/api/step/",
+     {
+      "step": {
+       "person": "I332737204849",
+       "step_key": "fetch:1,3077::604036"
+      }
+     },
+     "/revise"
+    ],
+    "body": {
+     "revisions": {
+      "collection": {
+       "include": false
+      }
+     }
+    }
+   },
+   "as": "revised",
+   "expect": [
+    {
+     "last": {
+      "code": 200,
+      "body": {
+       "ok": true,
+       "revisions": {
+        "collection": {
+         "include": false
+        }
+       }
+      }
+     }
+    },
+    {
+     "step": {
+      "person": "I332737204849",
+      "step_key": "fetch:1,3077::604036",
+      "fields": {
+       "revisions_json": {
+        "has": "false"
+       }
+      }
+     },
+     "why": "the revision is saved on the step"
+    },
+    {
+     "audit": {
+      "entity": "search_plan",
+      "id": "$revised.ids.0",
+      "is": [
+       {
+        "actor": "agent:check",
+        "action": "update",
+        "diff": {
+         "revisions": {
+          "collection": {
+           "include": false
+          }
+         },
+         "was": {}
+        }
+       }
+      ]
+     },
+     "why": "one audit row, by the screen's actor, holding the revisions before and after"
+    }
+   ]
+  },
+  {
+   "say": "a tool that sends no Origin (the browser always does; curl does not), the right Host and the JSON, clears the revision",
+   "post": {
+    "path": [
+     "/api/step/",
+     {
+      "step": {
+       "person": "I332737204849",
+       "step_key": "fetch:1,3077::604036"
+      }
+     },
+     "/revise"
+    ],
+    "body": {
+     "revisions": {}
+    },
+    "headers": {
+     "Origin": null
+    }
+   },
+   "as": "cleared",
+   "expect": [
+    {
+     "last": {
+      "code": 200,
+      "body": {
+       "ok": true,
+       "revisions": {}
+      }
+     }
+    },
+    {
+     "step": {
+      "person": "I332737204849",
+      "step_key": "fetch:1,3077::604036",
+      "fields": {
+       "revisions_json": {
+        "is": null
+       }
+      }
+     }
+    },
+    {
+     "audit": {
+      "entity": "search_plan",
+      "id": "$cleared.ids.0",
+      "is": [
+       {
+        "diff": {
+         "revisions": {}
+        }
+       },
+       {
+        "diff": {
+         "revisions": {},
+         "was": {
+          "collection": {
+           "include": false
+          }
+         }
+        }
+       }
+      ]
+     },
+     "why": "the second row holds what the first wrote as the revisions before"
+    }
+   ]
+  }
+ ]
+}

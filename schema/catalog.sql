@@ -459,8 +459,9 @@ CREATE INDEX ix_proposal_status ON proposal(tree_id, status, kind);
 
 -- A fact-level question about a person, generated from gaps in the baseline (RESEARCH-WORKFLOW §2).
 -- open until answered, dismissed or, a conflict, resolved by the owner with a written reason naming the
--- value kept (tools/conclude.py resolve; the resolution is in detail_json); the decision that answers it
--- is a proposal. A missing checklist row is not a question: it is a unit of work, a search_plan row.
+-- value kept (tools/conclude.py resolve; the resolution is in detail_json); a dismissal keeps its reason, who
+-- gave it and when in detail_json's dismissal, and a conflict is dismissed only with one; the decision that
+-- answers it is a proposal. A missing checklist row is not a question: it is a unit of work, a search_plan row.
 -- An identity question names a link or a statement beyond the limits of one life (data/life-limits.csv).
 CREATE TABLE research_question (
   id                      TEXT PRIMARY KEY,
