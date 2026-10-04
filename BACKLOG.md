@@ -60,6 +60,23 @@ rule decides ends with a dry-run `tools/conclude.py reconsider` on a scratch
 copy of the live catalog, reported, and the live run is made only once that
 report has been reviewed.
 
+### A1. The identity's dates and burial place count only what is claimed or accepted
+
+On a page anyone can edit the identity counts a birth day, a death day and a
+burial place that agree with the tree, "claimed or accepted, a claim the file
+cites to that very page not among them" (`docs/RESEARCH-WORKFLOW.md` §5–7).
+The identity branch of `conclude.rule_points` reads those three through
+`conclude.rests_elsewhere`, which takes every statement on the event not
+rejected: an undecided fact another page anyone can edit types, a value
+FamilySearch keeps beneath the one it shows (marked alternate) and a statement
+a withdrawal left undecided all count as the tree's. Read the three on the
+file's claim or an accepted statement, as `conclude.claimed_or_accepted` reads
+a link, have the reason name what it left out, show it on a scenario, and
+report the dry-run reconsider. The date and place veto (`conclude._grounded`)
+still counts an accepted statement marked alternate: none stands live and no
+fact decision writes one now, but read the veto through the same marks
+(`conclude.marked`) so nothing marked is ever a veto either.
+
 ### A5. A bounded date is compared as its range
 
 `catalog.date_verdict` compares the start year whatever the qualifier: "BET
@@ -340,7 +357,12 @@ persona whose birth place differs from a finer one another decision gave the
 tree's person, which the rule reads as fitting all the same (`match.compare`
 with `birth_place=False`): the harness's places for Robert Edgar Davidson's
 birth stay unresolved strings, so no scenario reaches the Auburn the live
-catalog holds against his obituary's Woodburn. When a real document
+catalog holds against his obituary's Woodburn. No scenario reaches the rule's own wording for a page's date kept as a
+contradiction of a primary record: no trusted fixture gives John Y Davidson's
+burial, so his memorial cannot reach three points, and his certificate's image,
+which shows burial at Franklin, Kentucky, cannot be read so because the
+transcription path (`app/person/read_record.md`, the form) has no burial field.
+When a real document
 that carries one of these is archived (the owner's own, saved by the
 page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
@@ -1016,20 +1038,6 @@ held his link to Annie only on that record's own statement). Say the indexer's
 only when no stated relationship to a person accepted on the record is there,
 and otherwise name the stated one and why it does not count, as the clause
 naming the link the tree holds on nothing that claims it already does.
-
-### C52. The identity's dates and burial place count statements neither claimed nor accepted
-
-On a page anyone can edit the identity counts a birth day, a death day and a
-burial place that agree with the tree, "claimed or accepted, a claim the file
-cites to that very page not among them" (`docs/RESEARCH-WORKFLOW.md` §5–7).
-The identity branch of `conclude.rule_points` reads those three through
-`conclude.rests_elsewhere`, which takes every statement on the event not
-rejected: an undecided fact another page anyone can edit types, a value
-FamilySearch keeps beneath the one it shows (marked alternate) and a statement
-a withdrawal left undecided all count as the tree's. Read the three on the
-file's claim or an accepted statement, as `conclude.claimed_or_accepted` reads
-a link, have the reason name what it left out, show it on a scenario, and
-report the dry-run reconsider.
 
 ## Externally blocked
 
