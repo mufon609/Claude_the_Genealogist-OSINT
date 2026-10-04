@@ -1,0 +1,62 @@
+{
+ "title": "a file with no identity of its own is not a page of a holder whose pages carry one",
+ "line": "a real memorial page of another person, saved without the save script (it carries no saved-from line), lands in downloads/ under the name the list printed for John Young Davidson's memorial, the launcher timing out: at a holder whose pages carry their own identity the name alone takes no page, so collect leaves the file where it is, the task's outcome is mismatch, and no run is logged on the step",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task: the file that comes in under its name is another memorial's page with no saved-from line",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "silent": "timeout",
+    "saves": {
+     "fixture": "findagrave-memorial-142698059.html"
+    },
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "ended": "timeout",
+        "outcome": "mismatch",
+        "differs": false,
+        "log": null,
+        "note": {
+         "has": [
+          "collect left it there"
+         ]
+        }
+       }
+      ]
+     },
+     "why": "a name is not an identity: the save script writes the page's own address, and a file without it is not the page"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step"
+    }
+   ]
+  }
+ ]
+}

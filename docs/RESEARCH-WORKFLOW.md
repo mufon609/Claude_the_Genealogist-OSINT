@@ -391,7 +391,10 @@ that holder with the page's own URL as locator and reported unparsed until a
 parser claims it. Its run is logged `unread`, not found, the note saying that no
 parser reads the page: the page is held on the step's log, still fetched for
 that person, and the step stays planned, for a page no parser reads holds
-nothing a program knows and closes nothing. The run on the step's own fields
+nothing a program knows and closes nothing. A name is not an identity: at a
+holder whose pages carry their own (FamilySearch, Find a Grave, AAD) a file
+saved under the list's name with no saved-from line is not the page, whoever
+or whatever saved it, and collect leaves it where it is. The run on the step's own fields
 keeps the step off the fetch list while the page waits. The run stays as what
 happened when a parser is added and the page is read again
 (`tools/extract.py <sha256>`): the step is then closed the way any fetch step

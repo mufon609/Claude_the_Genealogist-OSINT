@@ -179,7 +179,9 @@ def collect(cx, tree_id, slug, by, folder=None):
     the name says, to the steps its key names first when it carries one (attach.named_steps). A page from a holder whose pages
     carry no identity the attach reads is taken by the by-name path
     instead, under the list's own name, and attached to the steps of the one citation and person the name carries, archived
-    under that holder with its own URL as locator. A file with neither is left where it is. The pages taken by name go first,
+    under that holder with its own URL as locator. A name is not an identity: at a holder whose pages carry their own
+    (IDENTITY_HOLDERS) a file under the list's name with no saved-from line is not the page, whoever or whatever saved it,
+    and is left where it is, as a file with neither is. The pages taken by name go first,
     then those taken by identity, each file in a transaction of its own (attach.attach_each): a file whose transaction fails
     is rolled back alone and named with the failure, a page taken by name put back in the folder it was saved in (only collect
     takes a page by its name), a page taken by identity left in the inbox (attach_inbox.py, and the next turn, take it again).
@@ -192,6 +194,7 @@ def collect(cx, tree_id, slug, by, folder=None):
         if PHOTO_NAME.fullmatch(f) or (f.lower().endswith(".html") and SAVED_FROM_IDENTITY.search(saved_from(path) or "")): by_identity.append(f); continue
         e = named_for(f, entries)
         if not e or not f.lower().endswith(".html"): continue
+        if e["holder_id"] in IDENTITY_HOLDERS: continue          # this holder's pages carry their own identity: a file under the list's name without it is not the page
         dst = os.path.join(inbox_dir(), f); shutil.move(path, dst)
         cx.execute("BEGIN")
         try:
