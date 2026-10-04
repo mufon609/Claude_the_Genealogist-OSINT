@@ -120,7 +120,8 @@ The screen's Dismiss stands on every open question, conflicts included
 (`app/person/index.html`), and closes a conflict through `log_search.dismiss`
 with no value kept and no reason, against decision 5 (`tools/conclude.py
 resolve --keep … --note`): a conflict is resolved by keeping a side with a
-reason, or stays open. The server's POSTs check no Origin or Host, so another
+reason, or stays open. §5–7 lets a person dismiss a conflict; say whether a
+dismissal needs a reason, and have the screen ask for it if so. The server's POSTs check no Origin or Host, so another
 site open in the owner's browser can post decisions to it. A person's page
 takes about 15 s (John Y Davidson: 14,024 statements): `catalog.page_people`'s
 correlated subquery scans every Birth fact once per persona on a catalog never
@@ -643,10 +644,11 @@ holder's silence where the path allows it, or have decision 8 say that a run
 written to reach a path is the harness's bookkeeping and no answer. The same
 holds for the actions that write catalog rows by hand in the shape a writer of
 the tools writes them (`a_step` in 27 scenarios, `a_place_card`,
-`a_file_family`, `a_persona_link`, `a_legacy_card`, `a_event`, `a_question`):
+`a_file_family`, `a_persona_link`, `a_legacy_card`, `a_event`, `a_question`,
+and `older_reading`, which plants a reading an older reader made as the live
+catalog holds it):
 when the writer changes, those scenarios go on testing rows the code no longer
 writes. Reach each through the tool that writes it.
-
 ### C30. A fact a reading no longer states stays on the person
 
 A page read again by a newer reader can drop a fact the older reading wrote,

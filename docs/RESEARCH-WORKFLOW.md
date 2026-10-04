@@ -1157,8 +1157,10 @@ Every accept, of a match, a new person or a fact,
 regenerates the person's plan in the same request, and an open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the
-evidence; a `conflict` closes only when it is resolved with a written reason,
-by a person or by the rule, or a person dismisses it. Resolving
+evidence; a `conflict` closes when it is resolved with a written reason, by a
+person or by the rule, or a person dismisses it, and, like any question, as
+`gap_gone` when a regeneration no longer finds the disagreement (one side
+rejected or withdrawn), opening again if it returns. Resolving
 (`tools/conclude.py resolve <question> --keep <statement> --note "…"`) names
 the statement whose date or place the event keeps: that value becomes the
 event's own (the place only once its words are resolved to a place), the
