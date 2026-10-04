@@ -992,6 +992,11 @@ read, so the claim it carried holds whatever the code does. Give each
 expectation and action in `tests/checks/scenario.py`, `loop.py` and
 `imports.py` the keys it reads, and fail a value that carries another, so a
 scenario can say nothing the harness does not check.
+Two actions fail the same way: `withdraw` given a bound value (`"$x.sha"`)
+where it wants a label finds no decision and does nothing, silently; and the
+`archive` step with a manifest raises `JSONDecodeError` when the manifest's
+`notes` is plain text, as the gravestone photograph's is, so a real fixture
+cannot be archived through it.
 
 ### C49. The proof summary names the owner for a statement no person decided
 
