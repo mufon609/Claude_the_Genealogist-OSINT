@@ -172,7 +172,7 @@ Core tables (the full map by layer is in `schema/README.md`):
 | `proposal` | AI output awaiting a decision; answers a question about a person. |
 | `alias` | Variant and erroneous forms kept as search keys (§8). |
 | `research_question`, `search_plan`, `search_log` | A fact-level question about a person; an executable step on a checklist row of a person (a fetch with its locator, or a typed search with per-field basis); every run of a step including negatives (`docs/RESEARCH-WORKFLOW.md`). |
-| `task_run` | One row per model launched on a step no connector can take (decision 16), insert-only: the kind of task, the holder, the task as rendered and its text's hash, the model and effort, what the launcher measured, the outcome as code judged it and the `search_log` row the run produced (`docs/RESEARCH-WORKFLOW.md` §4). |
+| `task_run` | One row per model launched on a step no connector can take (decision 16), insert-only: the launcher (decision 19), the kind of task, the holder, the task as rendered and its text's hash, the model and effort, what the launcher measured, the outcome as code judged it and the `search_log` row the run produced (`docs/RESEARCH-WORKFLOW.md` §4). |
 | `external_id` | Any vendor ID for any entity (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
 | `place`, `place_name`, `place_string` | Normalized place hierarchy with dated names; every raw string ever seen and what it resolved to. |
 
@@ -453,7 +453,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    to pass; Find a Grave and Ancestry are never scraped). One kind of task is
    launched by code today, the fetch of a page on the fetch list
    (`tools/run_task.py`, `docs/RESEARCH-WORKFLOW.md` §4), each launch a row of
-   `task_run`; the model and effort are the caller's to name. The other kinds
+   `task_run`; the model is the caller's to name. The other kinds
    of task, the calibration and the choice of model from the record of runs
    are deferred work in `BACKLOG.md`.
 
@@ -511,8 +511,12 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    kind's one text by code. As measured, a task that acts in the browser
    needs a person's approval, which a headless prompt has nobody to give: it
    is spawned by a session the owner is at; a task that needs no approval may
-   be a headless prompt. Only the headless launcher exists today: the work is
-   in `BACKLOG.md`.
+   be a headless prompt. Both launchers exist for the fetch task
+   (`tools/run_task.py`: `fetch` the headless prompt; `next` and `done` the
+   session's, with the agent and skill `tree-fetch` under `.claude/`, written
+   by `tools/run_task.py write` and held to it by `tools/check.py`;
+   `docs/RESEARCH-WORKFLOW.md` §4). A subagent's model is set per spawn and
+   its effort only by its agent file.
 
 ## 8. Wrong source data, variants and aliases
 

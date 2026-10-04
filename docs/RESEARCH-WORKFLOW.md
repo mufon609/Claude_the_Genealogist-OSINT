@@ -408,23 +408,51 @@ step's current fields, the note naming the earlier artifact, wherever the
 step wasn't already answered on those fields. Never encode a page and read
 it out through the model in slices.
 
-**A model saves the page.** `tools/run_task.py fetch` hands a page on the fetch
-list to a model in place of a hand (`docs/DATA-ARCHITECTURE.md` §7 decision
-16). The task is the list's own entry, rendered by code: the link, the file
+**A model saves the page.** `tools/run_task.py` hands a page on the fetch
+list to a model in place of a hand (`docs/DATA-ARCHITECTURE.md` §7 decisions
+16 and 19). The task is the list's own entry, rendered by code: the link, the file
 name, and `tools/save_page.js` with the entry's call in place of the
 `("FILENAME.html")` that ends it. What the model needs beyond the entry is
 one text for the kind of task, `tools/tasks/fetch.md`, the method above in the
 model's terms and the standing rules on sources (one page, the link as given,
 a challenge or a sign-in reported and never passed); nothing is written for
-one task. The launcher starts `claude -p` once per page with its input closed:
-the text as the system prompt, the rendered entry as the prompt, the model and
-the effort it was told, a JSON schema for the answer (`saved`, `blocked` or
-`not_saved`, and the script's one line), a spending limit, the owner's browser
-(`--chrome`), and no tool but the browser's tabs, navigation and script. The
-model writes nothing to the catalog: the page it saves lands in the data
-root's `downloads/` as a page saved by hand does, and `collect` takes it.
+one task. The model writes nothing to the catalog: the page it saves lands in
+the data root's `downloads/` as a page saved by hand does, and `collect` takes
+it.
 
-The answer is checked, never believed. After the launcher returns, whatever it
+What starts the task and returns its measures is a launcher, and there are
+two behind one seam; what renders the task, judges the answer and records the
+run is the same code for both and does not know which ran it.
+
+- **A session the owner is at** (`next`, `done`). A browser action needs a
+  person's approval, so a page is saved by a subagent of a Claude Code session
+  where the prompt reaches the owner. The fixed words are two files under
+  `.claude/` that code writes (`tools/run_task.py write`) and `tools/check.py`
+  holds to what code would write: the agent `tree-fetch` (the kind's text as
+  its system prompt, the form of its answer written from the kind's schema,
+  the browser's tabs, navigation and script as its only tools, its effort, no
+  project instructions) and the skill `tree-fetch` (`tools/tasks/fetch.skill.md`,
+  the session's part). The session composes nothing: `tools/run_task.py next
+  --model M` hands out the next page's task (the agent, the model, the task
+  as rendered) and writes it beside the database; the session spawns the
+  agent on that model with exactly that text; when the subagent ends,
+  `tools/run_task.py done` takes its last message as it came and the numbers
+  the session was given for it (tokens, tool uses, time), and collects,
+  judges and records. One task is out at a time. The model is set per spawn;
+  the effort is the agent file's, which a spawn cannot change, so `next`
+  takes none and the run records the file's. A subagent that ends with no
+  message is reported with no answer.
+- **A headless prompt** (`fetch`). `claude -p` once per page with its input
+  closed: the text as the system prompt, the rendered entry as the prompt, the
+  model and the effort it was told, a JSON schema for the answer (`saved`,
+  `blocked` or `not_saved`, and the script's one line), a spending limit, no
+  MCP configuration but an empty one of its own (so no connector's tools
+  load), the owner's browser (`--chrome`), and no tool but the browser's tabs,
+  navigation and script. Nobody is there to approve a browser action, so the
+  launcher refuses it and no page is saved this way: it is the launcher for a
+  task that needs no approval.
+
+The answer is checked, never believed. After a launcher returns, whatever it
 returned, `collect` runs, and the run's outcome is what code finds: `no_answer`
 (the launcher timed out, failed or gave no result, and no page came in:
 a holder's silence), `invalid` (a result whose answer is not the schema's),
@@ -438,16 +466,19 @@ row says what the model reported. Where the report and the finding differ (the
 model says saved and no page of the step's came in, or says not saved and one
 did), the row is marked and its note says how.
 
-Every launch is a row of `task_run`, insert-only: the kind of task, the
-holder, the steps, the task as rendered, the text's sha256, the model and the
-effort asked for, the tokens, cost, turns and time the launcher reported with
-its per-model usage, how the run ended (the launcher's own terminal reason, or
-`timeout`, `exit <n>`, `no result`), the tools it was denied, the answer, the
-outcome, and the `search_log` row the page's attach wrote. These measures say
-what a task costs at a model and never reach a card. `tools/run_task.py show`
-prints the rendered tasks and launches nothing; which model and effort a task
-gets is the caller's to say on the command line, and a gravestone photograph
-(`tools/save_image.js`) is not yet a task.
+Every launch is a row of `task_run`, insert-only: the launcher, the kind of
+task, the holder, the steps, the task as rendered, the text's sha256, the
+model and the effort, what the launcher measured, how the run ended (the
+launcher's own terminal reason, or `timeout`, `exit <n>`, `no result`), the
+answer, the outcome, and the `search_log` row the page's attach wrote. The
+headless launcher reports tokens in and out, cost, turns, time, per-model
+usage and the tools it refused; a session is given one token count, the tool
+uses and the time, and the other columns stay empty. The total of tokens is
+the one measure both give. These measures say what a task costs at a model
+and never reach a card. `tools/run_task.py show` prints the rendered tasks
+and launches nothing; which model a task gets is the caller's to say on the
+command line, and a gravestone photograph (`tools/save_image.js`) is not yet
+a task.
 
 **When the site blocks the fetch.** When a source answers a page save or a
 search in the owner's browser with a challenge or a sign-in (the script's

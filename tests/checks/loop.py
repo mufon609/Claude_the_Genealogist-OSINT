@@ -338,14 +338,20 @@ def a_task(w, x):
     that status and prints nothing), or `captured` a fixture holding a launcher's own output, printed as it was captured. `saves`
     is a real page that comes into the data root's downloads/ while the launcher runs, as the owner's browser leaves it: a
     `fixture` under the entry's own file name (or `name`), with the entry's key written under its saved-from line when `key` is
-    true. The run's row as run_fetch returns it, and the command the launcher was started with."""
+    true. The run's row as run_fetch returns it, and the command the launcher was started with.
+
+    With `session` the task goes through the session's launcher instead, no process started: run_task.hand_out on the entry, the
+    page under `saves` coming in while the task is out, then run_task.report_done with what a session reported of its subagent:
+    `{"captured": fixture}`, a file `tools/run_task.py done --out` wrote (the answer as it came, the tokens, the tool uses, the
+    time), or `"silent"`, a subagent that ended with no message and no measures. The result adds `handout`, the words the session
+    was handed, `state` the task as written beside the database, `out_twice` the refusal of a second task while one is out, and
+    `done_twice` the refusal of a second report."""
     import subprocess, run_task
     from fetches import openable
     sid = w.step(x["step"])["id"]
     e = next(e for e in openable(w.cx, w.tid) if sid in e["step_ids"])
     seen = {}
-    def stand_in(cmd, timeout, cwd):
-        seen["cmd"] = cmd
+    def comes_in():
         if x.get("saves"):
             page = x["saves"]
             data = w.fixture_bytes(page)
@@ -355,6 +361,27 @@ def a_task(w, x):
                 data = top + nl + f"<!-- for steps {','.join(e['serves'])} -->\n".encode() + rest
             with open(os.path.join(w.treelib.downloads_dir(), page.get("name") or e["save_as"]), "wb") as fh:
                 fh.write(data)
+    def refusal(call):
+        try:
+            call()
+        except SystemExit as ex:
+            return str(ex)
+        return None
+    if "session" in x:
+        w.cx.commit()
+        state = run_task.hand_out(w.tid, w.db, e, x["model"])
+        out_twice = refusal(lambda: run_task.hand_out(w.tid, w.db, e, x["model"]))
+        comes_in()
+        given = {}
+        if x["session"] != "silent":
+            with open(os.path.join(FIXTURES, x["session"]["captured"]), encoding="utf-8") as fh:
+                given = json.load(fh)
+        r = run_task.report_done(w.cx, w.tid, w.slug, w.db, BY, given.get("answer"), given.get("tokens"), given.get("tool_uses"), given.get("duration_ms"))
+        done_twice = refusal(lambda: run_task.report_done(w.cx, w.tid, w.slug, w.db, BY, None, None, None, None))
+        return {**r, "printed": run_task.run_line(r), "entry": e, "handout": run_task.handout(state), "state": state, "out_twice": out_twice, "done_twice": done_twice}
+    def stand_in(cmd, timeout, cwd):
+        seen["cmd"] = cmd
+        comes_in()
         if x.get("silent") == "timeout":
             raise subprocess.TimeoutExpired(cmd, timeout)
         if "silent" in x:
@@ -367,7 +394,7 @@ def a_task(w, x):
     cmd = seen.get("cmd") or []
     after = lambda flag: cmd[cmd.index(flag) + 1] if flag in cmd else None
     return {**r, "printed": run_task.run_line(r), "entry": e,
-            "command": {"flags": [c for c in cmd if c.startswith("-")], "model": after("--model"), "effort": after("--effort"), "tools": after("--tools"), "budget": after("--max-budget-usd"),
+            "command": {"flags": [c for c in cmd if c.startswith("-")], "mcp_config": after("--mcp-config"), "model": after("--model"), "effort": after("--effort"), "tools": after("--tools"), "budget": after("--max-budget-usd"),
                         "prompt": after("-p"), "system_prompt_is_the_text": after("--system-prompt") == run_task.task_text("fetch")[0], "schema": json.loads(after("--json-schema") or "null")}}
 
 ACTIONS.update({"task": a_task, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
@@ -535,7 +562,7 @@ def e_task_run(w, x, want):
         r["text_is_current"] = r["task_text_sha256"] == run_task.task_text(r["task_kind"])[1]
         log = w.cx.execute("SELECT l.outcome, sp.step_key FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.id=?", (r["search_log_id"],)).fetchone()
         r["log"] = dict(log) if log else None
-    return has(rows, w.value(x["is"])), [{k: r[k] for k in ("task_kind", "holder_id", "model", "effort", "ended", "outcome", "differs", "cost_usd", "turns", "input_tokens", "output_tokens", "answer", "note", "log")} for r in rows]
+    return has(rows, w.value(x["is"])), [{k: r[k] for k in ("launcher", "task_kind", "holder_id", "model", "effort", "ended", "total_tokens", "tool_uses", "outcome", "differs", "cost_usd", "turns", "input_tokens", "output_tokens", "answer", "note", "log")} for r in rows]
 
 EXPECTS.update({"task_run": e_task_run, "queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows, "fetch_call": e_fetch_call,
                 "place": e_place, "place_card": e_place_card, "place_group": e_place_group, "same_place": e_same_place, "event_place": e_event_place, "file_exists": e_file_exists})

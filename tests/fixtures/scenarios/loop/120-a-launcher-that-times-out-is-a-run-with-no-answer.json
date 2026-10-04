@@ -41,6 +41,8 @@
         "--permission-prompts",
         "--max-budget-usd",
         "--no-session-persistence",
+        "--strict-mcp-config",
+        "--mcp-config",
         "--chrome"
        ],
        "model": "haiku",
@@ -62,10 +64,11 @@
          "})(\"findagrave-memorial-143847338.html\", false, \""
         ],
         "ends": "\")\n"
-       }
+       },
+       "mcp_config": "{\"mcpServers\":{}}"
       }
      },
-     "why": "the launcher's command is the task: the kind's text, the entry rendered with the script's call in place of the one that ends it, and the limits"
+     "why": "the launcher's command is the task: the kind's text, the entry rendered with the script's call in place of the one that ends it, and the limits; no MCP configuration but an empty one is read, so no connector's tools load"
     },
     {
      "task_run": {
@@ -96,7 +99,8 @@
         "log": null,
         "note": {
          "has": "timeout"
-        }
+        },
+        "launcher": "headless"
        }
       ]
      },

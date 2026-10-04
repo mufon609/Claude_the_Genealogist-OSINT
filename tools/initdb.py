@@ -270,6 +270,17 @@ def task_runs(cx: sqlite3.Connection) -> None:
         script = script.replace(f"CREATE {word} ", f"CREATE {word} IF NOT EXISTS ")   # a catalog born with the table, replaying its migrations, keeps it
     cx.executescript(script)
 
+def task_launchers(cx: sqlite3.Connection) -> None:
+    """task_run.launcher, total_tokens and tool_uses, as schema/catalog.sql defines them: a run names the launcher that started it
+    (every row before this one was the headless launcher's) and carries the one token count both launchers give. No row changes."""
+    have = [r[1] for r in cx.execute("PRAGMA table_info(task_run)")]   # a catalog whose task_run a later replay made from today's DDL has them
+    if "launcher" not in have:
+        cx.execute("ALTER TABLE task_run ADD COLUMN launcher TEXT NOT NULL DEFAULT 'headless' CHECK (launcher IN ('headless','session'))")
+    if "total_tokens" not in have:
+        cx.execute("ALTER TABLE task_run ADD COLUMN total_tokens INTEGER")
+    if "tool_uses" not in have:
+        cx.execute("ALTER TABLE task_run ADD COLUMN tool_uses INTEGER")
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -297,6 +308,8 @@ MIGRATIONS = [
      [insert_only]),
     ("0.8.2", "task_run: one insert-only row per model launched on a step no connector can take (tools/run_task.py), with the launcher's measures, the outcome as code judged it and the search_log row the run produced",
      [task_runs]),
+    ("0.8.3", "task_run.launcher, total_tokens, tool_uses: a run names what started it, a headless prompt or a session's subagent, and carries the measures a session is given",
+     [task_launchers]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

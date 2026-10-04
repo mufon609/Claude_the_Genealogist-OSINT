@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, the evidence layer,
-the research log and the audit trail are insert-only, every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
+the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
 usage: tools/check.py [--verbose] [--show] [--keep] [--scenario NAME]
@@ -442,6 +442,13 @@ def compiles():
         except py_compile.PyCompileError as e: bad.append(f"{f}: {e.msg.splitlines()[0]}")
     return bad
 
+def claude_files():
+    """The agent and skill files under .claude/ are what code writes (tools/run_task.py claude_files: the kind's one text, its
+    answer's form, its tools, the session's part): a file edited by hand, or left behind when the text, the tools or the schema
+    changed, differs and is named."""
+    import run_task
+    return [f"{path} differs from what code would write: python3 tools/run_task.py write" for path in run_task.stale_files()]
+
 class OkLines:
     """stdout that counts the `ok` lines of the checks and prints them only when asked; every other line (a FAIL with its
     reasons, --show's detail, a kept scratch path) prints as it comes."""
@@ -469,6 +476,8 @@ def every_check(a):
     print("ok   the evidence, the research log, the record of task runs and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on extraction and search_log is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
     bad_db = data_root(); bad += bool(bad_db)
     print("ok   the data root: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT, a --db outside it is refused, and collect takes saved pages from <DATA_ROOT>/downloads/, never the home's download folder" if not bad_db else "FAIL data root: " + "; ".join(bad_db))
+    bad_claude = claude_files(); bad += bool(bad_claude)
+    print("ok   the agent and skill files under .claude/ are the ones code writes from the task kind's text, its answer schema and its tool list" if not bad_claude else "FAIL claude files: " + "; ".join(bad_claude))
     bad += parsers.check(a.keep, a.show)
     bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
     bad += loop.check(a.keep, a.show)

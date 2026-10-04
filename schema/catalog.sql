@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.2
+-- tree catalog schema  v0.8.3
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -535,8 +535,8 @@ CREATE TABLE search_log (
 CREATE INDEX ix_search_log_step ON search_log(plan_step_id);
 CREATE INDEX ix_search_log_question ON search_log(question_id);
 
--- A model launched on a step no connector can take (tools/run_task.py; docs/DATA-ARCHITECTURE.md decision 16), one row per
--- launch, insert-only. The measures are the launcher's own report; the outcome is what code found, never what the model
+-- A model launched on a step no connector can take (tools/run_task.py; docs/DATA-ARCHITECTURE.md decisions 16 and 19), one row per
+-- launch, insert-only, whichever launcher started it. The measures are the launcher's own report; the outcome is what code found, never what the model
 -- reported. These numbers say what a task costs at a model and never reach a card.
 CREATE TABLE task_run (
   id                 TEXT PRIMARY KEY,
@@ -550,7 +550,7 @@ CREATE TABLE task_run (
   effort             TEXT NOT NULL,
   started_at         TEXT NOT NULL,
   launched_by        TEXT NOT NULL,                        -- agent:run_task | agent:<session> for user:<name>
-  input_tokens       INTEGER,                              -- every model's input, cache reads and writes included; NULL when the launcher gave no result
+  input_tokens       INTEGER,                              -- every model's input, cache reads and writes included; NULL when the launcher gave no result, and from a session, which is given one total
   output_tokens      INTEGER,
   cost_usd           REAL,
   turns              INTEGER,
@@ -562,7 +562,10 @@ CREATE TABLE task_run (
   outcome            TEXT NOT NULL CHECK (outcome IN ('no_answer','invalid','nothing','mismatch','unread','none','read','card','taken')),
   differs            BOOLEAN NOT NULL,                     -- the model's report and code's finding differ; note says how
   note               TEXT,
-  search_log_id      TEXT REFERENCES search_log(id)        -- the run the page's attach logged on a step of the task
+  search_log_id      TEXT REFERENCES search_log(id),       -- the run the page's attach logged on a step of the task
+  launcher           TEXT NOT NULL DEFAULT 'headless' CHECK (launcher IN ('headless','session')),   -- what started the task and returned its measures: a headless prompt, or a session's subagent
+  total_tokens       INTEGER,                              -- every token the launcher reported, in and out: the one number both launchers give
+  tool_uses          INTEGER                               -- the tool calls the session counted for its subagent; NULL from the headless launcher, which reports turns
 );
 CREATE INDEX ix_task_run_kind ON task_run(task_kind, holder_id, model, effort);
 

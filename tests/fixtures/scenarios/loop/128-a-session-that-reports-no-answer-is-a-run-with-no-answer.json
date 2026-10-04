@@ -1,0 +1,101 @@
+{
+ "title": "a task handed to a session and reported done with no answer is a run with no answer, by the same judge",
+ "line": "the session's launcher: the memorial's task handed out (the agent, the model and the task as rendered, written beside the database), a second task refused while it is out, then reported done with no message and no measures: a task_run row of the session launcher at the agent file's effort, ended no result, its outcome no_answer, no run logged on the step, the task no longer out and a second report refused",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the memorial's task handed to a session whose subagent ends with no message: the harness's stand-in for a launcher that does not answer",
+   "task": {
+    "step": {
+     "person": {
+      "name": "John Young Davidson"
+     },
+     "holder": "E01",
+     "kind": "fetch"
+    },
+    "session": "silent",
+    "model": "haiku"
+   },
+   "expect": [
+    {
+     "last": {
+      "launcher": "session",
+      "outcome": "no_answer",
+      "ended": "no result",
+      "search_log": null,
+      "handout": {
+       "starts": "agent: tree-fetch\nmodel: haiku\nprompt:\nlink: https://www.findagrave.com/memorial/143847338/\nfile: findagrave-memorial-143847338.html\nscript:\n// The page saves itself",
+       "ends": "\")\n"
+      },
+      "state": {
+       "model": "haiku",
+       "effort": "low",
+       "opened": {
+        "task": {
+         "file": "findagrave-memorial-143847338.html"
+        },
+        "before": []
+       }
+      },
+      "out_twice": {
+       "has": [
+        "a task is out",
+        "findagrave-memorial-143847338.html",
+        "tools/run_task.py done"
+       ]
+      },
+      "done_twice": {
+       "has": "no task is out"
+      }
+     },
+     "why": "the session is handed the same rendered task the headless launcher is started with, one task is out at a time, and a report closes it"
+    },
+    {
+     "task_run": {
+      "is": [
+       {
+        "launcher": "session",
+        "task_kind": "fetch",
+        "holder_id": "E01",
+        "model": "haiku",
+        "effort": "low",
+        "ended": "no result",
+        "outcome": "no_answer",
+        "differs": false,
+        "cost_usd": null,
+        "turns": null,
+        "input_tokens": null,
+        "total_tokens": null,
+        "tool_uses": null,
+        "answer": null,
+        "text_is_current": true,
+        "log": null,
+        "note": {
+         "has": "the launcher gave no result"
+        }
+       }
+      ]
+     },
+     "why": "judging and recording do not know which launcher ran the task: a silent subagent is a holder's silence"
+    },
+    {
+     "search_log": {
+      "step": {
+       "person": {
+        "name": "John Young Davidson"
+       },
+       "holder": "E01",
+       "kind": "fetch"
+      },
+      "is": []
+     },
+     "why": "no run is logged on the step"
+    }
+   ]
+  }
+ ]
+}
