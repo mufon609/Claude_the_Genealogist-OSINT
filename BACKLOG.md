@@ -890,9 +890,12 @@ triggers, so hard rule 2 would stand on nothing after a port. And the
 one-time corrections in `initdb.py` (0.7.3 to 0.7.9) import today's `plan`,
 `conclude` and `catalog`, while `rebuild_table` reads today's DDL and commits
 in the middle of a migration, so an old backup migrated later runs today's
-logic and a failure leaves a version half applied and unrecorded. Make the DDL
-order right, list every construct the port must change, carry the triggers
-over, and make each migration one transaction that names the code it needs.
+logic and a failure leaves a version half applied and unrecorded. `rebuild_table`
+also drops a rebuilt table's triggers, harmless while every rebuild comes
+before the 0.8.1 triggers but not for a later migration that rebuilds a
+protected table. Make the DDL order right, list every construct the port must
+change, carry the triggers over (and recreate them after any rebuild), and
+make each migration one transaction that names the code it needs.
 
 ### C43. A reader in the loop
 
