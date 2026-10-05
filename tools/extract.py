@@ -10,7 +10,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.7.1; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.7.2; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -88,7 +88,8 @@ page labels them (Name, Sex, Age, Birth Date, Birthplace, Marital Status, Race,
 Relationship to Head of Household, Father's Birthplace, Mother's Birthplace,
 Event Type, Event Date, Event Place, Event Place (Original), and the sheet and
 line). Event Date and Event Place become one fact of the event's type (a Census
-event is a Residence); Event Place (Original) and the parents' birthplaces stay
+event and a Draft Registration are a Residence: the card's registration is where
+the registrant lived on its date); Event Place (Original) and the parents' birthplaces stay
 as Unknown facts under their labels; identifiers stay in structured_json. A
 field's value is read as shown, and each value the field keeps collapsed beneath
 it (a display:none panel, FamilySearch's edit history: Norristown beneath
@@ -106,7 +107,10 @@ Grandmother), sex, age and birthplace from the row, the member's own details
 table as its facts (its Event Date and Event Place the record's own event, of
 the collection's kind where no Event Type row names one, as the subject's are),
 its record ark in region_json, and one relation from the
-member to the subject with the role word as written (relation_kind); a NUMIDENT
+member to the subject with the role word as written (relation_kind); the one
+person a draft registration card's page lists under the registrant's Extended
+Family carries no word, and is read as the registrant's nearest relative, the
+person the card names under that heading; a NUMIDENT
 record's own Parents and Siblings table carries no role word at all, and its
 two rows are read as parent relations, that collection's application naming
 only the parents there. Those tables are FamilySearch's grouping around the
@@ -163,7 +167,7 @@ from conclude import assert_facts, carry, join_copies, link_family
 from catalog import is_identity, page_entries
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.7.1"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.7.2"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.2.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -172,7 +176,7 @@ EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("r
 RESULTS_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search", "va-gravesite", "nj-death-index", "ky-death-index", "ky-birth-index")   # the extractors that read a results listing, one persona per row: a row's own record is the document (docs/RESEARCH-WORKFLOW.md §0), so a listing on which no row fits anyone is a none run (§4), its rows kept on the artifact as candidates
 POINTING_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search")   # the listings that point at a record and are not one: a fitting row leaves a fetch step planned and its own page is the next fetch; the gravesite locator's and the death index's listings are the record (§4) and are not here
 NJ_DEATH_FIELDS = ["FNAME", "LNAME", "MIDDLE_NAME", "STATE_FILE_NUMBER", "BIRTH_YEAR", "BIRTH_MONTH", "BIRTH_DAY", "BIRTH_CITY", "BIRTH_STATE", "BIRTH_COUNTRY", "DEATH_YEAR", "DEATH_MONTH", "DEATH_DAY", "DEATH_STATE"]
-EVENT_TYPES = {"census": "Residence", "residence": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial", "naturalization": "Naturalization"}
+EVENT_TYPES = {"census": "Residence", "residence": "Residence", "draft registration": "Residence", "birth": "Birth", "death": "Death", "marriage": "Marriage", "burial": "Burial", "naturalization": "Naturalization"}
 
 # field label -> (fact_type, part): part is 'date', 'place' or 'value'
 LABELS = [
@@ -593,6 +597,12 @@ def relation_kind(role, section, collection):
     if not role and "numident" in (collection or "").lower() and (section or "").endswith("Parents and Siblings"): return "parent"
     return household_kind(role)
 
+def unworded_role(event, section):
+    """The word for a relatives-table row that carries none, where the record's own kind gives one: a draft registration
+    card names one person, the registrant's nearest relative, and the page files that person under the registrant's Extended
+    Family with no word beside the name."""
+    return "nearest relative" if event == "draft registration" and (section or "").endswith("Extended Family") else ""
+
 class Writer:
     def __init__(self, cx, sha, extraction_id):
         self.cx, self.sha, self.eid, self.n = cx, sha, extraction_id, {"personas": 0, "facts": 0, "relations": 0, "place_strings": 0}
@@ -960,6 +970,7 @@ def write_record(w, parsed):
     write_facts(w, subject, by_type)
     members_written = []
     for seq, m in enumerate([x for x in parsed["members"] if names_someone(x["name"])], 2):
+        m = {**m, "role": m["role"] or unworded_role(event, m["section"])}
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf, EVENT_TYPES.get(kind_word), m.get("alternates") or [])   # a member's own details carry the record's event as the subject's do
         calc_census_birth(mb, is_census)

@@ -770,7 +770,7 @@ memorial's subject, and in the parsed page every photograph with the type the
 page gives it; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
-`rule:familysearch-record@0.7.1` (one persona per person the page names, in
+`rule:familysearch-record@0.7.2` (one persona per person the page names, in
 the page's own role word, a relative given one name only (Thomas, Davidson)
 included with the name as written, a row with no name in it (", [1918]") or
 the index's UNKNOWN none; one fact per field as written, a member's own
@@ -797,7 +797,11 @@ the subject's father- or mother-in-law as a parent of the subject's spouse on
 the page, the record naming each party's parents (the bride's father is hers);
 and on a page whose leading line says "Mentioned in the Record of" another
 person, the page's own person being that person's relative, that person's row
-alone. Every other grouping FamilySearch's relatives tables make around the
+alone; a draft registration's Event Date and Event Place a Residence on that
+date (the card is filed where the registrant lived), and the one person its
+page lists under the registrant's Extended Family, with no word of its own, a
+nearest relative, the row marked computed like any other of that table.
+Every other grouping FamilySearch's relatives tables make around the
 page's own person (on a census page whose own person is not the head, every
 one, since a census states only the relationship to the head and a member's row
 gives FamilySearch's word, not the column, and on the head's page a row with a

@@ -22,14 +22,37 @@
     {
      "type": "Race",
      "value": "White"
+    },
+    {
+     "type": "Residence",
+     "date": "from 1917 to 1918",
+     "place": "Northampton, Hampshire, Massachusetts"
     }
    ],
-   "why": "the registrant's own card: his name, sex and date of birth as the index gives them"
+   "why": "the registrant's own card: his name, sex and date of birth as the index gives them, and the registration as the residence it is on its date, in the place it was made",
+   "no_facts": [
+    {
+     "type": "Unknown",
+     "value_starts": "Event Date"
+    },
+    {
+     "type": "Unknown",
+     "value_starts": "Event Place: "
+    }
+   ]
   },
   "2": {
    "name": "Francis Ahearn",
-   "role": "",
-   "why": "the one person the page lists under the registrant's extended family, with no word for what he is to him"
+   "role": "nearest relative",
+   "relations": [
+    {
+     "kind": "other",
+     "to": 1,
+     "value": "nearest relative",
+     "computed": true
+    }
+   ],
+   "why": "the one person the page lists under the registrant's extended family, with no word beside the name: the card names the registrant's nearest relative"
   }
  }
 }
