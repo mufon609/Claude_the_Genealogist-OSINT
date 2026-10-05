@@ -1,0 +1,70 @@
+{
+ "title": "a turn whose collect finishes a waiting person's turn is counted in the summary",
+ "line": "a page saved for a person who waits that comes in while the runner goes on is taken by the tail of the turn then running, which finishes the waiting person's turn: the run's summary names them among those finished, as it names the ones its opening resume finished; and a person the queue names again whose last turn left them holding fewer records than before held nothing new, and is passed over",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so the grandfather is at the edge",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": ["I332737035563", "I332737044283"],
+    "kind": "child",
+    "record": "import"
+   }
+  },
+  {
+   "say": "a run's count in which the home person, the queue's first, had a turn that left him holding one record fewer than before (a reconsider that withdrew an acceptance holds fewer)",
+   "next_person": {
+    "turns": [{"person": "I332737035562", "held_before": 2, "held_after": 1}]
+   },
+   "expect": [
+    {
+     "last": {"named": {"not": "Matthew Alan Ahearn"}, "passed": ["Matthew Alan Ahearn"], "reasons": ["named again by the queue, and the last turn on them held nothing new"]},
+     "why": "fewer records held is nothing new: the queue's naming him again does not run him again"
+    }
+   ]
+  },
+  {
+   "say": "a turn on the grandfather: two pages for the browser, and he waits on them",
+   "turn": {
+    "person": "I332737036054",
+    "geocoder_silent": true
+   },
+   "expect": [
+    {"turn_state": {"person": "I332737036054", "is": {"steps": {"len": 2}}}, "why": "his entry, the steps of the two pages he waits on"}
+   ]
+  },
+  {
+   "say": "the next run, one turn: nothing saved yet when it opens, and his 1940 census household saved from the list's call, its key under the saved-from line, while the turn runs",
+   "turns": {
+    "geocoder_silent": true,
+    "turns": 1,
+    "arrives": {
+     "holder": "D03",
+     "person": "I332737036054",
+     "url_has": "residenceDate.from=1940",
+     "fixture": "familysearch-census-1940-KQX1-VT9.html",
+     "folder": "downloads",
+     "key": true
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {"has": ["resume: nothing saved in the browser has come in", "], finished on the pages saved for them"]},
+      "summary": {"has": ["1 turn(s) run", "finished on the pages saved for them:\n  Frederick Micheal Ahearn Jr ["]}
+     },
+     "why": "the turn's tail took the page and finished his turn, and the summary counts it"
+    },
+    {
+     "turns_run": {"finished": ["I332737036054"]},
+     "why": "the run's count carries the person a later turn's tail finished"
+    }
+   ]
+  }
+ ]
+}

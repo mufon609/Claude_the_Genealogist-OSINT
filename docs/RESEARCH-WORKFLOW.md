@@ -1634,8 +1634,9 @@ the next person's turn: a run or a part of the tail that fails is named in the
 turn's report as above, and a turn that fails anywhere else stops there, what
 it had not committed rolled back, is named with its exception, and its person
 is passed over for the rest of the run with that reason. A person the
-queue names again whose last turn held nothing new for them is passed over
-for the rest of the run with that reason. The run's own count (the turns run, each
+queue names again whose last turn held nothing new for them (no more records
+held after it than before: a reconsider that withdraws an acceptance holds
+fewer) is passed over for the rest of the run with that reason. The run's own count (the turns run, each
 person's held count before and after, the passed-over, the inbox files already
 named) lives in the run and ends with it; it writes nothing of its own to the
 catalog. A connector's challenge is an error run, the source did not answer,
@@ -1643,7 +1644,8 @@ and the turn goes on: a challenge or maintenance page served in place of the
 answer, which no reader of the connector parses, is archived as it came and
 logged error with the reader's exception in the note, the step left runnable; a challenge in the browser is the session's pause,
 outside the runner. Its summary says, in words, the turns run, the turns of
-people who waited that it finished, the people this run passed over and why,
+people who waited that it finished (in its opening resume, or in a turn's tail
+when a page of theirs came in while the run went on), the people this run passed over and why,
 the people who wait on pages to save in the browser with how many pages
 (`tools/fetches.py next` names them; the next run takes what is saved), and
 what is left for the owner as counts by kind

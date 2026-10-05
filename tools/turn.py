@@ -501,16 +501,16 @@ def start(cx, tree_id, slug, pid, by, db, reported=None):
     return tail
 
 def start_guarded(cx, tree_id, slug, pid, by, db, reported=None):
-    """One turn (start) that fails outside its runs and its tail's parts stops there: what it had not committed is rolled back,
-    the failure printed with its exception, and its text returned; None when the turn ran."""
+    """One turn (start) that fails outside its runs and its tail's parts stops there: what it had not committed is rolled back
+    and the failure printed with its exception. Returns (the tail, None) when the turn ran, its tail naming the people who
+    waited whose turns it finished (credited); (None, the failure's text) when it stopped."""
     try:
-        start(cx, tree_id, slug, pid, by, db, reported=reported)
-        return None
+        return start(cx, tree_id, slug, pid, by, db, reported=reported), None
     except (Exception, SystemExit) as ex:
         if cx.in_transaction: cx.rollback()
         why = f"the turn failed ({type(ex).__name__}: {ex}): it stopped there, what it had not committed rolled back"
         print(f"turn: {pid_name(cx, pid)}\n\n{why}")
-        return why
+        return None, why
 
 def resume(cx, tree_id, slug, by, db, reported=None):
     """Whatever has been saved in the browser taken in, each file credited, and the turns of the people who wait that it
@@ -536,6 +536,6 @@ def main():
     if a.resume: resume(cx, tree_id, slug, a.by, a.db)
     else:
         cat = Catalog(cx, tree_id); pid = cat.find_person(a.who)
-        if start_guarded(cx, tree_id, slug, pid, a.by, a.db): sys.exit(1)
+        if start_guarded(cx, tree_id, slug, pid, a.by, a.db)[1]: sys.exit(1)
 
 if __name__ == "__main__": main()

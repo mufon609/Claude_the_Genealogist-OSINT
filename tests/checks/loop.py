@@ -151,19 +151,36 @@ def a_resume(w, x):
 def a_turns(w, x):
     """tools/turns.py: what was saved taken in, then turn after turn from the queue, run_step.run standing in for the network as
     the data says (fake_run, as a turn's), the geocoder's answers and Wikidata's items planted as a turn's are, the stand-ins
-    under `fails` as a turn's, --turns as `turns` says, the pages `inbox` names dropped into the inbox first; what it
-    printed, the summary, the run's count as it ended, the entries of the people who wait, and a refusal's text when it exited."""
-    import run_step, turns
+    under `fails` as a turn's, --turns as `turns` says, the pages `inbox` names dropped into the inbox first, and the page
+    `arrives` gives (as `save` takes it) saved into a download folder once the run's opening resume is over, as the owner's
+    browser saves a page while the runner goes on; what it printed, the summary, the run's count as it ended, the entries of
+    the people who wait, and a refusal's text when it exited."""
+    import run_step, turn, turns
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
     plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO(); refused = None; st = None
-    with patched(run_step, "run", fake_run), silence(x), failing(x), contextlib.redirect_stdout(buf):
+    real_resume = turn.resume
+    def resume_then_save(*a, **k):
+        tail = real_resume(*a, **k)
+        if x.get("arrives"): scenario.a_save(w, x["arrives"])
+        return tail
+    with patched(run_step, "run", fake_run), patched(turn, "resume", resume_then_save), silence(x), failing(x), contextlib.redirect_stdout(buf):
         try: st = turns.run(w.cx, w.tid, w.slug, BY, w.db, turns=x.get("turns"))
         except SystemExit as e: refused = str(e)
     out = buf.getvalue()
     return {"printed": out, "summary": out.split("\nloop:", 1)[1] if "\nloop:" in out else "", "state": st, "turn_state": state_of(w),
             "seen": seen, "refused": refused, "turn_people": [t["person"] for t in (st or {}).get("turns", [])], "passed_people": [p["person"] for p in (st or {}).get("passed", [])]}
+
+def a_next_person(w, x):
+    """tools/turns.py's next_person on a run's count the data gives (`turns`: each turn's `person` and its held count before and
+    after, as the runner keeps them in the run): the person it names next and the people it passes over, by name, with the
+    reasons."""
+    import turns
+    st = {"turns": [{"person_id": w.person(t["person"]), "person": w.name_of(w.person(t["person"])), "held_before": t["held_before"], "held_after": t["held_after"]} for t in x.get("turns", [])],
+          "passed": [], "finished": []}
+    e = turns.next_person(w.cx, w.tid, st, w.db)
+    return {"named": e["name"] if e else None, "passed": [p["person"] for p in st["passed"]], "reasons": [p["reason"] for p in st["passed"]]}
 
 def a_clear_state(w, x):
     import turn; turn.write_state(w.db, []); return {}
@@ -421,7 +438,7 @@ def a_task(w, x):
             "command": {"flags": [c for c in cmd if c.startswith("-")], "mcp_config": after("--mcp-config"), "model": after("--model"), "effort": after("--effort"), "tools": after("--tools"), "budget": after("--max-budget-usd"),
                         "prompt": after("-p"), "system_prompt_is_the_text": after("--system-prompt") == run_task.task_text("fetch")[0], "schema": json.loads(after("--json-schema") or "null")}}
 
-ACTIONS.update({"task": a_task, "save_names": a_save_names, "browser_script": a_browser_script, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turn_by_hand": a_turn_by_hand, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
+ACTIONS.update({"task": a_task, "save_names": a_save_names, "browser_script": a_browser_script, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turn_by_hand": a_turn_by_hand, "turns": a_turns, "resume": a_resume, "next_person": a_next_person, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
                 "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 
@@ -469,7 +486,7 @@ def e_turns_run(w, x, want):
     waiting_now = {e["person_id"] for e in state_of(w)}
     turns = []
     for t in st.get("turns", []):
-        nothing_new = t.get("held_after") == t["held_before"]
+        nothing_new = t.get("held_after") is not None and t["held_after"] <= t["held_before"]
         turns.append({"person": t["person_id"], "nothing_new": nothing_new, "failed": bool(t.get("failed")), "waits": t["person_id"] in waiting_now})
     got = {"turns": turns, "passed": [p["person_id"] for p in st.get("passed", [])], "finished": [p["person_id"] for p in st.get("finished", [])]}
     ok = True

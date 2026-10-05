@@ -348,8 +348,11 @@ under `geocoder` and Wikidata's items under `wikidata` planted for the turn's re
 harness's stand-ins for the runner's or the turn's own work failing: `reading` every record's reading raising, `requests` the connector
 named unable to build its requests, `reconsider` the tail's reconsider raising; what it printed, `left` the report from its
 `left:` on, and `state`, the entries of the people who wait as the file beside the database holds them), `task` (`tools/run_task.py`'s run of one fetch task, on the fetch list's entry serving a `step`, at a `model` and `effort`: the launcher's process alone replaced, by `silent` (`timeout`, or `exit` with its status) or by `captured`, a fixture holding a launcher's own output; `saves` a real page that comes into the data root's `downloads/` while the launcher runs, or a list of them, a `fixture` under the entry's name (or `name`), with the entry's key when `key`; the result is the run as the tool returns it, `printed` as it prints it and `command`, what the launcher was started with; with `session` the task goes through the session's launcher and no process is started: handed out, the page under `saves` coming in while it is out, then reported done with `{"captured": fixture}`, a session's own report as `tools/run_task.py done --out` wrote it, or `"silent"`, a subagent that ended with no message; the result adds the `handout` the session was handed, the `state` written beside the database, and `out_twice` and `done_twice`, the refusals of a second task while one is out and of a second report), `turns` (`tools/turns.py` the same way: `turns` for --turns,
-`inbox` the pages dropped into the inbox first; what it printed, its summary, the run's count as it ended, `turn_state` the entries of
-the people who wait, a refusal's text), `resume` (pages
+`inbox` the pages dropped into the inbox first, `arrives` a page saved as `save` saves one once the run's opening resume is over,
+as the owner's browser saves a page while the runner goes on; what it printed, its summary, the run's count as it ended, `turn_state`
+the entries of the people who wait, a refusal's text), `next_person` (`tools/turns.py`'s choice of the next person on a run's count
+the data gives, `turns` each with its `person` and the held count `held_before` and `held_after`: the person `named` and those
+`passed` over, by name, with the `reasons`), `resume` (pages
 into the inbox and the answers planted as a turn's, then `--resume`; its report, `finished` the people who waited whose turns it finished, and with a turn's printed report `reopens`, the question ids the report names for `tools/conclude.py reopen`), `clear_state`, `old_turn_state` (the
 state beside the database written in the one-turn shape, a turn on `person` paused at `at`, its keys as the owner's own state file holds
 them), `run` (one step through `tools/run_step.py` and its real connectors, only the network call
@@ -371,7 +374,7 @@ and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`: by person, or a list of `[person, pattern]` pairs for a person the rule created; the
 people who wait read as the tool reads them), `runnable`, `turn_state` (the entries of the people who wait: with `person` that person's,
 matching `is`, or none with `is` null; without, `is` null for nobody waiting), `task_run` (the `task_run` rows in the order written, matching `is`: each with its `launcher`, `steps`, `task`, `usage` and `answer` read from their JSON, `text_is_current` saying its hash is the task text's own, and `log`, the `search_log` row it names as its step's key and outcome), `turns_run` (the runner's turns in
-order, each `person`, `nothing_new`, `failed`, `waits` (whether the person waits on pages now), its `passed` / `not_passed`, and
+order, each `person`, `nothing_new` (no more records held after the turn than before), `failed`, `waits` (whether the person waits on pages now), its `passed` / `not_passed`, and
 `finished`, the people who waited whose turns the run finished), `locator_known`, `steps_by_collection`,
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
 `wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' and the runner's contract; what they are asked with
@@ -458,6 +461,9 @@ The runner's runs are simulated where a scenario is about what happens after one
 - `fails`: a code path replaced by one that raises, saying it is the harness's stand-in: the extractor the runner calls
   (`reading`), a connector's `requests` (`requests`), the tail's `reconsider` (`reconsider`), for a run or a turn whose own work
   fails (loop `110`). No page, response or record is touched; the response the failed reading was given is a real one.
+- `turns` with `arrives`: a real page saved into the download folder after the run's opening resume, the moment a browser save
+  happens while the runner goes on being the only thing simulated (loop `115`); `next_person`: a run's count of turns and held
+  counts given as data, the runner's own state in the run and no record of anyone (loop `115`).
 - `old_turn_state`: the state beside the database written in the one-turn shape, its keys as the owner's own file holds them and
   its people the harness's own (loop `109`); no page or record of anyone.
 - `log`: a run written by hand, as a connector or a saved page would leave it, its outcome and its artifacts (real pages the
