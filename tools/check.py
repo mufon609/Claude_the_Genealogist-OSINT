@@ -469,6 +469,15 @@ def state_writes():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+def rule_kinds():
+    """The kinds of data/evidence-classes.csv the standing rule names in code (tools/conclude.py: the pre-1850 census that names
+    only the head, the register entry dated with the parents, the obituary that identifies through its survivors): a name no
+    kind of the file carries is named, since the rule's test on it would never meet a record."""
+    from catalog import evidence_table
+    from conclude import DATED_WITH_PARENTS, HEAD_ONLY, NAMED_SURVIVORS
+    named = {"HEAD_ONLY": HEAD_ONLY[0], "DATED_WITH_PARENTS": DATED_WITH_PARENTS, "NAMED_SURVIVORS": NAMED_SURVIVORS}
+    return [f"conclude.{n} names {k!r}, no kind of data/evidence-classes.csv" for n, k in named.items() if k not in evidence_table()]
+
 def claude_files():
     """The agent and skill files under .claude/ are what code writes (tools/run_task.py claude_files: the kind's one text, its
     answer's form, its tools, the session's part): a file edited by hand, or left behind when the text, the tools or the schema
@@ -507,6 +516,8 @@ def every_check(a):
     print("ok   every Connector value of the source registry names a module under tools/connectors/" if not bad_reg else "FAIL registry connectors: " + "; ".join(bad_reg))
     bad_state = state_writes(); bad += bool(bad_state)
     print("ok   the state kept beside a catalog is written whole: a write that fails midway leaves the file as it was, readable, with nothing of the write's beside it" if not bad_state else "FAIL state files: " + "; ".join(bad_state))
+    bad_kinds = rule_kinds(); bad += bool(bad_kinds)
+    print("ok   every kind the standing rule names in code (the census before 1850, the register entry dated with the parents, the obituary) is a kind of data/evidence-classes.csv" if not bad_kinds else "FAIL rule kinds: " + "; ".join(bad_kinds))
     bad_claude = claude_files(); bad += bool(bad_claude)
     print("ok   the agent and skill files under .claude/ are the ones code writes from the task kind's text, its answer schema and its tool list" if not bad_claude else "FAIL claude files: " + "; ".join(bad_claude))
     bad += parsers.check(a.keep, a.show)
