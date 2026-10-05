@@ -144,7 +144,7 @@ one (`catalog.statement_of`), so a page read again by a better parser reads by w
 taking the identity and never a fact; `hint`, the owner decides. A record takes the standing of the most specific of its
 kinds that gives one (`catalog.record_standing`), so a parser that serves many collections (`familysearch-record`, a
 reading) gives none and its collection's kind decides; a record no kind gives a standing is a hint. Three limits stay rules
-on the kinds: a `census household` before 1850 names only the head, an `obituary` is ground only through the
+on the kinds: a `census household` is ground only on a form `data/record-forms.csv` says names every member (one it holds no form of is a person's to read), an `obituary` is ground only through the
 relatives it names, and a `church register` entry is automated only when it is dated and names the parents.
 
 Where a genealogist could contest a row, the table reads the class that leaves the decision to a person

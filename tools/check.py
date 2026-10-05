@@ -532,12 +532,12 @@ def record_forms():
     return bad
 
 def rule_kinds():
-    """The kinds of data/evidence-classes.csv the standing rule names in code (tools/conclude.py: the pre-1850 census that names
-    only the head, the register entry dated with the parents, the obituary that identifies through its survivors): a name no
+    """The kinds of data/evidence-classes.csv the standing rule names in code (tools/conclude.py: the census, ground only on a form
+    that names every member, the register entry dated with the parents, the obituary that identifies through its survivors): a name no
     kind of the file carries is named, since the rule's test on it would never meet a record."""
     from catalog import evidence_table
-    from conclude import DATED_WITH_PARENTS, HEAD_ONLY, NAMED_SURVIVORS
-    named = {"HEAD_ONLY": HEAD_ONLY[0], "DATED_WITH_PARENTS": DATED_WITH_PARENTS, "NAMED_SURVIVORS": NAMED_SURVIVORS}
+    from conclude import CENSUS, DATED_WITH_PARENTS, NAMED_SURVIVORS
+    named = {"CENSUS": CENSUS, "DATED_WITH_PARENTS": DATED_WITH_PARENTS, "NAMED_SURVIVORS": NAMED_SURVIVORS}
     return [f"conclude.{n} names {k!r}, no kind of data/evidence-classes.csv" for n, k in named.items() if k not in evidence_table()]
 
 def claude_files():
@@ -581,7 +581,7 @@ def every_check(a):
     bad_forms = record_forms(); bad += bool(bad_forms)
     print("ok   data/record-forms.csv holds to its own columns and every row to a source: a form for every federal census year from 1790 to 1950 and every state census year data/jurisdictions.csv names, each saying who it names, what it states, its locators, which make one page and how it bounds a household" if not bad_forms else "FAIL record forms: " + "; ".join(bad_forms))
     bad_kinds = rule_kinds(); bad += bool(bad_kinds)
-    print("ok   every kind the standing rule names in code (the census before 1850, the register entry dated with the parents, the obituary) is a kind of data/evidence-classes.csv" if not bad_kinds else "FAIL rule kinds: " + "; ".join(bad_kinds))
+    print("ok   every kind the standing rule names in code (the census read by its form, the register entry dated with the parents, the obituary) is a kind of data/evidence-classes.csv" if not bad_kinds else "FAIL rule kinds: " + "; ".join(bad_kinds))
     bad_claude = claude_files(); bad += bool(bad_claude)
     print("ok   the agent and skill files under .claude/ are the ones code writes from the task kind's text, its answer schema and its tool list" if not bad_claude else "FAIL claude files: " + "; ".join(bad_claude))
     bad += housekeeping.check(a.keep, a.show)

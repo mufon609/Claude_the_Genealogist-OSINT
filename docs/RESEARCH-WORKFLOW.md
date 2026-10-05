@@ -41,8 +41,8 @@ are leads whose origin is the file.
 **Hint.** A document, or a row on a search page, that overlaps the person on
 some of what identifies them but not on enough for the matcher to propose it or
 the rule to accept it: the surname, the place and the period agree, but there
-is no age, no full name, no stated relationship. A census before 1850 that
-names the head and counts the rest; a tax list; a directory line; a search row
+is no age, no full name, no stated relationship. A census whose form names
+the head and counts the rest (`data/record-forms.csv`, 1790 to 1840); a tax list; a directory line; a search row
 with a bare year; a newspaper hit before its text is read. Hints are kept on
 the person with what agrees and what is missing, for research when the leads
 run dry. A document already accepted as the person's can also stay a hint
@@ -793,7 +793,7 @@ memorial's subject, and in the parsed page every photograph with the type the
 page gives it; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
-`rule:familysearch-record@0.7.2` (one persona per person the page names, in
+`rule:familysearch-record@0.8.0` (one persona per person the page names, in
 the page's own role word, a relative given one name only (Thomas, Davidson)
 included with the name as written, a row with no name in it (", [1918]") or
 the index's UNKNOWN none; one fact per field as written, a member's own

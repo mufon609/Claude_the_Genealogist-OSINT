@@ -135,13 +135,14 @@ from match import (
     split_persona_name
 )
 from plan import plan_person
+from forms import census_form
 from log_search import release_household, restate
 from backfill_aliases import classify, clean, key
 
 # the kind (data/evidence-classes.csv) that identifies a person only through who it names (docs/RESEARCH-WORKFLOW.md §0: "then the named survivors decide"): the rule's ground there is a stated relative, never a date or a place alone
 NAMED_SURVIVORS = "obituary"
 # a census before this year names the head and counts the rest: a hint (docs/RESEARCH-WORKFLOW.md §0)
-HEAD_ONLY = ("census household", 1850)
+CENSUS = "census household"   # a census is ground only on a form data/record-forms.csv says names every member (forms.census_form)
 # a register entry identifies a person only when it is dated and names their parents (docs/RESEARCH-WORKFLOW.md §0)
 DATED_WITH_PARENTS = "church register (baptisms, marriages, burials)"
 TRUSTED = ("T1", "T2", "T3")  # a record the rule may act on or count: not one anyone can edit (T4)
@@ -2609,8 +2610,11 @@ def rule_points(cx, tree_id, prop, without=()):
                 else "data/evidence-classes.csv holds no kind it reads as"
             ) + ")", []
         yr = year or (re.search(r"\b(1[5-9]\d\d)\b", coll) or [None, None])[1]
-        if HEAD_ONLY[0] in kinds and yr and int(yr) < HEAD_ONLY[1]:
-            return False, f"a census before {HEAD_ONLY[1]} names only the head", []
+        form = census_form(coll, int(yr)) if CENSUS in kinds and yr else None
+        if CENSUS in kinds and yr and form is None:
+            return False, f"data/record-forms.csv holds no form of the {yr} census, so whether it names every member is unread: a person reads it", []
+        if form and form["names"] == "head":
+            return False, f"the {yr} census names only the head (data/record-forms.csv, {form['id']})", []
         if by_kind == DATED_WITH_PARENTS and not dated_with_parents(cx, eid):
             return (
                 False,
