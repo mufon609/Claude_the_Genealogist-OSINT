@@ -285,6 +285,18 @@ def task_launchers(cx: sqlite3.Connection) -> None:
     if "tool_uses" not in have:
         cx.execute("ALTER TABLE task_run ADD COLUMN tool_uses INTEGER")
 
+def households(cx: sqlite3.Connection) -> None:
+    """The household and household_member tables with their indexes and insert-only triggers (tools/households.py: the
+    households read off a census form), as schema/catalog.sql and schema/sqlite_extras.sql define them. No row is written:
+    tools/households.py write groups the households of the pages already held."""
+    ddl = read("schema/catalog.sql")
+    start = ddl.index("CREATE TABLE household (")
+    index = "CREATE INDEX ix_household_member_persona ON household_member(persona_id);\n"
+    script = ddl[start:ddl.index(index, start)] + index + "\n".join(triggers("household"))
+    for word in ("TABLE", "INDEX", "TRIGGER"):
+        script = script.replace(f"CREATE {word} ", f"CREATE {word} IF NOT EXISTS ")   # a catalog born with the tables, replaying its migrations, keeps them
+    cx.executescript(script)
+
 def vitals_view(cx: sqlite3.Connection) -> None:
     """v_person_vitals made again as schema/catalog.sql defines it: held death evidence is an event of a death's kind with a
     statement not rejected, so a death the owner rejected no longer makes a person deceased (Catalog.living). No row changes."""
@@ -324,6 +336,8 @@ MIGRATIONS = [
      [task_launchers]),
     ("0.8.4", "v_person_vitals: held death evidence is a death's event with a statement not rejected; a death the owner rejected no longer makes a person deceased",
      [vitals_view]),
+    ("0.8.5", "household, household_member: the households read off a census form (tools/households.py), insert-only, each grouping recorded with the script's version and a household grouped again superseding the one it replaces; evidence shared by every tree",
+     [households]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

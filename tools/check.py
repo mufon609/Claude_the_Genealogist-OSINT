@@ -365,17 +365,20 @@ def save_page_key():
     return bad
 
 INSERT_ONLY = {"artifact": None, "artifact_locator": None, "tombstone": None, "extractor": None, "extraction": "superseded_by", "persona": None,
-               "persona_fact": None, "persona_relation": None, "same_record": None, "search_log": "superseded_by", "task_run": None, "audit_log": None}   # table: its write-once column
+               "persona_fact": None, "persona_relation": None, "same_record": None, "household": "superseded_by", "household_member": None,
+               "search_log": "superseded_by", "task_run": None, "audit_log": None}   # table: its write-once column
 
 def insert_only():
     """The evidence, the research log and the audit trail are insert-only (CLAUDE.md hard rule 2, schema/sqlite_extras.sql): on a
-    scratch catalog holding three real records read into personas, facts and a relation, a run logged on each with its audit row, a
+    scratch catalog holding three real records read into personas, facts and a relation, three census households the household
+    script grouped from four real census pages, a run logged on each record with its audit row, a
     locator, a tombstone, the owner's word keeping two apart and a task run that got no answer, an UPDATE of each column of every table in INSERT_ONLY and a
     DELETE of its row are each refused with the trigger's own words, so a dropped trigger, or a column a trigger leaves out,
     turns this red; a write-once column is refused set from empty to empty, allowed from empty to a value once, then refused to
     another value and back to empty. The rows are all still there afterwards."""
     from treelib import archive_object, now, ulid
     from extract import extract
+    from households import regroup
     from log_search import log
     d, db = scratch(False); bad = []
     try:
@@ -385,6 +388,11 @@ def insert_only():
             with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
             sha, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=None, locator_kind="file", locator_value=name + ".html", retrieved_by=BY, terms=None, cost="free", trust_tier=None)
             extract(cx, sha, BY); shas.append(sha)
+        for name in ("familysearch-census-1925-KS4R-RTQ", "familysearch-census-1925-KS4R-RTM", "familysearch-census-1900-M3QL-XYW", "familysearch-census-1900-M9HX-SWP"):   # three households: the 1925 pages of one run, and two 1900 record pages
+            with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
+            sha, _ = archive_object(cx, data, mime="text/html", source_id="D03", collection_id=None, locator_kind="file", locator_value=name + ".html", retrieved_by=BY, terms=None, cost="free", trust_tier=None)
+            extract(cx, sha, BY)
+        regroup(cx, BY)
         ts = now(); tid = ulid()
         cx.execute("INSERT INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (shas[0], "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007"))
         cx.execute("INSERT INTO tombstone (artifact_sha256,reason,disposition,tombstoned_at,tombstoned_by) VALUES (?,?,?,?,?)", (shas[1], "check: a tombstone row to try", "quarantined", ts, BY))
@@ -496,8 +504,9 @@ def record_forms():
     """data/record-forms.csv held to its own columns (forms.COLUMNS): one form per row, its id unique, its kind a kind of
     data/evidence-classes.csv, its jurisdiction the United States or a state data/jurisdictions.csv gives a state census, its
     years four digits in order and shared with no other form of its kind and jurisdiction, who it names, its locators and the
-    ones that make one page and how it bounds a household each in forms' own words, the page's locators among its own, what it
-    states given, and every row a source, each an https address. Every federal census year from 1790 to 1950 has a form, and
+    ones that make one page and how it bounds a household each in forms' own words, the page's locators among its own, the
+    locators read as an entry's line given exactly where a household is a run of lines (the copy's own line only on a form
+    whose locators have a line), what it states given, and every row a source, each an https address. Every federal census year from 1790 to 1950 has a form, and
     so does every state census year data/jurisdictions.csv names."""
     import csv, forms
     from catalog import evidence_table, jurisdictions
@@ -525,6 +534,9 @@ def record_forms():
         say(f["locators"] and set(f["locators"]) <= set(forms.LOCATORS), f"locators {f['locators']} not all of {forms.LOCATORS}")
         say(f["page"] and set(f["page"]) <= set(f["locators"]), f"the page's locators {f['page']} are not all the form's own")
         say(f["household"] and set(f["household"]) <= set(forms.HOUSEHOLD), f"household {f['household']} not all of {forms.HOUSEHOLD}")
+        runs = bool(set(f["household"]) & set(forms.RUNS))
+        say(set(f["lines"]) <= set(forms.LINES) and bool(f["lines"]) == runs, f"lines {f['lines']}: the locators read as an entry's line, of {forms.LINES}, given exactly where a household is a run of lines ({' or '.join(forms.RUNS)})")
+        say("line" not in f["lines"] or "line" in f["locators"], "lines reads the copy's line on a form whose locators have no line")
         say(f["source"] and all(s.startswith("https://") and " " not in s for s in f["source"]), f"source {raw['source']!r}: every row cites its sources, each an https address")
     have = lambda j, y: ("census household", j, y) in held
     bad += [f"no form of the federal census of {y}" for y in range(1790, 1951, 10) if not have("united states", y)]
@@ -571,7 +583,7 @@ def every_check(a):
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
     print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
     bad_ev = insert_only(); bad += bool(bad_ev)
-    print("ok   the evidence, the research log, the record of task runs and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on extraction and search_log is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
+    print("ok   the evidence, the research log, the record of task runs and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on " + ", ".join(t for t, once in INSERT_ONLY.items() if once) + " is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
     bad_db = data_root(); bad += bool(bad_db)
     print("ok   the data root: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT, a --db outside it is refused, and collect takes saved pages from <DATA_ROOT>/downloads/, never the home's download folder" if not bad_db else "FAIL data root: " + "; ".join(bad_db))
     bad_reg = registry_connectors(); bad += bool(bad_reg)
@@ -579,7 +591,7 @@ def every_check(a):
     bad_state = state_writes(); bad += bool(bad_state)
     print("ok   the state kept beside a catalog is written whole: a write that fails midway leaves the file as it was, readable, with nothing of the write's beside it" if not bad_state else "FAIL state files: " + "; ".join(bad_state))
     bad_forms = record_forms(); bad += bool(bad_forms)
-    print("ok   data/record-forms.csv holds to its own columns and every row to a source: a form for every federal census year from 1790 to 1950 and every state census year data/jurisdictions.csv names, each saying who it names, what it states, its locators, which make one page and how it bounds a household" if not bad_forms else "FAIL record forms: " + "; ".join(bad_forms))
+    print("ok   data/record-forms.csv holds to its own columns and every row to a source: a form for every federal census year from 1790 to 1950 and every state census year data/jurisdictions.csv names, each saying who it names, what it states, its locators, which make one page, how it bounds a household and what a run of lines is read by" if not bad_forms else "FAIL record forms: " + "; ".join(bad_forms))
     bad_kinds = rule_kinds(); bad += bool(bad_kinds)
     print("ok   every kind the standing rule names in code (the census read by its form, the register entry dated with the parents, the obituary) is a kind of data/evidence-classes.csv" if not bad_kinds else "FAIL rule kinds: " + "; ".join(bad_kinds))
     bad_claude = claude_files(); bad += bool(bad_claude)

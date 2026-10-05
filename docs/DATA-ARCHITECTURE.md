@@ -30,10 +30,11 @@ Rules that keep the layers honest:
   runs and the audit trail are
   insert-only, enforced by triggers (`schema/sqlite_extras.sql`): `artifact`,
   `artifact_locator`, `tombstone`, `extractor`, `extraction`, `persona`,
-  `persona_fact`, `persona_relation`, `same_record`, `search_log`, `task_run`
+  `persona_fact`, `persona_relation`, `same_record`, `household`,
+  `household_member`, `search_log`, `task_run`
   and `audit_log` take no UPDATE and no DELETE, but for `superseded_by` on
-  `extraction` and `search_log`, written once, from empty, to the row that
-  restates the old one (a re-read extraction; a run read again or carried by a
+  `extraction`, `household` and `search_log`, written once, from empty, to the row that
+  restates the old one (a re-read extraction; a household grouped again; a run read again or carried by a
   merge, `docs/RESEARCH-WORKFLOW.md`'s schema). A reset or a correction is a
   row of its own: nothing is removed from the audit trail.
 - AI output enters layer 3 as an *extraction* and layer 4 as a *proposal*. A
@@ -251,6 +252,7 @@ So:
 | `artifact` bytes and manifests (facts about files) | `person`, `family`, `event` |
 | `collection` names and vendor ids | `assertion`, `person_persona` (every act of trust) |
 | code's `same_record` joins (two files sharing a record id or a certificate number) | the owner's word that two copies are, or are not, one record |
+| the households read off a census form (`household`, `tools/households.py`) | which person of a tree a household's member is |
 | `place_string` raw text | `proposal`, tree-level `note`, `external_id` for tree entities |
 | `event_type`, `source` registry | `tree_import` |
 
@@ -573,7 +575,21 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    difference becomes a special case in the script or the form's row, or
    is put down to the model, and the row records the runs that calibrated
    it. In use the script reads; a model reads only a record no script can.
-   The work is in `BACKLOG.md`.
+   The script is built (`tools/households.py`; its rules in words,
+   `docs/RESEARCH-WORKFLOW.md` §5–7, "Households"). Its households are stored,
+   insert-only, each row recording the script's version (`household`,
+   `household_member`), and are not derived on read: what was read off a
+   household must not change beneath it. Hard rule 2 keeps evidence as it was
+   read, a correction being a new row; the calibration above and the rule that
+   will count a household each name the households they compared or stood on,
+   and a grouping made again at every read, as pages arrive and the script
+   changes, would change those households beneath them with no trace. A
+   household grouped again differently supersedes the row it replaces, as a
+   re-read extraction does. Households are evidence shared by every tree, like
+   code's `same_record` joins: no tree's acceptance goes into them. The
+   lead a household not wholly held makes, the calibration and the rule's reading of
+   households are the work in `BACKLOG.md`; until then nothing the rule
+   decides reads a household.
 
 ## 8. Wrong source data, variants and aliases
 

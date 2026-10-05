@@ -70,18 +70,21 @@ def commit_hook():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+OLDER = {"same_record": ["no_delete", "no_update"], "task_run": ["no_delete", "no_update"], "household_member": ["no_delete", "no_update"],
+         "household": ["no_delete", "no_update", "superseded_once"]}   # the tables a version from 0.7.9 on adds, and each one's insert-only triggers
+
 def older_catalog():
-    """A catalog from before the same_record and task_run tables (the scratch catalog with both tables and their triggers
+    """A catalog from before the same_record, task_run and household tables (the scratch catalog with them and their triggers
     dropped and the versions from 0.7.9 forgotten, the shape of the owner's backup from before 0.7.8) migrates to the code's
     version: `initdb.py --migrate` makes each table with its own triggers and no others, every version is recorded, the catalog
-    holds both tables and their insert-only triggers, passes its integrity and foreign key checks, and a second run has
+    holds every table and its insert-only triggers, passes its integrity and foreign key checks, and a second run has
     nothing to apply."""
     from treelib import SCHEMA_VERSION
     d, db = scratch(False); bad = []
     try:
         cx = connect(db)
-        for name, in cx.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name IN ('same_record','task_run')").fetchall(): cx.execute(f"DROP TRIGGER {name}")
-        cx.execute("DROP TABLE same_record"); cx.execute("DROP TABLE task_run")
+        for name, in cx.execute(f"SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name IN ({','.join('?' * len(OLDER))})", list(OLDER)).fetchall(): cx.execute(f"DROP TRIGGER {name}")
+        for table in OLDER: cx.execute(f"DROP TABLE {table}")
         cx.execute("DELETE FROM schema_migration WHERE version >= '0.7.9'"); cx.commit(); cx.close()
         for second in (False, True):
             r = subprocess.run([sys.executable, tool("initdb.py"), "--migrate", "--db", db], capture_output=True, text=True, env=os.environ)
@@ -89,9 +92,9 @@ def older_catalog():
             if second and "already current" not in r.stdout: bad.append(f"a second --migrate had something to apply: {r.stdout.strip()}")
         cx = connect(db)
         if SCHEMA_VERSION not in {v for v, in cx.execute("SELECT version FROM schema_migration")}: bad.append(f"the migrated catalog lacks version {SCHEMA_VERSION}")
-        for table in ("same_record", "task_run"):
+        for table, kinds in OLDER.items():
             got = [n for n, in cx.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name=? ORDER BY name", (table,))]
-            if got != [f"trg_{table}_no_delete", f"trg_{table}_no_update"]: bad.append(f"{table} has the triggers {got} after the migration")
+            if got != [f"trg_{table}_{k}" for k in kinds]: bad.append(f"{table} has the triggers {got} after the migration")
         whole = cx.execute("PRAGMA integrity_check").fetchone()[0], cx.execute("PRAGMA foreign_key_check").fetchall()
         if whole != ("ok", []): bad.append(f"the migrated catalog: integrity {whole[0]}, foreign keys {len(whole[1])}")
         cx.close()
@@ -202,7 +205,7 @@ def check(keep, show):
     failed = 0
     for fn, says in ((screen_links, "the person screen writes a URL into a link only through its `web` helper, which keeps a web address, escaped, and drops any other scheme"),
                     (commit_hook, "the commit hook refuses data by the name git stages it under (a letter beyond ASCII, a quote, a newline) and passes the harness's own .ged and the .gitkeep files; .gitignore keeps every .ged but the harness's, and the owner's own .claude settings, out of `git add`"),
-                    (older_catalog, "a catalog from before the same_record and task_run tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply"),
+                    (older_catalog, "a catalog from before the same_record, task_run and household tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply"),
                     (older_view, "a catalog whose person vitals view is another definition gets the schema's own from the 0.8.4 migration"),
                     (active_tree, "the active tree is written whole: a write that stops after its text is written leaves .active-tree naming the tree it named, with nothing of the write's beside it"),
                     (backup_bag, "a bag written while a turn commits is whole and consistent: its manifest verifies, every artifact row of its catalog dump has its object in the payload, and no row of the dump names an artifact it has no row for")):

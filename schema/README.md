@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 39 tables, 6 views. Schema 0.8.4. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 41 tables, 6 views. Schema 0.8.5. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; the insert-only triggers on the archive's rows, the evidence, the research log and the audit trail. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -18,7 +18,8 @@ holders of cited collections) is read by the tools directly.
 ```
 1 REFERENCE    source, collection, event_type, place, place_name, place_string
 2 ARCHIVE      artifact, artifact_locator, artifact_page, derivative, tombstone
-3 EVIDENCE     extractor, extraction, persona, persona_fact, persona_relation, same_record
+3 EVIDENCE     extractor, extraction, persona, persona_fact, persona_relation, same_record,
+               household, household_member
 4 CONCLUSIONS  tree, tree_import, person, person_name, family, family_member, event,
                event_participant, person_persona, assertion, proposal, external_id, alias, note,
                research_question, search_plan, search_log, task_run
@@ -32,9 +33,10 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 ## Invariants (enforced by DB where possible, otherwise by the app)
 
 - `artifact`, `artifact_locator`, `tombstone`, `extractor`, `extraction`, `persona`,
-  `persona_fact`, `persona_relation`, `same_record`, `search_log`, `task_run` and `audit_log` are
+  `persona_fact`, `persona_relation`, `same_record`, `household`, `household_member`, `search_log`,
+  `task_run` and `audit_log` are
   insert-only: triggers abort every UPDATE and DELETE but the write-once `superseded_by`
-  on `extraction` and `search_log`, set from empty to the row that restates the old one.
+  on `extraction`, `household` and `search_log`, set from empty to the row that restates the old one.
   Corrections are new rows; removals are `tombstone` rows. A run read again (its records
   fit no one, or no parser reads them) or carried onto the kept person's step by a merge
   is a new row restating it (`log_search.restate`), and every reader reads the rows whose
@@ -69,6 +71,19 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   (`conclude.carry`), the matcher puts an entry to the owner once, and the rule counts the record
   once. The 0.7.9 migration (`tools/initdb.py`'s `same_records`) wrote code's joins of the copies
   already held under `migration:0.7.9`; `tools/conclude.py reconsider` carries the decisions.
+- A census household is read off its form (`docs/DATA-ARCHITECTURE.md` §7 decision 21): `household` is
+  the entries the form's own rule bounds as one household (`data/record-forms.csv`'s `page`,
+  `household` and `lines`), across every copy that carries them, grouped by `tools/households.py`
+  at the version `grouped_by` names; `household_member` is one row per copy's persona, its
+  `entry` the member however many copies carry it, its `relationship` to the head as the copy
+  states it, `head` and the `line` the form's rule reads. `complete` and `missing_json` say
+  what the form's rule shows missing (the head, a line between held lines), `ground` what
+  groups the entries, in words. Evidence shared by every tree, like code's `same_record` joins:
+  no tree's decision goes into it. Insert-only: a household grouped again differently (a page
+  newly held, a reading read again, the script at another version) is a new row, and the row
+  it replaces names it in `superseded_by`, written once; one whose entries no current reading
+  holds is replaced by a row of no members. The 0.8.5 migration (`tools/initdb.py`'s
+  `households`) added the tables and their triggers and wrote no row.
 - Decisions are three-state: `undecided` | `accepted` | `rejected` on `assertion`,
   `person_persona`, `place_string`, `alias`, `proposal`. No numeric confidence columns.
 - An `assertion` records who set the status it has (`asserted_by`, `asserted_at`) and whether
@@ -224,7 +239,8 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/check.py` | Green in one command: every tool compiles, the pure rules, every parser on its saved page and every scenario on a scratch catalog, none of them sending a request, `--scenario NAME` for one (`tests/fixtures/README.md`). |
 | `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. Every write carries an audit row under `--by`. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen. |
-| `tools/forms.py` | Read-only. The record forms (`data/record-forms.csv`, `data/DATA-SOURCES.md` §5c): the form a census of a collection and year was made on, who it names, what it states, its locators and how it bounds a household, read by the checklist, the footprint and the readers, which keep each entry's locators in its persona's `region_json`. |
+| `tools/forms.py` | Read-only. The record forms (`data/record-forms.csv`, `data/DATA-SOURCES.md` §5c): the form a census of a collection and year was made on, who it names, what it states, its locators, how it bounds a household and the locator a run of lines is read by, read by the checklist, the footprint, the readers, which keep each entry's locators in its persona's `region_json`, and the household script. |
+| `tools/households.py show / write` | The households read off a census form: every current census reading's entries grouped by the form's own rule (one entry one member across its copies, a FamilySearch record one household, a run of lines on one page under its head), each member's relationship to the head as stated, what is missing named; `show` prints them as grouped now and the entries in none, `write` stores them insert-only where they changed (`docs/RESEARCH-WORKFLOW.md` §5–7, households). |
 | `tools/treelib.py` | Shared helpers: ULIDs, GEDCOM parsing (its encoding from the byte order mark and the header's `CHAR`), data paths, and `connect`. |
 
 ### How the GEDCOM ingest maps records

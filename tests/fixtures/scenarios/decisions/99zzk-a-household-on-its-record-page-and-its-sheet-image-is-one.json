@@ -1,0 +1,235 @@
+{
+ "title": "a household on its record page and its sheet image is one",
+ "line": "the 1900 Lukens household read off the sheet's image, the head on line 4 opening the run with his family number and his daughter on line 7, is one household missing lines 5 to 6; once FamilySearch's record page of it is read, every member it lists joins it, the head and his daughter each one entry on both copies, their lines the image's and never the line FamilySearch repeats for every member: eleven members under one head, complete, the household of two superseded",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562"
+ },
+ "steps": [
+  {
+   "say": "the image of sheet 2A of enumeration district 240, Norristown, the 1900 census, archived under the file's citation of the Lukens household",
+   "seed": {
+    "fixture": "familysearch-census-1900-image-S3HY-6WS7-8BK.jpg",
+    "source": "D03",
+    "collection": "1900 United States Federal Census",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7602::47389682"
+    }
+   },
+   "as": "sheet"
+  },
+  {
+   "say": "the head as the image writes him, typed by the harness from its own words: line 4, Lukens Milton, Head, the dwelling and family numbers 22 and 22, on sheet 2A",
+   "transcribe": {
+    "record": "sheet",
+    "form": {
+     "name": "Lukens, Milton",
+     "role": "head",
+     "sex": "M",
+     "age": "50",
+     "year": 1900,
+     "birth_date": "Oct 1849",
+     "birth_place": "Pennsylvania",
+     "line": 4,
+     "sheet": "2A",
+     "dwelling": "22",
+     "family": "22",
+     "image_is": "record"
+    },
+    "by": "llm:harness"
+   },
+   "as": "milton"
+  },
+  {
+   "say": "his daughter three lines down, whose line carries no family number",
+   "transcribe": {
+    "record": "sheet",
+    "form": {
+     "name": "Lukens, Charlotte A",
+     "role": "daughter",
+     "sex": "F",
+     "age": "18",
+     "year": 1900,
+     "birth_date": "Apr 1882",
+     "birth_place": "Pennsylvania",
+     "line": 7,
+     "sheet": "2A",
+     "image_is": "record"
+    },
+    "relations": [
+     {
+      "persona": "$milton.persona",
+      "kind": "child",
+      "text": "Daughter"
+     }
+    ],
+    "by": "llm:harness"
+   }
+  },
+  {
+   "say": "the households grouped: the image's two lines",
+   "households": {},
+   "expect": [
+    {
+     "households": {
+      "form": "us-1900",
+      "is": [
+       {
+        "page": {
+         "sheet": "2",
+         "sheet_letter": "A"
+        },
+        "complete": false,
+        "missing": [
+         "lines 5 to 6"
+        ],
+        "ground": {
+         "has": [
+          "lines 4 and 7 of one image",
+          "across lines 5 to 6 not held, by one surname (Lukens)"
+         ]
+        },
+        "members": [
+         {
+          "name": "Lukens, Milton",
+          "relationship": "head",
+          "head": true,
+          "line": 4,
+          "record": "sheet"
+         },
+         {
+          "name": "Lukens, Charlotte A",
+          "relationship": "Daughter",
+          "head": false,
+          "line": 7,
+          "record": "sheet"
+         }
+        ]
+       }
+      ]
+     },
+     "why": "the head's line, carrying the family number, opens the run; the daughter's three lines down is in it across two lines not held, by the surname both write, and those two lines are named missing"
+    }
+   ]
+  },
+  {
+   "say": "FamilySearch's record page of the household, every member's own details open, each member's Line Number 10, archived as the archive holds it, under the same citation as the image, and read",
+   "archive": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html",
+    "source": "D03",
+    "collection": "1900 United States Federal Census",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7602::47389682"
+    },
+    "extract": true
+   },
+   "as": "page"
+  },
+  {
+   "say": "the households grouped again",
+   "households": {},
+   "expect": [
+    {
+     "last": {
+      "written": 1,
+      "superseded": 1
+     }
+    },
+    {
+     "households": {
+      "form": "us-1900",
+      "is": [
+       {
+        "page": {
+         "state": "Pennsylvania",
+         "enumeration_district": "240",
+         "sheet": "2",
+         "sheet_letter": "A"
+        },
+        "complete": true,
+        "missing": [],
+        "ground": {
+         "has": [
+          "FamilySearch's record of Charlotte A Lukens (ark:/61903/1:1:M3QL-XYW)",
+          "Lukens, Milton one entry on 2 copies",
+          "Lukens, Charlotte A one entry on 2 copies"
+         ]
+        },
+        "members": {
+         "len": 13,
+         "first": {
+          "name": "Lukens, Milton",
+          "line": 4,
+          "head": true,
+          "entry": "[\"ark\", \"ark:/61903/1:1:M3QL-XY3\"]"
+         },
+         "some": {
+          "name": "Milton Lukens",
+          "relationship": "Head",
+          "head": true,
+          "line": null,
+          "entry": "[\"ark\", \"ark:/61903/1:1:M3QL-XY3\"]",
+          "record": "page"
+         },
+         "every": {
+          "line": {
+           "in": [
+            4,
+            7,
+            null
+           ]
+          }
+         }
+        }
+       }
+      ]
+     },
+     "why": "the record page lists the household, so every member joins it; the image's head and daughter are each one entry with the page's, by the record both copies are archived under and a name that agrees; the lines kept are the image's, never the 10 FamilySearch gives every member; eleven members, thirteen personas, under one head, nothing the form shows missing"
+    },
+    {
+     "households": {
+      "form": "us-1900",
+      "is": [
+       {
+        "members": {
+         "some": {
+          "name": "Mary Bolton",
+          "relationship": "Mother-in-law",
+          "head": false,
+          "record": "page"
+         }
+        }
+       }
+      ]
+     },
+     "why": "each member's relationship to the head as the census states it, the mother-in-law's among them"
+    }
+   ]
+  },
+  {
+   "say": "grouped again with nothing new",
+   "households": {},
+   "expect": [
+    {
+     "last": {
+      "written": 0,
+      "kept": 1,
+      "superseded": 0
+     },
+     "why": "a household grouped as it is stored is kept: nothing is written twice"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

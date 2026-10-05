@@ -35,8 +35,8 @@ END;
 
 -- Insert-only tables (CLAUDE.md hard rule 2; docs/DATA-ARCHITECTURE.md §1): the archive's rows, the evidence, the research
 -- log and the audit trail. A correction is a new row; the one UPDATE allowed is a write-once column, superseded_by on
--- extraction and search_log, set once from empty to the row that takes the old one's place. Every other UPDATE and every
--- DELETE is refused. tools/check.py tries each column of each table.
+-- extraction, household and search_log, set once from empty to the row that takes the old one's place. Every other UPDATE
+-- and every DELETE is refused. tools/check.py tries each column of each table.
 CREATE TRIGGER trg_artifact_no_update BEFORE UPDATE ON artifact BEGIN
   SELECT RAISE(ABORT, 'artifact rows are immutable; insert a derived artifact or a tombstone');
 END;
@@ -110,6 +110,22 @@ CREATE TRIGGER trg_same_record_no_update BEFORE UPDATE ON same_record BEGIN
 END;
 CREATE TRIGGER trg_same_record_no_delete BEFORE DELETE ON same_record BEGIN
   SELECT RAISE(ABORT, 'same_record rows are never deleted; the owner keeps two copies apart with a row of their own');
+END;
+CREATE TRIGGER trg_household_no_update BEFORE UPDATE OF id, form, page_json, complete, missing_json, ground, grouped_by, grouped_at ON household BEGIN
+  SELECT RAISE(ABORT, 'household rows are immutable; the households grouped again are new rows that supersede them');
+END;
+CREATE TRIGGER trg_household_superseded_once BEFORE UPDATE OF superseded_by ON household
+WHEN OLD.superseded_by IS NOT NULL OR NEW.superseded_by IS NULL BEGIN
+  SELECT RAISE(ABORT, 'household.superseded_by is written once, from empty');
+END;
+CREATE TRIGGER trg_household_no_delete BEFORE DELETE ON household BEGIN
+  SELECT RAISE(ABORT, 'household rows are never deleted; the households grouped again supersede them');
+END;
+CREATE TRIGGER trg_household_member_no_update BEFORE UPDATE ON household_member BEGIN
+  SELECT RAISE(ABORT, 'household_member rows are immutable; the households grouped again are new rows');
+END;
+CREATE TRIGGER trg_household_member_no_delete BEFORE DELETE ON household_member BEGIN
+  SELECT RAISE(ABORT, 'household_member rows are never deleted');
 END;
 CREATE TRIGGER trg_task_run_no_update BEFORE UPDATE ON task_run BEGIN
   SELECT RAISE(ABORT, 'task_run rows are immutable; a task run again is a new row');

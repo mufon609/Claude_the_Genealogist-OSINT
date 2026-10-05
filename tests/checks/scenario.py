@@ -803,6 +803,24 @@ def a_seed(w, x):
     """A record no parser reads, archived as a_archive archives it, for the harness to read only by a typed reading."""
     return a_archive(w, x)
 
+def households_now(w):
+    """The current stored households (tools/households.py stored), each member's file named by the label of the step that
+    archived it (the first step bound to it), `record`, beside its persona's name as written."""
+    from households import stored
+    labels = {}
+    for k, v in w.env.items():
+        if k != "last" and isinstance(v, dict) and isinstance(v.get("sha"), str): labels.setdefault(v["sha"], k)
+    return [{**{k: h[k] for k in ("form", "page", "complete", "missing", "ground", "grouped_by")},
+             "members": [{**{k: m[k] for k in ("name", "relationship", "head", "line", "entry")}, "record": labels.get(m["sha"])} for m in h["members"]]} for h in stored(w.cx)]
+
+def a_households(w, x):
+    """The households grouped again and stored where they changed (tools/households.py regroup), as the plan groups them:
+    what it wrote (`kept`, `written`, `superseded`, `ungrouped`), every row the table holds (`rows`, superseded ones among them)
+    and the current households as households_now reads them."""
+    from households import regroup
+    st = regroup(w.cx, x.get("by", BY) if isinstance(x, dict) else BY)
+    return {**st, "rows": w.cx.execute("SELECT COUNT(*) FROM household").fetchone()[0], "households": households_now(w)}
+
 def a_question(w, x):
     """A research_question row patched by hand into any shape, for a migration or a later plan run to be checked
     against it. The row is found among the person's own by kind and a substring of its detail, and must be exactly one."""
@@ -824,6 +842,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
 
 ACTIONS["legacy_card"] = a_legacy_card
 ACTIONS["older_reading"] = a_older_reading
+ACTIONS["households"] = a_households
 
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 
@@ -1269,6 +1288,11 @@ def e_origins(w, x, want):
     got = origins(w.cx, w.tid)
     return has(got, {k: v for k, v in x.items() if k in ("people", "documents")}), got
 
+def e_households(w, x, want):
+    """The current stored households as households_now reads them, with `form` only those of that form, matching `is`."""
+    got = [h for h in households_now(w) if "form" not in x or h["form"] == x["form"]]
+    return has(got, w.value(x["is"])), got
+
 def e_assertion_subject(w, x, want):
     v = w.cx.execute("SELECT subject_id FROM assertion WHERE persona_id=?", (w.value(x["persona"]),)).fetchone()
     return v is not None and v[0] == w.person(x["is"]), v and w.name_of(v[0])
@@ -1280,7 +1304,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "compare": e_compare,
-           "parents": e_parents}
+           "parents": e_parents, "households": e_households}
 
 def load(folder):
     """Every scenario file under a folder, in name order."""

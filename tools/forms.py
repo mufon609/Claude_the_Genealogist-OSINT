@@ -1,9 +1,10 @@
 """The record forms (data/record-forms.csv, docs/DATA-ARCHITECTURE.md §7 decision 21): one row for each shape a kind of record
 took, the years and jurisdictions that share it on one row, each saying what the form states, the locators that place an
-entry on it, which of them make one page, how a household is bounded and where its structure is documented
-(data/DATA-SOURCES.md §5c). Read-only reference data, read once per process: the checklist's census rows, the footprint's
-expectations of a relative's census and the readers' locators (tools/extract.py page_place, the screen's transcription path)
-read a census's structure here.
+entry on it, which of them make one page, how a household is bounded, which locator is read as an entry's line where a
+household is a run of lines, and where its structure is documented (data/DATA-SOURCES.md §5c). Read-only reference data, read
+once per process: the checklist's census rows, the footprint's expectations of a relative's census, the readers' locators
+(tools/extract.py page_place, the screen's transcription path) and the household script (tools/households.py) read a
+census's structure here.
 
     form_for(year, jurisdiction="united states")   the form of that year, or None
     census_form(collection, year)                  the form a census record of that collection and year was made on
@@ -14,8 +15,8 @@ import csv, os, re
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PATH = os.path.join(ROOT, "data", "record-forms.csv")
 COLUMNS = ["id", "kind", "jurisdiction", "years", "lost", "names", "relationship", "birth", "parents_birthplace", "states",
-           "locators", "page", "household", "source", "notes"]
-LISTS = ("years", "states", "locators", "page", "household", "source")     # the columns that hold several values, separated by ;
+           "locators", "page", "household", "lines", "source", "notes"]
+LISTS = ("years", "states", "locators", "page", "household", "lines", "source")     # the columns that hold several values, separated by ;
 NAMES = ("head", "every member")       # who the form names: the head alone, the rest counted, or every member of the household
 # the locators that place an entry on a form, in the form's terms (data/DATA-SOURCES.md §5c): where the page is, the page, the
 # entry's line and the numbers of its dwelling and family in order of visitation, and the image of the page
@@ -27,6 +28,10 @@ COPY_LOCATORS = ("household_id", "digital_folder", "image_number", "film", "publ
 # how a household is bounded on a page: one line (a head-only form), a run of lines opened by the line that carries the family's
 # number, a run opened by the head, carried over a page break; one schedule per family; or not bounded at all
 HOUSEHOLD = ("one line", "family number", "opened by the head", "over a page break", "one schedule", "unbounded")
+RUNS = ("family number", "opened by the head")     # the bounds that make a household a run of lines, which the household script reads by `lines`
+# the locators read as an entry's line on the form, where a household is a run of lines, in order: a reading's own line counted
+# down its image, and the copy's own line number where the form's row says it is the entry's
+LINES = ("line", "image_line")
 
 FORMS = None
 

@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.4
+-- tree catalog schema  v0.8.5
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -8,8 +8,8 @@
 --   * JSON is stored as TEXT (json_* functions exist on both engines).
 --   * booleans are BOOLEAN (SQLite stores 0/1).
 --   * SQLite-only objects (FTS, triggers) live in sqlite_extras.sql, the insert-only triggers among them: artifact,
---     artifact_locator, tombstone, extractor, extraction, persona, persona_fact, persona_relation, same_record, search_log,
---     task_run and audit_log take no UPDATE but a write-once superseded_by, and no DELETE.
+--     artifact_locator, tombstone, extractor, extraction, persona, persona_fact, persona_relation, same_record, household,
+--     household_member, search_log, task_run and audit_log take no UPDATE but a write-once superseded_by, and no DELETE.
 --   * DECISIONS: wherever a human decides, the column is `status` with exactly
 --     three values: 'undecided' | 'accepted' | 'rejected'. No numeric confidence.
 --     Machine details (match scores, OCR certainty) stay inside notes/JSON.
@@ -290,6 +290,38 @@ CREATE TABLE same_record (
 );
 CREATE INDEX ix_same_record_a ON same_record(a_sha256, a_entry);
 CREATE INDEX ix_same_record_b ON same_record(b_sha256, b_entry);
+
+-- A household read off a census form (docs/DATA-ARCHITECTURE.md §7 decision 21): the entries the form's own rule bounds as one
+-- household (data/record-forms.csv's page, household and lines columns), across every copy and index page that carries them,
+-- grouped by tools/households.py at the version grouped_by names. Evidence shared by every tree, like code's same_record joins:
+-- no tree's decision goes into it. Insert-only: the households grouped again differently (a page newly held, a reading read
+-- again, the script at another version) are new rows, and each row they replace names one holding one of its entries in
+-- superseded_by, written once from empty; a household whose entries no current reading holds is replaced by a row of no members.
+CREATE TABLE household (
+  id            TEXT PRIMARY KEY,
+  form          TEXT NOT NULL,        -- data/record-forms.csv's id: us-1900, ny-1925
+  page_json     TEXT NOT NULL,        -- the form's page locators its entries hold: {"county": "Nassau", "assembly_district": "01", "election_district": "06", "page": "19"}
+  complete      BOOLEAN NOT NULL,     -- nothing the form's rule shows missing: the head held and, where every member's line is read, no line between missing
+  missing_json  TEXT NOT NULL,        -- what the form's rule shows missing, the head first: ["the head", "line 24"]
+  ground        TEXT NOT NULL,        -- what groups the entries, in words: "lines 23 and 25 of one page; across line 24 not held, by one surname (Peters)"
+  grouped_by    TEXT NOT NULL,        -- the script and its version: rule:households@0.1.0
+  grouped_at    TEXT NOT NULL,
+  superseded_by TEXT REFERENCES household(id)
+);
+CREATE INDEX ix_household_superseded ON household(superseded_by);
+
+-- One persona of a household. A member is one entry, however many copies carry it (entry); each copy's persona of it is a row
+-- with what that copy states: the relationship to the head as the form states it, as written, and no other tie. Insert-only.
+CREATE TABLE household_member (
+  household_id  TEXT NOT NULL REFERENCES household(id),
+  persona_id    TEXT NOT NULL REFERENCES persona(id),
+  entry         TEXT NOT NULL,        -- the member, one for every copy of it, as JSON: a record id (["ark", "ark:/61903/1:1:KS4R-RTQ"]), else its line on a reading's image
+  relationship  TEXT,                 -- as the copy states it ("Daughter"): the Relationship to Head of Household field, a stated relation, a reading's role word; NULL where it states none
+  head          BOOLEAN NOT NULL,     -- the copy states this member the head (on a form that names the head alone, its one entry)
+  line          INTEGER,              -- the line the form's lines column reads for the member, NULL where none is read
+  PRIMARY KEY (household_id, persona_id)
+);
+CREATE INDEX ix_household_member_persona ON household_member(persona_id);
 
 -- =============================================================================
 -- LAYER 4 - CONCLUSIONS  (scoped to a tree; layers 1-3 are shared by all trees)

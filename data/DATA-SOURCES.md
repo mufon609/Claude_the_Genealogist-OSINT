@@ -337,6 +337,14 @@ The columns, one form per row:
   the father, mother or other ostensible head, first), `over a page break` (lines are filled and pages numbered in the order
   visited, so a run continues from the last line of one page to the first of the next), `one schedule` (1890, one schedule
   per family) or `unbounded` (New York 1892: no relationship and no family number).
+- `lines`: where a household is a run of lines (`family number` or `opened by the head`), the locators the household script
+  (`tools/households.py`) reads as an entry's line on the form, in order, and empty where it is not: `image_line`, a
+  reading's own line counted down its image, on every such form, and `line`, the copy's own Line Number, on the 1925 New York
+  form alone, whose index gives one person to a page. FamilySearch's line is not read on the federal schedules: on the 1900
+  Lukens record page every member, the page's own person too, carries line 10, while the sheet's image has the head on line 4
+  and his daughter on line 7. A form whose household is one line, one schedule or unbounded has none. Whether a copy's line
+  is the form's own is what a form's calibration finds; the column is what the script reads until then, and calibration
+  changes it.
 - `source`: the addresses the row rests on, `;`-separated, each opened when the row was written; `notes`: what the sources
   say of the heading, the numbering of pages and lines and the order of names, in words.
 
@@ -347,7 +355,10 @@ household identifier, its microfilm, digital folder and image numbers and the NA
 site's schedule id, a reading's line counted from the top of its image, `image_line`). A locator is no fact about the
 person, so it is never a `persona_fact`, and the region is written once with the persona, as the evidence is insert-only:
 a better reading writes new personas with their own regions. Whether a copy's line or household identifier is the form's
-own is what a form's calibration finds (decision 21), never assumed here.
+own is what a form's calibration finds (decision 21), never assumed here. The household script groups an entry by its form's
+`page`, `household` and `lines` (`docs/RESEARCH-WORKFLOW.md` §5–7, households): a page is the form's page locators all held
+alike, the county a copy's locators lack read off the entry's census residence (the 1925 New York index writes the county
+only in its event place).
 
 Sources. The federal rows rest on the Census Bureau's own: *Measuring America: The Decennial Censuses From 1790 to 2000*
 (2002), whose pages reproduce each schedule and its instructions (cited by the PDF's page), the questionnaire pages of

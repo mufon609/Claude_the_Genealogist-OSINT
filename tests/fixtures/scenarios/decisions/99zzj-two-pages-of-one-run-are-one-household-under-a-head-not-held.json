@@ -1,0 +1,165 @@
+{
+ "title": "two pages of one run are one household under a head not held",
+ "line": "the 1925 New York pages of Mary Peters (Wife, line 23) and Ruth Peters (Daughter, line 25), page 19 of assembly district 01 and election district 06, Nassau, are one household under a head not held, line 24 missing: the form opens a household only at a head's line, nothing held opens one between them and the line between not held is crossed by their one surname; Ruth's page alone is a household of one missing its head, superseded once Mary's is read",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Ruth's 1925 New York page, page 19, line 25, saved with the household closed, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTQ.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTQ"
+    },
+    "extract": true,
+    "match": [
+     "I332737100400"
+    ]
+   },
+   "as": "ruth",
+   "expect": [
+    {
+     "cards": {
+      "record": "ruth",
+      "people": [
+       "I332737100400"
+      ],
+      "count": 1
+     },
+     "why": "the page's own person is put to Ruth M Peters, undecided"
+    }
+   ]
+  },
+  {
+   "say": "the households grouped: Ruth's page alone",
+   "households": {},
+   "expect": [
+    {
+     "last": {
+      "written": 1,
+      "superseded": 0
+     }
+    },
+    {
+     "households": {
+      "form": "ny-1925",
+      "is": [
+       {
+        "page": {
+         "county": "Nassau",
+         "assembly_district": "01",
+         "election_district": "06",
+         "page": "19"
+        },
+        "complete": false,
+        "missing": [
+         "the head"
+        ],
+        "members": [
+         {
+          "name": "Ruth Peters",
+          "relationship": "Daughter",
+          "head": false,
+          "line": 25,
+          "record": "ruth"
+         }
+        ]
+       }
+      ]
+     },
+     "why": "a daughter's line is a household under a head not held; the county is read off her census residence, the copy's locators having none"
+    }
+   ]
+  },
+  {
+   "say": "Mary's page of the same page and districts, line 23, read",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTM.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTM"
+    },
+    "extract": true
+   },
+   "as": "mary"
+  },
+  {
+   "say": "the households grouped again",
+   "households": {},
+   "expect": [
+    {
+     "last": {
+      "written": 1,
+      "superseded": 1,
+      "rows": 2
+     },
+     "why": "the household of one is superseded by the household both pages make, kept as it was"
+    },
+    {
+     "households": {
+      "form": "ny-1925",
+      "is": [
+       {
+        "page": {
+         "county": "Nassau",
+         "assembly_district": "01",
+         "election_district": "06",
+         "page": "19"
+        },
+        "complete": false,
+        "missing": [
+         "the head",
+         "line 24"
+        ],
+        "ground": {
+         "has": [
+          "lines 23 and 25 of one page",
+          "across line 24 not held, by one surname (Peters)"
+         ]
+        },
+        "members": [
+         {
+          "name": "Mary Peters",
+          "relationship": "Wife",
+          "head": false,
+          "line": 23,
+          "entry": "[\"ark\", \"ark:/61903/1:1:KS4R-RTM\"]",
+          "record": "mary"
+         },
+         {
+          "name": "Ruth Peters",
+          "relationship": "Daughter",
+          "head": false,
+          "line": 25,
+          "entry": "[\"ark\", \"ark:/61903/1:1:KS4R-RTQ\"]",
+          "record": "ruth"
+         }
+        ]
+       }
+      ]
+     },
+     "why": "one run under a head not held: nothing held opens a household between lines 23 and 25, and line 24, not held, is crossed by the one surname both pages write; the head and line 24 are named missing, never filled in"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}
