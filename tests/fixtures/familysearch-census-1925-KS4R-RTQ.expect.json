@@ -20,9 +20,10 @@
      "page": "19",
      "line": "25",
      "assembly_district": "01",
-     "election_district": "06"
+     "election_district": "06",
+     "county": "Nassau"
     },
-    "why": "the 1925 New York form: the page and line the fields give, and the districts the Event Place kept beneath the shown one writes, A.D. 01 the assembly district and, on a form of election districts, E.D. 06 the election district"
+    "why": "the 1925 New York form: the page and line the fields give, and the districts the Event Place kept beneath the shown one writes, A.D. 01 the assembly district and, on a form of election districts, E.D. 06 the election district, with the county it writes before the state, Nassau"
    },
    "facts": [
     {

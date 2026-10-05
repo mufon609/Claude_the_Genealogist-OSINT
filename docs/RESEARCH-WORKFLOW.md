@@ -811,7 +811,7 @@ memorial's subject, and in the parsed page every photograph with the type the
 page gives it; verified on a real memorial), a Find a Grave search
 results page to `rule:findagrave-search@0.1.0` (one persona per row, the
 memorial id and URL as its identity), a FamilySearch record page to
-`rule:familysearch-record@0.8.0` (one persona per person the page names, in
+`rule:familysearch-record@0.8.1` (one persona per person the page names, in
 the page's own role word, a relative given one name only (Thomas, Davidson)
 included with the name as written, a row with no name in it (", [1918]") or
 the index's UNKNOWN none; one fact per field as written, a member's own
@@ -1488,8 +1488,10 @@ rule's reading come first, `BACKLOG.md`). The rules:
   1925 New York index, one person to a page), and then only the page's own
   person's. A page is the image a reading is of, or the form's page locators all
   held alike: for the 1925 New York form the county, the assembly and election
-  districts and the page, the county read off the entry's census residence where
-  the copy's locators lack it. Two entries of one page with no held head or
+  districts and the page, the county the copy keeps with the districts (the
+  reader reads it off the place restated with them, "Hempstead, A.D. 01, E.D.
+  06, Nassau, New York"), or, where the copy's locators lack it, off the entry's
+  census residence. Two entries of one page with no held head or
   numbered line between them are one run when every line between them is held,
   or when they share a surname as written; across a line not held, and only
   then, the surname is what ties them.

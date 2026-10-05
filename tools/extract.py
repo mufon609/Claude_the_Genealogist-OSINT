@@ -10,7 +10,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.8.0; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.8.1; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -97,7 +97,8 @@ on (data/record-forms.csv) and each locator under the form's name for it: the
 line, sheet and its side, page and enumeration district the fields give, the
 districts an event place writes among its parts (A.D. 01 the assembly district,
 Ward 6 the ward, E.D. 06 the election district on a New York state census and
-ED 240 the enumeration district on a federal one), FamilySearch's household
+ED 240 the enumeration district on a federal one) and the county such a place
+writes before its state, FamilySearch's household
 identifier, the NARA publication and roll, and on the subject's own persona the
 digital folder, microfilm and image numbers of Document Information and the
 image's own identifier (ark:/61903/3:1:); a member's persona keeps what its own
@@ -179,7 +180,7 @@ from catalog import is_identity, page_entries
 from forms import census_form, form_for
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.8.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.2.0"),
+              "familysearch": ("rule", "familysearch-record", "0.8.1"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.2.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.2.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -695,13 +696,23 @@ def districts(place, form=None):
         out.setdefault(loc, number)
     return out
 
+def district_county(place):
+    """The county of a place that writes its districts among its parts: the part before its state, the country set aside, when
+    that part is no district itself; None when the place names no state."""
+    from catalog import US_NAMES, us_state
+    parts = [p.strip() for p in (place or "").split(",") if p.strip()]
+    while parts and parts[-1].lower() in US_NAMES: parts.pop()
+    if len(parts) < 2 or not us_state(parts[-1]) or DISTRICT.search(parts[-2]): return None
+    return parts[-2]
+
 def page_place(rows, form=None, image=None):
     """The entry's place on its page, as its persona's region keeps it (data/DATA-SOURCES.md §5c): {"form": the form's id,
     "locators": {locator: value as written}}, each part present when there is one. The locators are read from the label/value
     rows a reading gives for the entry (its fields, the values they keep collapsed beneath, Document Information) and the image's
     own identifier: each label FS_LOCATORS names (an enumeration district by its number, the words after it being the district's
     description), and on a census (form given) the districts an event place writes among its parts, a field's own value standing
-    before a place's."""
+    before a place's, and, on a form that has a county among its locators, the county of such a place, its part before the
+    state (the 1925 New York index's "Hempstead, A.D. 01, E.D. 06, Nassau, New York, United States" is in Nassau)."""
     loc = {}
     for label, value in rows:
         key, value = (label or "").lower().strip(), (value or "").strip()
@@ -711,7 +722,10 @@ def page_place(rows, form=None, image=None):
         if name: loc.setdefault(name, value)
     for label, value in rows if form else ():
         if (label or "").lower().strip() in PLACE_LABELS:
-            for name, number in districts(value, form).items(): loc.setdefault(name, number)
+            found = districts(value, form)
+            for name, number in found.items(): loc.setdefault(name, number)
+            county = district_county(value) if found and "county" in form["locators"] else None
+            if county: loc.setdefault("county", county)
     if image: loc["image"] = image
     return {**({"form": form["id"]} if form else {}), **({"locators": loc} if loc else {})}
 
