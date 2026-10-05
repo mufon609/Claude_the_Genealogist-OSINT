@@ -16,7 +16,8 @@ For each key fact:
               wherever it is held), named by the original its classes give (data/evidence-classes.csv), each with its class
               words (source: original, derivative or authored; information: primary, secondary or indeterminable; evidence:
               direct or indirect; a family link's relationship: stated or computed), its status and whether it agrees with
-              the tree's value
+              the tree's value (a name is read as the matcher reads one, tools/match.py: a nickname, an initial, a spelling
+              variant of the surname or a name the person is known by agrees, and the line says which)
   conflicts   each conflict question on the fact, with its question id (tools/conclude.py resolve and reopen take it): open, with
               the rule's own reading of it (tools/conclude.py classes_decide, over every statement on that event's date or
               place): the side it would keep, the record of the event itself against sides resting only on secondary or
@@ -38,6 +39,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
 from catalog import BOUNDS, Catalog, date_verdict, evidence_classes, key, note, place_verdict, record_of, same_surname, split_name
 from facts import KEY_FACTS, fact_subjects
+from match import first_given, name_keys, name_words, same_given, split_persona_name
 
 INFORMATION = ("primary", "secondary", "indeterminable", None)    # the order the classes favour a side in, best first
 SOURCE = ("original", "derivative", "authored", None)
@@ -162,7 +164,9 @@ def subject_statements(cat, kind, sid, want=None, relative=None):
 # ---------------------------------------------------------------- the tree's value and agreement
 def tree_value(cat, pid, field, ev, fam):
     """(the value the tree holds in words, what statements are compared against)."""
-    if field == "name": n = cat.person(pid)["name"]; return n, n
+    if field == "name":
+        p = cat.person(pid); rows = {(first_given(g), key(s)) for g, s, *_ in p["names"]}
+        return p["name"], {"name": p["name"], "rows": rows, "keys": name_keys(cat, pid)}
     if field == "sex": s = cat.person(pid)["sex"]; return s, s
     if field in ("birth", "death"):
         e = cat.canonical_event(ev, field.title())
@@ -173,20 +177,37 @@ def tree_value(cat, pid, field, ev, fam):
     names = [n for _, n in fam[field]]
     return (" & ".join(names) if field == "parents" else ", ".join(names)) or None, names
 
+def written_name(keys, given, later):
+    """How a name as written (split_persona_name: its first given name's key and the keys of the words after it) stands to
+    (first given, surname) keys, as the matcher reads it (match.compare): whether the first given name is one of theirs
+    (match.same_given: a nickname, an initial, a slip) and how a word after it is one of their surnames (catalog.same_surname:
+    "agrees", else "variant" or "one letter apart", else "" for none)."""
+    hows = [same_surname(t, s) for t in later for _, s in keys]
+    return any(same_given(given, k) for k, _ in keys), "agrees" if "agrees" in hows else next((h for h in hows if h), "")
+
 def agreement(field, st, tree):
     """Whether a statement agrees with the tree's value, in words: agrees (with a note: the year only, a coarser place, a
     spelling variant), the date within a bound (catalog.date_verdict: neither agrees nor disagrees), or what it says instead.
-    None where there is nothing to compare."""
+    None where there is nothing to compare. A name is read as the matcher reads one (tree: the person's name, the keys of
+    their name rows and name_keys, which adds every alias): it agrees when its first given name and a surname after it are
+    the person's by written_name, and says so in a note when only an alias holds them."""
     if tree is None: return None
     if field == "name" and st["value"]:
-        (rg, rs, _), (tg, ts, _) = split_name(st["value"]), split_name(tree)
-        rgiven, tgiven = [key(x) for x in (rg or "").split() if key(x)], [key(x) for x in (tg or "").split() if key(x)]
-        sur = same_surname(key(rs), key(ts))
-        if not (rgiven and tgiven and rgiven[0] == tgiven[0] and sur): return f"says {st['value']}"
-        notes = [] if sur == "agrees" else [f"the surname {sur}" if sur != "variant" else "the surname a spelling variant"]
+        given, later = split_persona_name(st["value"])
+        known, sur = written_name(tree["keys"], given, later)
+        if not (known and sur): return f"says {st['value']}"
+        own = written_name(tree["rows"], given, later)
+        if not all(own): return "agrees: a name the person is known by"
+        rg = split_name(st["value"])[0]
+        rgiven, tgiven = name_words(st["value"])[:-1], name_words(tree["name"])[:-1]
+        notes = [] if own[1] == "agrees" else [f"the surname {own[1]}" if own[1] != "variant" else "the surname a spelling variant"]
         if rgiven != tgiven:
             fits = all(any(t == r or (len(r) == 1 and t.startswith(r)) for t in tgiven) for r in rgiven)
-            notes.append(f"given names {rg}" if not fits else "fewer given names" if len(rgiven) < len(tgiven) else "a given name as its initial")
+            fuller = all(any(t == r or (len(t) == 1 and r.startswith(t)) for t in tgiven) for r in rgiven)
+            alike = all(any(same_given(r, t) for t in tgiven) for r in rgiven)
+            notes.append("fewer given names" if fits and len(rgiven) < len(tgiven) else "a given name as its initial" if fits
+                         else "a given name in full where the tree has its initial" if fuller
+                         else "a given name a nickname or spelling variant" if alike else f"given names {rg}")
         return "agrees" + (f": {', '.join(notes)}" if notes else "")
     if field == "sex" and st["value"]:
         v = {"male": "M", "female": "F"}.get(st["value"].strip().lower(), st["value"].strip()[:1].upper())

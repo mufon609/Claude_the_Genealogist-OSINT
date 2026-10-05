@@ -1,0 +1,158 @@
+{
+ "title": "the proof reads a written name as the matcher does",
+ "line": "a name an accepted record writes with a nickname, a spelling variant of the surname or a name the person is known by (an alias an accepted record gave) agrees in the written proof, in the matcher's own words; a name of another given name still says what it says",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1950 household: the son written Fred M Ahern, his wife Helen B Ahearn",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-census-1950-6XYS-NQ16.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737036054"
+    ]
+   },
+   "as": "c50"
+  },
+  {
+   "say": "the son accepted on the record",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    }
+   ]
+  },
+  {
+   "say": "his name's written conclusion",
+   "proof": {
+    "person": "I332737036054",
+    "fact": "name"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "name": {
+        "evidence": {
+         "some": {
+          "statements": {
+           "some": {
+            "value": "Fred M Ahearn",
+            "agrees": "agrees: a given name a nickname or spelling variant"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "Fred is a nickname of Frederick and M an initial of Micheal: the matcher takes both, so the proof says the record agrees, not that it says another name"
+    },
+    {
+     "last": {
+      "fact": {
+       "name": {
+        "evidence": {
+         "none": {
+          "statements": {
+           "some": {
+            "agrees": {
+             "starts": "says"
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "no accepted statement of his name says another name than his"
+    }
+   ]
+  },
+  {
+   "say": "his mother accepted on the record, written Helen B Ahearn: the surname she married into, which no name of hers carries",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    }
+   ]
+  },
+  {
+   "say": "her name's written conclusion",
+   "proof": {
+    "person": "I332737037573",
+    "fact": "name"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "name": {
+        "evidence": {
+         "some": {
+          "statements": {
+           "some": {
+            "value": "Helen B Ahearn",
+            "agrees": "agrees: a name the person is known by"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "the matcher reads the aliases a person holds as their names, so a name of her married life agrees; the note says it is an alias that holds it"
+    },
+    {
+     "last": {
+      "fact": {
+       "name": {
+        "evidence": {
+         "none": {
+          "statements": {
+           "some": {
+            "agrees": {
+             "starts": "says"
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "no accepted statement of her name says another name than hers"
+    }
+   ]
+  }
+ ]
+}
