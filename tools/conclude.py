@@ -25,7 +25,7 @@ spouse, the relatives the page lists one of the four at most and only one the tr
 (identity_refused, docs/DATA-ARCHITECTURE.md §7 decision 12): nobody else of the tree fits the persona as well, the person holds no other
 persona on that reading of the record, and nothing the record would add falls outside the person's accepted life
 (data/life-limits.csv); a test that fails is a refusal with its reason. The rule acts on the owner's word, is recorded as
-such on the proposal and in the audit log, and the owner can reject what it accepted: the link and every assertion it wrote turn rejected. The rule can also take a decision back (reconsider): every
+such on the proposal and in the audit log, and the owner can reject what it accepted: the link and every assertion it wrote turn rejected, with the family links it was one of the two acceptances for (links_resting_on). The rule can also take a decision back (reconsider): every
 decision it made is examined again as the rule stands now, in the order it took them, on the ground that stood before it, and one it would
 no longer take is withdrawn, the record a card for the owner again, with the family links it was one of the two acceptances for
 (links_resting_on), which no later decision stands on; then every card still undecided is examined the same
@@ -1790,9 +1790,12 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     decision is an identity: the link accepted, the memberships it states created where the tree lacks them with an Undecided
     assertion, and the facts written undecided. Rejected: the link rejected;
     for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link,
-    every assertion and the name alias the rule wrote turn rejected, and a step held by the record for this person is planned
-    again; rejecting a card whose decision the rule took back turns rejected what that decision wrote the same way, and either
-    rejection is the person's own decision on each of those statements (person_decided). One the rule took back (withdraw) is
+    every assertion and the name alias the rule wrote turn rejected, and so does every family link the decision was one of
+    the two acceptances for, written by the other's decision (links_resting_on, what a withdrawal takes back: the persona is
+    not this person, so the record states no link of theirs), and a step held by the record for this person is planned
+    again; rejecting a card whose decision the rule took back turns rejected what that decision wrote and the links its
+    withdrawal took back the same way, and either rejection is the person's own decision on each of those statements
+    (person_decided), so no later acceptance of the other card writes the link again. One the rule took back (withdraw) is
     accepted with everything it had written standing again, its name alias included, save a statement a person has decided
     on its own since, which keeps the person's status. Either way, once the plans are regenerated, the rule goes over the conflicts of the people whose plans the
     decision changed (rule_conflicts): its own resolutions there examined again, every open conflict on an event's date or
@@ -1820,12 +1823,19 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         and not (p["status"] == "accepted" and status == "rejected" and (p["decided_by"] or "").startswith("rule:"))
     ):
         return {"error": "already decided"}
-    # a person's own decision on every statement the card's decision wrote, standing or taken back by the rule
+    # a person's own decision on every statement the card's decision wrote, standing or taken back by the rule, and on every
+    # family link it was one of the two acceptances for: the persona is not this person, so the record states none of them
+    links = links_resting_on(cx, tree_id, prop_id, taken_back=True) if status == "rejected" else []
     if status == "rejected":
         n = q.execute(
             "UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=?, person_decided=TRUE WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?",
             (by, ts, tree_id, prop_id)
         ).rowcount
+        if links:
+            n += q.execute(
+                f"UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=?, person_decided=TRUE WHERE id IN ({','.join('?' * len(links))})",
+                (by, ts, *links)
+            ).rowcount
         # the name as the record writes it goes with the record
         q.execute(
             "UPDATE alias SET status='rejected' WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?",
@@ -1867,12 +1877,24 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     # the decision is the record's: every other copy's persona of this entry takes it
     if person_id:
         carry(cx, by, pay["artifact_sha256"], trees=[tree_id], settle=False)
-    # a spouse joined on the record: the marriage it dates is now on their family too
-    for pid in dict.fromkeys(
-        [person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"]
-    ):
-        if pid:
-            answered += answer_questions(cx, tree_id, pid, prop_id, by)
+    # a spouse joined on the record: the marriage it dates is now on their family too; a link taken back with a rejection,
+    # each person it joined
+    linked = [
+        json.loads(r["subject_id"])[1]
+        for r in q.execute(
+            f"SELECT subject_id FROM assertion WHERE subject_kind='family_member' AND id IN ({','.join('?' * len(links))})",
+            links
+        )
+    ] if links else []
+    people = [
+        pid
+        for pid in dict.fromkeys(
+            [person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"] + linked
+        )
+        if pid
+    ]
+    for pid in people:
+        answered += answer_questions(cx, tree_id, pid, prop_id, by)
     # a step the record held for this person is planned again
     released = (
         release_household(cx, tree_id, person_id, pay["artifact_sha256"], by)
@@ -1902,6 +1924,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
                     "assertions": n,
                     "alias": alias_id,
                     "memberships": members,
+                    "links": links,
                     "answered": answered,
                     "released_steps": released,
                     "note": note
@@ -1909,13 +1932,6 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
             )
         )
     )
-    people = [
-        pid
-        for pid in dict.fromkeys(
-            [person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"]
-        )
-        if pid
-    ]
     # the conflicts the decision opened or changed, and the rule's own resolutions that rest on what it changed
     conflicts = rule_conflicts(cx, tree_id, by, people=people)
     # the cards these people's evidence has passed by: matched again
@@ -1938,6 +1954,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         "assertions": n,
         "alias": alias_id,
         "memberships": members,
+        "links": links,
         "answered": answered,
         "released_steps": released,
         "note": note,
@@ -4583,18 +4600,22 @@ def living(cx, tree_id, pid, word, by, note):
     )
     return {"was": row["living_override"], "now": value, **Catalog(cx, tree_id).living(pid)}
 
-def links_resting_on(cx, tree_id, prop_id, gone=()):
-    """The statements a withdrawal of this decision takes back besides its own (docs/RESEARCH-WORKFLOW.md §5–7): a family link
-    the record states stands on both people it relates being accepted on the record, and is written by the second of the two
-    acceptances (link_family), so it is the other decision's statement. Taken back: each accepted statement of a membership
-    joining this decision's person to a person accepted on another persona of the record, written from a relationship the
-    record states between that persona and this decision's entry (on any reading or copy of it), the relationship's own word
-    its citation (an in-law's tie resolved through this decision's person included), unless another pair of personas
-    accepted on the record states the same link in the same word; and with a spouse link that goes, the facts the same
-    decision wrote on the couple's family from the record (assert_family_events). A statement whose status a person decided
-    on its own (person_decided), one written undecided (ACCEPTED_WITH_RECORD) and this decision's own are never among them.
-    gone: decisions already withdrawn in this pass (reconsider), read as not accepted. Returns the assertion ids."""
+def links_resting_on(cx, tree_id, prop_id, gone=(), taken_back=False):
+    """The statements a withdrawal or a person's rejection of this decision takes back besides its own
+    (docs/RESEARCH-WORKFLOW.md §5–7): a family link the record states stands on both people it relates being accepted on the
+    record, and is written by the second of the two acceptances (link_family), so it is the other decision's statement.
+    Taken back: each accepted statement of a membership joining this decision's person to a person accepted on another
+    persona of the record, written from a relationship the record states between that persona and this decision's entry (on
+    any reading or copy of it), the relationship's own word its citation (an in-law's tie resolved through this decision's
+    person included), unless another pair of personas accepted on the record states the same link in the same word; and with
+    a spouse link that goes, the facts the same decision wrote on the couple's family from the record
+    (assert_family_events). A statement whose status a person decided on its own (person_decided), one written undecided
+    (ACCEPTED_WITH_RECORD) and this decision's own are never among them. gone: decisions already withdrawn in this pass
+    (reconsider), read as not accepted. taken_back: the undecided statements a withdrawal of this decision left are among
+    them too, for a person's rejection of a card whose decision the rule took back. Returns the assertion ids."""
     q = _q(cx)
+    statuses = ("accepted", "undecided") if taken_back else ("accepted",)
+    held = f"status IN ({','.join('?' * len(statuses))})"
     pay = json.loads(q.execute("SELECT payload_json FROM proposal WHERE id=?", (prop_id,)).fetchone()["payload_json"])
     me = pay.get("person_id")
     if not me:
@@ -4656,8 +4677,8 @@ def links_resting_on(cx, tree_id, prop_id, gone=()):
                 continue
             for a in q.execute(
                 f"""SELECT id, subject_id, notes FROM assertion WHERE tree_id=? AND subject_kind='family_member' AND artifact_sha256=? AND citation_text=?
-                                   AND status='accepted' AND NOT person_decided AND {ACCEPTED_WITH_RECORD}""",
-                (tree_id, sha, f"{word(r)} on the record")
+                                   AND {held} AND NOT person_decided AND {ACCEPTED_WITH_RECORD}""",
+                (tree_id, sha, f"{word(r)} on the record", *statuses)
             ).fetchall():
                 if a["id"] in out or json.loads(a["notes"] or "{}").get("proposal") == prop_id:
                     continue
@@ -4674,8 +4695,8 @@ def links_resting_on(cx, tree_id, prop_id, gone=()):
                     couples.append((fid, json.loads(a["notes"] or "{}").get("proposal"), sha))
     for fid, writer, sha in dict.fromkeys(couples):
         out += [a for a, in q.execute(f"""SELECT a.id FROM assertion a JOIN event_participant ep ON ep.event_id=a.subject_id AND ep.family_id=?
-                                          WHERE a.tree_id=? AND a.subject_kind='event' AND a.artifact_sha256=? AND a.status='accepted' AND NOT a.person_decided
-                                          AND json_valid(a.notes) AND json_extract(a.notes,'$.proposal')=? AND json_extract(a.notes,'$.computed') IS NULL""", (fid, tree_id, sha, writer)).fetchall() if a not in out]
+                                          WHERE a.tree_id=? AND a.subject_kind='event' AND a.artifact_sha256=? AND a.{held} AND NOT a.person_decided
+                                          AND json_valid(a.notes) AND json_extract(a.notes,'$.proposal')=? AND json_extract(a.notes,'$.computed') IS NULL""", (fid, tree_id, sha, *statuses, writer)).fetchall() if a not in out]
     return out
 
 def withdraw(cx, tree_id, prop_id, by, why, ts):
@@ -5302,6 +5323,10 @@ def main():
             print(
                 f"{res['status']}: {res['kind'].replace('_', ' ')} {who[0] if who else ''}; {res['assertions']} assertion(s), {len(res['memberships'])} family link(s), {len(res['answered'])} question(s) answered"
             )
+            if res["links"]:
+                print(
+                    f"    {len(res['links'])} statement(s) of the family links this decision was one of the two acceptances for, rejected with it"
+                )
             if res["status"] == "accepted" and res["identity"]:
                 print(
                     "    an identity on a page anyone can edit: the link accepted; the family links and every fact it states are written undecided, never accepted"

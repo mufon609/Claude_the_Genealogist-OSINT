@@ -1069,7 +1069,8 @@ person, or a session acting for them, takes on that statement itself: a key
 fact decided (`tools/conclude.py fact … accept|reject|undecided`, the vouch
 included, as is the owner's word placing a link or a divorce on a record), one
 statement decided (`tools/conclude.py assertion`), and a card's rejection, for
-every statement its decision wrote; what an acceptance of a record writes with
+every statement its decision wrote and every family link it was one of the two
+acceptances for (below); what an acceptance of a record writes with
 it (its statements accepted, and the undecided ones of a page anyone can edit,
 an indexer's grouping, a sibling placement or a value the page keeps beneath),
 a re-read, a carry to another copy, a withdrawal and the import never make one,
@@ -1292,8 +1293,13 @@ when its gap has gone or the owner dismisses it.
 The proposal records the rule as the decider with its
 reason in words, the audit row says the same, and the card shows "accepted by
 rule" with a Reject control: rejecting turns the link, every assertion and the
-name alias the rule wrote rejected, and rejecting a card whose decision the rule
-took back turns rejected what that decision wrote the same way. A proposal the rule does not take is a card for the owner
+name alias the rule wrote rejected, and every family link the decision was one of
+the two acceptances for, the links a withdrawal takes back (below): the persona is
+not that person, so the record states no link of theirs, and the rejection is the
+person's own decision on each of those statements, so no later acceptance of the
+other card on the record writes the link again. Rejecting a card whose decision
+the rule took back turns rejected what that decision wrote, and the links its
+withdrawal took back, the same way. A proposal the rule does not take is a card for the owner
 with the reason it was not taken. The rule creates a person only as above,
 through the fitting check; every other `new_person` proposal is a card for
 the owner. The rule

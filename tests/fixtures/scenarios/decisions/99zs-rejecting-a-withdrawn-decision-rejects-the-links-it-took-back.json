@@ -1,0 +1,165 @@
+{
+ "title": "rejecting a withdrawn decision rejects the links it took back",
+ "line": "the rule's withdrawal of its decision on him took back the spouse link his wife's acceptance wrote, undecided; the owner rejecting his card then turns that link rejected as the owner's own decision, as it turns what his decision wrote, and her decision's own statements stand",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's word on his name: the rule counts his decision on its points",
+   "fact": {
+    "person": "I332737204849",
+    "field": "name",
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "FamilySearch's page of his death certificate, matched for the four people it names: him, his wife and his parents",
+   "archive": {
+    "fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html",
+    "source": "D03",
+    "collection": "Kentucky, Deaths, 1911-1967",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849",
+     "I332737204852",
+     "I332737209655",
+     "I332737209721"
+    ]
+   },
+   "as": "page"
+  },
+  {
+   "say": "the rule takes him, the first of the two acceptances",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+   }
+  },
+  {
+   "say": "the owner accepts his wife on it: the second acceptance writes the spouse link",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the rule takes its decision on him back, and the link that stood on it",
+   "withdraw": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    }
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204852",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "undecided",
+        "person_decided": false
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects his card",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    },
+    "status": "rejected",
+    "note": "harness: not him"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "rejected",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     },
+     "why": "the link his withdrawal took back is rejected with the rest of what his decision stood for"
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204852",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "rejected",
+        "by": "agent:check",
+        "person_decided": true
+       }
+      ]
+     }
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "person",
+      "is": {
+       "every": {
+        "status": "rejected",
+        "person_decided": true
+       }
+      }
+     },
+     "why": "what his decision wrote, taken back by the rule, is rejected the same way"
+    },
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204852",
+      "kind": "person",
+      "is": {
+       "every": {
+        "status": "accepted"
+       }
+      }
+     },
+     "why": "her decision, the owner's, stands"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}
