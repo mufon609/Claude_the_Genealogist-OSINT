@@ -39,7 +39,21 @@
      "value": "Son",
      "computed": false
     }
-   ]
+   ],
+   "page_place": {
+    "form": "us-1940",
+    "locators": {
+     "enumeration_district": "15-4",
+     "line": "47",
+     "sheet": "23",
+     "sheet_letter": "B",
+     "publication": "T627",
+     "digital_folder": "005456604",
+     "image_number": "109",
+     "image": "ark:/61903/3:1:3QS7-89MT-GW9F"
+    },
+    "why": "Enumeration District Number reads \"15-4 Caln Township outside Coatesville City and Downingtown Borough, Caln, Thorndale\": the locator is the district's number, the description stays in structured_json"
+   }
   },
   "2": {
    "name": "Helen Ahern",
@@ -65,7 +79,12 @@
      "computed": true
     }
    ],
-   "why": "the mother's birth calculated from her age, Mother toward the principal and the couple of the household's mother and father FamilySearch's groupings, computed"
+   "why": "the mother's birth calculated from her age, Mother toward the principal and the couple of the household's mother and father FamilySearch's groupings, computed",
+   "page_place": {
+    "form": "us-1940",
+    "no_locators": true,
+    "why": "a member whose details the page keeps closed carries the form and no locator"
+   }
   },
   "3": {
    "name": "Frederick Ahern",

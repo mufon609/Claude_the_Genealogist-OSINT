@@ -16,7 +16,13 @@
    "region": [
     "3947385"
    ],
-   "why": "the first row as transcribed, the schedule id on the row"
+   "why": "the first row as transcribed, the schedule id on the row",
+   "page_place": {
+    "locators": {
+     "line": "1"
+    },
+    "why": "the row is its line"
+   }
   }
  },
  "every": {
@@ -25,12 +31,27 @@
     "type": "Residence",
     "date": "1950",
     "place": "Nassau, New York, United States"
+   }
+  ],
+  "why": "every row a Residence 1950 in Nassau, New York; the enumeration district, the county and state and the schedule id its place on the 1950 form, never a fact",
+  "no_facts": [
+   {
+    "type": "Unknown",
+    "value_starts": "Enumeration District"
    },
    {
     "type": "Unknown",
-    "value_starts": "Enumeration District: 30-392"
+    "value_starts": "Row"
    }
   ],
-  "why": "every row a Residence 1950 in Nassau, New York, with the enumeration district"
+  "page_place": {
+   "form": "us-1950",
+   "locators": {
+    "state": "New York",
+    "county": "Nassau",
+    "enumeration_district": "30-392",
+    "schedule_id": "3947385"
+   }
+  }
  }
 }

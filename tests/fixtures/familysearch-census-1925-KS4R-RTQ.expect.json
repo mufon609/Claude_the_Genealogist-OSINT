@@ -1,0 +1,54 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "ark",
+   "value": "ark:/61903/1:1:KS4R-RTQ"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 1,
+ "sequence": {
+  "1": {
+   "name": "Ruth Peters",
+   "role": "daughter",
+   "sex": "F",
+   "page_place": {
+    "form": "ny-1925",
+    "locators": {
+     "page": "19",
+     "line": "25",
+     "assembly_district": "01",
+     "election_district": "06"
+    },
+    "why": "the 1925 New York form: the page and line the fields give, and the districts the Event Place kept beneath the shown one writes, A.D. 01 the assembly district and, on a form of election districts, E.D. 06 the election district"
+   },
+   "facts": [
+    {
+     "type": "Residence",
+     "date": "1925",
+     "place": "Hempstead, Nassau, New York, United States",
+     "alternate": false
+    },
+    {
+     "type": "Residence",
+     "date": "1925",
+     "place": "Hempstead, Hempstead, Nassau, New York, United States",
+     "alternate": true
+    },
+    {
+     "type": "Birth",
+     "date": "CAL 1921"
+    }
+   ],
+   "no_facts": [
+    {
+     "type": "Residence",
+     "place": "Hempstead, A.D."
+    }
+   ],
+   "why": "the place restated with its districts (Hempstead, A.D. 01, E.D. 06, Nassau, New York, United States) is the entry's place on its page and never a residence; the other place the field keeps beneath, Hempstead, Hempstead, stays a residence of its own, marked alternate"
+  }
+ }
+}

@@ -340,6 +340,15 @@ The columns, one form per row:
 - `source`: the addresses the row rests on, `;`-separated, each opened when the row was written; `notes`: what the sources
   say of the heading, the numbering of pages and lines and the order of names, in words.
 
+A reader keeps every locator an entry carries as the entry's place on its page, in its persona's `region_json` as
+`{"form": <id>, "locators": {<locator>: <value as written>}}` (`tools/extract.py` `page_place`; the screen's transcription
+path, `app/person/server.py` `form_place`): the form's own and those its copy adds, which no form prints (FamilySearch's
+household identifier, its microfilm, digital folder and image numbers and the NARA publication and roll, the 1950 census
+site's schedule id, a reading's line counted from the top of its image, `image_line`). A locator is no fact about the
+person, so it is never a `persona_fact`, and the region is written once with the persona, as the evidence is insert-only:
+a better reading writes new personas with their own regions. Whether a copy's line or household identifier is the form's
+own is what a form's calibration finds (decision 21), never assumed here.
+
 Sources. The federal rows rest on the Census Bureau's own: *Measuring America: The Decennial Censuses From 1790 to 2000*
 (2002), whose pages reproduce each schedule and its instructions (cited by the PDF's page), the questionnaire pages of
 census.gov for 1790 to 1860 (their index of questions) and the enumerators' instructions for 1850 to 1950, as census.gov

@@ -25,6 +25,7 @@ from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from extract import Writer
+from forms import census_form
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
 from conclude import carry, decide as decide_document, join_copies, living, match_record, record_says, rule_conflict_decisions, rule_conflict_line
@@ -172,6 +173,27 @@ def place_on_image(body):
     if str(body.get("number") or "").strip(): region["number"] = str(body["number"]).strip()   # the number the record gives itself, on the persona it is the record of: what joins the image to another copy of the record (same_record)
     return region
 
+def form_place(body, collection=None):
+    """The persona's place on its page in the form's terms (data/DATA-SOURCES.md §5c), as the readers keep it: {"form": the
+    form a census of the record's collection and year was made on, "locators": {"image_line": the form's line counted from the
+    top of the image, "sheet" and "sheet_letter" (13A, as the heading writes it), "dwelling", "family" (the numbers in order of
+    visitation the line carries)}}, each part present when given; (None, why) when a sheet, dwelling or family number is not one."""
+    loc = {}
+    if line := re.fullmatch(r"[0-9]+", str(body.get("line") or "").strip()): loc["image_line"] = line.group(0)
+    sheet = str(body.get("sheet") or "").strip().upper()
+    if sheet:
+        m = re.fullmatch(r"([0-9]+)\s*([A-D])?", sheet)
+        if not m: return None, f"sheet {sheet!r} is the sheet number the heading writes, with its side where it has one (13A)"
+        loc["sheet"] = m.group(1)
+        if m.group(2): loc["sheet_letter"] = m.group(2)
+    for k in ("dwelling", "family"):
+        v = str(body.get(k) or "").strip()
+        if v and not v.isdigit(): return None, f"{k} {v!r} is the number in order of visitation the line carries"
+        if v: loc[k] = v
+    yr = str(body.get("year") or "").strip()
+    form = census_form(collection, int(yr)) if collection and yr.isdigit() and re.search(r"census", collection, re.I) else None
+    return {**({"form": form["id"]} if form else {}), **({"locators": loc} if loc else {})}, None
+
 def transcribe(cx, sha, body, by=None, about=None):
     """One persona read from a held record by its reader: `by` (the screen's own identity when not given) is llm:<model id>, a
     model reading the image by the instruction in read_record.md, or user:<name> (human:<name>), a person. The reading is an
@@ -179,9 +201,11 @@ def transcribe(cx, sha, body, by=None, about=None):
     version the id carries; both: the instruction's sha256 as it stands), its structured_json keeping the record's year and what
     the image is (`image_is`: record or index). Each persona is in the record's own role word, its facts as written, a birth
     calculated from an age and the record's year, its relations to personas already on the record, and its line or region on
-    the image. The reader is the actor of every write the reading makes, the matcher's proposals included. Refused, with
-    nothing written: a model with no id, a reader that is neither a model nor a person, a persona with no line or region, an
-    image not said to be a record or an index, or said to be the one the reading already says it is not."""
+    the image with its place on the page in the form's terms (form_place: the sheet with its side, the dwelling and family
+    numbers its line carries, on the form of the record's census collection and year). The reader is the actor of every write
+    the reading makes, the matcher's proposals included. Refused, with nothing written: a model with no id, a reader that is
+    neither a model nor a person, a persona with no line or region, a sheet, dwelling or family that is not a number, an image
+    not said to be a record or an index, or said to be the one the reading already says it is not."""
     if not cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return {"error": "not in the archive"}
     name = (body.get("name") or "").strip()
     if not name: return {"error": "a name is required"}
@@ -191,7 +215,11 @@ def transcribe(cx, sha, body, by=None, about=None):
     reader = f"{kind}:{who}"; kind = "llm" if kind == "llm" else "human"
     region = place_on_image(body)
     if not region: return {"error": f"{name}: every person read from an image carries the line they stand on (line) or the region of their row (bbox: [x, y, width, height])"}
-    stated = (body.get("image_is") or "").strip().lower() or None
+    coll = cx.execute("SELECT c.name FROM artifact a LEFT JOIN collection c ON c.id=a.collection_id WHERE a.sha256=?", (sha,)).fetchone()[0]
+    place, why = form_place(body, coll)
+    if why: return {"error": f"{name}: {why}"}
+    region.update(place)
+    stated =(body.get("image_is") or "").strip().lower() or None
     if stated not in (None, *IMAGE_IS): return {"error": f"{name}: the image is a record or an index, not {stated}"}
     prompt, version = instruction_sha256(), model_version(who) if kind == "llm" else None
     x = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version IS ? AND prompt_sha256=?", (kind, who, version, prompt)).fetchone()

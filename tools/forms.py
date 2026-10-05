@@ -1,8 +1,9 @@
 """The record forms (data/record-forms.csv, docs/DATA-ARCHITECTURE.md §7 decision 21): one row for each shape a kind of record
 took, the years and jurisdictions that share it on one row, each saying what the form states, the locators that place an
 entry on it, which of them make one page, how a household is bounded and where its structure is documented
-(data/DATA-SOURCES.md §5c). Read-only reference data, read once per process: the checklist's census rows and the footprint's
-expectations of a relative's census read a census's structure here.
+(data/DATA-SOURCES.md §5c). Read-only reference data, read once per process: the checklist's census rows, the footprint's
+expectations of a relative's census and the readers' locators (tools/extract.py page_place, the screen's transcription path)
+read a census's structure here.
 
     form_for(year, jurisdiction="united states")   the form of that year, or None
     census_form(collection, year)                  the form a census record of that collection and year was made on

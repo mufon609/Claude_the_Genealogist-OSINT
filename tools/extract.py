@@ -10,7 +10,7 @@ A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
 a FamilySearch record page (its "Cite This Record" block, data-testid
 documentInformationCitation, naming an ark under familysearch.org/ark:/61903/1:1:)
-goes to rule:familysearch-record@0.7.2; a FamilySearch search results page (rows
+goes to rule:familysearch-record@0.8.0; a FamilySearch search results page (rows
 carrying a record ark as their data-testid) goes to rule:familysearch-search@0.1.0,
 one persona per row with the ark as its identity, the row's events and the
 relatives it names; an
@@ -90,9 +90,22 @@ Event Type, Event Date, Event Place, Event Place (Original), and the sheet and
 line). Event Date and Event Place become one fact of the event's type (a Census
 event and a Draft Registration are a Residence: the card's registration is where
 the registrant lived on its date); Event Place (Original) and the parents' birthplaces stay
-as Unknown facts under their labels; identifiers stay in structured_json. A
-field's value is read as shown, and each value the field keeps collapsed beneath
-it (a display:none panel, FamilySearch's edit history: Norristown beneath
+as Unknown facts under their labels. What places the entry on its page is no
+fact: the persona's region_json keeps it as {"form", "locators"} (page_place,
+data/DATA-SOURCES.md §5c), the form a census of that collection and year was made
+on (data/record-forms.csv) and each locator under the form's name for it: the
+line, sheet and its side, page and enumeration district the fields give, the
+districts an event place writes among its parts (A.D. 01 the assembly district,
+Ward 6 the ward, E.D. 06 the election district on a New York state census and
+ED 240 the enumeration district on a federal one), FamilySearch's household
+identifier, the NARA publication and roll, and on the subject's own persona the
+digital folder, microfilm and image numbers of Document Information and the
+image's own identifier (ark:/61903/3:1:); a member's persona keeps what its own
+details table gives. A collapsed event place that writes such a district (the
+1925 New York index keeps "Hempstead, A.D. 01, E.D. 06, Nassau, New York,
+United States" beneath the place it shows) is read for its districts and never
+as a residence. A field's value is read as shown, and each value the field
+keeps collapsed beneath it (a display:none panel, FamilySearch's edit history: Norristown beneath
 Norriton Township, Fred M. Ahearn, Jr. beneath Fred M Ahearn) is read too, as a
 fact of its own whose region_json names its labels under "alternate", unless it
 states the same date or the same words as the shown value; beneath an Event Date
@@ -125,10 +138,11 @@ spouse on the page, the record naming each party's parents. The page's own ark,
 from the print header, is written to artifact_locator as kind ark.
 
 Connector responses (JSON, archived by tools/run_step.py) have their own extractors, claimed by the response's shape:
-  rule:nara-1950-schedule@0.1.0  one schedule from the 1950 census site (a single result with scheduleId and names and no
+  rule:nara-1950-schedule@0.2.0  one schedule from the 1950 census site (a single result with scheduleId and names and no
                                  search highlight, as /api/search?scheduleId= answers): one persona per
                                  transcribed row the search matched, named as transcribed, with a Residence in the county and
-                                 state in 1950 and the enumeration district and row under their labels; the whole schedule in
+                                 state in 1950; its region the row's place on the 1950 form, the state, county, enumeration
+                                 district, the row as its line, the page's image and the schedule id; the whole schedule in
                                  structured_json.
   rule:ia-search-inside@0.1.0    the Internet Archive's search inside one item (ia, q, matches with text and page): the matches'
                                  text read as loc-gov-ocr reads a page, the item's date and title as the page's; a directory
@@ -162,9 +176,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
 from conclude import assert_facts, carry, join_copies, link_family
 from catalog import is_identity, page_entries
+from forms import census_form, form_for
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
-              "familysearch": ("rule", "familysearch-record", "0.7.2"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.1.0"),
+              "familysearch": ("rule", "familysearch-record", "0.8.0"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.2.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
               "va_graves": ("rule", "va-gravesite", "0.2.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
@@ -196,6 +211,19 @@ HOUSEHOLD_KINDS = [(r"grand|in.law|aunt|uncle|niece|nephew|cousin|step", "other"
 SKIP = re.compile(r"source|citation|page|line|sheet|enumeration|district|roll|film|series|ward|township|county|state|record type|record number|title|url|household members|save|print"
                   r"|household identifier|affiliate|digital folder|image number|indexing batch|event type", re.I)
 TIME_ONLY = re.compile(r"\d{1,2}:\d{2}\s*[APap][Mm]")   # a clock time, never a date, however an "Event Date" field labels it
+# a FamilySearch field label that places the entry on its page, to the locator it is (data/DATA-SOURCES.md §5c): the form's own
+# (line, sheet and its side, page, enumeration district) and the copy's (its household identifier, the NARA publication and roll,
+# the digital folder, microfilm and image numbers of Document Information)
+FS_LOCATORS = {"line number": "line", "sheet number": "sheet", "sheet letter": "sheet_letter", "page number": "page",
+               "enumeration district": "enumeration_district", "enumeration district number": "enumeration_district",
+               "household identifier": "household_id", "affiliate publication number": "publication", "affiliate film number": "roll",
+               "digital folder number": "digital_folder", "microfilm number": "film", "image number": "image_number"}
+# a district a place string writes among its parts (FamilySearch's Event Place (Original) and the Event Place it keeps beneath the
+# one it shows: "Norristown borough Ward 6, ED 240, ...", "Hempstead, A.D. 01, E.D. 06, Nassau, ..."): A.D. the assembly
+# district, Ward the ward, E.D. or ED the election district on a form that has election districts, else the enumeration district
+DISTRICT = re.compile(r"(?<![\w.])(A\.\s?D\.|E\.\s?D\.|ED|Ward)\s*(\d+[A-Z]?(?:-\d+[A-Z]?)?)\b")
+PLACE_LABELS = ("event place", "event place (original)")
+IMAGE_ARK = re.compile(r"ark:/61903/3:1:[A-Z0-9-]+")      # the image's own identifier on a FamilySearch record page
 
 class Page(HTMLParser):
     """Collects every table as rows of cell texts (with th flagged), nested tables included, in document order."""
@@ -340,9 +368,10 @@ def label_rows(table, alternates=None):
     return out
 
 def parse_record(text):
-    """A FamilySearch record page: {"kind": "familysearch", "title", "name", "collection", "ark", "citation", "mentioned", "document": [[label, value]],
+    """A FamilySearch record page: {"kind": "familysearch", "title", "name", "collection", "ark", "image", "citation", "mentioned", "document": [[label, value]],
     "fields": [[label, value]], "alternates": [[label, value]], "members": [{"section", "name", "role", "sex", "age", "birthplace", "url",
-    "fields", "alternates"}]}: a field's value as shown in fields, every value it keeps collapsed beneath that in alternates; mentioned,
+    "fields", "alternates"}]}: a field's value as shown in fields, every value it keeps collapsed beneath that in alternates; image, the
+    image's own identifier (ark:/61903/3:1:) the page links for its own person, else the one image it links, else None; mentioned,
     on a page whose own person is a relative of the record's subject, that subject as its leading h2 names and links them ({"name",
     "url"}), else None."""
     t = Tree(); t.feed(text); root = t.root
@@ -352,10 +381,14 @@ def parse_record(text):
     banner = next((n for n in walk(main) if n["tag"] == "h2" and text_of(n).startswith("Mentioned in the Record of")), None)
     link = next((x for x in walk(banner) if x["tag"] == "a"), None) if banner else None
     out = {"kind": "familysearch", "title": next((text_of(n) for n in walk(root) if n["tag"] == "title"), ""), "name": head("h1"), "collection": collection,
-           "ark": None, "citation": None, "mentioned": {"name": text_of(link) if link else None, "url": link["attrs"].get("href") if link else None} if banner else None,
+           "ark": None, "image": None, "citation": None, "mentioned": {"name": text_of(link) if link else None, "url": link["attrs"].get("href") if link else None} if banner else None,
            "document": [], "fields": [], "alternates": [], "members": []}
     m = next((re.search(r"ark:/61903/1:1:[A-Z0-9-]+", text_of(n)) for n in walk(root) if n["tag"] == "h3" and "ark:/61903/1:1:" in text_of(n)), None)
     if m: out["ark"] = m.group(0)
+    links = [(IMAGE_ARK.search(n["attrs"]["href"]).group(0), urllib.parse.unquote(n["attrs"]["href"])) for n in walk(root) if IMAGE_ARK.search(n["attrs"].get("href") or "")]
+    mine = [a for a, href in links if out["ark"] and out["ark"] in href]          # the image the page links for its own person (personArk)
+    others = list(dict.fromkeys(a for a, _ in links))
+    out["image"] = mine[0] if mine else (others[0] if len(others) == 1 else None)
     cite = next((n for n in walk(main) if n["attrs"].get("data-testid") == "documentInformationCitation"), None)
     if cite: out["citation"] = text_of(cite).replace("\n", " ")
     section, seen = "", set()
@@ -652,13 +685,45 @@ def same_statement(a, b):
     words = lambda s: re.sub(r"\W+", " ", (s or "").lower()).split()
     return words(a) == words(b)
 
+def districts(place, form=None):
+    """The districts a place string writes among its parts, {locator: number as written}: A.D. the assembly district, Ward the
+    ward, E.D. or ED the election district where the form has election districts, else the enumeration district."""
+    out = {}
+    for word, number in DISTRICT.findall(place or ""):
+        word = re.sub(r"[\s.]", "", word).upper()
+        loc = {"AD": "assembly_district", "WARD": "ward"}.get(word) or ("election_district" if form and "election_district" in form["locators"] else "enumeration_district")
+        out.setdefault(loc, number)
+    return out
+
+def page_place(rows, form=None, image=None):
+    """The entry's place on its page, as its persona's region keeps it (data/DATA-SOURCES.md §5c): {"form": the form's id,
+    "locators": {locator: value as written}}, each part present when there is one. The locators are read from the label/value
+    rows a reading gives for the entry (its fields, the values they keep collapsed beneath, Document Information) and the image's
+    own identifier: each label FS_LOCATORS names (an enumeration district by its number, the words after it being the district's
+    description), and on a census (form given) the districts an event place writes among its parts, a field's own value standing
+    before a place's."""
+    loc = {}
+    for label, value in rows:
+        key, value = (label or "").lower().strip(), (value or "").strip()
+        if not value: continue
+        name = FS_LOCATORS.get(key)
+        if name == "enumeration_district": value = value.split()[0] if re.fullmatch(r"\d+[A-Z]?(?:-\d+[A-Z]?)?", value.split()[0]) else value
+        if name: loc.setdefault(name, value)
+    for label, value in rows if form else ():
+        if (label or "").lower().strip() in PLACE_LABELS:
+            for name, number in districts(value, form).items(): loc.setdefault(name, number)
+    if image: loc["image"] = image
+    return {**({"form": form["id"]} if form else {}), **({"locators": loc} if loc else {})}
+
 def field_facts(fields, default_etype=None, alternates=()):
     """Group label/value rows into facts: {fact_type: {"date": (value, label), "place": (value, label), "values": [(value, label)]}}, and the
     relatives named in fields as [(label word, name, [the name's collapsed values])]. A date and a place of one type are one fact; a second
     date or place of the same type gets its own slot keyed by label. "Event Date" and "Event Place" take the type named by "Event Type"
     (Census is a Residence). Each value a field keeps collapsed beneath the one shown (alternates, [[label, value]]) is read the same way
     into a slot of its own, marked alternate and pointing at the shown value's slot ("of"), unless it says the same thing as the shown
-    value; beneath an Event Date that shows a time of day, the first collapsed value that is a date is the event's own date."""
+    value; beneath an Event Date that shows a time of day, the first collapsed value that is a date is the event's own date; a collapsed
+    event place that writes an assembly, election or enumeration district among its parts (A.D. 01, E.D. 06) is the entry's place on its
+    page (page_place), never a fact."""
     by_type, named, named_alt = {}, {}, {}
     etype = next((EVENT_TYPES.get(v.lower().strip()) for l, v in fields if l.lower().strip() == "event type"), None) or default_etype   # a page with no Event Type row takes its collection's kind
     has_place = any(l.lower().strip() == "event place" and (v or "").strip() for l, v in fields)
@@ -700,6 +765,7 @@ def field_facts(fields, default_etype=None, alternates=()):
         key = label.lower().strip(); was = shown.get(key, "")
         if etype and key == "event date" and TIME_ONLY.fullmatch(was.strip()) and parse_gedcom_date(value)["date_start"] and not (by_type.get(etype) or {}).get("date"):
             by_type.setdefault(etype, new())["date"] = (value, f"{etype} Date"); continue   # the date the field keeps beneath the time of day it shows
+        if key in PLACE_LABELS and set(districts(value)) - {"ward"}: continue   # the place restated with its census districts: the entry's locators (page_place), never a residence; a ward is a part of the place
         if not same_statement(value, was): put(label, value, n)
     return by_type, [(word, value, named_alt.get(word, [])) for word, value in named.items()]
 
@@ -953,8 +1019,10 @@ def write_record(w, parsed):
     calc_census_birth(by_type, is_census)
     name = f.get("Name") or parsed.get("name") or parsed["title"] or "(unnamed)"
     role = (f.get("Relationship to Head of Household") or "subject").lower()
-    subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark")})
     year = re.search(r"\b(1[789]\d\d)\b", f.get("Event Date") or "") or re.fullmatch(r".*\b(1[789]\d\d)\b.*", re.sub(r"\b1[789]\d\d-1[789]\d\d\b", "", parsed.get("collection") or ""))   # the record's own date, else the collection's single year; a range is not a year
+    form = census_form(parsed.get("collection"), int(year.group(1))) if is_census and year else None
+    own = page_place(fields + (parsed.get("alternates") or []) + (parsed.get("document") or []), form, parsed.get("image"))
+    subject = w.persona(name, sex_of(f.get("Sex")), role, 1, {"label": "record", "ark": parsed.get("ark"), **own})
     age = re.match(r"\s*(\d{1,3})", f.get("Age") or "")
     if year and age and not (by_type.get("Birth") or {}).get("date"):     # the principal's birth year, calculated from the age on the record's date, as for a household member
         by_type.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
@@ -967,7 +1035,8 @@ def write_record(w, parsed):
         age = re.match(r"\s*(\d{1,3})", m.get("age") or "")
         if year and age and not (mb.get("Birth") or {}).get("date"):     # a household member's birth year, calculated from the census date
             mb.setdefault("Birth", {"date": None, "place": None, "values": []})["date"] = (f"CAL {int(year.group(1)) - int(age.group(1))}", "Age")
-        pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url")})
+        pid = w.persona(m["name"], sex_of(m["sex"]) or sex_of(dict(mf).get("Sex")), m["role"].lower(), seq, {"label": m["section"], "url": m.get("url"),
+                                                                                                         **page_place(m["fields"] + (m.get("alternates") or []), form)})   # the member's own details table's locators, none of the page's own
         write_facts(w, pid, mb)
         members_written.append((pid, m["role"].lower(), m["section"], m))
     to_head = lambda rows: next((v for l, v in rows if l.lower().strip() == "relationship to head of household" and (v or "").strip()), None)
@@ -1147,16 +1216,20 @@ def write_ky_index(w, parsed):
             if r.get("filed"): w.fact(pid, "Unknown", f"File Date: {r['filed']}", labels=["FILE DATE"])
 
 def write_schedule(w, parsed):
-    """One persona per transcribed row the search matched (every row when nothing was matched): the name as transcribed, a
-    Residence in the schedule's county and state in 1950, the enumeration district and row under their own labels."""
+    """One persona per transcribed row the search matched (every row when nothing was matched): the name as transcribed and a
+    Residence in the schedule's county and state in 1950; the row's place on its page in the region, on the 1950 form
+    (data/record-forms.csv): the state, county and enumeration district, the row as its line, the page's image and the
+    site's schedule id."""
     sc = parsed["schedule"]; place = ", ".join(x for x in (sc.get("county"), sc.get("state"), "United States") if x)
     keys = {key_of(m) for m in parsed["matched"]}
     rows = [r for r in sc.get("names") or [] if r.get("name") and (not keys or key_of(r["name"]) in keys)]
+    form = form_for(1950)
     for seq, r in enumerate(rows, 1):
-        pid = w.persona(r["name"], None, "listed", seq, {"label": "schedule", "row": r.get("row"), "scheduleId": sc.get("scheduleId"), "ed": sc.get("ed")})
+        loc = {"state": sc.get("state"), "county": sc.get("county"), "enumeration_district": sc.get("ed"), "line": str(r["row"]) if r.get("row") is not None else None,
+               "image": sc.get("image"), "schedule_id": sc.get("scheduleId")}
+        pid = w.persona(r["name"], None, "listed", seq, {"label": "schedule", "row": r.get("row"), "scheduleId": sc.get("scheduleId"), "ed": sc.get("ed"),
+                                                         **({"form": form["id"]} if form else {}), "locators": {k: v for k, v in loc.items() if v}})
         w.fact(pid, "Name", r["name"], labels=["name"]); w.fact(pid, "Residence", None, "1950", place, ["county", "state"])
-        w.fact(pid, "Unknown", f"Enumeration District: {sc.get('ed')}", labels=["ed"])
-        if r.get("row") is not None: w.fact(pid, "Unknown", f"Row: {r['row']}", labels=["row"])
 
 def key_of(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 

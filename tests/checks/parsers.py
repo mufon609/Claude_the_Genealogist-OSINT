@@ -41,8 +41,18 @@ def has_relation(p, want):
     return any(k == want["kind"] and o == want["to"] and ("value" not in want or v == want["value"]) and ("computed" not in want or bool(r.get("computed")) == want["computed"])
                for k, v, o, r in p["relations"])
 
+def place_matches(region, want):
+    """A persona's region_json against a page-place pattern: form (the form's id, null for none), locators (each locator given
+    has that value), no_locators (true: the region keeps none)."""
+    r = json.loads(region or "{}") if isinstance(region, str) else (region or {})
+    loc = r.get("locators") or {}
+    if "form" in want and r.get("form") != want["form"]: return False
+    if any(loc.get(k) != v for k, v in (want.get("locators") or {}).items()): return False
+    return not (want.get("no_locators") and loc)
+
 def persona_matches(p, want):
-    """A persona against a persona pattern: name, name_has, role, sex, region, facts, no_facts, relations."""
+    """A persona against a persona pattern: name, name_has, role, sex, region, page_place, facts, no_facts, relations."""
+    if "page_place" in want and not place_matches(p["region"], want["page_place"]): return False
     if "name" in want and p["name"] != want["name"]: return False
     if any(s.lower() not in p["name"].lower() for s in want.get("name_has", [])): return False
     if "role" in want and p["role"] != want["role"]: return False

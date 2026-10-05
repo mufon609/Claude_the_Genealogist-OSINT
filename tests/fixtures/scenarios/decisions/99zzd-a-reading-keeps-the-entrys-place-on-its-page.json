@@ -1,0 +1,157 @@
+{
+ "title": "a reading keeps the entry's place on its page",
+ "line": "a census image read through the screen's transcription path keeps each persona's place on its page in the form's terms (data/record-forms.csv): the line counted from the top of the image, the sheet with its side and the dwelling and family numbers the line carries, on the form of the record's collection and year; a sheet, dwelling or family that is not a number is refused with nothing written",
+ "tree": {
+  "file": "harness.ged"
+ },
+ "steps": [
+  {
+   "say": "the image of sheet 2A of enumeration district 240, Norristown, the 1900 census, archived under the file's citation of the Lukens household: the real image, never read before",
+   "seed": {
+    "fixture": "familysearch-census-1900-image-S3HY-6WS7-8BK.jpg",
+    "source": "D03",
+    "collection": "1900 United States Federal Census",
+    "mime": "image/jpeg",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7602::47389682"
+    }
+   },
+   "as": "sheet"
+  },
+  {
+   "say": "a reading whose sheet is no sheet number",
+   "transcribe": {
+    "record": "sheet",
+    "form": {
+     "name": "Lukens, Milton",
+     "role": "head",
+     "line": 4,
+     "sheet": "two A",
+     "year": 1900,
+     "image_is": "record"
+    },
+    "by": "llm:harness"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": [
+        "Lukens, Milton",
+        "sheet"
+       ]
+      }
+     },
+     "why": "the refusal names the persona and the sheet it could not read"
+    },
+    {
+     "count": {
+      "extractions_of": "sheet",
+      "is": 0
+     },
+     "why": "nothing of the refused reading is written"
+    }
+   ]
+  },
+  {
+   "say": "the head as the image writes him, typed by the harness from its own words: line 4, Lukens Milton, Head, born Oct 1849, 50, Pennsylvania, the dwelling and family numbers 22 and 22 written over the struck 35 and 35, on sheet 2A",
+   "transcribe": {
+    "record": "sheet",
+    "form": {
+     "name": "Lukens, Milton",
+     "role": "head",
+     "sex": "M",
+     "age": "50",
+     "year": 1900,
+     "birth_date": "Oct 1849",
+     "birth_place": "Pennsylvania",
+     "line": 4,
+     "sheet": "2A",
+     "dwelling": "22",
+     "family": "22",
+     "image_is": "record"
+    },
+    "by": "llm:harness"
+   },
+   "as": "milton",
+   "expect": [
+    {
+     "extractor": {
+      "extraction": "$milton.extraction",
+      "image_is": "record",
+      "year": 1900,
+      "regions": [
+       {
+        "line": 4,
+        "form": "us-1900",
+        "locators": {
+         "image_line": "4",
+         "sheet": "2",
+         "sheet_letter": "A",
+         "dwelling": "22",
+         "family": "22"
+        }
+       }
+      ]
+     },
+     "why": "the head's line opens his family: the dwelling and family numbers stand on it, beside the sheet and its side, on the 1900 form the record's collection and year name"
+    }
+   ]
+  },
+  {
+   "say": "his daughter three lines down, whose line carries no dwelling or family number",
+   "transcribe": {
+    "record": "sheet",
+    "form": {
+     "name": "Lukens, Charlotte A",
+     "role": "daughter",
+     "sex": "F",
+     "age": "18",
+     "year": 1900,
+     "birth_date": "Apr 1882",
+     "birth_place": "Pennsylvania",
+     "line": 7,
+     "sheet": "2A",
+     "image_is": "record"
+    },
+    "relations": [
+     {
+      "persona": "$milton.persona",
+      "kind": "child",
+      "text": "Daughter"
+     }
+    ],
+    "by": "llm:harness"
+   },
+   "expect": [
+    {
+     "extractor": {
+      "extraction": "$milton.extraction",
+      "regions": [
+       {
+        "line": 4
+       },
+       {
+        "line": 7,
+        "form": "us-1900",
+        "locators": {
+         "image_line": "7",
+         "sheet": "2",
+         "sheet_letter": "A",
+         "dwelling": {
+          "is": null
+         },
+         "family": {
+          "is": null
+         }
+        }
+       }
+      ]
+     },
+     "why": "a member's line keeps its own place and no number its line does not carry"
+    }
+   ]
+  }
+ ]
+}

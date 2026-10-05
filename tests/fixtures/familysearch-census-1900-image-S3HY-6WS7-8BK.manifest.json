@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "c7cebd8b2af58bc8f7c5b9cb2c0b2f8aea861afbdc90aa6769e12a17319ccdb0",
+  "bytes": 672297,
+  "mime": "image/jpeg",
+  "source_id": "D03",
+  "collection": "1900 United States Federal Census",
+  "locator": {
+    "kind": "apid",
+    "value": "1,7602::47389682"
+  },
+  "retrieved_at": "2026-09-06T04:06:06Z",
+  "retrieved_by": "user:neural",
+  "rights": {
+    "terms": "FS ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T1",
+  "original_filename": "familysearch-1900-census-M3QL-XYW-image-S3HY-6WS7-8BK.jpg",
+  "pages": 1,
+  "notes": "original image S3HY-6WS7-8BK from the viewer’s own download control"
+}

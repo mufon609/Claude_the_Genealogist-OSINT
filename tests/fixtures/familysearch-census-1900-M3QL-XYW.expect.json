@@ -35,7 +35,24 @@
      "value": "Daughter",
      "computed": false
     }
-   ]
+   ],
+   "page_place": {
+    "form": "us-1900",
+    "locators": {
+     "line": "10",
+     "sheet": "2",
+     "sheet_letter": "A",
+     "household_id": "22",
+     "ward": "6",
+     "enumeration_district": "240",
+     "publication": "T623",
+     "digital_folder": "004115138_001_M9LT-THM",
+     "film": "1241444",
+     "image_number": "11",
+     "image": "ark:/61903/3:1:S3HY-6WS7-8BK"
+    },
+    "why": "the 1900 federal form; the line, sheet and its side and the household identifier the fields give, the ward and enumeration district the Event Place (Original) writes (Norristown borough Ward 6, ED 240), the publication, Document Information's folder, film and image numbers, and the image's own identifier the page links for her"
+   }
   },
   "2": {
    "name": "Milton Lukens",
@@ -62,7 +79,19 @@
      "value": "Parents",
      "computed": true
     }
-   ]
+   ],
+   "page_place": {
+    "form": "us-1900",
+    "locators": {
+     "line": "10",
+     "sheet": "2",
+     "sheet_letter": "A",
+     "household_id": "22",
+     "ward": "6",
+     "enumeration_district": "240"
+    },
+    "why": "a member's own details table gives its own locators, as written: FamilySearch writes line 10 in every member's table on this page; the image and Document Information are the page's own person's alone"
+   }
   },
   "3": {
    "name": "Annie M Lukens",

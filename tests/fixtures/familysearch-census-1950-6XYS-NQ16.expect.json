@@ -39,7 +39,19 @@
      "value": "Son",
      "computed": false
     }
-   ]
+   ],
+   "page_place": {
+    "form": "us-1950",
+    "locators": {
+     "enumeration_district": "52-166",
+     "line": "18",
+     "page": "10",
+     "digital_folder": "108853065",
+     "image_number": "119",
+     "image": "ark:/61903/3:1:3QHN-GQHW-SH3P"
+    },
+    "why": "FamilySearch's Page Number kept under its own word, page"
+   }
   },
   "2": {
    "name": "Fred M Ahern",
@@ -82,7 +94,16 @@
      "computed": true
     }
    ],
-   "why": "the household's father indexed Ahern, the surname's other spelling on the one page, his Name field keeping Fred M. Ahearn collapsed beneath it; Father toward the principal and the couple of the two parents are FamilySearch's groupings around the page's person, computed; his own details' Event Date and Event Place, on a 1950 page with no Event Type row, are the census's own residence, as the principal's are"
+   "why": "the household's father indexed Ahern, the surname's other spelling on the one page, his Name field keeping Fred M. Ahearn collapsed beneath it; Father toward the principal and the couple of the two parents are FamilySearch's groupings around the page's person, computed; his own details' Event Date and Event Place, on a 1950 page with no Event Type row, are the census's own residence, as the principal's are",
+   "page_place": {
+    "form": "us-1950",
+    "locators": {
+     "enumeration_district": "52-166",
+     "line": "14",
+     "page": "10"
+    },
+    "why": "the father's own details table gives his own line"
+   }
   },
   "3": {
    "name": "Helen B Ahearn",
