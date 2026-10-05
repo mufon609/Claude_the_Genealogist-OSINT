@@ -262,6 +262,60 @@ small task: the classes the stronger model settled and code does not yet are
 that work's list, and their share of all questions is reported and should
 fall.
 
+### A3. A record is read by its form, and a household is read off the form
+
+`docs/DATA-ARCHITECTURE.md` §7 decision 21. Measured on 5 Oct 2026: the
+FamilySearch record reader (`extract.parse_record`) drops every page, line,
+sheet, district, film, image number and household identifier (`SKIP`) from
+the facts, keeping them only in `extraction.structured_json`; the image's own
+identifier (`ark:/61903/3:1:`) is never read; the 1925 New York pages of Ruth
+and Mary Peters (page 19, lines 25 and 23, A.D. 01 E.D. 06, the district only
+in a collapsed alternate place) were saved with FamilySearch's Document
+Information collapsed, so they carry no image identifier at all, and their
+shown event places differ; the census search rows carry no line, page or
+district, and a search by given name finds a head of another name only by
+chance; the census structure the code knows is scattered (`conclude.HEAD_ONLY`,
+`checklist.py`'s years, `footprint.py`'s relationship from 1880,
+`catalog.page_key` for Ancestry's citations, `attach._page_named` and
+`run_step.household_steps`, which need a sheet number and read no 1925 page).
+Fourteen FamilySearch census record pages are held (1900 to 1950, and the two
+1925 pages), thirty census search pages, two NARA 1950 schedules and an Ancestry
+1900 image no one has read. Four of the record pages and all thirty search
+pages are filed under Ancestry collections. One piece closed before the next:
+
+1. **The forms as data.** `data/record-forms.csv` with a row for every
+   federal census shape 1790 to 1950 and every state census
+   `data/jurisdictions.csv` names, each cited (the Census Bureau's own
+   enumerator instructions and schedules, the FamilySearch Research Wiki),
+   with `data/DATA-SOURCES.md`'s reasoning; `HEAD_ONLY`, the checklist's
+   census years and `footprint.py`'s relationship year read from it.
+2. **Every locator kept.** The record readers keep each locator the form
+   names as the entry's place on its page (the reader's version rises, so
+   `tools/extract.py --stale` reads the held pages again); `tools/save_page.js`
+   opens Document Information and every member's details (with the
+   "Open All" C36 asks for) before it saves, so the image identifier comes too;
+   the image identifier is read.
+3. **The household script.** Entries of one page of one form, across every
+   copy and index page, grouped as one household by the form's own rule,
+   insert-only and recorded with the script's version, shown on the two 1925
+   Peters pages (one household under a head not held), the 1900 Lukens page
+   (eleven members under one head, the household identifier), and a federal
+   page whose members came on several pages; a household not wholly held is
+   a lead for the missing entry, the head's first: the image's own index
+   where its identifier is held, else a search of the collection by surname,
+   place and year, never by the given name alone.
+4. **Calibration, the special cases found.** A reading task (BACKLOG A1, the
+   reading kind) run on the held records of each form, compared with the
+   script field by field and household by household, more than once; each
+   difference a special case fixed in the script or the form's row, or put
+   down to the model; the row records the runs. Until a form is calibrated
+   the rule does not count its households.
+5. **The rule reads the household.** With section A2's household ground: a
+   member's relationship to the head is the census's statement, the
+   household's fit with the tree's family a ground the rule counts (a dry
+   run on a copy of the live catalog first). Ruth M Peters and Mary Peters
+   are the first to show it.
+
 ---
 
 ## B. Parallel batch
@@ -1452,26 +1506,6 @@ supports, shown on the six above on a copy of the live catalog.
 writes statements and family links without regenerating the people's plans and
 without the rule's pass over their conflicts and cards (`conclude.settle_people`),
 which every decision now runs. Run it for the people a re-read touches.
-
-### C73. Index entries of one census page are one household
-
-FamilySearch indexes some censuses one person to a page with no household
-table (the New York State Census 1925 among them: "No similar records were
-found"), and each entry's citation gives the enumeration district, page and
-line. The reader keeps none of these, so two entries of one household are two
-unrelated records: Ruth Peters, daughter of the head, age 4 (KS4R-RTQ, page 19,
-line 25), and Mary Peters, wife of the head, age 38 (KS4R-RTM, line 23), both
-Hempstead A.D. 01, E.D. 06, archived 5 Oct 2026, are each a card, Ruth's short
-of a point and Mary's on a name not yet accepted, though the page shows the
-household the file claims. Read the place, district, page and line of such an
-entry as its record's identity on the page; join the entries of one page and
-household (the same district and page, lines in one run under one head) as one
-household record, each member's relationship to the head read together as a
-census states them (the wife and the daughter of one head are each the head's,
-never stated as each other's), so the ground for a household whose members fit
-(section A, the relatives named in part) can read them; and make the head's
-entry, found by the search that listed the others, a lead. Show it on the two
-pages above and the 1925 search page that listed seven Peters of Hempstead.
 
 ## Externally blocked
 

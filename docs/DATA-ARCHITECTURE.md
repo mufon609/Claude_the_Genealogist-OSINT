@@ -540,6 +540,41 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    file came is read off its holder and its run's note, and no listing
    exists: the work is in `BACKLOG.md`.
 
+21. **A record is read by its form, and a household is read off the form.**
+   The owner: "we need a way to properly know how to process each file type
+   like this - we know the structure of the 1920 census for ruth and many
+   others. certain time periods have the same structure. we need to
+   automatcally grab blocks and properly tag a household when we see it.
+   agents can be used but we need to try and script this. agents should
+   assess the scripts accuracy and look for special cases." A record form
+   is reference data (`data/record-forms.csv`): one row for each shape a
+   kind of record took, the years and jurisdictions that share it on one
+   row (the federal schedules that state each member's relationship to the
+   head, 1880 to 1950; those that name every member and no relationship,
+   1850 to 1870; those that name the head alone, 1790 to 1840; each state
+   census of its own shape), each row saying what the form states (its
+   columns, in the words of the form), what places an entry on it (the
+   locators: county, district, page or sheet, line, dwelling and family
+   number, image), which locators make one page of it, how a household is
+   bounded on a page (a run of lines opened by the head, the family number
+   where the form has one, carried over a page break), and where its
+   structure is documented, each row citing its source. Readers keep every
+   locator an entry carries as part of the entry's place on its page,
+   never drop it; a script groups the entries of one page and household,
+   across every copy and every index page that carries them, as one
+   household, each member's relationship to the head as the form states it
+   and every other tie among them computed (the wife and the daughter of
+   one head are each the head's, never stated as each other's), and a
+   household whose lines are not all held makes a lead for the entry that
+   would complete it, the head's first. A form is used by the rule only once
+   it is calibrated: a model's reading of held records of that form, made
+   as a task code builds (decision 16), is compared with the script's
+   field by field and household by household, more than once; every
+   difference becomes a special case in the script or the form's row, or
+   is put down to the model, and the row records the runs that calibrated
+   it. In use the script reads; a model reads only a record no script can.
+   The work is in `BACKLOG.md`.
+
 ## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**
