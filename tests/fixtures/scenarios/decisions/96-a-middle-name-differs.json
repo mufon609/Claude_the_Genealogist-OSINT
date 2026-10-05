@@ -38,6 +38,23 @@
      "why": "both names carry a middle name or initial and C is not Edgar: the persona never fits, a card with the middle name as its disagreement"
     },
     {
+     "compare": {
+      "card": {
+       "record": "aad",
+       "person": "I332737100409"
+      },
+      "disagree": {
+       "some": {
+        "starts": "middle name disagrees"
+       }
+      },
+      "fields": {
+       "Name": "disagrees"
+      }
+     },
+     "why": "the card's Name row reads the name fields, the middle name among them: it disagrees where the rationale says the middle name does"
+    },
+    {
      "rule": {
       "record": "aad",
       "person": "I332737100409",

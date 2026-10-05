@@ -45,6 +45,12 @@ def rules():
     for c in R["fetch_target"]:
         got = fetch_target(c["apid"], c["url"])
         if got != c["target"]: bad.append(f"fetch_target({c['apid']!r}, {c['url']!r}) gave {got!r}, expected {c['target']!r}")
+    from cards import name_verdict
+    from catalog import Finding
+    for c in R["name_verdict"]:
+        findings = lambda k, verdict: [Finding(verdict, **f) for f in c.get(k, [])]
+        got = name_verdict(findings("agree", "agrees"), findings("disagree", "disagrees"), findings("absent", "absent"))
+        if got != c["verdict"]: bad.append(f"name_verdict({c}) gave {got!r}, expected {c['verdict']!r}")
     for c in R["prefills_nothing"]:
         got = prefills_nothing(c["holder"], {k: {"value": v, "basis": "citation"} for k, v in c["fields"].items()})
         if got != c["nothing"]: bad.append(f"prefills_nothing({c['holder']['HolderKind']}, {c['holder']['HolderKey'][:40]!r}, {c['fields']!r}) gave {got!r}, expected {c['nothing']!r}")
@@ -509,7 +515,7 @@ def every_check(a):
     bad_files = compiles(); bad += bool(bad_files)
     print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad += bool(bad_rules)
-    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the web addresses a file's citation may carry and the link made of one, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the web addresses a file's citation may carry and the link made of one, the card's Name row from the matcher's findings, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     bad_conn = connectors_offline(); bad += bool(bad_conn)
     print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)

@@ -43,6 +43,18 @@ from plan import row_record
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
 # a year or a place agreeing beyond the name: what makes a row a hint (hints_on)
 BEYOND_NAME = ("birth date", "death date", "birth place", "burial place", "death place", "residence place")
+# the fields of match.compare that are the name: the card's Name row reads these and no other
+NAME_FIELDS = ("given name", "surname", "middle name")
+
+def name_verdict(agree, disagree, absent):
+    """The card's Name row from match.compare's findings: disagrees when a name field disagrees (a date, a place or the sex
+    that differs is a row of its own), agrees when the given name and the surname agree (a married surname absent counts as
+    agreeing, the record writing her under her husband's), else absent."""
+    if any(d.field in NAME_FIELDS for d in disagree):
+        return "disagrees"
+    given = any(a.field == "given name" for a in agree)
+    surname = any(a.field == "surname" for a in agree) or any(a.married for a in absent)
+    return "agrees" if given and surname else "absent"
 
 def _tokens(s):
     return [t for t in re.split(r"[,\s]+", (s or "").lower()) if re.sub(r"[^a-z]", "", t)]
@@ -183,8 +195,6 @@ def card(cx, tree_id, prop_id, cat=None):
             _, agree, disagree, absent, _ = (
                 compare(cat, pers, match_candidate(cat, person_id), {}) if pers else (None, [], [], [], None)
             )
-            g_ok = any(a.field == "given name" for a in agree)
-            s_ok = any(a.field == "surname" for a in agree) or any(a.married for a in absent)
             note = (
                 next(
                     (
@@ -201,7 +211,7 @@ def card(cx, tree_id, prop_id, cat=None):
                     "field": "Name",
                     "record": name_f["value_text"],
                     "tree": pr["name"],
-                    "verdict": "agrees" if g_ok and s_ok else ("disagrees" if disagree or not g_ok else "absent"),
+                    "verdict": name_verdict(agree, disagree, absent),
                     "note": note
                 }
             )

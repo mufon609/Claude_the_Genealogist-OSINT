@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, the card's Name row from the matcher's findings, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -174,6 +174,15 @@
   {"apid": "1,60525::1", "url": "https://www.findagrave.com/memorial/143847338", "target": {"url": "https://www.findagrave.com/memorial/143847338", "holder": "Find a Grave memorial"}},
   {"apid": "1,60525::1", "url": "javascript:alert(1)", "target": {"url": "https://www.ancestry.com/discoveryui-content/view/1:60525", "holder": "Ancestry"}},
   {"apid": "1,60525::1", "url": null, "target": {"url": "https://www.ancestry.com/discoveryui-content/view/1:60525", "holder": "Ancestry"}}
+ ],
+ "name_verdict": [
+  {"agree": [{"field": "given name"}, {"field": "surname"}], "verdict": "agrees"},
+  {"agree": [{"field": "given name"}, {"field": "surname"}, {"field": "sex"}], "disagree": [{"field": "birth date"}, {"field": "birth place"}], "verdict": "agrees"},
+  {"agree": [{"field": "given name"}], "absent": [{"field": "surname"}], "disagree": [{"field": "birth date"}], "verdict": "absent"},
+  {"agree": [{"field": "given name"}], "absent": [{"field": "surname", "married": true}], "disagree": [{"field": "sex"}], "verdict": "agrees"},
+  {"agree": [{"field": "given name"}, {"field": "surname"}], "disagree": [{"field": "middle name"}], "verdict": "disagrees"},
+  {"agree": [{"field": "given name"}], "disagree": [{"field": "surname"}], "verdict": "disagrees"},
+  {"disagree": [{"field": "given name"}], "absent": [{"field": "surname"}], "verdict": "disagrees"}
  ],
  "prefills_nothing": [
   {
