@@ -455,13 +455,15 @@ def a_assertion(w, x):
 
 def a_place(w, x):
     """A record's undated fact, accepted onto a person with several events of its type, placed on the one the owner means
-    (tools/conclude.py place): the persona fact found by the record, the person and the fact type; the event a literal or
+    (tools/conclude.py place): the persona fact found by the record, the person and the fact type, with `alternate` the one
+    whose region marks it a value the page keeps beneath the one it shows (or, false, one that is not); the event a literal or
     bound id, or {"person": ref, "type": event_type, "index": n} the person's nth event of that type in the person
     screen's own order (Catalog.events: by date)."""
     from conclude import place
     sha = w.sha(x["record"]); pid = w.person(x["person"])
+    alt = "" if "alternate" not in x else " AND (json_extract(coalesce(pf.region_json,'{}'),'$.alternate') IS NOT NULL) = " + ("1" if x["alternate"] else "0")
     pf = w.cx.execute("""SELECT pf.id FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id JOIN person_persona pp ON pp.persona_id=pe.id
-                         WHERE pe.artifact_sha256=? AND pp.person_id=? AND pp.status='accepted' AND pf.fact_type=?""", (sha, pid, x["fact_type"])).fetchone()
+                         WHERE pe.artifact_sha256=? AND pp.person_id=? AND pp.status='accepted' AND pf.fact_type=?""" + alt, (sha, pid, x["fact_type"])).fetchone()
     if not pf: raise KeyError("no such persona fact")
     ref = x["event"]
     if isinstance(ref, dict):

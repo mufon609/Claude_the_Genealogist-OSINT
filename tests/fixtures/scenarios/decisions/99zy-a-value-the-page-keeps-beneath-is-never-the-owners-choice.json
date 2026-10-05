@@ -1,0 +1,153 @@
+{
+ "title": "a value the page keeps beneath is never the owner's choice",
+ "line": "Charlotte's 1900 household page shows Norriton Township and keeps Norristown beneath it; beside the file's 1900 Residence at Norristown she carries two more of that year with no place, so neither place the page gives fits one of them alone: the place it shows is a question for the owner, the place it keeps beneath is none, since it is never accepted, never ground and never a conflict; placed by the owner all the same, it is written undecided and marked, never accepted with the record, while the place the page shows, placed, is accepted with it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 Lukens household page, on the owner's word that it is Charlotte's",
+   "attach": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html",
+    "about": "I332737039686"
+   },
+   "as": "c1900"
+  },
+  {
+   "say": "a second Residence of 1900 the harness plants beside the file's, with no place",
+   "event": {
+    "person": "I332737039686",
+    "type": "Residence",
+    "date": "1900",
+    "date_start": "1900"
+   },
+   "as": "first"
+  },
+  {
+   "say": "and a third, the same",
+   "event": {
+    "person": "I332737039686",
+    "type": "Residence",
+    "date": "1900",
+    "date_start": "1900"
+   },
+   "as": "second"
+  },
+  {
+   "say": "the owner accepts her card on it: neither place the page gives lands on one Residence of its year",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "person": "I332737039686"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true
+     }
+    },
+    {
+     "question": {
+      "person": "I332737039686",
+      "kind": "conflict",
+      "detail_has": "place fact",
+      "count": 1
+     },
+     "why": "one question, for the place the page shows (it fits the two placeless Residences equally); the place it keeps beneath fits three equally, yet nothing asks the owner to place it: where it stands decides nothing"
+    },
+    {
+     "question": {
+      "person": "I332737039686",
+      "kind": "conflict",
+      "detail_has": "fits 2 of your 5 residence events equally",
+      "count": 1
+     },
+     "why": "the one question is the shown place's"
+    }
+   ]
+  },
+  {
+   "say": "the owner places the place kept beneath on the first placeless Residence all the same",
+   "place": {
+    "record": "c1900",
+    "person": "I332737039686",
+    "fact_type": "Residence",
+    "alternate": true,
+    "event": "$first.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "status": "undecided"
+     },
+     "why": "what the page also says is kept and cited, never accepted with the record"
+    },
+    {
+     "event": {
+      "person": "I332737039686",
+      "type": "Residence",
+      "strings": {
+       "Norristown, Montgomery, Pennsylvania, United States": "undecided"
+      }
+     },
+     "why": "undecided, as an acceptance writes the place kept beneath where the event is plain"
+    }
+   ]
+  },
+  {
+   "say": "and the place the page shows on the second",
+   "place": {
+    "record": "c1900",
+    "person": "I332737039686",
+    "fact_type": "Residence",
+    "alternate": false,
+    "event": "$second.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "status": "accepted"
+     }
+    },
+    {
+     "event": {
+      "person": "I332737039686",
+      "type": "Residence",
+      "strings": {
+       "Norriton Township, Montgomery, Pennsylvania, United States": "accepted",
+       "Norristown, Montgomery, Pennsylvania, United States": "undecided"
+      }
+     },
+     "why": "the shown place accepted with the record, the place kept beneath undecided"
+    },
+    {
+     "question": {
+      "person": "I332737039686",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "place fact",
+      "exists": false
+     },
+     "why": "nothing left to place"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

@@ -275,7 +275,8 @@ owner's word; its `filed` the path the original is filed under, its `line` the r
 for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `conclude.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it, recorded as the rule acting for the harness unless `by` names who),
 `reconsider` (`dry`; its `rows`, and `wrote`, the audit rows the run wrote), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
 `tools/conclude.py assertion`: by `record` and `event_type`, or a `membership`, its first statement, the `record`'s own when one is given), `place` (a persona fact
-placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact; `event` is a
+placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact, `alternate` true for
+the one the page keeps beneath the value it shows (false for one it shows); `event` is a
 literal id or `{person, type, index}`, that person's nth event of the type in the person screen's own order),
 `link_on_word`, `living`,
 `transcribe` (a reading typed into the person screen's form: `record`, `form` with the persona's `line` or `bbox` and

@@ -1047,7 +1047,14 @@ of the person's several), the fact asserts none of them and is raised as a
 (`tools/conclude.py place`, which also moves a statement asserted on the
 wrong event of the type, a family's as a person's; an event left with no
 statement but rejected ones, one an older reading made of a misread value,
-leaves the person's events and stays for the audit trail). An attribute the
+leaves the person's events and stays for the audit trail). A value the page
+keeps beneath the one it shows is never raised so: it is never accepted with
+its record, never ground for the rule and never a conflict, so where it stands
+decides nothing to ask the owner about, and it stays with its record; placed by
+the owner all the same, it is written undecided and marked, as an acceptance
+writes it where the event is plain. A statement placed is written under the
+decision that accepted the record, so a rejection or a withdrawal of that
+decision reaches it like any other it wrote. An attribute the
 record states (an occupation, an inscription) asserts the person's attribute
 of that type with the record's value, chosen the same way among several of
 that value, created when the person has none. A record's fact already stated

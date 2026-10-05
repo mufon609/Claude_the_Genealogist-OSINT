@@ -1296,7 +1296,10 @@ class Catalog:
         per fact of the record (its readings are one), naming the record, the date, the type and the events to choose from
         in the order the person screen lists them (by date), so the owner reads the choice there and answers it with
         tools/conclude.py place. A fact the record already states on one of the person's events, or their family's, is
-        placed (Catalog.stated_on)."""
+        placed (Catalog.stated_on). A value the page keeps beneath the one it shows (a fact whose region marks it alternate)
+        is never asked: it is never accepted with its record, never ground for the rule and never a conflict, so where it
+        stands decides nothing the owner should be asked about (docs/RESEARCH-WORKFLOW.md §5–7); it stays with its record,
+        and tools/conclude.py place given one writes it undecided and marked."""
         out, seen = [], set()
         fams = [f for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid)]
         for row in self.q(f"""SELECT pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.place_string_id, pf.value_text, et.kind, pe.id, pe.artifact_sha256,
@@ -1305,6 +1308,7 @@ class Catalog:
                               JOIN event_type et ON et.name=pf.fact_type JOIN artifact ar ON ar.sha256=pe.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                               WHERE pp.person_id=? AND pp.status='accepted' AND et.kind IN ('event','attribute','family_event') AND pf.fact_type NOT IN ('Name','Sex',{','.join('?' * len(RECORD_FACTS))})
                               AND NOT (pf.fact_type='Residence' AND pf.date_start IS NULL AND pf.date_end IS NULL)
+                              AND NOT (json_valid(pf.region_json) AND json_extract(pf.region_json,'$.alternate') IS NOT NULL)
                               AND NOT EXISTS (SELECT 1 FROM assertion a WHERE a.persona_fact_id=pf.id) ORDER BY x.superseded_by IS NOT NULL, pf.id""", pid, *RECORD_FACTS):
             fid, ftype, dtext, kind, persona, sha, label = row[0], row[1], row[2], row[8], row[9], row[10], row[11]
             f = dict(zip(("id", "fact_type", "date_text", "date_start", "date_end", "date_qualifier", "place_string_id", "value_text"), row[:8]))

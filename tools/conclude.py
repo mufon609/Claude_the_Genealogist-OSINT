@@ -917,7 +917,9 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     fact accepted onto the person and left unasserted because the choice was theirs (Catalog.unplaced: an undated fact among
     several events of its type, a dated one fitting two or more equally, one of a type a life holds once fitting none of
     several), written onto the event the owner means, the way assert_facts writes any other statement (accepted from a
-    record nobody can edit at will, undecided from a page anyone can); or a fact already asserted on another of those events
+    record nobody can edit at will, undecided from a page anyone can, under the decision that accepted the record; a value
+    the page keeps beneath the one it shows, a fact whose region marks it alternate, undecided and marked so, which
+    Catalog.unplaced never asks to be placed but the owner may name); or a fact already asserted on another of those events
     of its type (its own statement, or the record's same statement through an earlier reading, Catalog.stated_on), moved to
     this one, its status kept. An event a move leaves with no statement but rejected ones (an event an older reading made of a
     misread value) leaves the person's or the family's events: its participant row goes, the event and its statements stay
@@ -936,7 +938,7 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     if not pf:
         return {"error": "no such persona fact"}
     pp = q.execute(
-        "SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?",
+        "SELECT pp.person_id, pp.proposal_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?",
         (pf["persona_id"], tree_id)
     ).fetchone()
     if not pp:
@@ -1059,11 +1061,19 @@ def place(cx, tree_id, pf_id, event_id, by, note):
             "rematched": rematched
         }
     cite, status = _citation(cx, pf["artifact_sha256"])
+    # a value the page keeps beneath the one it shows: what the page also says, undecided and marked, as assert_facts writes it
+    alt = "alternate" in json.loads(pf["region_json"] or "{}")
+    if alt:
+        status = "undecided"
+    # the decision that accepted the record wrote this statement too, so a rejection or a withdrawal of it reaches it
+    notes = {
+        **({"proposal": pp["proposal_id"]} if pp["proposal_id"] else {}), "note": note, **({"alternate": True} if alt else {})
+    }
     aid = ulid()
     q.execute(
         """INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
                   VALUES (?,?,'event',?,?,?,?,?,?,?,?)""",
-        (aid, tree_id, event_id, pf_id, pf["artifact_sha256"], cite, status, by, ts, dumps({"note": note}))
+        (aid, tree_id, event_id, pf_id, pf["artifact_sha256"], cite, status, by, ts, dumps(notes))
     )
     q.execute(
         "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
