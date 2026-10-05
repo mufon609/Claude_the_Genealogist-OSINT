@@ -1,0 +1,21 @@
+{
+ "title": "the browser's scripts are one awaited call",
+ "line": "the browser tool that runs a save script returns an awaited value and gives {} for a promise still pending, so each script the owner's browser runs, the page's and the image's, is one awaited call of an async function ending in the placeholder call the fetch list's line replaces: a bare call would save and return no line, and whoever ran it would run it again",
+ "tree": {},
+ "steps": [
+  {
+   "say": "the page-saves-itself script",
+   "browser_script": {"file": "save_page.js"},
+   "expect": [
+    {"last": {"awaited": true, "call": "(\"FILENAME.html\")"}, "why": "one awaited call, ending in the call the fetch list's line replaces"}
+   ]
+  },
+  {
+   "say": "the image-saves-itself script",
+   "browser_script": {"file": "save_image.js"},
+   "expect": [
+    {"last": {"awaited": true, "call": "(\"FILENAME.jpg\")"}, "why": "the same shape, so its line comes back"}
+   ]
+  }
+ ]
+}

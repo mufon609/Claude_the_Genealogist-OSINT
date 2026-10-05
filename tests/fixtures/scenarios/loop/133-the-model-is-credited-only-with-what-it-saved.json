@@ -1,0 +1,77 @@
+{
+ "title": "the model is credited only with what it saved",
+ "line": "a task's outcome is judged on the files that came into downloads/ while its launcher ran: a page of the step saved earlier by hand and still in the folder is collected and attached as a hand's save, and the run names it as not the model's, its outcome what the model did (nothing); a task during which two files came in says it produced two, with their names",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "John Young Davidson's memorial saved earlier by hand into downloads/, not yet collected",
+   "save": {
+    "holder": "E01",
+    "person": {"name": "John Young Davidson"},
+    "fixture": "findagrave-memorial-143847338.html",
+    "folder": "downloads"
+   },
+   "as": "hand"
+  },
+  {
+   "say": "the memorial's task answered by a captured launcher result reporting not_saved, and nothing comes in while it runs",
+   "task": {
+    "step": {"person": {"name": "John Young Davidson"}, "holder": "E01", "kind": "fetch"},
+    "captured": "task-launcher-answer-not-saved.json",
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {
+        "outcome": "nothing",
+        "differs": false,
+        "log": null,
+        "note": {"has": ["no page came into the folder", "collect also took findagrave-memorial-143847338.html, in the folder before the task: not the model's"]}
+       }
+      ]
+     },
+     "why": "the page in the folder before the task is no page of the model's: the task saved nothing"
+    },
+    {
+     "search_log": {"step": {"person": {"name": "John Young Davidson"}, "holder": "E01", "kind": "fetch"}, "is": [{"outcome": "found", "artifacts": {"len": 1}}]},
+     "why": "the hand's page is still collected and attached, as any page saved by hand is"
+    }
+   ]
+  },
+  {
+   "say": "her Kentucky death records search's task: the captured result says not_saved, and two pages come in while it runs, the search with its key and another memorial",
+   "task": {
+    "step": {"person": "I332737204852", "row_key": "death record:1918", "kind": "fetch", "locator": {"kind": "apid", "value": "1,1222::1373711"}},
+    "captured": "task-launcher-answer-not-saved.json",
+    "saves": [
+     {"fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html", "key": true},
+     {"fixture": "findagrave-memorial-78019650.html", "name": "findagrave-memorial-78019650.html"}
+    ],
+    "model": "haiku",
+    "effort": "low"
+   },
+   "expect": [
+    {
+     "task_run": {
+      "is": [
+       {"outcome": "nothing"},
+       {
+        "outcome": "none",
+        "differs": true,
+        "note": {"has": ["the task produced 2 files: ", "findagrave-memorial-78019650.html"]}
+       }
+      ]
+     },
+     "why": "the step's own page is judged; the run says the task brought in two files, naming both"
+    }
+   ]
+  }
+ ]
+}

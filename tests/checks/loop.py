@@ -344,6 +344,13 @@ def a_fetch_list(w, x):
     if x.get("search_links"): rows = [e for e in rows if e["holder_id"] == "D03" and "/search/record/results" in (e.get("url") or "")]
     return {"names": [e["save_as"] for e in rows]}
 
+def a_browser_script(w, x):
+    """One of the scripts the owner's browser runs (tools/<file>) read as the browser tool runs it: `awaited` whether its code,
+    past the comment lines that head it, is one awaited call of an async function (the tool returns an awaited value and gives
+    {} for a promise still pending), and `call`, what it ends with, the placeholder call the fetch list's line replaces."""
+    with open(os.path.join(TOOLS, x["file"]), encoding="utf-8") as fh: code = "\n".join(l for l in fh.read().splitlines() if not l.startswith("//")).strip()
+    return {"awaited": code.startswith("await (async function"), "call": code[code.rindex("})(") + 2:] if "})(" in code else None}
+
 def a_save_names(w, x):
     """fetches.distinct_names on the entries the data gives, each a link (`url`) and the name save_as built for it (`save_as`),
     as the fetch list holds them: the names the list then prints, in order."""
@@ -354,9 +361,9 @@ def a_task(w, x):
     """run_task.run_fetch on the fetch list's entry serving a step, the launcher's process replaced (run_task.spawn) as the data
     says and nothing else: `silent` a launcher that does not answer (`timeout`: it outlives the timeout; `exit`: it exits with
     that status and prints nothing), or `captured` a fixture holding a launcher's own output, printed as it was captured. `saves`
-    is a real page that comes into the data root's downloads/ while the launcher runs, as the owner's browser leaves it: a
-    `fixture` under the entry's own file name (or `name`), with the entry's key written under its saved-from line when `key` is
-    true. The run's row as run_fetch returns it, and the command the launcher was started with.
+    is a real page that comes into the data root's downloads/ while the launcher runs, as the owner's browser leaves it, or a
+    list of them: a `fixture` under the entry's own file name (or `name`), with the entry's key written under its saved-from
+    line when `key` is true. The run's row as run_fetch returns it, and the command the launcher was started with.
 
     With `session` the task goes through the session's launcher instead, no process started: run_task.hand_out on the entry, the
     page under `saves` coming in while the task is out, then run_task.report_done with what a session reported of its subagent:
@@ -370,8 +377,7 @@ def a_task(w, x):
     e = next(e for e in openable(w.cx, w.tid) if sid in e["step_ids"])
     seen = {}
     def comes_in():
-        if x.get("saves"):
-            page = x["saves"]
+        for page in (x["saves"] if isinstance(x.get("saves"), list) else [x["saves"]] if x.get("saves") else []):
             data = w.fixture_bytes(page)
             if page.get("key"):
                 top, nl, rest = data.partition(b"\n")
@@ -415,7 +421,7 @@ def a_task(w, x):
             "command": {"flags": [c for c in cmd if c.startswith("-")], "mcp_config": after("--mcp-config"), "model": after("--model"), "effort": after("--effort"), "tools": after("--tools"), "budget": after("--max-budget-usd"),
                         "prompt": after("-p"), "system_prompt_is_the_text": after("--system-prompt") == run_task.task_text("fetch")[0], "schema": json.loads(after("--json-schema") or "null")}}
 
-ACTIONS.update({"task": a_task, "save_names": a_save_names, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turn_by_hand": a_turn_by_hand, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
+ACTIONS.update({"task": a_task, "save_names": a_save_names, "browser_script": a_browser_script, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turn_by_hand": a_turn_by_hand, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
                 "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 

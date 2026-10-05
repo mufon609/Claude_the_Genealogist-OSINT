@@ -474,7 +474,11 @@ a holder's silence), `invalid` (a result whose answer is not the schema's),
 reach the entry's steps: its own identity is another record's, or `collect`
 left it), and, for a page whose own identity is the step's, what the attach
 made of it: `unread`, `none`, `read`, `card` (the matcher's proposals wait for
-the owner) or `taken` (the rule took one). No run is logged on a step on the
+the owner) or `taken` (the rule took one). Only a file that came into the folder
+while the launcher ran is the task's: one `collect` took that was there before
+the task opened (saved earlier by hand, or put back by an attach that failed) is
+attached as any page saved by hand is, and the run's note names it as not the
+model's; a task that produced more than one file says so, with their names. No run is logged on a step on the
 model's word: a `blocked` answer leaves the step as it stood, and the run's
 row says what the model reported. Where the report and the finding differ (the
 model says saved and no page of the step's came in, or says not saved and one
@@ -510,7 +514,7 @@ in a new tab and run `tools/save_image.js` in it with the name filled in: the
 tab fetches its own bytes and hands them to the browser as a download, and the
 script's one line says `ok image <type> <bytes>B` or `BLOCKED <why>` (nothing is
 saved when the answer is not an image: a challenge or a sign-in comes back as a
-page);
+page); the script is one awaited call, as the page's is, so the line comes back;
 `collect` moves it to `inbox/` and attaches it to its step by that name (an
 image carries no identity in its bytes; a second download of one name, Chrome's
 ` (1)`, or the free name a file of its name in the inbox gives it, ` (2)`, is

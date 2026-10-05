@@ -27,8 +27,10 @@ lands in the data root's downloads/ folder.
 What starts a task and returns its measures is one seam (decision 19). opened is a task as it stands before any launcher
 has it: the task, its text's and its script's sha256, the files in the data root's downloads/ and the time. finish takes
 that and a launcher's measures, from whichever launcher: tools/fetches.py collect on downloads/ whatever the launcher
-returned, then the outcome as code finds it (judge), never as the model reports it: no_answer, invalid, nothing, mismatch,
-or what the attach made of a page whose own identity is the step's (unread, none, read, card, taken). No run is logged on a
+returned, then the outcome as code finds it (judge), never as the model reports it, from the files that came into the folder
+while the launcher ran alone: no_answer, invalid, nothing, mismatch, or what the attach made of a page whose own identity is
+the step's (unread, none, read, card, taken). A file collect took that was in the folder before the task opened is not the
+model's, and the note names it so; a task that produced more than one file is said to have, with their names. No run is logged on a
 step on the model's word. One row of task_run (insert-only) records the launch: the launcher, the kind, the holder, the
 steps, the task as rendered, the text's sha256, the model and effort, the measures, how the run ended, the answer, the
 outcome, whether the model's report and the finding differ (the note says how) and the search_log row the page's attach
@@ -191,19 +193,31 @@ def reported(kind, answer, tokens, tool_uses, duration_ms, seconds):
 def judge(task, m, new, results):
     """The outcome of a fetch task as code finds it, from the files that came into downloads/ while the launcher ran (`new`) and
     what collect made of the folder (`results`): (outcome, the search_log row the page's attach wrote on a step of the task, the
-    note). A page that reached a step of the task (its own identity is the step's, attach.named_steps and steps_for) is what the
-    attach made of it: unread, none, taken (the rule took a proposal), card (proposals wait) or read; a results page saved again
-    with the rows already logged is none. A file that came in and reached no step of the task is a mismatch, the note collect's
-    own line for it. With no file: no_answer when the launcher gave no result, invalid when its answer is not the schema's,
+    note). Only a file that came in while the launcher ran is the task's: one collect took that was in the folder before (saved
+    earlier by hand, or put back there by an attach that failed) is attached as any page saved by hand is, and named in the note
+    as not the model's; and a task that produced more than one file is said to have, with their names. A page of the task's
+    that reached a step of the task (its own identity is the step's, attach.named_steps and steps_for) is what the attach made
+    of it: unread, none, taken (the rule took a proposal), card (proposals wait) or read; a results page saved again with the
+    rows already logged is none. A file that came in and reached no step of the task is a mismatch, the note collect's own
+    line for it. With no file: no_answer when the launcher gave no result, invalid when its answer is not the schema's,
     nothing otherwise."""
+    mine = [r for r in results if r["file"] in new]
+    others = [r["file"] for r in results if r["file"] not in new]
+    said = ([f"the task produced {len(new)} files: {', '.join(new)}"] if len(new) > 1 else []) + \
+           ([f"collect also took {', '.join(others)}, in the folder before the task: not the model's"] if others else [])
+    outcome, log_id, note = judged(task, m, new, mine)
+    return outcome, log_id, "; ".join([note] + said)
+
+def judged(task, m, new, mine):
+    """judge's outcome, search_log row and note from the task's own files alone (`mine`, collect's results for the files in
+    `new`)."""
     steps = set(task["steps"])
-    reached = [r for r in results if not r.get("left") and steps & {s[0] for s in r.get("steps") or []}]
+    reached = [r for r in mine if not r.get("left") and steps & {s[0] for s in r.get("steps") or []}]
     if reached:
         r = reached[0]
         outcome = r["outcome"] if r.get("outcome") in ("unread", "none") else "taken" if r.get("accepted_by_rule") else "card" if r.get("proposals") else "read"
         log_id = next((lid for sid, lid in r.get("logs") or [] if sid in steps), None)
         return outcome, log_id, line(r)
-    mine = [r for r in results if r["file"] in new]
     repeat = next((r for r in mine if r.get("repeat")), None)
     if repeat:
         return "none", None, line(repeat)
