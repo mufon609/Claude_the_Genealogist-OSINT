@@ -773,6 +773,7 @@ written to reach a path is the harness's bookkeeping and no answer. The same
 holds for the actions that write catalog rows by hand in the shape a writer of
 the tools writes them (`a_step` in 27 scenarios, `a_place_card`,
 `a_file_family`, `a_persona_link`, `a_legacy_card`, `a_event`, `a_question`,
+`a_merge`'s `older` (a merge put back in the shape an older tool left it),
 and `older_reading`, which plants a reading an older reader made as the live
 catalog holds it):
 when the writer changes, those scenarios go on testing rows the code no longer
@@ -1415,6 +1416,22 @@ string when one of them verifies fully, though a full page of six may be cut
 acceptances came from a full page). A match unique within a cut list widens
 `CLAUDE.md`'s rule: ask again with a larger limit when a page comes back full,
 and accept only on an answer that was not cut.
+
+### C69. What a merge still leaves on the duplicate
+
+A merge moves the duplicate's persona links, statements, memberships, steps,
+questions and cards onto the kept person, but three things stay on the merged
+row: an open question whose key the kept person already holds, in any status,
+stays open on the duplicate (live on 5 Oct 2026: five, Matthew Ahern's and
+Diane Ahern's death dates, Noi Davidson's missing parents, Daniel Davidson's
+birth and death dates); a `person_persona` row whose persona the kept person
+already links stays, so a decision on it can stay with the merged person (none
+live); and the duplicate's name aliases are never moved (none live). Close or
+fold the question as the kept person's twin, fold the link as a membership
+the kept person holds is folded, move the aliases, and have the merge run
+again on a pair complete an older one, as it now does for cards and
+memberships; show the five live questions closed on a copy of the live
+catalog.
 
 ## Externally blocked
 
