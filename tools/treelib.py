@@ -60,6 +60,19 @@ def downloads_dir() -> str:
 def derivatives_dir() -> str:
     return os.path.join(DATA_ROOT, "derivatives")
 
+def year_field(key: str) -> bool:
+    """Whether a step's field holds a year: `year`, or a name ending in `_year` (birth_year, death_year)."""
+    return key == "year" or key.endswith("_year")
+
+_YEAR_IN = re.compile(r"(?<!\d)(1[5-9]\d\d|20\d\d)(?!\d)")
+
+def year_in(value):
+    """The year a stored value gives, read tolerantly: a whole number as it is, else the first year of four digits (1500 to
+    2099) standing alone in its text ("1880", "1880?", "abt 1880" all 1880); None when it gives none."""
+    if isinstance(value, int) and not isinstance(value, bool): return value
+    m = _YEAR_IN.search(str(value if value is not None else ""))
+    return int(m.group(1)) if m else None
+
 def free_name(folder: str, name: str) -> str:
     """A name in the folder that no file holds: the name itself when it is free, else the name with " (2)", " (3)" ... before its
     extension, the first that is free (the shape Chrome gives a second download of one name). A file of the same name already

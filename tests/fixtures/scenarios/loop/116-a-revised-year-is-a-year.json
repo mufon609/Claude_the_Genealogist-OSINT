@@ -1,0 +1,69 @@
+{
+ "title": "a revised year is a year",
+ "line": "the person screen refuses a revision of a year field that is not a year, saying why and writing nothing, and takes one that is; a revision stored before the screen refused such values (\"1932?\") is read as the year it gives wherever the step's fields are read, so the results page whose birth range holds that year still reaches the step instead of failing its attach",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the screen asked to revise the birth year on Robert Edgar Davidson's 1920 census step to 1915?",
+   "post": {
+    "path": ["/api/step/", {"step": {"person": "I332737100409", "row_key": "census household:1920", "kind": "fetch"}}, "/revise"],
+    "body": {"revisions": {"birth_year": {"value": "1915?"}}}
+   },
+   "expect": [
+    {
+     "last": {"code": 400, "body": {"error": "birth_year is searched as a year, and '1915?' is not one: give it in four digits, as 1880"}},
+     "why": "refused, the answer saying why"
+    },
+    {
+     "step": {"person": "I332737100409", "row_key": "census household:1920", "kind": "fetch", "fields": {"revisions_json": {"is": null}}},
+     "why": "and nothing written"
+    }
+   ]
+  },
+  {
+   "say": "the same revision as a year",
+   "post": {
+    "path": ["/api/step/", {"step": {"person": "I332737100409", "row_key": "census household:1920", "kind": "fetch"}}, "/revise"],
+    "body": {"revisions": {"birth_year": {"value": " 1915 "}}}
+   },
+   "expect": [
+    {
+     "last": {"code": 200, "body": {"ok": true, "revisions": {"birth_year": {"value": "1915"}}}},
+     "why": "a year of four digits is taken, as written without the spaces"
+    }
+   ]
+  },
+  {
+   "say": "a 1950 census search step on Frederick Micheal Ahearn Jr at FamilySearch, its birth year revised to 1932? by the screen before it refused such a value",
+   "step": {
+    "person": "I332737036054",
+    "row_key": "census household:1950",
+    "seq": 1,
+    "step_key": "search:census household:1950",
+    "kind": "search",
+    "query_type": "household",
+    "query": {"given": {"value": "Frederick Micheal", "basis": "accepted"}, "surname": {"value": "Ahearn", "basis": "accepted"}, "birth_year": {"value": 1932, "basis": "accepted"}, "year": {"value": "1950", "basis": "accepted"}},
+    "revisions": {"birth_year": {"value": "1932?"}},
+    "sources": ["D03"],
+    "mode": "assisted"
+   },
+   "as": "s"
+  },
+  {
+   "say": "his 1950 census search saved in the browser, its birth range 1930 to 1934",
+   "attach": {
+    "fixture": "familysearch-search-census-1950-ahearn-frederick-micheal.html"
+   },
+   "expect": [
+    {
+     "last": {"identity": {"starts": "fs_search "}, "left": null, "steps": {"some": ["$s.step", "Frederick Micheal Ahearn Jr", "census household:1950", "the step's fields are this search's own"]}},
+     "why": "the stored 1932? is read as 1932, inside the page's range: the page reaches the step"
+    }
+   ]
+  }
+ ]
+}

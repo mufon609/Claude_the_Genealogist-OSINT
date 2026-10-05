@@ -350,7 +350,9 @@ person-level citations from the import, so deciding one decides the other,
 and accepting a person's children accepts the same link seen from the child's
 side as parents. Include and revise live on the step: a search step lists its
 fields with a checkbox and a revise box, saved on the step with one audit row
-(the revisions before and after), and every logged
+(the revisions before and after); a year field takes a year of four digits and
+the screen refuses anything else, saying why (every search reads it as a year),
+and every logged
 run records the fields as rendered, each with its basis. Until the baseline
 is reviewed the page says in one line what review unlocks (searches, the
 family footprint, unlinked persons) and that fetching cited records is open. A held row's

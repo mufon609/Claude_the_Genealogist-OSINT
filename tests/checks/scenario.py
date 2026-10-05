@@ -580,11 +580,13 @@ def a_reopen(w, x):
     return {"steps": out}
 
 def a_step(w, x):
-    """A plan step written by the harness itself, as a step nothing generates or a plan the loop's tools are run on."""
+    """A plan step written by the harness itself, as a step nothing generates or a plan the loop's tools are run on; with
+    `revisions`, the person's include and revise as an earlier screen stored them on it."""
     x = w.value(x); sid = w.treelib.ulid(); loc = x.get("locator") or {}
-    w.cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,sources_json,mode,expected,status,rationale,on_json,created_at)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+    w.cx.execute("""INSERT INTO search_plan (id,person_id,row_key,seq,step_key,kind,query_type,query_json,revisions_json,locator_source_id,locator_kind,locator_value,sources_json,mode,expected,status,rationale,on_json,created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                  (sid, w.person(x["person"]), x["row_key"], x.get("seq", 1), x["step_key"], x.get("kind", "search"), x.get("query_type", "name"), json.dumps(x.get("query", {})),
+                  json.dumps(x["revisions"]) if x.get("revisions") else None,
                   loc.get("source"), loc.get("kind"), loc.get("value"), json.dumps(x.get("sources", [])), x.get("mode", "auto"), x.get("expected"), x.get("status", "planned"), x.get("rationale"), x.get("on"), w.treelib.now()))
     return {"step": sid}
 

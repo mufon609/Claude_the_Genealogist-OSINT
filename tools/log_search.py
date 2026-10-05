@@ -17,19 +17,23 @@ A dismissed question stays closed when the plan is regenerated.
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, connect, dumps, now, resolve_tree, ulid
+from treelib import DB, connect, dumps, now, resolve_tree, ulid, year_field, year_in
 from catalog import Catalog
 
 def rendered_query(query_json, revisions_json):
     """The step's fields ({value, basis} each) after the person's include/revise: an excluded field is dropped,
-    a revised value replaces the tree's and is a claim of the searcher that remembers what it revised."""
+    a revised value replaces the tree's and is a claim of the searcher that remembers what it revised. A revised year field
+    (treelib.year_field) is read as the year it gives (treelib.year_in: "1880?" stored before the screen refused it is 1880),
+    so every reader of the fields, the runner, the connectors and the attach, is given a year."""
     fields = json.loads(query_json or "{}"); rev = json.loads(revisions_json or "{}")
     out = {}
     for k, v in fields.items():
         f = v if isinstance(v, dict) and "basis" in v else {"value": v, "basis": "claim"}
         r = rev.get(k) or {}
         if r.get("include") is False: continue
-        if r.get("value") not in (None, ""): f = {"value": r["value"], "basis": "claim", "revised_from": f["value"]}
+        if r.get("value") not in (None, ""):
+            value = year_in(r["value"]) if year_field(k) and year_in(r["value"]) is not None else r["value"]
+            f = {"value": value, "basis": "claim", "revised_from": f["value"]}
         out[k] = f
     return out
 

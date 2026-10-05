@@ -19,7 +19,7 @@ import argparse, glob, hashlib, json, mimetypes, os, re, sys, threading, urllib.
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
-from treelib import DB, active_tree_slug, connect, dumps, inbox_dir, now, ulid
+from treelib import DB, active_tree_slug, connect, dumps, inbox_dir, now, ulid, year_field
 from catalog import Catalog, fetch_target, held_for, holdings, holds, search_target, tier_sql
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
@@ -95,10 +95,15 @@ def log_step(cx, tree_id, slug, step_id, body):
 
 def revise_step(cx, tree_id, step_id, body):
     """Store the person's include/revise for a step: {field: {"include": false} | {"value": "..."}}, with one audit row holding
-    the revisions before and after."""
+    the revisions before and after. A year field (treelib.year_field) takes a year of four digits and nothing else: any other
+    value is refused and nothing written, the answer saying why, since every search reads the field as a year."""
     st = cx.execute("SELECT sp.revisions_json FROM search_plan sp JOIN person p ON p.id=sp.person_id WHERE sp.id=? AND p.tree_id=?", (step_id, tree_id)).fetchone()
     if not st: return {"error": "step not found"}
     rev = {k: v for k, v in (body.get("revisions") or {}).items() if isinstance(v, dict) and (v.get("include") is False or v.get("value") not in (None, ""))}
+    for k, v in rev.items():
+        if year_field(k) and v.get("value") not in (None, "") and not re.fullmatch(r"\d{4}", str(v["value"]).strip()):
+            return {"error": f"{k} is searched as a year, and {str(v['value'])!r} is not one: give it in four digits, as 1880"}
+        if year_field(k) and v.get("value") not in (None, ""): rev[k] = {**v, "value": str(v["value"]).strip()}
     cx.execute("UPDATE search_plan SET revisions_json=? WHERE id=?", (dumps(rev) if rev else None, step_id))
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), tree_id, now(), CFG["by"], "update", "search_plan", step_id, dumps({"revisions": rev, "was": json.loads(st["revisions_json"] or "{}")})))

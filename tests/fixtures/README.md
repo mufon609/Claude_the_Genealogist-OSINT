@@ -286,7 +286,7 @@ listing's row as `{record, number}`, `same` false for two records, `note`; the `
 `save` (a `fixture` written under the fetch list's own name for `holder` and `person` (the entry whose link has `url_has`, when the person has several there), into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's; `key` writes the
 key under the page's own saved-from line as `tools/save_page.js` does when the list's call gave it one: `true` for the entry's own steps, or a
-list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it, its `sha` the record when one page came in), `attach_inbox` (`tools/attach_inbox.py` over every file in the inbox, one file per transaction: its `results` and `lines`), `block_filing` (the filing of a `file`'s original under the tree refused, so its attach fails after writing its rows; `clear` lifts it, and the scenario's end does), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
+list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it, its `sha` the record when one page came in), `attach_inbox` (`tools/attach_inbox.py` over every file in the inbox, one file per transaction: its `results` and `lines`), `block_filing` (the filing of a `file`'s original under the tree refused, so its attach fails after writing its rows; `clear` lifts it, and the scenario's end does), `log`, `reopen`, `step` (a plan step written by hand, with `revisions` the include and revise an earlier screen stored on it), `event` (a second event of a type a person already
 carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
 owner's own export that the cut leaves out, because another scenario reads its people without it, written as the
 import writes it: `xref` the family's own id in the export, `partners` and `children`, each membership the file's
@@ -491,7 +491,7 @@ The owner's own hand, and the model's, are played by the harness on real pages:
 - `block_filing`: the move that files a saved page's original under the tree refused, so the attach fails after its rows are
   written, the stand-in for a file whose transaction fails (loop `107`); no page or record is touched.
 - Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan
-  steps (`step`, `step_query`), events (`event`), a research question's shape (`question`), cards and links an older matcher
+  steps (`step`, `step_query`, and with `revisions` a revision the screen stored before it refused a year that is no year, loop `116`), events (`event`), a research question's shape (`question`), cards and links an older matcher
   left (`legacy_card`, `older_matcher`, `persona_link`), a reading an older reader left (`older_reading`, its rows copied from
   the owner's catalog), a merge an older tool left unfinished (`merge` with `older`), a place card on the geocoder's real answers (`place_card`) and place
   strings of the owner's records (`place_string`). None of them is a page or a response, and none is a record of anyone but
