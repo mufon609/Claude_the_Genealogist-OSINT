@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Green in one command: every tool compiles, the pure rules hold, the record forms (data/record-forms.csv) hold to their columns and their sources, the connectors read their saved answers,the evidence layer,
+"""Green in one command: every tool compiles and every name it reads resolves (tests/checks/unresolved_names.py), the pure rules hold, the record forms (data/record-forms.csv) hold to their columns and their sources, the connectors read their saved answers,the evidence layer,
 the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, the small guards of tests/checks/housekeeping.py hold (the person screen's links, the commit hook, the migrations of an older catalog, the backup's bag, the active tree's file), every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
@@ -25,7 +25,7 @@ import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys, tem
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
 from common import BY, FIXTURES, scratch, tool
-import housekeeping, imports, loop, offline, parsers, scenario
+import housekeeping, imports, loop, offline, parsers, scenario, unresolved_names
 
 def rules():
     """The name, place and date rules as the docs state them, and the version a reader's model id carries, on their own, against
@@ -576,6 +576,8 @@ def every_check(a):
     bad = 0
     bad_files = compiles(); bad += bool(bad_files)
     print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
+    bad_names = unresolved_names.check(); bad += bool(bad_names)
+    print("ok   every global name a tool, the screen's server or a check module reads is one it defines, imports or Python provides, and every name it takes from another module of the repository is one that module defines: the compiler's own reading of each function, run or not (tests/checks/unresolved_names.py)" if not bad_names else "FAIL unresolved names: " + "; ".join(bad_names))
     bad_rules = rules(); bad += bool(bad_rules)
     print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the web addresses a file's citation may carry and the link made of one, the card's Name row from the matcher's findings, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries, a census collection's record form, what a federal census row settles and what the footprint expects of one by its form" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     bad_conn = connectors_offline(); bad += bool(bad_conn)
