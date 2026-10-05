@@ -138,6 +138,19 @@
   },
   {
    "holder": {
+    "HolderKind": "fs_collection",
+    "HolderKey": "1937489",
+    "HolderCollection": "New York, State Census, 1925"
+   },
+   "fields": {
+    "surname": "Peters",
+    "residence place": "Hempstead, Nassau",
+    "year": "1925"
+   },
+   "url": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+  },
+  {
+   "holder": {
     "HolderKind": "url",
     "HolderKey": "https://www.google.com/search?q=%22{title}%22&tbm=bks&tbs=cdr:1,cd_min:{mdy},cd_max:{mdy}",
     "HolderCollection": "x"

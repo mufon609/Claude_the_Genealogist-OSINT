@@ -261,9 +261,13 @@ def holder_search(h, fields):
     Google Books' own cd_min/cd_max take it, {place}, {city}, {url} the citation's own URL), URL-encoded; a template that is
     {url} alone is the citation's URL itself, when it is a web address (web_url); None when a placeholder has no value, so the
     holder's own page opens instead. site: the National
-    Archives 1950 site's name search. None when the fields carry nothing to ask with."""
+    Archives 1950 site's name search. None when the fields carry nothing to ask with. A `surname` field is the surname as the
+    record writes it and a `given` field the given name, read as they stand where the fields carry a surname (a household's
+    lead searches by the surname alone, never a given name), so a lone surname is never read as a given name the way a lone
+    word of a name is (split_name); a `residence place` is a census place."""
     v = lambda k: ((fields or {}).get(k) or {}).get("value")
     given, surname, _ = split_name(v("name"))
+    if v("surname"): given, surname = v("given") or None, v("surname")
     kind = h["HolderKind"]
     if kind == "fs_images": return None
     if kind == "url":
@@ -279,9 +283,9 @@ def holder_search(h, fields):
         return PLACEHOLDER.sub(lambda m: urllib.parse.quote(str(vals[m.group(1)]), safe=""), tpl)
     if not (given or surname): return None
     if kind == "fs_collection":
-        q = [("f.collectionId", h["HolderKey"]), ("q.givenName", given or "")]
+        q = [("f.collectionId", h["HolderKey"])] + ([("q.givenName", given or "")] if given or not v("surname") else [])
         yr = v("year") or (re.search(r"\b(1[78]\d\d|19\d\d)\b", h["HolderCollection"] or "") or [None, None])[1] if re.search(r"census", h["HolderCollection"] or "", re.I) else v("year")
-        place = first_value(v("census place")) or ", ".join(x for x in (v("city"), v("county")) if x) or None
+        place = first_value(v("census place")) or first_value(v("residence place")) or ", ".join(x for x in (v("city"), v("county")) if x) or None
         if yr and place: q += [("q.residenceDate.from", yr), ("q.residenceDate.to", yr), ("q.residencePlace", place)]
         if surname: q.append(("q.surname", surname))
         return "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
