@@ -1078,7 +1078,9 @@ HTTP layer (`do_GET`, `do_POST`) is never reached, the scenarios calling its
 route functions directly; `run_step.fetch` (rate limit, User-Agent, POST),
 `loc_gov.hits` and `total`, `catalog.*_search_url` and `search_target` never
 run, and `cards.render_cli`, `cards_for` and `rule_verdict` (what the owner
-reads) neither. Each can be shown on records the harness already holds: a bag
+reads) neither. No scenario reaches `proof.py`'s "the rule would keep assertion" line, nor a
+turn that names a conflict the rule decided inside it: with real fixtures the
+turn's place resolver stops at the first geocoder query it holds no answer for. Each can be shown on records the harness already holds: a bag
 written and checked under the scratch root, a citation made and run, a POST
 through the server.
 
@@ -1279,7 +1281,8 @@ No route of `app/person/server.py` serves an archived object, so the card's
 archived copy cannot be opened and an image cannot be seen while it is read;
 and a conflict's resolution with its
 reason, `reopen`, `place` (C12), `merge` and `link` have no control, while the
-revise route takes a fetch step the page offers no control for. A person
+revise route takes a fetch step the page offers no control for. The key-fact route ignores the `conflicts` `facts.decide_fact` now returns, so the
+screen never says what the rule decided on them. A person
 who runs no terminal cannot finish a person's work on the screen
 (`docs/DATA-ARCHITECTURE.md` §7 decision 17).
 
@@ -1366,29 +1369,6 @@ one of the two is wrong. And no scenario reaches the residence-place test of
 a relative's grounding: a reader left unconverted there was caught only by
 the dry run on a copy of the live catalog.
 
-### C55. Decisions that skip the rule's pass over conflicts, and two rule writes that reach too far
-
-`docs/RESEARCH-WORKFLOW.md` §5–7 has the rule go over a person's conflicts after
-every decision that changes their evidence, but `conclude.rule_conflicts` runs
-only after `decide`: `facts.decide_fact`, the `assertion`, `place`, `link`,
-`divorce`, `resolve`, `reopen` and `merge` commands and `decide_place` skip it,
-so a resolution the rule made can stand on a statement the owner has just
-rejected (Frederick Michael Ahearn's birth place, question
-`01M3Z3RYPSJM7BS9B51J5EV8YW`, after his statement `01M28F16XJV21TJQVPN909TRCS`
-is rejected, on a scratch copy) until the next `reconsider`. Run it, for the
-people touched, in each. `conclude.place` writes a value the page keeps beneath
-the shown one as accepted and unmarked (`assert_facts` skips the owner's-choice
-fact before it marks the alternate, and `Catalog.unplaced` offers alternates):
-write it undecided with its mark, as `assert_facts` does. `link_family` places a
-child whose record names one parent in any family where that parent is a
-partner, with no order and no check of the other partner, so a father's child
-lands beside a second wife the record never names and her link then grounds
-points: reuse a family only where the parent is its one partner. And
-`rule_points` and `identity_refused` judge a decision on the proposal's own
-persona when the current reading has no persona of that entry, where they
-should refuse it as no longer read. Each changes what the rule decides: a
-dry-run `reconsider` on a copy of the live catalog first.
-
 ### C65. What the comparison gets wrong about months, wives, the shown event and marked values
 
 `catalog.date_verdict` compares two dates on the year unless both give a day,
@@ -1441,6 +1421,35 @@ Pennsylvania and New Jersey church-register search and the Pennsylvania
 marriages search for Enos Heebner Cassel, live on 5 Oct 2026), the list and
 `next` print the page twice, so the owner or a model saves it twice. Print one
 entry for one link, its steps joined, as entries that share a record are.
+
+### C71. A child's membership does not say which parent the record names
+
+`link_family` no longer puts a child named with one parent beside a partner the
+record does not name, but the shape it leaves still misleads. A child's
+membership statement does not say which parent its record names, so `ground()`
+counts it toward both partners (36 file-claimed statements live on 5 Oct 2026
+whose records name one parent); a family made for one parent carries no
+statement on that parent's own membership, so `claimed_or_accepted` never reads
+the link; the spouse path reuses a husband's one-parent family, which makes a
+new wife the parent of his earlier children (Carol Evers under Dolores Evers);
+and a child's one-parent family takes as second partner someone named for one
+child only. Six live memberships the old fallback wrote stay where it put them,
+since no tool moves a child out of a family: Cassie, William Rhea, Charles
+Beckham and Corinne Davidson in John Y Davidson and Lena Howard Bell's family
+(the 1900 and 1920 censuses and the NUMIDENT, which name John Y alone), Joanne
+and Dolores Evers in John Evers and Dolores Evers's (the 1950 census). Beside
+C5, which asks what grounds a parent-child point: have a child's statement name
+the parent its record states, give a one-parent family its parent's
+membership, keep the spouse path off a family that holds children of one
+parent, and give the owner a tool that moves a child to the family the record
+supports, shown on the six above on a copy of the live catalog.
+
+### C72. A re-read writes links with nobody going over them
+
+`extract.carry_links`, which carries a decision onto the record's new reading,
+writes statements and family links without regenerating the people's plans and
+without the rule's pass over their conflicts and cards (`conclude.settle_people`),
+which every decision now runs. Run it for the people a re-read touches.
 
 ## Externally blocked
 
