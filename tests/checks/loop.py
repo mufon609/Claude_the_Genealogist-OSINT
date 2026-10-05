@@ -140,7 +140,6 @@ def a_resume(w, x):
     """The pages dropped into the inbox as a save would leave them, the geocoder's answers and Wikidata's items planted as a turn's
     are, then tools/turn.py --resume; its report, and the entries of the people who wait as it left them."""
     import turn
-    os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
     plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO()
@@ -156,7 +155,6 @@ def a_turns(w, x):
     printed, the summary, the run's count as it ended, the entries of the people who wait, and a refusal's text when it exited."""
     import run_step, turns
     fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
-    os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     for f in x.get("inbox", []): shutil.copy(os.path.join(FIXTURES, f), os.path.join(w.treelib.inbox_dir(), f))
     plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
     buf = io.StringIO(); refused = None; st = None

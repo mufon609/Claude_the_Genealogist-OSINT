@@ -46,7 +46,10 @@ def archive_dir() -> str:
     return os.path.join(DATA_ROOT, "archive")
 
 def inbox_dir() -> str:
-    return os.path.join(DATA_ROOT, "inbox")
+    """Where collect moves the pages it takes and where the inbox's attach reads them from: the data root's own inbox/ folder,
+    created on first use, so a fresh data root collects and attaches as the owner's does."""
+    d = os.path.join(DATA_ROOT, "inbox"); os.makedirs(d, exist_ok=True)
+    return d
 
 def downloads_dir() -> str:
     """Where the owner's browser saves the pages a turn waits on, and where collect takes them from: the data root's own downloads/

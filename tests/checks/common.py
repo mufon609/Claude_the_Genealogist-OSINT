@@ -13,10 +13,11 @@ BY = "agent:check"
 if TOOLS not in sys.path: sys.path.insert(0, TOOLS)
 
 def scratch(keep=False):
-    """A fresh catalog under a temporary data root; (root, db path). Every data path resolves under it once treelib is loaded."""
+    """A fresh catalog under a temporary data root; (root, db path). Every data path resolves under it once treelib is loaded; the
+    data folders the tools write (inbox/, downloads/) are left for the tools to make, as on a fresh data root of the owner's."""
     d = tempfile.mkdtemp(prefix="tree-check-")
     os.environ["DATA_ROOT"] = d
-    db = os.path.join(d, "catalog", "tree.db"); os.makedirs(os.path.dirname(db)); os.makedirs(os.path.join(d, "inbox"))
+    db = os.path.join(d, "catalog", "tree.db"); os.makedirs(os.path.dirname(db))
     r = subprocess.run([sys.executable, os.path.join(TOOLS, "initdb.py"), "--db", db], capture_output=True, text=True)
     if r.returncode: sys.exit(f"initdb failed:\n{r.stdout}{r.stderr}")
     import treelib; treelib.DATA_ROOT = d

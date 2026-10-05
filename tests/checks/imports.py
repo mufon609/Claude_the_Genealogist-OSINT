@@ -38,7 +38,7 @@ def a_ingest(w, x):
     """tools/ingest_gedcom.py on a fixture written as `written` says (see `written`), into the scenario's tree, its refusal not an
     error: the exit code, what it printed, and what the catalog holds of it afterwards (imports and artifacts)."""
     with open(os.path.join(FIXTURES, x["file"]), encoding="utf-8") as fh: text = fh.read()
-    path = os.path.join(w.root, "inbox", os.path.basename(x["file"]))
+    path = os.path.join(w.treelib.inbox_dir(), os.path.basename(x["file"]))
     with open(path, "wb") as fh: fh.write(written(text, x.get("written") or {}))
     r = subprocess.run([sys.executable, tool("ingest_gedcom.py"), path, "--keep", "--db", w.db, "--tree", w.slug, "--by", BY],
                        capture_output=True, text=True, env=os.environ)

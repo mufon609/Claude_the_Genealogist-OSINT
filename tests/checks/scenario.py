@@ -322,7 +322,6 @@ def a_attach(w, x):
     """A fixture dropped into the inbox as a save would leave it and attached: the record's sha and the attach's report."""
     from attach import attach_inbox
     name = x.get("as_file") or x["fixture"]
-    os.makedirs(w.treelib.inbox_dir(), exist_ok=True)
     with open(os.path.join(w.treelib.inbox_dir(), name), "wb") as fh: fh.write(w.fixture_bytes(x))
     kw = {"about": w.person(x["about"])} if x.get("about") else {}
     res = attach_inbox(w.cx, w.tid, w.slug, BY, [name], **kw)
@@ -522,7 +521,8 @@ def a_save(w, x):
         if not e: raise KeyError("no fetch entry waiting for that person at that holder")
         name = e["save_as"].replace("<year>", str(x.get("year", "")))
         for k, v in (x.get("fill") or {}).items(): name = name.replace(k, v)
-    folder = os.path.join(w.root, x["folder"]) if x.get("folder") else w.treelib.inbox_dir(); os.makedirs(folder, exist_ok=True)
+    folder = os.path.join(w.root, x["folder"]) if x.get("folder") else w.treelib.inbox_dir()
+    os.makedirs(folder, exist_ok=True)                           # a download folder of the scenario's own; the inbox the tools make
     data = w.fixture_bytes(x); key = None
     if x.get("key"):
         key = e["serves"] if x["key"] is True else [(w.step(r) or {"id": r})["id"] if isinstance(r, str) else w.step(r)["id"] for r in x["key"]]   # an id that is no step of the plan is written as it is
