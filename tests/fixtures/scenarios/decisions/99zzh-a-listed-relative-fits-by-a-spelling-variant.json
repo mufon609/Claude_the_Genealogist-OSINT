@@ -1,0 +1,48 @@
+{
+ "title": "a listed relative fits by a spelling variant",
+ "line": "a relative a page anyone can edit lists fits a person of the tree by given name, surname and birth year as the matcher agrees names, a spelling variant of the surname included: John Y Davidson's memorial lists his mother as Ellen E. McCreary Davidson, born 1835, whom the tree holds as Ellen E McCrary; McCreary is a spelling variant of McCrary, so once the owner accepts the memorial as his, she is the one person the listed mother fits and her persona is traced to her undecided, as the page states her his mother",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his memorial, a page anyone can edit, which the file cites",
+   "attach": {
+    "fixture": "findagrave-memorial-130509402.html"
+   },
+   "as": "memorial"
+  },
+  {
+   "say": "the owner accepts the memorial as his: an identity",
+   "decide": {
+    "card": {
+     "record": "memorial",
+     "person": "I332737204849"
+    },
+    "status": "accepted",
+    "note": "harness: the owner's word that the memorial is his"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "identity": true
+     }
+    },
+    {
+     "links": {
+      "person": "I332737209655",
+      "record": "memorial",
+      "persona": "Ellen E. McCreary Davidson",
+      "is": [
+       "undecided"
+      ]
+     },
+     "why": "the listed mother fits Ellen E McCrary alone, McCreary a spelling variant of McCrary: traced to her undecided, her own record deciding her identity later"
+    }
+   ]
+  }
+ ]
+}

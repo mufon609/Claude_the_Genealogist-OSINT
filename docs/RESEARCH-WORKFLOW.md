@@ -88,7 +88,9 @@ and a stated parent or spouse who is that relative in the tree agree with the
 tree, claimed or accepted. A family membership such a page states is created
 where the tree lacks it, with an undecided assertion, the way a sibling
 placement already is, for a relative accepted on the same page or one whose
-given name, surname and birth year fit exactly one person of the tree; that
+given name, surname and birth year fit exactly one person of the tree (the
+names as the matcher agrees them, a surname written the same or a spelling
+variant of it, never one letter apart; §5–7); that
 relative's persona is then traced to that person with an undecided link, and
 a person who rejected that persona is no fit. The relatives a memorial lists
 are leads, never cards: the matcher proposes none of them, and each is a fetch

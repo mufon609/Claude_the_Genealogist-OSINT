@@ -641,12 +641,17 @@ def by_name_and_year(cat, cx, tree_id, persona):
     return out
 
 def fits_by_name_and_year(cat, cx, tree_id, persona):
-    """Persons of the tree whose given name and surname (or birth surname) agree with this persona's (same_given, same_surname,
-    every name and alias the tree holds for them) and whose birth year agrees within three years where both give one: a plain
-    name-and-year fit on a specific candidate, unlike by_name_and_year's coarser surname-only filter (deliberately wide,
-    for compare() to judge further; wrong here, since a shared surname alone would fit a memorial's subject to their own
-    listed spouse). tools/plan.py's listed-relative leads call this to seat a relative the matcher never proposes
-    (docs/RESEARCH-WORKFLOW.md §0) on the one person of the tree they plainly are, without deciding an identity."""
+    """Persons of the tree whose given name and surname (or birth surname) agree with this persona's, and whose birth year
+    agrees within the matcher's window where both give one, with no middle name or initial both carry differing: the given
+    name as same_given reads it, any later word of the persona's name as one of the surnames the tree holds for the person
+    (every name and alias) written the same or a spelling variant of it (same_surname: Detwiler for Detweiler), as the
+    matcher's comparison agrees a surname everywhere (docs/RESEARCH-WORKFLOW.md §5–7), never one letter apart, an indexer's
+    slip a person reads, since nobody reads this fit before it is used. A plain name-and-year fit on a specific candidate,
+    unlike by_name_and_year's coarser surname-only filter (deliberately wide, for compare() to judge further; wrong here,
+    since a shared surname alone would fit a memorial's subject to their own listed spouse). §0's relative that fits exactly
+    one person by name and birth year is this, the caller asking for exactly one: tools/plan.py's listed-relative leads seat
+    a relative the matcher never proposes on the one person of the tree they plainly are, and conclude.link_family places
+    the membership a page anyone can edit states for such a relative, undecided, without deciding an identity."""
     given, rest = split_persona_name(persona["name"])
     if not given or not rest:
         return []
@@ -657,7 +662,7 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
         keys = name_keys(cat, pid)
         if not any(same_given(given, k) for k, _ in keys):
             continue
-        if not any(s in rest for _, s in keys if s):
+        if not any(same_surname(t, s) in ("agrees", "variant") for t in rest for _, s in keys if s):
             continue
         rows = [(g or "", s or "") for g, s, *_ in cat.person(pid)["names"]]
         # a middle name or initial both carry, differing: not plainly this person
