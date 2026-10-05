@@ -26,7 +26,7 @@ Rules
     town, a city in its prefecture) fails that test and, like every other case of
     more than one verified candidate, becomes a `place_resolution` proposal
     (tree-scoped) with every verified candidate listed; the owner decides on the
-    person screen. Never widen auto-accept past those two cases.
+    person screen. Never widen auto-accept past those two cases and the gazetteer's below, which is the same unique match.
   * When Nominatim leaves a string open (no unique full match, a bare name, or a forced review), a gazetteer that knows
     its places is asked: GOV, genealogy.net's historical gazetteer (SOAP, no key, CC BY-SA), for Germany, Poland and
     Silesia; Wikidata (its own API: wbsearchentities, then the candidates' containing units followed up P131, CC0) for

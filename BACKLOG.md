@@ -730,7 +730,7 @@ the country the string ends with first.
 
 Soundex is written twice (`catalog.py`, `backfill_aliases.py`), edit distance twice, name splitting three times, the
 nickname table twice, the suffix set twice; `initdb.py` re-implements `ulid`
-without the monotonic rule `treelib.py` promises; `turns.name_of` is dead.
+without the monotonic rule `treelib.py` promises.
 The `derivative` and `artifact_page` tables are never used, the three FTS
 tables are filled and never queried, and no tool writes `tombstone` although
 hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it.
@@ -1269,7 +1269,7 @@ sidecar once, never over one that exists; compare sidecars with rows in
 
 No route of `app/person/server.py` serves an archived object, so the card's
 archived copy cannot be opened and an image cannot be seen while it is read;
-`revise_step` writes no audit row; and a conflict's resolution with its
+and a conflict's resolution with its
 reason, `reopen`, `place` (C12), `merge` and `link` have no control, while the
 revise route takes a fetch step the page offers no control for. A person
 who runs no terminal cannot finish a person's work on the screen
@@ -1363,6 +1363,58 @@ two do not agree (Manhattan, New York, New York against Brooklyn, New York):
 one of the two is wrong. And no scenario reaches the residence-place test of
 a relative's grounding: a reader left unconverted there was caught only by
 the dry run on a copy of the live catalog.
+
+### C55. Decisions that skip the rule's pass over conflicts, and two rule writes that reach too far
+
+`docs/RESEARCH-WORKFLOW.md` §5–7 has the rule go over a person's conflicts after
+every decision that changes their evidence, but `conclude.rule_conflicts` runs
+only after `decide`: `facts.decide_fact`, the `assertion`, `place`, `link`,
+`divorce`, `resolve`, `reopen` and `merge` commands and `decide_place` skip it,
+so a resolution the rule made can stand on a statement the owner has just
+rejected (Frederick Michael Ahearn's birth place, question
+`01M3Z3RYPSJM7BS9B51J5EV8YW`, after his statement `01M28F16XJV21TJQVPN909TRCS`
+is rejected, on a scratch copy) until the next `reconsider`. Run it, for the
+people touched, in each. `conclude.place` writes a value the page keeps beneath
+the shown one as accepted and unmarked (`assert_facts` skips the owner's-choice
+fact before it marks the alternate, and `Catalog.unplaced` offers alternates):
+write it undecided with its mark, as `assert_facts` does. `link_family` places a
+child whose record names one parent in any family where that parent is a
+partner, with no order and no check of the other partner, so a father's child
+lands beside a second wife the record never names and her link then grounds
+points: reuse a family only where the parent is its one partner. And
+`rule_points` and `identity_refused` judge a decision on the proposal's own
+persona when the current reading has no persona of that entry, where they
+should refuse it as no longer read. Each changes what the rule decides: a
+dry-run `reconsider` on a copy of the live catalog first.
+
+### C65. What the comparison gets wrong about months, wives, the shown event and marked values
+
+`catalog.date_verdict` compares two dates on the year unless both give a day,
+so June 1901 and July 1901 agree, earn a point, raise no veto and no conflict,
+and `fuller_date` lets the fold (`conclude.py`) and the import replace an
+accepted "Jul 1901" with "26 Jun 1901", the silent overwrite hard rule 3
+forbids: compare the months where both give one. `match.compare`'s `married`
+(a wife under her husband's surname) checks no sex, so a man whose record names
+his wife passes the surname gate: require a woman. `match.candidate` and
+`cards.card` compare against the earliest event of a type, not
+`Catalog.canonical_event` (Catharine Rittenhouse's death is shown at Norriton
+and compared against Worcester), and neither leaves out an event whose
+statements are all rejected. `match.personas_of` takes a name the page keeps
+beneath the shown one as the record's own, and `Catalog.disagreements` folds
+such values into a record's group: leave every marked value out of both.
+`match.fits_by_name_and_year`'s docstring says a spelling variant of the
+surname agrees and the code wants it exact: say which §0 means and make them
+one. Each changes what the rule decides: a dry-run `reconsider` on a copy of
+the live catalog first, after a matcher version rise run for real on the copy.
+
+### C68. A unique match on a geocoder answer that was cut
+
+`tools/resolve_places.py` asks the geocoder for six candidates and accepts a
+string when one of them verifies fully, though a full page of six may be cut
+(55 of the 751 cached answers hold exactly six; none of the 149 live unique
+acceptances came from a full page). A match unique within a cut list widens
+`CLAUDE.md`'s rule: ask again with a larger limit when a page comes back full,
+and accept only on an answer that was not cut.
 
 ## Externally blocked
 

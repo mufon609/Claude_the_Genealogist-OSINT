@@ -106,7 +106,7 @@ python3 tools/run_task.py show [K]          # the next pages as a model's fetch 
 python3 tools/cards.py "<person>"           # the records waiting for a decision, one card each; --full every field
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
-python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "…"   # a conflict closed with the reason; `reopen <question id>` takes back one the rule decided
+python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "…"   # a conflict closed with the reason; `reopen <question id> --note "…"` takes back one the rule decided
 python3 tools/proof.py "<person>"           # each key fact against the proof standard: evidence and its classes, research, conflicts
 python3 tools/tree.py overview              # the tree as confirmed, from the home person upward, its edge, and where it comes from
 python3 app/person/server.py --by user:<you>   # the person screen on http://127.0.0.1:8765/
@@ -172,10 +172,13 @@ the owner's word (`tools/conclude.py living`) stands above everything.
   and the `v_unsupported_*` views. Test code changes on a scratch copy of
   the catalog, never on the real one; research decisions are made on the
   live catalog, which is the work.
-- Place resolution auto-accepts a unique full match, and also a string whose
-  verified candidates are one territory under two names (a city and the
-  county coterminous with it), tested on the geocoder's own boundaries
-  coinciding within a small tolerance. A place nested in a larger,
+- Place resolution auto-accepts a unique full match (the geocoder's, or a
+  gazetteer's whose one candidate is the same place as exactly one geocoder
+  candidate by an identifier both keep, `docs/DATA-ARCHITECTURE.md`
+  "Gazetteers"), and also a string whose verified candidates are one
+  territory under two names (a city and the county coterminous with it),
+  tested on the geocoder's own boundaries coinciding within a small
+  tolerance. A place nested in a larger,
   differently-sized unit of the same name (a village in its town, a city in
   its prefecture) stays Undecided with both offered. Never widen past that.
 - External services: Nominatim public endpoint at 1 req/s with cache;
