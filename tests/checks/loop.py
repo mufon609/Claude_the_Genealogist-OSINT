@@ -122,6 +122,20 @@ def a_turn(w, x):
     return {"seen": seen, "seen_len": len(seen), "distinct": len(set(seen)), "state": state_of(w), "printed": out,
             "left": out.split("left:", 1)[1] if "left:" in out else "", "reopens": reopens(out)}
 
+def a_turn_by_hand(w, x):
+    """tools/turn.py as the owner runs it on a person, `turn.py "<name>"` (turn.main): run_step.run standing in for the network
+    as the data says, the stand-ins under `fails` as a turn's; what it printed and the status it exited with (None when it
+    ran to its end)."""
+    import run_step, turn
+    fake_run, seen = fake_answers(x.get("fake_run") or {"first": "none"})
+    plant_geocoder(x.get("geocoder") or []); plant_wikidata(x.get("wikidata")); w.cx.commit()
+    argv = ["turn.py", w.name_of(w.person(x["person"])), "--db", w.db, "--tree", w.slug, "--by", BY]
+    buf = io.StringIO(); status = None
+    with patched(run_step, "run", fake_run), patched(sys, "argv", argv), silence(x), failing(x), contextlib.redirect_stdout(buf):
+        try: turn.main()
+        except SystemExit as e: status = e.code
+    return {"printed": buf.getvalue(), "exit": status, "seen": seen, "state": state_of(w)}
+
 def a_resume(w, x):
     """The pages dropped into the inbox as a save would leave them, the geocoder's answers and Wikidata's items planted as a turn's
     are, then tools/turn.py --resume; its report, and the entries of the people who wait as it left them."""
@@ -397,7 +411,7 @@ def a_task(w, x):
             "command": {"flags": [c for c in cmd if c.startswith("-")], "mcp_config": after("--mcp-config"), "model": after("--model"), "effort": after("--effort"), "tools": after("--tools"), "budget": after("--max-budget-usd"),
                         "prompt": after("-p"), "system_prompt_is_the_text": after("--system-prompt") == run_task.task_text("fetch")[0], "schema": json.loads(after("--json-schema") or "null")}}
 
-ACTIONS.update({"task": a_task, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
+ACTIONS.update({"task": a_task, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turn_by_hand": a_turn_by_hand, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
                 "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 

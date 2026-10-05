@@ -108,16 +108,11 @@ def summary(cx, tree_id, st, stopped, db, detail=False):
 
 def one_turn(cx, tree_id, slug, by, db, e, t, reported):
     """One person's turn (turn.start). A turn that fails outside its runs and its tail's parts stops there: what it had not
-    committed is rolled back, the failure printed and kept on the turn, and None returned for the caller to pass them over."""
-    try:
-        turn.start(cx, tree_id, slug, e["id"], by, db, reported=reported)
-        return None
-    except (Exception, SystemExit) as ex:
-        if cx.in_transaction: cx.rollback()
-        why = f"the turn failed ({type(ex).__name__}: {ex}): it stopped there, what it had not committed rolled back"
-        print(f"turn: {e['name']}\n\n{why}")
-        t["failed"] = why
-        return why
+    committed is rolled back, the failure printed and kept on the turn, and None returned for the caller to pass them over
+    (turn.start_guarded, as a turn run by hand is)."""
+    why = turn.start_guarded(cx, tree_id, slug, e["id"], by, db, reported=reported)
+    if why: t["failed"] = why
+    return why
 
 def run(cx, tree_id, slug, by, db, turns=None, detail=False):
     """What has been saved for the people who wait taken in first (turn.resume), then turn after turn (turn.start) from the

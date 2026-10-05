@@ -232,6 +232,18 @@ def archive_object(cx, data: bytes, *, mime, source_id, collection_id, locator_k
     return sha, True
 
 
+def write_json_whole(path, data, **kw):
+    """The file at path holds data as JSON, whole: the text is made first (a value that cannot be written raises before the file is
+    touched) and written to a file beside it that replaces it in one step, so a stop in the middle of the write leaves the file as
+    it was and never half of the new one."""
+    text = json.dumps(data, **kw)
+    tmp = f"{path}.{os.getpid()}.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh: fh.write(text)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp): os.remove(tmp)
+
 # ---------------------------------------------------------------- trees / profiles
 ACTIVE_TREE_FILE = os.path.join(DATA_ROOT, "catalog", ".active-tree")
 

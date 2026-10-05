@@ -18,16 +18,21 @@ rate (a string it accepts is placed, one it cannot settle is a card on the perso
 strings are all resolved take their place before the rule goes over the conflicts), `tools/conclude.py reconsider`
 re-examines the rule's decisions and every card still undecided, and the plan is regenerated for the person once more.
 The opening plan and each part of the tail run in a transaction of their own (guarded): one that fails is rolled back
-alone and named in the report with its exception, and the turn goes on to its next part.
+alone and named in the report with its exception, and the turn goes on to its next part. A turn that fails anywhere
+else stops there, what it had not committed rolled back, and names its exception (start_guarded: the runner's turn and a
+turn run by hand alike; the hand-run process then exits with a failure status).
 
 Last, the person's own fetch list at holders with no connector (`tools/fetches.py list`, narrowed to steps on this
 person's plan that carry a link to open) is printed under the report, and the person waits on those pages: their entry
 is kept beside the database as `<db>.turn-state.json` (on the pattern of `catalog/.active-tree`; nothing here is catalog
 data), one entry for each person who waits, the file gone when nobody does. Nothing about a person who waits stops
-anyone else's turn. A collect, in any turn's tail or in `--resume`, credits each file to the people whose steps it
+anyone else's turn. The file is written whole (treelib.write_json_whole): a stop in the middle of the write leaves the
+state as it was. A collect, in any turn's tail or in `--resume`, credits each file to the people whose steps it
 reached, and finishes the turns of the people who wait that it reached: the resolver reads the strings behind their own
 events beside the rest, the plan is regenerated for them, and their own report follows, with the files credited to them
-and the pages they still wait on. `--resume` is that alone, with no turn of its own; the resolver, `reconsider` and the
+and the pages they still wait on. A person whose page came in some other way (attached by hand with
+`tools/attach_inbox.py`, logged on the person screen) has a run on that step since they began to wait: the next turn or
+resume finishes their turn the same way, their report naming what those runs hold. `--resume` is that alone, with no turn of its own; the resolver, `reconsider` and the
 plans run only when a file came in. A state in the one-turn shape (a `person_id` at its top: one turn paused on its
 pages) is read as that person waiting on the pages the fetch list holds for them now, and written back in the shape
 above.
@@ -48,7 +53,7 @@ tools/turns.py), not in every turn's report.
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, connect, dumps, now, resolve_tree
+from treelib import DB, connect, dumps, now, resolve_tree, write_json_whole
 from catalog import Catalog
 from plan import plan_person
 import run_step
@@ -81,7 +86,7 @@ def write_state(db_path, entries):
         try: os.remove(state_path(db_path))
         except FileNotFoundError: pass
         return
-    with open(state_path(db_path), "w", encoding="utf-8") as fh: json.dump({"waiting": entries}, fh)
+    write_json_whole(state_path(db_path), {"waiting": entries})
 
 def own_steps(cx, pid):
     """Every step on a person's plan, by id."""
@@ -230,26 +235,36 @@ def finish(cx, tree_id, slug, by, db, pid=None, since=None):
     file that fails is rolled back alone, left where it was and named in the report); each file credited to the people
     who wait whose steps it reached (credited; the turn's own person apart); the place resolver on the new place strings
     of this turn's person and of those people (before the rule goes over the conflicts, so an event the answers place is
-    compared as placed); conclude.py reconsider; the plan regenerated for each of them. Each part guarded. With no person
-    of its own (a resume), the resolver, reconsider and the plans run only when a file came in. Returns {results (every
+    compared as placed); conclude.py reconsider; the plan regenerated for each of them. Each part guarded. The people who
+    waited and wait no more, though no file of this call's reached them (a page attached by hand, or logged on the person
+    screen, while they waited), are finished the same way, credited with no file. With no person of its own (a resume), the
+    resolver, reconsider and the plans run only when a file came in or such a person is there. Returns {results (every
     file the collect and the attach took, one each), own (the files the call reports itself: those its own person's steps
     were reached by, and those that reached nobody who waits), credited ({person id: their files}, for the people who
-    wait), places, recon, plans ({person id: the plan's stats}), failures}."""
-    out = {"results": [], "own": [], "credited": {}, "places": None, "recon": [], "plans": {}, "failures": []}
-    who_waits = set(waiting(cx, db, tree_id)) - {pid}               # read before the collect: a page it takes is no longer open
+    wait), ended ({person id: their entry}, those of them whose pages came in outside the call), places, recon, plans
+    ({person id: the plan's stats}), failures}."""
+    out = {"results": [], "own": [], "credited": {}, "ended": {}, "places": None, "recon": [], "plans": {}, "failures": []}
+    waiting_now = waiting(cx, db, tree_id)                          # read before the collect: a page it takes is no longer open
+    who_waits = set(waiting_now) - {pid}
+    for w in read_state(db):                                        # a page of a person who waits already run (attached by hand, logged on the person screen): it came in outside this call's collect
+        if w["tree_id"] != tree_id or w["person_id"] == pid: continue
+        mine = own_steps(cx, w["person_id"])
+        closed = (mine if w.get("steps") is None else mine & set(w["steps"])) - waiting_now.get(w["person_id"], {}).get("steps", set())
+        if closed and came_in_lines(cx, w["person_id"], w.get("since"), closed): out["ended"][w["person_id"]] = {**w, "closed": closed}
     took = guarded(cx, out["failures"], "the collect", lambda: fetches.collect(cx, tree_id, slug, by), transaction=False)
     names, collected = took or ([], [])
     inbox = lambda: attach_each(cx, tree_id, slug, by, [f for f in inbox_files() if f not in names])
     left = guarded(cx, out["failures"], "the inbox's attach", inbox, transaction=False)
     out["results"] = collected + (left or [])
     reached = credited(cx, out["results"], who_waits | ({pid} if pid else set()))
-    out["credited"] = {w: rs for w, rs in reached.items() if w != pid}
+    out["credited"] = {**{w: [] for w in out["ended"]}, **{w: rs for w, rs in reached.items() if w != pid}}
     theirs = {id(r) for rs in out["credited"].values() for r in rs}
     mine = {id(r) for r in reached.get(pid, [])}
     out["own"] = [r for r in out["results"] if id(r) in mine or id(r) not in theirs]
-    if not pid and not any(not r.get("left") for r in out["results"]): return out
+    if not pid and not any(not r.get("left") for r in out["results"]) and not out["ended"]: return out
     people = ([pid] if pid else []) + list(out["credited"])
-    out["places"] = guarded(cx, out["failures"], "the place resolver", lambda: resolve_places(cx, tree_id, people, since, by))
+    began = min([since] + [w["since"] for w in out["ended"].values() if w.get("since")])        # a page that came in while they waited brought its place strings then
+    out["places"] = guarded(cx, out["failures"], "the place resolver", lambda: resolve_places(cx, tree_id, people, began, by))
     out["recon"] = guarded(cx, out["failures"], "reconsider", lambda: reconsider(cx, tree_id, by)) or []
     for p in people:
         plan = lambda p=p: plan_person(cx, tree_id, p, PLANNER)
@@ -409,15 +424,30 @@ def report(cx, tree_id, pid, before_ids, conn_runs, tail, pages, failures, repor
     out += ["", f"plan: {dumps(tail['plans'].get(pid))}"]
     return "\n".join(out)
 
+def came_in_lines(cx, pid, since, steps):
+    """What the runs logged on these steps of a person since they began to wait hold, in words: the pages that came in outside
+    the collect that finishes their turn (attached by hand, logged on the person screen)."""
+    marks = ",".join("?" * len(steps)) or "NULL"
+    out = []
+    for row_key, source, outcome, arts in cx.execute(f"""SELECT sp.row_key, l.source_id, l.outcome, l.artifacts_json FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
+                                                         WHERE sp.person_id=? AND sp.id IN ({marks}) AND l.executed_at>=? AND l.superseded_by IS NULL AND l.artifacts_json IS NOT NULL
+                                                         ORDER BY l.executed_at, l.id""", (pid, *steps, since or "")):
+        n = len(json.loads(arts or "[]"))
+        if n: out.append(f"  {row_key} at {source}: {outcome}, {n} artifact(s), taken in outside the collect")
+    return out
+
 def finished_report(cx, tree_id, pid, tail, pages):
     """The report of a person who waited whose turn a collect finished: the files credited to them, what the rule took on
-    them, what is left for the owner, the pages they still wait on, the plan regenerated for them."""
+    them, what is left for the owner, the pages they still wait on, the plan regenerated for them. For a person whose pages
+    came in outside the collect, what their steps' runs hold since they began to wait stands for the files, and what the rule
+    took is the audit log's."""
     cat = Catalog(cx, tree_id)
     results = tail["credited"][pid]
+    ended = tail["ended"].get(pid)
     out = [f"turn: {pid_name(cx, pid)} [{pid[-6:]}], finished on the pages saved for them", "", "held:"]
-    out += held_lines([], results) or ["  nothing new archived"]
+    out += held_lines([], results) + (came_in_lines(cx, pid, ended.get("since"), ended["closed"]) if ended else []) or ["  nothing new archived"]
     out += ["", "decided:"]
-    out += decided_lines([], results, []) or ["  nothing for the rule to take"]
+    out += decided_lines([], results, [r for r in tail["recon"] if r["person"] == pid_name(cx, pid)] if ended else []) or ["  nothing for the rule to take"]
     out += ["", "left:"]
     out += person_left_lines(cx, cat, pid) or ["  nothing outstanding on this person"]
     out += pages_lines(pages) or ["", "waits on no page now"]
@@ -428,7 +458,7 @@ def resume_report(cx, tree_id, before_ids, tail, reported, mark, gone, db):
     """A resume's own report: the files that reached nobody who waits, what the rule decided in the call, who was created,
     what is left; with nothing saved, who waits on how many pages."""
     reported = set() if reported is None else reported
-    if not any(not r.get("left") for r in tail["results"]) and not tail["failures"]:
+    if not any(not r.get("left") for r in tail["results"]) and not tail["failures"] and not tail["ended"]:
         w = waiting(cx, db, tree_id)
         pages = {e["url"] for x in w.values() for e in x["pages"]}
         said = f"{len(w)} person(s) wait on {len(pages)} page(s) to save in the browser (tools/fetches.py next)"
@@ -470,6 +500,18 @@ def start(cx, tree_id, slug, pid, by, db, reported=None):
         print("\n" + finished_report(cx, tree_id, w, tail, pages[w]))
     return tail
 
+def start_guarded(cx, tree_id, slug, pid, by, db, reported=None):
+    """One turn (start) that fails outside its runs and its tail's parts stops there: what it had not committed is rolled back,
+    the failure printed with its exception, and its text returned; None when the turn ran."""
+    try:
+        start(cx, tree_id, slug, pid, by, db, reported=reported)
+        return None
+    except (Exception, SystemExit) as ex:
+        if cx.in_transaction: cx.rollback()
+        why = f"the turn failed ({type(ex).__name__}: {ex}): it stopped there, what it had not committed rolled back"
+        print(f"turn: {pid_name(cx, pid)}\n\n{why}")
+        return why
+
 def resume(cx, tree_id, slug, by, db, reported=None):
     """Whatever has been saved in the browser taken in, each file credited, and the turns of the people who wait that it
     reached finished, each with its report after the resume's own. Returns the tail."""
@@ -494,6 +536,6 @@ def main():
     if a.resume: resume(cx, tree_id, slug, a.by, a.db)
     else:
         cat = Catalog(cx, tree_id); pid = cat.find_person(a.who)
-        start(cx, tree_id, slug, pid, a.by, a.db)
+        if start_guarded(cx, tree_id, slug, pid, a.by, a.db): sys.exit(1)
 
 if __name__ == "__main__": main()

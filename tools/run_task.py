@@ -60,7 +60,7 @@ collect and writes nothing to the catalog, so the saved page stays in downloads/
 """
 import argparse, calendar, hashlib, json, os, shutil, subprocess, sys, tempfile, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, connect, downloads_dir, dumps, now, resolve_tree, ulid
+from treelib import DB, connect, downloads_dir, dumps, now, resolve_tree, ulid, write_json_whole
 from attach import line
 import fetches
 
@@ -298,8 +298,7 @@ def hand_out(tree_id, db_path, entry, model):
         raise SystemExit(f"a task is out, handed at {out['opened']['started_at']}: {out['opened']['task']['file']}; report it with tools/run_task.py done (no --answer when the subagent gave none) before the next")
     o = opened(entry)
     state = {"tree_id": tree_id, "model": model, "effort": SESSION_EFFORT[o["task"]["kind"]], "opened": o}
-    with open(state_path(db_path), "w", encoding="utf-8") as fh:
-        json.dump(state, fh, indent=1)
+    write_json_whole(state_path(db_path), state, indent=1)
     return state
 
 def handout(state):

@@ -338,7 +338,7 @@ Patterns: a dict matches the keys given, a list its length and each element, a s
 `{"ends": s}`, `{"first": p}`, `{"len": n}`, `{"some": p}`, `{"none": p}`, `{"every": p}`, `{"not": p}`, `{"in": [..]}`,
 `{"is": null}`, `{"any": true}`.
 
-The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn` (`tools/turn.py` on a
+The loop's scenarios (`scenarios/loop/`) add, through `tests/checks/loop.py`, the actions `turn_by_hand` (`tools/turn.py "<name>"` as the owner runs it, `turn.main`, on a `person` the same stand-ins answering as a turn's (`fake_run`, `fails`); what it printed, `exit` the status it ended with, `None` when it ran to its end), `turn` (`tools/turn.py` on a
 person, `run_step.run` standing in with the outcomes the data gives: `fake_run: {first, then, error}`, `raise` an outcome for a run
 that raises the data's `error`, or with `fetch` the real runner
 and connectors answered as `run` is; the geocoder's real answers

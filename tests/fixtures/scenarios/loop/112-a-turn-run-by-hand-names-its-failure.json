@@ -1,0 +1,57 @@
+{
+ "title": "a turn run by hand names its failure and stops there",
+ "line": "tools/turn.py on a person, run by hand, that fails outside its runs' own reading and requests and its tail's parts stops there as the runner's turn does: what it had not committed is rolled back and the failure is printed with its exception, the process exiting with a failure status instead of a traceback; a turn that runs to its end exits with none",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so the grandparents are at the edge",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": ["I332737035563", "I332737044283"],
+    "kind": "child",
+    "record": "import"
+   }
+  },
+  {
+   "say": "a turn by hand on the grandfather, the first connector run raising (the harness's stand-in for a turn that fails)",
+   "turn_by_hand": {
+    "person": "I332737036054",
+    "geocoder_silent": true,
+    "fake_run": {"first": "raise", "then": "none", "error": "the harness's stand-in for a turn that fails"}
+   },
+   "expect": [
+    {
+     "last": {
+      "exit": 1,
+      "printed": {"has": ["turn: Frederick Micheal Ahearn Jr", "the turn failed (RuntimeError: the harness's stand-in for a turn that fails): it stopped there, what it had not committed rolled back"]}
+     },
+     "why": "the failure is named with its exception and the process says it failed, as the runner names the failure of a turn it runs"
+    }
+   ]
+  },
+  {
+   "say": "the same turn by hand with nothing failing",
+   "turn_by_hand": {
+    "person": "I332737036054",
+    "geocoder_silent": true
+   },
+   "expect": [
+    {
+     "last": {
+      "exit": {"is": null},
+      "printed": {"has": "turn: Frederick Micheal Ahearn Jr"}
+     },
+     "why": "a turn that ran to its end exits with no status and prints its own report"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

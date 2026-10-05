@@ -1,0 +1,70 @@
+{
+ "title": "a page attached outside a collect finishes the turn of the person who waited, with its report",
+ "line": "a turn on the grandfather leaves two pages for the browser and he waits on them; his 1940 census household is attached by hand (tools/attach_inbox.py), not saved from the list and collected: the next run takes nothing in and still finishes his turn, his own report naming what his step's run holds, what is left for the owner and the one page he still waits on, and his entry is kept for the page still open",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the home person's parents confirmed on the owner's word, so the grandfather is at the edge",
+   "link_on_word": {
+    "person": "I332737035562",
+    "others": ["I332737035563", "I332737044283"],
+    "kind": "child",
+    "record": "import"
+   }
+  },
+  {
+   "say": "a turn on the grandfather: two pages for the browser, and he waits on them",
+   "turn": {"person": "I332737036054", "geocoder_silent": true},
+   "expect": [
+    {
+     "turn_state": {"person": "I332737036054", "is": {"steps": {"len": 2}}},
+     "why": "his entry, the steps of the two pages he waits on"
+    }
+   ]
+  },
+  {
+   "say": "the 1940 census household attached by hand, the page the owner's browser saved without the list's key and without a collect",
+   "attach": {"fixture": "familysearch-census-1940-KQX1-VT9.html"},
+   "as": "by_hand"
+  },
+  {
+   "say": "the next run, starting no turn",
+   "turns": {"geocoder_silent": true, "turns": 0},
+   "expect": [
+    {
+     "last": {
+      "refused": {"is": null},
+      "printed": {"has": ["turn: Frederick Micheal Ahearn Jr [", "], finished on the pages saved for them", "census household:1940 at D03", "taken in outside the collect", "Frederick Micheal Ahearn Jr: 1 document(s) still waiting for a decision", "waits on 1 page(s) to save in the browser"], "lacks": "waits no more"},
+      "summary": {"has": ["0 turn(s) done", "finished on the pages saved for them:\n  Frederick Micheal Ahearn Jr ["]}
+     },
+     "why": "the page came in outside the collect, and the run still finishes the turn it ended and reports it, the person no longer left to wait in silence"
+    },
+    {
+     "turns_run": {"turns": [], "finished": ["I332737036054"]}
+    },
+    {
+     "turn_state": {"person": "I332737036054", "is": {"steps": {"len": 1}}},
+     "why": "he waits on the one page still open for him"
+    }
+   ]
+  },
+  {
+   "say": "a resume with nothing new",
+   "resume": {"geocoder_silent": true},
+   "expect": [
+    {
+     "last": {"report": {"has": "nothing saved in the browser has come in; 1 person(s) wait on 1 page(s) to save in the browser"}, "finished": []},
+     "why": "his turn is finished once: a resume finds no one more to finish"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

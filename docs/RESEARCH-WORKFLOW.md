@@ -1535,8 +1535,12 @@ waits on them: their name and the steps of those pages are kept beside the
 catalog (`<db>.turn-state.json`, one entry for each person who waits, none
 when nobody does), and the turn is over.
 
-A file a collect takes is credited to the people whose steps it reached, and
-for a person who waits that finishes their turn in the same call: the place
+A page that comes in outside a collect (attached by hand, logged on the person
+screen) is a run on the step of a person who waits, and the next turn or resume
+finishes that person's turn all the same, their report naming what the runs of
+their closed steps hold. A file a collect takes is credited to the people whose
+steps it reached, and for a person who waits that finishes their turn in the
+same call: the place
 resolver reads the strings behind their own events beside the rest, the plan
 is regenerated for them, and their own report follows, with the files
 credited to them, what the rule took on those files, what is left for the
@@ -1547,7 +1551,12 @@ whatever has been saved (`tools/fetches.py collect` on `downloads/`,
 turns of the people who wait that it reached, running the resolver,
 `reconsider` and the plans only when a file came in; its own report names the
 files that reached nobody who waits, and with nothing saved it says who waits
-on how many pages. The turn writes nothing of its
+on how many pages. The turn run by hand
+has the runner's guard: a turn that fails anywhere but in its runs and its tail's
+parts stops there, what it had not committed rolled back, names its exception and
+exits with a failure status. The people who wait are kept beside the catalog in
+a file written whole, so a stop in the middle of a write leaves it as it was. The
+turn writes nothing of its
 own: every catalog write is one of those tools' under its own name. Its
 report says what was held, what the rule decided (the proposals it took and,
 one line each, the conflicts it resolved or took back while the turn ran, with

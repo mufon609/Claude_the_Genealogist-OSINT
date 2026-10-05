@@ -452,6 +452,23 @@ def registry_connectors():
     with open(os.path.join(ROOT, "data", "data-sources.csv"), newline="", encoding="utf-8") as fh: rows = list(csv.DictReader(fh))
     return [f"{r['ID']}'s Connector {r['Connector']!r} is no module under tools/connectors/" for r in rows if r["Connector"] and not built(r["Connector"])]
 
+def state_writes():
+    """The state kept beside a catalog is written whole: a write that fails in the middle (here a value JSON cannot hold) leaves
+    the file as it was, readable, and no file of the write's own beside it."""
+    import shutil, tempfile, turn
+    d = tempfile.mkdtemp(prefix="tree-state-"); db = os.path.join(d, "tree.db"); bad = []
+    kept = [{"tree_id": "t", "person_id": "p", "person": "a person", "since": "2026-01-01T00:00:00Z", "steps": ["s"]}]
+    try:
+        turn.write_state(db, kept)
+        try: turn.write_state(db, [{**kept[0], "steps": {"s"}}])
+        except TypeError: pass
+        try: got = turn.read_state(db)
+        except ValueError as e: got = f"unreadable: {e}"
+        if got != kept: bad.append(f"after a write that failed the state reads {got!r}, expected the state before it")
+        if os.listdir(d) != [os.path.basename(turn.state_path(db))]: bad.append(f"the write left {sorted(os.listdir(d))} beside the catalog")
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 def claude_files():
     """The agent and skill files under .claude/ are what code writes (tools/run_task.py claude_files: the kind's one text, its
     answer's form, its tools, the session's part): a file edited by hand, or left behind when the text, the tools or the schema
@@ -488,6 +505,8 @@ def every_check(a):
     print("ok   the data root: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT, a --db outside it is refused, and collect takes saved pages from <DATA_ROOT>/downloads/, never the home's download folder" if not bad_db else "FAIL data root: " + "; ".join(bad_db))
     bad_reg = registry_connectors(); bad += bool(bad_reg)
     print("ok   every Connector value of the source registry names a module under tools/connectors/" if not bad_reg else "FAIL registry connectors: " + "; ".join(bad_reg))
+    bad_state = state_writes(); bad += bool(bad_state)
+    print("ok   the state kept beside a catalog is written whole: a write that fails midway leaves the file as it was, readable, with nothing of the write's beside it" if not bad_state else "FAIL state files: " + "; ".join(bad_state))
     bad_claude = claude_files(); bad += bool(bad_claude)
     print("ok   the agent and skill files under .claude/ are the ones code writes from the task kind's text, its answer schema and its tool list" if not bad_claude else "FAIL claude files: " + "; ".join(bad_claude))
     bad += parsers.check(a.keep, a.show)
