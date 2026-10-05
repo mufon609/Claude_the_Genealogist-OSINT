@@ -1576,9 +1576,8 @@ county), and its own record page is not held.
   stand for) is no head. Where a line is missing too, such a row stays, a
   candidate for the line alone: a line not held can be anyone. For Ruth Peters's
   page alone, missing its head, the rows of the answer's first page born about
-  1914 to 1920 are left out;
-  once Mary's page is held and line 24 is missing beside the head, they are
-  candidates for line 24.
+  1914 to 1920 are left out; once Mary's page is held and line 24 is missing
+  beside the head, they are candidates for line 24.
 - **The order.** The head's candidates first (§7 decision 21: the head's entry
   first), then those for the lines alone, each in the order the household
   itself makes likelier: a record id that differs from a member's in its last
@@ -1596,17 +1595,17 @@ county), and its own record page is not held.
   answer's own order, the household's own search's pages first.
 - **One at a time.** The record page of the first candidate is the one lead
   open (`OPEN_AT_ONCE` is one). The loop never waits on a person who waits on
-  pages (§8), so a household's next candidate costs that household a browser
-  session's delay and the loop goes on; while every page opened beyond the one
-  that holds the missing entry is a page saved for nothing, and the order cannot
-  say which page that is. One at a time saves no page the household no longer
-  needs, each page saved answering whether the next is wanted. What would
-  justify more is a measure the project does not yet have: how far down its
-  order a household's missing entries are found, which the households' own
-  record of candidates tried gives as it accumulates, against what a browser
-  session costs beyond a page, which the fetch task's runs (`task_run`) measure;
-  with both, the number that saves the fewest pages for the sessions spent
-  follows.
+  pages (§8), so a household's next candidate costs that household one more
+  round of saving in the browser, and the loop goes on. Every page opened
+  beyond the one that holds the missing entry is a page saved for nothing, and
+  the order cannot say which page that is: one at a time saves no page the
+  household no longer needs, each page saved answering whether the next is
+  wanted. What would justify more is a measure the project does not yet have:
+  how far down its order a household's missing entries are found, which the
+  candidates' steps and their runs record as they accumulate, against what a
+  round of saving costs beyond its pages (a page's own cost is what the fetch
+  task's runs in `task_run` measure; a round's is recorded nowhere yet); with
+  both, the number that saves the fewest pages for the rounds spent follows.
 - **Tried.** A candidate whose record page is held has been tried, whatever it
   showed. Its page's locators place it, on the household's page and in its run,
   where the households grouped again hold it (the household is then complete or
