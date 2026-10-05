@@ -285,6 +285,14 @@ def task_launchers(cx: sqlite3.Connection) -> None:
     if "tool_uses" not in have:
         cx.execute("ALTER TABLE task_run ADD COLUMN tool_uses INTEGER")
 
+def vitals_view(cx: sqlite3.Connection) -> None:
+    """v_person_vitals made again as schema/catalog.sql defines it: held death evidence is an event of a death's kind with a
+    statement not rejected, so a death the owner rejected no longer makes a person deceased (Catalog.living). No row changes."""
+    import re
+    view = re.search(r"CREATE VIEW v_person_vitals AS.*?;\n", read("schema/catalog.sql"), re.S).group(0)
+    cx.execute("DROP VIEW IF EXISTS v_person_vitals")
+    cx.execute(view)
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -314,6 +322,8 @@ MIGRATIONS = [
      [task_runs]),
     ("0.8.3", "task_run.launcher, total_tokens, tool_uses: a run names what started it, a headless prompt or a session's subagent, and carries the measures a session is given",
      [task_launchers]),
+    ("0.8.4", "v_person_vitals: held death evidence is a death's event with a statement not rejected; a death the owner rejected no longer makes a person deceased",
+     [vitals_view]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

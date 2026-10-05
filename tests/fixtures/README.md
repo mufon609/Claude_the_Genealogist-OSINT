@@ -398,7 +398,8 @@ the Python reader of a file's address and the screen cannot differ. `housekeepin
 the catalog that no scenario reaches, each run on what it guards under a temporary directory: the commit hook runs in a throwaway
 git repository on names it must refuse (a letter beyond ASCII, a quote, a newline) and names it must pass; a catalog from before
 the `same_record` and `task_run` tables (the scratch catalog with both dropped and their versions forgotten: nothing in the harness is an
-older catalog, and the owner's backups never enter git) is migrated by `tools/initdb.py --migrate` to the code's version.
+older catalog, and the owner's backups never enter git) is migrated by `tools/initdb.py --migrate` to the code's version, and one whose
+person vitals view is another definition gets the schema's own.
 
 ## What is simulated
 

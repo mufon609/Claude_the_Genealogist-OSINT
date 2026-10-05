@@ -1,0 +1,88 @@
+{
+ "title": "a death the owner rejected is no death evidence",
+ "line": "a person whose only death evidence is a claim the owner rejected is no longer deceased on it: at tier 2 unknown and assisted, as with no death held; the file's claim set back to undecided is held again and makes them deceased",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a grandparent whose death the file claims: deceased on the evidence",
+   "expect": [
+    {
+     "living": {
+      "person": "I332737036054",
+      "status": "deceased",
+      "tier": 2,
+      "reason": "death evidence"
+     },
+     "why": "the file's undecided claim of a death is held by the tree: death evidence"
+    }
+   ]
+  },
+  {
+   "say": "the rest of her baseline reviewed on the file's claims",
+   "fact": {
+    "person": "I332737036054",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "the owner rejects the death",
+   "fact": {
+    "person": "I332737036054",
+    "field": "death",
+    "status": "rejected",
+    "note": "harness: she is not dead"
+   },
+   "expect": [
+    {
+     "living": {
+      "person": "I332737036054",
+      "status": "unknown",
+      "tier": 2,
+      "reason": "tier 2, unconfirmed"
+     },
+     "why": "a rejected claim is no evidence: the tier rule reads her as it reads a grandparent with no death held"
+    },
+    {
+     "mode": {
+      "person": "I332737036054",
+      "is": "assisted"
+     },
+     "why": "unknown at tier 2: a search on her is assisted, never automatic"
+    }
+   ]
+  },
+  {
+   "say": "the owner takes the rejection back: the claim is undecided and the tree holds it again",
+   "fact": {
+    "person": "I332737036054",
+    "field": "death",
+    "status": "undecided",
+    "note": "harness: the rejection withdrawn"
+   },
+   "expect": [
+    {
+     "living": {
+      "person": "I332737036054",
+      "status": "deceased",
+      "tier": 2,
+      "reason": "death evidence"
+     },
+     "why": "an undecided claim counts: the tree holds it"
+    }
+   ]
+  }
+ ]
+}

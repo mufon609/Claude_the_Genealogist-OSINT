@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 39 tables, 6 views. Schema 0.8.3. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 39 tables, 6 views. Schema 0.8.4. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; the insert-only triggers on the archive's rows, the evidence, the research log and the audit trail. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -167,8 +167,10 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 - Living status is computed by the app (`Catalog.living`) from the person's tier
   (their generation from the home person along the tree's family links, accepted or
   claimed; `docs/DATA-ARCHITECTURE.md` §7 decision 3), held death evidence
-  (`v_person_vitals.has_death_evidence`) and `person.living_override`; it is never
-  stored as a bare flag.
+  (`v_person_vitals.has_death_evidence`: a death, burial, cremation, probate or will event
+  with a statement not rejected, so the file's undecided claim counts and a claim the owner
+  rejected does not; the 0.8.4 migration, `tools/initdb.py`'s `vitals_view`, made the view
+  again) and `person.living_override`; it is never stored as a bare flag.
 
 ## Date columns
 

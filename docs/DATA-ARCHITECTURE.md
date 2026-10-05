@@ -314,7 +314,9 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    and while unknown is treated as living wherever the default is read. Tier
    3 and beyond, and a person no chain of links reaches from the home person,
    are deceased. Death evidence the tree holds
-   (`v_person_vitals.has_death_evidence`) makes a person deceased at any
+   (`v_person_vitals.has_death_evidence`: a death, burial, cremation, probate
+   or will event with a statement not rejected, the file's undecided claim
+   counted and a claim the owner rejected not) makes a person deceased at any
    tier; `person.living_override`, `living` or `deceased`, stands above
    everything. The same structure holds for every tree; there is no per-tree
    threshold. A living person is redacted in every export and derivative and

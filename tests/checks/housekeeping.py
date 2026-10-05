@@ -88,12 +88,32 @@ def older_catalog():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+def older_view():
+    """A catalog whose v_person_vitals is another definition than schema/catalog.sql's (here a stand-in that holds no death
+    evidence) and whose version 0.8.4 is forgotten gets the view as the schema defines it from `initdb.py --migrate`: its
+    stored definition is the one a new catalog's has."""
+    d, db = scratch(False); bad = []
+    try:
+        cx = connect(db)
+        sql = lambda: cx.execute("SELECT sql FROM sqlite_master WHERE name='v_person_vitals'").fetchone()[0]
+        defined = sql()
+        cx.execute("DROP VIEW v_person_vitals")
+        cx.execute("CREATE VIEW v_person_vitals AS SELECT tree_id, id AS person_id, display_name, living_override, NULL AS birth_date, NULL AS death_date, 0 AS has_death_evidence FROM person")
+        cx.execute("DELETE FROM schema_migration WHERE version='0.8.4'"); cx.commit()
+        r = subprocess.run([sys.executable, tool("initdb.py"), "--migrate", "--db", db], capture_output=True, text=True, env=os.environ)
+        if r.returncode: bad.append(f"initdb.py --migrate stopped: {(r.stderr.strip().splitlines() or [''])[-1]}")
+        elif sql() != defined: bad.append("the migrated v_person_vitals is not the one schema/catalog.sql defines")
+        cx.close()
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 def check(keep, show):
     """Each guard as one line: ok when it holds, FAIL with every reason when it does not. Returns how many failed."""
     failed = 0
     for fn, says in ((screen_links, "the person screen writes a URL into a link only through its `web` helper, which keeps a web address, escaped, and drops any other scheme"),
                     (commit_hook, "the commit hook refuses data by the name git stages it under (a letter beyond ASCII, a quote, a newline) and passes the harness's own .ged and the .gitkeep files; .gitignore keeps every .ged but the harness's, and the owner's own .claude settings, out of `git add`"),
-                    (older_catalog, "a catalog from before the same_record and task_run tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply")):
+                    (older_catalog, "a catalog from before the same_record and task_run tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply"),
+                    (older_view, "a catalog whose person vitals view is another definition gets the schema's own from the 0.8.4 migration")):
         bad = fn(); failed += bool(bad)
         print(f"ok   {says}" if not bad else f"FAIL {fn.__name__}: " + "; ".join(bad))
     return failed

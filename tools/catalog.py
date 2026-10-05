@@ -1801,7 +1801,8 @@ class Catalog:
     def living(self, pid):
         """The person's living status as the default reads it (docs/DATA-ARCHITECTURE.md §7 decision 3): {status: living |
         unknown | deceased, tier, reason}. The owner's word (person.living_override) stands above everything; death evidence
-        the tree holds (v_person_vitals.has_death_evidence) makes a person deceased at any tier; tiers 0 and 1 are living, tier
+        the tree holds (v_person_vitals.has_death_evidence: a death's event with a statement not rejected, the file's
+        undecided claim counted, a claim the owner rejected not) makes a person deceased at any tier; tiers 0 and 1 are living, tier
         2 unknown until the owner confirms the person (tools/conclude.py living), tier 3 and beyond and a person no chain of
         links reaches from the home person deceased. A tree with no home person places nobody, so everyone in it is unknown
         until one is set. The tier is the generation's distance, None for an unreached person."""

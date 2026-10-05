@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.3
+-- tree catalog schema  v0.8.4
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -665,8 +665,10 @@ CREATE TABLE artifact_copy (
 -- VIEWS
 -- =============================================================================
 
--- The inputs of the living default (docs/DATA-ARCHITECTURE.md §7 decision 3): the owner's word and held death evidence;
--- the tier from the home person is walked by the app (Catalog.living), which decides.
+-- The inputs of the living default (docs/DATA-ARCHITECTURE.md §7 decision 3): the owner's word and held death evidence,
+-- an event of a death's kind that has a statement not rejected (the file's undecided claim is held by the tree; a claim
+-- the owner rejected, or an event nothing states, is not); the tier from the home person is walked by the app
+-- (Catalog.living), which decides.
 CREATE VIEW v_person_vitals AS
 SELECT
   p.tree_id,
@@ -678,9 +680,11 @@ SELECT
     WHERE ep.person_id = p.id AND e.event_type = 'Birth')                         AS birth_date,
   (SELECT MIN(e.date_start) FROM event e
      JOIN event_participant ep ON ep.event_id = e.id
-    WHERE ep.person_id = p.id AND e.event_type IN ('Death','Burial','Cremation','Probate','Will')) AS death_date,
+    WHERE ep.person_id = p.id AND e.event_type IN ('Death','Burial','Cremation','Probate','Will')
+      AND EXISTS (SELECT 1 FROM assertion a WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status <> 'rejected')) AS death_date,
   EXISTS (SELECT 1 FROM event e JOIN event_participant ep ON ep.event_id = e.id
-           WHERE ep.person_id = p.id AND e.event_type IN ('Death','Burial','Cremation','Probate','Will')) AS has_death_evidence
+           WHERE ep.person_id = p.id AND e.event_type IN ('Death','Burial','Cremation','Probate','Will')
+             AND EXISTS (SELECT 1 FROM assertion a WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status <> 'rejected')) AS has_death_evidence
 FROM person p;
 
 -- Conclusions with no accepted assertion: the "untrusted data" report.
