@@ -585,16 +585,6 @@ declared tool (70 records for Sijtske Lieuwes, 6 for Rittinghuysen at
 Amsterdam) and has had outages: an unanswered request is an error run, asked
 again next turn.
 
-### C14. The decision code is hard to review
-
-`tools/conclude.py`, `tools/cards.py` and `tools/match.py` hold lines up to
-about 400 characters, statements chained by semicolons (354 lines over 160
-characters in `conclude.py`, 1,338 across the tools, and rising), and functions up to 225 lines
-(`checklist.build`, `conclude.rule_accepts`, `cards.card`), where a defect in
-a write hides in the middle of a line. Reformat them one
-statement per line at a width a review can read, behaviour unchanged and the
-checks green, a file per commit.
-
 ### C15. A family's own facts in the file lose their place
 
 `tools/ingest_gedcom.py` writes a FAM record's own MARR (or DIV, ENGA, ...) as
