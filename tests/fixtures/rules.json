@@ -163,6 +163,7 @@
   {"url": "data:text/html,<script>alert(1)</script>", "href": ""},
   {"url": "vbscript:msgbox(1)", "href": ""},
   {"url": "ftp://example.org/x", "href": ""},
+  {"url": "https://example.org/x\n", "href": ""},
   {"url": "//example.org/x", "href": ""},
   {"url": "https:javascript:alert(1)", "href": ""},
   {"url": "https://example.org/a b", "href": ""},

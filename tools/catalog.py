@@ -221,7 +221,7 @@ HOLDERS = None                                   # data/holders.csv, read once p
 def web_url(url):
     """The URL when it is a web address (http or https, either case, no whitespace), else None: a file's URL becomes a link
     only through this, so a `javascript:` or `data:` address in an imported citation is never one."""
-    return url if isinstance(url, str) and re.match(r"https?://\S+$", url, re.I) else None
+    return url if isinstance(url, str) and re.fullmatch(r"https?://\S+", url, re.I) else None
 
 def fetch_target(apid, url=None, fields=None):
     """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave and the
