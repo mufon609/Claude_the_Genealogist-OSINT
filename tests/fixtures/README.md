@@ -303,7 +303,8 @@ of a `record`, put to `person`, planted undecided as that matcher's `version`: a
 to a person the current matcher would not put it to; the matcher writes none of them now, so only an older one can stand for
 reconsider or a decision to meet), `older_reading` (a record's reading as an older reader left it in the owner's
 catalog and no reader writes now: the `extractor` and each persona with its facts copied from the catalog's own rows, a date
-read from its `date_text`; it stands as the record's current reading), `persona_link` (a person's link to a record's persona of a `role`, and
+read from its `date_text`, a `place` as its words, and its `relations` to the reading's other personas by their `sequence`
+under `to`; it stands as the record's current reading), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided; with `card`, the link that card's decision wrote on another row of the same name before a decision reached only its own
 entry of the page, the shape the 0.7.5 migration corrects), `merge` (a `duplicate` merged into the person it duplicates, `kept`, with a `note`; `older` for the merge as an older tool left it, every proposal it re-pointed naming the duplicate again and every membership it folded back on the duplicate's row with the statements it moved, the shape the merge run again on the pair completes), `cite`, `question` (a research_question row patched by

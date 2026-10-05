@@ -156,6 +156,8 @@ IN_LAW = {
     "sister-in-law": "sibling"
 }
 # the rule as the decider, by what it did
+# a card or a decision whose entry the record's current reading has no persona of (a corrected reader no longer reads that row)
+NO_LONGER_READ = "the current reading no longer has this entry (the page read again gives no persona of it)"
 RULE_ACTOR = {
     "persona_match": "rule:agrees-with-accepted",
     "new_person": "rule:creates-named-relative",
@@ -2566,7 +2568,8 @@ def rule_points(cx, tree_id, prop, without=()):
     The record's kinds and their standing come from data/evidence-classes.csv (catalog.record_kinds, record_standing), on its
     current reading, the same for a page a parser read and an image read by hand or by the model; the persona is judged on that
     reading too, the persona of the same entry there (catalog.current_entry) with its facts and the relationships and personas
-    beside it, so a decision written on an earlier reading is examined on what the record now reads as. A trusted record (T1–T3) of
+    beside it, so a decision written on an earlier reading is examined on what the record now reads as, and one whose entry
+    that reading no longer has is refused as no longer read (NO_LONGER_READ), never judged on the superseded persona. A trusted record (T1–T3) of
     an automated kind is taken on the accepted name and two points, nothing disagreeing against an accepted value
     (split_disagree); each point stands on the tree's own statements as ground() finds them, whatever value the event shows
     beside them (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), and a date to the day or a
@@ -2620,9 +2623,11 @@ def rule_points(cx, tree_id, prop, without=()):
                 []
             )
     cat = Catalog(cx, tree_id)
-    # the record as its current reading gives it: the persona of the same entry there, else the proposal's own reading
+    # the record as its current reading gives it: the persona of the same entry there
     cur = current_entry(cx, pay["persona_id"])
-    reading, persona_id = (eid, cur) if cur else (pay["extraction_id"], pay["persona_id"])
+    if not cur:
+        return False, f"{NO_LONGER_READ}: the owner decides it", []
+    reading, persona_id = eid, cur
     persona = next((p for p in personas_of(cx, reading) if p["id"] == persona_id), None)
     if not persona:
         return False, "persona not found", []
@@ -3209,7 +3214,7 @@ def identity_refused(cx, tree_id, prop, without=()):
     another persona on this reading of the record (two rows of one page are two people); something the record would add
     falls outside the person's life as accepted (outside_life). The persona tested is the one of the same entry on the
     record's current reading (catalog.current_entry), with the facts and relationships that reading gives, as rule_points
-    judges it. A person created by a decision under reconsideration (without) or by this one is no other person, nor is
+    judges it; an entry that reading no longer has is refused as no longer read (NO_LONGER_READ). A person created by a decision under reconsideration (without) or by this one is no other person, nor is
     one accepted as another persona on this reading. without: proposal ids whose assertions and links do not count
     (reconsider)."""
     from match import by_name_and_year
@@ -3220,7 +3225,9 @@ def identity_refused(cx, tree_id, prop, without=()):
     while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (ext,)).fetchone()["superseded_by"]):
         ext = later
     cur = current_entry(cx, pay["persona_id"])
-    reading, persona_id = (ext, cur) if cur else (pay["extraction_id"], pay["persona_id"])
+    if not cur:
+        return NO_LONGER_READ
+    reading, persona_id = ext, cur
     persona = next((p for p in personas_of(cx, reading) if p["id"] == persona_id), None)
     if not persona:
         return None

@@ -1,0 +1,363 @@
+{
+ "title": "a decision on an entry the current reading no longer has",
+ "line": "her christening record as the record parser's first version read it in the owner's catalog, the father once from the record's field and once from its relatives table: the owner accepts the field's row as Abram; read again by the parser as it now stands, the page gives him once, from the table, so the field's row is an entry the current reading no longer has, his link stays on the reading it was made on and the persona is put to him afresh; the rule judges the card on that row no longer, refusing it as no longer read, where it once judged the superseded reading's own persona",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "her christening record archived, not read",
+   "archive": {
+    "fixture": "familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html",
+    "source": "D03",
+    "collection": "Pennsylvania, Births and Christenings, 1709-1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html"
+    }
+   },
+   "as": "bap"
+  },
+  {
+   "say": "the reading the record parser's first version left in the owner's catalog",
+   "older_reading": {
+    "record": "bap",
+    "extractor": {
+     "kind": "rule",
+     "name": "familysearch-record",
+     "version": "0.1.0"
+    },
+    "personas": [
+     {
+      "name": "Helen Sarah Brandt",
+      "role": "subject",
+      "sequence": 1,
+      "region": {
+       "ark": "ark:/61903/1:1:HHGB-BQ3Z",
+       "label": "record"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Helen Sarah Brandt",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Sex: Male",
+        "region": {
+         "labels": [
+          "Father's Sex"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Sex: Female",
+        "region": {
+         "labels": [
+          "Mother's Sex"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "11 Jul 1909",
+        "place": "Philadelphia, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birth Place"
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "name": "Abram C Brandt",
+      "role": "father",
+      "sequence": 2,
+      "region": {
+       "label": "father"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Abram C Brandt",
+        "region": {
+         "labels": [
+          "father"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "value": "Father",
+        "to": 1,
+        "region": {
+         "label": "father"
+        }
+       }
+      ]
+     },
+     {
+      "name": "Charlotte D. Lukens Brandt",
+      "role": "mother",
+      "sequence": 3,
+      "region": {
+       "label": "mother"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Charlotte D. Lukens Brandt",
+        "region": {
+         "labels": [
+          "mother"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "value": "Mother",
+        "to": 1,
+        "region": {
+         "label": "mother"
+        }
+       }
+      ]
+     },
+     {
+      "name": "Abram C Brandt",
+      "role": "father",
+      "sequence": 4,
+      "region": {
+       "label": "Helen Sarah Brandt's Parents and Siblings",
+       "url": "/ark:/61903/1:1:HHGB-BQW2?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Abram C Brandt",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "M",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "value": "Father",
+        "to": 1,
+        "region": {
+         "label": "Helen Sarah Brandt's Parents and Siblings"
+        }
+       },
+       {
+        "kind": "spouse",
+        "value": "Parents",
+        "to": 5,
+        "region": {
+         "label": "Helen Sarah Brandt's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "name": "Charlotte D. Lukens Brandt",
+      "role": "mother",
+      "sequence": 5,
+      "region": {
+       "label": "Helen Sarah Brandt's Parents and Siblings",
+       "url": "/ark:/61903/1:1:HHGB-BQZM?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Charlotte D. Lukens Brandt",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "F",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "value": "Mother",
+        "to": 1,
+        "region": {
+         "label": "Helen Sarah Brandt's Parents and Siblings"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "as": "old"
+  },
+  {
+   "say": "matched for her",
+   "match": {
+    "record": "bap",
+    "about": [
+     "I332737037573"
+    ]
+   },
+   "expect": []
+  },
+  {
+   "say": "the owner accepts her card",
+   "decide": {
+    "card": {
+     "record": "bap",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "cards": {
+      "record": "bap",
+      "status": "undecided",
+      "people": [
+       "I332737038183",
+       "I332737038183",
+       "I332737039686",
+       "I332737039686"
+      ]
+     },
+     "why": "the father and the mother put to the tree's couple twice each, the field's row and the table's"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the field's row of the father as Abram",
+   "decide": {
+    "card": {
+     "record": "bap",
+     "persona": "Abram C Brandt",
+     "role": "father"
+    },
+    "status": "accepted"
+   },
+   "as": "field",
+   "expect": [
+    {
+     "links": {
+      "person": "I332737038183",
+      "record": "bap",
+      "persona": "Abram C Brandt",
+      "sequence": 2,
+      "is": [
+       "accepted"
+      ]
+     },
+     "why": "the card on the field's row, the second persona of that reading"
+    }
+   ]
+  },
+  {
+   "say": "the page read again by the record parser as it now stands, and matched for her",
+   "reread": {
+    "record": "bap",
+    "match": [
+     "I332737037573"
+    ]
+   },
+   "as": "again",
+   "expect": [
+    {
+     "links": {
+      "person": "I332737038183",
+      "record": "bap",
+      "persona": "Abram C Brandt",
+      "is": [
+       "accepted"
+      ]
+     },
+     "why": "the current reading gives the father once, from the table, under the table row's own record id: the field's row has no entry there, and a link the reading cannot place on one entry stays behind on the reading it was made on"
+    },
+    {
+     "cards": {
+      "record": "bap",
+      "status": "undecided",
+      "personas": {
+       "has": "Abram C Brandt"
+      }
+     },
+     "why": "the father on the current reading put to him afresh"
+    }
+   ]
+  },
+  {
+   "say": "the rule's judgment of the owner's card on the field's row",
+   "expect": [
+    {
+     "rule": {
+      "record": "bap",
+      "persona": "Abram C Brandt",
+      "role": "father",
+      "status": "accepted",
+      "taken": false,
+      "why": {
+       "has": "the current reading no longer has this entry"
+      }
+     },
+     "why": "a decision on an entry a corrected reader no longer reads is judged on nothing the record now says: refused as no longer read, never on the superseded reading's own persona"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

@@ -1212,7 +1212,11 @@ as one a rule parsed, by its kinds, its tier and the facts that agree, never by
 who did the reading. A record is judged as its current reading gives it: a card
 or a decision written on an earlier reading of the page is judged on the persona
 of the same entry in the reading that superseded it, with the facts and
-relationships that reading gives.
+relationships that reading gives, and one whose entry that reading no longer has
+(a reader that read the page again gives no such row: one an older reader read
+twice, a row with no name) is refused as no longer read, never judged on the
+superseded reading's own persona: `reconsider` withdraws such a decision of the
+rule's, and the record's current reading is matched again.
 
 On a record nobody can edit at will (T1–T3) the rule takes the persona when the
 given name and surname agree with the accepted name (a wife under her married

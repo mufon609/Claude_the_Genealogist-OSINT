@@ -732,20 +732,29 @@ def a_legacy_card(w, x):
 def a_older_reading(w, x):
     """A record's reading planted as an older reader left it, a row of the owner's catalog that its reader no longer writes:
     the extractor (`kind`, `name`, `version`) and each persona with its facts as the catalog holds them (a fact's date read
-    from its date_text by treelib.parse_gedcom_date, as the reader wrote it). The reading stands as the record's current one."""
+    from its date_text by treelib.parse_gedcom_date, as the reader wrote it, its `place` the words as written) and its
+    `relations` (each `kind`, `value`, `region` and `to`, the sequence of the persona it relates to on the same reading). The
+    reading stands as the record's current one."""
+    from extract import Writer
     t = w.treelib; sha = w.sha(x["record"]); ex = x["extractor"]
     xid = w.cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=? AND prompt_sha256 IS NULL", (ex["kind"], ex["name"], ex["version"])).fetchone()
     xid = xid[0] if xid else t.ulid()
     w.cx.execute("INSERT OR IGNORE INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (xid, ex["kind"], ex["name"], ex["version"], t.now()))
     eid = t.ulid(); w.cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status) VALUES (?,?,?,?,'complete')", (eid, sha, xid, t.now()))
+    places, at = Writer(w.cx, sha, eid), {}
     for pe in x["personas"]:
-        pid = t.ulid()
+        pid = t.ulid(); at[pe["sequence"]] = pid
         w.cx.execute("INSERT INTO persona (id,extraction_id,artifact_sha256,name_text,sex,role_in_record,sequence,region_json) VALUES (?,?,?,?,?,?,?,?)",
                      (pid, eid, sha, pe["name"], pe.get("sex"), pe["role"], pe["sequence"], t.dumps(pe["region"]) if pe.get("region") else None))
         for f in pe["facts"]:
             d = t.parse_gedcom_date(f.get("date_text"))
-            w.cx.execute("""INSERT INTO persona_fact (id,persona_id,fact_type,value_text,date_text,date_start,date_end,date_qualifier,calendar,region_json) VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                         (t.ulid(), pid, f["type"], f.get("value"), f.get("date_text"), d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"], t.dumps(f["region"]) if f.get("region") else None))
+            w.cx.execute("""INSERT INTO persona_fact (id,persona_id,fact_type,value_text,date_text,date_start,date_end,date_qualifier,calendar,place_string_id,region_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                         (t.ulid(), pid, f["type"], f.get("value"), f.get("date_text"), d["date_start"], d["date_end"], d["date_qualifier"], d["calendar"], places.place_string(f.get("place")),
+                          t.dumps(f["region"]) if f.get("region") else None))
+    for pe in x["personas"]:
+        for r in pe.get("relations", []):
+            w.cx.execute("INSERT INTO persona_relation (id,persona_id,related_persona_id,kind,value_text,region_json) VALUES (?,?,?,?,?,?)",
+                         (t.ulid(), at[pe["sequence"]], at[r["to"]], r["kind"], r.get("value"), t.dumps(r["region"]) if r.get("region") else None))
     w.cx.commit()
     return {"extraction": eid}
 
