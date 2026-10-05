@@ -1,0 +1,150 @@
+{
+ "title": "a hit whose records did not arrive is asked again",
+ "line": "found means a hit's record or image arrived: a census household step whose search the 1950 site answers while the schedule and its image both time out holds no record, so the run is an error run, the step stays planned and runnable, no household member's step is logged, and the next run asks again and closes it once the schedule comes; an Archive directory step whose search names a book whose metadata times out is an error run too, its names logged unanswered, asked again until the metadata answers",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1950 census household step on Raymond Earl Davidson: the site's search answered, the schedule's transcription and its page image both timing out",
+   "run": {
+    "step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch"},
+    "fetch": {
+     "answers": [
+      {"url_has": "api/search?name=", "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"},
+      {"url_has": "api/search?scheduleId=3947385", "error": "the harness's stand-in for no answer: timed out"},
+      {"url_has": "iiif", "error": "the harness's stand-in for no answer: timed out"}
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "connectors": ["nara_1950"],
+      "results": [
+       {"connector": "nara_1950", "asked": true, "outcome": "error", "errors": {"len": 2}}
+      ],
+      "records": [],
+      "archived": {"len": 1}
+     },
+     "why": "the search's answer is archived, and nothing of the household arrived: no record, so no found run"
+    },
+    {
+     "search_log": {"step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch"}, "is": [{"source_id": "D05", "outcome": "error", "artifacts": {"len": 1}}]},
+     "why": "one run, logged error, holding the search's answer alone"
+    },
+    {
+     "step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch", "fields": {"status": "planned"}},
+     "why": "the step is not closed by a search that pointed at a schedule nobody fetched"
+    },
+    {
+     "runnable": {"step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch"}, "is": true},
+     "why": "an error run is a source that did not answer: the next turn asks it again"
+    },
+    {
+     "count": {"logs_of_step": {"person": "I332737100409", "row_key": "census household:1950", "kind": "fetch"}, "is": 0},
+     "why": "no household member's step is logged with a page that never came"
+    }
+   ]
+  },
+  {
+   "say": "run again: the search and the schedule answered, the image still timing out",
+   "run": {
+    "step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch"},
+    "fetch": {
+     "answers": [
+      {"url_has": "api/search?name=", "fixture": "nara-1950-search-davidson-nassau-ed-30-392.json"},
+      {"url_has": "api/search?scheduleId=3947385", "fixture": "nara-1950-schedule-3947385.json"},
+      {"url_has": "iiif", "error": "the harness's stand-in for no answer: timed out"}
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {"results": [{"connector": "nara_1950", "outcome": "found", "errors": {"len": 1}}], "records": {"len": 1}},
+     "why": "the schedule arrived: the run is found, the image's silence on the run"
+    },
+    {
+     "step": {"person": "I332737099805", "row_key": "census household:1950", "kind": "fetch", "fields": {"status": "done"}},
+     "why": "the record arrived, and the step is closed by it"
+    },
+    {
+     "search_log": {"step": {"person": "I332737100409", "row_key": "census household:1950", "kind": "fetch"}, "is": [{"source_id": "D05", "outcome": "found", "notes": {"has": "the same page, fetched for Raymond Earl Davidson"}}]},
+     "why": "and the father's step is held by the page now that it came"
+    }
+   ]
+  },
+  {
+   "say": "Raymond Earl Davidson's city directory step as the live plan wrote it, the two ways the owner's records write Hempstead on its place",
+   "step": {
+    "person": "I332737099805",
+    "row_key": "city directory / tax list:",
+    "seq": 1,
+    "step_key": "search:city directory / tax list:",
+    "kind": "search",
+    "query_type": "subject_record",
+    "query": {"birth_year": {"basis": "accepted", "tolerance": 2, "value": 1939}, "given": {"basis": "accepted", "value": "Raymond Earl"}, "parents": {"basis": "accepted", "value": ["Ruth M Peters", "Robert Edgar Davidson"]}, "place": {"basis": "accepted", "value": ["Hempstead, Nassau, New York", "Hempstead, Nassau, New York, USA"]}, "sex": {"basis": "accepted", "value": "M"}, "spouses": {"basis": "accepted", "value": ["Noi Davidson"]}, "state": {"basis": "accepted", "value": "new jersey"}, "surname": {"basis": "accepted", "value": "Davidson"}, "towns": {"basis": "claim", "value": ["BG WILLIAM C DOYLE VET'S MEM CEM", "New Egypt", "Copague Suff*", "Hempstead", "NJ"]}, "variants": {"basis": "claim", "value": ["Raymond Davidson", "Raymond E", "Raymond E Davidson"]}},
+    "sources": ["K01"],
+    "mode": "auto"
+   },
+   "as": "d"
+  },
+  {
+   "say": "the Archive's search answers with one book, and the book's metadata times out",
+   "run": {
+    "step": "$d.step",
+    "fetch": {
+     "answers": [
+      {"url_has": "be-api.us.archive.org/fts", "fixture": "ia-fts-directories-raymond-davidson-new-jersey-towns.json"},
+      {"url_has": "archive.org/metadata/martindalehubbel0003unse_r8g1", "error": "the harness's stand-in for no answer: timed out"}
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {"results": [{"connector": "ia_directories", "outcome": "error", "errors": {"len": 1}}], "records": []},
+     "why": "the book named was never reached: no record arrived, an error run"
+    },
+    {
+     "search_log": {
+      "step": "$d.step",
+      "is": [{"source_id": "K01", "outcome": "error", "query": {"place": {"tried": ["Hempstead, Nassau, New York", "Hempstead, Nassau, New York, USA"], "stopped_at_hit": false, "unanswered": ["Hempstead, Nassau, New York", "Hempstead, Nassau, New York, USA"]}}}]
+     },
+     "why": "a hit whose record did not arrive is no hit to stop at; the second name repeats the first's request, so both are logged unanswered"
+    },
+    {
+     "runnable": {"step": "$d.step", "is": true},
+     "why": "asked again on the next turn"
+    }
+   ]
+  },
+  {
+   "say": "run again: the search and the book's metadata answered, the book one the Archive only lends",
+   "run": {
+    "step": "$d.step",
+    "fetch": {
+     "answers": [
+      {"url_has": "be-api.us.archive.org/fts", "fixture": "ia-fts-directories-raymond-davidson-new-jersey-towns.json"},
+      {"url_has": "archive.org/metadata/martindalehubbel0003unse_r8g1", "fixture": "ia-metadata-martindalehubbel0003unse_r8g1.json"}
+     ]
+    }
+   },
+   "expect": [
+    {
+     "last": {"results": [{"connector": "ia_directories", "outcome": "none"}]},
+     "why": "the Archive answered: a lent book, a none run with the reason"
+    },
+    {
+     "runnable": {"step": "$d.step", "is": false},
+     "why": "answered on these fields, the step is not asked again"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

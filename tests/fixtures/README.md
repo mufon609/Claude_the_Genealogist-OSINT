@@ -427,7 +427,8 @@ A holder that does not answer is simulated, a control signal and no record:
   stand-in for no answer" (a timeout, a challenge, a refusal): the census page image in loop `21`, `94` (its second run), `96`
   and `100`; the census site's search in Nassau County in `94`'s first run, so that its second and third names are tried and the
   first and third, whose request it was, are logged unanswered;
-  WikiTree in `22`.
+  WikiTree in `22`; the 1950 schedule's transcription and its image, then the image alone, and an Archive book's metadata in
+  `114`, whose searches are the holders' real answers.
 - `turn` answers carrying `challenge`: the connection answers with status 200 and `loop.py`'s `CHALLENGE`, a few bytes of HTML
   titled "Just a moment..." saying it is the harness's stand-in for a holder's challenge page, served in place of the answer a JSON
   connector reads: every request of loop `106`'s turns.

@@ -12,11 +12,12 @@ data; every response is archived as it came, an artifact whose locator is the re
 names for a posted search) and whose source is the registry row; each hit's own transcription, text or
 image is fetched and archived the same way with what the response said about it in the manifest notes, and a search
 response the connector marks as the record itself is read as one. A place field carrying several names is tried name by
-name, stopping at the first that gets a hit (the run's logged place says so), and a request already made on the run is not
-made again: a name that makes one is logged as tried, the note saying whose request it repeated. One search_log
-row records the exact query, the outcome (found when a hit was archived, none when the source answered with nothing,
-error when it did not answer), how many results the source said it had, and every artifact hash; found marks the step
-done. An answer no reader of the connector parses (any exception from its total, narrow, hits, next_page or follow: a
+name, stopping at the first that gets a hit whose record arrived (the run's logged place says so), and a request already
+made on the run is not made again: a name that makes one is logged as tried, the note saying whose request it repeated. One search_log
+row records the exact query, the outcome (found when a hit's record or image arrived, none when the source answered with
+nothing, error when it did not answer: a hit none of whose records arrived, its fetches timed out or refused or an item's
+metadata leading nowhere, is a request the source did not answer, and a run whose hits are all such is an error run, the
+step asked again), how many results the source said it had, and every artifact hash; found marks the step done. An answer no reader of the connector parses (any exception from its total, narrow, hits, next_page or follow: a
 challenge or maintenance page a holder serves with status 200 in place of its answer) is archived as it came and counts as
 no answer: the note gives the exception's type and message, and a run none of whose requests was answered is logged error,
 so the step stays runnable and the turn goes on (docs/RESEARCH-WORKFLOW.md §8). Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
@@ -141,11 +142,15 @@ def variants_of(cx, person_id, surname):
     """The spelling variants of the surname the alias table holds for the person (spelling_variants over the aliases not rejected)."""
     return spelling_variants(surname, [v for v, in cx.execute("SELECT value FROM alias WHERE entity_kind='person' AND entity_id=? AND status<>'rejected'", (person_id,))])
 
-def outcome_of(hits, errors, answered):
-    """found when a hit gave a record; error when the source answered no request (a timeout, a refusal, or an answer no reader
-    parses: a challenge or maintenance page served in place of the answer); none when it answered with nothing, or when every
-    hit is a book the Archive lends and does not serve (the note says so)."""
+def outcome_of(hits, errors, answered, lost=()):
+    """found when a hit's record (or its image) arrived (hits: the hits answered, whose record arrived or which are a book the
+    Archive lends); error when the run's only hits are hits none of whose records arrived (lost: their fetches timed out or
+    were refused, or an item's metadata led nowhere, requests the source did not answer, so the step is asked again), or
+    when the source answered no request (a timeout, a refusal, or an answer no reader parses: a challenge or maintenance page
+    served in place of the answer); none when it answered with nothing, or when every hit is a book the Archive lends and
+    does not serve (the note says so)."""
     if any(not h.get("restricted") for h in hits): return "found"
+    if lost: return "error"
     if errors and not answered: return "error"
     return "none"
 
@@ -314,9 +319,10 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
     is on the logged run's query, the last of them its value, with `stopped_at_hit` saying whether the run stopped at a
     name that got a hit, whatever the hit came to (a record, a book the Archive lends, a listing no row of which fits), so
     a widening try is read back afterwards, and a run that tried every name or stopped at a hit is read as the step's own
-    fields (log_search.same_fields). A name one of whose requests got no answer (a timeout, a refusal), its own or the
-    earlier name's it repeated, is listed `unanswered` beside them, and such a run is not the step's own fields: the next
-    run asks it again. Returns the run with the records archived, to be read afterwards."""
+    fields (log_search.same_fields). A name one of whose requests got no answer (a timeout, a refusal, or a hit none of whose
+    records arrived), its own or the earlier name's it repeated, is listed `unanswered` beside them, and such a run is not
+    the step's own fields: the next run asks it again. A hit none of whose records arrived is no hit to stop at: the next
+    name is tried. Returns the run with the records archived, to be read afterwards."""
     query = rendered_query(step["query_json"], step["revisions_json"])
     from connectors.ia import name_parts
     surname = name_parts(query)[1]
@@ -345,8 +351,10 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
                                 retrieved_by=by, terms=terms, cost=cost, trust_tier=tier, notes=dumps(notes) if notes else (label or ""), http=http, derived_from=derived_from)
         if sha not in shas: shas.append(sha)
         return sha
-    def hits_of_page(h):
-        got, todo = [], list(h["fetch"])
+    def hits_of_page(h, in_hand):
+        """A hit's fetches archived, and whether its record arrived: a fetch read as a record or an image archived, or, for a hit
+        that fetches nothing, the response in hand that is itself the record (in_hand). An item's metadata alone is no record."""
+        got, todo, arrived = [], list(h["fetch"]), in_hand and not h["fetch"]
         while todo:                                              # a fetched response may name more to fetch (connector.follow)
             f = todo.pop(0)
             if "bytes" in f:                                     # computed locally from a response already in hand, not a request of its own
@@ -361,10 +369,11 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
                                                           **({"page_number": f["page"]} if f.get("page") else {}), **({"spelling": f["spelling"]} if f.get("spelling") else {})},
                             derived_from=f.get("derived_from")))   # the step's kind and the connector on the response itself, so it reads the same on its own
             if f["kind"] != "image" and f.get("record", True): records.append(got[-1])
-        hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted"))})
+            arrived = arrived or f["kind"] == "image" or f.get("record", True)
+        hits.append({"label": h["label"], "locator": h["locator"], "artifacts": got, "restricted": bool(h["notes"].get("restricted")), "arrived": arrived})
     asked = []                                                   # what a source with too many results needs on the step (connector.narrow)
     made, repeated = {}, []                                      # made: a request's identity -> the name that made it; repeated: the notes of the names that made no new request
-    answered, unanswered = {}, []                                # answered: a request's identity -> whether every page of it was answered; unanswered: the names one of whose requests was not
+    answered, unanswered = {}, []                                # answered: a request's identity -> whether every page of it was answered and every hit it named arrived; unanswered: the names one of whose requests was not
     stopped = False                                              # the run stopped at a name that got a hit, the rest never tried
     for name in names:
         q = query_for(name); creqs = reqs if name == names[0] else conn.requests(q)
@@ -396,10 +405,12 @@ def run_connector(cx, cat, tree_id, step, conn, by, dry_run=False):
                 if rq.get("record") and page_hits: records.append(sha)   # the response is the record itself (a results page listing what was found); an empty answer is not a record
                 pages += 1; url = nxt
                 for h in page_hits:
-                    hits_of_page(h)
+                    hits_of_page(h, bool(rq.get("record")))
+                    if not (hits[-1]["arrived"] or hits[-1]["restricted"]): answered[request_key(rq)] = False   # a hit none of whose records arrived: its fetches went unanswered
         if name is not None and not all(answered[request_key(rq)] for rq in creqs): unanswered.append(name)
-        if len(hits) > before: stopped = True; break              # a hit under this name, whatever it turns out to hold: never try the rest
-    outcome = outcome_of(hits, errors, any(answered.values()))
+        if any(h["arrived"] or h["restricted"] for h in hits[before:]): stopped = True; break   # a hit under this name, whatever it turns out to hold: never try the rest
+    came = lambda h: h["arrived"] or h["restricted"]
+    outcome = outcome_of([h for h in hits if came(h)], errors, any(answered.values()), [h for h in hits if not came(h)])
     answered = "; ".join(f"the source answered with {t} result(s)" for t in totals if t is not None)
     note = "; ".join(x for x in [answered] + [a for a in asked if a] + repeated + [h["label"] + (": the Archive lends this copy and serves no text; read it at another holder" if h.get("restricted") else "") for h in hits] + errors if x)[:1000] or None
     if tried: query = {**query, pk: {**place_field, "value": tried[-1], "tried": tried, "stopped_at_hit": stopped, **({"unanswered": unanswered} if unanswered else {})}}   # every name tried, asked or not, the one the run stopped on, whether it stopped at a hit, and the names the source did not answer

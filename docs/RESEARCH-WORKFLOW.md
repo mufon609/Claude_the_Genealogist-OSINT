@@ -669,7 +669,13 @@ image or an item's metadata is never read as a record), is then set to
 are held on the step's log, the note says so, and no step is closed, the other
 household members' steps a census page was logged on included.
 A run with any record a parser reads is `found` (or, when every record is a
-results listing none of whose rows fits anyone, `none`) as before. A run that
+results listing none of whose rows fits anyone, `none`) as before. `found`
+means a hit's record or image arrived: a hit none of whose records arrived (the
+1950 schedule and its image both timed out, an Archive item's metadata failed,
+named no server or could not be read) is a request the source did not answer,
+its name logged unanswered and the next name tried, and a run whose hits are
+all such is logged `error`, the step asked again and no household member's step
+logged. A run that
 fails is an error run, never a stop: when the reading or the matching of its
 records raises (a parser or the matcher failing on a record), what the reading
 wrote is rolled back, the run's own row and the responses it archived are
