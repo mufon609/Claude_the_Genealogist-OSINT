@@ -315,6 +315,40 @@ does not ask for the sheet, dwelling or family the reader now keeps; the
 Ancestry index reader, which no real page reaches, still drops its locator
 labels; and FamilySearch's search rows carry no locator at all.
 
+### A4. The decision code split by job, the rule's text split by part
+
+`tools/conclude.py` (5,966 lines on 5 Oct 2026) does six jobs: the standing
+rule's tests (points, identity, the evidence classes), the writers of
+decisions (`decide`, `link_family`, `assert_facts`, aliases, `place`, the
+commands that act on the owner's word), copies (`carry`, `join_copies`,
+`copies_on_word`), merges, reconsider and withdrawal, and conflicts
+(`rule_conflicts`, `resolve`, `reopen`), with a 473-line command line on top;
+thirteen files import from it and it and `tools/facts.py` import each other.
+Every worker that changes a decision reads all of it, and batches that touch
+it queue behind one another. `docs/RESEARCH-WORKFLOW.md` (1,977 lines) states
+the same rule in words, and where the two part is where audits find defects
+(C60). The work, behaviour unchanged, nothing else in flight while it runs:
+
+1. **The modules.** `conclude.py` split into the rule, decisions, copies,
+   merges, reconsider, conflicts and the command line (`tools/conclude.py`
+   stays the command every doc names), one module a commit; the
+   `conclude`/`facts` cycle broken. Proven unchanged: old and new code run
+   side by side on two identical scratch copies of the live catalog,
+   `tools/cards.py --all`, the whole `reconsider --dry-run` and the proofs of
+   several people compared byte for byte, and the checks green.
+2. **The rule's text by part.** `docs/RESEARCH-WORKFLOW.md` split into one
+   file per part (terms, the fetch list, the rule, households, the loop),
+   `CLAUDE.md`'s table naming each; each of the rule's functions names in its
+   docstring the paragraph it implements, and a check fails where a named
+   paragraph is gone.
+3. **The backlog triaged.** Overlapping entries merged, so a worker reads
+   fewer and sharper ones.
+
+**Blocked by:** the safety net for a move (a check that every name a tool
+uses resolves, and the decision functions no check runs listed), C29's shared
+rules and dead code, C72 and C69, and C50's renaming, each of which is cheaper
+before the split than after it.
+
 ---
 
 ## B. Parallel batch
