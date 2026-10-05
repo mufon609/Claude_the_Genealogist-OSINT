@@ -25,10 +25,46 @@ def screen_links():
     if r.returncode: return bad + [f"node could not run the screen's helper: {r.stderr.strip()[:300]}"]
     return bad + [f"web({c['url']!r}) gave {got!r}, expected {c['href']!r}" for c, got in zip(cases, json.loads(r.stdout)) if got != c["href"]]
 
+REFUSED = ["x.ged", "ü.ged", "archive/page.html", "archive/ü/page.html", 'archive/a"b.txt', "derivatives/ü.txt", "inbox/ü.html",
+           "downloads/ü.html", "catalog/tree.db", "catalog/ü.db-wal", "trees/t/imports/ü.ged", "trees/t/exports/ü.txt",
+           "catalog/tree.db.turn-state.json", "x.ged\ntests/fixtures/harness.ged"]
+ALLOWED = ["notes.txt", "ü.txt", "tests/fixtures/harness.ged", "inbox/.gitkeep", "downloads/.gitkeep"]
+IGNORED = ["ü.ged", "archive/page.html", ".claude/output-styles/style.md", ".claude/settings.local.json"]
+KEPT = ["tests/fixtures/harness.ged", ".claude/agents/tree-fetch.md", ".claude/skills/tree-fetch/SKILL.md"]
+
+def commit_hook():
+    """The commit hook refuses data by the name git stages it under, and .gitignore keeps it out of `git add`: in a throwaway
+    repository holding the repo's own .gitignore, every name of REFUSED staged alone is refused by tools/hooks/pre-commit with the
+    name in what it says (a letter beyond ASCII, a quote and a newline in a name among them, names git writes quoted unless
+    asked for NUL-separated), every name of ALLOWED passes (the harness's own .ged, the folders' .gitkeep), and `git add` skips
+    the IGNORED names and takes the KEPT ones."""
+    hook = os.path.join(ROOT, "tools", "hooks", "pre-commit")
+    d = tempfile.mkdtemp(prefix="tree-hook-"); bad = []
+    git = lambda *a: subprocess.run(["git", "-C", d, *a], capture_output=True, text=True)
+    try:
+        if git("init", "-q", ".").returncode: return ["git init failed in the throwaway repository"]
+        shutil.copy(os.path.join(ROOT, ".gitignore"), d)
+        for name in REFUSED + ALLOWED + KEPT:
+            path = os.path.join(d, name)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as fh: fh.write("x")
+        for names, refused in ((REFUSED, True), (ALLOWED, False)):
+            for name in names:
+                git("add", "-f", "--", name)
+                r = subprocess.run(["sh", hook], cwd=d, capture_output=True, text=True)
+                if refused and not (r.returncode and all(part in r.stderr for part in name.split("\n"))): bad.append(f"the hook let {name!r} through staged alone: exit {r.returncode}, {r.stderr.strip()!r}")
+                if not refused and r.returncode: bad.append(f"the hook refused {name!r}: {r.stderr.strip()!r}")
+                git("rm", "-q", "--cached", "-f", "--", name)
+        bad += [f"git add would take {n!r}, which .gitignore keeps out" for n in IGNORED if git("check-ignore", "-q", "--", n).returncode]
+        bad += [f"git add would skip {n!r}, which .gitignore keeps in" for n in KEPT if git("check-ignore", "-q", "--", n).returncode != 1]
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 def check(keep, show):
     """Each guard as one line: ok when it holds, FAIL with every reason when it does not. Returns how many failed."""
     failed = 0
-    for fn, says in ((screen_links, "the person screen writes a URL into a link only through its `web` helper, which keeps a web address, escaped, and drops any other scheme"),):
+    for fn, says in ((screen_links, "the person screen writes a URL into a link only through its `web` helper, which keeps a web address, escaped, and drops any other scheme"),
+                    (commit_hook, "the commit hook refuses data by the name git stages it under (a letter beyond ASCII, a quote, a newline) and passes the harness's own .ged and the .gitkeep files; .gitignore keeps every .ged but the harness's, and the owner's own .claude settings, out of `git add`")):
         bad = fn(); failed += bool(bad)
         print(f"ok   {says}" if not bad else f"FAIL {fn.__name__}: " + "; ".join(bad))
     return failed

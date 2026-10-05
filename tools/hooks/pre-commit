@@ -3,10 +3,11 @@
 # (except their .gitkeep), a tree's imports or exports, any .ged / .db / .db-wal / .db-shm file, or a state file kept
 # beside a catalog (<db>.turn-state.json, <db>.loop-state.json, <db>.task-state.json), which names people; the one .ged allowed is the
 # harness's own tests/fixtures/harness.ged, a small file of the owner's family written for the tests.
+# The staged names are read NUL-separated, which git never quotes: a name with a non-ASCII letter (M<u-umlaut>ller.ged) or
+# a quote is matched as it is written. The files allowed are left out by pathspec, not by matching their names.
 # Installed once with: git config core.hooksPath tools/hooks
-bad=$(git diff --cached --name-only --diff-filter=ACMR | grep -E \
-  '^(archive/|derivatives/|inbox/(.+)|downloads/(.+)|catalog/.*\.(db|db-wal|db-shm)$|trees/[^/]+/(imports|exports)/)|\.(ged|db|db-wal|db-shm)$|\.(turn|loop|task)-state\.json$' \
-  | grep -v '^inbox/\.gitkeep$' | grep -v '^downloads/\.gitkeep$' | grep -v '^tests/fixtures/harness\.ged$')
+bad=$(git diff --cached --name-only -z --diff-filter=ACMR -- . ':(exclude)tests/fixtures/harness.ged' ':(exclude)inbox/.gitkeep' ':(exclude)downloads/.gitkeep' | tr '\0' '\n' | grep -E \
+  '^(archive/|derivatives/|inbox/(.+)|downloads/(.+)|catalog/.*\.(db|db-wal|db-shm)$|trees/[^/]+/(imports|exports)/)|\.(ged|db|db-wal|db-shm)$|\.(turn|loop|task)-state\.json$')
 if [ -n "$bad" ]; then
   echo "pre-commit: data never enters git; unstage these:" >&2
   echo "$bad" | sed 's/^/  /' >&2

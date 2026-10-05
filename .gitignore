@@ -17,3 +17,6 @@ catalog/*.loop-state.json
 catalog/*.task-state.json
 .claude/worktrees/
 .claude/settings.local.json
+.claude/output-styles/
+*.ged
+!tests/fixtures/harness.ged

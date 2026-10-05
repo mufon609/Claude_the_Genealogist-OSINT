@@ -395,7 +395,8 @@ addresses a file's citation may carry and the link each becomes (`href`: the esc
 not http or https: `javascript:`, `data:`, any case of a scheme, whitespace inside one): `catalog.web_url` is checked on them, and
 `tests/checks/housekeeping.py` runs the person screen's own `web` helper (`app/person/index.html`) on the same cases under node, so
 the Python reader of a file's address and the screen cannot differ. `housekeeping.py` holds the checks of the small guards around
-the catalog that no scenario reaches, each run on what it guards under a temporary directory.
+the catalog that no scenario reaches, each run on what it guards under a temporary directory: the commit hook runs in a throwaway
+git repository on names it must refuse (a letter beyond ASCII, a quote, a newline) and names it must pass.
 
 ## What is simulated
 
