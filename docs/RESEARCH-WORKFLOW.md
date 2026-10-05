@@ -798,9 +798,9 @@ the page, the record naming each party's parents (the bride's father is hers);
 and on a page whose leading line says "Mentioned in the Record of" another
 person, the page's own person being that person's relative, that person's row
 alone; a draft registration's Event Date and Event Place a Residence on that
-date (the card is filed where the registrant lived), and the one person its
-page lists under the registrant's Extended Family, with no word of its own, a
-nearest relative, the row marked computed like any other of that table.
+date (the card is filed where the registrant lived); the one person its page
+lists under the registrant's Extended Family carries no word, and none is
+written for them.
 Every other grouping FamilySearch's relatives tables make around the
 page's own person (on a census page whose own person is not the head, every
 one, since a census states only the relationship to the head and a member's row

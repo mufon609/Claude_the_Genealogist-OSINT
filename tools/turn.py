@@ -263,7 +263,7 @@ def finish(cx, tree_id, slug, by, db, pid=None, since=None):
     out["own"] = [r for r in out["results"] if id(r) in mine or id(r) not in theirs]
     if not pid and not any(not r.get("left") for r in out["results"]) and not out["ended"]: return out
     people = ([pid] if pid else []) + list(out["credited"])
-    began = min([since] + [w["since"] for w in out["ended"].values() if w.get("since")])        # a page that came in while they waited brought its place strings then
+    began = min([t for t in [since] + [w.get("since") for w in out["ended"].values()] if t], default=None)        # a page that came in while they waited brought its place strings then
     out["places"] = guarded(cx, out["failures"], "the place resolver", lambda: resolve_places(cx, tree_id, people, began, by))
     out["recon"] = guarded(cx, out["failures"], "reconsider", lambda: reconsider(cx, tree_id, by)) or []
     for p in people:

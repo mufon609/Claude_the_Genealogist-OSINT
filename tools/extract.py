@@ -107,10 +107,7 @@ Grandmother), sex, age and birthplace from the row, the member's own details
 table as its facts (its Event Date and Event Place the record's own event, of
 the collection's kind where no Event Type row names one, as the subject's are),
 its record ark in region_json, and one relation from the
-member to the subject with the role word as written (relation_kind); the one
-person a draft registration card's page lists under the registrant's Extended
-Family carries no word, and is read as the registrant's nearest relative, the
-person the card names under that heading; a NUMIDENT
+member to the subject with the role word as written (relation_kind); a NUMIDENT
 record's own Parents and Siblings table carries no role word at all, and its
 two rows are read as parent relations, that collection's application naming
 only the parents there. Those tables are FamilySearch's grouping around the
@@ -597,12 +594,6 @@ def relation_kind(role, section, collection):
     if not role and "numident" in (collection or "").lower() and (section or "").endswith("Parents and Siblings"): return "parent"
     return household_kind(role)
 
-def unworded_role(event, section):
-    """The word for a relatives-table row that carries none, where the record's own kind gives one: a draft registration
-    card names one person, the registrant's nearest relative, and the page files that person under the registrant's Extended
-    Family with no word beside the name."""
-    return "nearest relative" if event == "draft registration" and (section or "").endswith("Extended Family") else ""
-
 class Writer:
     def __init__(self, cx, sha, extraction_id):
         self.cx, self.sha, self.eid, self.n = cx, sha, extraction_id, {"personas": 0, "facts": 0, "relations": 0, "place_strings": 0}
@@ -970,7 +961,6 @@ def write_record(w, parsed):
     write_facts(w, subject, by_type)
     members_written = []
     for seq, m in enumerate([x for x in parsed["members"] if names_someone(x["name"])], 2):
-        m = {**m, "role": m["role"] or unworded_role(event, m["section"])}
         mf = m["fields"] or [["Name", m["name"]], ["Sex", m["sex"]], ["Age", m["age"]], ["Birthplace", m["birthplace"]]]
         mb, _ = field_facts(mf, EVENT_TYPES.get(kind_word), m.get("alternates") or [])   # a member's own details carry the record's event as the subject's do
         calc_census_birth(mb, is_census)

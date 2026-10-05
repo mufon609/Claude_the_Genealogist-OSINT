@@ -206,11 +206,11 @@ Conflicts: of the 11 on places, 5 read as one place at two granularities or
 under two names (a cemetery by its name and by its locality, a town against
 its county or its state), to be shown by resolving both strings in the
 record's own context; the 10 on repeated marriage events sit on people more
-than one link from the confirmed tree (C54).
+than one link from the confirmed tree, whom the queue no longer names.
 
 The loop's automatic half was rehearsed the same day on a scratch copy, every
 step a connector can run: 229 steps in 39 minutes with no error run; 73 found
-and 301 `none`, 236 of those with no request sent (C28, C55); 159 files
+and 301 `none`, 236 of those with no request sent (C28); 159 files
 archived and 860 personas read, nearly all names in a book's running text;
 one record taken by the rule, none of the 62 waiting cards answered, and 3
 new cards, each a namesake's profile at WikiTree. Re-reading the 106 waiting
@@ -1116,15 +1116,6 @@ where it wants a label finds no decision and does nothing, silently; and the
 cannot be archived through it. And `has` passes a `lacks` or a `none` on a
 value that is missing altogether.
 
-### C49. The proof summary names the owner for a statement no person decided
-
-`tools/proof.py`'s decider reads `assertion.asserted_by` alone, so a statement
-whose status a session's re-read or a carry stamped `agent:… for user:…` reads
-"the owner" in the proof summary though no person decided it. Name the owner
-only where `assertion.person_decided` says a person's own decision set the
-status, and say what set it otherwise (the record's acceptance, a re-read, the
-rule).
-
 ### C50. "Claim" means two things in the code
 
 `docs/RESEARCH-WORKFLOW.md` §0 defines a claim as the imported file's word.
@@ -1189,30 +1180,6 @@ the 131 assisted searches planned on 4 Oct 2026 none is ever a turn's work:
 The tree grows past the file only where a connector answers. Put a search
 whose holder takes a link on the fetch list, its results page the save, as
 §8 already reads; with A1 a model runs it.
-
-### C54. The queue's tail is the tree's edge, not the alphabet
-
-After the confirmed line, `overview.people` and `tools/queue.py` take
-everyone with a document waiting in order of display name: 13 of the 42 turns
-of the run that stalled, and the person it stalled on is nine links from the
-home person, where `README.md` says never a person two links away from anyone
-confirmed. Order the tail by distance from the confirmed tree and leave out
-whoever is more than one link from it; their questions wait with them (ten of
-the open conflicts on 4 Oct 2026 are a couple's repeated marriage events on
-such people).
-
-### C55. A step is auto only where a connector will run it, and an assumed year is no claim
-
-`checklist.mode_for` marks a row `auto` when any one of its sources has a
-connector (the cemetery row on the gravesite locator alone, though the loop
-never searches Find a Grave); 95 of the 160 connector runs logged `none` on
-4 Oct 2026 sent no request (C28); `connectors.load` would raise on the
-registry's Connector value for the two gazetteer rows, which names
-`tools/resolve_places.py`; and `tools/checklist.py` plans a death-record
-search on the year an assumed lifespan gives, with basis `claim`: six planned
-searches are for deaths in 2028 to 2083. A step's mode says who will run it,
-a year nobody stated is not a claim, and a search for a death in the future
-is not planned.
 
 ### C56. The search ladder as built
 
@@ -1284,7 +1251,9 @@ so the open name conflicts and the limits-of-one-life questions are invisible
 and a name reads as meeting the standard with a conflict open;
 `proof.agreement` returns nothing for parents, spouses and children; the
 reason a record was taken as the person's (`proposal.decision_note`) is never
-printed; and the argument a fact is said to owe has nowhere to be written.
+printed; the argument a fact is said to owe has nowhere to be written; and a
+statement a re-read set and one a carry set read alike, their notes telling
+neither.
 Print every open question on the fact, the agreement on a family link and
 the linkage reason, so the written conclusion is the reasoning and not only
 the verdict.
@@ -1326,17 +1295,6 @@ by pattern. `foreign_key_check` sees none of them (none dangles on 4 Oct
 2026), and 93 `json_extract` calls across 11 files read them. Beside C29 and
 C45: give each link the column it is, with its foreign key, a link at a time.
 
-### C65. A turn run by hand, and a page that comes in outside a collect
-
-`tools/turn.py "<person>"` run by hand still stops on a failure outside its
-runs and its tail's parts, where `tools/turns.py` catches it, names it and
-goes on. A page attached outside a collect (the person screen's log, an
-attach run by hand) ends its person's wait with no report of the turn it
-finishes: the person simply waits no more. And the state kept beside a
-catalog is written in place, so a stop in mid-write leaves a file no run can
-read. Give the hand-run turn the runner's guard, the finished turn its report
-wherever the page came in, and the state a write that replaces the file whole.
-
 ### C66. What the reading of an event's value per part leaves
 
 `docs/RESEARCH-WORKFLOW.md` §5–7 (what of an event's value is accepted) reads
@@ -1377,15 +1335,21 @@ already held (`same_record`). Where a replacement is a step a connector can
 run, the plan carries it. Nothing is removed when a better copy arrives: it
 joins the record, and the page saved in the browser stays beneath it.
 
-### C68. What the draft registration card states of the day it was made
+### C49. An assumed birth year is no claim either
 
-FamilySearch's page of a World War I draft registration card
-(`rule:familysearch-record`) reads the card's registration date and place as
-`Unknown` facts and leaves the heading of the relative it names unmapped, so
-the person the card gives as nearest relative is an "other" (the page saved
-on 4 Oct 2026 for James Joseph Ahearn names Francis Ahearn so). Read the
-registration as the residence it is on its date, and the relative under the
-word the card gives.
+A death nobody stated is no longer searched for under the year an assumed
+lifespan gives. The plan still gives every search step a `birth_year` worked
+out as twenty years before the person's first dated event, with basis
+`claim`: a year nobody stated, sent to a holder as if the file said it. Say
+in `docs/RESEARCH-CHECKLIST.md` what a search carries for a person with no
+stated birth (a window from the dated events, said to be one), and build
+that.
+
+### C54. The active tree's file is written whole
+
+`tools/tree.py use` writes `catalog/.active-tree` in place, as the state
+files beside a catalog were before they took `treelib.write_json_whole`: a
+stop in mid-write leaves a file no tool can read. Write it the same way.
 
 ## Externally blocked
 

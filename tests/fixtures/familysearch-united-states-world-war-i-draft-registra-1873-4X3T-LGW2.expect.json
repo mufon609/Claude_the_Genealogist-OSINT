@@ -43,16 +43,8 @@
   },
   "2": {
    "name": "Francis Ahearn",
-   "role": "nearest relative",
-   "relations": [
-    {
-     "kind": "other",
-     "to": 1,
-     "value": "nearest relative",
-     "computed": true
-    }
-   ],
-   "why": "the one person the page lists under the registrant's extended family, with no word beside the name: the card names the registrant's nearest relative"
+   "role": "",
+   "why": "the one person the page lists under the registrant's extended family, with no word for what he is to him: none is written for him"
   }
  }
 }
