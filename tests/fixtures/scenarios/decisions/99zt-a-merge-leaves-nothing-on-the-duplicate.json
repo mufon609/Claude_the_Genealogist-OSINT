@@ -1,0 +1,144 @@
+{
+ "title": "a merge leaves nothing on the duplicate",
+ "line": "the 1940 household's daughter merged into its son, the harness's own merge of two children of one family: her card names him from then on, her membership of the family folds onto his with the file's claim on it and leaves no row behind, and the owner's accept of her card lands on him",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 page arrives through the inbox: a card for each of the four it names",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "say": "the owner merges the daughter into the son, both children of the family the household is",
+   "merge": {
+    "duplicate": "I332737072856",
+    "kept": "I332737036054",
+    "note": "harness: two children of one family merged, as one child entered twice under the same parents would be"
+   },
+   "expect": [
+    {
+     "last": {
+      "folded_memberships": [
+       {
+        "role": "child",
+        "statements": {
+         "len": 1
+        }
+       }
+      ],
+      "proposals_repointed": [
+       {
+        "rewritten": [
+         "person_id",
+         "subject_person_id"
+        ]
+       }
+      ]
+     },
+     "why": "the merge names the membership it folded with the statement it moved, and the card it re-pointed with the keys rewritten"
+    },
+    {
+     "audit": {
+      "entity": "person",
+      "id": "I332737072856",
+      "action": "update",
+      "is": {
+       "some": {
+        "diff": {
+         "proposals_repointed": {
+          "len": 1
+         },
+         "folded_memberships": {
+          "len": 1
+         }
+        }
+       }
+      }
+     },
+     "why": "the merge's audit row lists both"
+    },
+    {
+     "card": {
+      "record": "c40",
+      "persona": "Alicia Ahern",
+      "status": "undecided",
+      "person_name": "Frederick Micheal Ahearn Jr"
+     },
+     "why": "her card names the person she was merged into"
+    },
+    {
+     "count": {
+      "family_rows_of": "I332737072856",
+      "is": 0
+     },
+     "why": "the son already holds the child's place in the family: her row is folded onto his, never left as his sibling"
+    },
+    {
+     "states": {
+      "record": "import",
+      "person": "I332737072856",
+      "kind": "family_member",
+      "is": []
+     },
+     "why": "the file's claim on her membership moved with it"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts her card: it lands on the son",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "persona": "Alicia Ahern"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "links": {
+      "person": "I332737036054",
+      "record": "c40",
+      "persona": "Alicia Ahern",
+      "is": {
+       "every": "accepted",
+       "len": {
+        ">=": 1
+       }
+      }
+     }
+    },
+    {
+     "count": {
+      "persona_links_of": "I332737072856",
+      "is": 0
+     },
+     "why": "nothing is written on the merged person"
+    },
+    {
+     "count": {
+      "steps_of": "I332737072856",
+      "is": 0
+     },
+     "why": "and no plan is made for her again"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

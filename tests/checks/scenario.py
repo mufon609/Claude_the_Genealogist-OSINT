@@ -753,8 +753,20 @@ def a_persona_link(w, x):
     return {"persona": rows[0][0]}
 
 def a_merge(w, x):
+    """The owner's merge of a `duplicate` into the person it duplicates (`kept`), through conclude.merge. With `older`, the
+    merge as an older tools/conclude.py left it, which re-pointed no proposal and left a membership the kept person already
+    held on the duplicate's row: each proposal the merge re-pointed put back to name the duplicate, each membership it folded
+    put back on the duplicate's row with the statements it moved, the shape the merge run again on the pair completes."""
     from conclude import merge
-    return merge(w.cx, w.tid, w.person(x["duplicate"]), w.person(x["kept"]), BY, x.get("note", "harness: same identity"))
+    dup, kept = w.person(x["duplicate"]), w.person(x["kept"])
+    res = merge(w.cx, w.tid, dup, kept, BY, x.get("note", "harness: same identity"))
+    if x.get("older"):
+        for r in res["proposals_repointed"]:
+            for k in r["rewritten"]: w.cx.execute("UPDATE proposal SET payload_json=json_set(payload_json, ?, ?) WHERE id=?", (f"$.{k}", dup, r["proposal"]))
+        for m in res["folded_memberships"]:
+            w.cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (m["family_id"], dup, m["role"]))
+            w.cx.execute(f"UPDATE assertion SET subject_id=? WHERE id IN ({','.join('?' * len(m['statements']))})", (w.treelib.dumps([m["family_id"], dup, m["role"]]), *m["statements"]))
+    return res
 
 def a_cite(w, x):
     from attach import cite_on_word

@@ -1,0 +1,164 @@
+{
+ "title": "a merge left unfinished is completed",
+ "line": "a merge an older tool made of the 1940 household's daughter into its son left her card, which the rule had taken, naming her and her membership of the family beside his: a decision on that card is refused and says how to finish the merge; the merge run again re-points the card and folds the membership, and reconsider then judges the rule's decision against him and takes it back whole, his link with it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 page arrives through the inbox: a card for each of the four it names",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "say": "the rule takes the daughter's card",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737072856"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+   }
+  },
+  {
+   "say": "the daughter merged into the son as an older merge left it: her card still naming her, her membership of the family beside his",
+   "merge": {
+    "duplicate": "I332737072856",
+    "kept": "I332737036054",
+    "note": "harness: two children of one family merged, as one child entered twice under the same parents would be",
+    "older": true
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "c40",
+      "persona": "Alicia Ahern",
+      "person_name": "Alicia Ahern"
+     }
+    },
+    {
+     "count": {
+      "family_rows_of": "I332737072856",
+      "is": 1
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner's rejection of the card that names her is refused",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "persona": "Alicia Ahern"
+    },
+    "status": "rejected",
+    "note": "harness: not her"
+   },
+   "expect": [
+    {
+     "last": {
+      "error": {
+       "has": [
+        "is merged into Frederick Micheal Ahearn Jr",
+        "tools/conclude.py merge \"Alicia Ahern ["
+       ]
+      }
+     },
+     "why": "a decision never lands on a merged person: the refusal names the merge that completes it"
+    },
+    {
+     "card": {
+      "record": "c40",
+      "persona": "Alicia Ahern",
+      "status": "accepted"
+     },
+     "why": "nothing written"
+    }
+   ]
+  },
+  {
+   "say": "the merge run again on the pair completes it",
+   "merge": {
+    "duplicate": "I332737072856",
+    "kept": "I332737036054"
+   },
+   "expect": [
+    {
+     "last": {
+      "completed": true,
+      "proposals_repointed": {
+       "len": 1
+      },
+      "folded_memberships": [
+       {
+        "role": "child"
+       }
+      ]
+     }
+    },
+    {
+     "card": {
+      "record": "c40",
+      "persona": "Alicia Ahern",
+      "status": "accepted",
+      "person_name": "Frederick Micheal Ahearn Jr"
+     }
+    },
+    {
+     "count": {
+      "family_rows_of": "I332737072856",
+      "is": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider judges the rule's decision against the person its card names now",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": false,
+        "person": "Frederick Micheal Ahearn Jr",
+        "persona": "Alicia Ahern"
+       }
+      }
+     }
+    },
+    {
+     "links": {
+      "person": "I332737036054",
+      "record": "c40",
+      "persona": "Alicia Ahern",
+      "is": {
+       "every": "undecided",
+       "len": {
+        ">=": 1
+       }
+      }
+     },
+     "why": "the withdrawal takes back the link the decision wrote, on the person it moved to, as it takes back the card"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

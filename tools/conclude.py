@@ -426,6 +426,24 @@ class _q:
         c.row_factory = sqlite3.Row
         return c.execute(sql, args)
 
+def merged_refusal(cx, people):
+    """The refusal of a command that would write on a person merged into another (person.merged_into), in words, or None: a
+    merge moves everything about the duplicate onto the person it duplicates, its cards among them, so a decision lands on
+    that person; one still naming the duplicate is a merge an older version of this tool left unfinished, and the merge
+    command run again on the pair completes it (complete_merge)."""
+    for pid in people:
+        r = cx.execute(
+            "SELECT d.display_name, k.id, k.display_name FROM person d JOIN person k ON k.id=d.merged_into WHERE d.id=?",
+            (pid,)
+        ).fetchone() if pid else None
+        if r:
+            dup, kept = f"{r[0]} [{pid[-6:]}]", f"{r[2]} [{r[1][-6:]}]"
+            return (
+                f"{dup} is merged into {kept}, who carries everything about them; what still names {dup} is a merge left "
+                f'unfinished: tools/conclude.py merge "{dup}" --into "{kept}" completes it'
+            )
+    return None
+
 def same_personas(cx, persona_id):
     """Every persona of the same entry of the record as this one (catalog.persona_key: its record id, else its role, row and
     name), across every extraction of the record, itself included: a decision is about one entry of the record, whose bytes do
@@ -1804,7 +1822,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     person closes as superseded and its record is matched again, one it still does takes its words as they now read. The
     decision's audit row is written as it takes effect, before the conflicts it changes and the cards of the same record
     the rule takes next, so audit ids run in the order decisions were taken (reconsider examines the rule's decisions in
-    that order). Returns what was written, rematched the rows of the cards matched again, or an error."""
+    that order). A card naming a person merged into another is refused (merged_refusal). Returns what was written, rematched
+    the rows of the cards matched again, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"):
@@ -1823,6 +1842,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         and not (p["status"] == "accepted" and status == "rejected" and (p["decided_by"] or "").startswith("rule:"))
     ):
         return {"error": "already decided"}
+    refused = merged_refusal(cx, [person_id, pay.get("subject_person_id")])
+    if refused:
+        return {"error": refused}
     # a person's own decision on every statement the card's decision wrote, standing or taken back by the rule, and on every
     # family link it was one of the two acceptances for: the persona is not this person, so the record states none of them
     links = links_resting_on(cx, tree_id, prop_id, taken_back=True) if status == "rejected" else []
@@ -3176,9 +3198,12 @@ def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
     carries one Accepted assertion on the artifact, vouched, the owner's own decision on it (person_decided), with the owner's reason; a marriage the record dates becomes the
     family's Marriage event with the same assertion. kind is 'spouse' (other is the spouse) or 'child' (other is one parent
     or a list of both): the child joins the family that pairs the named parents; a parent with several families needs both
-    named; a family made here for two parents asserts their partnership on the same word. Returns the family id."""
+    named; a family made here for two parents asserts their partnership on the same word. Refused for a person merged into
+    another (merged_refusal). Returns the family id."""
     q = _q(cx)
     ts = now()
+    if refused := merged_refusal(cx, [pid] + (list(other) if isinstance(other, (list, tuple)) else [other])):
+        raise ValueError(refused)
     one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
     if kind == "spouse":
         fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
@@ -3278,9 +3303,12 @@ def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
     """The couple's family gets a Divorce event, dated as the records allow ("BET 1950 AND 1959"), with one Accepted assertion per
     piece of evidence the owner names: (artifact sha, persona_fact id or None, citation words), each the owner's own decision on
     it (person_decided). A divorced couple stays a family in
-    the tree, so the children keep both parents; the event is what the screen shows between the two lines."""
+    the tree, so the children keep both parents; the event is what the screen shows between the two lines. Refused for a
+    person merged into another (merged_refusal)."""
     q = _q(cx)
     ts = now()
+    if refused := merged_refusal(cx, [a, b]):
+        raise ValueError(refused)
     fid = next((f for f, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
                                           WHERE fm.person_id=? AND fm.role='partner'""", (b, a))), None)
     if fid is None:
@@ -3565,22 +3593,82 @@ def _back_to(q, dup_id, kept_id):
         "UPDATE event_participant SET person_id=? WHERE event_id=? AND person_id=?", (dup_id, eid, kept_id)
     )
 
+def _move_memberships(q, dup_id, kept_id, moved):
+    """A merge's family memberships: each of the duplicate's rows moves to the kept person with its statements; a row the kept
+    person already holds in the same family and role (one child entered twice under the same parents) is folded as
+    _fold_family folds a child of both, its statements onto the kept person's row and the duplicate's row gone, each named
+    in folded_memberships with the statements it moved. Returns the families whose partner row moved."""
+    partner_fams = set()
+    for fid, role in q.execute("SELECT family_id, role FROM family_member WHERE person_id=?", (dup_id,)).fetchall():
+        was, into = dumps([fid, dup_id, role]), dumps([fid, kept_id, role])
+        held = q.execute(
+            "SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, kept_id, role)
+        ).fetchone()
+        statements = [
+            a
+            for a, in q.execute(
+                "SELECT id FROM assertion WHERE subject_kind='family_member' AND subject_id=? ORDER BY id", (was,)
+            ).fetchall()
+        ]
+        if held:
+            q.execute("DELETE FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, dup_id, role))
+        else:
+            q.execute(
+                "UPDATE family_member SET person_id=? WHERE family_id=? AND person_id=? AND role=?",
+                (kept_id, fid, dup_id, role)
+            )
+        q.execute("UPDATE assertion SET subject_id=? WHERE subject_kind='family_member' AND subject_id=?", (into, was))
+        if held:
+            moved["folded_memberships"].append({"family_id": fid, "role": role, "statements": statements})
+            continue
+        moved["family_memberships"] += 1
+        if role == "partner":
+            partner_fams.add(fid)
+    return partner_fams
+
+def _repoint_proposals(q, tree_id, dup_id, kept_id, moved):
+    """A merge's proposals: every proposal of the tree whose payload names the duplicate (a card's person_id, the
+    subject_person_id the record was fetched for, whatever key holds the id) names the kept person instead, each listed in
+    proposals_repointed with the keys it rewrote (rewritten), so a decision, a withdrawal, reconsider and the matcher read
+    the kept person wherever the duplicate stood. A duplicate_person proposal is a merge's own record of who was merged into
+    whom and keeps its words."""
+    keys = {}
+    for r in q.execute(
+        """SELECT p.id, j.key FROM proposal p, json_each(p.payload_json) j
+           WHERE p.tree_id=? AND p.kind<>'duplicate_person' AND j.type='text' AND j.value=? ORDER BY p.id, j.key""",
+        (tree_id, dup_id)
+    ).fetchall():
+        keys.setdefault(r["id"], []).append(r["key"])
+    for prop_id, ks in keys.items():
+        for k in ks:
+            q.execute(
+                "UPDATE proposal SET payload_json=json_set(payload_json, ?, ?) WHERE id=?", (f"$.{k}", kept_id, prop_id)
+            )
+        moved["proposals_repointed"].append({"proposal": prop_id, "rewritten": ks})
+
 def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
-    """A merge made before a merge folded events and same-partner families, completed: the kept person's events folded as a
-    merge folds them (fold), each folded event's participant returned to the duplicate's row (_back_to); the kept person's
-    partner families with the same partners folded into the earliest (_fold_family), and that family's events folded the
-    same way. Nothing else moves, and a merge already complete folds nothing. One audit row. Returns what folded."""
+    """A merge made before a merge did all it does now, completed: a family membership the duplicate still holds moved or
+    folded onto the kept person's (_move_memberships), every proposal still naming the duplicate re-pointed to the kept
+    person (_repoint_proposals), the kept person's events folded as a merge folds them (fold), each folded event's
+    participant returned to the duplicate's row (_back_to); the kept person's partner families with the same partners folded
+    into the earliest (_fold_family), and that family's events folded the same way. Nothing else moves, and a merge already
+    complete changes nothing. One audit row. Returns what moved and folded."""
     q = _q(cx)
     ts = now()
     moved = {
+        "family_memberships": 0,
         "events_folded": 0,
         "event_assertions_folded": 0,
         "families_folded": 0,
         "family_children_moved": 0,
         "family_events_moved": 0,
+        "folded_memberships": [],
+        "proposals_repointed": [],
         "folded_events": [],
         "folded_families": []
     }
+    _move_memberships(q, dup_id, kept_id, moved)
+    _repoint_proposals(q, tree_id, dup_id, kept_id, moved)
     fold(cx, tree_id, ("person", kept_id), retire=_back_to(q, dup_id, kept_id), moved=moved)
     fams = _partner_families(q, kept_id)
     for i, (fid, partners) in enumerate(fams):
@@ -3614,7 +3702,9 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
 def merge(cx, tree_id, dup_id, kept_id, by, note):
     """Close a duplicate_person question (RESEARCH-WORKFLOW §2; the worked example's "merging the two Thomas entries closes
     the question"): the duplicate's persona links, assertions, event and family memberships, plan steps, search log rows and
-    open questions move onto the person it duplicates, `person.merged_into` is set so the duplicate's own row stays for the
+    open questions move onto the person it duplicates, a membership the kept person already holds in the same family and role
+    folded onto theirs with its statements (_move_memberships), every proposal naming the duplicate re-pointed to the kept
+    person (_repoint_proposals), `person.merged_into` is set so the duplicate's own row stays for the
     audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records the
     decision with the owner's note; the duplicate_person question between the two, on either side, closes answered by it. A
     moved step the kept person's plan already has by step_key keeps whichever of the two carries search_log runs (neither carrying runs keeps the kept person's own); the duplicate's runs, if any, are carried
@@ -3667,6 +3757,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         "questions_answered": 0,
         "dropped_steps": [],
         "dropped_questions": [],
+        "folded_memberships": [],
+        "proposals_repointed": [],
         "folded_events": [],
         "folded_families": []
     }
@@ -3693,24 +3785,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         moved["event_participants"] += 1
     fold(cx, tree_id, ("person", kept_id), retire=_back_to(q, dup_id, kept_id), moved=moved)
 
-    partner_fams = set()
-    for fid, role in q.execute("SELECT family_id, role FROM family_member WHERE person_id=?", (dup_id,)).fetchall():
-        if q.execute(
-            "SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, kept_id, role)
-        ).fetchone():
-            continue
-        q.execute(
-            "UPDATE family_member SET person_id=? WHERE family_id=? AND person_id=? AND role=?",
-            (kept_id, fid, dup_id, role)
-        )
-        q.execute(
-            "UPDATE assertion SET subject_id=? WHERE subject_kind='family_member' AND subject_id=?",
-            (dumps([fid, kept_id, role]), dumps([fid, dup_id, role]))
-        )
-        moved["family_memberships"] += 1
-        if role == "partner":
-            partner_fams.add(fid)
-
+    partner_fams = _move_memberships(q, dup_id, kept_id, moved)
     for fid in partner_fams:
         partners = {
             r[0]
@@ -3797,6 +3872,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         q.execute("UPDATE research_question SET subject_person_id=? WHERE id=?", (kept_id, question["id"]))
         moved["questions_moved"] += 1
 
+    _repoint_proposals(q, tree_id, dup_id, kept_id, moved)
     q.execute("UPDATE person SET merged_into=?, updated_at=? WHERE id=?", (kept_id, ts, dup_id))
     human = q.execute("SELECT id FROM extractor WHERE kind='human' AND name='manual'").fetchone()[0]
     q.execute(
@@ -4576,13 +4652,15 @@ def kept_agrees(cx, keep, res):
 
 def living(cx, tree_id, pid, word, by, note):
     """The owner's word on whether a person is alive, above the tier rule (docs/DATA-ARCHITECTURE.md §7 decision 3):
-    person.living_override set to living or deceased, or cleared by unknown so the rule decides again; one audit row. Returns
-    what was and is, with the default's reading afterwards."""
+    person.living_override set to living or deceased, or cleared by unknown so the rule decides again; one audit row. Refused
+    for a person merged into another (merged_refusal). Returns what was and is, with the default's reading afterwards."""
     q = _q(cx)
     ts = now()
     row = q.execute("SELECT living_override FROM person WHERE id=? AND tree_id=?", (pid, tree_id)).fetchone()
     if not row:
         raise ValueError("no such person in this tree")
+    if refused := merged_refusal(cx, [pid]):
+        raise ValueError(refused)
     value = None if word == "unknown" else word
     q.execute("UPDATE person SET living_override=?, updated_at=? WHERE id=?", (value, ts, pid))
     q.execute(
@@ -5687,13 +5765,16 @@ def main():
             )
             if res.get("completed"):
                 print(
-                    f"{a.duplicate} already merged into {a.kept}; completed: {res['events_folded']} event(s) folded ({res['event_assertions_folded']} statement(s) moved), "
+                    f"{a.duplicate} already merged into {a.kept}; completed: {res['family_memberships']} family membership(s) moved, "
+                    f"{len(res['folded_memberships'])} folded onto the kept person's own, {len(res['proposals_repointed'])} proposal(s) re-pointed, "
+                    f"{res['events_folded']} event(s) folded ({res['event_assertions_folded']} statement(s) moved), "
                     f"{res['families_folded']} family(ies) folded ({res['family_children_moved']} child membership(s), {res['family_events_moved']} family event(s))"
                 )
             else:
                 print(
                     f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s), {res['assertions']} assertion(s), "
-                    f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s), "
+                    f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s) "
+                    f"({len(res['folded_memberships'])} more folded onto the kept person's own), {len(res['proposals_repointed'])} proposal(s) re-pointed, "
                     f"{res['plan_steps_moved']} plan step(s) moved ({res['plan_steps_dropped']} dropped as already on the kept person's plan, "
                     f"{res['log_rows_carried']} run(s) carried onto it), {res['questions_moved']} question(s) moved "
                     f"({res['questions_dropped']} already open on the kept person), {res['questions_answered']} duplicate question(s) answered; proposal {res['proposal']}"

@@ -304,7 +304,7 @@ catalog and no reader writes now: the `extractor` and each persona with its fact
 read from its `date_text`; it stands as the record's current reading), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided; with `card`, the link that card's decision wrote on another row of the same name before a decision reached only its own
-entry of the page, the shape the 0.7.5 migration corrects), `merge`, `cite`, `question` (a research_question row patched by
+entry of the page, the shape the 0.7.5 migration corrects), `merge` (a `duplicate` merged into the person it duplicates, `kept`, with a `note`; `older` for the merge as an older tool left it, every proposal it re-pointed naming the duplicate again and every membership it folded back on the duplicate's row with the statements it moved, the shape the merge run again on the pair completes), `cite`, `question` (a research_question row patched by
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
 a regeneration to be checked against a prior state, such as a legacy truncated key).
 
@@ -452,6 +452,9 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   person's (decisions `71`, `99f`, the marriage index). On the marriage index each persona's line is counted on the image and
   its row's `bbox` is in the image's own pixels; on the stone the `bbox` is the inscription's panel; on the certificate the
   `bbox` is the full name's line; on the obituary each persona's line is the order the notice names them.
+- `merge` of two children of one family (decisions `99zt`, `99zu`): the owner's file enters no child twice under the same
+  parents, so the harness merges the 1940 household's daughter into its son, both the file's own children of that family, to
+  walk the merge of two members of one family; no person, page or record is invented.
 - `save`: a real page or image written into the inbox or a download folder as the owner's browser leaves it, under the fetch
   list's name or the one given; with `key`, the save script's key comment written under the page's own saved-from line, as
   `tools/save_page.js` writes it (loop `41`, `42`, `43`, `108`). `tools/check.py`'s test of that script writes the script's own head over
@@ -461,7 +464,7 @@ The owner's own hand, and the model's, are played by the harness on real pages:
 - Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan
   steps (`step`, `step_query`), events (`event`), a research question's shape (`question`), cards and links an older matcher
   left (`legacy_card`, `older_matcher`, `persona_link`), a reading an older reader left (`older_reading`, its rows copied from
-  the owner's catalog), a place card on the geocoder's real answers (`place_card`) and place
+  the owner's catalog), a merge an older tool left unfinished (`merge` with `older`), a place card on the geocoder's real answers (`place_card`) and place
   strings of the owner's records (`place_string`). None of them is a page or a response, and none is a record of anyone but
   as the owner's catalog already holds it.
 
