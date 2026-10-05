@@ -540,6 +540,11 @@ own fields, so the step is closed at that source though one year was never
 read. The runner marks only a place name whose request got no answer
 (`unanswered`). Mark the run's unanswered requests whatever made them, so the
 next turn asks again, and show it on a Kentucky index step over two years.
+The same holds where some hits arrived and others did not: a 1950 district
+search whose neighbour's schedule arrives while the household's own times out
+is `found` and closes the step, the lost name logged unanswered and never asked
+again; a run is `found` for the step only when the hit that answers the step's
+own person arrived.
 
 ### C11. A place written one letter apart disagrees
 
@@ -733,7 +738,7 @@ nickname table twice, the suffix set twice; `initdb.py` re-implements `ulid`
 without the monotonic rule `treelib.py` promises.
 The `derivative` and `artifact_page` tables are never used, the three FTS
 tables are filled and never queried, and no tool writes `tombstone` although
-hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it.
+hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it. `connectors/ky_vital_index.year_of` does what `treelib.year_in` does, and the tracked `inbox/.gitkeep` is no longer needed now that `treelib.inbox_dir` makes the folder.
 Keep each rule in `catalog.py`, drop what nothing reads (or give it its
 reader), and make `tombstone` the one way a removal is written, and honoured:
 `holdings`, `held_for`, `fetched_rows` and the screen still count a withdrawn
@@ -1428,6 +1433,14 @@ the kept person holds is folded, move the aliases, and have the merge run
 again on a pair complete an older one, as it now does for cards and
 memberships; show the five live questions closed on a copy of the live
 catalog.
+
+### C70. The fetch list prints one page twice
+
+Where two entries of `tools/fetches.py list` share a link and a file name (the
+Pennsylvania and New Jersey church-register search and the Pennsylvania
+marriages search for Enos Heebner Cassel, live on 5 Oct 2026), the list and
+`next` print the page twice, so the owner or a model saves it twice. Print one
+entry for one link, its steps joined, as entries that share a record are.
 
 ## Externally blocked
 
