@@ -102,8 +102,9 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   event of theirs). `v_unsupported_person` lists the rest; after an import that
   is everyone, by design.
 - A `person.merged_into` (`tools/conclude.py merge`) marks a duplicate found and merged
-  (RESEARCH-WORKFLOW §2's `duplicate_person`): its persona links, assertions, plan steps
-  and open questions move to the kept person, a run on a step the kept person also has is
+  (RESEARCH-WORKFLOW §2's `duplicate_person`): its persona links, assertions, family memberships
+  (one the kept person already holds folded onto theirs), plan steps and open questions move to the
+  kept person, every proposal naming it is re-pointed to the kept person, a run on a step the kept person also has is
   carried onto the kept step as a new row (the duplicate's step left on its row, skipped), one `proposal` of kind
   `duplicate_person` and one `audit_log` row record what moved, and the row itself stays,
   out of every listing, overview, plan and matcher run.

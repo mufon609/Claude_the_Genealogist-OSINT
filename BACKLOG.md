@@ -742,7 +742,7 @@ unfilled: `person.private`, `note.private`, `geonames_id`, `surname_prefix`, the
 `page_id` columns, the place card's `suggested` key; `artifact.http_status`,
 `etag` and `last_modified` are empty on every row though most manifests carry
 them; `schema/catalog.sql`'s "REFERENCES … declared below" are never declared;
-the `v_unsupported_*` views count merged persons and folded events; and the walk
+the `v_unsupported_*` views count merged persons and folded events; `v_person_vitals.birth_date` is read by nothing; `tools/tree.py` writes `.active-tree` whole with its own copy of what `treelib.write_json_whole` does for JSON; and the walk
 to a record's current reading is written four times in `conclude.py` beside
 `catalog.current_reading`.
 
@@ -1033,7 +1033,9 @@ make each migration one transaction that names the code it needs. On the
 live catalog the dump itself fails the recipe: `.dump` writes `search_plan`
 before the rebuilt `research_question` it references, and booleans as 0 and
 1; about a thousand statements go straight to `sqlite3` across the tools, and
-the FTS tables are never queried.
+the FTS tables are never queried. The backup bag's `tree.sql` cannot be loaded
+into a fresh SQLite in one pass: `iterdump` writes the FTS tables through `writable_schema`,
+and their inserts fail with no such table.
 
 ### C44. A live reconsider reaches its end in one run
 
@@ -1333,12 +1335,6 @@ out as twenty years before the person's first dated event, with basis
 in `docs/RESEARCH-CHECKLIST.md` what a search carries for a person with no
 stated birth (a window from the dated events, said to be one), and build
 that.
-
-### C54. The active tree's file is written whole
-
-`tools/tree.py use` writes `catalog/.active-tree` in place, as the state
-files beside a catalog were before they took `treelib.write_json_whole`: a
-stop in mid-write leaves a file no tool can read. Write it the same way.
 
 ### C14. The census before 1850 is held back only when its year is known
 
