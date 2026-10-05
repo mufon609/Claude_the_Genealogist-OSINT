@@ -1,0 +1,192 @@
+{
+ "title": "nobody to create is a hint",
+ "line": "a new person is put to the owner only for a full name the record relates to a person accepted on it by a word of kinship: the obituary's brothers and its grandson by the word the record files under other still come up, its pastor, related only as Other Relative, and the death index's parents, Davidson and Bell by one surname each, are no card; on his reviewed baseline each is a hint that says why",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his obituary, the file's own citation, naming his parents, brothers and sisters, children and grandchildren, and the pastor as an other relative",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "say": "its subject accepted by the owner: the record's other personas are proposed",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Pastor Monty Trammel",
+      "exists": false
+     },
+     "why": "the obituary relates the pastor to him only as Other Relative, no word of kinship: nobody to create, no card"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Joe Davidson",
+      "kind": "new_person",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     },
+     "why": "a brother, a full name the record states as his sibling: created as before"
+    },
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Daniel Davidson",
+      "kind": "new_person",
+      "status": "undecided"
+     },
+     "why": "a grandson, the word the record files under other naming a relative: still a card for the owner"
+    }
+   ]
+  },
+  {
+   "say": "his death index page, attached on the owner's word: his parents given by one surname each",
+   "attach": {
+    "fixture": "familysearch-ohio-death-index-VKBL-4FN.html",
+    "about": "I332737100409"
+   },
+   "as": "ohio"
+  },
+  {
+   "say": "the owner accepts him on it",
+   "decide": {
+    "card": {
+     "record": "ohio",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "ohio",
+      "persona": "Davidson",
+      "exists": false
+     },
+     "why": "a surname alone is no full name to create a person under: no card"
+    },
+    {
+     "card": {
+      "record": "ohio",
+      "persona": "Bell",
+      "exists": false
+     },
+     "why": "nor is his mother's, Bell alone"
+    }
+   ]
+  },
+  {
+   "say": "his key facts decided: the baseline reviewed",
+   "fact": {
+    "person": "I332737100409",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   },
+   "expect": [
+    {
+     "baseline": {
+      "person": "I332737100409",
+      "complete": true
+     }
+    },
+    {
+     "hints": {
+      "record": "obit",
+      "person": "I332737100409",
+      "hints": {
+       "some": {
+        "hint": true,
+        "why": {
+         "has": [
+          "Pastor Monty Trammel (other relative) is nobody to create, not a card",
+          "only as \"Other Relative\"",
+          "no word of kinship"
+         ]
+        }
+       }
+      }
+     },
+     "why": "the pastor is a hint on the obituary that says why"
+    },
+    {
+     "hints": {
+      "record": "ohio",
+      "person": "I332737100409",
+      "hints": {
+       "some": {
+        "hint": true,
+        "why": {
+         "has": [
+          "Davidson (father) is nobody to create, not a card",
+          "no full name"
+         ]
+        }
+       }
+      }
+     },
+     "why": "his father, a surname alone, is a hint on the death index that says why"
+    },
+    {
+     "hints": {
+      "record": "ohio",
+      "person": "I332737100409",
+      "hints": {
+       "some": {
+        "hint": true,
+        "why": {
+         "has": "Bell (mother) is nobody to create"
+        }
+       }
+      }
+     },
+     "why": "and his mother"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

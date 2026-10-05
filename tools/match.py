@@ -53,7 +53,14 @@ relationship alone, so a brother named Joe is put to the tree's Joe, not to the
 first sibling met. One proposal per persona: kind
 persona_match with the candidate that fits (the one with more agreements when
 two fit, the other named in the rationale), or new_person when nobody fits,
-outright or by the fitting check. The
+outright or by the fitting check, and the persona has a full name and a word of kinship (KIN_WORD, or a child, parent,
+spouse or sibling heading) to a persona accepted on the record. Two kinds of persona are held back as hints, each with
+the reason in words (proposals' held, which cards.hints_on shows): a namesake, a persona of a record a name search alone
+reached (found_by_name: a search step's own result, or the record behind a results page's row) that agrees with the
+candidate on no more than the name, the sex and a year of birth the record gives bare, disagrees on something, and
+states no relationship to a persona accepted on the record, fitting a person or carrying a card; and nobody to create,
+a persona with no full name, or one related to those accepted only by a word that is no kinship (an informant, "other
+relative"), by "other" with no word, or by nothing. The
 proposal carries the question of the step the candidate came from, when it has
 one. A row of a results page that points at records (extract.POINTING_LISTINGS: a
 FamilySearch, Find a Grave or AAD search) is never proposed, fitting or not: its own
@@ -85,11 +92,13 @@ from treelib import DB, connect, dumps, now, ulid
 from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.7.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.8.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
 WINDOW = 3                                  # the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
 LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
 MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
+KIN_WORD = re.compile(r"\b(?:great-?)*(?:grand)?(?:father|mother|son|daughter|child|children|parent)s?\b|\b(?:brother|sister|sibling|husband|wife|spouse|groom|bride|widow|widower|aunt|uncle|niece|nephew|cousin)s?\b|in-law|\bhalf\b|\bstep", re.I)   # a word of kinship a record files under another heading (a grandson, a daughter-in-law, a maternal grandmother): never "other relative", an informant's signature or a blank
+NAME_ONLY = ("given name", "surname", "sex")   # what a namesake agrees on, besides a year of birth the record gives bare
 
 PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt", "cpl", "pfc", "cmdr", "adm"}
 def first_given(s): return key((s or "").split()[0]) if (s or "").strip() else ""
@@ -413,6 +422,26 @@ def fitting_rows(cx, eid, person_id=None, known=None):
             if fits: out.append((pid, pr, agree))
     return out
 
+def found_by_name(cx, sha):
+    """Whether a record was reached by a name search alone (docs/RESEARCH-WORKFLOW.md §5–7, a namesake): every plan step that
+    logged it or points at it is a search step, the record its own result, or the fetch of the record behind a row of a
+    results page (step key fetch:row:), and the file cites it for nobody. A record the file cites, one a held record links (a
+    memorial a page names, an ark) and one attached on the owner's word are each reached by more than a name."""
+    loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    if loc and loc[0] == "apid" and loc[1] and cited_persons(cx, loc[1]): return False
+    steps = cx.execute("""SELECT DISTINCT sp.kind, sp.step_key FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
+                          WHERE l.artifacts_json LIKE ? AND l.superseded_by IS NULL""", (f'%"{sha}"%',)).fetchall()
+    if loc and loc[0] and loc[1]:
+        values = sorted(holds(cx, sha)) if loc[0] == "apid" else [loc[1]]
+        if values: steps += cx.execute(f"SELECT DISTINCT kind, step_key FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?' * len(values))})", (loc[0], *values)).fetchall()
+    return bool(steps) and all(kind == "search" or step_key.startswith("fetch:row:") for kind, step_key in steps)
+
+def namesake(agree, disagree):
+    """Whether a comparison (compare) agrees on the name, the sex and at most a year of birth the record gives bare, and on
+    nothing else, and disagrees on something: a persona a name search alone reached that does so, tied to the person by
+    nothing more, is a namesake, a hint and never a card (docs/RESEARCH-WORKFLOW.md §5–7)."""
+    return bool(disagree) and all(a.startswith(NAME_ONLY) or (a.startswith("birth date agrees") and "the record gives only a year" in a) for a in agree)
+
 def matchable(cx, eid):
     """The sha256 of the record an extraction is, when the matcher proposes from it; None for a superseded reading, whose
     personas are history (only the current reading is proposed), and for a results page that points at records, whose rows
@@ -466,18 +495,30 @@ def on_another_copy(cx, tree_id, persona_id, ignore=()):
                                     (tree_id, other, *ignore)).fetchone()): return True
     return False
 
-def proposals(cx, eid, about=None, ignore=()):
+def proposals(cx, eid, about=None, ignore=(), held=None):
     """What the matcher proposes on an extraction as the catalog stands, written by match and by nothing else: one dict per
     persona it proposes, in the page's order, {tree_id, persona_id, name, kind, person_id (None for a new person),
     subject_person_id, question_id, step_id, rationale}. The record is matched for the people persons_for finds and the
     ones about names besides them. A persona already proposed or already decided gets none; ignore: proposal ids taken as
-    not written, so a card that stands is matched again as the matcher would write it now (tools/conclude.py rematch)."""
+    not written, so a card that stands is matched again as the matcher would write it now (tools/conclude.py rematch).
+    held: a dict filled with {persona id: why, in words} for each persona it would otherwise propose and holds back as a
+    hint (docs/RESEARCH-WORKFLOW.md §5–7): a namesake a name search alone reached (found_by_name, namesake), tied to the
+    candidate by no relationship to a persona accepted on the record, fitting a person or carrying a card; and nobody to
+    create, a persona with no full name, or one the record relates to the persons accepted on it by no word of kinship
+    (KIN_WORD), only "other" with no word, or nothing (cards.hints_on shows the words)."""
     sha = matchable(cx, eid)
     if not sha: return []
     extractor_name = cx.execute("SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()[0]
     subject_role = LISTED_RELATIVE_SUBJECT.get(extractor_name)   # set on a page anyone can edit that lists a subject's family: every other role on it is a relative merely listed
     ignore = tuple(ignore); unless = f" AND id NOT IN ({','.join('?' * len(ignore))})" if ignore else ""
     personas = personas_of(cx, eid); out = []
+    held = {} if held is None else held
+    by_name = found_by_name(cx, sha)                            # reached by a name search alone: a persona agreeing on no more than the name and disagreeing is a namesake
+    stated = {p["id"]: [] for p in personas}                    # persona id -> (kind, word, other persona id, other's name) for each relationship the record states, either way
+    for p in personas:
+        for kind, other, word, other_name in p["relations"]:
+            stated[p["id"]].append((kind, word, other, other_name))
+            if other in stated: stated[other].append((kind, word, p["id"], p["name"]))
     by_tree = {}                                                # tree id -> [(person id, question id, step id)]
     found = persons_for(cx, sha)
     for pid, qid, step_id in found + [(a, None, None) for a in dict.fromkeys(about or []) if a not in {f[0] for f in found}]:
@@ -520,6 +561,8 @@ def proposals(cx, eid, about=None, ignore=()):
                 if best: chosen[pr["id"]] = best[0]; nearly.pop(pr["id"], None)
                 elif close: chosen[pr["id"]] = close[0]; nearly[pr["id"]] = close[0]
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)
+        carded = {r[0] for r in cx.execute("SELECT json_extract(payload_json,'$.persona_id') FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND status='undecided'" + unless, (tree_id, eid, *ignore))}
+        ties = accepted_personas | carded | {o for o in chosen if o not in nearly}   # a relationship to one of these ties a persona to the record by more than its name
         for pr in personas:
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')" + unless, (tree_id, pr["id"], *ignore)).fetchone(): continue   # proposed already, unless that proposal was superseded
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=? AND pp.status<>'undecided'", (pr["id"], tree_id)).fetchone(): continue   # decided already, accepted or rejected (a link carried across a re-extraction); an undecided link is no decision: one the rule took back, whose older card a newer matcher superseded, is proposed again
@@ -531,6 +574,13 @@ def proposals(cx, eid, about=None, ignore=()):
                                        or cx.execute("""SELECT 1 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pe.extraction_id=? AND pp.status='accepted' AND pp.person_id=?""", (eid, chosen[pr["id"]]["id"])).fetchone()):
                 continue                                          # another persona on this page fits, or is accepted as, that person: one decision put once; the near one stays a hint on the page
             if pr["id"] in chosen and chosen[pr["id"]]["id"] not in open_now: continue   # fits a person nothing yet attaches to this record: waits for the decision on the record's own person
+            if pr["id"] in nearly and by_name and not any(o in ties for _, _, o, _ in stated[pr["id"]]):
+                c = chosen[pr["id"]]
+                _, agree, disagree, _, _ = compare(cat, pr, c, chosen)
+                if namesake(agree, disagree):                     # a namesake: the name, the sex and a bare year, something disagreeing, nothing more: a hint on the page
+                    held[pr["id"]] = (f"{pr['name']} ({pr['role']}) is a namesake of {c['name']}, not a card: the record was reached by a name search, agrees with "
+                                      f"{c['name']} on no more than the name, the sex and a year of birth, and disagrees: " + "; ".join(disagree))
+                    continue
             if pr["id"] not in chosen and not related_to_accepted(pr): continue        # a new person is proposed only from a record already accepted as somebody's, for those it relates to them
             if pr["id"] in chosen:
                 c = chosen[pr["id"]]; fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
@@ -541,6 +591,15 @@ def proposals(cx, eid, about=None, ignore=()):
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
             elif pr["role"] in ("result", "listed", "named in the text"): continue   # a row of a listing that is the record, a schedule row or a name in running text that fits nobody stays on the page as a hint, not a new person
             else:
+                given, rest = split_persona_name(pr["name"])
+                kin = [(kind, word, name) for kind, word, o, name in stated[pr["id"]] if o in accepted_personas]
+                if not given or not rest or pr["name"] == "(unnamed)":    # a surname alone, a given name alone, a given name and an initial
+                    held[pr["id"]] = f"{pr['name']} ({pr['role']}) is nobody to create, not a card: the record gives no full name to create a person under"
+                    continue
+                if not any(kind in ("child", "parent", "spouse", "sibling") or KIN_WORD.search(word or "") for kind, word, _ in kin):
+                    held[pr["id"]] = (f"{pr['name']} ({pr['role']}) is nobody to create, not a card: the record relates them to " +
+                                      ", ".join(f"{name} only as \"{word}\"" if word else f"{name} only under \"{kind}\" with no word" for kind, word, name in kin) + ": no word of kinship to create a person on")
+                    continue
                 tried = [compare(cat, pr, c, chosen) for c in cands]
                 why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _, _) in zip(cands, tried) if not a or d)[:600]
                 text = f"{pr['name']} ({pr['role']}) fits nobody in the family of {names}. " + why

@@ -1007,7 +1007,7 @@ def e_audit(w, x, want):
 def e_hints(w, x, want):
     from cards import hints_on
     h = hints_on(w.cx, w.tid, w.sha(x["record"]), w.person(x["person"]))
-    got = {"count": len(h), "hints": [{"persona": k, "hint": v["hint"], "agrees": v["agrees"]} for k, v in h.items()]}
+    got = {"count": len(h), "hints": [{"persona": k, "hint": v["hint"], "why": v["why"], "agrees": v["agrees"]} for k, v in h.items()]}
     if "persona" in x: got["one"] = next((v for k, v in h.items() if k == w.value(x["persona"])), None)
     return has(got, w.value({k: v for k, v in x.items() if k in ("count", "hints", "one")})), got
 

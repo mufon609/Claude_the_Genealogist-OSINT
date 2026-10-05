@@ -108,7 +108,8 @@ def artifact_view(cx, tree_id, sha, pid):
     """A held record as the person screen shows it: the file, every current extraction with its personas, facts and
     relations, how each persona stands to this person, the hint a persona with no proposal and no link is for this person
     (cards.hints_on: what agrees and what is missing, computed on view, stored nowhere, shown only on a reviewed person when a
-    place or a year agrees beyond the name), and every proposal the matcher wrote on the record: a record cited on several
+    place or a year agrees beyond the name, or with the matcher's reason when it holds the persona back as a namesake or as
+    nobody to create), and every proposal the matcher wrote on the record: a record cited on several
     relatives is fetched for all of them, and each proposal names the person it concerns."""
     a = cx.execute(f"SELECT ar.sha256, ar.mime, {tier_sql()} AS trust_tier, ar.locator_kind, ar.locator_value, ar.original_filename, ar.collection_id FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?", (sha,)).fetchone()
     if not a: return None

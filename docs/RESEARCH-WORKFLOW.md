@@ -48,7 +48,11 @@ the person with what agrees and what is missing, for research when the leads
 run dry. A document already accepted as the person's can also stay a hint
 while it still has work in it (the pre-1850 household accepted as the family's,
 the children not yet identified). A hint never becomes a fact on its own;
-research turns it into a lead or a match. A row of a search results page is
+research turns it into a lead or a match. A namesake a name search reached
+(the name, the sex and a bare year agreeing, something disagreeing, nothing
+more tying it to the person) and a persona nobody is created from (no full
+name, or no word of kinship to a person accepted on the record) are hints too,
+each saying why it is not a card (§5–7). A row of a search results page is
 never proposed as a match, whatever it agrees on: its own record is the
 document, so the row is a hint, or, when it fits the person the search was
 run for (§5–7: more than a name and a year), a lead for that record. Hints are shown only on a person
@@ -905,8 +909,17 @@ is the same identity); every other persona waits, shown on the card as
 waiting on this decision. Accepting the document as that person's runs the
 matcher again: the record's other personas are then proposed against the
 accepted person's relatives, claims included, and against every person of the
-tree the fitting check below reaches; a persona the record relates to the accepted
-person and that fits nobody is proposed as a new person then, never before. So
+tree the fitting check below reaches; a persona with a full name whom the record
+relates to the accepted person by a word of kinship and that fits nobody is
+proposed as a new person then, never before. A word of kinship is a child, a
+parent, a spouse or a sibling, or a word the record files under another heading
+that names a relative (a grandson, a daughter-in-law, a half brother, a maternal
+grandmother). Nobody is created from any other persona, and none of them is a
+card: a persona with no full name (a surname alone, a given name alone, a given
+name and an initial), or one the record relates to the accepted person only by a
+word that is no kinship (an informant, an officiant, a pastor filed as "other
+relative"), by the heading "other" with no word, or by no word at all, stays a
+hint on the page that says why. So
 a household or a profile is decided one person after another, each on the
 record's own words about the last. The comparison
 is on name, sex, birth and death dates, birth, burial and death place, the
@@ -939,11 +952,21 @@ any woman's the record otherwise shows married: a daughter or sister carrying
 another surname beside a son-in-law or brother-in-law of that surname on the
 same record, or written "Mrs." A
 persona of the same name as a candidate that disagrees on something else is
-still proposed as that candidate, with the disagreement in its rationale, so
-the owner sees the likely identity and the difference together; the rule never
-takes such a proposal, and when another persona on the same page fits that
-candidate, or is already accepted as them, the near one is not proposed at
-all: one decision is put once, and the near persona stays a hint on the page.
+proposed as that candidate when more than the name ties it to them, with the
+disagreement in its rationale, so the owner sees the likely identity and the
+difference together; the rule never takes such a proposal, and when another
+persona on the same page fits that candidate, or is already accepted as them,
+the near one is not proposed at all: one decision is put once, and the near
+persona stays a hint on the page. A namesake is not proposed either: a persona
+on a record reached by a name search alone (a search step's own result, or the
+record behind a row of a results page), whose only agreement with the candidate
+is the name, the sex and at most a year of birth the record gives bare, and that
+disagrees on anything, stays a hint on the page that says so. More than the
+name ties a persona to the person, and it is proposed as above: a record the
+file cites, one a held record links or one attached on the owner's word (none
+of them reached by a name search alone); a relationship the record states to a
+persona accepted on it, fitting a person, or carrying a card; a full date; a
+place that agrees at any level.
 A persona of the same name that disagrees on both its dates is not a likely
 identity either: it stays a hint on the page, never a card. Nor is one born
 more than the matcher's window of three years from the candidate: another
@@ -963,7 +986,8 @@ a hint on the page. A row of a listing that is the record itself (the gravesite
 locator's results, the death indexes') is proposed like a persona of any
 record, and one of those, a schedule row or a name in running text that agrees
 on the name alone is a hint on the page, never a card. One proposal per persona: `persona_match`
-with the candidate that fits, or `new_person` when nobody does. The rationale
+with the candidate that fits, or `new_person` when nobody does and the persona
+is someone to create (above). The rationale
 is plain words, which fields agree, which disagree, which are absent; no score
 is stored or shown. A proposal carries the step's question when the step has
 one, so it **answers a question**: "Is the James Ahearn in this 1870 household

@@ -1,6 +1,6 @@
 {
  "title": "what the record states",
- "line": "a census son's own field states his relationship to the head, so once the owner accepts him the rule takes the head through it, while the mother and the sister the page relates only by FamilySearch's own groupings stay cards; on the groom's page of a marriage record the bride's parents, whom FamilySearch files as his in-laws, are read as hers, as the record names them: once the groom is accepted the rule takes the bride through what the record states and creates the bride's mother, whom nobody in the tree fits, as her mother, the in-law grouping writing nothing beside it, and the bride's father, given by one name, stays a card",
+ "line": "a census son's own field states his relationship to the head, so once the owner accepts him the rule takes the head through it, while the mother and the sister the page relates only by FamilySearch's own groupings stay cards; on the groom's page of a marriage record the bride's parents, whom FamilySearch files as his in-laws, are read as hers, as the record names them: once the groom is accepted the rule takes the bride through what the record states and creates the bride's mother, whom nobody in the tree fits, as her mother, the in-law grouping writing nothing beside it, and the bride's father, given by one name, is nobody to create, a hint and never a card",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -170,15 +170,12 @@
      "why": "the bride a child of her mother on the record's statement, accepted; the in-law row FamilySearch works out adds no undecided link beside it"
     },
     {
-     "rule": {
+     "card": {
       "record": "ma",
       "persona": "Dennis",
-      "taken": false,
-      "why": {
-       "has": "no full name"
-      }
+      "exists": false
      },
-     "why": "the bride's father is stated too, but by one given name: no person is created under it"
+     "why": "the bride's father is stated too, but by one given name: nobody to create, a hint on the page that says why, never a card"
     }
    ]
   },

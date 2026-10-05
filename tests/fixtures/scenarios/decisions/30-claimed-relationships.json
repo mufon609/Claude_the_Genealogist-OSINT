@@ -1,6 +1,6 @@
 {
  "title": "claimed relationships on a census",
- "line": "a daughter is taken once her father is accepted on the record, her name and birth year agreeing and the file claiming the link; a sister FamilySearch's table relates only by its own sibling grouping is put to the unlinked person of that name by the surname alone and stays a card: the census does not state the sibling; a member related only as other is a card for the owner; the decisions are kept by the route each stands on; a rule decision withdrawn is undecided again and does not carry to a re-read, so the matcher proposes it again; cards an older matcher wrote are superseded and proposed again",
+ "line": "a daughter is taken once her father is accepted on the record, her name and birth year agreeing and the file claiming the link; a sister FamilySearch's table relates only by its own sibling grouping is put to the unlinked person of that name by the surname alone and stays a card: the census does not state the sibling; a member related only as other, with no word, is nobody to create, a hint and never a card; the decisions are kept by the route each stands on; a rule decision withdrawn is undecided again and does not carry to a re-read, so the matcher proposes it again; cards an older matcher wrote are superseded and proposed again",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -166,24 +166,9 @@
      "card": {
       "record": "c20",
       "persona": "Mary A Ahearn",
-      "kind": "new_person",
-      "status": "undecided"
+      "exists": false
      },
-     "why": "the member related only as other, fitting nobody, is a card for the owner"
-    },
-    {
-     "rule": {
-      "record": "c20",
-      "persona": "Mary A Ahearn",
-      "taken": false,
-      "why": {
-       "has": [
-        "only as other",
-        "not a family relationship"
-       ]
-      }
-     },
-     "why": "the reason names the word the record uses"
+     "why": "the member the page relates only under other, with no word, fitting nobody, is nobody to create: a hint on the page that says why, never a card"
     },
     {
      "persons": {

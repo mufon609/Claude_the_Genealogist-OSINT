@@ -1,0 +1,126 @@
+{
+ "title": "a namesake a name search reached is a hint",
+ "line": "the WWII Army enlistment search for Robert Edgar Davidson brings back the record of a Robert C Davidson born the same year in Pennsylvania: agreeing on the name, the sex and a bare year, differing in the middle initial and the birthplace, reached by the name alone, it is no card; on his reviewed baseline the record's persona is a hint that says it is a namesake and what differs",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his key facts decided on the file's claims: the baseline reviewed, and his searches open",
+   "fact": {
+    "person": "I332737100409",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   },
+   "expect": [
+    {
+     "baseline": {
+      "person": "I332737100409",
+      "complete": true
+     }
+    },
+    {
+     "step": {
+      "person": "I332737100409",
+      "step_key": "search:WWII Army enlistment:",
+      "fields": {
+       "kind": "search",
+       "status": "planned"
+      }
+     },
+     "why": "the WWII Army enlistment search is on his plan once his baseline is reviewed"
+    }
+   ]
+  },
+  {
+   "say": "the enlistment record the search brought back: Robert C Davidson, born 1915, Pennsylvania",
+   "archive": {
+    "fixture": "aad-enlistment-247275.html",
+    "source": "F01",
+    "locator": {
+     "kind": "url",
+     "value": "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&rid=247275"
+    },
+    "extract": true
+   },
+   "as": "aad"
+  },
+  {
+   "say": "his WWII Army enlistment search found it: the record is the search's own result",
+   "log": {
+    "step": {
+     "person": "I332737100409",
+     "step_key": "search:WWII Army enlistment:"
+    },
+    "outcome": "found",
+    "artifacts": [
+     "aad"
+    ]
+   }
+  },
+  {
+   "say": "the record matched for the person the search was run for",
+   "match": {
+    "record": "aad"
+   },
+   "expect": [
+    {
+     "last": {
+      "written": []
+     },
+     "why": "the name, the sex and a bare year agree, the middle initial and the birthplace differ, and nothing more ties the record to him: a namesake, no proposal"
+    },
+    {
+     "card": {
+      "record": "aad",
+      "person": "I332737100409",
+      "exists": false
+     },
+     "why": "no card waits on the owner for it"
+    },
+    {
+     "hints": {
+      "record": "aad",
+      "person": "I332737100409",
+      "hints": {
+       "some": {
+        "hint": true,
+        "why": {
+         "has": [
+          "Robert C Davidson (enlistee) is a namesake of Robert Edgar Davidson, not a card",
+          "reached by a name search",
+          "middle name disagrees",
+          "birth place disagrees"
+         ]
+        }
+       }
+      }
+     },
+     "why": "the record's persona is a hint on his reviewed baseline, saying it is a namesake and what differs"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

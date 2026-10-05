@@ -25,7 +25,7 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, DB, connect, object_path, resolve_tree
 from catalog import Catalog, fetch_target, tier_sql, year, held_for, holds
-from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, same_surname
+from match import COUNTRY, candidate as match_candidate, compare, date_verdict, key as _key, personas_of, place_verdict as _place_verdict, proposals, same_surname
 from conclude import rule_accepts, sibling_home
 from plan import row_record
 
@@ -364,19 +364,24 @@ def hints_on(cx, tree_id, sha, person_id):
     every row of a results page that points at records has, the matcher's comparison with the person, run once
     on view and stored nowhere, as its agreements, disagreements and absences. A row is a hint only when the surname agrees
     (or is the person's married name) and a place or a year agrees beyond the name, and only on a person whose baseline is
-    reviewed; a name agreeing alone (a newspaper hit, a namesake on a results page) is not. {persona id: {"hint": bool,
-    "agrees": [...], "disagrees": [...], "absent": [...]}}."""
+    reviewed; a name agreeing alone (a newspaper hit, a namesake on a results page) is not. A persona the matcher holds
+    back (match.proposals' held: a namesake a name search alone reached, or nobody to create) is a hint on a reviewed person
+    whatever agrees, with the matcher's reason as why. {persona id: {"hint": bool, "why": words or None, "agrees": [...],
+    "disagrees": [...], "absent": [...]}}."""
     cx.row_factory = sqlite3.Row
     cat = Catalog(cx, tree_id); reviewed = cat.baseline(person_id)["complete"]; cand = match_candidate(cat, person_id)
     out = {}
     for e in cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL AND status<>'failed'", (sha,)).fetchall():
+        held = {}
+        if reviewed: proposals(cx, e["id"], held=held)          # what the matcher holds back and why, written nowhere
         for pe in personas_of(cx, e["id"]):
             if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')", (tree_id, pe["id"])).fetchone(): continue
             if cx.execute("SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND o.tree_id=?", (pe["id"], tree_id)).fetchone(): continue
             _, agree, disagree, absent, _ = compare(cat, pe, cand, {})
             surname = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
             beyond = any(a.startswith(("birth date agrees", "death date agrees", "birth place agrees", "burial place agrees", "death place agrees", "residence place agrees")) for a in agree)
-            out[pe["id"]] = {"hint": bool(reviewed and surname and beyond), "agrees": agree, "disagrees": disagree, "absent": absent}
+            why = held.get(pe["id"])
+            out[pe["id"]] = {"hint": bool(reviewed and ((surname and beyond) or why)), "why": why, "agrees": agree, "disagrees": disagree, "absent": absent}
     return out
 
 def search_card(cx, tree_id, sha, person_id=None):

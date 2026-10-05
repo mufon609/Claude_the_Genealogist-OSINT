@@ -366,7 +366,11 @@ stored): on a person whose baseline is reviewed, when the surname and a place
 or a year agree beyond the name, the persona row carries a "hint" pill and one
 line of what agrees and what is missing, the hint of `docs/RESEARCH-WORKFLOW.md`
 §0, for when the leads run dry; a row agreeing on the name alone (a newspaper
-hit, a namesake on a results page) carries nothing. Under each
+hit, a namesake on a results page) carries nothing. A persona the matcher holds
+back as a namesake a name search reached, or as nobody to create (no full name,
+no word of kinship to a person accepted on the record), carries the pill on a
+reviewed person with the matcher's reason in words ahead of that line
+(`docs/RESEARCH-WORKFLOW.md` §5–7). Under each
 persona sit the matcher's proposals on the record (a record cited on several
 relatives is fetched for all of them, and each proposal names the person it
 concerns), each as the decision card, with Add / Ignore on a persona match or a
