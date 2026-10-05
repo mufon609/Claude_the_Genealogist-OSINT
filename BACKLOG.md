@@ -223,9 +223,7 @@ The work, a class at a time, the docs first (§0, §5–7,
 `docs/RESEARCH-CHECKLIST.md` §6b), each ground written as a test the rule
 makes and shown on a copy of the live catalog before the live run: the
 grounds above for a relative named in part and for a woman's two surnames; a
-persona of another birthplace and other parents as a hint, never a card; a
-persona nobody could be created from as a hint; a card short of a point as
-first a lead for the record that would supply it; an index's line joined to
+card short of a point as first a lead for the record that would supply it; an index's line joined to
 the certificate it indexes; a record's own two wordings of a place as one
 statement; a place difference compared once both strings are resolved in
 context; a bare place name resolved in that context. The same-named nested
@@ -233,6 +231,18 @@ unit stays undecided as `CLAUDE.md` has it unless a trial shows context that
 tells the two apart, which is then put to the owner as a change to that rule.
 Nothing lowers what the rule takes: the rule is given more evidence. What
 still reaches a person says what was tried.
+
+The first class is built: a namesake a name search reached, and a persona
+nobody is created from, are hints on the page that say why (50 record cards
+wait on the live catalog of 5 Oct 2026, thirteen fewer). Left from it: a
+profile a name search reached that agrees on the name alone and disagrees on
+nothing is still a card, for want of a real page that shows it; a card closed
+and proposed again by a new matcher can land on another copy of its record,
+where the docs put an entry on the copy that first carried its card; a
+new-person card stops being one only when the matcher's version next rises,
+since the pass that re-examines cards reads persona matches alone; and a
+surname-only parent on a child's record is a hint until the class that reads
+a relative named in part knows them for the tree's own parent.
 
 What a waiting question shows (`docs/DATA-ARCHITECTURE.md` §7 decision 18).
 Each waiting question says, in words a person who knows no genealogy can act
@@ -992,7 +1002,8 @@ The rule reads the matcher's English: `conclude.py` tests
 name and word collide; `cards.py` reads the same lines. Rewording a line of
 `match.compare` or `catalog.place_verdict` changes what the rule decides, and
 the rule's three routes (points, identity, creation) speak to each other the
-same way. `HEAD_ONLY` and `DATED_WITH_PARENTS` are labels of
+same way, and `match.namesake` and `catalog.place_given` read the comparison's
+sentences as the rule does. `HEAD_ONLY` and `DATED_WITH_PARENTS` are labels of
 `data/evidence-classes.csv` written in code, which no check holds to the file:
 renaming the kind there turns off the pre-1850 census guard, which also passes
 when the census year is unknown and takes the year from the collection's name
@@ -1022,7 +1033,10 @@ Innovator approval" still wait on the API decision 4 rules out.
 `backfill_aliases.py` names this tree's own misspelling "Silesa" and fifteen
 states where `catalog.py` holds all. Move each into the data it belongs to, or
 the table that already holds it, and the nickname groups to a data file of
-true equivalents.
+true equivalents. The words of kinship are held twice and in English: the
+matcher's `KIN_WORD`, by which a new person is proposed, and the rule's
+`FAMILY_WORD`, by which one is created, differ (a "Maternal Grandmother" is a
+card the rule refuses).
 
 ### C42. The move to Postgres is not a dump and restore yet
 
@@ -1070,7 +1084,8 @@ reads, and run `ANALYZE` after a migration. `overview.overview` builds a card
 for every person on each load, `Catalog.tiers` walks the tree once per
 instance and instances are made per call, and `assertion` has no index on
 `persona_fact_id` or `persona_id`; `ANALYZE` has never run on the live
-catalog. Every turn's tail runs `conclude.reconsider` over the whole tree,
+catalog. `cards.hints_on` runs the matcher each time a reviewed person's
+record is viewed, unmeasured on a record of many names. Every turn's tail runs `conclude.reconsider` over the whole tree,
 two to three minutes a turn at 145 people: a turn re-examines what its own
 records and decisions touch.
 
@@ -1241,8 +1256,9 @@ rejection only by the note `superseded` (1,334 of the 1,339 rejected cards
 live); "a page anyone can edit" is tier T4 in one place and anything outside
 T1 to T3 in another; the matcher never proposes a persona that carries any
 rejected link, to anyone; and the proof makes "meets the standard" wait on
-research the docs call "not a gate". Bring each to the docs, or the docs to
-it.
+research the docs call "not a gate"; and `conclude.rule_creates` still words
+refusals for a persona with no full name or no word of kinship, which the
+matcher no longer proposes. Bring each to the docs, or the docs to it.
 
 ### C61. The proof shows every conflict and argues the family links
 
