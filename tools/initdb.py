@@ -288,7 +288,7 @@ def task_launchers(cx: sqlite3.Connection) -> None:
 def households(cx: sqlite3.Connection) -> None:
     """The household and household_member tables with their indexes and insert-only triggers (tools/households.py: the
     households read off a census form), as schema/catalog.sql and schema/sqlite_extras.sql define them. No row is written:
-    tools/households.py write groups the households of the pages already held."""
+    the plan groups the households of the pages already held the next time it runs, or tools/households.py write does."""
     ddl = read("schema/catalog.sql")
     start = ddl.index("CREATE TABLE household (")
     index = "CREATE INDEX ix_household_member_persona ON household_member(persona_id);\n"

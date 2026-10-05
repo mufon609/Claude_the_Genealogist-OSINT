@@ -82,8 +82,10 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   no tree's decision goes into it. Insert-only: a household grouped again differently (a page
   newly held, a reading read again, the script at another version) is a new row, and the row
   it replaces names it in `superseded_by`, written once; one whose entries no current reading
-  holds is replaced by a row of no members. The 0.8.5 migration (`tools/initdb.py`'s
-  `households`) added the tables and their triggers and wrote no row.
+  holds is replaced by a row of no members. The plan groups them again before it reads them
+  (`tools/plan.py`'s `household_leads`: a household not wholly held is a lead on the people the
+  tree ties to it). The 0.8.5 migration (`tools/initdb.py`'s `households`) added the tables
+  and their triggers and wrote no row.
 - Decisions are three-state: `undecided` | `accepted` | `rejected` on `assertion`,
   `person_persona`, `place_string`, `alias`, `proposal`. No numeric confidence columns.
 - An `assertion` records who set the status it has (`asserted_by`, `asserted_at`) and whether
@@ -218,7 +220,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/backfill_aliases.py` | Undecided aliases from the names records write, and each place string's variant kind. Re-runnable. |
 | `tools/checklist.py "<person>"` | Read-only foundation, questions, Group A/B rows (held / cited / missing / n/a) and the step per gap (`docs/RESEARCH-CHECKLIST.md` §6a). |
 | `tools/footprint.py "<person>"` | Read-only Layer 0: duplicates, unlinked same-surname persons, records on relatives ranked by the family members they share. |
-| `tools/plan.py "<person>" / --all` | Materialize questions and steps into `research_question` and `search_plan`, idempotently: a fetch step per citation or lead, a search step per missing row. |
+| `tools/plan.py "<person>" / --all` | Materialize questions and steps into `research_question` and `search_plan`, idempotently: a fetch step per citation or lead (a census household not wholly held among them, its households grouped again first), a search step per missing row. |
 | `tools/log_search.py` | A run (found / none / blocked / error; `unread` is the attach's and the runner's word for a record no parser reads) logged on a step, per source; `--dismiss` a question (a conflict only with `--note`, its written reason), `--reopen` a step done in error, `--list` a person's plan. |
 | `tools/attach_inbox.py [file ...] [--about "<person>"]` | Every inbox file to the steps its own identity fulfils: archived once, logged, extracted and matched; a step is done only when the page is the record it cites. `--about` takes one file on the owner's word: a record no step cites, or a family-held photograph or scan. |
 | `tools/attach.py` | The attach path `attach_inbox.py`, `fetches.py collect` and the person screen share. |

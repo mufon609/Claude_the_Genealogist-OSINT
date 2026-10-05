@@ -38,15 +38,16 @@ Stored insert-only (household, household_member; schema/catalog.sql) with the sc
 grouped again differently (a page newly held, a reading read again, the script at another version) is a new row, and each
 row it replaces names it in superseded_by, written once; a household whose entries no current reading holds any longer is
 replaced by a row of no members. Households are evidence shared by every tree (CLAUDE.md hard rule 4): nothing a tree
-decided is read in grouping them.
+decided is read in grouping them. tools/plan.py groups them again before it reads them, so a page read since is in them.
 
     group(cx)                        the households as the script groups them now, and the entries in none
     regroup(cx, by, ts=None)         group, store what changed, supersede what it replaces: what it wrote
     stored(cx)                       the current stored households, with their members
+    waiting_for(cx, tree_id, pid)    the current households not wholly held a member of which the tree ties to the person
 """
-import argparse, collections, json, os, sys
+import argparse, collections, csv, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, connect, dumps, now, ulid
+from treelib import DB, ROOT, connect, dumps, now, ulid
 from catalog import US_NAMES, entry_on, is_identity, key, persona_key, record_copies, split_name, us_state
 from forms import forms
 
@@ -340,6 +341,53 @@ def regroup(cx, by, ts=None):
         sid = succ["id"] if succ else _insert(cx, {"form": cur[hid]["form"], "page": {}, "complete": False, "missing": [], "ground": GONE, "members": []}, ts, by, supersedes=[hid])
         cx.execute("UPDATE household SET superseded_by=? WHERE id=?", (sid, hid))
     return {"kept": len(kept), "written": len(fresh), "superseded": len(gone), "ungrouped": len(loose)}
+
+HOLDERS = None
+
+def fs_collection(name):
+    """FamilySearch's own key of a collection, by its name there or the name of the Ancestry collection it holds (data/holders.csv,
+    kind fs_collection), or None."""
+    global HOLDERS
+    if HOLDERS is None:
+        with open(os.path.join(ROOT, "data", "holders.csv"), newline="", encoding="utf-8") as fh:
+            HOLDERS = [r for r in csv.DictReader(fh) if r["HolderSourceId"] == "D03" and r["HolderKind"] == "fs_collection"]
+    return next((r["HolderKey"] for r in HOLDERS if name and name in (r["HolderCollection"], r["AncestryCollection"])), None)
+
+def waiting_for(cx, tree_id, pid):
+    """The current households not wholly held a member of which the tree ties to this person: a link or a card on one of the
+    member's personas, accepted or undecided, and no link of the person to one of them rejected. Each as stored (stored), with
+    what a lead for it needs: `key` (its form and page), `collection` and `collection_id` (the collection its copies are in, at
+    FamilySearch where one is), `fs_collection` (FamilySearch's own key for it, data/holders.csv), `year`, `jurisdiction`,
+    `surname` (the one most of its members are written under) and `place` (the minor division and county its census residence
+    gives)."""
+    hids = [r[0] for r in cx.execute(
+        """SELECT DISTINCT h.id FROM household h JOIN household_member m ON m.household_id=h.id WHERE h.superseded_by IS NULL AND NOT h.complete
+           AND (EXISTS (SELECT 1 FROM person_persona pp WHERE pp.person_id=? AND pp.persona_id=m.persona_id AND pp.status IN ('accepted','undecided'))
+                OR EXISTS (SELECT 1 FROM proposal pr WHERE pr.tree_id=? AND pr.kind='persona_match' AND pr.status='undecided'
+                           AND json_extract(pr.payload_json,'$.person_id')=? AND json_extract(pr.payload_json,'$.persona_id')=m.persona_id))
+           AND NOT EXISTS (SELECT 1 FROM household_member o JOIN person_persona pp ON pp.persona_id=o.persona_id
+                           WHERE o.household_id=h.id AND o.entry=m.entry AND pp.person_id=? AND pp.status='rejected')
+           ORDER BY h.id""", (pid, tree_id, pid, pid))]
+    if not hids: return []
+    byid = {h["id"]: h for h in stored(cx)}; fs = census_forms(); out = []
+    for hid in hids:
+        h = byid.get(hid)
+        if not h: continue
+        pids = [m["persona"] for m in h["members"]]; facts = _facts(cx, pids)
+        colls = cx.execute(f"""SELECT c.id, c.name FROM persona p JOIN artifact a ON a.sha256=p.artifact_sha256 JOIN collection c ON c.id=a.collection_id
+                               WHERE p.id IN ({','.join('?' * len(pids))}) ORDER BY p.rowid""", pids).fetchall()
+        at_fs = next(((cid, name, fs_collection(name)) for cid, name in colls if fs_collection(name)), None)
+        names = [split_name(m["name"])[1] for m in h["members"] if split_name(m["name"])[1]]
+        res = next((r for p in pids for r in [_residence(p, facts)] if r), None)
+        minor, county, _ = place_parts(res)
+        form = fs.get(h["form"]) or {"years": [], "jurisdiction": "united states"}
+        dated = [int(m.group(0)) for p in pids for f in facts.get(p, []) if f[0] == "Residence" for m in [re.search(r"\b1[789]\d\d\b", f[2] or "")] if m]
+        out.append({**h, "key": h["form"] + "|" + "|".join(f"{k}={v}" for k, v in sorted(h["page"].items())),
+                    "collection": at_fs[1] if at_fs else (colls[0][1] if colls else None), "collection_id": at_fs[0] if at_fs else (colls[0][0] if colls else None),
+                    "fs_collection": at_fs[2] if at_fs else None, "year": form["years"][0] if len(form["years"]) == 1 else (dated[0] if dated else None),
+                    "jurisdiction": form["jurisdiction"], "surname": collections.Counter(names).most_common(1)[0][0] if names else None,
+                    "place": ", ".join(x for x in (minor, county) if x) or res})
+    return out
 
 def said(m):
     """A member in words: their name, with the relationship and the line the form gives them."""

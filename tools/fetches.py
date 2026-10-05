@@ -63,7 +63,8 @@ def _slug(text): return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", (text or "
 def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None):
     """The file name a saved page takes: findagrave-memorial-<id>.html for a memorial; for a FamilySearch link (D03),
     familysearch-<collection words>-search-<given>-<surname>.html when the link is the collection's own search (no ark in
-    the citation: url carries no /ark:/, given and surname read off the search's own q.givenName/q.surname), so the several
+    the citation: url carries no /ark:/, given and surname read off the search's own q.givenName/q.surname; a search by the
+    surname alone, a household's lead, is -search-<surname>), so the several
     people's steps one search serves share one name, as the list already groups them by URL; a census collection's search
     carries the row's own year too (familysearch-census-<year>-search-<given>-<surname>.html), the row_key's year, since
     "census" alone would collapse a person's two census searches (the 1925 New York state census and the 1930 federal
@@ -86,7 +87,7 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
         if url and "/ark:/" not in url:
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
             given = _slug((q.get("q.givenName") or [""])[0]); surname = _slug((q.get("q.surname") or [""])[0])
-            if surname: return f"familysearch-{words}{'-' + row_year if census and row_year.isdigit() else ''}-search-{given}-{surname}.html"
+            if surname: return f"familysearch-{words}{'-' + row_year if census and row_year.isdigit() else ''}-search-{given + '-' if given else ''}{surname}.html"
         return f"familysearch-{words}-{v('year') or (row_year if row_year.isdigit() else None) or '<year>'}-<ark id>.html"
     return f"{_slug(holder_id)}-{words}-{_slug(piece)}-{six}.html"
 
@@ -116,6 +117,8 @@ def waiting(cx, tree_id):
     so the saved file reaches that person's steps on that citation alone. A step whose locator is a record's own ark (a row of a
     results page that fits the person, tools/plan.py's result_row_leads, or a record the owner named) is that record's page,
     named with the ark filled in: the listing pointed at the record and is not one, so the record's page is the next to save.
+    A step whose locator is a household (tools/plan.py's household_leads: the entries a census household lacks) is a lead too,
+    its link the collection's search by the surname, the place and the year, listed under the holder and that collection.
     A step at a browse-only holder (catalog.browse_only:
     a FamilySearch images-only collection) never appears either: nobody can save such a page the page-saves-itself way,
     so it stays on the plan with its reason and off this list, never a name with an unfilled placeholder."""
@@ -123,7 +126,7 @@ def waiting(cx, tree_id):
     def add(s, key, link, holder, name):
         e = out.setdefault(key, {"holder_id": s["locator_source_id"], "holder": holder, "url": link, "lead": False, "people": [], "steps": 0, "step_ids": [], "rows": [],
                                  "save_as": name, "how": "image" if s["locator_source_id"] == "E05" else "page"})
-        e["steps"] += 1; e["step_ids"].append(s["id"]); e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url", "ark")
+        e["steps"] += 1; e["step_ids"].append(s["id"]); e["lead"] = e["lead"] or s["locator_kind"] in ("memorial_id", "url", "ark", "household")
         if s["display_name"] not in e["people"]: e["people"].append(s["display_name"])
         rk = s["row_key"].split(":")[0]
         if rk not in e["rows"]: e["rows"].append(rk)
@@ -143,7 +146,8 @@ def waiting(cx, tree_id):
             key = (hid, page) if hid == "D03" else (hid, page, s["person_id"])      # a FamilySearch page carries its ark; any other page is named for its citation and person
             t = fetch_target(s["locator_value"], url, fields); link = t["url"]; holder = f"{s['holder_name']}: {t['holder']}" if t["holder"] else s["holder_name"]
         else:
-            key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
+            key = (hid, s["locator_value"]); link = url or None; coll = (fields.get("collection") or {}).get("value")
+            holder = f"{s['holder_name']}: {coll}" if s["locator_kind"] == "household" and coll else s["holder_name"]   # a household's search, beside the collection's other searches
         name = save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link)
         add(s, key, link, holder, name.replace("<ark id>", ark_id(s["locator_value"])).replace("-<year>", "") if s["locator_kind"] == "ark" else name)
     entries = distinct_names(list(out.values()))

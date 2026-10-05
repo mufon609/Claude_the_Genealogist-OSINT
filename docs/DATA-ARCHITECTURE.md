@@ -586,8 +586,9 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    changes, would change those households beneath them with no trace. A
    household grouped again differently supersedes the row it replaces, as a
    re-read extraction does. Households are evidence shared by every tree, like
-   code's `same_record` joins: no tree's acceptance goes into them. The
-   lead a household not wholly held makes, the calibration and the rule's reading of
+   code's `same_record` joins: no tree's acceptance goes into them. A household
+   not wholly held is a lead on the people a tree ties to it, the head's entry
+   first (`tools/plan.py`). The calibration and the rule's reading of
    households are the work in `BACKLOG.md`; until then nothing the rule
    decides reads a household.
 

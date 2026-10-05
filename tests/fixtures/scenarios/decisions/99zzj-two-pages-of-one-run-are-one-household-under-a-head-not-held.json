@@ -1,6 +1,6 @@
 {
  "title": "two pages of one run are one household under a head not held",
- "line": "the 1925 New York pages of Mary Peters (Wife, line 23) and Ruth Peters (Daughter, line 25), page 19 of assembly district 01 and election district 06, Nassau, are one household under a head not held, line 24 missing: the form opens a household only at a head's line, nothing held opens one between them and the line between not held is crossed by their one surname; Ruth's page alone is a household of one missing its head, superseded once Mary's is read",
+ "line": "the 1925 New York pages of Mary Peters (Wife, line 23) and Ruth Peters (Daughter, line 25), page 19 of assembly district 01 and election district 06, Nassau, are one household under a head not held, line 24 missing: the form opens a household only at a head's line, nothing held opens one between them and the line between not held is crossed by their one surname; Ruth's page alone is a household of one missing its head, superseded once Mary's is read; Ruth's plan holds the search of FamilySearch's New York 1925 collection for Peters at Hempstead, Nassau, in 1925 with no given name, which the fetch list prints as a lead, until the owner rejects her card",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -151,6 +151,107 @@
    ]
   },
   {
+   "say": "Ruth's plan written again",
+   "plan": [
+    "I332737100400"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:household:%",
+      "fields": {
+       "kind": "fetch",
+       "mode": "fetch",
+       "status": "planned",
+       "row_key": "New York state census:1925",
+       "locator_source_id": "D03",
+       "locator_kind": "household",
+       "query": {
+        "collection": {
+         "value": "New York, State Census, 1925",
+         "basis": "record"
+        },
+        "surname": {
+         "value": "Peters"
+        },
+        "residence place": {
+         "value": "Hempstead, Nassau"
+        },
+        "year": {
+         "value": "1925"
+        },
+        "missing": {
+         "value": "the head; line 24"
+        },
+        "url": {
+         "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+        }
+       }
+      }
+     },
+     "why": "the household's missing head is a lead on Ruth's plan: FamilySearch's New York 1925 collection (1937489) searched for Peters at Hempstead, Nassau, in 1925, with no given name"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737100400",
+      "url_has": "f.collectionId=1937489&q.residenceDate.from=1925",
+      "is": [
+       {
+        "save_as": "familysearch-census-1925-search-peters.html",
+        "people": [
+         "Ruth M Peters"
+        ]
+       }
+      ]
+     },
+     "why": "the fetch list prints the search for the browser, its file named for the census year and the surname alone, beside the search Ruth's own citation of the page makes with her given name"
+    },
+    {
+     "plan_idempotent": [
+      "I332737100400"
+     ]
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects Ruth's card on her page",
+   "decide": {
+    "card": {
+     "record": "ruth",
+     "person": "I332737100400"
+    },
+    "status": "rejected",
+    "note": "harness: not her"
+   }
+  },
+  {
+   "say": "her plan written again",
+   "plan": [
+    "I332737100400"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:household:%",
+      "exists": false
+     },
+     "why": "a household a person's own rejection unties from her is no lead of hers"
+    },
+    {
+     "households": {
+      "form": "ny-1925",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "the household is evidence shared by every tree: the owner's rejection changes nothing in it"
+    }
+   ]
+  },
+  {
    "say": "the catalog whole",
    "expect": [
     {
@@ -158,6 +259,11 @@
     },
     {
      "no_repeats": true
+    },
+    {
+     "plan_idempotent": {
+      "person": "I332737100400"
+     }
     }
    ]
   }

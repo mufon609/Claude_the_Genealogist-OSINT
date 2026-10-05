@@ -31,7 +31,9 @@ and the loop can act on: a record to fetch because a held record names it
 because an accepted fact makes it possible (the 1950 household at the address
 the 1940 census gives), the record behind a row of a search results page that
 fits the person the search was run for, a person named on an accepted record
-who is not yet in the tree. A lead has a person, what to do, where to do it, and what produced it
+who is not yet in the tree, the entries a census household holding the person
+lacks (the head of the 1925 household Mary and Ruth Peters' pages make,
+§5–7, households). A lead has a person, what to do, where to do it, and what produced it
 (the record, fact or citation). Leads are the queue of work; every lead is a
 plan step with its log, so what was tried and what it gave is never lost. A
 lead closes when it is run, found or none, or when its gap has gone. Accepting
@@ -259,7 +261,23 @@ for the row's own record on that person's plan (row `search result:`, step key
 `fetch:row:<record id>`), its locator the record's own identity (an ark, a
 memorial id, an enlistment record's URL) at the holder of the results page, the
 row's words as its fields (basis `record`), the page it was found on among
-them. Running a step (Go, Search, the log buttons) is the approval;
+them. A census household not wholly held (§5–7, households) is a lead on each
+person the tree ties to one of its members, by a link or a card that nobody has
+rejected: one step for its missing entries, the head's first, under the
+person's census row of the form's year (`tools/plan.py`'s `household_leads`,
+key `fetch:household:<form and page>:<surname>`, locator kind `household`):
+FamilySearch's search of the collection the household's copies are in (its key
+from `data/holders.csv`), by the surname most of the members are written under,
+the place their census residence gives and the year, never by a given name:
+the head's own need not be any member's, and a search by a given name finds a
+head of another name only by chance. The fetch list prints it as a lead with
+the link and the name to save under (`familysearch-census-1925-search-peters.html`),
+and the results page, saved with the list's key, reaches the step. Its fields
+are the held record's (basis `record`), never the person's claims, so it opens
+before the baseline is reviewed, as a cited record's fetch does: it finds the
+rest of a page already held. The Peters household gives Ruth M Peters and Mary
+Peters each that step: FamilySearch's New York 1925 collection (1937489)
+searched for Peters at Hempstead, Nassau, in 1925. Running a step (Go, Search, the log buttons) is the approval;
 there is no approval state. Fetches are cheap and decisive, and open before the
 baseline is reviewed because the review needs them.
 
@@ -1509,7 +1527,8 @@ last missing. What is missing is named, the head first ("the head", "line
 24"), and never filled in by guess; a household a record page lists in full is
 not missing a member whose line no copy gives. `tools/households.py show`
 prints the households as the script groups them now, and `write` stores them
-where they changed.
+where they changed; the plan groups them again before it reads them. A
+household not wholly held is a lead on the people a tree ties to it (§3).
 
 ### The proof standard
 
@@ -1858,7 +1877,8 @@ which no write-once column can say, and one form serves both.
   improves every time a review accepts something.
 - Nothing is searched for a person until that person's baseline is reviewed.
   Fetching a record the tree already cites is allowed before review, because
-  the review needs the record.
+  the review needs the record, and so is finding the rest of a census household
+  a held page holds part of, on that page's own words (§3).
 - The first screen is the person: claims, evidence, verdicts, then their
   questions and the plan for each.
 - FamilySearch is reached through the owner's browser only, never its API
