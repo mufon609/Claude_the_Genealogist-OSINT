@@ -164,7 +164,7 @@
        "kind": "fetch",
        "mode": "fetch",
        "status": "planned",
-       "row_key": "New York state census:1925",
+       "row_key": "household:1925",
        "locator_source_id": "D03",
        "locator_kind": "household",
        "query": {
@@ -190,7 +190,7 @@
        }
       }
      },
-     "why": "the household's missing head is a lead on Ruth's plan: FamilySearch's New York 1925 collection (1937489) searched for Peters at Hempstead, Nassau, in 1925, with no given name"
+     "why": "the household's missing head is a lead on Ruth's plan, under the household's own row: FamilySearch's New York 1925 collection (1937489) searched for Peters at Hempstead, Nassau, in 1925, with no given name"
     },
     {
      "fetch_entries": {

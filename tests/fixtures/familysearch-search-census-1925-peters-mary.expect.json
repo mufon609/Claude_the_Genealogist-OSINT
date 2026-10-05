@@ -1,0 +1,44 @@
+{
+ "extractor": "familysearch-search",
+ "personas": 9,
+ "sequence": {
+  "2": {
+   "name": "Mary Peters",
+   "role": "result",
+   "region": [
+    "KS4R-RTM"
+   ],
+   "facts": [
+    {
+     "type": "Residence",
+     "date": "1925",
+     "place": "Hempstead, Hempstead, Nassau, New York, United States"
+    },
+    {
+     "type": "Birth",
+     "date": "CAL 1887"
+    }
+   ],
+   "why": "the household's wife, page 19, line 23: a row of the search Mary's own citation made, with her given name"
+  },
+  "3": {
+   "name": "Mary K Peters",
+   "facts": [
+    {
+     "type": "Residence",
+     "place": "Oyster Bay, Oyster Bay, Nassau, New York, United States"
+    }
+   ],
+   "why": "a row of another town of the county, which the search's place did not keep out"
+  }
+ },
+ "parsed": {
+  "count": 9,
+  "pages": 1,
+  "query": {
+   "q.givenName": "Mary",
+   "q.surname": "Peters"
+  },
+  "why": "one page of nine records, the search with the given name Mary"
+ }
+}

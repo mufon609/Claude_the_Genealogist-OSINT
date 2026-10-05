@@ -588,7 +588,11 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    re-read extraction does. Households are evidence shared by every tree, like
    code's `same_record` joins: no tree's acceptance goes into them. A household
    not wholly held is a lead on the people a tree ties to it, the head's entry
-   first (`tools/plan.py`). The calibration and the rule's reading of
+   first (`tools/plan.py`): its search's answer saved page by page, and the rows
+   of it, and of the archive's other pages of that search with a given name,
+   that could be the missing entries, their record pages one at a time in an
+   order code works out (`docs/RESEARCH-WORKFLOW.md` §5–7, "Households"), until
+   the household is complete or the candidates run out. The calibration and the rule's reading of
    households are the work in `BACKLOG.md`; until then nothing the rule
    decides reads a household.
 

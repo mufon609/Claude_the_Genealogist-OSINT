@@ -1,0 +1,500 @@
+{
+ "title": "a household's search answer leads to its missing entries one at a time",
+ "line": "Ruth Peters's 1925 page alone is a household missing its head; FamilySearch's 1925 collection searched for Peters at Hempstead, Nassau, saved by hand, reaches her household's search by its own identity: it is page 1 of 6, so page 2 is the search's next save, and its rows are the candidates for the head, the five born too late to be her parent left out, the rest in the answer's order, one opened at a time; an earlier search of the same collection, surname and place, with the given name Mary, puts Mary Peters's row first, her record id differing from Ruth's in its last character alone; Mary's page saved for that candidate lands on page 19, line 23, the wife: the household regrouped holds her and Ruth and is still missing the head and line 24, so the five too young for the head are candidates for line 24 now, after the head's, and the next candidate opened is the row born in 1887, the wife's year. No head's page is held, so the household is complete nowhere here",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Ruth's 1925 New York page, page 19, line 25, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTQ.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTQ"
+    },
+    "extract": true,
+    "match": [
+     "I332737100400"
+    ]
+   },
+   "as": "ruth"
+  },
+  {
+   "say": "Ruth's plan written: her page alone is a household missing its head",
+   "plan": [
+    "I332737100400"
+   ],
+   "expect": [
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:household:%",
+      "fields": {
+       "status": "planned",
+       "row_key": "household:1925",
+       "locator_kind": "household",
+       "query": {
+        "url": {
+         "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+        },
+        "missing": {
+         "value": "the head"
+        }
+       }
+      }
+     },
+     "why": "the household's search, under the household's own row and not her census row, which her own page holds: the first page of its answer, nothing of it held yet"
+    },
+    {
+     "household_leads": {
+      "person": "I332737100400",
+      "is": [
+       {
+        "answer": {
+         "held": [],
+         "next": 1
+        },
+        "order": [],
+        "open": []
+       }
+      ]
+     },
+     "why": "no results page of the collection for Peters at Hempstead is held, so no row is a candidate yet"
+    }
+   ]
+  },
+  {
+   "say": "the household's search saved in the browser by hand, its key the live catalog's, which names no step of this one: page 1 of 6",
+   "save": {
+    "fixture": "familysearch-search-census-1925-peters.html",
+    "holder": "D03",
+    "person": "I332737100400",
+    "url_has": "f.collectionId=1937489&q.residenceDate.from=1925",
+    "folder": "downloads"
+   }
+  },
+  {
+   "say": "collected",
+   "collect": {
+    "folder": "$last.folder"
+   },
+   "as": "search",
+   "expect": [
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737100400",
+       "step_key_like": "fetch:household:%"
+      },
+      "is": [
+       {
+        "outcome": "found",
+        "artifacts": [
+         "f1fb1f2c06febcf3199fe11396f985b43e5c425d3508e761bcd944c65756146b"
+        ],
+        "notes": {
+         "has": "a page of the household's own search"
+        }
+       }
+      ]
+     },
+     "why": "the page's own identity reaches the household's search: its collection, surname, place and year are the step's own, whatever the key it carries names"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:household:%",
+      "fields": {
+       "status": "planned",
+       "query": {
+        "url": {
+         "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters&count=20&offset=20"
+        }
+       },
+       "rationale": {
+        "has": "120 matching records on 6 pages, page 1 held: page 2 next"
+       }
+      }
+     },
+     "why": "the answer is cut: its next page, twenty rows on, is the search's next save, and a listing closes no step"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737100400",
+      "url_has": "&count=20&offset=20",
+      "is": [
+       {
+        "save_as": "familysearch-census-1925-search-peters-page-2.html",
+        "people": [
+         "Ruth M Peters"
+        ]
+       }
+      ]
+     },
+     "why": "the fetch list prints page 2 of the answer for the browser, under a name of its own"
+    },
+    {
+     "household_leads": {
+      "person": "I332737100400",
+      "is": [
+       {
+        "answer": {
+         "held": [
+          1
+         ],
+         "count": 120,
+         "total": 6,
+         "next": 2
+        },
+        "left_out": [
+         {
+          "name": "Winnie Peters",
+          "why": {
+           "has": [
+            "born CAL 1920, so not the head",
+            "the head is the parent of Ruth Peters (Daughter, born CAL 1921)",
+            "data/life-limits.csv"
+           ]
+          }
+         },
+         {
+          "name": "Ernest Peters"
+         },
+         {
+          "name": "Florence Peters"
+         },
+         {
+          "name": "Winifred Peters"
+         },
+         {
+          "name": "Amy Peters"
+         }
+        ],
+        "order": {
+         "len": 14,
+         "first": {
+          "name": "Lillian Peters",
+          "ark": "ark:/61903/1:1:KSHM-GFJ",
+          "for": [
+           "the head"
+          ]
+         },
+         "none": {
+          "name": "Ruth Peters"
+         },
+         "every": {
+          "for": [
+           "the head"
+          ]
+         }
+        },
+        "open": [
+         {
+          "name": "Lillian Peters"
+         }
+        ]
+       }
+      ]
+     },
+     "why": "the head alone is missing: a row born too late to be the daughter's parent by the life limits is left out; Ruth's own row is held; nothing in the household orders the other fourteen, so they stand in the answer's order, the one with no birth year last, and the first is opened"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key": "fetch:row:ark:/61903/1:1:KSHM-GFJ",
+      "fields": {
+       "status": "planned",
+       "row_key": "household:1925",
+       "locator_kind": "ark",
+       "locator_value": "ark:/61903/1:1:KSHM-GFJ",
+       "query": {
+        "candidate for": {
+         "value": "the head"
+        }
+       },
+       "rationale": {
+        "has": [
+         "candidate 1 of 14 for the head",
+         "5 rows left out",
+         "1 candidate at a time"
+        ]
+       }
+      }
+     },
+     "why": "the first candidate is a lead for its own record page"
+    },
+    {
+     "step_count": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:row:%",
+      "status": "planned",
+      "is": 1
+     },
+     "why": "one candidate at a time"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737100400",
+      "url_has": "KSHM-GFJ",
+      "is": [
+       {
+        "save_as": "familysearch-census-1925-KSHM-GFJ.html",
+        "url": "https://www.familysearch.org/ark:/61903/1:1:KSHM-GFJ?lang=en"
+       }
+      ]
+     },
+     "why": "the candidate's record page is on the fetch list as any record's page, named with its ark"
+    }
+   ]
+  },
+  {
+   "say": "an earlier search of the same collection for Peters at Hempstead, Nassau, with the given name Mary, as the archive holds it",
+   "archive": {
+    "fixture": "familysearch-search-census-1925-peters-mary.html",
+    "source": "D03",
+    "collection": "FamilySearch record search",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Mary&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+    },
+    "extract": true
+   },
+   "as": "marysearch"
+  },
+  {
+   "say": "Ruth's plan written again",
+   "plan": [
+    "I332737100400"
+   ],
+   "expect": [
+    {
+     "household_leads": {
+      "person": "I332737100400",
+      "is": [
+       {
+        "order": {
+         "first": {
+          "name": "Mary Peters",
+          "ark": "ark:/61903/1:1:KS4R-RTM",
+          "why": {
+           "some": {
+            "has": "its record id differs from Ruth Peters's (KS4R-RTQ) in its last character alone"
+           }
+          }
+         },
+         "none": {
+          "name": {
+           "in": [
+            "Mary K Peters",
+            "Julues M Peter",
+            "Petter"
+           ]
+          }
+         }
+        },
+        "left_out": {
+         "len": 5
+        }
+       }
+      ]
+     },
+     "why": "the earlier search's rows count too: Mary's row comes first, its id one character from Ruth's, as the ids of one household's entries are; a row of another town, or of another surname as written, is no candidate"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key": "fetch:row:ark:/61903/1:1:KS4R-RTM",
+      "fields": {
+       "status": "planned",
+       "row_key": "household:1925"
+      }
+     },
+     "why": "Mary's record page is the candidate opened now"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key": "fetch:row:ark:/61903/1:1:KSHM-GFJ",
+      "exists": false
+     },
+     "why": "the candidate opened before, never fetched, is no longer first and leaves the plan"
+    }
+   ]
+  },
+  {
+   "say": "Mary's record page saved in the browser for that candidate, with the fetch list's key",
+   "save": {
+    "fixture": "familysearch-census-1925-KS4R-RTM.html",
+    "holder": "D03",
+    "person": "I332737100400",
+    "url_has": "KS4R-RTM",
+    "folder": "downloads",
+    "key": true
+   }
+  },
+  {
+   "say": "collected",
+   "collect": {
+    "folder": "$last.folder"
+   },
+   "as": "mary",
+   "expect": [
+    {
+     "search_log": {
+      "step": {
+       "person": "I332737100400",
+       "step_key": "fetch:row:ark:/61903/1:1:KS4R-RTM"
+      },
+      "is": [
+       {
+        "outcome": "found",
+        "artifacts": [
+         "$mary.sha"
+        ],
+        "notes": {
+         "has": "the page's own key names this step"
+        }
+       }
+      ]
+     },
+     "why": "the page the candidate asked for, by its own ark"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key": "fetch:row:ark:/61903/1:1:KS4R-RTM",
+      "fields": {
+       "status": "done"
+      }
+     },
+     "why": "its record page held, the candidate has been tried"
+    },
+    {
+     "cards": {
+      "record": "mary",
+      "count": 0
+     },
+     "why": "the wife's page is not put to the daughter: fetched as a candidate for the household, it is about nobody it was fetched for"
+    },
+    {
+     "households": {
+      "form": "ny-1925",
+      "is": [
+       {
+        "complete": false,
+        "missing": [
+         "the head",
+         "line 24"
+        ],
+        "members": [
+         {
+          "name": "Mary Peters",
+          "relationship": "Wife",
+          "line": 23
+         },
+         {
+          "name": "Ruth Peters",
+          "relationship": "Daughter",
+          "line": 25
+         }
+        ]
+       }
+      ]
+     },
+     "why": "on the household's page and in its run, lines 23 and 25 across line 24 by one surname: the household regrouped holds the wife and is still missing the head, and line 24 now"
+    },
+    {
+     "household_leads": {
+      "person": "I332737100400",
+      "is": [
+       {
+        "left_out": [],
+        "tried": [],
+        "order": {
+         "first": {
+          "name": "Peters",
+          "ark": "ark:/61903/1:1:KS4B-K6V",
+          "born": "CAL 1887",
+          "for": [
+           "the head",
+           "line 24"
+          ],
+          "why": {
+           "some": {
+            "has": "0 years from Mary Peters, the head's wife (born CAL 1887)"
+           }
+          }
+         },
+         "some": {
+          "name": "Winnie Peters",
+          "for": [
+           "line 24"
+          ]
+         },
+         "none": {
+          "name": "Mary Peters"
+         }
+        },
+        "answer": {
+         "next": 2
+        }
+       }
+      ]
+     },
+     "why": "with a line missing beside the head, no row is ruled out: those too young for the head are candidates for line 24, after the head's; the head's are ordered by the wife's birth year, and the row born in 1887 comes first"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key": "fetch:row:ark:/61903/1:1:KS4B-K6V",
+      "fields": {
+       "status": "planned",
+       "rationale": {
+        "has": [
+         "candidate 1 of",
+         "for the head; line 24",
+         "0 years from Mary Peters, the head's wife"
+        ]
+       }
+      }
+     },
+     "why": "the next candidate is opened once the one before it has been tried"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737100400",
+      "url_has": "&count=20&offset=20",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "page 2 of the answer is still the search's next save"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    },
+    {
+     "plan_idempotent": {
+      "person": "I332737100400"
+     }
+    }
+   ]
+  }
+ ]
+}

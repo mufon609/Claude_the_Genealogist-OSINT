@@ -32,8 +32,9 @@ because an accepted fact makes it possible (the 1950 household at the address
 the 1940 census gives), the record behind a row of a search results page that
 fits the person the search was run for, a person named on an accepted record
 who is not yet in the tree, the entries a census household holding the person
-lacks (the head of the 1925 household Mary and Ruth Peters' pages make,
-§5–7, households). A lead has a person, what to do, where to do it, and what produced it
+lacks (the head of the 1925 household Mary and Ruth Peters' pages make: its
+collection's search, page by page, and the record behind each row of the
+answer that could be the head, one at a time, §5–7, households). A lead has a person, what to do, where to do it, and what produced it
 (the record, fact or citation). Leads are the queue of work; every lead is a
 plan step with its log, so what was tried and what it gave is never lost. A
 lead closes when it is run, found or none, or when its gap has gone. Accepting
@@ -263,21 +264,31 @@ memorial id, an enlistment record's URL) at the holder of the results page, the
 row's words as its fields (basis `record`), the page it was found on among
 them. A census household not wholly held (§5–7, households) is a lead on each
 person the tree ties to one of its members, by a link or a card that nobody has
-rejected: one step for its missing entries, the head's first, under the
-person's census row of the form's year (`tools/plan.py`'s `household_leads`,
-key `fetch:household:<form and page>:<surname>`, locator kind `household`):
+rejected, under a row of the household's own, `household:<year>`, and not the
+person's census row, which the person's own census record holds
+(`tools/plan.py`'s `household_leads`). Its search is one step (key
+`fetch:household:<form and page>:<surname>`, locator kind `household`):
 FamilySearch's search of the collection the household's copies are in (its key
 from `data/holders.csv`), by the surname most of the members are written under,
 the place their census residence gives and the year, never by a given name:
 the head's own need not be any member's, and a search by a given name finds a
-head of another name only by chance. The fetch list prints it as a lead with
-the link and the name to save under (`familysearch-census-1925-search-peters.html`),
-and the results page, saved with the list's key, reaches the step. Its fields
-are the held record's (basis `record`), never the person's claims, so it opens
-before the baseline is reviewed, as a cited record's fetch does: it finds the
-rest of a page already held. The Peters household gives Ruth M Peters and Mary
-Peters each that step: FamilySearch's New York 1925 collection (1937489)
-searched for Peters at Hempstead, Nassau, in 1925. Running a step (Go, Search, the log buttons) is the approval;
+head of another name only by chance. Its link is the first page of the answer
+not yet held: page 1, then, an answer being cut ("120 matching records, page 1
+of 6"), each next page in turn (the site's own `count` and `offset`), until
+every page is held. The fetch list prints it as a lead with the link and the
+name to save under (`familysearch-census-1925-search-peters.html`, a later page
+`…-page-2.html`), and the results page reaches the step by the list's key and by
+its own fields. The rows of the answer, and of every results page the archive
+holds of the same collection for the same surname at the same place, are the
+candidates for the household's missing entries, and the record page of the one
+the order puts first is a step of its own (key `fetch:row:<ark>`, locator its
+ark, under the same row), one at a time (§5–7, households: which rows, in what
+order, and why one). The fields of both are the held records' (basis `record`),
+never the person's claims, so they open before the baseline is reviewed, as a
+cited record's fetch does: they find the rest of a page already held. The
+Peters household gives Ruth M Peters and Mary Peters each the search,
+FamilySearch's New York 1925 collection (1937489) searched for Peters at
+Hempstead, Nassau, in 1925, and each its first candidate. Running a step (Go, Search, the log buttons) is the approval;
 there is no approval state. Fetches are cheap and decisive, and open before the
 baseline is reviewed because the review needs them.
 
@@ -406,7 +417,9 @@ given name and surname the search's own, so the several people's steps one
 search serves share one name; a census collection's search carries the row's
 own year too (`familysearch-census-<year>-search-<given>-<surname>.html`), so
 a person's two census searches (the 1925 New York state census and the 1930
-federal census) do not share a name; a link that is a record page is listed
+federal census) do not share a name, and a later page of a search's answer, its
+link carrying the site's `count` and `offset`, ends `-page-<n>`
+(`familysearch-census-1925-search-peters-page-2.html`); a link that is a record page is listed
 under `familysearch-<collection words>-<year>-<ark id>.html`, the ark id read
 off the page once saved. Two different links that would take one name (a
 person's 1910 census searched once narrowed to a residence and once not) each
@@ -628,7 +641,14 @@ with the page, the fetch step it was saved for stays planned, the row is not
 held, and the row's own record page takes the search link's place on the fetch
 list; saved by the same method, it reaches the lead and, through the listing
 that pointed at it, the step, is archived under the step's citation, and
-closes both. A fetch step is done only when a record page holds its
+closes both. A page of a household's own search (§3, §5–7 households) reaches
+the household's search step by its own fields as well as by the list's key,
+whatever page of the answer it is: the collection, the surname, the place and
+the year, and no given name; the plan is written again for the people whose
+household lead a page reached, so the search's next page and the next
+candidate are on the list before anyone asks. A candidate's record page reaches
+its step by the key and by its ark, never the household's search, which a
+record of one row does not answer. A fetch step is done only when a record page holds its
 citation; a done step whose found runs hold only listings or pages no parser
 read (a hand's found run) is planned again by the plan, and a page no parser
 reads is logged `unread` by the attach, never found, and closes no step, nor
@@ -1531,6 +1551,76 @@ not missing a member whose line no copy gives. `tools/households.py show`
 prints the households as the script groups them now, and `write` stores them
 where they changed; the plan groups them again before it reads them. A
 household not wholly held is a lead on the people a tree ties to it (§3).
+
+**The missing entries fetched.** A household not wholly held leads to what it
+misses (`tools/households.py` `answer` and `candidates`, `tools/plan.py`
+`household_leads`, the steps §3 describes). Its own search, FamilySearch's
+collection searched by the surname, the place and the year, is saved page by
+page: the first page of its answer not held is the step's next save, and the
+step goes once every page is held, its log kept. The candidates for the missing
+entries are the rows of every results page the archive holds of that collection
+for that surname at that place, the household's own search's pages and an
+earlier search's with a given name alike (the nine rows of the search Mary
+Peters's own citation made count beside the hundred and twenty of the
+household's), each row once: a row is a candidate when it carries the
+household's surname as written and its place (the minor division and the
+county), and its own record page is not held.
+
+- **Left out.** Where the head alone is missing, a row whose birth year the
+  form's household rule and the life limits rule out for the head. The form
+  states each member's relationship to the head, so the head is the parent of
+  a member stated son or daughter and the child of one stated father or
+  mother, and a row born where that parent or child cannot be by
+  `data/life-limits.csv` (`catalog.parent_limit`, the row's sex unknown and so
+  the wider bounds, and only what holds over every year a calculated age can
+  stand for) is no head. Where a line is missing too, such a row stays, a
+  candidate for the line alone: a line not held can be anyone. For Ruth Peters's
+  page alone, missing its head, the rows of the answer's first page born about
+  1914 to 1920 are left out;
+  once Mary's page is held and line 24 is missing beside the head, they are
+  candidates for line 24.
+- **The order.** The head's candidates first (§7 decision 21: the head's entry
+  first), then those for the lines alone, each in the order the household
+  itself makes likelier: a record id that differs from a member's in its last
+  character alone, since FamilySearch gives the entries of one household ids
+  that differ only there (44 of the 46 members of the twelve held census record
+  pages that list a household, measured against the page's own person, and
+  Mary's and Ruth's 1925 entries on lines 23 and 25, KS4R-RTM and KS4R-RTQ);
+  for the head, a name that fits a relative the tree names for the members in
+  the head's place (the person it names as the daughter's parent and the wife's
+  husband: the file's Fredrick C Peters for the Peters household), the names
+  agreed as the matcher agrees them and a birth year within two, which orders
+  the candidates and never decides one, and is never a field of the search; for
+  the head, a birth year nearer that of the member stated the head's wife or
+  husband; a row that gives a birth year before one that gives none; then the
+  answer's own order, the household's own search's pages first.
+- **One at a time.** The record page of the first candidate is the one lead
+  open (`OPEN_AT_ONCE` is one). The loop never waits on a person who waits on
+  pages (§8), so a household's next candidate costs that household a browser
+  session's delay and the loop goes on; while every page opened beyond the one
+  that holds the missing entry is a page saved for nothing, and the order cannot
+  say which page that is. One at a time saves no page the household no longer
+  needs, each page saved answering whether the next is wanted. What would
+  justify more is a measure the project does not yet have: how far down its
+  order a household's missing entries are found, which the households' own
+  record of candidates tried gives as it accumulates, against what a browser
+  session costs beyond a page, which the fetch task's runs (`task_run`) measure;
+  with both, the number that saves the fewest pages for the sessions spent
+  follows.
+- **Tried.** A candidate whose record page is held has been tried, whatever it
+  showed. Its page's locators place it, on the household's page and in its run,
+  where the households grouped again hold it (the household is then complete or
+  still missing what it misses: Mary's page saved as a candidate for Ruth's
+  household makes it hers and Mary's, missing the head and line 24), or off it,
+  where the next candidate's rationale says it was; either way the next
+  candidate is opened in its place, the order worked out again on what is held
+  then (a page of the answer newly held can put another row first, and a
+  candidate opened and never saved then leaves the plan).
+- **When it stops.** Once the missing entries are held the household is complete
+  and its leads go. Once every page of its answer is held and the candidates
+  have run out, the household stays as stored, incomplete, naming what it
+  misses, and leads nowhere more. No page of the Peters household's head is held
+  yet, so it has been seen complete nowhere.
 
 ### The proof standard
 

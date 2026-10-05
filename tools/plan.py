@@ -32,8 +32,10 @@ does, else on the memorial's own person as a lead, row_key "listed relative:
 the page was fetched for (match.fitting_rows) is a lead the same way: a fetch step for the row's own record, row "search result:",
 the results page's holder as the locator source, the row's words as its fields (tools/plan.py's result_row_leads); the matcher
 proposes no row. A census household not wholly held (tools/households.py, grouped again here before it is read) is a lead
-on each person the tree ties to one of its members: one fetch step for its missing entries, the head's first, FamilySearch's
-search of its collection by the surname, the place and the year, never a given name (household_leads). Idempotent: questions and steps are keyed, so re-running updates what
+on each person the tree ties to one of its members, under a row of its own (household_row): FamilySearch's search of its
+collection by the surname, the place and the year, never a given name, its next page while its answer is not held in full, and
+the record page of the candidate for its missing entries households.candidates opens, the head's first, one at a time
+(household_leads). Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated (one that was run but
 is not done is kept for its log as skipped, planned again if generated again;
 one dropped is named in the run's audit row by its key, row and rationale, the
@@ -52,12 +54,12 @@ in data/holders.csv and every source id the checklist emits is a row in the
 catalog's source table, and stops with one line naming the missing ids and the
 sync command (tools/initdb.py --sync-sources) when the registry is out of step.
 """
-import argparse, json, os, re, sqlite3, sys, urllib.parse
+import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, dbid_of, browse_only, prefills_nothing, year
 from checklist import build, names_parents
-from households import page_words, regroup, said, waiting_for
+from households import OPEN_AT_ONCE, ark_id, candidates, page_words, regroup, said, waiting_for
 from log_search import closed_by_pointers, hold_household
 
 FOOTPRINT_HOME = ("missing_parents", "identity_incomplete", "missing_spouse", "unverified_claim")
@@ -260,38 +262,57 @@ def result_row_leads(cx, tree_id, cat, pid):
 
 FAMILYSEARCH = "D03"
 
-def census_row(form_jurisdiction, yr):
-    """The checklist row key of a census of a jurisdiction and year (tools/checklist.py): the federal census household row, or
-    the state's own state census row."""
-    return f"census household:{yr}" if form_jurisdiction == "united states" else f"{form_jurisdiction.title()} state census:{yr}"
+def household_row(h):
+    """The plan row a household's own leads sit under, "household:<year>": not the person's census row, which the person's own
+    census record holds (log_search.hold_household logs every planned step of that row found with it) and which a page about
+    another entry must never read as held (Catalog.fetched_rows)."""
+    return f"household:{h['year']}"
 
 def household_leads(cx, tree_id, cat, pid):
     """Fetch steps for what a census household holding this person lacks (docs/DATA-ARCHITECTURE.md §7 decision 21,
-    docs/RESEARCH-WORKFLOW.md §0 and §3): a current household not wholly held (tools/households.py waiting_for: a member of it
-    the tree ties to this person by a link or a card, neither rejected) gives one step for its missing entries, the head's
-    first: FamilySearch's search of the collection the household's copies are in (its key from data/holders.csv), by the
+    docs/RESEARCH-WORKFLOW.md §0 and §5–7, "Households"): a current household not wholly held (tools/households.py waiting_for: a
+    member of it the tree ties to this person by a link or a card, neither rejected) gives, under its own row (household_row):
+    its search, FamilySearch's search of the collection the household's copies are in (its key from data/holders.csv), by the
     surname most of the members are written under, the place their census residence gives and the year, never by a given name,
-    which the head's own entry need not share. FamilySearch has no connector, so tools/fetches.py lists the step for the
-    browser, and the saved results page, carrying the list's key, reaches it. The fields are the held record's (basis record),
-    never the person's claims, so the step opens before the baseline is reviewed, as a cited record's fetch does: it finds the
-    rest of a page already held. A household with no surname, place, year or FamilySearch collection to search by gives no
-    step. Under the person's census row of the form's year, key "fetch:household:<form and page>:<surname>", its locator the
-    same household and surname (kind household). Dropped, like any generated step, once the household is wholly held or
-    nobody ties the person to it."""
+    which the head's own entry need not share, while a page of its answer is not held, its link the first such page
+    (households.answer: a cut answer's next page is the step's next save), key "fetch:household:<form and page>:<surname>", its
+    locator the same household and surname (kind household); and the record page of each candidate households.candidates opens
+    (OPEN_AT_ONCE at a time, in its order), key "fetch:row:<ark>" as the record behind any row of a results page, its locator the
+    row's ark, its fields the row's words and the household's (basis record), its rationale why it stands where it does in the
+    order and what the candidates tried before it showed. FamilySearch has no connector, so tools/fetches.py lists both for the
+    browser; a saved page carrying the list's key reaches them, and its own identity does too (tools/attach.py). The fields are
+    the held records' (basis record), never the person's claims, so the steps open before the baseline is reviewed, as a cited
+    record's fetch does: they find the rest of a page already held. A household with no surname, place, year or FamilySearch
+    collection to search by gives no step. A candidate whose record page is held has been tried and the next is opened in its
+    place; a step dropped, like any generated step, once the household is wholly held, its answer held in full (the search), its
+    candidates have run out, or nobody ties the person to it: the household then stays as stored, incomplete, naming what it misses."""
     out = []; f = lambda v: {"value": v, "basis": "record"}
     for h in waiting_for(cx, tree_id, pid):
         if not (h["year"] and h["surname"] and h["place"] and h["fs_collection"]): continue
         lacks, who, where = "; ".join(h["missing"]), "; ".join(said(m) for m in h["members"]), page_words(h["page"])
-        q = [("f.collectionId", h["fs_collection"]), ("q.residenceDate.from", str(h["year"])), ("q.residenceDate.to", str(h["year"])), ("q.residencePlace", h["place"]), ("q.surname", h["surname"])]
-        url = "https://www.familysearch.org/en/search/record/results?" + urllib.parse.urlencode(q, quote_via=urllib.parse.quote)
-        stem = f"{h['key']}:{h['surname']}"
-        out.append({"step_key": f"fetch:household:{stem}", "row_key": census_row(h["jurisdiction"], h["year"]), "question_key": None, "kind": "fetch", "query_type": "household",
-                    "query_json": dumps({"collection": f(h["collection"]), "surname": f(h["surname"]), "residence place": f(h["place"]), "year": f(str(h["year"])), "url": f(url),
-                                         "household": f(f"{where}: {who}"), "missing": f(lacks)}),
-                    "locator_source_id": FAMILYSEARCH, "locator_kind": "household", "locator_value": stem, "collection_id": h["collection_id"], "on_json": "[]",
-                    "sources_json": dumps([FAMILYSEARCH]), "mode": "fetch", "expected": "the head as the census writes them, and each line not held: their own record page, which names the household",
-                    "rationale": f"the {h['year']} household of {who}" + (f", {where}," if where else "") + f" is not wholly held: missing {lacks}; FamilySearch's {h['collection']} "
-                                 "searched by the surname, the place and the year the page gives, never by a given name, which the head's own entry need not share"})
+        c = candidates(cx, tree_id, h); a = c["answer"]; stem = f"{h['key']}:{h['surname']}"; row = household_row(h)
+        held = ((f"{a['count']} matching records on {a['total']} page{'s' if a['total'] != 1 else ''}, " if a["count"] is not None else "")
+                + f"page{'s' if len(a['held']) != 1 else ''} {', '.join(map(str, a['held']))} held") if a["held"] else "no page of its answer held yet"
+        tried = "; ".join(f"{t['name']} ({ark_id(t['ark'])}): {t['where']}" for t in c["tried"])
+        if a["next"]:
+            out.append({"step_key": f"fetch:household:{stem}", "row_key": row, "question_key": None, "kind": "fetch", "query_type": "household",
+                        "query_json": dumps({"collection": f(h["collection"]), "surname": f(h["surname"]), "residence place": f(h["place"]), "year": f(str(h["year"])), "url": f(a["next_url"]),
+                                             "household": f(f"{where}: {who}"), "missing": f(lacks)}),
+                        "locator_source_id": FAMILYSEARCH, "locator_kind": "household", "locator_value": stem, "collection_id": h["collection_id"], "on_json": "[]",
+                        "sources_json": dumps([FAMILYSEARCH]), "mode": "fetch", "expected": "a page of the search's answer: each row that carries the household's surname and place is a candidate for its missing entries",
+                        "rationale": f"the {h['year']} household of {who}" + (f", {where}," if where else "") + f" is not wholly held: missing {lacks}; FamilySearch's {h['collection']} "
+                                     f"searched by the surname, the place and the year the page gives, never by a given name, which the head's own entry need not share; {held}: page {a['next']} next"})
+        for n, cand in enumerate(c["open"], 1):
+            fields = {"collection": f(h["collection"]), "name": f(cand["name"]), "year": f(str(h["year"])), "url": f(cand["url"]), "listed": f(", ".join(x for x in (f"born {cand['born']}" if cand["born"] else None, cand["place"]) if x)),
+                      "found on": f(f"FamilySearch results page {cand['found_on']}, row {cand['row']}"), "household": f(f"{where}: {who}"), "candidate for": f("; ".join(cand["for"]))}
+            out.append({"step_key": f"fetch:row:{cand['ark']}", "row_key": row, "question_key": None, "kind": "fetch", "query_type": "household",
+                        "query_json": dumps({k: v for k, v in fields.items() if v["value"]}), "locator_source_id": FAMILYSEARCH, "locator_kind": "ark", "locator_value": cand["ark"],
+                        "collection_id": h["collection_id"], "on_json": "[]", "sources_json": dumps([FAMILYSEARCH]), "mode": "fetch",
+                        "expected": "the row's own record page: its page, line and districts say whether it is on the household's page and in its run, its relationship whether it is the head",
+                        "rationale": f"candidate {n} of {len(c['order'])} for {'; '.join(cand['for'])} of the {h['year']} household of {who}" + (f", {where}" if where else "")
+                                     + f": {cand['name']}, row {cand['row']} of a FamilySearch results page" + (f"; {'; '.join(cand['why'])}" if cand["why"] else "")
+                                     + (f"; {len(c['left_out'])} row{'s' if len(c['left_out']) != 1 else ''} left out, born where the head cannot be" if c["left_out"] else "")
+                                     + (f"; tried before it: {tried}" if tried else "") + f". {OPEN_AT_ONCE} candidate{'s' if OPEN_AT_ONCE > 1 else ''} at a time: the next is opened once this page is held"})
     return out
 
 class RegistryOutOfStep(Exception):
@@ -349,7 +370,8 @@ def plan_person(cx, tree_id, pid, by):
     fetches += listed_relative_leads(cx, tree_id, cat, pid)             # a relative a memorial merely lists: their own memorial, a lead
     for lead in result_row_leads(cx, tree_id, cat, pid):                # a row of a results page that fits this person: the row's own record, a lead
         if not any(lead["locator_value"] == f["locator_value"] or lead["locator_value"] in (json.loads(f["query_json"]).get("url") or {}).get("value", "") for f in fetches): fetches.append(lead)
-    fetches += household_leads(cx, tree_id, cat, pid)                   # a census household holding this person not wholly held: its missing entries, the head's first, a lead
+    for lead in household_leads(cx, tree_id, cat, pid):                 # a census household holding this person not wholly held: its search's next page and its candidates' record pages, leads
+        if not (lead["locator_kind"] == "ark" and any(lead["locator_value"] == f["locator_value"] for f in fetches)): fetches.append(lead)   # a candidate whose record is already a step of the person's (a row that fits them) is that step
     home = next((k for k in wanted if wanted[k][0] in FOOTPRINT_HOME), None)
     have = {st["locator_value"] for st in fetches}
     for rec in r["footprint"]["records"][:12]:

@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "f1fb1f2c06febcf3199fe11396f985b43e5c425d3508e761bcd944c65756146b",
+  "bytes": 182041,
+  "mime": "text/html",
+  "source_id": "D03",
+  "collection": "FamilySearch record search",
+  "locator": {
+    "kind": "url",
+    "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+  },
+  "retrieved_at": "2026-10-05T21:05:31Z",
+  "retrieved_by": "agent:quillwort for user:neural",
+  "rights": {
+    "terms": "FS ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "original_filename": "familysearch-census-1925-search-peters.html",
+  "pages": 1,
+  "notes": "120 matching records, page 1 of 6, 20 rows on this page; attached from the inbox by identity: fs_search https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+}

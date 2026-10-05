@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "0480182236c960c4235fbf13f90a60e4c33821280322d1f924deaecc9a581e40",
+  "bytes": 128130,
+  "mime": "text/html",
+  "source_id": "D03",
+  "collection": "FamilySearch record search",
+  "locator": {
+    "kind": "url",
+    "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Mary&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+  },
+  "retrieved_at": "2026-09-20T01:46:57Z",
+  "retrieved_by": "agent:sedge for user:neural",
+  "rights": {
+    "terms": "FS ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "original_filename": "familysearch-census-search-mary-peters.html",
+  "pages": 1,
+  "notes": "9 matching records, page 1 of 1, 9 rows on this page; attached from the inbox by identity: fs_search https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Mary&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+}

@@ -51,7 +51,8 @@ by hand (tools/plan.py), never a page on this list.
 import argparse, collections, hashlib, json, os, re, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, downloads_dir, dumps, inbox_dir, move_free, resolve_tree
-from attach import ark_id, attach, attach_each, failed, line
+from attach import attach, attach_each, failed, line
+from households import ark_id
 from catalog import Catalog, fetch_target, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
 import connectors
@@ -64,7 +65,8 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
     """The file name a saved page takes: findagrave-memorial-<id>.html for a memorial; for a FamilySearch link (D03),
     familysearch-<collection words>-search-<given>-<surname>.html when the link is the collection's own search (no ark in
     the citation: url carries no /ark:/, given and surname read off the search's own q.givenName/q.surname; a search by the
-    surname alone, a household's lead, is -search-<surname>), so the several
+    surname alone, a household's lead, is -search-<surname>, and a later page of an answer, its link carrying the site's offset
+    and count, ends -page-<n>), so the several
     people's steps one search serves share one name, as the list already groups them by URL; a census collection's search
     carries the row's own year too (familysearch-census-<year>-search-<given>-<surname>.html), the row_key's year, since
     "census" alone would collapse a person's two census searches (the 1925 New York state census and the 1930 federal
@@ -87,7 +89,9 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
         if url and "/ark:/" not in url:
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
             given = _slug((q.get("q.givenName") or [""])[0]); surname = _slug((q.get("q.surname") or [""])[0])
-            if surname: return f"familysearch-{words}{'-' + row_year if census and row_year.isdigit() else ''}-search-{given + '-' if given else ''}{surname}.html"
+            offset, count = (q.get("offset") or ["0"])[0], (q.get("count") or [""])[0]
+            page = f"-page-{int(offset) // int(count) + 1}" if offset.isdigit() and count.isdigit() and int(offset) and int(count) else ""
+            if surname: return f"familysearch-{words}{'-' + row_year if census and row_year.isdigit() else ''}-search-{given + '-' if given else ''}{surname}{page}.html"
         return f"familysearch-{words}-{v('year') or (row_year if row_year.isdigit() else None) or '<year>'}-<ark id>.html"
     return f"{_slug(holder_id)}-{words}-{_slug(piece)}-{six}.html"
 
@@ -118,7 +122,9 @@ def waiting(cx, tree_id):
     results page that fits the person, tools/plan.py's result_row_leads, or a record the owner named) is that record's page,
     named with the ark filled in: the listing pointed at the record and is not one, so the record's page is the next to save.
     A step whose locator is a household (tools/plan.py's household_leads: the entries a census household lacks) is a lead too,
-    its link the collection's search by the surname, the place and the year, listed under the holder and that collection.
+    its link the collection's search by the surname, the place and the year, the first page of its answer not yet held, listed
+    under the holder and that collection; the candidate it opens for the missing entries is the record page of a row of that
+    answer, a step whose locator is the row's ark, listed as any such record's page.
     A step at a browse-only holder (catalog.browse_only:
     a FamilySearch images-only collection) never appears either: nobody can save such a page the page-saves-itself way,
     so it stays on the plan with its reason and off this list, never a name with an unfilled placeholder."""

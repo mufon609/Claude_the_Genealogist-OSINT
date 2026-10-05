@@ -1,0 +1,50 @@
+{
+ "extractor": "familysearch-search",
+ "personas": 20,
+ "sequence": {
+  "4": {
+   "name": "Peters",
+   "role": "result",
+   "region": [
+    "KS4B-K6V",
+    "\"collection\":\"New York, State Census, 1925\""
+   ],
+   "facts": [
+    {
+     "type": "Residence",
+     "date": "1925",
+     "place": "Hempstead, Hempstead, Nassau, New York, United States"
+    },
+    {
+     "type": "Birth",
+     "date": "CAL 1887"
+    }
+   ],
+   "why": "a row the index gives the surname alone, born about 1887 by the age the census gives, its ark its identity"
+  },
+  "11": {
+   "name": "Ruth Peters",
+   "region": [
+    "KS4R-RTQ"
+   ],
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "CAL 1921"
+    }
+   ],
+   "why": "the household's own daughter, page 19, line 25: a row of the household's own search"
+  }
+ },
+ "parsed": {
+  "count": 120,
+  "page": 1,
+  "pages": 6,
+  "query": {
+   "f.collectionId": "1937489",
+   "q.surname": "Peters",
+   "q.residencePlace": "Hempstead, Nassau"
+  },
+  "why": "the first of six pages of a hundred and twenty records, the search by the surname, the place and the year alone, no given name"
+ }
+}

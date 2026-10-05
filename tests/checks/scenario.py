@@ -1293,6 +1293,16 @@ def e_households(w, x, want):
     got = [h for h in households_now(w) if "form" not in x or h["form"] == x["form"]]
     return has(got, w.value(x["is"])), got
 
+def e_household_leads(w, x, want):
+    """What each household not wholly held that the tree ties to a `person` leads to (tools/households.py candidates), one entry
+    per household, matching `is`: its `answer` (the pages of its own search `held`, `count`, `total`, `next` and `next_url`), the
+    candidates in `order` and those `open` (each `name`, `ark`, `born`, `for`, `why`), those `left_out` (`name`, `ark`, `why`) and
+    those `tried` (`name`, `ark`, `where`)."""
+    from households import candidates, waiting_for
+    got = [candidates(w.cx, w.tid, h) for h in waiting_for(w.cx, w.tid, w.person(x["person"]))]
+    return has(got, w.value(x["is"])), [{"next": c["answer"]["next"], "order": [(r["name"], r["for"]) for r in c["order"]], "left_out": [r["name"] for r in c["left_out"]],
+                                         "tried": [r["name"] for r in c["tried"]], "first_why": (c["order"] or [{}])[0].get("why")} for c in got]
+
 def e_assertion_subject(w, x, want):
     v = w.cx.execute("SELECT subject_id FROM assertion WHERE persona_id=?", (w.value(x["persona"]),)).fetchone()
     return v is not None and v[0] == w.person(x["is"]), v and w.name_of(v[0])
@@ -1304,7 +1314,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "compare": e_compare,
-           "parents": e_parents, "households": e_households}
+           "parents": e_parents, "households": e_households, "household_leads": e_household_leads}
 
 def load(folder):
     """Every scenario file under a folder, in name order."""

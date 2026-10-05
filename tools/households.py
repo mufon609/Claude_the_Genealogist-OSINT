@@ -40,15 +40,31 @@ row it replaces names it in superseded_by, written once; a household whose entri
 replaced by a row of no members. Households are evidence shared by every tree (CLAUDE.md hard rule 4): nothing a tree
 decided is read in grouping them. tools/plan.py groups them again before it reads them, so a page read since is in them.
 
+A household not wholly held leads to its missing entries (docs/RESEARCH-WORKFLOW.md §5–7, "Households", the order in words):
+its own search, FamilySearch's collection searched by the surname, the place and the year and never a given name
+(search_link), is held page by page, the first page of its answer not held being the next to save (answer); and every row of
+a results page the archive holds of that collection for that surname at that place (the household's own search's, and an
+earlier search's with a given name) is a candidate for the missing entries when it carries the surname and the place and its
+own record page is not held (candidates). A row the form's household rule and data/life-limits.csv rule out for the head
+is left out where the head alone is missing, and a candidate for a line not held where a line is missing too. The head's
+candidates come first, each kind in the order the household itself makes likelier: a record id that differs from a member's
+in its last character alone (the ids FamilySearch gives the entries of one household), a name that fits a relative the tree
+names for a member in the head's place (it orders, never decides, and is never a field of the search), a birth year nearer
+the head's spouse's on the page, a birth year given, then the answer's own order. OPEN_AT_ONCE of them are leads at a time;
+a candidate whose record page is held has been tried, whatever it showed, and the next takes its place.
+
     group(cx)                        the households as the script groups them now, and the entries in none
     regroup(cx, by, ts=None)         group, store what changed, supersede what it replaces: what it wrote
     stored(cx)                       the current stored households, with their members
     waiting_for(cx, tree_id, pid)    the current households not wholly held a member of which the tree ties to the person
+    search_link(h, page, per)        the household's own search, a page of its answer
+    answer(cx, h)                    what of the household's own search the archive holds, and the page to save next
+    candidates(cx, tree_id, h)       the rows that could be its missing entries, in order, those left out and those tried
 """
-import argparse, collections, csv, json, os, re, sys
+import argparse, collections, csv, json, os, re, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, ROOT, connect, dumps, now, ulid
-from catalog import US_NAMES, entry_on, is_identity, key, persona_key, record_copies, split_name, us_state
+from treelib import DB, ROOT, connect, dumps, now, parse_gedcom_date, ulid
+from catalog import US_NAMES, date_span, entry_on, holder_search, holders, is_identity, key, parent_limit, persona_key, record_copies, split_name, us_state
 from forms import forms
 
 VERSION = "0.1.0"
@@ -359,7 +375,7 @@ def waiting_for(cx, tree_id, pid):
     what a lead for it needs: `key` (its form and page), `collection` and `collection_id` (the collection its copies are in, at
     FamilySearch where one is), `fs_collection` (FamilySearch's own key for it, data/holders.csv), `year`, `jurisdiction`,
     `surname` (the one most of its members are written under) and `place` (the minor division and county its census residence
-    gives)."""
+    gives, each also as `minor` and `county`)."""
     hids = [r[0] for r in cx.execute(
         """SELECT DISTINCT h.id FROM household h JOIN household_member m ON m.household_id=h.id WHERE h.superseded_by IS NULL AND NOT h.complete
            AND (EXISTS (SELECT 1 FROM person_persona pp WHERE pp.person_id=? AND pp.persona_id=m.persona_id AND pp.status IN ('accepted','undecided'))
@@ -386,8 +402,194 @@ def waiting_for(cx, tree_id, pid):
                     "collection": at_fs[1] if at_fs else (colls[0][1] if colls else None), "collection_id": at_fs[0] if at_fs else (colls[0][0] if colls else None),
                     "fs_collection": at_fs[2] if at_fs else None, "year": form["years"][0] if len(form["years"]) == 1 else (dated[0] if dated else None),
                     "jurisdiction": form["jurisdiction"], "surname": collections.Counter(names).most_common(1)[0][0] if names else None,
-                    "place": ", ".join(x for x in (minor, county) if x) or res})
+                    "place": ", ".join(x for x in (minor, county) if x) or res, "minor": minor, "county": county})
     return out
+
+PAGING = ("offset", "count")                  # the parameters of a search's link that say which page of its answer, not what was searched
+OPEN_AT_ONCE = 1                              # a household's candidates that are leads at a time (docs/RESEARCH-WORKFLOW.md §5–7, "Households": why one)
+HEAD = "the head"
+
+def fs_holder(fs_key):
+    """data/holders.csv's row for FamilySearch's own collection of that key (HolderKind fs_collection), or None."""
+    return next((h for rows in holders().values() for h in rows if h["HolderSourceId"] == "D03" and h["HolderKind"] == "fs_collection" and h["HolderKey"] == fs_key), None)
+
+def search_link(h, page=1, per=None):
+    """The household's own search as FamilySearch's link takes it (catalog.holder_search on the surname, the place and the year,
+    never a given name), or None: the first page of its answer as the link itself, a later page with the site's own count of rows
+    to a page and the offset of its first row, the parameters extract.parse_fs_search reads a saved page's place in the answer by."""
+    holder = fs_holder(h.get("fs_collection"))
+    if not holder: return None
+    f = lambda v: {"value": v, "basis": "record"}
+    url = holder_search(holder, {"surname": f(h["surname"]), "residence place": f(h["place"]), "year": f(str(h["year"]))})
+    if not url or page <= 1 or not per: return url
+    return url + "&" + urllib.parse.urlencode([("count", per), ("offset", (page - 1) * per)])
+
+def _params(url):
+    """A search link's own fields, the page of its answer set aside: {parameter: value}."""
+    return {k: v for k, v in urllib.parse.parse_qsl(urllib.parse.urlsplit(url or "").query) if k not in PAGING}
+
+def _place_words(raw):
+    """A place as written, its words compared as a search writes them: each part in lower case, the country and a last part
+    that is a state left out ("Hempstead, Nassau, New York" and "Hempstead, Nassau" are both hempstead, nassau)."""
+    parts = [p.strip().lower() for p in (raw or "").split(",") if p.strip()]
+    while parts and parts[-1] in US_NAMES: parts.pop()
+    if len(parts) > 1 and us_state(parts[-1]): parts.pop()
+    return parts
+
+def _pages(cx, h):
+    """The FamilySearch results pages the archive holds of a search of the household's collection for its surname at its place
+    in its year, in the order they were read: each {"sha", "query", "url", "count", "rows", "own"}, `own` when the page is of
+    the household's own search (search_link, its page aside); an earlier search with a given name is not its own and counts too."""
+    if not (h.get("fs_collection") and h.get("surname") and h.get("place")): return []
+    own, out = _params(search_link(h)), []
+    for sha, sj in cx.execute("""SELECT e.artifact_sha256, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact a ON a.sha256=e.artifact_sha256
+                                 WHERE x.name='familysearch-search' AND e.superseded_by IS NULL AND e.status='complete' AND a.locator_value LIKE ? ORDER BY e.ran_at, e.id""",
+                              (f"%collectionId={h['fs_collection']}%",)):
+        p = json.loads(sj or "{}"); q = p.get("query") or {}
+        if q.get("f.collectionId") != h["fs_collection"] or key(q.get("q.surname")) != key(h["surname"]) or _place_words(q.get("q.residencePlace")) != _place_words(h["place"]): continue
+        span = [int(q[k]) for k in ("q.residenceDate.from", "q.residenceDate.to") if (q.get(k) or "").isdigit()]
+        if h.get("year") and len(span) == 2 and not span[0] <= int(h["year"]) <= span[1]: continue
+        out.append({"sha": sha, "query": q, "url": p.get("url"), "count": p.get("count"), "rows": p.get("rows") or [], "own": {k: v for k, v in q.items() if k not in PAGING} == own})
+    return out
+
+def answer(cx, h, pages=None):
+    """What of the household's own search the archive holds: {"url" (its first page), "held" (the pages held, by number), "count"
+    (the records the answer states), "per" (rows to a page), "total" (its pages), "next" (the first page not held, None when every
+    page is), "next_url"}. A page's number is the offset of its first row over the rows a page holds; with nothing held the next
+    page is the first."""
+    pages = _pages(cx, h) if pages is None else pages
+    mine = [p for p in pages if p["own"]]
+    per = max((len(p["rows"]) for p in mine), default=0) or None
+    count = next((p["count"] for p in reversed(mine) if p["count"] is not None), None)
+    held = sorted({int(p["query"].get("offset") or 0) // per + 1 if per else 1 for p in mine})
+    total = max(1, -(-count // per)) if count and per else (1 if mine else None)
+    nxt = next((n for n in range(1, (total or 1) + 1) if n not in held), None)
+    return {"url": search_link(h), "held": held, "count": count, "per": per, "total": total, "next": nxt, "next_url": search_link(h, nxt, per) if nxt else None}
+
+def ark_id(ark):
+    """The id of a FamilySearch record ark ("ark:/61903/1:1:KS4R-RTM" -> "KS4R-RTM"), the part a record page's file name carries."""
+    return (ark or "").rsplit(":", 1)[-1]
+
+def _span(text):
+    """The days a date as written can stand for (catalog.date_span), or None."""
+    d = parse_gedcom_date(text or "")
+    return date_span(d["date_start"], d["date_end"], d["date_qualifier"]) if d["date_start"] or d["date_end"] else None
+
+def _year(text):
+    m = re.search(r"\b(1[5-9]\d\d|20\d\d)\b", text or ""); return int(m.group(1)) if m else None
+
+def _members(cx, h):
+    """The household's members as the candidates read them: each {"name", "persona", "id" (the record id the entry is under),
+    "kind" (the kind of its relationship to the head, extract.household_kind), "relationship", "sex", "born" (the birth as written)}."""
+    from extract import household_kind
+    out = []
+    for m in h["members"]:
+        facts = {t: v for t, v in cx.execute("""SELECT fact_type, coalesce(date_text, value_text) FROM persona_fact WHERE persona_id=? AND fact_type IN ('Birth','Sex')
+                                                 AND (CASE WHEN json_valid(region_json) THEN json_extract(region_json,'$.alternate') END) IS NULL ORDER BY rowid DESC""", (m["persona"],))}
+        entry = json.loads(m["entry"]) if (m["entry"] or "").startswith("[") else []
+        out.append({"name": m["name"], "persona": m["persona"], "id": ark_id(entry[1]) if entry[:1] == ["ark"] else None, "relationship": m["relationship"],
+                    "kind": household_kind(m["relationship"]) if m["relationship"] else None, "sex": (facts.get("Sex") or "")[:1].upper() or None, "born": facts.get("Birth")})
+    return out
+
+def _relatives_in_head_place(cx, tree_id, members):
+    """The people the tree names for the household's members in the head's place: a member stated the head's wife or husband
+    gives the people the tree names as their spouse, a son or daughter their parents, a father or mother their children (as
+    Catalog.family reads the tree, a claim or an acceptance alike); the people every member that gives any names, less the
+    people tied to a member. [(person id, given, surname, birth year)]."""
+    from catalog import Catalog
+    cat = Catalog(cx, tree_id); role = {"spouse": "spouses", "child": "parents", "parent": "children"}; sets, tied = [], set()
+    for m in members:
+        people = {r[0] for r in cx.execute("""SELECT pp.person_id FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND pp.status IN ('accepted','undecided') AND p.tree_id=?
+                                              UNION SELECT json_extract(payload_json,'$.person_id') FROM proposal WHERE tree_id=? AND kind='persona_match' AND status='undecided'
+                                              AND json_extract(payload_json,'$.persona_id')=?""", (m["persona"], tree_id, tree_id, m["persona"]))}
+        tied |= people
+        if m["kind"] not in role: continue
+        named = {rid for pid in people for rid, _ in cat.family(pid)[role[m["kind"]]]}
+        if named: sets.append(named)
+    out = []
+    for rid in sorted(set.intersection(*sets) - tied) if sets else []:
+        names = cat.person(rid)["names"]; birth = next((e for e in cat.events(rid) if e["type"] == "Birth" and e["year"]), None)
+        out += [(rid, g, s, birth["year"] if birth else None) for g, s, *_ in names[:1]]
+    return out
+
+def _fits(row, rel):
+    """Whether a row's name fits a relative's by the matcher's own agreement of given names (match.same_given) and the surname
+    as written, with no birth year of the two more than a calculated year's span apart."""
+    from match import first_given, same_given
+    _, given, surname, born = rel
+    if not same_given(first_given(row["given"]), first_given(given)) or key(row["surname"]) != key(surname): return False
+    return not (row["year"] and born and abs(row["year"] - born) > 2)
+
+def _row_name(name):
+    """(given names, surname) of a search row's name: a lone word the surname, as a surname search lists an entry whose given
+    name the index lacks."""
+    given, surname, _ = split_name(name or "")
+    return (None, given) if surname is None else (given, surname)
+
+def _where(cx, ark):
+    """Where a tried candidate's own record page places it, in words: its page locators, line and relationship as its current
+    reading keeps them."""
+    r = cx.execute("""SELECT pe.region_json, (SELECT pf.value_text FROM persona_fact pf WHERE pf.persona_id=pe.id AND pf.fact_type='Relationship' ORDER BY pf.rowid LIMIT 1)
+                      FROM persona pe JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id WHERE e.superseded_by IS NULL AND x.name=?
+                      AND json_extract(pe.region_json,'$.ark')=? ORDER BY e.ran_at DESC""", (FAMILYSEARCH, ark)).fetchone()
+    if not r: return "its page read nowhere"
+    loc = (json.loads(r[0] or "{}").get("locators") or {})
+    return ", ".join([page_words({k: v for k, v in loc.items() if k not in ("line", "image", "household_id", "digital_folder", "image_number", "film", "publication", "roll")})] +
+                     ([f"line {loc['line']}"] if loc.get("line") else []) + ([r[1]] if r[1] else [])) or "no place on a page read"
+
+def candidates(cx, tree_id, h):
+    """The rows that could be the household's missing entries (docs/RESEARCH-WORKFLOW.md §5–7, "Households"): {"answer"
+    (answer), "order" (the candidates in order, each {"ark", "name", "born", "year", "place", "url", "found_on", "row", "for" (the
+    missing entries it could be), "why" (what orders it, in words)}), "open" (the first OPEN_AT_ONCE), "left_out" ({"ark", "name",
+    "why"}), "tried" ({"ark", "name", "where"}: a candidate whose record page is held and is no member, where that page places
+    it)}. A row is one when it carries the household's surname as written and its place, and its own record page is not held."""
+    pages = _pages(cx, h); ans = answer(cx, h, pages)
+    members = _members(cx, h); entries = {m["id"] for m in members if m["id"]}
+    blocks = {m["id"][:-1]: m for m in members if m["id"]}
+    head_missing = bool(h["missing"]) and h["missing"][0] == HEAD; lines = [x for x in h["missing"] if x != HEAD]
+    spouses = [(m, _year(m["born"])) for m in members if m["kind"] == "spouse" and _year(m["born"])]
+    relatives = _relatives_in_head_place(cx, tree_id, members) if head_missing else []
+    seen, rows = set(), []
+    for p in sorted(pages, key=lambda p: (not p["own"], int(p["query"].get("offset") or 0))):
+        for r in p["rows"]:
+            if not r.get("ark") or r["ark"] in seen: continue
+            seen.add(r["ark"])
+            given, surname = _row_name(r.get("name"))
+            res = next((e["place"] for e in r.get("events") or [] if e["type"] == "Residence" and e.get("place")), None)
+            born = next((e["date"] for e in r.get("events") or [] if e["type"] == "Birth" and e.get("date")), None)
+            minor, county, _ = place_parts(res)
+            if key(surname) != key(h["surname"]) or (key(minor), key(county)) != (key(h["minor"]), key(h["county"])): continue
+            rows.append({"ark": r["ark"], "name": r.get("name") or "", "given": given, "surname": surname, "born": born, "year": _year(born), "place": res, "url": r.get("url"),
+                         "found_on": p["url"], "row": r.get("n"), "base": len(rows)})
+    order, left_out, tried = [], [], []
+    for r in rows:
+        if ark_id(r["ark"]) in entries: continue                                   # a member already: held
+        if cx.execute("SELECT 1 FROM artifact_locator WHERE kind='ark' AND value=?", (r["ark"],)).fetchone():
+            tried.append({"ark": r["ark"], "name": r["name"], "where": _where(cx, r["ark"])}); continue
+        why, unlike = [], None
+        if head_missing:
+            span = _span(r["born"])
+            for m in members:
+                limit = (parent_limit(None, span, None, _span(m["born"])) if m["kind"] == "child" else parent_limit(m["sex"], _span(m["born"]), None, span) if m["kind"] == "parent" else None) if span else None
+                if limit:
+                    unlike = f"the head is the {'parent' if m['kind'] == 'child' else 'child'} of {m['name']} ({m['relationship']}, born {m['born']}): {limit[1]} (data/life-limits.csv)"; break
+        r["for"] = ([HEAD] if head_missing and not unlike else []) + lines
+        if not r["for"]: left_out.append({"ark": r["ark"], "name": r["name"], "why": f"born {r['born']}, so not the head: {unlike}"}); continue
+        block = blocks.get(ark_id(r["ark"])[:-1])
+        if block: why.append(f"its record id differs from {block['name']}'s ({block['id']}) in its last character alone, as the ids FamilySearch gives the entries of one household do")
+        fit = next((rel for rel in relatives if _fits(r, rel)), None) if HEAD in r["for"] else None
+        if fit: why.append(f"its name fits {fit[1]} {fit[2]}, whom the tree names in the head's place (a relative it orders by, never decides on)")
+        near = min(((abs(r["year"] - y), n) for n, (m, y) in enumerate(spouses)), default=None) if HEAD in r["for"] and r["year"] else None
+        if near: m = spouses[near[1]][0]; why.append(f"born {r['born']}, {near[0]} year{'' if near[0] == 1 else 's'} from {m['name']}, the head's {m['relationship'].lower()} (born {m['born']})")
+        if HEAD in r["for"] and not r["year"]: why.append("no birth year on the row: nothing rules it out, and nothing orders it before a row that gives one")
+        if unlike: why.append(f"not the head ({unlike}), so a candidate for {', '.join(lines)} alone")
+        r["why"] = why
+        r["sort"] = (HEAD not in r["for"], not block, not fit, HEAD in r["for"] and r["year"] is None, near[0] if near else 0, r["base"])
+        order.append(r)
+    order.sort(key=lambda r: r["sort"])
+    clean = lambda r: {k: r[k] for k in ("ark", "name", "born", "year", "place", "url", "found_on", "row", "for", "why")}
+    order = [clean(r) for r in order]
+    return {"answer": ans, "order": order, "open": order[:OPEN_AT_ONCE], "left_out": left_out, "tried": tried}
 
 def said(m):
     """A member in words: their name, with the relationship and the line the form gives them."""
