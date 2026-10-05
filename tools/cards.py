@@ -152,11 +152,10 @@ def card(cx, tree_id, prop_id, cat=None):
     if person_id:
         pr = cat.person(person_id)
         ev = cat.events(person_id)
-        first = lambda t: next((e for e in ev if e["type"] == t), None)
-        # the tree's value, each event with what of it is accepted (docs/RESEARCH-WORKFLOW.md §5–7)
+        # the tree's value, each event as the tree shows it (Catalog.canonical_event) with what of it is accepted (docs/RESEARCH-WORKFLOW.md §5–7)
         claim = {"name": pr["name"], "sex": pr["sex"]}
         for t in ("Birth", "Death", "Burial"):
-            e = first(t)
+            e = cat.canonical_event(ev, t)
             d = (
                 cx.execute("SELECT date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
                 if e

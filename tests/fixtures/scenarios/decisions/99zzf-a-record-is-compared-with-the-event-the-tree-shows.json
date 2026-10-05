@@ -1,0 +1,99 @@
+{
+ "title": "a record is compared with the event the tree shows",
+ "line": "the matcher and the card compare a record with the person's event of its type as the tree shows it: John Y Davidson's death the file dates 10 June 1946, beside a bare 1946 an older decision left with nothing behind it, is the death the tree shows, so his Kentucky death index entry's 11 Jun 1946 disagrees with it in the same year rather than agreeing with the earlier-dated bare year; and Robert Edgar Davidson's death, the file's claim the owner rejected, is no death the tree shows, so his obituary's death date is compared with nothing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a second Death the harness plants for John Y Davidson, dated 1946 alone with no statement behind it, the shape an older decision left of a record's own event (a decision now states its fact on the one Death, so only a planted event stands for it)",
+   "event": {
+    "person": "I332737204849",
+    "type": "Death",
+    "date": "1946",
+    "date_start": "1946",
+    "qualifier": "exact"
+   },
+   "as": "second_death"
+  },
+  {
+   "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd",
+   "expect": [
+    {
+     "compare": {
+      "card": {
+       "record": "kyd",
+       "person": "I332737204849"
+      },
+      "disagree": {
+       "some": "death date disagrees (record 11 Jun 1946, tree 10 June 1946: same year, different day)"
+      },
+      "agree": {
+       "none": {
+        "starts": "death date"
+       }
+      },
+      "fields": {
+       "Death date": "disagrees"
+      }
+     },
+     "why": "the death the tree shows is the file's 10 June 1946, the event with the stronger ground, not the bare 1946 that sorts before it: the 11th disagrees with the 10th"
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects Robert Edgar Davidson's death, the file's claim",
+   "fact": {
+    "person": "I332737100409",
+    "field": "death",
+    "status": "rejected",
+    "note": "harness: the death taken back"
+   }
+  },
+  {
+   "say": "his obituary, read and matched for him on the owner's word (his plan, regenerated on the rejection, no longer fetches it)",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": [
+     "I332737100409"
+    ]
+   },
+   "as": "obit",
+   "expect": [
+    {
+     "compare": {
+      "card": {
+       "record": "obit",
+       "person": "I332737100409"
+      },
+      "agree": {
+       "none": {
+        "starts": "death date"
+       }
+      },
+      "absent": {
+       "some": "death date"
+      },
+      "fields": {
+       "Death date": "absent"
+      }
+     },
+     "why": "a death whose every statement is rejected is no death the tree shows: the obituary's death date has nothing to agree or disagree with"
+    }
+   ]
+  }
+ ]
+}

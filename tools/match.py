@@ -677,10 +677,14 @@ def by_memorial(cx, tree_id, mid):
                                              OR (pe.role_in_record='memorial' AND EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=pe.artifact_sha256 AND l.kind='memorial_id' AND l.value=?)))""", (tree_id, mid, f"%/memorial/{mid}/%", mid))]
 
 def candidate(cat, pid):
+    """A person as the matcher compares them: their names, sex, and the birth, death and burial the tree shows (Catalog.
+    canonical_event: the event of the type with the strongest ground, never one whose every statement is rejected), each
+    event's date and place and its id for the rule's ground, every place the tree knows them at, their spouses' surnames
+    and the memorials accepted as them."""
     p = cat.person(pid)
     ev = cat.events(pid)
-    def first(t):
-        e = next((e for e in ev if e["type"] == t and (e["year"] or e["place"])), None)
+    def shown(t):
+        e = cat.canonical_event(ev, t)
         if not e:
             return {
                 "text": None,
@@ -700,7 +704,7 @@ def candidate(cat, pid):
             "place_id": (e["place"] or {}).get("place_id"),
             "event": e["id"]
         }
-    b, d, bu = first("Birth"), first("Death"), first("Burial")
+    b, d, bu = shown("Birth"), shown("Death"), shown("Burial")
     # the events compared, for the rule's ground
     return {
         "id": pid,

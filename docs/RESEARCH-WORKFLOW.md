@@ -939,7 +939,10 @@ relative"), by the heading "other" with no word, or by no word at all, stays a
 hint on the page that says why. So
 a household or a profile is decided one person after another, each on the
 record's own words about the last. The comparison
-is on name, sex, birth and death dates, birth, burial and death place, the
+is on name, sex, birth and death dates, birth, burial and death place, each
+against the person's event of its type as the tree shows it (the one standing on
+the strongest ground, never one left with no statement but rejected ones, which
+is none of the person's events: below), the
 residence the record gives against every place the tree knows the person at,
 and the relationships the record states; a persona fits only on more than a
 name and a year (a place, a death, a full date or a stated relationship); a census index's estimated birth year and a
