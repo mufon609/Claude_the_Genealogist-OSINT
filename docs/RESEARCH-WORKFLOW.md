@@ -1064,7 +1064,15 @@ record says the persona is the child, parent or spouse of a persona already
 accepted as a person on the same record, the family link between the two
 carries an Accepted assertion on the artifact too, created in a family of the
 right shape when the tree lacks the link: a parent-child relation is evidence
-on the child's membership, a spouse relation on both partners', and the family
+on the child's membership, in the family where the child already stands under
+that parent, else in the child's family of one parent (the named parent its
+second, unless the two are already partners of another family), else in a
+family of the parent whose every other partner the record itself names as the
+child's parent (accepted on it, or put to its persona by a card still open),
+else in a new family of that parent alone: a census that makes a child the
+head's and a woman the head's wife names no mother, so the child is never
+placed beside a wife, a second wife above all, the record does not name as
+theirs; a spouse relation is evidence on both partners', and the family
 facts the record states (a Marriage and its date and place) are asserted on one
 of that family's own events of the type, chosen as a person's is, created when
 none fits and raised for the owner when the choice is theirs (a marriage index

@@ -1,6 +1,6 @@
 {
  "title": "the indexer's groupings",
- "line": "a census page focused on a household member, the relatives its tables group around him FamilySearch's own: once the owner accepts the son, the father is taken through the son's own stated relationship to the head, while the mother is not taken through the Parents and Siblings table, the brother nobody fits is not created, and the decision on the mother writes the couple undecided, saying the record's indexer states it; on the head's own page the same kind of row is the census's own column, stated: once the owner accepts the head, his wife is taken through it and his son and daughter, whom nobody fits, are created",
+ "line": "a census page focused on a household member, the relatives its tables group around him FamilySearch's own: once the owner accepts the son, the father is taken through the son's own stated relationship to the head, while the mother is not taken through the Parents and Siblings table, the brother nobody fits is not created, and the decision on the mother writes the couple undecided, saying the record's indexer states it; on the head's own page the same kind of row is the census's own column, stated: once the owner accepts the head, his wife is taken through it and his son and daughter, whom nobody fits, are created, each placed under him alone: the census states them his and her his wife, never their mother, so they never join the couple's family beside a wife the record does not name as their mother",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -222,6 +222,28 @@
       "count": 29
      },
      "why": "the son and the daughter created"
+    },
+    {
+     "parents": {
+      "person": {
+       "created": "Cassie E Davidson"
+      },
+      "is": [
+       "John Y Davidson"
+      ]
+     },
+     "why": "the census states her the head's daughter and Lena the head's wife, never Lena her mother: she is placed under him alone, not in the couple's family"
+    },
+    {
+     "parents": {
+      "person": {
+       "created": "Willie R Davidson"
+      },
+      "is": [
+       "John Y Davidson"
+      ]
+     },
+     "why": "and her brother beside her, in the one family of his alone"
     }
    ]
   },
@@ -235,6 +257,16 @@
       "spouses": "accepted"
      },
      "why": "the couple stands on the census's statement of the wife's relationship to the head, not written undecided as a grouping is"
+    },
+    {
+     "linked": {
+      "a": {
+       "created": "Cassie E Davidson"
+      },
+      "b": "I332737204852",
+      "is": false
+     },
+     "why": "the couple stands on the census, yet no family joins her to the wife on the record's word"
     }
    ]
   },

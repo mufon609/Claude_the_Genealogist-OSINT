@@ -313,7 +313,7 @@ a regeneration to be checked against a prior state, such as a legacy truncated k
 Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
 `kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `decided_at`, `note`, `rationale`), `rule` (`taken`, `why`),
 `compare` (a `card`'s persona against its person as the matcher compares them: `agree`, `disagree`, `absent`, the
-`vetoes` the rule reads among the disagreements, and the card's `fields`, each field's verdict), `facts` (key facts by status), `alias`, `linked`, `memberships`, `persons` (`count`, or `named` with `given` and
+`vetoes` the rule reads among the disagreements, and the card's `fields`, each field's verdict), `facts` (key facts by status), `alias`, `linked`, `parents` (a person's parents as the tree holds them, by display name in name order), `memberships`, `persons` (`count`, or `named` with `given` and
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, each one's date as written in date order, `dates`, how many statements each carries, `per_event`, in the same order, and with `record` its `statements` on them by status and `per_event` that record's alone), `disagreements`, `question`,
 `assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `fetch_call` (the call the list gives the save script for the page serving a `step`: its `call` text and the steps it `serves`), `search_log`, `named_for`, `audit`, `hints`,

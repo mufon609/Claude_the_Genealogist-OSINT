@@ -879,6 +879,12 @@ def e_alias(w, x, want):
     rows = [list(a) for a in w.cx.execute("SELECT value, kind, status FROM alias WHERE entity_kind='person' AND entity_id=?", (w.person(x["person"]),))]
     return has(rows, w.value(x["is"])), rows
 
+def e_parents(w, x, want):
+    """A person's parents as the tree holds them (Catalog.family: the partners of every family the person is a child of, a
+    membership whose statements are all rejected left out), by display name, in name order."""
+    got = sorted(n for _, n in w.catalog().family(w.person(x["person"]))["parents"])
+    return has(got, w.value(x["is"])), got
+
 def e_linked(w, x, want):
     from match import linked
     v = bool(linked(w.catalog(), w.person(x["a"]), w.person(x["b"]))); return v == x.get("is", True), v
@@ -1265,7 +1271,8 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
-           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "compare": e_compare}
+           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "compare": e_compare,
+           "parents": e_parents}
 
 def load(folder):
     """Every scenario file under a folder, in name order."""

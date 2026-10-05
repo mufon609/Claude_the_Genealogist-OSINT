@@ -1285,7 +1285,11 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     indexer computed rather than the record stating it (catalog.relation_classes: FamilySearch's own relatives-table groupings)
     is written the same way, Undecided and marked computed, with the reason in held_back; a stated relationship between the same
     two on the record is read first, and the computed one adds nothing beside it. A parent-child relation is
-    evidence on the child's membership; a spouse relation on both partners', and the family facts the two partners' personas
+    evidence on the child's membership, in the family where the child already stands under that parent, else the child's
+    family of one parent (the parent its second, unless the two are partners of another family already), else a family of
+    the parent whose every other partner the record itself names as the child's parent (parents_family), else a new family
+    of the parent alone: a father's child is never placed beside a wife the record does not name. A spouse relation is
+    evidence on both partners', and the family facts the two partners' personas
     state (a Marriage and its date) are asserted on that family's event (assert_family_events). A sibling stated on the record places the person
     as a child of the other's accepted parents with an Undecided assertion regardless of tier (the record states the sibling,
     not the parents), and only when the other is an accepted child of exactly one family and neither partner of it died,
@@ -1405,6 +1409,47 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
                 f"the link to {name(other)} ({as_written}) written undecided: the record's indexer, not the record, states it"
             )
     one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
+    def named_parents(child_persona):
+        """The people the record itself states as parents of this persona, never by a grouping its indexer computed: the
+        person each parent's persona is accepted as, or is put to by a card still undecided."""
+        out_ = set()
+        for r in q.execute("""SELECT persona_id, related_persona_id, kind, value_text FROM persona_relation
+                              WHERE (persona_id=? AND kind='child') OR (related_persona_id=? AND kind='parent')""", (child_persona, child_persona)).fetchall():
+            if relation_classes(cx, r["persona_id"], r["related_persona_id"], r["kind"], r["value_text"])["relationship"] == "computed":
+                continue
+            z = r["related_persona_id"] if r["persona_id"] == child_persona else r["persona_id"]
+            out_ |= {
+                x[0] for x in q.execute(
+                    "SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?",
+                    (z, tree_id)
+                )
+            }
+            out_ |= {
+                json.loads(x[0]).get("person_id") for x in q.execute(
+                    "SELECT payload_json FROM proposal WHERE tree_id=? AND kind='persona_match' AND status='undecided' AND json_extract(payload_json,'$.persona_id')=?",
+                    (tree_id, z)
+                )
+            }
+        return out_ - {None}
+    def parents_family(parent, child_persona):
+        """The family of this parent a child joins on the record's word: one whose every other partner is a parent the record
+        itself names for the child (named_parents), the most such partners first, then the earliest; None when each holds a
+        partner the record does not name (a father's second wife), so the child is never placed beside a parent the record
+        never gives."""
+        named = named_parents(child_persona) if child_persona else set()
+        best = None
+        for f, in q.execute(
+            "SELECT family_id FROM family_member WHERE person_id=? AND role='partner' ORDER BY family_id", (parent,)
+        ).fetchall():
+            others = {
+                x[0]
+                for x in q.execute(
+                    "SELECT person_id FROM family_member WHERE family_id=? AND role='partner' AND person_id<>?", (f, parent)
+                )
+            }
+            if others <= named and (best is None or len(others) > best[1]):
+                best = (f, len(others))
+        return best[0] if best else None
     x_surname = q.execute("SELECT name_text FROM persona WHERE id=?", (persona_id,)).fetchone()["name_text"]
     x_surname = (split_persona_name(x_surname)[1] or [""])[-1]
     rows = list(q.execute("""SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation
@@ -1426,7 +1471,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
         mine = r["persona_id"] == persona_id  # (X, kind, Y) reads: X is the <kind> of Y
         y_persona = r["related_persona_id"] if mine else r["persona_id"]
         kind, as_written = r["kind"], r["value_text"] or r["kind"]
-        other = None
+        other, in_law = None, False
         if kind == "other":
             resolved = IN_LAW.get((r["value_text"] or "").strip().lower())
             # a half sibling, a grandchild, "other relative": not one of the six the rule resolves
@@ -1444,7 +1489,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
                 continue
             # resolve_in_law always reads "X is <kind> of other", whichever side the record's own row sat on
             kind, other = got
-            mine = True
+            mine, in_law = True, True
         else:
             other = person_of(y_persona)
         if not other or other == pid:
@@ -1496,15 +1541,18 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
                      WHERE fm.person_id=? AND fm.role='child'""", (parent, child))
         new = False
         if fid is None:
+            # the child's family of one parent takes this one as its second, unless the two are partners already elsewhere
             fid = one("""SELECT fm.family_id FROM family_member fm WHERE fm.person_id=? AND fm.role='child'
-                         AND (SELECT COUNT(*) FROM family_member x WHERE x.family_id=fm.family_id AND x.role='partner')<2""", (child,))
+                         AND (SELECT COUNT(*) FROM family_member x WHERE x.family_id=fm.family_id AND x.role='partner')<2
+                         AND NOT EXISTS (SELECT 1 FROM family_member lone JOIN family_member a ON a.person_id=lone.person_id AND a.role='partner' AND a.family_id<>fm.family_id
+                                         JOIN family_member b ON b.family_id=a.family_id AND b.person_id=? AND b.role='partner'
+                                         WHERE lone.family_id=fm.family_id AND lone.role='partner')""", (child, parent))
             if fid is not None:
                 new = member(fid, parent, "partner")
             else:
-                fid = (
-                    one("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", (parent,))
-                    or new_family(cx, tree_id, parent, ts)
-                )
+                # an in-law's tie names the parent of a person the record gives no persona of here
+                child_persona = None if in_law else persona_id if child == pid else y_persona
+                fid = parents_family(parent, child_persona) or new_family(cx, tree_id, parent, ts)
                 new = member(fid, child, "child")
         n = len(out)
         assert_(
