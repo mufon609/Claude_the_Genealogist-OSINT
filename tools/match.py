@@ -89,33 +89,116 @@ proposal carries the version that wrote it in generated_by.
 import argparse, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, ulid
-from catalog import COUNTRY, SUFFIX, Catalog, cited_persons, collection_state, date_verdict, edits, holds, key, place_verdict, same_surname, soundex, year
+from catalog import (
+    COUNTRY,
+    SUFFIX,
+    Catalog,
+    cited_persons,
+    collection_state,
+    date_verdict,
+    edits,
+    holds,
+    key,
+    place_verdict,
+    same_surname,
+    soundex,
+    year
+)
 from log_search import REOPENED
 
-MATCHER = ("rule", "matcher", "0.8.0")   # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
-WINDOW = 3                                  # the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
-LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}   # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
-MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)   # the husband of a daughter or a sister on the same record: the surname she may be shown married under
+# raised with any change to what fits: reconsider then proposes every older version's undecided cards again
+MATCHER = ("rule", "matcher", "0.8.0")
+# the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
+WINDOW = 3
+# extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
+LISTED_RELATIVE_SUBJECT = {"findagrave-memorial": "memorial"}
+# the husband of a daughter or a sister on the same record: the surname she may be shown married under
+MARRIED_IN_LAW = re.compile(r"son-in-law|brother-in-law", re.I)
 REL_OF = {"parents": "parent", "children": "child", "spouses": "spouse", "siblings": "sibling"}
-KIN_WORD = re.compile(r"\b(?:great-?)*(?:grand)?(?:father|mother|son|daughter|child|children|parent)s?\b|\b(?:brother|sister|sibling|husband|wife|spouse|groom|bride|widow|widower|aunt|uncle|niece|nephew|cousin)s?\b|in-law|\bhalf\b|\bstep", re.I)   # a word of kinship a record files under another heading (a grandson, a daughter-in-law, a maternal grandmother): never "other relative", an informant's signature or a blank
-NAME_ONLY = ("given name", "surname", "sex")   # what a namesake agrees on, besides a year of birth the record gives bare
+# a word of kinship a record files under another heading (a grandson, a daughter-in-law, a maternal grandmother): never "other relative", an informant's signature or a blank
+KIN_WORD = re.compile(
+    r"\b(?:great-?)*(?:grand)?(?:father|mother|son|daughter|child|children|parent)s?\b|\b(?:brother|sister|sibling|husband|wife|spouse|groom|bride|widow|widower|aunt|uncle|niece|nephew|cousin)s?\b|in-law|\bhalf\b|\bstep",
+    re.I
+)
+NAME_ONLY = ("given name", "surname", "sex")  # what a namesake agrees on, besides a year of birth the record gives bare
 
-PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt", "cpl", "pfc", "cmdr", "adm"}
-def first_given(s): return key((s or "").split()[0]) if (s or "").strip() else ""
-NICK = [{"william", "willie", "will", "bill", "billy"}, {"charles", "charley", "charlie", "chas"}, {"robert", "bob", "bobby", "rob"}, {"john", "johnny", "jno", "jack"},
-        {"james", "jim", "jimmy", "jas"}, {"joseph", "joe", "jos"}, {"thomas", "tom", "thos"}, {"richard", "dick"}, {"edward", "ed", "eddie", "ned"}, {"frederick", "fred", "freddie"},
-        {"raymond", "ray"}, {"daniel", "dan", "danny"}, {"benjamin", "ben"}, {"samuel", "sam"}, {"elizabeth", "eliza", "lizzie", "betty", "beth", "bess", "bessie"}, {"margaret", "maggie", "peggy", "madge"},
-        {"mary", "mamie", "polly", "mae", "may"}, {"catherine", "katherine", "kate", "katie", "kathryn"}, {"ann", "anna", "annie", "nancy"}, {"sarah", "sallie", "sally"}, {"jane", "jennie", "jenny"},
-        {"lura", "lou", "laura"}, {"corinne", "carinne", "corrine"}, {"helen", "nellie", "ellen"}, {"susan", "susanna", "susannah", "sue", "susie"}, {"minerva", "minnie"}, {"matthew", "matt"},
-        {"patrick", "pat", "paddy"}, {"abraham", "abram", "abe"}, {"christian", "chris", "christ", "christopher"}, {"adeline", "addie"}, {"charlotte", "lottie"}, {"emily", "emma"}, {"martha", "mattie", "patsy"}, {"cassandra", "cassie"}, {"ollie", "oli", "oliver", "olive"}]
+PREFIX = {
+    "dr",
+    "mr",
+    "mrs",
+    "ms",
+    "miss",
+    "rev",
+    "fr",
+    "sr",
+    "hon",
+    "prof",
+    "judge",
+    "maj",
+    "capt",
+    "cpt",
+    "col",
+    "gen",
+    "lt",
+    "sgt",
+    "pvt",
+    "cpl",
+    "pfc",
+    "cmdr",
+    "adm"
+}
+def first_given(s):
+    return key((s or "").split()[0]) if (s or "").strip() else ""
+NICK = [
+    {"william", "willie", "will", "bill", "billy"},
+    {"charles", "charley", "charlie", "chas"},
+    {"robert", "bob", "bobby", "rob"},
+    {"john", "johnny", "jno", "jack"},
+    {"james", "jim", "jimmy", "jas"},
+    {"joseph", "joe", "jos"},
+    {"thomas", "tom", "thos"},
+    {"richard", "dick"},
+    {"edward", "ed", "eddie", "ned"},
+    {"frederick", "fred", "freddie"},
+    {"raymond", "ray"},
+    {"daniel", "dan", "danny"},
+    {"benjamin", "ben"},
+    {"samuel", "sam"},
+    {"elizabeth", "eliza", "lizzie", "betty", "beth", "bess", "bessie"},
+    {"margaret", "maggie", "peggy", "madge"},
+    {"mary", "mamie", "polly", "mae", "may"},
+    {"catherine", "katherine", "kate", "katie", "kathryn"},
+    {"ann", "anna", "annie", "nancy"},
+    {"sarah", "sallie", "sally"},
+    {"jane", "jennie", "jenny"},
+    {"lura", "lou", "laura"},
+    {"corinne", "carinne", "corrine"},
+    {"helen", "nellie", "ellen"},
+    {"susan", "susanna", "susannah", "sue", "susie"},
+    {"minerva", "minnie"},
+    {"matthew", "matt"},
+    {"patrick", "pat", "paddy"},
+    {"abraham", "abram", "abe"},
+    {"christian", "chris", "christ", "christopher"},
+    {"adeline", "addie"},
+    {"charlotte", "lottie"},
+    {"emily", "emma"},
+    {"martha", "mattie", "patsy"},
+    {"cassandra", "cassie"},
+    {"ollie", "oli", "oliver", "olive"}
+]
 def same_given(a, b):
     """Two given-name keys are the same name: equal, one an initial of the other, a nickname of the other, or one letter apart when
     both are five letters or longer (a transcriber's slip)."""
-    if not a or not b: return False
-    if a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b)): return True
-    if any(a in g and b in g for g in NICK): return True
+    if not a or not b:
+        return False
+    if a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b)):
+        return True
+    if any(a in g and b in g for g in NICK):
+        return True
     if min(len(a), len(b)) >= 5 and abs(len(a) - len(b)) <= 1:
-        if len(a) == len(b): return sum(x != y for x, y in zip(a, b)) == 1
+        if len(a) == len(b):
+            return sum(x != y for x, y in zip(a, b)) == 1
         s, l = (a, b) if len(a) < len(b) else (b, a)
         return any(l[:i] + l[i + 1:] == s for i in range(len(l)))
     return False
@@ -123,10 +206,12 @@ def same_given(a, b):
 def name_keys(cat, pid):
     """(first given, surname) keys for a person: every name row and every non-rejected alias."""
     keys = set()
-    for given, surname, *_ in cat.person(pid)["names"]: keys.add((first_given(given), key(surname)))
+    for given, surname, *_ in cat.person(pid)["names"]:
+        keys.add((first_given(given), key(surname)))
     for alias in cat.person(pid)["aliases"]:
         parts = alias.split()
-        if len(parts) >= 2: keys.add((first_given(parts[0]), key(parts[-1])))
+        if len(parts) >= 2:
+            keys.add((first_given(parts[0]), key(parts[-1])))
     return keys
 
 def name_words(text):
@@ -135,10 +220,13 @@ def name_words(text):
     t = re.sub(r"[“\"][^”\"]*[”\"]|(?<!\w)'[^']+'(?!\w)", " ", text or "")
     t = re.sub(r"[“”\"']", " ", t).strip()
     m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", t)
-    if m: t = f"{m.group(2)} {m.group(1)}"
+    if m:
+        t = f"{m.group(2)} {m.group(1)}"
     words = [key(p) for p in t.replace(",", " ").split() if key(p)]
-    while words and words[0] in PREFIX: words.pop(0)
-    while len(words) > 1 and words[-1] in SUFFIX: words.pop()
+    while words and words[0] in PREFIX:
+        words.pop(0)
+    while len(words) > 1 and words[-1] in SUFFIX:
+        words.pop()
     return words
 
 def same_middle(a, b):
@@ -156,12 +244,18 @@ def middle_differs(written, names, surnames):
     own = lambda w: len(w) > 1 and any(same_surname(w, s) for s in keys)
     words = name_words(written)
     mine = [w for w in words[1:-1] if not own(w)]
-    if not mine: return None
+    if not mine:
+        return None
     theirs = [[w for w in name_words(g)[1:] if not own(w)] for g, s in names]
     theirs = [m for m in theirs if m]
-    if not theirs: return None
-    if any(len(m) == 1 and s.startswith(m) and not same_surname(s, words[-1]) for m in mine for s in keys): return None   # the initial of another surname the person holds than the one the record writes
-    if any(same_middle(m, x) for m in mine for t in theirs for x in t): return None   # one of the record's middle names is one of the tree's: John Georgi Young for John Y
+    if not theirs:
+        return None
+    # the initial of another surname the person holds than the one the record writes
+    if any(len(m) == 1 and s.startswith(m) and not same_surname(s, words[-1]) for m in mine for s in keys):
+        return None
+    # one of the record's middle names is one of the tree's: John Georgi Young for John Y
+    if any(same_middle(m, x) for m in mine for t in theirs for x in t):
+        return None
     return mine[0], theirs[0][0]
 
 def split_persona_name(name_text):
@@ -170,11 +264,16 @@ def split_persona_name(name_text):
     the tree knows, and a nickname in quotes is one more token."""
     text = re.sub(r"[\u201c\u201d\"']", " ", name_text or "").strip()
     m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", text)                   # a census writes the surname first: "Doe, John A."
-    if m: text = f"{m.group(2)} {m.group(1)}"
+    if m:
+        text = f"{m.group(2)} {m.group(1)}"
     parts = [p for p in text.replace(",", " ").split() if key(p)]
-    while parts and key(parts[0]) in PREFIX: parts.pop(0)
-    while len(parts) > 1 and parts[-1].strip(".").lower() in SUFFIX: parts.pop()     # Jr, Sr, III are not a surname
-    return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:] if len(key(p)) > 1])   # an initial is not a surname
+    while parts and key(parts[0]) in PREFIX:
+        parts.pop(0)
+    # Jr, Sr, III are not a surname
+    while len(parts) > 1 and parts[-1].strip(".").lower() in SUFFIX:
+        parts.pop()
+    # an initial is not a surname
+    return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:] if len(key(p)) > 1])
 
 def compare(cat, persona, cand, chosen, birth_place=True):
     """Agreements, disagreements and absences between a persona and a candidate person, in words. birth_place False: a birth
@@ -182,95 +281,233 @@ def compare(cat, persona, cand, chosen, birth_place=True):
     §5–7), as the rule reads a relative's persona on a record; the matcher's own proposals read it as written."""
     agree, disagree, absent = [], [], []
     keys = name_keys(cat, cand["id"])
-    names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]     # every name the record gives: at birth, current, as written elsewhere on it
-    pg, rest = next(((g, r) for g, r in names if any(same_given(g, k) for k, _ in keys) and any(same_surname(t, s) for t in r for _, s in keys)), names[0])
+    # every name the record gives: at birth, current, as written elsewhere on it
+    names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
+    pg, rest = next(
+        (
+            (g, r)
+            for g, r in names
+            if any(same_given(g, k) for k, _ in keys) and any(same_surname(t, s) for t in r for _, s in keys)
+        ),
+        names[0]
+    )
     ps = rest[-1] if rest else ""
     given_ok = any(same_given(g, k) for g, _ in names for k, _ in keys)
-    how = next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s) == "agrees"), None) \
-          or next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s)), None)
+    how = (
+        next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s) == "agrees"), None)
+        or next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s)), None)
+    )
     surname_ok = bool(how)
-    married = bool(ps) and not surname_ok and (persona.get("spouse_surname") == ps or any(same_surname(ps, s) for s in cand.get("spouse_surnames") or [])
-                                                or any(same_surname(ps, s) for s in persona.get("in_law_surnames") or []) or persona.get("shown_mrs"))   # a wife under her husband's surname (the record's spouse or the tree's), or any woman shown married: a daughter or sister beside a son- or brother-in-law of that surname, or written "Mrs."
-    (agree if given_ok else disagree).append(f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})")
-    if ps and married: absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
-    elif ps: (agree if surname_ok else disagree).append(f"surname {'agrees' if surname_ok else 'disagrees'}" + {"variant": " as a spelling variant", "one letter apart": ", one letter apart"}.get(how, "") + f" (record {persona['name']}, tree {cand['name']})")
-    else: absent.append("surname")
+    # a wife under her husband's surname (the record's spouse or the tree's), or any woman shown married: a daughter or sister beside a son- or brother-in-law of that surname, or written "Mrs."
+    married = (
+        bool(ps)
+        and not surname_ok
+        and (
+            persona.get("spouse_surname") == ps
+            or any(same_surname(ps, s) for s in cand.get("spouse_surnames") or [])
+            or any(same_surname(ps, s) for s in persona.get("in_law_surnames") or [])
+            or persona.get("shown_mrs")
+        )
+    )
+    (agree if given_ok else disagree).append(
+        f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})"
+    )
+    if ps and married:
+        absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
+    elif ps:
+        (agree if surname_ok else disagree).append(
+            f"surname {'agrees' if surname_ok else 'disagrees'}"
+            + {"variant": " as a spelling variant", "one letter apart": ", one letter apart"}.get(how, "")
+            + f" (record {persona['name']}, tree {cand['name']})"
+        )
+    else:
+        absent.append("surname")
     rows = [(g or "", s or "") for g, s, *_ in cat.person(cand["id"])["names"]]
-    if given_ok and middle_differs(persona["name"], rows, [s for _, s in rows]):   # both carry a middle name or initial and they differ: another person, or a slip the owner reads
+    # both carry a middle name or initial and they differ: another person, or a slip the owner reads
+    if given_ok and middle_differs(persona["name"], rows, [s for _, s in rows]):
         disagree.append(f"middle name disagrees (record {persona['name']}, tree {cand['name']})")
-    if persona["sex"] and cand["sex"] in ("M", "F"): (agree if persona["sex"] == cand["sex"] else disagree).append(f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)")
-    else: absent.append("sex")
+    if persona["sex"] and cand["sex"] in ("M", "F"):
+        (agree if persona["sex"] == cand["sex"] else disagree).append(
+            f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)"
+        )
+    else:
+        absent.append("sex")
     dated = False
     for label in ("birth", "death"):
         v, note = date_verdict(persona[label], cand[label])
-        if v == "absent": absent.append(f"{label} date"); continue
-        words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (f": {note}" if note else "") + ")"
-        if v == "within": absent.append(words); continue                 # a bound neither agrees nor disagrees (catalog.date_verdict)
-        (agree if v == "agrees" else disagree).append(words); dated = dated or v == "agrees"
+        if v == "absent":
+            absent.append(f"{label} date")
+            continue
+        words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (
+            f": {note}" if note else ""
+        ) + ")"
+        # a bound neither agrees nor disagrees (catalog.date_verdict)
+        if v == "within":
+            absent.append(words)
+            continue
+        (agree if v == "agrees" else disagree).append(words)
+        dated = dated or v == "agrees"
     for label in ("birth place", "burial place", "death place"):
-        v, note = place_verdict(persona[label], cand[label], record_state=persona.get("record_state"), dated_names=cat.dated_names(cand.get(f"{label}_id")))
-        if v == "absent": absent.append(label); continue
-        (agree if v == "agrees" else disagree).append(f"{label} {v} (record {persona[label]}, tree {cand[label]}" + (f": {note}" if note else "") + ")"); dated = dated or v == "agrees"
-    if persona.get("residence place"):                        # where the record puts the person, against every place the tree knows them at
+        v, note = place_verdict(
+            persona[label],
+            cand[label],
+            record_state=persona.get("record_state"),
+            dated_names=cat.dated_names(cand.get(f"{label}_id"))
+        )
+        if v == "absent":
+            absent.append(label)
+            continue
+        (agree if v == "agrees" else disagree).append(
+            f"{label} {v} (record {persona[label]}, tree {cand[label]}" + (f": {note}" if note else "") + ")"
+        )
+        dated = dated or v == "agrees"
+    if persona.get("residence place"):  # where the record puts the person, against every place the tree knows them at
         known = [p for p in cand.get("places") or [] if p]
         hit = next((p for p in known if place_verdict(persona["residence place"], p)[0] == "agrees"), None)
-        if hit: agree.append(f"residence place agrees (record {persona['residence place']}, tree {hit})"); dated = dated or True
-        else: absent.append(f"residence: {persona['residence place']} is not a place the tree knows them at")
+        if hit:
+            agree.append(f"residence place agrees (record {persona['residence place']}, tree {hit})")
+            dated = dated or True
+        else:
+            absent.append(f"residence: {persona['residence place']} is not a place the tree knows them at")
     same = bool(persona.get("memorial")) and persona["memorial"] in (cand.get("memorials") or set())
-    if same: agree.append(f"the same memorial {persona['memorial']} is already accepted as {cand['name']}")
+    if same:
+        agree.append(f"the same memorial {persona['memorial']} is already accepted as {cand['name']}")
     rel_ok = False
     for kind, other_pid, as_written, other_name in persona["relations"]:
         other_cand = chosen.get(other_pid)
-        if not other_cand: absent.append(f"relationship to {other_name} ({as_written}): {other_name} not yet matched"); continue
-        fam = cat.family(cand["id"]); group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
-        if group is None: absent.append(f"relationship to {other_name} ({as_written}): the record's heading is not one the matcher maps to a family link"); continue
+        if not other_cand:
+            absent.append(f"relationship to {other_name} ({as_written}): {other_name} not yet matched")
+            continue
+        fam = cat.family(cand["id"])
+        group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
+        if group is None:
+            absent.append(
+                f"relationship to {other_name} ({as_written}): the record's heading is not one the matcher maps to a family link"
+            )
+            continue
         holds = any(rid == other_cand["id"] for rid, _ in fam[group])
-        if not holds and kind == "sibling" and not fam["parents"]:     # a sibling is held through the parents: a candidate with none in the tree neither holds nor contradicts it
-            absent.append(f"relationship to {other_name} ({as_written}): {cand['name']} has no parents in the tree to hold or contradict a sibling"); continue
-        (agree if holds else disagree).append(f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
-                                              f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree")
+        # a sibling is held through the parents: a candidate with none in the tree neither holds nor contradicts it
+        if not holds and kind == "sibling" and not fam["parents"]:
+            absent.append(
+                f"relationship to {other_name} ({as_written}): {cand['name']} has no parents in the tree to hold or contradict a sibling"
+            )
+            continue
+        (agree if holds else disagree).append(
+            f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
+            f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree"
+        )
         rel_ok = rel_ok or holds
-    clean = not any(d.startswith(("sex", "middle name", "birth date", "death date", "burial place", "death place") + (("birth place",) if birth_place else ())) for d in disagree)
-    strong = any(a.startswith(("death date", "birth place", "burial place", "death place", "residence place")) for a in agree) \
-             or any(a.startswith("birth date agrees") and "year only" not in a and len((persona["birth"] or {}).get("start") or "") == 10 for a in agree)   # more than a name and a year: a place, a death, or the day
+    clean = not any(
+        d.startswith(
+            ("sex", "middle name", "birth date", "death date", "burial place", "death place")
+            + (("birth place",) if birth_place else ())
+        )
+        for d in disagree
+    )
+    # more than a name and a year: a place, a death, or the day
+    strong = (
+        any(
+            a.startswith(("death date", "birth place", "burial place", "death place", "residence place")) for a in agree
+        )
+        or any(
+            a.startswith("birth date agrees")
+                and "year only" not in a
+                and len((persona["birth"] or {}).get("start") or "") == 10
+            for a in agree
+        )
+    )
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
-    both_dates = any(d.startswith("birth date disagrees") for d in disagree) and any(d.startswith("death date disagrees") for d in disagree)   # disagreeing on both is not a likely identity either
+    # disagreeing on both is not a likely identity either
+    both_dates = (
+        any(d.startswith("birth date disagrees") for d in disagree)
+        and any(d.startswith("death date disagrees") for d in disagree)
+    )
     ry, cy = year((persona["birth"] or {}).get("start")), year((cand["birth"] or {}).get("start"))
-    far = ry is not None and cy is not None and abs(ry - cy) > WINDOW   # born outside the matcher's own window: another generation, never a likely identity
-    has_relation = any(chosen.get(o) for _, o, _, _ in persona["relations"])   # the persona relates to a persona already resolved on this record
-    unlinked = not any(cat.family(cand["id"])[g] for g in ("parents", "spouses", "children", "siblings"))   # a person of the tree with no family link yet
-    fitting = clean and (surname_ok or married) and has_relation and (rel_ok or unlinked)   # the fitting check (docs/RESEARCH-WORKFLOW.md §5-7): the same stated relationship to the same accepted person, or the surname on a person with no family link yet; a given name disagreeing does not refuse it
-    near = not fits and not far and not any(d.startswith("sex") for d in disagree) and not both_dates and ((given_ok and (surname_ok or married or same)) or fitting)   # the same name, something else disagrees, or the fitting check's relationship route: a card, never a rule decision
+    # born outside the matcher's own window: another generation, never a likely identity
+    far = ry is not None and cy is not None and abs(ry - cy) > WINDOW
+    # the persona relates to a persona already resolved on this record
+    has_relation = any(chosen.get(o) for _, o, _, _ in persona["relations"])
+    # a person of the tree with no family link yet
+    unlinked = not any(cat.family(cand["id"])[g] for g in ("parents", "spouses", "children", "siblings"))
+    # the fitting check (docs/RESEARCH-WORKFLOW.md §5-7): the same stated relationship to the same accepted person, or the surname on a person with no family link yet; a given name disagreeing does not refuse it
+    fitting = clean and (surname_ok or married) and has_relation and (rel_ok or unlinked)
+    # the same name, something else disagrees, or the fitting check's relationship route: a card, never a rule decision
+    near = (
+        not fits
+        and not far
+        and not any(d.startswith("sex") for d in disagree)
+        and not both_dates
+        and ((given_ok and (surname_ok or married or same)) or fitting)
+    )
     return fits, agree, disagree, absent, near
 
 def _date(row):
-    return {"text": row[0], "start": row[1] or row[2], "end": row[2], "qualifier": row[3]} if row and (row[1] or row[2]) else {"text": None, "start": None, "end": None, "qualifier": None}
+    return (
+        {"text": row[0], "start": row[1] or row[2], "end": row[2], "qualifier": row[3]}
+        if row and (row[1] or row[2])
+        else {"text": None, "start": None, "end": None, "qualifier": None}
+    )
 
 def personas_of(cx, eid):
     out = []
-    coll = cx.execute("SELECT c.name FROM extraction e JOIN artifact ar ON ar.sha256=e.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?", (eid,)).fetchone()
-    record_state = collection_state(coll[0] if coll else None)   # the record's own event place for a bare county (catalog.place_verdict), from the collection's own name
-    facts, rels = {}, {}                                         # persona id -> its facts, and its relations, in the order they were written: a results page holds a hundred personas, read in three queries
+    coll = cx.execute(
+        "SELECT c.name FROM extraction e JOIN artifact ar ON ar.sha256=e.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?",
+        (eid,)
+    ).fetchone()
+    # the record's own event place for a bare county (catalog.place_verdict), from the collection's own name
+    record_state = collection_state(coll[0] if coll else None)
+    # persona id -> its facts, and its relations, in the order they were written: a results page holds a hundred personas, read in three queries
+    facts, rels = {}, {}
     for r in cx.execute("""SELECT pf.persona_id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id
-                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pe.extraction_id=? ORDER BY pf.rowid""", (eid,)): facts.setdefault(r[0], []).append(tuple(r[1:]))
+                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pe.extraction_id=? ORDER BY pf.rowid""", (eid,)):
+        facts.setdefault(r[0], []).append(tuple(r[1:]))
     for r in cx.execute("""SELECT r.persona_id, r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id
-                           JOIN persona pe ON pe.id=r.persona_id WHERE pe.extraction_id=? ORDER BY r.rowid""", (eid,)): rels.setdefault(r[0], []).append(tuple(r[1:]))
-    for pid, name, sex, role, region_json in cx.execute("SELECT id, name_text, sex, role_in_record, region_json FROM persona WHERE extraction_id=? ORDER BY sequence", (eid,)):
-        mine = facts.get(pid, [])                                # (fact type, value, date text, date start, date end, date qualifier, place as written)
-        fact = lambda t: next(((x[2], x[3], x[4], x[5]) for x in mine if x[0] == t and (x[3] is not None or x[4] is not None)), None)
+                           JOIN persona pe ON pe.id=r.persona_id WHERE pe.extraction_id=? ORDER BY r.rowid""", (eid,)):
+        rels.setdefault(r[0], []).append(tuple(r[1:]))
+    for pid, name, sex, role, region_json in cx.execute(
+        "SELECT id, name_text, sex, role_in_record, region_json FROM persona WHERE extraction_id=? ORDER BY sequence",
+        (eid,)
+    ):
+        # (fact type, value, date text, date start, date end, date qualifier, place as written)
+        mine = facts.get(pid, [])
+        fact = lambda t: next(
+            ((x[2], x[3], x[4], x[5]) for x in mine if x[0] == t and (x[3] is not None or x[4] is not None)), None
+        )
         names = [name] + [x[1] for x in mine if x[0] == "Name" and x[1] is not None and x[1] != name]
         place = lambda t: next((x[6] for x in mine if x[0] == t and x[6] is not None), None)
         region = json.loads(region_json or "{}")
         m = re.search(r"/memorial/(\d+)(?:/|$)", region.get("url") or "")
-        out.append({"id": pid, "name": name, "names": names, "sex": sex, "role": role, "birth": _date(fact("Birth")), "death": _date(fact("Death")),
-                    "birth place": place("Birth"), "burial place": place("Burial"), "death place": place("Death"), "residence place": place("Residence"), "relations": rels.get(pid, []),
-                    "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None, "record_state": record_state})
+        out.append(
+            {
+                "id": pid,
+                "name": name,
+                "names": names,
+                "sex": sex,
+                "role": role,
+                "birth": _date(fact("Birth")),
+                "death": _date(fact("Death")),
+                "birth place": place("Birth"),
+                "burial place": place("Burial"),
+                "death place": place("Death"),
+                "residence place": place("Residence"),
+                "relations": rels.get(pid, []),
+                "memorial": str(region.get("memorial_id") or (m.group(1) if m else "")) or None,
+                "record_state": record_state
+            }
+        )
     names = {p["id"]: p["name"] for p in out}
-    in_law_surnames = [rest[-1] for p in out if MARRIED_IN_LAW.search(p["role"] or "") for rest in [split_persona_name(p["name"])[1]] if rest]
-    for p in out:                                                # a spouse relation on the record: the other's surname, for a wife written under it
+    in_law_surnames = [
+        rest[-1]
+        for p in out
+        if MARRIED_IN_LAW.search(p["role"] or "")
+        for rest in [split_persona_name(p["name"])[1]]
+        if rest
+    ]
+    for p in out:  # a spouse relation on the record: the other's surname, for a wife written under it
         sp = next((names[r[1]] for r in p["relations"] if r[0] == "spouse" and r[1] in names), None)
         p["spouse_surname"] = split_persona_name(sp)[1][-1] if sp and split_persona_name(sp)[1] else None
-        p["in_law_surnames"] = in_law_surnames                    # a daughter or sister under her own husband's surname, a son-in-law or brother-in-law of it named beside her
+        # a daughter or sister under her own husband's surname, a son-in-law or brother-in-law of it named beside her
+        p["in_law_surnames"] = in_law_surnames
         p["shown_mrs"] = bool(re.match(r"^\s*mrs\.?\b", p["name"] or "", re.I))
     return out
 
@@ -281,11 +518,17 @@ def memorials_of(cx, pid):
     ids = set()
     for region, sha, role in cx.execute("""SELECT pe.region_json, pe.artifact_sha256, pe.role_in_record FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                                             JOIN extraction e ON e.id=pe.extraction_id WHERE pp.person_id=? AND pp.status='accepted' AND e.superseded_by IS NULL""", (pid,)):
-        r = json.loads(region or "{}"); m = re.search(r"/memorial/(\d+)(?:/|$)", r.get("url") or "")
-        if r.get("memorial_id"): ids.add(str(r["memorial_id"]))
-        if m: ids.add(m.group(1))
+        r = json.loads(region or "{}")
+        m = re.search(r"/memorial/(\d+)(?:/|$)", r.get("url") or "")
+        if r.get("memorial_id"):
+            ids.add(str(r["memorial_id"]))
+        if m:
+            ids.add(m.group(1))
         if role == "memorial":
-            for v, in cx.execute("SELECT value FROM artifact_locator WHERE artifact_sha256=? AND kind='memorial_id'", (sha,)): ids.add(v)
+            for v, in cx.execute(
+                "SELECT value FROM artifact_locator WHERE artifact_sha256=? AND kind='memorial_id'", (sha,)
+            ):
+                ids.add(v)
     return ids
 
 def by_name_and_year(cat, cx, tree_id, persona):
@@ -300,19 +543,29 @@ def by_name_and_year(cat, cx, tree_id, persona):
     names are the whole of it."""
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
     givens, rest = [g for g, _ in names if g], [t for _, r in names for t in r]
-    if not rest: return []
+    if not rest:
+        return []
     by = (persona["birth"] or {}).get("start")
     y = int(by[:4]) if by and by[:4].isdigit() else None
     out = []
-    for pid, linked in cx.execute("""SELECT id, EXISTS (SELECT 1 FROM family_member fm WHERE fm.person_id=person.id) FROM person
-                                     WHERE tree_id=? AND merged_into IS NULL ORDER BY created_at, id""", (tree_id,)).fetchall():
+    for pid, linked in cx.execute(
+        """SELECT id, EXISTS (SELECT 1 FROM family_member fm WHERE fm.person_id=person.id) FROM person
+                                     WHERE tree_id=? AND merged_into IS NULL ORDER BY created_at, id""", (tree_id,)
+    ).fetchall():
         keys = name_keys(cat, pid)
-        if not any(same_surname(t, s) for t in rest for _, s in keys if s): continue
-        if linked and not any(same_given(g, k) for g in givens for k, _ in keys): continue
+        if not any(same_surname(t, s) for t in rest for _, s in keys if s):
+            continue
+        if linked and not any(same_given(g, k) for g in givens for k, _ in keys):
+            continue
         if y is not None:
-            years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                     WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]
-            if years and not any(abs(cy - y) <= WINDOW for cy in years): continue
+            years = [
+                int(ds[:4])
+                for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                     WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,))
+                if ds[:4].isdigit()
+            ]
+            if years and not any(abs(cy - y) <= WINDOW for cy in years):
+                continue
         out.append(pid)
     return out
 
@@ -324,20 +577,30 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
     listed spouse). tools/plan.py's listed-relative leads call this to seat a relative the matcher never proposes
     (docs/RESEARCH-WORKFLOW.md §0) on the one person of the tree they plainly are, without deciding an identity."""
     given, rest = split_persona_name(persona["name"])
-    if not given or not rest: return []
+    if not given or not rest:
+        return []
     by = (persona["birth"] or {}).get("start")
     y = int(by[:4]) if by and by[:4].isdigit() else None
     out = []
     for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL", (tree_id,)):
         keys = name_keys(cat, pid)
-        if not any(same_given(given, k) for k, _ in keys): continue
-        if not any(s in rest for _, s in keys if s): continue
+        if not any(same_given(given, k) for k, _ in keys):
+            continue
+        if not any(s in rest for _, s in keys if s):
+            continue
         rows = [(g or "", s or "") for g, s, *_ in cat.person(pid)["names"]]
-        if middle_differs(persona["name"], rows, [s for _, s in rows]): continue   # a middle name or initial both carry, differing: not plainly this person
+        # a middle name or initial both carry, differing: not plainly this person
+        if middle_differs(persona["name"], rows, [s for _, s in rows]):
+            continue
         if y is not None:
-            years = [int(ds[:4]) for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
-                     WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,)) if ds[:4].isdigit()]
-            if years and not any(abs(cy - y) <= WINDOW for cy in years): continue
+            years = [
+                int(ds[:4])
+                for ds, in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                     WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,))
+                if ds[:4].isdigit()
+            ]
+            if years and not any(abs(cy - y) <= WINDOW for cy in years):
+                continue
         out.append(pid)
     return out
 
@@ -346,22 +609,51 @@ def by_memorial(cx, tree_id, mid):
     return [pid for pid, in cx.execute("""SELECT DISTINCT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
                                           JOIN extraction e ON e.id=pe.extraction_id
                                           WHERE p.tree_id=? AND pp.status='accepted' AND e.superseded_by IS NULL AND (json_extract(pe.region_json,'$.memorial_id')=? OR json_extract(pe.region_json,'$.url') LIKE ?
-                                             OR (pe.role_in_record='memorial' AND EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=pe.artifact_sha256 AND l.kind='memorial_id' AND l.value=?)))""",
-                                       (tree_id, mid, f"%/memorial/{mid}/%", mid))]
+                                             OR (pe.role_in_record='memorial' AND EXISTS (SELECT 1 FROM artifact_locator l WHERE l.artifact_sha256=pe.artifact_sha256 AND l.kind='memorial_id' AND l.value=?)))""", (tree_id, mid, f"%/memorial/{mid}/%", mid))]
 
 def candidate(cat, pid):
-    p = cat.person(pid); ev = cat.events(pid)
+    p = cat.person(pid)
+    ev = cat.events(pid)
     def first(t):
         e = next((e for e in ev if e["type"] == t and (e["year"] or e["place"])), None)
-        if not e: return {"text": None, "start": None, "end": None, "qualifier": None, "place": None, "place_id": None, "event": None}
-        r = cat.cx.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)).fetchone()
-        return {**_date(r), "place": e["place"]["text"] if e["place"] else None, "place_id": (e["place"] or {}).get("place_id"), "event": e["id"]}
+        if not e:
+            return {
+                "text": None,
+                "start": None,
+                "end": None,
+                "qualifier": None,
+                "place": None,
+                "place_id": None,
+                "event": None
+            }
+        r = cat.cx.execute(
+            "SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (e["id"],)
+        ).fetchone()
+        return {
+            **_date(r),
+            "place": e["place"]["text"] if e["place"] else None,
+            "place_id": (e["place"] or {}).get("place_id"),
+            "event": e["id"]
+        }
     b, d, bu = first("Birth"), first("Death"), first("Burial")
-    return {"id": pid, "name": p["name"], "sex": p["sex"], "birth": b, "death": d, "birth place": b["place"], "burial place": bu["place"], "death place": d["place"],
-            "birth place_id": b["place_id"], "burial place_id": bu["place_id"], "death place_id": d["place_id"], "memorials": memorials_of(cat.cx, pid),
-            "places": [e["place"]["text"] for e in ev if e.get("place") and e["place"]["text"]],
-            "spouse_surnames": [key(n.split()[-1]) for _, n in cat.family(pid)["spouses"] if n and n.split()],
-            "events": {"Birth": b["event"], "Death": d["event"], "Burial": bu["event"]}}      # the events compared, for the rule's ground
+    # the events compared, for the rule's ground
+    return {
+        "id": pid,
+        "name": p["name"],
+        "sex": p["sex"],
+        "birth": b,
+        "death": d,
+        "birth place": b["place"],
+        "burial place": bu["place"],
+        "death place": d["place"],
+        "birth place_id": b["place_id"],
+        "burial place_id": bu["place_id"],
+        "death place_id": d["place_id"],
+        "memorials": memorials_of(cat.cx, pid),
+        "places": [e["place"]["text"] for e in ev if e.get("place") and e["place"]["text"]],
+        "spouse_surnames": [key(n.split()[-1]) for _, n in cat.family(pid)["spouses"] if n and n.split()],
+        "events": {"Birth": b["event"], "Death": d["event"], "Burial": bu["event"]}
+    }
 
 def persons_for(cx, sha):
     """(person_id, question_id, step_id) for every person the artifact was fetched for: a step logged on it, the persons the
@@ -374,17 +666,27 @@ def persons_for(cx, sha):
                           FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? AND l.superseded_by IS NULL
                           AND NOT EXISTS (SELECT 1 FROM search_log r WHERE r.plan_step_id=l.plan_step_id AND r.notes LIKE ? AND r.id > l.id AND r.superseded_by IS NULL)
                           ORDER BY own DESC, l.executed_at, sp.seq""", (f'%"{sha}"%', REOPENED + "%")).fetchall()
-    cited = [(who, r[1], r[2]) for r in rows if r[6] == "apid" and r[7] for who in cited_persons(cx, r[7])]   # the citation's own people, under the step that fetched it
-    rows = [r[:3] for r in rows] + cited                          # the step whose citation sits on the person themselves first, then in the order logged, then the cited
+    # the citation's own people, under the step that fetched it
+    cited = [(who, r[1], r[2]) for r in rows if r[6] == "apid" and r[7] for who in cited_persons(cx, r[7])]
+    # the step whose citation sits on the person themselves first, then in the order logged, then the cited
+    rows = [r[:3] for r in rows] + cited
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if loc and loc[0] and loc[1]:
-        values = sorted(holds(cx, sha)) if loc[0] == "apid" else [loc[1]]      # the ids the artifact holds: the household it names, or the whole sheet for an image
-        rows += cx.execute(f"SELECT DISTINCT person_id, question_id, id FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?'*len(values))}) ORDER BY seq", (loc[0], *values)).fetchall()
-    rows += cx.execute("""SELECT DISTINCT pp.person_id, NULL, NULL FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN extraction e ON e.id=pe.extraction_id
-                          WHERE pe.artifact_sha256=? AND pp.status='accepted' AND e.superseded_by IS NULL""", (sha,)).fetchall()
+        # the ids the artifact holds: the household it names, or the whole sheet for an image
+        values = sorted(holds(cx, sha)) if loc[0] == "apid" else [loc[1]]
+        rows += cx.execute(
+            f"SELECT DISTINCT person_id, question_id, id FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?'*len(values))}) ORDER BY seq",
+            (loc[0], *values)
+        ).fetchall()
+    rows += cx.execute(
+        """SELECT DISTINCT pp.person_id, NULL, NULL FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN extraction e ON e.id=pe.extraction_id
+                          WHERE pe.artifact_sha256=? AND pp.status='accepted' AND e.superseded_by IS NULL""", (sha,)
+    ).fetchall()
     seen, out = set(), []
     for r in rows:
-        if r[0] not in seen: seen.add(r[0]); out.append(r)
+        if r[0] not in seen:
+            seen.add(r[0])
+            out.append(r)
     return out
 
 def linked(cat, a, b):
@@ -396,7 +698,8 @@ def linked(cat, a, b):
                                                       AND NOT (json_valid(a.notes) AND (coalesce(json_extract(a.notes,'$.vouched'),0)=1 OR coalesce(json_extract(a.notes,'$.uncited'),0)=1))""", dumps([fid, who, role])))
     for fid, ra, rb in cat.q("""SELECT fm.family_id, fm.role, x.role FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=?
                                  WHERE fm.person_id=?""", b, a):
-        if on_record(fid, a, ra) and on_record(fid, b, rb): return True
+        if on_record(fid, a, ra) and on_record(fid, b, rb):
+            return True
     return False
 
 def fitting_rows(cx, eid, person_id=None, known=None):
@@ -410,16 +713,22 @@ def fitting_rows(cx, eid, person_id=None, known=None):
     from extract import POINTING_LISTINGS
     ext = cx.execute("""SELECT e.artifact_sha256 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
                          WHERE e.id=? AND e.superseded_by IS NULL AND e.status='complete' AND x.name IN (%s)""" % ",".join("?" * len(POINTING_LISTINGS)), (eid, *POINTING_LISTINGS)).fetchone()
-    if not ext: return []
-    rows = personas_of(cx, eid); out = []; known = {} if known is None else known
+    if not ext:
+        return []
+    rows = personas_of(cx, eid)
+    out = []
+    known = {} if known is None else known
     for pid, _, _ in persons_for(cx, ext[0]):
-        if person_id not in (None, pid): continue
+        if person_id not in (None, pid):
+            continue
         if pid not in known:
-            cat = Catalog(cx, cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0]); known[pid] = (cat, candidate(cat, pid))
+            cat = Catalog(cx, cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0])
+            known[pid] = (cat, candidate(cat, pid))
         cat, cand = known[pid]
         for pr in rows:
             fits, agree, _, _, _ = compare(cat, pr, cand, {})
-            if fits: out.append((pid, pr, agree))
+            if fits:
+                out.append((pid, pr, agree))
     return out
 
 def found_by_name(cx, sha):
@@ -428,19 +737,30 @@ def found_by_name(cx, sha):
     results page (step key fetch:row:), and the file cites it for nobody. A record the file cites, one a held record links (a
     memorial a page names, an ark) and one attached on the owner's word are each reached by more than a name."""
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
-    if loc and loc[0] == "apid" and loc[1] and cited_persons(cx, loc[1]): return False
+    if loc and loc[0] == "apid" and loc[1] and cited_persons(cx, loc[1]):
+        return False
     steps = cx.execute("""SELECT DISTINCT sp.kind, sp.step_key FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id
                           WHERE l.artifacts_json LIKE ? AND l.superseded_by IS NULL""", (f'%"{sha}"%',)).fetchall()
     if loc and loc[0] and loc[1]:
         values = sorted(holds(cx, sha)) if loc[0] == "apid" else [loc[1]]
-        if values: steps += cx.execute(f"SELECT DISTINCT kind, step_key FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?' * len(values))})", (loc[0], *values)).fetchall()
+        if values:
+            steps += cx.execute(
+                f"SELECT DISTINCT kind, step_key FROM search_plan WHERE kind='fetch' AND locator_kind=? AND locator_value IN ({','.join('?' * len(values))})",
+                (loc[0], *values)
+            ).fetchall()
     return bool(steps) and all(kind == "search" or step_key.startswith("fetch:row:") for kind, step_key in steps)
 
 def namesake(agree, disagree):
     """Whether a comparison (compare) agrees on the name, the sex and at most a year of birth the record gives bare, and on
     nothing else, and disagrees on something: a persona a name search alone reached that does so, tied to the person by
     nothing more, is a namesake, a hint and never a card (docs/RESEARCH-WORKFLOW.md §5–7)."""
-    return bool(disagree) and all(a.startswith(NAME_ONLY) or (a.startswith("birth date agrees") and "the record gives only a year" in a) for a in agree)
+    return (
+        bool(disagree)
+        and all(
+            a.startswith(NAME_ONLY) or (a.startswith("birth date agrees") and "the record gives only a year" in a)
+            for a in agree
+        )
+    )
 
 def matchable(cx, eid):
     """The sha256 of the record an extraction is, when the matcher proposes from it; None for a superseded reading, whose
@@ -448,8 +768,12 @@ def matchable(cx, eid):
     are never cards whatever they agree on: its own record is the document (docs/RESEARCH-WORKFLOW.md §0); fitting_rows
     names the rows that fit, tools/plan.py writes a fetch step for each."""
     from extract import POINTING_LISTINGS
-    ext = cx.execute("SELECT e.artifact_sha256, e.superseded_by, x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()
-    if not ext: raise SystemExit(f"no extraction {eid}")
+    ext = cx.execute(
+        "SELECT e.artifact_sha256, e.superseded_by, x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?",
+        (eid,)
+    ).fetchone()
+    if not ext:
+        raise SystemExit(f"no extraction {eid}")
     return None if ext[1] or ext[2] in POINTING_LISTINGS else ext[0]
 
 def match(cx, eid, by, about=None):
@@ -463,17 +787,38 @@ def match(cx, eid, by, about=None):
     is proposed as a new person. about: person ids the owner says the record concerns, when no step or link names them (a
     family-held file). What it proposes is proposals' answer, written: [(proposal id, kind, persona name, person id)]."""
     sha = matchable(cx, eid)
-    if not sha: return []
+    if not sha:
+        return []
     ts = now()
     row = cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", MATCHER).fetchone()
     mid = row[0] if row else ulid()
-    if not row: cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (mid, *MATCHER, ts))
+    if not row:
+        cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (mid, *MATCHER, ts))
     written = []
     for p in proposals(cx, eid, about=about):
         prop = ulid()
-        cx.execute("""INSERT INTO proposal (id,tree_id,kind,question_id,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,?,'undecided')""",
-                   (prop, p["tree_id"], p["kind"], p["question_id"], dumps({"persona_id": p["persona_id"], "person_id": p["person_id"], "subject_person_id": p["subject_person_id"],
-                                                                         "extraction_id": eid, "artifact_sha256": sha, "step_id": p["step_id"]}), p["rationale"], mid, ts))
+        cx.execute(
+            """INSERT INTO proposal (id,tree_id,kind,question_id,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,?,'undecided')""",
+            (
+                prop,
+                p["tree_id"],
+                p["kind"],
+                p["question_id"],
+                dumps(
+                    {
+                        "persona_id": p["persona_id"],
+                        "person_id": p["person_id"],
+                        "subject_person_id": p["subject_person_id"],
+                        "extraction_id": eid,
+                        "artifact_sha256": sha,
+                        "step_id": p["step_id"]
+                    }
+                ),
+                p["rationale"],
+                mid,
+                ts
+            )
+        )
         written.append((prop, p["kind"], p["name"], p["person_id"]))
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "proposal", eid, dumps({"proposals": len(written)})))
@@ -490,9 +835,20 @@ def on_another_copy(cx, tree_id, persona_id, ignore=()):
     for sha, _ in copies[1:]:
         r = current_reading(cx, sha)
         other = entry_on(cx, persona_id, r) if r else None
-        if other and (cx.execute("SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND o.tree_id=? AND pp.status<>'undecided'", (other, tree_id)).fetchone()
-                      or cx.execute("SELECT 1 FROM proposal p WHERE p.tree_id=? AND json_extract(p.payload_json,'$.persona_id')=? AND NOT (p.status='rejected' AND p.decision_note='superseded')" + unless,
-                                    (tree_id, other, *ignore)).fetchone()): return True
+        if (
+            other
+            and (
+                cx.execute(
+                    "SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND o.tree_id=? AND pp.status<>'undecided'",
+                    (other, tree_id)
+                ).fetchone()
+                or cx.execute(
+                    "SELECT 1 FROM proposal p WHERE p.tree_id=? AND json_extract(p.payload_json,'$.persona_id')=? AND NOT (p.status='rejected' AND p.decision_note='superseded')" + unless,
+                    (tree_id, other, *ignore)
+                ).fetchone()
+            )
+        ):
+            return True
     return False
 
 def proposals(cx, eid, about=None, ignore=(), held=None):
@@ -507,120 +863,264 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
     create, a persona with no full name, or one the record relates to the persons accepted on it by no word of kinship
     (KIN_WORD), only "other" with no word, or nothing (cards.hints_on shows the words)."""
     sha = matchable(cx, eid)
-    if not sha: return []
-    extractor_name = cx.execute("SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()[0]
-    subject_role = LISTED_RELATIVE_SUBJECT.get(extractor_name)   # set on a page anyone can edit that lists a subject's family: every other role on it is a relative merely listed
-    ignore = tuple(ignore); unless = f" AND id NOT IN ({','.join('?' * len(ignore))})" if ignore else ""
-    personas = personas_of(cx, eid); out = []
+    if not sha:
+        return []
+    extractor_name = cx.execute(
+        "SELECT x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)
+    ).fetchone()[0]
+    # set on a page anyone can edit that lists a subject's family: every other role on it is a relative merely listed
+    subject_role = LISTED_RELATIVE_SUBJECT.get(extractor_name)
+    ignore = tuple(ignore)
+    unless = f" AND id NOT IN ({','.join('?' * len(ignore))})" if ignore else ""
+    personas = personas_of(cx, eid)
+    out = []
     held = {} if held is None else held
-    by_name = found_by_name(cx, sha)                            # reached by a name search alone: a persona agreeing on no more than the name and disagreeing is a namesake
-    stated = {p["id"]: [] for p in personas}                    # persona id -> (kind, word, other persona id, other's name) for each relationship the record states, either way
+    # reached by a name search alone: a persona agreeing on no more than the name and disagreeing is a namesake
+    by_name = found_by_name(cx, sha)
+    # persona id -> (kind, word, other persona id, other's name) for each relationship the record states, either way
+    stated = {p["id"]: [] for p in personas}
     for p in personas:
         for kind, other, word, other_name in p["relations"]:
             stated[p["id"]].append((kind, word, other, other_name))
-            if other in stated: stated[other].append((kind, word, p["id"], p["name"]))
+            if other in stated:
+                stated[other].append((kind, word, p["id"], p["name"]))
     by_tree = {}                                                # tree id -> [(person id, question id, step id)]
     found = persons_for(cx, sha)
-    for pid, qid, step_id in found + [(a, None, None) for a in dict.fromkeys(about or []) if a not in {f[0] for f in found}]:
-        by_tree.setdefault(cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0], []).append((pid, qid, step_id))
+    for pid, qid, step_id in found + [
+        (a, None, None) for a in dict.fromkeys(about or []) if a not in {f[0] for f in found}
+    ]:
+        by_tree.setdefault(cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0], []).append(
+            (pid, qid, step_id)
+        )
     for tree_id, contexts in by_tree.items():
-        cat = Catalog(cx, tree_id); cands, ctx_of = [], {}    # candidate persons in order met; candidate id -> the context it came from
+        # candidate persons in order met; candidate id -> the context it came from
+        cat = Catalog(cx, tree_id)
+        cands, ctx_of = [], {}
         accepted_here = {r[0] for r in cx.execute("""SELECT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
                                                       WHERE pe.extraction_id=? AND pp.status='accepted' AND p.tree_id=?""", (eid, tree_id))}
-        open_now = set()                                        # persons a proposal may name now: the record's own people, and what accepted links or decisions attach to them
-        for pid, qid, step_id in contexts:                      # a person the record was fetched for keeps their own step and question
-            if pid not in ctx_of: ctx_of[pid] = (pid, qid, step_id); cands.append(candidate(cat, pid)); open_now.add(pid)
+        # persons a proposal may name now: the record's own people, and what accepted links or decisions attach to them
+        open_now = set()
+        for pid, qid, step_id in contexts:  # a person the record was fetched for keeps their own step and question
+            if pid not in ctx_of:
+                ctx_of[pid] = (pid, qid, step_id)
+                cands.append(candidate(cat, pid))
+                open_now.add(pid)
         for pid, qid, step_id in contexts:
             fam = cat.family(pid)
             for rid in [r for g in ("parents", "spouses", "children", "siblings") for r, _ in fam[g]]:
-                if rid not in ctx_of: ctx_of[rid] = (pid, qid, step_id); cands.append(candidate(cat, rid))
-                if pid in accepted_here or linked(cat, pid, rid): open_now.add(rid)     # a relative attached by an accepted record, or reached through a person accepted on this one
-        for pr in personas:                                     # a persona whose memorial link is already accepted as someone: that person is a candidate
+                if rid not in ctx_of:
+                    ctx_of[rid] = (pid, qid, step_id)
+                    cands.append(candidate(cat, rid))
+                # a relative attached by an accepted record, or reached through a person accepted on this one
+                if pid in accepted_here or linked(cat, pid, rid):
+                    open_now.add(rid)
+        for pr in personas:  # a persona whose memorial link is already accepted as someone: that person is a candidate
             if pr.get("memorial"):
                 for rid in by_memorial(cx, tree_id, pr["memorial"]):
-                    if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
+                    if rid not in ctx_of:
+                        ctx_of[rid] = contexts[0]
+                        cands.append(candidate(cat, rid))
                     open_now.add(rid)
             if accepted_here:
-                for rid in by_name_and_year(cat, cx, tree_id, pr):    # a person of the tree the fitting check reaches: the persona's surname, a spelling variant of it, and its birth year
-                    if rid not in ctx_of: ctx_of[rid] = contexts[0]; cands.append(candidate(cat, rid))
+                # a person of the tree the fitting check reaches: the persona's surname, a spelling variant of it, and its birth year
+                for rid in by_name_and_year(cat, cx, tree_id, pr):
+                    if rid not in ctx_of:
+                        ctx_of[rid] = contexts[0]
+                        cands.append(candidate(cat, rid))
                     open_now.add(rid)
         accepted_personas = {r[0] for r in cx.execute("""SELECT pp.persona_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
                                                           WHERE pe.extraction_id=? AND pp.status='accepted' AND p.tree_id=?""", (eid, tree_id))}
-        related_to_accepted = lambda pr: any(o in accepted_personas for _, o, _, _ in pr["relations"]) or bool(cx.execute(
-            f"""SELECT 1 FROM persona_relation r WHERE r.related_persona_id=? AND r.persona_id IN ({','.join('?' * len(accepted_personas)) or "''"})""", (pr["id"], *accepted_personas)).fetchone())
-        chosen = {}                                             # persona id -> candidate, settled in passes so relationships can be checked
-        nearly = {}                                             # persona id -> candidate of the same name with a disagreement: proposed, never taken
-        rank = lambda agree: (any(a.startswith("given name agrees") for a in agree), len(agree))   # among near candidates the same name comes before the fitting check's surname or relationship alone, then more agreements
+        related_to_accepted = (
+            lambda pr: any(o in accepted_personas for _, o, _, _ in pr["relations"])
+            or bool(
+                cx.execute(
+                    f"""SELECT 1 FROM persona_relation r WHERE r.related_persona_id=? AND r.persona_id IN ({','.join('?' * len(accepted_personas)) or "''"})""",
+                    (pr["id"], *accepted_personas)
+                ).fetchone()
+            )
+        )
+        chosen = {}  # persona id -> candidate, settled in passes so relationships can be checked
+        nearly = {}  # persona id -> candidate of the same name with a disagreement: proposed, never taken
+        # among near candidates the same name comes before the fitting check's surname or relationship alone, then more agreements
+        rank = lambda agree: (any(a.startswith("given name agrees") for a in agree), len(agree))
         for _ in range(2):
             for pr in personas:
-                best = None; close = None
+                best = None
+                close = None
                 for c in cands:
                     fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
-                    if fits and (best is None or len(agree) > len(best[1])): best = (c, agree, disagree, absent)
-                    if near and (close is None or rank(agree) > rank(close[1])): close = (c, agree, disagree, absent)
-                if best: chosen[pr["id"]] = best[0]; nearly.pop(pr["id"], None)
-                elif close: chosen[pr["id"]] = close[0]; nearly[pr["id"]] = close[0]
+                    if fits and (best is None or len(agree) > len(best[1])):
+                        best = (c, agree, disagree, absent)
+                    if near and (close is None or rank(agree) > rank(close[1])):
+                        close = (c, agree, disagree, absent)
+                if best:
+                    chosen[pr["id"]] = best[0]
+                    nearly.pop(pr["id"], None)
+                elif close:
+                    chosen[pr["id"]] = close[0]
+                    nearly[pr["id"]] = close[0]
         names = ", ".join(cat.person(pid)["name"] for pid, _, _ in contexts)
-        carded = {r[0] for r in cx.execute("SELECT json_extract(payload_json,'$.persona_id') FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND status='undecided'" + unless, (tree_id, eid, *ignore))}
-        ties = accepted_personas | carded | {o for o in chosen if o not in nearly}   # a relationship to one of these ties a persona to the record by more than its name
+        carded = {
+            r[0]
+            for r in cx.execute(
+                "SELECT json_extract(payload_json,'$.persona_id') FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.extraction_id')=? AND status='undecided'" + unless,
+                (tree_id, eid, *ignore)
+            )
+        }
+        # a relationship to one of these ties a persona to the record by more than its name
+        ties = accepted_personas | carded | {o for o in chosen if o not in nearly}
         for pr in personas:
-            if cx.execute("SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')" + unless, (tree_id, pr["id"], *ignore)).fetchone(): continue   # proposed already, unless that proposal was superseded
-            if cx.execute("SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=? AND pp.status<>'undecided'", (pr["id"], tree_id)).fetchone(): continue   # decided already, accepted or rejected (a link carried across a re-extraction); an undecided link is no decision: one the rule took back, whose older card a newer matcher superseded, is proposed again
-            if on_another_copy(cx, tree_id, pr["id"], ignore): continue   # its entry on another copy of the record is proposed or decided there: one record, one decision
-            if subject_role and pr["role"] != subject_role: continue   # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
-            if pr["id"] in nearly and pr["role"] in ("result", "listed", "named in the text") and not any(not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]):
-                continue                                          # a row on a results page that is itself the record, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card
-            if pr["id"] in nearly and (any(o != pr["id"] and o not in nearly and chosen[o]["id"] == chosen[pr["id"]]["id"] for o in chosen)
-                                       or cx.execute("""SELECT 1 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pe.extraction_id=? AND pp.status='accepted' AND pp.person_id=?""", (eid, chosen[pr["id"]]["id"])).fetchone()):
-                continue                                          # another persona on this page fits, or is accepted as, that person: one decision put once; the near one stays a hint on the page
-            if pr["id"] in chosen and chosen[pr["id"]]["id"] not in open_now: continue   # fits a person nothing yet attaches to this record: waits for the decision on the record's own person
+            # proposed already, unless that proposal was superseded
+            if cx.execute(
+                "SELECT 1 FROM proposal WHERE tree_id=? AND json_extract(payload_json,'$.persona_id')=? AND NOT (status='rejected' AND decision_note='superseded')" + unless,
+                (tree_id, pr["id"], *ignore)
+            ).fetchone():
+                continue
+            # decided already, accepted or rejected (a link carried across a re-extraction); an undecided link is no decision: one the rule took back, whose older card a newer matcher superseded, is proposed again
+            if cx.execute(
+                "SELECT 1 FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND p.tree_id=? AND pp.status<>'undecided'",
+                (pr["id"], tree_id)
+            ).fetchone():
+                continue
+            # its entry on another copy of the record is proposed or decided there: one record, one decision
+            if on_another_copy(cx, tree_id, pr["id"], ignore):
+                continue
+            # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
+            if subject_role and pr["role"] != subject_role:
+                continue
+            if (
+                pr["id"] in nearly
+                and pr["role"] in ("result", "listed", "named in the text")
+                and not any(
+                    not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]
+                )
+            ):
+                # a row on a results page that is itself the record, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card
+                continue
+            if (
+                pr["id"] in nearly
+                and (
+                    any(o != pr["id"] and o not in nearly and chosen[o]["id"] == chosen[pr["id"]]["id"] for o in chosen)
+                    or cx.execute(
+                        """SELECT 1 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pe.extraction_id=? AND pp.status='accepted' AND pp.person_id=?""",
+                        (eid, chosen[pr["id"]]["id"])
+                    ).fetchone()
+                )
+            ):
+                # another persona on this page fits, or is accepted as, that person: one decision put once; the near one stays a hint on the page
+                continue
+            # fits a person nothing yet attaches to this record: waits for the decision on the record's own person
+            if pr["id"] in chosen and chosen[pr["id"]]["id"] not in open_now:
+                continue
             if pr["id"] in nearly and by_name and not any(o in ties for _, _, o, _ in stated[pr["id"]]):
                 c = chosen[pr["id"]]
                 _, agree, disagree, _, _ = compare(cat, pr, c, chosen)
-                if namesake(agree, disagree):                     # a namesake: the name, the sex and a bare year, something disagreeing, nothing more: a hint on the page
-                    held[pr["id"]] = (f"{pr['name']} ({pr['role']}) is a namesake of {c['name']}, not a card: the record was reached by a name search, agrees with "
-                                      f"{c['name']} on no more than the name, the sex and a year of birth, and disagrees: " + "; ".join(disagree))
+                # a namesake: the name, the sex and a bare year, something disagreeing, nothing more: a hint on the page
+                if namesake(agree, disagree):
+                    held[pr["id"]] = (
+                        f"{pr['name']} ({pr['role']}) is a namesake of {c['name']}, not a card: the record was reached by a name search, agrees with "
+                        f"{c['name']} on no more than the name, the sex and a year of birth, and disagrees: "
+                            + "; ".join(disagree)
+                    )
                     continue
-            if pr["id"] not in chosen and not related_to_accepted(pr): continue        # a new person is proposed only from a record already accepted as somebody's, for those it relates to them
+            # a new person is proposed only from a record already accepted as somebody's, for those it relates to them
+            if pr["id"] not in chosen and not related_to_accepted(pr):
+                continue
             if pr["id"] in chosen:
-                c = chosen[pr["id"]]; fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
+                c = chosen[pr["id"]]
+                fits, agree, disagree, absent, near = compare(cat, pr, c, chosen)
                 others = [o["name"] for o in cands if o["id"] != c["id"] and compare(cat, pr, o, chosen)[0]]
-                text = f"{pr['name']} ({pr['role']}) may be {c['name']}" + ((", though something disagrees. " if disagree else ", on the name alone. ") if pr["id"] in nearly else ". ") + " ".join(s[0].upper() + s[1:] + "." for s in agree + disagree)
-                if absent: text += " Absent: " + ", ".join(absent) + "."
-                if others: text += " Also fits: " + ", ".join(others) + "."
+                text = f"{pr['name']} ({pr['role']}) may be {c['name']}" + (
+                    (", though something disagrees. " if disagree else ", on the name alone. ")
+                    if pr["id"] in nearly
+                    else ". "
+                ) + " ".join(s[0].upper() + s[1:] + "." for s in agree + disagree)
+                if absent:
+                    text += " Absent: " + ", ".join(absent) + "."
+                if others:
+                    text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
-            elif pr["role"] in ("result", "listed", "named in the text"): continue   # a row of a listing that is the record, a schedule row or a name in running text that fits nobody stays on the page as a hint, not a new person
+            # a row of a listing that is the record, a schedule row or a name in running text that fits nobody stays on the page as a hint, not a new person
+            elif pr["role"] in ("result", "listed", "named in the text"):
+                continue
             else:
                 given, rest = split_persona_name(pr["name"])
                 kin = [(kind, word, name) for kind, word, o, name in stated[pr["id"]] if o in accepted_personas]
-                if not given or not rest or pr["name"] == "(unnamed)":    # a surname alone, a given name alone, a given name and an initial
-                    held[pr["id"]] = f"{pr['name']} ({pr['role']}) is nobody to create, not a card: the record gives no full name to create a person under"
+                # a surname alone, a given name alone, a given name and an initial
+                if not given or not rest or pr["name"] == "(unnamed)":
+                    held[
+                        pr["id"]
+                    ] = f"{pr['name']} ({pr['role']}) is nobody to create, not a card: the record gives no full name to create a person under"
                     continue
-                if not any(kind in ("child", "parent", "spouse", "sibling") or KIN_WORD.search(word or "") for kind, word, _ in kin):
-                    held[pr["id"]] = (f"{pr['name']} ({pr['role']}) is nobody to create, not a card: the record relates them to " +
-                                      ", ".join(f"{name} only as \"{word}\"" if word else f"{name} only under \"{kind}\" with no word" for kind, word, name in kin) + ": no word of kinship to create a person on")
+                if not any(
+                    kind in ("child", "parent", "spouse", "sibling") or KIN_WORD.search(word or "")
+                    for kind, word, _ in kin
+                ):
+                    held[pr["id"]] = (
+                        f"{pr['name']} ({pr['role']}) is nobody to create, not a card: the record relates them to "
+                        + ", ".join(
+                            f"{name} only as \"{word}\"" if word else f"{name} only under \"{kind}\" with no word"
+                            for kind, word, name in kin
+                        )
+                        + ": no word of kinship to create a person on"
+                    )
                     continue
                 tried = [compare(cat, pr, c, chosen) for c in cands]
-                why = "; ".join(f"{c['name']}: " + (", ".join(d) if d else "nothing agrees") for c, (_, a, d, _, _) in zip(cands, tried) if not a or d)[:600]
+                why = "; ".join(
+                    f"{c['name']}: " + (", ".join(d) if d else "nothing agrees")
+                    for c, (_, a, d, _, _) in zip(cands, tried)
+                    if not a or d
+                )[:600]
                 text = f"{pr['name']} ({pr['role']}) fits nobody in the family of {names}. " + why
                 kind, person_id, (pid, qid, step_id) = "new_person", None, contexts[0]
-            out.append({"tree_id": tree_id, "persona_id": pr["id"], "name": pr["name"], "kind": kind, "person_id": person_id, "subject_person_id": pid,
-                        "question_id": qid, "step_id": step_id, "rationale": text})
+            out.append(
+                {
+                    "tree_id": tree_id,
+                    "persona_id": pr["id"],
+                    "name": pr["name"],
+                    "kind": kind,
+                    "person_id": person_id,
+                    "subject_person_id": pid,
+                    "question_id": qid,
+                    "step_id": step_id,
+                    "rationale": text
+                }
+            )
     return out
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("extraction"); ap.add_argument("--db", default=DB); ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
-    ap.add_argument("--about", help="the person the record is about on the owner's word, when no step or link names them: a fetch step on their plan, done with a found run naming the record")
-    a = ap.parse_args(); cx = connect(a.db)
-    about = None; cx.execute("BEGIN")
-    if a.about:                                                 # the owner's word: a fetch step on their plan, done with a found run naming the record, so every later reading finds them
+    ap = argparse.ArgumentParser()
+    ap.add_argument("extraction")
+    ap.add_argument("--db", default=DB)
+    ap.add_argument("--by", default="user:" + (os.environ.get("USER") or "unknown"))
+    ap.add_argument(
+        "--about",
+        help="the person the record is about on the owner's word, when no step or link names them: a fetch step on their plan, done with a found run naming the record"
+    )
+    a = ap.parse_args()
+    cx = connect(a.db)
+    about = None
+    cx.execute("BEGIN")
+    # the owner's word: a fetch step on their plan, done with a found run naming the record, so every later reading finds them
+    if a.about:
         from attach import on_word
         from treelib import resolve_tree
-        tree_id, _ = resolve_tree(cx, None); about = [Catalog(cx, tree_id).find_person(a.about)]
-        on_word(cx, tree_id, about[0], cx.execute("SELECT artifact_sha256 FROM extraction WHERE id=?", (a.extraction,)).fetchone()[0], a.by)
-    written = match(cx, a.extraction, a.by, about=about); cx.commit()
+        tree_id, _ = resolve_tree(cx, None)
+        about = [Catalog(cx, tree_id).find_person(a.about)]
+        on_word(
+            cx,
+            tree_id,
+            about[0],
+            cx.execute("SELECT artifact_sha256 FROM extraction WHERE id=?", (a.extraction,)).fetchone()[0],
+            a.by
+        )
+    written = match(cx, a.extraction, a.by, about=about)
+    cx.commit()
     for prop, kind, name, person_id in written:
-        print(f"{prop}  {kind:14} {name}"); print("   ", cx.execute("SELECT rationale FROM proposal WHERE id=?", (prop,)).fetchone()[0])
-    if not written: print("no new proposals")
+        print(f"{prop}  {kind:14} {name}")
+        print("   ", cx.execute("SELECT rationale FROM proposal WHERE id=?", (prop,)).fetchone()[0])
+    if not written:
+        print("no new proposals")
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
