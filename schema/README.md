@@ -185,7 +185,7 @@ Dump with `sqlite3 tree.db .dump`, drop the `fts_*` tables and triggers, load,
 then add tsvector indexes. The DDL uses no engine-specific types or clauses. The
 tools do not yet: most of them and the screen use SQLite's `json_valid` /
 `json_extract`, `tools/backfill_aliases.py` uses `GLOB`, and `tools/log_search.py`
-and `tools/resolve_places.py` use `GROUP_CONCAT`. Those calls are the porting work.
+uses `GROUP_CONCAT`. Those calls are the porting work.
 
 ## Tools
 

@@ -65,7 +65,7 @@ def exporter_source(cx, exporter):
     return UNKNOWN_ORIGIN
 
 def xref_system(source_id, exporter):
-    """external_id.system of the file's own record ids: Ancestry's export's, as it has always been named; another exporter's after
+    """external_id.system of the file's own record ids: `ancestry_gedcom_xref` for Ancestry's export; another exporter's after
     the system id its header gives; a file naming none, bare."""
     if source_id == ANCESTRY: return "ancestry_gedcom_xref"
     own = re.sub(r"[^a-z0-9]+", "_", (exporter[0] or "").lower()).strip("_")

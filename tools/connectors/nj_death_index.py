@@ -11,9 +11,8 @@ line, archived under C09 too, derived_from the whole file's sha256 (run_step.py 
 once the whole file is kept) and locator the file's own URL with the surname as a fragment. Two steps on the same surname
 derive the same bytes from the same parent and land on the same artifact row (archive_object dedupes by content); a step on
 another surname gets its own, so extracting one surname's derivative never supersedes another's (tools/extract.py's
-supersession is scoped to one artifact_sha256): the shape the backlog's own critique of one shared, whole-file, re-extracted
-artifact ruled out, since that would reject an earlier surname's still-undecided cards as superseded on every later surname's
-extraction.
+supersession is scoped to one artifact_sha256). One shared whole-file artifact, extracted again for each surname, would reject an
+earlier surname's still-undecided cards as superseded on every later surname's extraction.
 """
 import csv, io, urllib.parse
 from connectors import value
