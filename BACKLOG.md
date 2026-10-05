@@ -984,23 +984,6 @@ alone. Give the catch-all parser a real page or drop it, require the record's
 own identity (a name and a fact that agrees) before the collection path closes
 a step, and read held bytes again only when a reader is newer.
 
-### C34. The rule decides on its facts, not on its own sentences
-
-The rule reads the matcher's English: `conclude.py` tests
-`startswith("disagrees: ")`, matches "the record gives only" by pattern, and
-`split_disagree` keys relatives by their rendered line, so two relatives of one
-name and word collide; `cards.py` reads the same lines. Rewording a line of
-`match.compare` or `catalog.place_verdict` changes what the rule decides, and
-the rule's three routes (points, identity, creation) speak to each other the
-same way, and `match.namesake` and `catalog.place_given` read the comparison's
-sentences as the rule does. `HEAD_ONLY` and `DATED_WITH_PARENTS` are labels of
-`data/evidence-classes.csv` written in code, which no check holds to the file:
-renaming the kind there turns off the pre-1850 census guard, which also passes
-when the census year is unknown and takes the year from the collection's name
-by pattern when the record gives none. Give
-`compare` and `place_verdict` a structured result the rule reads, with the
-words made from it for the card; check the labels against the file.
-
 ### C41. Code that holds what the data should, or this family's own words
 
 Decision 7 (no code names a family's people, places or denominations) and
@@ -1319,8 +1302,7 @@ year makes the file's day read accepted. The veto (`conclude.against`) never
 reads a place the owner's own word gives, where `ground` and
 `trusted_evidence` do. `Catalog.disagreements` never compares two places both
 finer than the event's own. Beside them: `checklist.build` gives the field
-for a country abroad the year's basis, and `catalog.place_given` reads
-`place_verdict`'s words (C34).
+for a country abroad the year's basis.
 
 ### C67. A document that came through the browser is marked so, and listed with what would replace it
 
@@ -1356,6 +1338,31 @@ that.
 `tools/tree.py use` writes `catalog/.active-tree` in place, as the state
 files beside a catalog were before they took `treelib.write_json_whole`: a
 stop in mid-write leaves a file no tool can read. Write it the same way.
+
+### C14. The census before 1850 is held back only when its year is known
+
+The rule's guard for a census that names only the head of a household
+(`conclude.py`, the kind and year in `HEAD_ONLY`) passes a census whose year
+is unknown, and takes the year from the collection's name by pattern when the
+record gives none. A census the rule cannot date is not shown to be one that
+names every member: hold it back until its year is read from the record, and
+read the year from the record or its citation, never from a name's digits. It
+changes what the rule takes, so it ends with a dry-run `reconsider` on a copy
+of the live catalog.
+
+### C34. What the comparison as data leaves
+
+The comparison returns findings and the rule reads them. Left: four places in
+`tools/cards.py` still read words (the stored rationale of a card an older
+matcher wrote, a results row served as words, the card's own name note), and
+`tools/conclude.py` reads the lines of `Catalog.disagreements` by pattern, a
+comparison of its own that returns no findings yet. `place_verdict` says a
+record's place agrees as coarser ("the record gives only New York") where
+`place_given` finds its first part nowhere in the tree's place and says the
+two do not agree (Manhattan, New York, New York against Brooklyn, New York):
+one of the two is wrong. And no scenario reaches the residence-place test of
+a relative's grounding: a reader left unconverted there was caught only by
+the dry run on a copy of the live catalog.
 
 ## Externally blocked
 
