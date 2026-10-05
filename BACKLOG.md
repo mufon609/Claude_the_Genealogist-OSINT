@@ -70,29 +70,25 @@ page at a holder without a connector still waits for a session at the owner's
 browser, a held image for a session at the transcription form, an assisted
 search for a hand. What is left, one piece closed before the next:
 
-1. **Two launchers behind one seam** (`docs/DATA-ARCHITECTURE.md` §7
-   decision 19). Measured on 4 Oct 2026 with a Chrome on this machine
-   connected: a headless launch sees the browser the owner picked last on the
-   account, and the launcher lets the model list browsers and read tabs, but
-   refuses the first action (opening a tab) with "Claude in Chrome requires
-   permission", which no allow rule grants and Claude Code's documentation
-   names no way to grant ahead of time. So a browser task is spawned by a
-   session the owner is at, where the prompt reaches them, and a headless
-   prompt is for a task that needs no approval. Build the second launcher
-   without touching what judges and records: `tools/run_task.py` hands out
-   the next task as rendered and, when the session reports the subagent
-   done, collects, judges and records it with the measures the session was
-   given (tokens, tool uses, time); the fixed words are an agent file and a
-   skill file of the project (`.claude/agents/`, `.claude/skills/`), written
-   by code from the kind's one text with the tools the kind may call, and a
-   check holds them to it; the session's part is the skill and nothing it
-   composes. Then the first page saved by a model, whose capture the check's
-   waiting scenario reads. Beside it: the headless launch loads no
-   connector's tools (`--strict-mcp-config`), which a two-turn launch on the
-   smallest model pays about three cents for; a launch names the browser it
-   uses instead of taking the one picked last; `.claude/worktrees/` and
-   `.claude/settings.local.json` are ignored by git; and an answer that is
-   not the schema's has no scenario for want of a real one.
+1. **What a session's launch leaves to its word.** Both launchers stand
+   behind one seam and a model has saved its first page (4 Oct 2026, the
+   smallest model: 8,895 tokens, five tool uses, 27 seconds, a card), judged
+   by collect and recorded. A session's run still rests on the session for
+   three things code could read: the model the subagent really ran on (the
+   row holds what `next` was told, and a spawn without the parameter takes
+   the session's own), and its tokens and time, which the session copies
+   from what it was shown. Read them from the subagent's own record where the
+   harness keeps one, and say on the row when they are the session's word.
+   Beside it: several files saved for one task go to collect together and
+   the judge does not notice (the first run ran the script three times); a
+   page the browser saved into another folder is a report that differs from
+   the finding with no cause named; `started_at` is when the task was handed
+   out, not when the subagent began; `tools/save_image.js` still returns its
+   line unawaited, as the page script did before it was made one awaited
+   call; a launch names the browser it uses instead of taking the one picked
+   last on the account; whether the subagent opened one new tab, as its text
+   says, code cannot see; and an answer that is not the schema's has no
+   scenario for want of a real one.
 2. **Calibration: an estimate is the record of past runs** of the same task
    kind at the same holder, never a guess. A kind with no runs is calibrated
    first on work whose answer the catalog already holds: done fetch steps
@@ -1361,6 +1357,35 @@ reads a place the owner's own word gives, where `ground` and
 finer than the event's own. Beside them: `checklist.build` gives the field
 for a country abroad the year's basis, and `catalog.place_given` reads
 `place_verdict`'s words (C34).
+
+### C67. A document that came through the browser is marked so, and listed with what would replace it
+
+`docs/DATA-ARCHITECTURE.md` §7 decision 20. On 4 Oct 2026 about 160 archived
+files came through the owner's browser or by hand (FamilySearch 113, Find a
+Grave 23), about 58 of them carrying an accepted person, and nothing lists
+them: how a file came is read off whether its holder has a connector and off
+the words of its run's note. Say on the run that archives a file how it came,
+as a value (a connector's request; a page saved in the browser, by a hand, a
+session or a model's task; a file given by hand; an import), the runs already
+logged read by their holder; and give a read-only listing, for the tree or a
+person: each document that came through the browser, its holder, collection
+and record id, the people accepted on it, its source class, and what would
+replace it: the original a derivative indexes (`data/evidence-classes.csv`), a
+free holder that serves its collection through an endpoint
+(`data/holders.csv`, the registry), and whether a copy from such a source is
+already held (`same_record`). Where a replacement is a step a connector can
+run, the plan carries it. Nothing is removed when a better copy arrives: it
+joins the record, and the page saved in the browser stays beneath it.
+
+### C68. What the draft registration card states of the day it was made
+
+FamilySearch's page of a World War I draft registration card
+(`rule:familysearch-record`) reads the card's registration date and place as
+`Unknown` facts and leaves the heading of the relative it names unmapped, so
+the person the card gives as nearest relative is an "other" (the page saved
+on 4 Oct 2026 for James Joseph Ahearn names Francis Ahearn so). Read the
+registration as the residence it is on its date, and the relative under the
+word the card gives.
 
 ## Externally blocked
 

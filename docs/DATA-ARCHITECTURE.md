@@ -518,6 +518,23 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    `docs/RESEARCH-WORKFLOW.md` §4). A subagent's model is set per spawn and
    its effort only by its agent file.
 
+20. **A document that came through the browser is provisional, and listed.**
+   The owner: "if we use familysearch we should also keep a running log" of
+   "the documents used so we can replace" them "with better sources later.
+   this is a true statement for any document obtained with a clunky browser
+   extension." A page saved in the owner's browser, by a hand, a session or a
+   model's task, is evidence like any other and is decided like any other;
+   what marks it is how it came. The catalog says of every archived file how
+   it came (a connector's request, a page saved in the browser, a file given
+   by hand, an import), and a listing names the documents that came through
+   the browser, the people accepted on them and what would replace each: the
+   original a derivative indexes (`data/evidence-classes.csv`), a free holder
+   that serves the same collection through an endpoint (`data/holders.csv`,
+   the registry). Replacing removes nothing: the better copy joins the same
+   record (decision 15) and the browser's page stays beneath it. Today how a
+   file came is read off its holder and its run's note, and no listing
+   exists: the work is in `BACKLOG.md`.
+
 ## 8. Wrong source data, variants and aliases
 
 Principle: **correct the profile, never the document, and index the error.**
