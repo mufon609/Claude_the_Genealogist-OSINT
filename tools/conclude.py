@@ -2330,8 +2330,9 @@ def copy_named(cx, text):
 def copies_on_word(cx, tree_id, a, b, same, by, note):
     """The owner's word on two archived copies, in this tree only (same_record, basis owner), standing above anything code
     found for the pair: one record (same), and every decision on either carried to the other (carry); or not one record, and
-    what a decision on one had carried to the other given back: the link on the copy and its statements under that decision
-    undecided again (one whose status a person decided on its own, person_decided, keeping it), the people's plans,
+    what a decision on one had carried to the other given back: the link on the copy, its statements under that decision and
+    the name alias the carry wrote from its words undecided again (a statement whose status a person decided on its own,
+    person_decided, keeping it), the people's plans,
     conflicts and cards gone over again, and the copy matched again, its entry a card
     for the owner or the rule's. a, b: (sha256, entry). Returns the rows carried, or the links given back."""
     from catalog import current_reading, record_copies
@@ -2375,6 +2376,12 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
                 """UPDATE assertion SET status='undecided', asserted_by=?, asserted_at=? WHERE tree_id=? AND artifact_sha256=? AND status<>'undecided' AND NOT person_decided
                          AND json_valid(notes) AND json_extract(notes,'$.proposal')=?""",
                 (by, ts, tree_id, x[0], pp["proposal_id"])
+            )
+            # the copy's own words for the person, which the carry made an alias under that decision, go back with it
+            q.execute(
+                """UPDATE alias SET status='undecided' WHERE tree_id=? AND entity_kind='person' AND entity_id=? AND source_artifact_sha256=? AND status='accepted'
+                         AND json_valid(notes) AND json_extract(notes,'$.proposal')=?""",
+                (tree_id, pp["person_id"], x[0], pp["proposal_id"])
             )
             back.append(
                 {"person": pp["person_id"], "persona": pp["persona_id"], "proposal": pp["proposal_id"], "copy": x[0]}

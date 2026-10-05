@@ -1,0 +1,141 @@
+{
+ "title": "copies kept apart give back the name alias",
+ "line": "John Y Davidson's death decided by the owner on FamilySearch's index entry, which names him as the tree does; the certificate's page, archived under the same citation, takes the decision as a copy, and its own words for him, John Young Davidson, become an accepted alias with it; the owner's word that the page is another record gives back what the decision carried to it, the alias with the link and the statements, undecided",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "FamilySearch's index entry of his death, archived under the file's citation",
+   "archive": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html",
+    "source": "D03",
+    "collection": "Kentucky, Vital Record Indexes, 1911-1999",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ]
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "the owner accepts the index entry as his: it names him as the tree does, so no alias",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "none": [
+        "John Young Davidson",
+        {
+         "any": true
+        },
+        {
+         "any": true
+        }
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "FamilySearch's page of the certificate, archived under the same citation: a copy of the record, decided with it",
+   "archive": {
+    "fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html",
+    "source": "D03",
+    "collection": "Kentucky, Deaths, 1911-1967",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ]
+   },
+   "as": "page",
+   "expect": [
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "page",
+      "persona": "John Young Davidson",
+      "is": [
+       "accepted"
+      ]
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "some": [
+        "John Young Davidson",
+        {
+         "any": true
+        },
+        "accepted"
+       ]
+      }
+     },
+     "why": "the page's own words for him, carried with the decision"
+    }
+   ]
+  },
+  {
+   "say": "the owner's word: the page is not this record",
+   "copies": {
+    "a": "page",
+    "b": "kyd",
+    "same": false,
+    "note": "harness: the page kept apart to see what the decision carried to it given back"
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "len": 1
+      }
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "some": [
+        "John Young Davidson",
+        {
+         "any": true
+        },
+        "undecided"
+       ]
+      }
+     },
+     "why": "the alias the carry wrote goes back with the link and the statements: no decision on the page states those words now"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}
