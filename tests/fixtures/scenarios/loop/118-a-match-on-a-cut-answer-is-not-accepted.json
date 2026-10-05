@@ -1,0 +1,54 @@
+{
+ "title": "a match unique only within a cut answer is not accepted",
+ "line": "the geocoder is asked for six candidates and its answer for Bandon, Ireland holds six, the town and five stretches of the river: a full page may be cut, so the one place verified on it is not accepted until the query is asked again for the most one request gives, and a geocoder that cannot be asked that leaves the string as it was, kept for the next run, no card and no place",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": false
+ },
+ "steps": [
+  {
+   "say": "the birthplace a FamilySearch results row writes for Jams Aherne or Aherre, born 19 January 1906, as the owner's catalog holds it",
+   "place_string": {
+    "raw": "Bandon Ireland"
+   }
+  },
+  {
+   "say": "the resolver run with the geocoder's real six-candidate answer and Wikidata's item for the town planted, the geocoder silent beyond its cache",
+   "resolve": {
+    "only": [
+     "Bandon Ireland"
+    ],
+    "geocoder_silent": true,
+    "wikidata": {
+     "Q678018": "wikidata-Q678018-bandon.json"
+    },
+    "geocoder": [
+     "nominatim-bandon-ireland.json"
+    ]
+   },
+   "expect": [
+    {
+     "place_string": {
+      "raw": "Bandon Ireland",
+      "status": "undecided",
+      "has_place": false,
+      "resolver": {"is": null}
+     },
+     "why": "the town is the one place on the page that verifies, but the page holds as many candidates as were asked for: nothing is accepted on it, and the wider request found no geocoder, so the string is left as it was"
+    },
+    {
+     "place_card": {
+      "raw": "Bandon Ireland",
+      "exists": false
+     },
+     "why": "a string the geocoder did not answer gets no card: the next run asks again"
+    },
+    {
+     "last": {"printed": {"has": ["NOANSWER", "1 string(s) left as they were; run again"]}},
+     "why": "the run says it left the string because the geocoder did not answer the wider request; the first page's answer in the cache is never served for it"
+    }
+   ]
+  }
+ ]
+}

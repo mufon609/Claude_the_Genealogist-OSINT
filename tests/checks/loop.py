@@ -45,14 +45,12 @@ def patched(module, name, value):
 @contextlib.contextmanager
 def geocoder_silent():
     """The harness's stand-in for a geocoder that does not answer, for a step whose data says `geocoder_silent`: the geocoder answers from
-    the resolver's cache only, and a query the cache lacks fails as an endpoint that does not answer, as a refusal or a timeout would, with no
-    request made. Without it a query the cache lacks is a request, which fails the scenario (tests/checks/offline.py)."""
-    import hashlib, resolve_places
-    def cached(q):
-        path = os.path.join(resolve_places.cache_dir(), hashlib.sha1(q.lower().encode()).hexdigest() + ".json")
-        if not os.path.exists(path): raise OSError("the harness has no network")
-        with open(path, encoding="utf-8") as fh: return json.load(fh)["results"]
-    with patched(resolve_places, "nominatim", cached): yield
+    the resolver's cache only, and a query the cache lacks, at the limit it is asked at, fails as an endpoint that does not answer, as a
+    refusal or a timeout would, with no request made: the request itself (resolve_places.nominatim_request) is what is replaced. Without it a
+    query the cache lacks is a request, which fails the scenario (tests/checks/offline.py)."""
+    import resolve_places
+    def silent(q, limit): raise OSError("the harness has no network")
+    with patched(resolve_places, "nominatim_request", silent): yield
 
 def silence(x):
     """geocoder_silent when the step's data asks for it, nothing otherwise."""
@@ -313,17 +311,23 @@ def a_resolve(w, x):
     """tools/resolve_places.py on the strings named (--only, one run each) with the geocoder's answers planted in its cache,
     Wikidata's items in its own, and the gazetteers' answers (GOV's and Wikidata's searches, each fixture a list of the
     resolver's own cache records) under the paths the resolver reads them from, so no request goes out; the strings must
-    already be the tree's."""
-    from resolve_places import gazetteer_cache_path
+    already be the tree's. With `geocoder_silent` the tool runs in this process (resolve_places.main) under the harness's
+    stand-in for a geocoder that does not answer (geocoder_silent), so a query the cache lacks at the limit it is asked at
+    is no request but an endpoint that does not answer."""
+    import resolve_places
     plant_geocoder(x.get("geocoder", [])); plant_wikidata(x.get("wikidata"))
     for fixture in x.get("gazetteer", []):
         with open(os.path.join(FIXTURES, fixture), encoding="utf-8") as fh: records = json.load(fh)
         for rec in records:
-            path = gazetteer_cache_path(rec["service"], rec["args"]); os.makedirs(os.path.dirname(path), exist_ok=True)
+            path = resolve_places.gazetteer_cache_path(rec["service"], rec["args"]); os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w", encoding="utf-8") as fh: json.dump(rec, fh, ensure_ascii=False)
     w.cx.commit()
-    out = "".join(run(tool("resolve_places.py"), "--db", w.db, "--tree", w.slug, "--by", BY, "--only", raw) for raw in x["only"])   # one string at a time: the tree's other strings never reach the network
-    return {"printed": out}
+    argv = lambda raw: ["--db", w.db, "--tree", w.slug, "--by", BY, "--only", raw]   # one string at a time: the tree's other strings never reach the network
+    if not x.get("geocoder_silent"): return {"printed": "".join(run(tool("resolve_places.py"), *argv(raw)) for raw in x["only"])}
+    buf = io.StringIO()
+    for raw in x["only"]:
+        with patched(sys, "argv", ["resolve_places.py", *argv(raw)]), silence(x), contextlib.redirect_stdout(buf): resolve_places.main()
+    return {"printed": buf.getvalue()}
 
 def a_place_string(w, x):
     """A place string of the owner's records written to the tree on its own, for a resolution the tree's own events do not

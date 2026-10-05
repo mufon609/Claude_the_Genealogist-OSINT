@@ -668,15 +668,14 @@ def a_reopen_conflict(w, x):
 
 def plant_geocoder(fixtures):
     """The geocoder's real answers planted in the resolver's cache, each fixture under tests/fixtures/geocoder/ a cache record
-    exactly as the live resolver kept it ({query, fetched_at, results}), copied to the file name the resolver looks it up by;
-    the records read, in order."""
-    import hashlib
-    from resolve_places import cache_dir
+    exactly as the live resolver kept it ({query, fetched_at, results}, with the limit it was asked at when that is not the
+    first page's), copied to the file name the resolver looks it up by (nominatim_cache_path); the records read, in order."""
+    from resolve_places import PAGE, cache_dir, nominatim_cache_path
     os.makedirs(cache_dir(), exist_ok=True); records = []
     for name in fixtures:
         src = os.path.join(FIXTURES, "geocoder", name)
         with open(src, encoding="utf-8") as fh: records.append(json.load(fh))
-        shutil.copyfile(src, os.path.join(cache_dir(), hashlib.sha1(records[-1]["query"].lower().encode()).hexdigest() + ".json"))
+        shutil.copyfile(src, nominatim_cache_path(records[-1]["query"], records[-1].get("limit", PAGE)))
     return records
 
 def plant_wikidata(items):

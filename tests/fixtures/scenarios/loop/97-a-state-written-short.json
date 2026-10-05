@@ -47,7 +47,7 @@
       "raw": "NJ",
       "status": "accepted",
       "has_place": true,
-      "resolver": "ai:nominatim-resolver@0.6.0",
+      "resolver": "ai:nominatim-resolver@0.7.0",
       "notes": {
        "how": "unique full match",
        "queries": [

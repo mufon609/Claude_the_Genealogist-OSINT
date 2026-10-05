@@ -614,8 +614,17 @@ Hempstead) or a spelling close to one ("Worchester" for Worcester, "North Hampto
 candidate is still offered on the card, that part marked near in its checks. A string is accepted when exactly one candidate
 verifies on every part the string gives, or when the verified candidates are one territory under two names (a city and the
 county coterminous with it, tested on the geocoder's boxes); a place nested in a larger unit of the same name stays
-undecided with both offered. The words a record writes for the place of another of its lines ("Same House", "Same
-Place", "Same County", listed in `data/place-overrides.json`) are rejected as no place, the reason in the string's notes.
+undecided with both offered. Acceptance stands only on an answer that was not cut: the geocoder is asked for six
+candidates, and a page that comes back with six may be cut, the geocoder knowing more places than it gave, so a match
+unique within it may not be unique. A string that would be accepted on such a page has the query asked again for forty,
+the most one request gives (Nominatim's own maximum), at the same one request a second and cached under the query and its
+limit, so the wider request is never served the six-candidate page; the string is decided on that answer. An answer of
+forty may be cut too, and nothing is accepted on it: the string is a card that says so. A wider request the geocoder does
+not answer leaves the string as it was, as any unanswered request does. A page that ends in a card is not asked again.
+("Bandon Ireland": the six are the town and five stretches of its river; the town is the one place verified on them, and
+it is accepted only if the wider answer leaves it the one.) The words a record writes for the place of another of its
+lines ("Same House", "Same Place", "Same County", listed in `data/place-overrides.json`) are rejected as no place, the
+reason in the string's notes.
 
 What is not accepted is a `place_resolution` card on the fact row of the person it concerns. Cards that offer the same set
 of places, the same of them verified on every part of their strings, are one question put in different spellings
@@ -654,7 +663,11 @@ one: the string is accepted only when exactly one gazetteer candidate
 verifies on every part, the string gives more than its name, and the
 candidate has exactly one geocoder twin, the same place by an identifier
 both keep (Wikidata's item id; GOV's id through Wikidata's P2503 or the
-Polish SIMC register), with no other geocoder candidate verifying fully. The
+Polish SIMC register), with no other geocoder candidate verifying fully, on
+answers that were not cut: the geocoder's as above, and Wikidata's search,
+which gives at most fifty hits a request, accepts nothing when its answer says
+more follow (its candidates are offered on the card, the reason saying the
+search was cut); GOV's `searchByName` takes no limit. The
 twin places it in today's hierarchy; the gazetteer's id goes onto the place
 (`gov_id`, `wikidata_id`) and GOV's names of it become `place_name` rows
 with their language and dates (Lang Neundorf until 1945, Dłużec from 1945).

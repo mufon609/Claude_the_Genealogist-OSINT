@@ -146,6 +146,7 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios (a
 | `wikidata-Q200077-morioka.json`, `wikidata-Q11643491-tonan.json` | Wikidata's items for Morioka and for Tonan, its former name (P1365 with its dates): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
 | `wikidata-Q1010236-norristown.json`, `wikidata-Q1345-philadelphia.json`, `wikidata-Q1185890-pottstown.json`, `wikidata-Q1895826-warwick-township.json`, `wikidata-Q49186-northampton.json` | Wikidata's items the resolver reads for the geocoder's candidates in the turn that reads a person's places (loop `12`): the live resolver's own cache files (`derivatives/geocode/wikidata/`, fetched 18 September 2026), copied byte for byte |
 | `wikidata-Q936639-mount-holly.json`, `wikidata-Q1893417-caln-township.json` (and Northampton's above) | the same, for the strings a part must name in full (loop `93`) |
+| `wikidata-Q678018-bandon.json` | Wikidata's item for the town of Bandon, County Cork, the one place the geocoder's six-candidate answer for "Bandon, Ireland" verifies (loop `118`): the live resolver's own cache file (`derivatives/geocode/wikidata/`, fetched 3 October 2026), copied byte for byte |
 | `wikidata-Q36405-aberdeen.json` | **Captured for the harness**, one request on 3 October 2026 23:09 UTC with the project's User-Agent, at `https://www.wikidata.org/wiki/Special:EntityData/Q36405.json`, through the resolver's own `wikidata_entity` (the cache file it wrote, byte for byte): Wikidata's item for Aberdeen, the city the geocoder's answer for "Aberdeen, Scotland" names (loop `104`) |
 | `wikidata-Q1133193-coatesville.json`, `wikidata-Q1205932-takizawa.json`, `wikidata-Q1348478-shizukuishi.json`, `wikidata-Q2391361-tamayama.json`, `wikidata-Q11367618-nakano.json`, `wikidata-Q11410107-kuriyagawa.json`, `wikidata-Q11444312-ota.json`, `wikidata-Q11520132-motomiya.json`, `wikidata-Q11557079-asagishi.json`, `wikidata-Q11603862-yanagawa.json`, `wikidata-Q11604013-yonai.json` (and Philadelphia's above) | the same, for the resolver's own line (loop `90`) |
 
@@ -153,8 +154,9 @@ project's User-Agent, planted by the `resolve` action of the loop's scenarios (a
 
 `geocoder/nominatim-<place>.json`: the geocoder's (Nominatim's) answers to the queries the resolver asks, each a cache record
 exactly as the live resolver kept it under `derivatives/geocode/nominatim/` (`{query, fetched_at, results}`, results as
-Nominatim served them), copied byte for byte; the scenarios' `place_card` and `resolve` actions plant them in the scratch
-resolver's cache under the file name it looks them up by (`geocoder: [...]`), so no request goes out. Data © OpenStreetMap
+Nominatim served them, every one asked for the first page's six candidates; a record asked at another limit carries it as
+`limit`), copied byte for byte; the scenarios' `place_card` and `resolve` actions plant them in the scratch
+resolver's cache under the file name it looks them up by at that limit (`geocoder: [...]`), so no request goes out. Data © OpenStreetMap
 contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said otherwise. The United Kingdom's answers (`nominatim-united-kingdom.json`, 13 September; `nominatim-aberdeen-united-kingdom.json`, 3 October) are the live cache's; `nominatim-scotland-united-kingdom.json` and `nominatim-aberdeen-scotland-united-kingdom.json` were fetched on a scratch data root on 3 October 2026 07:39 UTC with the project's User-Agent.
 
 | Files (`geocoder/nominatim-…`) | The query and what the geocoder answered |
@@ -180,6 +182,7 @@ contributors, ODbL. Fetched by the live resolver on 5 September 2026 unless said
 | `hemp-nassau-new-york-united-states`, `hempstead-nassau-county-new-york-united-states` | one answer, a lane named Hemp, and two, the Town of Hempstead and the Village of Hempstead in it, the override's own query (a part that is a truncation) |
 | `mt-holly-burlington-new-jersey-united-states` (15 September), `mount-holly-burlington-county-new-jersey-united-states` | two each: Mount Holly Township and a peak of the same name in it, the string written Mt. and written out |
 | `caln-township-chester-pennsylvania-united-states` | one boundary, Caln Township |
+| `bandon-ireland` (3 October) | six, as many as the resolver asks for first: the town of Bandon, County Cork, and five stretches of the River Bandon (a page that may be cut, loop `118`); the live cache's |
 
 Not here: an Ancestry index page. The owner's account reaches Ancestry's record pages only through a membership offer
 ("Join Ancestry"), so no page could be saved and the parser stays unverified; the two pages archived under Ancestry record
@@ -369,7 +372,8 @@ runner sends, and a name that makes a request already made on the run sends none
 `logged_note`, the note the run logged),
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
-written where the resolver reads them), `place_string`, `apply_places`, `step_query`, `save_names` (`fetches.distinct_names` on the `entries` given, each a `url` and the
+written where the resolver reads them; with `geocoder_silent`, run in the harness's process under the stand-in for a geocoder
+that does not answer, named in "What is simulated"), `place_string`, `apply_places`, `step_query`, `save_names` (`fetches.distinct_names` on the `entries` given, each a `url` and the
 `save_as` built for it: the `names` the fetch list then prints), `browser_script` (a script the owner's browser runs, `file`
 under `tools/`: `awaited`, whether its code is one awaited call of an async function, and the placeholder `call` it ends in);
 and the expectations `queue` (`first`, `named`,
@@ -440,9 +444,9 @@ A holder that does not answer is simulated, a control signal and no record:
 - `turn` answers carrying `challenge`: the connection answers with status 200 and `loop.py`'s `CHALLENGE`, a few bytes of HTML
   titled "Just a moment..." saying it is the harness's stand-in for a holder's challenge page, served in place of the answer a JSON
   connector reads: every request of loop `106`'s turns.
-- The geocoder in a turn (`turn`, `turns`, `resume`) whose step says `geocoder_silent`: `loop.py` answers it from the resolver's cache
-  alone, and a query the cache lacks fails as an endpoint that does not answer, so no request is made: loop `12` and `117` (their first step,
-  the geocoder silent on purpose), `10`, `13`, `15`, `61`, `106`, `108`, `109`, `110` and `111`, whose turns read
+- The geocoder in a turn (`turn`, `turns`, `resume`) or a `resolve` whose step says `geocoder_silent`: `loop.py` answers it from the resolver's cache
+  alone, and a query the cache lacks at the limit it is asked at fails as an endpoint that does not answer, so no request is made: loop `12` and `117` (their first step,
+  the geocoder silent on purpose), `118` (the wider request a full page calls for, which no answer in the harness serves), `10`, `13`, `15`, `61`, `106`, `108`, `109`, `110` and `111`, whose turns read
   place strings no answer is planted for. A step that does not say it has the geocoder's answers it plants and no others, and a query
   they lack is a request, which fails the scenario.
 

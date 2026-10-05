@@ -27,6 +27,15 @@ Rules
     more than one verified candidate, becomes a `place_resolution` proposal
     (tree-scoped) with every verified candidate listed; the owner decides on the
     person screen. Never widen auto-accept past those two cases and the gazetteer's below, which is the same unique match.
+  * Acceptance stands only on an answer that was not cut. The geocoder is asked for PAGE (six) candidates, and a page that
+    holds as many may be cut: the geocoder may know more places than it gave, so a match unique within it may not be. A
+    string that would be accepted on such a page (by any of the three ways) has those queries asked again for WIDEST
+    (forty, the most one Nominatim request gives), at the same one request a second, each kept under the query and its
+    limit (nominatim_cache_path) so the wider request is never served the narrower page, and is decided on that answer. An
+    answer that holds forty may be cut too: nothing is accepted on it and the card says why. A wider request the geocoder
+    does not answer leaves the string as any unanswered one is left (below). A page that ends in a card is not asked again.
+    Wikidata's search gives at most WIKIDATA_SEARCH hits a request; an answer that says more follow is cut and the
+    gazetteer accepts nothing on it, its candidates offered on the card. GOV's searchByName takes no limit.
   * When Nominatim leaves a string open (no unique full match, a bare name, or a forced review), a gazetteer that knows
     its places is asked: GOV, genealogy.net's historical gazetteer (SOAP, no key, CC BY-SA), for Germany, Poland and
     Silesia; Wikidata (its own API: wbsearchentities, then the candidates' containing units followed up P131, CC0) for
@@ -47,9 +56,9 @@ Rules
     writes it onto the place (backfill_gazetteer).
   * data/place-overrides.json can reject non-places (a string whole, or the words a record writes for the place of another of
     its lines, "Same House"), force review, add candidate queries, and attach notes. It is the only hand-authored input.
-  * A string whose geocoder request got no answer (the endpoint unreachable, a refusal) is left exactly as it was: no card, no
-    resolver, so the next run asks again; the geocoder is not asked again in the run that found it silent, and the run says how
-    many strings it left.
+  * A string whose geocoder request got no answer (the endpoint unreachable, a refusal), the wider request a full page calls
+    for among them, is left exactly as it was: no card, no resolver, so the next run asks again; the geocoder is not asked
+    again in the run that found it silent, and the run says how many strings it left.
   * Every decision is undecided | accepted | rejected; match scores stay in notes JSON.
   * Every string the resolver accepts, rejects or resets (--reset) gets one audit row
     under the person or agent who ran it (--by), the resolver's tag and the change in
@@ -66,7 +75,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, ROOT, USER_AGENT as UA, connect, derivatives_dir, dumps, now, resolve_tree, ulid
 from catalog import US_STATES, country_units, country_words, place_name_key, us_state
 
-RESOLVER = ("rule", "nominatim-resolver", "0.6.0")
+RESOLVER = ("rule", "nominatim-resolver", "0.7.0")
 def cache_dir():
     """Where the geocoder's answers are kept, under the data root of the run (a scratch run keeps its own)."""
     return os.path.join(derivatives_dir(), "geocode", "nominatim")
@@ -160,19 +169,44 @@ def query_variants(p):
         if q.lower() not in seen: seen.add(q.lower()); uniq.append(q)
     return uniq
 
-def nominatim(q):
-    os.makedirs(cache_dir(), exist_ok=True)
-    key = hashlib.sha1(q.lower().encode()).hexdigest()
-    path = os.path.join(cache_dir(), key + ".json")
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as fh: return json.load(fh)["results"]
+PAGE = 6      # the candidates the geocoder is asked for first
+WIDEST = 40   # the most one request can ask for (Nominatim's own maximum for its limit): a page that came back full is asked again at this
+
+def nominatim_cache_path(q, limit):
+    """Where the geocoder's answer to q at limit is kept: derivatives/geocode/nominatim/<sha1>.json, the sha1 of the query
+    alone at PAGE and of the query with its limit at any other, so a wider request is never served a narrower page."""
+    key = q.lower() if limit == PAGE else f"{q.lower()}\nlimit={limit}"
+    return os.path.join(cache_dir(), hashlib.sha1(key.encode()).hexdigest() + ".json")
+
+def nominatim_request(q, limit):
+    """One request to the geocoder for q, at most limit candidates, after the pause that keeps the run at one request a
+    second, with the project's User-Agent. Raises when the endpoint cannot be reached."""
     url = ENDPOINT + "?" + urllib.parse.urlencode({"q": q, "format": "jsonv2", "addressdetails": 1, "extratags": 1,
-                                                    "namedetails": 1, "limit": 6, "accept-language": "en"})
+                                                    "namedetails": 1, "limit": limit, "accept-language": "en"})
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     time.sleep(1.1)
-    with urllib.request.urlopen(req, timeout=30) as r: results = json.load(r)
-    with open(path, "w", encoding="utf-8") as fh: json.dump({"query": q, "fetched_at": now(), "results": results}, fh, ensure_ascii=False)
+    with urllib.request.urlopen(req, timeout=30) as r: return json.load(r)
+
+def nominatim_page(q, limit=PAGE):
+    """The geocoder's answer to q, at most limit candidates: read from the cache, or asked once (nominatim_request) and kept
+    as {query, limit, fetched_at, results}. A page holding limit candidates may be cut: the geocoder may know more."""
+    path = nominatim_cache_path(q, limit)
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh: return json.load(fh)["results"]
+    results = nominatim_request(q, limit)
+    os.makedirs(cache_dir(), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh: json.dump({"query": q, "limit": limit, "fetched_at": now(), "results": results}, fh, ensure_ascii=False)
     return results
+
+def nominatim(q):
+    """Every candidate the geocoder's cached answers to q hold, the page asked at WIDEST first and then the first page's
+    candidates it lacks: the answer a card's candidates were read from, whichever page that was. The first page is asked
+    when the cache holds none."""
+    pages = ([nominatim_page(q, WIDEST)] if os.path.exists(nominatim_cache_path(q, WIDEST)) else []) + [nominatim_page(q, PAGE)]
+    out = []
+    for c in (c for page in pages for c in page):
+        if not any(x.get("osm_type") == c.get("osm_type") and x.get("osm_id") == c.get("osm_id") for x in out): out.append(c)
+    return out
 
 WIKIDATA_ENDPOINT = "https://www.wikidata.org/wiki/Special:EntityData"
 
@@ -278,6 +312,7 @@ GOV_UNIT_WORD = re.compile(r"^(Kr\.?|Kreis|Landkreis|Stadtkreis|Amtshauptmannsch
 # A position word standing alone before the name it qualifies ("Nieder, Harpersdorf"), read with it as GOV writes it.
 GOV_POSITION_WORDS = {"nieder", "ober", "mittel", "groß", "gross", "klein", "alt", "neu"}
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
+WIKIDATA_SEARCH = 50   # the most hits one wbsearchentities request gives
 TWIN_KM = 2.0
 UNREACHED = set()   # the gazetteer requests that failed in this run, and the gazetteers that asked us to slow down
 MISSED = []         # every gazetteer request this run answered with nothing, so a card can say its candidates may be missing
@@ -452,12 +487,15 @@ def wikidata_candidates(p):
     component whose label or matched alias agrees with it and which have a position (P625), each checked against every
     other part of the string (a county, a parish, the country) on the units it lies in, its P131 followed up one level
     a request (wbgetclaims) to the country (P17), which is read and not followed; the labels of them all read in one
-    request (wbgetentities)."""
+    request (wbgetentities). Returns (candidates, cut): cut when the search's answer says more hits follow (its
+    search-continue), WIKIDATA_SEARCH being the most one request gives, so a candidate unique among these may not be."""
     head, rest = p["components"][0], p["components"][1:]
-    found = wikidata_api("wikidata:search", [head], {"action": "wbsearchentities", "search": head, "language": "en", "uselang": "en", "type": "item", "limit": 50})
-    hits = [h for h in (json.loads(found).get("search") or [] if found else [])
+    found = wikidata_api("wikidata:search", [head], {"action": "wbsearchentities", "search": head, "language": "en", "uselang": "en", "type": "item", "limit": WIKIDATA_SEARCH})
+    answer = json.loads(found) if found else {}
+    cut = "search-continue" in answer
+    hits = [h for h in answer.get("search") or []
             if names_agree(head, h.get("label") or "") or names_agree(head, (h.get("match") or {}).get("text") or "")]
-    if not hits: return []
+    if not hits: return [], cut
     qids = sorted({h["id"] for h in hits}, key=lambda q: int(q[1:]))
     got = wikidata_api("wikidata:entities", qids, {"action": "wbgetentities", "ids": "|".join(qids), "props": "labels|descriptions|claims", "languages": "en"})
     ents = (json.loads(got).get("entities") or {}) if got else {}
@@ -496,7 +534,7 @@ def wikidata_candidates(p):
         out.append({"source": "wikidata", "id": q, "display_name": f"{h.get('label')} ({desc}; Wikidata {q})",
                     "type": next((labels.get(t) for t in types[q] if labels.get(t)), "unknown"), "names": [], "lat": at.get("latitude"), "lon": at.get("longitude"),
                     "url": "https://www.wikidata.org/wiki/" + q, "within": names, "checks": checks, "verified": all(v is True for v in checks.values()), "parts": len(parts), "same": [q]})
-    return out
+    return out, cut
 
 def gov_refs(c):
     """The GOV ids a geocoder candidate is known by: its SIMC (OpenStreetMap's teryt:simc, as GOV keeps it) and the GOV
@@ -521,17 +559,18 @@ def twin_of(g, cands):
 
 GAZETTEER_NAME = {"gov": "GOV", "wikidata": "Wikidata"}
 
-def gazetteer_reason(scope, gz, unreached=False):
-    """What the gazetteer said, for a card's reason: how many of its candidates verify on every part of the string, and
-    whether the one that does has the geocoder twin that would place it; or that it could not be reached for some of its
-    answer, so the card may lack its candidates (--reset --only asks again)."""
+def gazetteer_reason(scope, gz, unreached=False, cut=False):
+    """What the gazetteer said, for a card's reason: how many of its candidates verify on every part of the string, whether
+    the one that does has the geocoder twin that would place it, and whether its search was cut, so nothing is accepted on
+    it; or that it could not be reached for some of its answer, so the card may lack its candidates (--reset --only asks
+    again)."""
     name = GAZETTEER_NAME[scope]
     if unreached: return f"{name} could not be reached for every answer; ask again with --reset --only"
-    if not gz: return f"{name} has no candidate"
     v = [g for g in gz if g["verified"]]
-    said = f"{name}: {len(v)} of {len(gz)} candidate{'s' if len(gz) != 1 else ''} verified on every part"
+    said = f"{name}: {len(v)} of {len(gz)} candidate{'s' if len(gz) != 1 else ''} verified on every part" if gz else f"{name} has no candidate"
     if len(v) == 1 and not v[0]["parts"]: said += ", the string giving nothing beyond the name to verify"
     elif len(v) == 1 and len(v[0]["twins"]) != 1: said += ", with no single geocoder answer to place it"
+    if cut: said += f"; its search stopped at {WIKIDATA_SEARCH} hits, the most one request gives, with more to follow: nothing is accepted on it"
     return said
 
 def gazetteer_summary(g):
@@ -840,22 +879,54 @@ def reset_ai_resolutions(cx, tree_id, by, ts, only=None):
 class Unanswered(Exception):
     """The geocoder could not be reached."""
 
-def geocode(p, extras, ask):
-    """The geocoder's candidates for a parsed string: those of the first of its query variants that yields any, then those of the
-    override's extra queries (they carry tree context, so their candidates rank first among ties). ask(query) raises Unanswered
-    when the geocoder cannot be reached. Returns (candidates, the queries asked, the osm keys the extra queries gave)."""
-    variants = query_variants(p) if (p["components"] or p["country"]) else ["Silesia"]
-    cands, queries, from_extra = [], [], set()
-    def add(got, extra=False):
+def geocode(variants, extras, ask, wide=()):
+    """The geocoder's candidates for a string's query variants: those of the first variant that yields any, then those of the
+    override's extra queries (they carry tree context, so their candidates rank first among ties). Each query is asked for PAGE
+    candidates, or for WIDEST when it is one of wide; ask(query, limit) raises Unanswered when the geocoder cannot be reached.
+    Returns (candidates, the queries asked, the osm keys the extra queries gave, the queries whose page came back full, as many
+    candidates as were asked for: the answer may be cut)."""
+    cands, queries, from_extra, full = [], [], set(), []
+    def add(q, extra=False):
+        limit = WIDEST if q in wide else PAGE
+        got = ask(q, limit)
+        if len(got) >= limit: full.append(q)
         for c in got:
             if not any(x.get("osm_id") == c.get("osm_id") and x.get("osm_type") == c.get("osm_type") for x in cands): cands.append(c)
             if extra: from_extra.add((c.get("osm_type"), c.get("osm_id")))
     for q in variants:                     # stop at the first variant that yields anything
-        queries.append(q); add(ask(q))
+        queries.append(q); add(q)
         if cands: break
     for q in extras:
-        queries.append(q); add(ask(q), extra=True)
-    return cands, queries, from_extra
+        queries.append(q); add(q, extra=True)
+    return cands, queries, from_extra, full
+
+def weigh(p, cands, from_extra, scope, forced, bare, cut=()):
+    """What the rules make of one geocoder answer for a parsed string: its candidates scored (verify; places only, unless the
+    string names a church, a cemetery or a road), those verified on every part (full), and the one the answer would accept,
+    with how: a unique full match, one territory under two names (select_best), or, where the geocoder leaves the string open
+    and a gazetteer knows its places (scope), the gazetteer's one candidate verified on every part, placed by its geocoder
+    twin, on a search that was not cut; none for a bare name or a review the overrides force. The gazetteer is asked too when
+    cut names queries whose answer may still be cut, since nothing is accepted on such an answer (the caller withholds it) and
+    the string is as open as any. GOV's searchByName takes no limit, so its answer is whole; Wikidata's search can be cut
+    (wikidata_candidates). Returns {scored, full, chosen, how, gz, gz_match, gz_cut, unreached}."""
+    head = p["components"][0].lower() if p["components"] else ""
+    wants_feature = any(k in head for k in ("church", "cemetery", "road", "street", "lane", "avenue"))
+    placeish = [c for c in cands if wants_feature or c.get("category") not in NONPLACE_CLASSES]
+    scored = sorted(((*verify(p, c), c) for c in (placeish or cands)),
+                    key=lambda x: (-x[0], -sum(v == "near" for v in x[1].values()), (x[2].get("osm_type"), x[2].get("osm_id")) not in from_extra))
+    full = [s for s in scored if s[0] >= 0.999 and (wants_feature or s[2].get("category") not in NONPLACE_CLASSES)]
+    chosen, how = ((full[0][2], "unique full match") if len(full) == 1 else (select_best(p, full) if len(full) > 1 else (None, None))) if scored else (None, None)
+    gz, gz_match, gz_cut, missed_before = [], None, False, len(MISSED)
+    if scope and (chosen is None or forced or bare or cut):   # the geocoder leaves the string open: ask the gazetteer that knows its places
+        gz, gz_cut = (gov_candidates(p, placeish or cands), False) if scope == "gov" else wikidata_candidates(p)
+        for g in gz: g["twins"] = twin_of(g, [c for _, _, c in scored])
+        verified = [g for g in gz if g["verified"]]
+        if not gz_cut and len(verified) == 1 and verified[0]["parts"] and len(verified[0]["twins"]) == 1 and all(c is verified[0]["twins"][0] for _, _, c in full):
+            gz_match = verified[0]
+    if gz_match is not None and not forced:
+        chosen, how = gz_match["twins"][0], f"gazetteer: {GAZETTEER_NAME[gz_match['source']]} {gz_match['id']}, the one candidate verified on every part, placed by its geocoder twin"
+    elif bare or forced: chosen = None
+    return {"scored": scored, "full": full, "chosen": chosen, "how": how, "gz": gz, "gz_match": gz_match, "gz_cut": gz_cut, "unreached": len(MISSED) > missed_before}
 
 def names_no_place(raw, ov):
     """Why a string names no place, or None: the override lists it whole (reject), or its words, in any case and spacing, are one of
@@ -876,14 +947,14 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
     if not row:
         cx.execute("INSERT INTO extractor (id,kind,name,version,config_json,created_at) VALUES (?,?,?,?,?,?)",
                    (ext_id, *RESOLVER, dumps({"endpoint": ENDPOINT, "gazetteers": {"gov": GOV_SERVICES, "wikidata": WIKIDATA_API},
-                                           "verify": "every component must match a name of the candidate or of a unit in its hierarchy in full, a prefix, a truncation or a close spelling being near only; unique full match auto-resolves; a gazetteer's one verified candidate through its geocoder twin"}), now()))
+                                           "verify": "every component must match a name of the candidate or of a unit in its hierarchy in full, a prefix, a truncation or a close spelling being near only; unique full match auto-resolves; a gazetteer's one verified candidate through its geocoder twin; only on an answer that was not cut, a full page of six asked again for forty"}), now()))
     resolver_tag = f"ai:{RESOLVER[1]}@{RESOLVER[2]}"
     st = Store(cx); ts = now()
     stats = {"accepted": 0, "undecided": 0, "rejected": 0, "no_candidates": 0, "former_names_added": 0, "gazetteer_names_added": 0, **(stats or {})}
     report, unanswered, down = [], [], []
-    def ask(q):
+    def ask(q, limit):
         if down: raise Unanswered(down[0])
-        try: return nominatim(q)
+        try: return nominatim_page(q, limit)
         except Exception as e: down.append(str(e) or type(e).__name__); raise Unanswered(down[0])
     for psid, raw in rows:
         note = ov["note"].get(raw)
@@ -897,28 +968,27 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
         if not p["components"] and not p["country"] and not p["region"]:
             report.append(("SKIP", raw, "nothing parseable")); continue
         dated = dated_candidate(cx, p)   # a component naming a place's own dated former name (Tonan, in "Ogau Tonan"); offered, never auto-resolved
-        try: cands, queries, from_extra = geocode(p, ov["extra_queries"].get(raw, []), ask)
-        except Unanswered: unanswered.append(raw); report.append(("NOANSWER", raw, down[0])); continue   # nothing is written: the string is asked again on the next run
+        variants = query_variants(p) if (p["components"] or p["country"]) else ["Silesia"]
+        extras = ov["extra_queries"].get(raw, [])
         scope = gazetteer_for(p) if p["components"] else None
         if not p["components"] and not p["country"] and p["region"]:      # bare "Schlesien"
             p["components"] = ["Silesia"]
-        head = p["components"][0].lower() if p["components"] else ""
-        wants_feature = any(k in head for k in ("church", "cemetery", "road", "street", "lane", "avenue"))
-        placeish = [c for c in cands if wants_feature or c.get("category") not in NONPLACE_CLASSES]
-        scored = sorted(((*verify(p, c), c) for c in (placeish or cands)),
-                        key=lambda x: (-x[0], -sum(v == "near" for v in x[1].values()), (x[2].get("osm_type"), x[2].get("osm_id")) not in from_extra))
-        full = [s for s in scored if s[0] >= 0.999 and (wants_feature or s[2].get("category") not in NONPLACE_CLASSES)]
         forced = ov["force_review"].get(raw)
         bare = len(p["components"]) == 1 and not p["country"]
-        chosen, how = ((full[0][2], "unique full match") if len(full) == 1 else (select_best(p, full) if len(full) > 1 else (None, None))) if scored else (None, None)
-        gz, twin, gz_match, unreached, missed_before = [], None, None, False, len(MISSED)
-        if scope and (chosen is None or forced or bare):   # the geocoder leaves the string open: ask the gazetteer that knows its places
-            gz = gov_candidates(p, placeish or cands) if scope == "gov" else wikidata_candidates(p)
-            unreached = len(MISSED) > missed_before
-            for g in gz: g["twins"] = twin_of(g, [c for _, _, c in scored])
-            verified = [g for g in gz if g["verified"]]
-            if len(verified) == 1 and verified[0]["parts"] and len(verified[0]["twins"]) == 1 and all(c is verified[0]["twins"][0] for _, _, c in full):
-                gz_match, twin = verified[0], verified[0]["twins"][0]
+        wide = ()
+        try:
+            cands, queries, from_extra, cut = geocode(variants, extras, ask)
+            w = weigh(p, cands, from_extra, scope, forced, bare)
+            if cut and w["chosen"] is not None:   # an acceptance would stand on a page that may be cut: those pages are asked again at WIDEST
+                wide = cut
+                cands, queries, from_extra, cut = geocode(variants, extras, ask, wide)
+                w = weigh(p, cands, from_extra, scope, forced, bare, cut)
+        except Unanswered: unanswered.append(raw); report.append(("NOANSWER", raw, down[0])); continue   # nothing is written: the string is asked again on the next run
+        scored, full, chosen, how, gz, gz_match = (w[k] for k in ("scored", "full", "chosen", "how", "gz", "gz_match"))
+        cut_reason = None
+        if cut and chosen is not None:   # still full at WIDEST: the geocoder may know more places than one request gives
+            cut_reason = f"the geocoder gave {WIDEST} candidates for {' and '.join(cut)}, the most one request gives, so its answer may be cut and nothing is accepted on it ({how})"
+            chosen = None
         if not scored and not gz:
             if dated:
                 period = f"{dated['valid_from'] or '?'}–{dated['valid_to'] or '?'}"
@@ -934,9 +1004,6 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
                        (ulid(), tree_id, "place_resolution", dumps(payload), (note or "") + " No geocoder candidates; resolve by hand.", ext_id, ts))
             cx.execute("UPDATE place_string SET resolver=?, resolved_at=?, notes=? WHERE id=?", (resolver_tag, ts, dumps({"result": "no_candidates", "note": note}), psid))
             stats["no_candidates"] += 1; report.append(("NONE", raw, "")); continue
-        if gz_match is not None and not forced:
-            chosen, how = twin, f"gazetteer: {GAZETTEER_NAME[gz_match['source']]} {gz_match['id']}, the one candidate verified on every part, placed by its geocoder twin"
-        elif bare or forced: chosen = None
         if chosen is not None:
             score, checks = next(((s_, ch) for s_, ch, c in scored if c is chosen))
             c = chosen
@@ -952,13 +1019,14 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
             cx.execute("UPDATE place_string SET place_id=?, status='accepted', resolver=?, resolved_at=?, notes=? WHERE id=?",
                        (leaf, resolver_tag, ts, dumps({"queries": queries, "how": how, "match": match,
                                                              "alternatives": [x.get("display_name") for _, _, x in full if x is not c],
-                                                             "details": p["details"], "warnings": p["warnings"], "note": note}), psid))
+                                                             "details": p["details"], "warnings": p["warnings"], "note": note,
+                                                             **({"asked_again_at_widest": list(wide)} if wide else {})}), psid))
             stats["accepted"] += 1; report.append(("OK", raw, (f"[{how}] " if how != "unique full match" else "") + c.get("display_name")))
             audit_string(cx, tree_id, ts, by, psid, {"raw": raw, "resolver": resolver_tag, "from": {"status": "undecided", "place_id": None}, "to": {"status": "accepted", "place_id": leaf}, "how": how, "place": c.get("display_name")})
         else:
-            reason = forced or ("bare single token; needs context" if bare else
-                                (how or f"{len(full)} fully-verified candidates") if full else "no candidate matches every component" if scored else "no geocoder candidates")
-            if scope: reason += "; " + gazetteer_reason(scope, gz, unreached)
+            reason = cut_reason or forced or ("bare single token; needs context" if bare else
+                                         (how or f"{len(full)} fully-verified candidates") if full else "no candidate matches every component" if scored else "no geocoder candidates")
+            if scope: reason += "; " + gazetteer_reason(scope, gz, w["unreached"], w["gz_cut"])
             candidates = [candidate_summary(c, s, ch) for s, ch, c in scored[:12]]
             at = {id(c): i for i, (_, _, c) in enumerate(scored[:12])}
             alone = []
