@@ -344,8 +344,12 @@ the same rule in words, and where the two part is where audits find defects
 3. **The backlog triaged.** Overlapping entries merged, so a worker reads
    fewer and sharper ones.
 
-**Blocked by:** the safety net for a move (a check that every name a tool
-uses resolves, and the decision functions no check runs listed), C29's shared
+The check that every name a tool reads resolves runs (`tests/checks/unresolved_names.py`): a function
+moved without its imports fails it wherever it is used, run or not. Of
+`conclude.py`'s functions only `dated_with_parents` and `kept_agrees` are
+entered by no check (C46), so the side-by-side proof alone covers them.
+
+**Blocked by:** C29's shared
 rules and dead code, C72 and C69, and C50's renaming, each of which is cheaper
 before the split than after it.
 
@@ -1164,8 +1168,12 @@ archive's fixity and its bags) and `tools/cite.py` run no line; the screen's
 HTTP layer (`do_GET`, `do_POST`) is never reached, the scenarios calling its
 route functions directly; `run_step.fetch` (rate limit, User-Agent, POST),
 `loc_gov.hits` and `total`, `catalog.*_search_url` and `search_target` never
-run, and `cards.render_cli`, `cards_for` and `rule_verdict` (what the owner
-reads) neither. No scenario reaches `proof.py`'s "the rule would keep assertion" line, nor a
+run, and `cards.py`'s command line neither: of its functions, measured on 5 Oct
+2026, `render_cli`, `render_compact`, `render_search`, `render_search_compact`,
+`cards_for`, `grouped`, `rule_verdict`, `row_line`, `relation_lines`, `main` and
+their helpers never run (what the owner reads with `tools/cards.py "<person>"`),
+nor `conclude.dated_with_parents` and `kept_agrees`, `facts.claimed_parts`,
+`catalog.place_beyond` and `Catalog.same_page`. No scenario reaches `proof.py`'s "the rule would keep assertion" line, nor a
 turn that names a conflict the rule decided inside it: with real fixtures the
 turn's place resolver stops at the first geocoder query it holds no answer for. Each can be shown on records the harness already holds: a bag
 written and checked under the scratch root, a citation made and run, a POST
