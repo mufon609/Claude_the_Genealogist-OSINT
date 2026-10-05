@@ -1486,7 +1486,11 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   never an accepted family link. A statement marked as a sibling placement, a
   value the page keeps beneath the one it shows or a link the record's indexer
   computed is never the ground of a point, nor a link, a date or a place the tree
-  holds against a record or claims, whatever its status: the record does not state it. A place
+  holds against a record or claims, whatever its status: the record does not state it. For the
+  same reason a value the page keeps beneath the one it shows is no name, date or place of the
+  record's when the record is compared with the tree: the given name and surname the rule tests
+  are the ones the page shows (a shown Fred M Ahern with Fred M. Ahearn beneath agrees as a
+  spelling variant, never as written), and it is no side of a conflict. A place
   the record gives coarser than the tree's own (a state or a county against a
   town) agrees, is said in the reason, and earns nothing. A record
   counts once wherever it is held: a statement from any copy of the record

@@ -111,6 +111,7 @@ from catalog import (
     fuller_date,
     holds,
     life_limits,
+    marked,
     parent_limit,
     place_verdict,
     record_kinds,
@@ -164,12 +165,6 @@ RULE_ACTOR = {
     "conflict": "rule:classes-favour-one-side"
 }
 # An artifact's source is read from its own identity first (an ark is FamilySearch, a memorial id is Find a Grave), then from the row it was archived under (catalog.tier_sql).
-
-def marked(a="a"):
-    """The SQL true of a statement, the assertion row under alias a, that carries one of the MARKS."""
-    return f"(json_valid({a}.notes) AND coalesce(" + ", ".join(
-        f"json_extract({a}.notes,'$.{m}')" for m in MARKS
-    ) + ") IS NOT NULL)"
 
 def unless(without):
     """The SQL leaving out of a reading of assertion a the statements reconsider does not count, and its arguments: every

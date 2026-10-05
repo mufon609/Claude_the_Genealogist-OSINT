@@ -1,0 +1,142 @@
+{
+ "title": "a value the page keeps beneath is not the record's",
+ "line": "a value a FamilySearch page keeps beneath the one it shows is not what the record states: the 1950 household's father is shown Fred M Ahern and keeps Fred M. Ahearn beneath, so his surname agrees with the tree's Frederick Michael Ahearn as a spelling variant, never as written; and Charlotte's 1900 page keeps Norristown beneath the Norriton Township it shows, so with both placed by the owner on one Residence, the place it keeps beneath is no place of the record's and the record raises no difference with the place it shows",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1950 household's page, saved by hand, read and matched for the son and, on the owner's word, for his father",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-census-1950-6XYS-NQ16.html"
+    },
+    "extract": true,
+    "match": [
+     "I332737036054",
+     "I332737037257"
+    ]
+   },
+   "as": "c50",
+   "expect": [
+    {
+     "compare": {
+      "card": {
+       "record": "c50",
+       "person": "I332737037257"
+      },
+      "agree": {
+       "some": "surname agrees as a spelling variant (record Fred M Ahern, tree Frederick Michael Ahearn)"
+      },
+      "fields": {
+       "Name": "agrees"
+      }
+     },
+     "why": "the page shows the father as Ahern; the Ahearn it keeps beneath is its edit history, not the record's name, so the surname agrees as a spelling variant, never as written"
+    }
+   ]
+  },
+  {
+   "say": "the 1900 Lukens household page, on the owner's word that it is Charlotte's",
+   "attach": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html",
+    "about": "I332737039686"
+   },
+   "as": "c1900"
+  },
+  {
+   "say": "a second Residence of 1900 the harness plants beside the file's, with no place",
+   "event": {
+    "person": "I332737039686",
+    "type": "Residence",
+    "date": "1900",
+    "date_start": "1900"
+   },
+   "as": "first"
+  },
+  {
+   "say": "and a third, the same",
+   "event": {
+    "person": "I332737039686",
+    "type": "Residence",
+    "date": "1900",
+    "date_start": "1900"
+   },
+   "as": "second"
+  },
+  {
+   "say": "the owner accepts her card on it: neither place the page gives lands on one Residence of its year",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "person": "I332737039686"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the owner places the place the page keeps beneath on the second placeless Residence",
+   "place": {
+    "record": "c1900",
+    "person": "I332737039686",
+    "fact_type": "Residence",
+    "alternate": true,
+    "event": "$second.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "status": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "and the place the page shows on the same Residence",
+   "place": {
+    "record": "c1900",
+    "person": "I332737039686",
+    "fact_type": "Residence",
+    "alternate": false,
+    "event": "$second.event"
+   },
+   "expect": [
+    {
+     "last": {
+      "ok": true,
+      "status": "accepted"
+     }
+    },
+    {
+     "disagreements": {
+      "person": "I332737039686",
+      "is": {
+       "none": {
+        "has": "against Norristown"
+       }
+      }
+     },
+     "why": "the record states Norriton Township, which the Residence shows: the Norristown the page keeps beneath, placed first, is no place of the record's and no side of a difference"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

@@ -499,6 +499,10 @@ def same_event(etype, kind, a, b):
 # fact accepts it, it gives nothing of an event's value, and it is never the rule's ground, whatever its status
 # (docs/RESEARCH-WORKFLOW.md, the proof standard).
 MARKS = ("placed", "alternate", "computed")
+
+def marked(a="a"):
+    """The SQL true of a statement, the assertion row under alias a, that carries one of the MARKS."""
+    return f"(json_valid({a}.notes) AND coalesce(" + ", ".join(f"json_extract({a}.notes,'$.{m}')" for m in MARKS) + ") IS NOT NULL)"
 DATE_LEVELS = ("whole", "month", "year")                 # how much of an event's own date a statement gives, finest first (date_given)
 
 def date_given(said, own):
@@ -1157,15 +1161,18 @@ class Catalog:
         that differ (a county holding two towns) joins neither to the other. The tree's value is never changed by a record; the
         difference is a conflict question, and the shown value stays what Catalog.place chooses. A name an accepted record
         gives the person with a middle name or initial that differs from the one the tree's own name carries (match.
-        middle_differs: John A. against John D) is a line too, one per record."""
+        middle_differs: John A. against John D) is a line too, one per record. A statement carrying one of the MARKS (a
+        value the page keeps beneath the one it shows, a sibling placement, a grouping the indexer computed) is none of
+        these, whatever its status: the record does not state it (docs/RESEARCH-WORKFLOW.md, the proof standard), so it
+        neither raises a difference nor joins its record's own date or place."""
         out = []
         from match import middle_differs                      # the matcher's own rule for a middle name, so a conflict is raised on exactly what made the card
         rows = [(g or "", s or "") for g, s in self.q("SELECT given, surname FROM person_name WHERE person_id=?", pid)]
         shown = (self.q("SELECT display_name FROM person WHERE id=?", pid) or [[None]])[0][0]
-        for written, coll, loc in ([] if event else self.q("""SELECT pf.value_text, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value FROM assertion a
+        for written, coll, loc in ([] if event else self.q(f"""SELECT pf.value_text, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value FROM assertion a
                                             JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                                             WHERE a.subject_kind='person' AND a.subject_id=? AND a.status='accepted' AND pf.fact_type='Name' AND pf.value_text IS NOT NULL
-                                            ORDER BY a.asserted_at, a.id""", pid)):
+                                            AND NOT {marked()} ORDER BY a.asserted_at, a.id""", pid)):
             if middle_differs(written, rows, [s for _, s in rows]):
                 out.append(f"name: the tree against {coll}" + (f" ({loc})" if loc else "") + f": {shown} against {written}")
         for e in self.q(f"""SELECT DISTINCT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
@@ -1174,12 +1181,13 @@ class Catalog:
             place_now = self.place(e[0], e[5])
             tree_place = place_now["text"] if place_now else None
             kind = e[1].lower()
-            rows = self.q("""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)),
+            rows = self.q(f"""SELECT pf.date_text, pf.date_start, pf.date_qualifier, ps.raw, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)),
                                     ar.locator_value, a.status, a.id, ar.sha256 IN (SELECT artifact_sha256 FROM tree_import), CASE WHEN ps.status='accepted' THEN ps.place_id END,
                                     ar.sha256, pf.persona_id, pf.date_end
                              FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                              JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
-                             WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND pf.fact_type=? ORDER BY a.asserted_at, a.id""", e[0], e[1])
+                             WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND pf.fact_type=? AND NOT {marked()}
+                             ORDER BY a.asserted_at, a.id""", e[0], e[1])
             groups, order = {}, []                            # one group per record (record_of: its copies wherever they are held), whatever collection name cites it
             for f in rows:
                 gk = record_of(self.cx, self.tree_id, f[10], f[11])

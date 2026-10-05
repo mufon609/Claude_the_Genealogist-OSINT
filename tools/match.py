@@ -514,6 +514,11 @@ def _date(row):
     )
 
 def personas_of(cx, eid):
+    """The personas of an extraction as the matcher compares them, in the record's order: each one's name, every other name
+    the record gives them, sex, role, birth and death, the birth, burial, death and residence places, the relations it
+    states and the memorial it links. A value the page keeps beneath the one it shows (a fact whose region marks it
+    alternate, FamilySearch's edit history) is no value the record states (docs/RESEARCH-WORKFLOW.md, the proof standard):
+    no name, date or place of a persona is read from one."""
     out = []
     coll = cx.execute(
         "SELECT c.name FROM extraction e JOIN artifact ar ON ar.sha256=e.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?",
@@ -524,7 +529,8 @@ def personas_of(cx, eid):
     # persona id -> its facts, and its relations, in the order they were written: a results page holds a hundred personas, read in three queries
     facts, rels = {}, {}
     for r in cx.execute("""SELECT pf.persona_id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id
-                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pe.extraction_id=? ORDER BY pf.rowid""", (eid,)):
+                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pe.extraction_id=?
+                           AND NOT (json_valid(pf.region_json) AND json_extract(pf.region_json,'$.alternate') IS NOT NULL) ORDER BY pf.rowid""", (eid,)):
         facts.setdefault(r[0], []).append(tuple(r[1:]))
     for r in cx.execute("""SELECT r.persona_id, r.kind, r.related_persona_id, r.value_text, o.name_text FROM persona_relation r JOIN persona o ON o.id=r.related_persona_id
                            JOIN persona pe ON pe.id=r.persona_id WHERE pe.extraction_id=? ORDER BY r.rowid""", (eid,)):
