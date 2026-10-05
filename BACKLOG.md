@@ -1451,6 +1451,26 @@ writes statements and family links without regenerating the people's plans and
 without the rule's pass over their conflicts and cards (`conclude.settle_people`),
 which every decision now runs. Run it for the people a re-read touches.
 
+### C73. Index entries of one census page are one household
+
+FamilySearch indexes some censuses one person to a page with no household
+table (the New York State Census 1925 among them: "No similar records were
+found"), and each entry's citation gives the enumeration district, page and
+line. The reader keeps none of these, so two entries of one household are two
+unrelated records: Ruth Peters, daughter of the head, age 4 (KS4R-RTQ, page 19,
+line 25), and Mary Peters, wife of the head, age 38 (KS4R-RTM, line 23), both
+Hempstead A.D. 01, E.D. 06, archived 5 Oct 2026, are each a card, Ruth's short
+of a point and Mary's on a name not yet accepted, though the page shows the
+household the file claims. Read the place, district, page and line of such an
+entry as its record's identity on the page; join the entries of one page and
+household (the same district and page, lines in one run under one head) as one
+household record, each member's relationship to the head read together as a
+census states them (the wife and the daughter of one head are each the head's,
+never stated as each other's), so the ground for a household whose members fit
+(section A, the relatives named in part) can read them; and make the head's
+entry, found by the search that listed the others, a lead. Show it on the two
+pages above and the 1925 search page that listed seven Peters of Hempstead.
+
 ## Externally blocked
 
 Waiting on events the repo cannot drive.
