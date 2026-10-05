@@ -28,10 +28,9 @@
    "as": "memorial"
   },
   {
-   "say": "the place the memorial's original is filed under is already taken: the harness's stand-in for a file whose attach fails after its rows are written",
+   "say": "the filing of the memorial's original is refused: the harness's stand-in for a file whose attach fails after its rows are written",
    "block_filing": {
-    "file": "findagrave-memorial-143847338.html",
-    "date": "2026-10-04"
+    "file": "findagrave-memorial-143847338.html"
    }
   },
   {
@@ -45,9 +44,9 @@
      "last": {
       "results": [
        {"file": "$search.file", "identity": {"starts": "fs_search "}, "left": null, "outcome": "none"},
-       {"file": "findagrave-memorial-143847338.html", "left": {"starts": "failed: Error: "}}
+       {"file": "findagrave-memorial-143847338.html", "left": {"starts": "failed: OSError: "}}
       ],
-      "lines": {"some": {"has": ["findagrave-memorial-143847338.html", "left in the inbox: failed: Error: ", "already exists"]}}
+      "lines": {"some": {"has": ["findagrave-memorial-143847338.html", "left in the inbox: failed: OSError: ", "the harness's stand-in for a filing refused"]}}
      },
      "why": "the search reaches its step as it always does; the memorial's failure is named with the exception's type and message, on the line the tool prints"
     },
@@ -82,10 +81,9 @@
    ]
   },
   {
-   "say": "the filing place cleared",
+   "say": "the filing allowed again",
    "block_filing": {
     "file": "findagrave-memorial-143847338.html",
-    "date": "2026-10-04",
     "clear": true
    }
   },

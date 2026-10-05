@@ -65,6 +65,7 @@ class Walker:
         self.spec, self.keep, self.show = spec, keep, show
         self.title = spec.get("title", "scenario")
         self.env = {}; self.fails = Fails(); self.step_no = 0
+        self.undo = []                                  # the stand-ins a step put in place for the rest of the scenario, lifted when it ends
 
     # ---------------------------------------------------------------- the tree
     def open(self):
@@ -99,6 +100,7 @@ class Walker:
                 if m.now is fake: m.now = real
 
     def close(self):
+        for lift in reversed(self.undo): lift()
         w = whole(self.cx)
         if w: self.fails.append(w)
         self.fails.extend(offline.words(offline.sent(self.title)))
@@ -319,14 +321,15 @@ def a_post(w, x):
     return {"code": int(head.split(b" ")[1]), "body": json.loads(payload), "ids": ids}
 
 def a_attach(w, x):
-    """A fixture dropped into the inbox as a save would leave it and attached: the record's sha and the attach's report."""
-    from attach import attach_inbox
+    """A fixture dropped into the inbox as a save would leave it and attached: the record's sha, the attach's report and its
+    line as the tool prints it."""
+    from attach import attach_inbox, line
     name = x.get("as_file") or x["fixture"]
     with open(os.path.join(w.treelib.inbox_dir(), name), "wb") as fh: fh.write(w.fixture_bytes(x))
     kw = {"about": w.person(x["about"])} if x.get("about") else {}
     res = attach_inbox(w.cx, w.tid, w.slug, BY, [name], **kw)
     r = res[0] if res else {}
-    return {"sha": r.get("sha256"), "file": name, "steps": r.get("steps"), "left": r.get("left"), "repeat": r.get("repeat"), "proposals": r.get("proposals"), "accepted_by_rule": r.get("accepted_by_rule"),
+    return {"sha": r.get("sha256"), "file": name, "filed": r.get("filed"), "line": line(r) if r else None, "steps": r.get("steps"), "left": r.get("left"), "repeat": r.get("repeat"), "proposals": r.get("proposals"), "accepted_by_rule": r.get("accepted_by_rule"),
             "outcome": r.get("outcome"), "identity": r.get("identity"), "extraction": r.get("extraction"), "unparsed": r.get("unparsed"), "results": res,
             "taken": [(n, why) for _, n, why in (r.get("accepted_by_rule") or [])], "step_people": [n for _, n, _, _ in (r.get("steps") or [])]}
 
@@ -540,14 +543,22 @@ def a_collect(w, x):
             "sha": res[0].get("sha256") if len(res) == 1 else None}                                        # the record, when one page came in
 
 def a_block_filing(w, x):
-    """The harness's stand-in for a file whose attach fails after it has written its rows: the place tools/attach.py files the
-    original under (trees/<slug>/imports/records/<date>_<file>) already taken by a folder holding an entry of the file's own
-    name, so the move that ends the attach is refused; `clear` takes the folder away again. A filing refused, not a holder's
-    answer: no page or record is invented."""
-    path = os.path.join(w.treelib.imports_dir(w.slug), "records", f"{x['date']}_{x['file']}")
-    if x.get("clear"): shutil.rmtree(path, ignore_errors=True); return {"path": path, "blocked": False}
-    os.makedirs(os.path.join(path, x["file"]), exist_ok=True)
-    return {"path": path, "blocked": True}
+    """The harness's stand-in for a file whose attach fails after it has written its rows: the move that files the original of
+    the file named under the tree (tools/attach.py's last write, treelib.move_free into trees/<slug>/imports/records) refused,
+    as a full disk or a refused write refuses it, until a step with `clear` lifts it, and lifted when the scenario ends. A
+    filing refused, not a holder's answer: no page or record is invented."""
+    import attach
+    blocked = w.env.setdefault("filing_blocked", set())
+    if not w.env.get("filing_stand_in"):
+        real = attach.move_free
+        def refusing(src, folder, name=None):
+            if os.path.basename(src) in blocked and os.path.basename(folder) == "records": raise OSError(f"the harness's stand-in for a filing refused: {os.path.basename(src)} is not filed")
+            return real(src, folder, name)
+        attach.move_free = refusing
+        w.undo.append(lambda: setattr(attach, "move_free", real))
+        w.env["filing_stand_in"] = True
+    (blocked.discard if x.get("clear") else blocked.add)(x["file"])
+    return {"file": x["file"], "blocked": not x.get("clear")}
 
 def a_log(w, x):
     """A run written by hand, as a connector or a saved page would leave it: query true takes the step's own current
@@ -1193,8 +1204,13 @@ def e_whole(w, x, want):
     v = whole(w.cx); return v is None, v
 
 def e_file(w, x, want):
-    path = os.path.join(w.value(x["folder"]) if x.get("folder") else w.treelib.inbox_dir(), w.value(x["name"]))
-    return os.path.exists(path) == x.get("exists", True), path
+    """Whether a file is there: `name` in the inbox, or in `folder`, or a whole `path` (bound); with `fixture`, holding that
+    fixture's bytes, so a file written over by another of its name shows."""
+    path = w.value(x["path"]) if x.get("path") else os.path.join(w.value(x["folder"]) if x.get("folder") else w.treelib.inbox_dir(), w.value(x["name"]))
+    there = bool(path) and os.path.exists(path)
+    if there and x.get("fixture"):
+        with open(path, "rb") as fh, open(os.path.join(FIXTURES, x["fixture"]), "rb") as ref: there = fh.read() == ref.read()
+    return there == x.get("exists", True), path
 
 def e_count(w, x, want):
     """A count from one of the catalog's tables, for a few plain questions: the rows of a table for a person."""

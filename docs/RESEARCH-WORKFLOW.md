@@ -372,7 +372,9 @@ a FamilySearch images-only collection, browsed by hand, film by film, with no
 search or record page for a browser to save) stays on the plan, fetchable,
 with the reason in its rationale, but never reaches this list.
 `tools/fetches.py collect` then moves every saved page from `downloads/`
-(or `--folder`) into `inbox/` and attaches each by its own identity,
+(or `--folder`) into `inbox/` (beside a file of the same name already there it
+takes a free name, `<name> (2).html`, never writing over it, and its line says so)
+and attaches each by its own identity,
 read from the saved-from line the browser wrote (`tools/save_page.js`) when
 that line is a FamilySearch record or search URL, a Find a Grave memorial or
 search, or an AAD record or search — whatever the file is named, since Chrome
@@ -386,7 +388,10 @@ own year too (`familysearch-census-<year>-search-<given>-<surname>.html`), so
 a person's two census searches (the 1925 New York state census and the 1930
 federal census) do not share a name; a link that is a record page is listed
 under `familysearch-<collection words>-<year>-<ark id>.html`, the ark id read
-off the page once saved. For a page from a holder whose pages carry no identity
+off the page once saved. Two different links that would take one name (a
+person's 1910 census searched once narrowed to a residence and once not) each
+carry the first six characters of their own link's sha1 before `.html`, so no
+page is told to save under another's name. For a page from a holder whose pages carry no identity
 the attach reads (a Legacy.com obituary), by the name
 the list printed, whole: such a page is listed once per citation and person
 waiting on it, under a name that carries the citation's own record locator
@@ -507,7 +512,9 @@ script's one line says `ok image <type> <bytes>B` or `BLOCKED <why>` (nothing is
 saved when the answer is not an image: a challenge or a sign-in comes back as a
 page);
 `collect` moves it to `inbox/` and attaches it to its step by that name (an
-image carries no identity in its bytes), archived under the gravestone row
+image carries no identity in its bytes; a second download of one name, Chrome's
+` (1)`, or the free name a file of its name in the inbox gives it, ` (2)`, is
+the same name), archived under the gravestone row
 (E05, tier 1) with the image's URL as locator, logged found, never parsed. It
 is read one person at a time by the transcription path, the screen's form or
 the model, into a card like any other image.

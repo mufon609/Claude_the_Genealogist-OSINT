@@ -344,6 +344,12 @@ def a_fetch_list(w, x):
     if x.get("search_links"): rows = [e for e in rows if e["holder_id"] == "D03" and "/search/record/results" in (e.get("url") or "")]
     return {"names": [e["save_as"] for e in rows]}
 
+def a_save_names(w, x):
+    """fetches.distinct_names on the entries the data gives, each a link (`url`) and the name save_as built for it (`save_as`),
+    as the fetch list holds them: the names the list then prints, in order."""
+    from fetches import distinct_names
+    return {"names": [e["save_as"] for e in distinct_names([{"url": e["url"], "save_as": e["save_as"]} for e in x["entries"]])]}
+
 def a_task(w, x):
     """run_task.run_fetch on the fetch list's entry serving a step, the launcher's process replaced (run_task.spawn) as the data
     says and nothing else: `silent` a launcher that does not answer (`timeout`: it outlives the timeout; `exit`: it exits with
@@ -409,7 +415,7 @@ def a_task(w, x):
             "command": {"flags": [c for c in cmd if c.startswith("-")], "mcp_config": after("--mcp-config"), "model": after("--model"), "effort": after("--effort"), "tools": after("--tools"), "budget": after("--max-budget-usd"),
                         "prompt": after("-p"), "system_prompt_is_the_text": after("--system-prompt") == run_task.task_text("fetch")[0], "schema": json.loads(after("--json-schema") or "null")}}
 
-ACTIONS.update({"task": a_task, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turn_by_hand": a_turn_by_hand, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
+ACTIONS.update({"task": a_task, "save_names": a_save_names, "decide_place": a_decide_place, "step_query": a_step_query, "turn": a_turn, "turn_by_hand": a_turn_by_hand, "turns": a_turns, "resume": a_resume, "clear_state": a_clear_state, "old_turn_state": a_old_turn_state,
                 "run": a_run, "run_all": a_run_all, "run_connector": a_run_connector,
                 "resolve": a_resolve, "place_string": a_place_string, "apply_places": a_apply_places, "fetch_list": a_fetch_list})
 

@@ -18,12 +18,14 @@ fulfils, and the file name to save under
 (a FamilySearch record page's name takes the record's own ark id from its page; a FamilySearch or other holder's search
 carries the search's own given name and surname, so the several people's steps one search serves share one name; a page
 from any other holder carries no identity the attach reads, so it is listed once per citation and person waiting on it,
-under a name that carries the citation's own record locator and ends in that person's six characters): the leads from
+under a name that carries the citation's own record locator and ends in that person's six characters; two different links
+that would take one name each carry six characters of their own link's digest, so no page is saved as another): the leads from
 held records first (a persona accepted as a person, whose memorial the record links), then the file's citations, the pages
 that settle most steps first. Saved pages go to the data root's own `downloads/` folder (the repository's `downloads/` for
 the live tree; a scratch run's under its DATA_ROOT): the owner points the browser's download location there once, a separate
 browser profile for tree work if they prefer, and no tool reads the owner's own download folder. `collect` moves every saved
-page from that folder (or --folder) into `inbox/` and attaches each: a photograph by its own name (it carries no identity in its bytes), any other .html page whose
+page from that folder (or --folder) into `inbox/` (beside a file of the same name already there, under a free name, never
+over it: treelib.move_free) and attaches each: a photograph by its own name (it carries no identity in its bytes), any other .html page whose
 saved-from line (the browser's own comment, tools/save_page.js) is a FamilySearch record or search URL, a Find a Grave
 memorial or search, or an AAD record or search, by that identity (tools/attach.py identity) whatever the name says —
 archived once, logged found on every step that cites it, extracted, matched, the rule run; a page that carries a key (the
@@ -46,9 +48,9 @@ have all been run on unchanged fields (a page saved, or answered, and the plan h
 brings them back. A step at a holder whose link takes nothing from the citation is planned assisted, a search a person runs
 by hand (tools/plan.py), never a page on this list.
 """
-import argparse, json, os, re, shutil, sys, urllib.parse
+import argparse, collections, hashlib, json, os, re, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, connect, downloads_dir, dumps, inbox_dir, resolve_tree
+from treelib import DB, connect, downloads_dir, dumps, inbox_dir, move_free, resolve_tree
 from attach import ark_id, attach, attach_each, failed, line
 from catalog import Catalog, fetch_target, browse_only, dbid_of
 from log_search import ran_unchanged, rendered_query, step_source
@@ -88,10 +90,23 @@ def save_as(holder_id, fields, row_key, mid=None, six=None, piece=None, url=None
         return f"familysearch-{words}-{v('year') or (row_year if row_year.isdigit() else None) or '<year>'}-<ark id>.html"
     return f"{_slug(holder_id)}-{words}-{_slug(piece)}-{six}.html"
 
+def distinct_names(entries):
+    """The entries with no two different links told one name: where entries of different links would save under one name (a
+    person's two searches of one census collection, one of them narrowed to a residence the other leaves open), each of them
+    carries the first six characters of its own link's sha1 before the extension, so neither page is saved as the other; a name
+    only one link has is left as save_as built it. Returns the entries."""
+    links = collections.defaultdict(set)
+    for e in entries: links[e["save_as"]].add(e["url"])
+    for e in entries:
+        if len(links[e["save_as"]]) < 2: continue
+        stem, ext = os.path.splitext(e["save_as"])
+        e["save_as"] = f"{stem}-{hashlib.sha1((e['url'] or '').encode()).hexdigest()[:6]}{ext}"
+    return entries
+
 def waiting(cx, tree_id):
     """Every planned fetch step whose holder has no connector, once per page: holder, url, the people and the number of
     steps waiting on it, whether it is a lead from a held record (locator memorial_id) or the file's citation (locator
-    apid), the file name to save under, and `serves`, the steps the saved page serves: those of every entry with this entry's link and file name
+    apid), the file name to save under (save_as, two different links never one name: distinct_names), and `serves`, the steps the saved page serves: those of every entry with this entry's link and file name
     (the page the browser saves is one, whatever census page or citation each entry stands for), the key page_call gives the save
     script. A step whose holder has a connector never appears here, whether or not that
     connector currently has anything to ask: it runs through tools/run_step.py, which logs a `none` run naming the field
@@ -131,7 +146,7 @@ def waiting(cx, tree_id):
             key = (hid, s["locator_value"]); link = url or None; holder = s["holder_name"]
         name = save_as(hid, fields, s["row_key"], mid, s["person_id"][-6:], piece, link)
         add(s, key, link, holder, name.replace("<ark id>", ark_id(s["locator_value"])).replace("-<year>", "") if s["locator_kind"] == "ark" else name)
-    entries = list(out.values())
+    entries = distinct_names(list(out.values()))
     for e in entries: e["serves"] = [sid for o in entries if (o["url"], o["save_as"]) == (e["url"], e["save_as"]) for sid in o["step_ids"]]
     return sorted(entries, key=lambda e: (not e["lead"], e["holder"], -e["steps"], e["url"] or ""))
 
@@ -155,7 +170,7 @@ def openable(cx, tree_id):
     people whose own step is still unrun."""
     return [e for e in annotated(cx, tree_id) if e["url"] and e["open_step_ids"]]
 
-PHOTO_NAME = re.compile(r"findagrave-photo-\d+-\d+\.(jpe?g|png|webp|gif)$", re.I)
+PHOTO_NAME = re.compile(r"findagrave-photo-\d+-\d+(?: \(\d+\))?\.(jpe?g|png|webp|gif)$", re.I)   # a second download of one name, Chrome's " (1)", is the same photograph
 SAVED_FROM_IDENTITY = re.compile(r"familysearch\.org/(?:[a-z]{2}/)?(?:ark:/\d+/[\w:.$-]+|search/record/results)"
                                   r"|findagrave\.com/memorial/(?:\d+(?:/|$)|search)"
                                   r"|aad\.archives\.gov/aad/(?:record-detail|display-partial-records)\.jsp", re.I)
@@ -176,7 +191,9 @@ def collect(cx, tree_id, slug, by, folder=None):
     photograph by its own name (it carries no identity in its bytes), and any .html file whose saved-from line (the browser's
     own comment, tools/save_page.js) is a FamilySearch record or search URL, a Find a Grave memorial or search, or an AAD
     record or search, moved to inbox/ under its own name and attached by that identity (tools/attach.py identity), whatever
-    the name says, to the steps its key names first when it carries one (attach.named_steps). A page from a holder whose pages
+    the name says, to the steps its key names first when it carries one (attach.named_steps). A file of the same name already
+    in the inbox is never written over: the page takes a free name beside it (treelib.move_free), its result naming that
+    name as `inbox_as` and keeping the name it was saved under as `file`. A page from a holder whose pages
     carry no identity the attach reads is taken by the by-name path
     instead, under the list's own name, and attached to the steps of the one citation and person the name carries, archived
     under that holder with its own URL as locator. A name is not an identity: at a holder whose pages carry their own
@@ -185,7 +202,7 @@ def collect(cx, tree_id, slug, by, folder=None):
     then those taken by identity, each file in a transaction of its own (attach.attach_each): a file whose transaction fails
     is rolled back alone and named with the failure, a page taken by name put back in the folder it was saved in (only collect
     takes a page by its name), a page taken by identity left in the inbox (attach_inbox.py, and the next turn, take it again).
-    Returns (the names taken, the attach results)."""
+    Returns (the names the pages taken have in the inbox, the attach results)."""
     folder = folder or downloads_dir(); by_identity, results = [], []
     entries = waiting(cx, tree_id)
     for f in sorted(os.listdir(folder)):
@@ -195,19 +212,25 @@ def collect(cx, tree_id, slug, by, folder=None):
         e = named_for(f, entries)
         if not e or not f.lower().endswith(".html"): continue
         if e["holder_id"] in IDENTITY_HOLDERS: continue          # this holder's pages carry their own identity: a file under the list's name without it is not the page
-        dst = os.path.join(inbox_dir(), f); shutil.move(path, dst)
+        dst = move_free(path, inbox_dir()); taken = os.path.basename(dst)   # beside a file of the same name already in the inbox, never over it
         cx.execute("BEGIN")
         try:
             url = saved_from(dst) or e["url"]
             steps = [{**dict(r), "reason": "saved under the name the fetch list printed for this page"} for sid in e["step_ids"] for r in cx.execute("SELECT * FROM search_plan WHERE id=?", (sid,))]
             r = {"file": f, "identity": f"page {url}", "steps": [(s["id"], cx.execute("SELECT display_name FROM person WHERE id=?", (s["person_id"],)).fetchone()[0], s["row_key"], s["reason"]) for s in steps], "left": None}
-            r.update(attach(cx, tree_id, slug, f, steps, by, note=f"saved in the browser under the fetch list's name at {e['holder']}", kind="page", value=url)); cx.commit()
+            r.update(attach(cx, tree_id, slug, taken, steps, by, note=f"saved in the browser under the fetch list's name at {e['holder']}", kind="page", value=url)); cx.commit()
+            if taken != f: r["inbox_as"] = taken
         except Exception as ex:
-            cx.rollback(); r = failed(f, ex, folder)
-            if os.path.exists(dst): shutil.move(dst, path)   # the attach files the original last, so a failure before that leaves it in the inbox to put back
+            cx.rollback()
+            back = move_free(dst, folder, f) if os.path.exists(dst) else path   # the attach files the original last, so a failure before that leaves it in the inbox to put back
+            r = failed(os.path.basename(back), ex, folder)
         results.append(r)
-    for f in by_identity: shutil.move(os.path.join(folder, f), os.path.join(inbox_dir(), f))
-    return by_identity + [r["file"] for r in results], attach_each(cx, tree_id, slug, by, by_identity) + results
+    inbox = {}                                                   # the name each page taken by identity has in the inbox -> the name it was saved under
+    for f in by_identity: inbox[os.path.basename(move_free(os.path.join(folder, f), inbox_dir()))] = f
+    attached = attach_each(cx, tree_id, slug, by, list(inbox))
+    for r in attached:
+        if inbox.get(r["file"], r["file"]) != r["file"]: r["inbox_as"], r["file"] = r["file"], inbox[r["file"]]
+    return list(inbox) + [r.get("inbox_as") or r["file"] for r in results], attached + results
 
 def people_short(names, n=2): return ", ".join(names[:n]) + (f" +{len(names) - n}" if len(names) > n else "")
 

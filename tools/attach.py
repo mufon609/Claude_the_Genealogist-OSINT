@@ -35,9 +35,9 @@ naming the earlier run's own artifact), and the file leaves the inbox with nothi
 whose identity matches no step is not archived by the inbox tool; the screen still attaches it to the step the person
 chose. Archived bytes are linked, not copied, and a step already logged with the same artifact is not logged again.
 """
-import json, mimetypes, os, re, shutil, sqlite3, sys
+import json, mimetypes, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import archive_object, dumps, imports_dir, inbox_dir, now, object_path, ulid
+from treelib import archive_object, dumps, imports_dir, inbox_dir, move_free, now, object_path, ulid
 from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
 from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
@@ -46,7 +46,7 @@ from conclude import match_record
 from plan import plan_person
 
 MEMORIAL_URL = re.compile(r"findagrave\.com/memorial/(\d+)(?:/|$)")
-PHOTO_NAME = re.compile(r"^findagrave-photo-(\d+)-(\d+)\.(?:jpe?g|png|webp|gif)$", re.I)
+PHOTO_NAME = re.compile(r"^findagrave-photo-(\d+)-(\d+)(?: \(\d+\))?\.(?:jpe?g|png|webp|gif)$", re.I)   # with a free name's " (2)" (treelib.free_name), or Chrome's " (1)", the same photograph
 PHOTOS, PHOTO_COLLECTION = "E05", "Find a Grave memorial photographs"
 
 def identity_of_name(name):
@@ -464,6 +464,12 @@ def cite_on_word(cx, tree_id, pid, row_key, holder, fields, by, note=None, query
                (ulid(), tree_id, ts, by, "insert", "search_plan", sid, dumps({"on_word": True, "person": pid, "row_key": row_key, "holder": holder, "fields": clean, "note": note})))
     return sid
 
+def filed_name(ts, src):
+    """The name an original is filed under, in the tree's imports/records/: the day it was attached and the file's own name, its
+    characters past letters, digits, dot, underscore and hyphen made hyphens; treelib.move_free gives it a free name when another
+    original of that day already holds it."""
+    return f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"
+
 def _source_row(cx, sid):
     r = cx.execute("SELECT id, trust_tier, terms, cost FROM source WHERE id=?", (sid,)).fetchone() if sid else None
     return dict(r) if r else {}
@@ -475,7 +481,8 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     """Archive one inbox file for these steps (provenance from the first: the record's kind gives the trust tier, where it was
     retrieved gives terms and cost; the locator is the step's, or the search URL for a results page), log a found run on every
     step not yet logged with it (a results page's log carries the query as run and the number of results), file the original
-    under the tree, then parse and match a page new to the archive. A results page on which no candidate fits has its run read
+    under the tree (filed_name, beside another original of that name under a free one, never over it: `filed` the path, and
+    `filed_beside` the name it could not take), then parse and match a page new to the archive. A results page on which no candidate fits has its run read
     again as none, the candidates kept on the artifact; one no parser reads (a page whose every reading failed,
     log_search.unread_record) has it read again as unread, the note saying so, and closes nothing; each a new row superseding
     the found one (log_search.restate), whose id `logs` then names. Then the steps the run closes are marked done: a search step by
@@ -540,8 +547,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         kinds = {s["id"]: s["kind"] for s in steps}; record = holds_record(cx, sha)
         for sid, lid in logs:
             if record or kinds.get(sid) != "fetch": cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,))
-    filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)   # the original leaves the inbox last, so a failure before this point leaves it there
-    shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
+    filed = filed_name(ts, src)
+    out["filed"] = move_free(src, os.path.join(imports_dir(slug), "records"), filed)   # the original leaves the inbox last, so a failure before this point leaves it there
+    if os.path.basename(out["filed"]) != filed: out["filed_beside"] = filed           # another original of the day held the name: filed under a free one beside it
     return out
 
 def attach_held(cx, tree_id, slug, name, about_id, by, note=None):
@@ -561,8 +569,7 @@ def attach_held(cx, tree_id, slug, name, about_id, by, note=None):
                               retrieved_by=by, terms=row.get("terms"), cost="free", trust_tier=row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
     cx.execute("INSERT INTO note (id,tree_id,entity_kind,entity_id,body,author,created_at) VALUES (?,?,?,?,?,?,?)",
                (ulid(), tree_id, "artifact", sha, f"about {cx.execute('SELECT display_name FROM person WHERE id=?', (about_id,)).fetchone()[0]}, on the owner's word" + (f": {note}" if note else ""), by, ts))
-    filed = os.path.join(imports_dir(slug), "records"); os.makedirs(filed, exist_ok=True)
-    shutil.move(src, os.path.join(filed, f"{ts[:10]}_{re.sub(r'[^A-Za-z0-9._-]+', '-', os.path.basename(src))}"))
+    move_free(src, os.path.join(imports_dir(slug), "records"), filed_name(ts, src))
     return sha, new
 
 def inbox_files():
@@ -635,11 +642,18 @@ def key_note(r):
     aside = (r.get("key") or {}).get("aside") or []
     return f"; the page's key names {len(aside)} step(s) set aside, its own identity deciding: " + ", ".join(f"{a['who'] or a['id'][-6:]}{' (' + a['row_key'].split(':')[0] + ')' if a['row_key'] else ''}: {a['why']}" for a in aside) if aside else ""
 
+def moved_note(r):
+    """A file that took a free name because another of its name was already there (treelib.move_free), for the line: the name
+    it has in the inbox, and the name its original is filed under; empty when neither move met a file of the same name."""
+    out = f"; taken into the inbox as {r['inbox_as']}, beside a file of the name it was saved under" if r.get("inbox_as") else ""
+    return out + (f"; its original filed as {os.path.basename(r['filed'])}, beside the {r['filed_beside']} already filed" if r.get("filed_beside") else "")
+
 def line(r):
     """One line per file, as the inbox tool prints it."""
     if r.get("repeat"): return f"{r['file']}: {r['identity']}; removed as a repeat: {r['repeat']}"
     if r.get("held"): return f"{r['file']}: a family-held original, archived {r['sha256'][:12]} under M05 on the owner's word{'' if r['new'] else ' (already held)'}; read it on the person's screen, one persona at a time"
-    if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in {r.get('folder') or 'the inbox'}: {r['left']}{key_note(r)}"
+    if r["left"]: return f"{r['file']}: {r['identity'] or 'no identity'}; left in {r.get('folder') or 'the inbox'}: {r['left']}{key_note(r)}{moved_note(r)}"
     who = "; ".join(f"{n} ({rk.split(':')[0]}: {why or 'the step cites it'})" for _, n, rk, why in r["steps"])
     return (f"{r['file']}: {r['identity']}; {len(r['steps'])} step(s) fulfilled: {who}; artifact {r['sha256'][:12]}{'' if r['new'] else ' (already archived)'}; "
-            f"{len(r['logs'])} run(s) logged{' as ' + r['outcome'] if r.get('outcome') in ('none', 'unread') else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else "") + key_note(r))
+            f"{len(r['logs'])} run(s) logged{' as ' + r['outcome'] if r.get('outcome') in ('none', 'unread') else ''}; extraction {r['extraction'] or '-'}; {len(r['proposals'])} proposal(s)" + (f"; unparsed: {r['unparsed']}" if r["unparsed"] else "") + key_note(r)
+            + moved_note(r))

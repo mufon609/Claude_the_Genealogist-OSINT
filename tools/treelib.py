@@ -7,7 +7,7 @@ DATA_ROOT, so a scratch run keeps its files apart from the owner's. DB is the
 catalog every tool opens when no --db is given, the one under DATA_ROOT; a --db
 outside DATA_ROOT is refused (in_data_root).
 """
-import codecs, datetime as dt, hashlib, json, os, re, sqlite3, time
+import codecs, datetime as dt, hashlib, json, os, re, shutil, sqlite3, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_ROOT = os.path.abspath(os.environ.get("DATA_ROOT") or ROOT)
@@ -59,6 +59,23 @@ def downloads_dir() -> str:
 
 def derivatives_dir() -> str:
     return os.path.join(DATA_ROOT, "derivatives")
+
+def free_name(folder: str, name: str) -> str:
+    """A name in the folder that no file holds: the name itself when it is free, else the name with " (2)", " (3)" ... before its
+    extension, the first that is free (the shape Chrome gives a second download of one name). A file of the same name already
+    there is never written over."""
+    if not os.path.lexists(os.path.join(folder, name)): return name
+    stem, ext = os.path.splitext(name); n = 2
+    while os.path.lexists(os.path.join(folder, f"{stem} ({n}){ext}")): n += 1
+    return f"{stem} ({n}){ext}"
+
+def move_free(src: str, folder: str, name: str = None) -> str:
+    """The file moved into the folder under its own name (or `name`), or under free_name's free one when that name is taken;
+    the path it now has. Every move of a saved page or a filed original goes through here, so none overwrites another."""
+    os.makedirs(folder, exist_ok=True)
+    dst = os.path.join(folder, free_name(folder, name or os.path.basename(src)))
+    shutil.move(src, dst)
+    return dst
 
 def object_path(sha: str) -> str:
     return os.path.join(archive_dir(), "objects", "sha256", sha[:2], sha[2:4], sha)

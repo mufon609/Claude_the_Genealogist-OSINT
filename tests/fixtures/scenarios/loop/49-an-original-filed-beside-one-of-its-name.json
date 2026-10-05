@@ -1,0 +1,49 @@
+{
+ "title": "an original filed beside one of its name",
+ "line": "the attach files each original under the tree as <day>_<name>, and two different files of one name attached on one day are both kept: the second takes a free name beside the first and its line says so, never writing over it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "her Kentucky death records search, attached from the inbox under a plain name",
+   "at": "2026-10-04T12:00:00Z",
+   "attach": {
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "as_file": "saved-page.html"
+   },
+   "as": "first",
+   "expect": [
+    {
+     "last": {"left": null, "filed": {"ends": "/imports/records/2026-10-04_saved-page.html"}},
+     "why": "filed under the day and its own name"
+    }
+   ]
+  },
+  {
+   "say": "John Young Davidson's memorial, attached the same day under the same name",
+   "at": "2026-10-04T12:00:00Z",
+   "attach": {
+    "fixture": "findagrave-memorial-143847338.html",
+    "as_file": "saved-page.html"
+   },
+   "as": "second",
+   "expect": [
+    {
+     "last": {"left": null, "filed": {"ends": "/imports/records/2026-10-04_saved-page (2).html"}, "line": {"has": "its original filed as 2026-10-04_saved-page (2).html, beside the 2026-10-04_saved-page.html already filed"}},
+     "why": "the name was taken, so the memorial's original takes a free one beside it, and the line says so"
+    },
+    {
+     "file": {"path": "$first.filed", "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html"},
+     "why": "the first original is filed as it came, not written over by the second"
+    },
+    {
+     "file": {"path": "$second.filed", "fixture": "findagrave-memorial-143847338.html"},
+     "why": "and the second beside it"
+    }
+   ]
+  }
+ ]
+}

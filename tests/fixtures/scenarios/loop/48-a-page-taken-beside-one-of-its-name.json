@@ -1,0 +1,58 @@
+{
+ "title": "a page taken beside a file of its name",
+ "line": "collect never writes a saved page over a file of the same name already in the inbox: the page takes a free name beside it, its result naming the name it was saved under and the one it has in the inbox, and the file that was there stays as it was",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "her Kentucky death records search saved from the fetch list into the download folder",
+   "save": {
+    "holder": "D03",
+    "person": "I332737204852",
+    "fixture": "familysearch-search-kentucky-deaths-bell-lena-howard.html",
+    "folder": "downloads"
+   },
+   "as": "search"
+  },
+  {
+   "say": "another search's page already in the inbox under that very name",
+   "save": {
+    "fixture": "familysearch-search-nj-marriages-davidson-reiko-diane.html",
+    "name": "$search.file"
+   },
+   "as": "there"
+  },
+  {
+   "say": "collect: the saved page comes into the inbox beside the file of its name and reaches her step",
+   "collect": {
+    "folder": "$search.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {"file": "$search.file", "inbox_as": {"ends": " (2).html"}, "identity": {"starts": "fs_search "}, "left": null}
+      ],
+      "lines": {"some": {"has": ["taken into the inbox as ", " (2).html, beside a file of the name it was saved under"]}}
+     },
+     "why": "the page keeps its own identity and reaches its step; the name it had to take is on the line the tool prints"
+    },
+    {
+     "file": {"name": "$search.file", "fixture": "familysearch-search-nj-marriages-davidson-reiko-diane.html"},
+     "why": "the file that was in the inbox under that name is there still, its own bytes, not written over"
+    },
+    {
+     "file": {"name": "$search.file", "folder": "$search.folder", "exists": false},
+     "why": "the saved page left the download folder"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

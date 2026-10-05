@@ -270,7 +270,7 @@ as `error`), `post` (a POST handed to the person screen's own handler with no so
 `{"question": ref}` / `{"step": ref}` for that row's id; `body`; `headers` that differ from the ones the page sends, null for one left out;
 the result is the response's `code` and JSON `body`, and the `ids` the path's row parts named), `attach`
 (`fixture` into the inbox and `tools/attach_inbox.py`, or `stand_in: "image"` under `as_file`, `about` for the
-owner's word), `archive` (a `fixture`; `source`, `collection`, `locator`, or a
+owner's word; its `filed` the path the original is filed under, its `line` the result as the tool prints it), `archive` (a `fixture`; `source`, `collection`, `locator`, or a
 `manifest`; `extract`, `match` (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same,
 for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `conclude.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it, recorded as the rule acting for the harness unless `by` names who),
 `reconsider` (`dry`; its `rows`, and `wrote`, the audit rows the run wrote), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
@@ -286,7 +286,7 @@ listing's row as `{record, number}`, `same` false for two records, `note`; the `
 `save` (a `fixture` written under the fetch list's own name for `holder` and `person` (the entry whose link has `url_has`, when the person has several there), into a `folder`;
 `name` overrides that with the file's own name, to save a page under a browser's sanitized shape rather than the list's; `key` writes the
 key under the page's own saved-from line as `tools/save_page.js` does when the list's call gave it one: `true` for the entry's own steps, or a
-list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it, its `sha` the record when one page came in), `attach_inbox` (`tools/attach_inbox.py` over every file in the inbox, one file per transaction: its `results` and `lines`), `block_filing` (the place a `file`'s original is filed under on `date` already taken, so its attach fails after writing its rows; `clear` takes it away), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
+list of plan steps, a string that is no step's id written as given: a key naming a step the plan lacks), `collect` (its `lines` are each result as the tool prints it, its `sha` the record when one page came in), `attach_inbox` (`tools/attach_inbox.py` over every file in the inbox, one file per transaction: its `results` and `lines`), `block_filing` (the filing of a `file`'s original under the tree refused, so its attach fails after writing its rows; `clear` lifts it, and the scenario's end does), `log`, `reopen`, `step` (a plan step written by hand), `event` (a second event of a type a person already
 carries, written by the harness itself for a path only a planted event exercises), `file_family` (a family of the
 owner's own export that the cut leaves out, because another scenario reads its people without it, written as the
 import writes it: `xref` the family's own id in the export, `partners` and `children`, each membership the file's
@@ -328,7 +328,8 @@ date or place: `taken` and the reason, `why`), `extractor` (a reading's extracto
 `prompt_is_instruction` for the sha256 of `app/person/read_record.md`, and what the extraction kept: `image_is`, `year`,
 `regions` of its personas), `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `one_event` (no record fact
-stated on two events of its type that a person or a family holds), `whole`, `file`,
+stated on two events of its type that a person or a family holds), `whole`, `file` (`name` in the inbox or a `folder`, or a bound
+`path`, there or with `exists` false not; with `fixture`, holding that fixture's bytes),
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`, `origins` (`overview.origins`: the `people` by what brought them in, `file` or
 `record`, and the accepted `documents` by what fetched them, `citation`, `lead`, `search` or `hand`). An entry of `expect` is one
 expectation, its name the key and its pattern the value, and a `why`, printed with its failure; any other key beside the name (a
@@ -363,7 +364,8 @@ runner sends, and a name that makes a request already made on the run sends none
 `logged_note`, the note the run logged),
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
-written where the resolver reads them), `place_string`, `apply_places`, `step_query`; and the expectations `queue` (`first`, `named`,
+written where the resolver reads them), `place_string`, `apply_places`, `step_query`, `save_names` (`fetches.distinct_names` on the `entries` given, each a `url` and the
+`save_as` built for it: the `names` the fetch list then prints); and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`: by person, or a list of `[person, pattern]` pairs for a person the rule created; the
 people who wait read as the tool reads them), `runnable`, `turn_state` (the entries of the people who wait: with `person` that person's,
 matching `is`, or none with `is` null; without, `is` null for nobody waiting), `task_run` (the `task_run` rows in the order written, matching `is`: each with its `launcher`, `steps`, `task`, `usage` and `answer` read from their JSON, `text_is_current` saying its hash is the task text's own, and `log`, the `search_log` row it names as its step's key and outcome), `turns_run` (the runner's turns in
@@ -477,7 +479,7 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   list's name or the one given; with `key`, the save script's key comment written under the page's own saved-from line, as
   `tools/save_page.js` writes it (loop `41`, `42`, `43`, `108`). `tools/check.py`'s test of that script writes the script's own head over
   the Lena Howard Bell search page's document.
-- `block_filing`: the place a saved page's original is filed under taken by a folder, so the attach is refused after its rows are
+- `block_filing`: the move that files a saved page's original under the tree refused, so the attach fails after its rows are
   written, the stand-in for a file whose transaction fails (loop `107`); no page or record is touched.
 - Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan
   steps (`step`, `step_query`), events (`event`), a research question's shape (`question`), cards and links an older matcher

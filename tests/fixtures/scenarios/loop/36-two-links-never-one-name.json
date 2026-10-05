@@ -1,0 +1,31 @@
+{
+ "title": "two links are never told one name",
+ "line": "the fetch list's names are built from a search's collection, year, given name and surname, so two different searches of one person in one census (the owner's own list: Milton Reager Lukens's 1910 census searched once narrowed to his residence and once not) would be saved under one name; each such page carries six characters of its own link's sha1 before the extension, a name one link alone has is kept as built, and two entries of one link keep their one name. The harness tree carries no such pair, so the entries are the owner's own fetch list's, given as data",
+ "tree": {},
+ "steps": [
+  {
+   "say": "the owner's two 1910 searches for Milton Reager Lukens, his 1880 search, and the 1910 search narrowed to his residence listed twice",
+   "save_names": {
+    "entries": [
+     {"url": "https://www.familysearch.org/en/search/record/results?f.collectionId=1727033&q.givenName=Milton%20Reager&q.residenceDate.from=1910&q.residenceDate.to=1910&q.residencePlace=Norristown%20Ward%206%2C%20Montgomery%2C%20Pennsylvania&q.surname=Lukens", "save_as": "familysearch-census-1910-search-milton-reager-lukens.html"},
+     {"url": "https://www.familysearch.org/en/search/record/results?f.collectionId=1727033&q.givenName=Milton%20Reager&q.surname=Lukens", "save_as": "familysearch-census-1910-search-milton-reager-lukens.html"},
+     {"url": "https://www.familysearch.org/en/search/record/results?f.collectionId=1417683&q.givenName=Milton%20Reager&q.surname=Lukens", "save_as": "familysearch-census-1880-search-milton-reager-lukens.html"},
+     {"url": "https://www.familysearch.org/en/search/record/results?f.collectionId=1727033&q.givenName=Milton%20Reager&q.residenceDate.from=1910&q.residenceDate.to=1910&q.residencePlace=Norristown%20Ward%206%2C%20Montgomery%2C%20Pennsylvania&q.surname=Lukens", "save_as": "familysearch-census-1910-search-milton-reager-lukens.html"}
+    ]
+   },
+   "expect": [
+    {
+     "last": {
+      "names": [
+       "familysearch-census-1910-search-milton-reager-lukens-0f7829.html",
+       "familysearch-census-1910-search-milton-reager-lukens-5f8260.html",
+       "familysearch-census-1880-search-milton-reager-lukens.html",
+       "familysearch-census-1910-search-milton-reager-lukens-0f7829.html"
+      ]
+     },
+     "why": "the two 1910 searches are two pages, each named with its own link's six characters; the 1880 name is the only one of its link and stays as built; the narrowed search listed twice is one page and keeps one name"
+    }
+   ]
+  }
+ ]
+}
