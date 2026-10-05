@@ -1446,7 +1446,9 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   an event's value is accepted, above), the evidence, each record once with its copies beneath
   it, with its class words and its citation, what agrees, each conflict with its question id (the
   one `tools/conclude.py resolve` and `reopen` take) and how it was resolved,
-  the research by row, and who decided; a fact resting on indirect evidence,
+  the research by row, and who decided (the owner, or a session acting for them,
+  only where a person's own decision on that statement set its status; else what set
+  it: the record's acceptance, a re-read or a carry, the rule); a fact resting on indirect evidence,
   a value part of which is a claim, or an open conflict says that an argument
   is still owed. An open conflict on an
   event's date or place carries the rule's own reading of it, from the test

@@ -1,0 +1,48 @@
+{
+ "title": "the proof names the owner only where a person's own decision set a statement",
+ "line": "a record accepted by the owner gives its statements their status, and the proof says the record's acceptance set it, not the owner; once the owner decides the key fact itself, that decision is named as theirs",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 household page arrives through the inbox",
+   "attach": {"fixture": "familysearch-census-1940-KQX1-VT9.html"},
+   "as": "c40"
+  },
+  {
+   "say": "the son accepted on it by the owner: his card, the record's acceptance, not a decision on any one statement",
+   "decide": {"card": {"record": "c40", "person": "I332737036054"}, "status": "accepted", "by": "user:harness"}
+  },
+  {
+   "say": "his birth's written conclusion",
+   "proof": {"person": "I332737036054", "fact": "birth"},
+   "expect": [
+    {
+     "last": {"fact": {"birth": {"decided_by": ["the record's acceptance"]}}},
+     "why": "the census's statement of his birth is accepted because its record was; no person decided that statement, so the owner is not named"
+    }
+   ]
+  },
+  {
+   "say": "the owner decides his birth itself: the key fact",
+   "fact": {"person": "I332737036054", "field": "birth", "status": "accepted", "note": "harness: the owner's word on his birth"}
+  },
+  {
+   "say": "",
+   "proof": {"person": "I332737036054", "fact": "birth"},
+   "expect": [
+    {
+     "last": {"fact": {"birth": {"decided_by": {"has": "agent:check"}}}},
+     "why": "the key fact decided is a person's own decision: its decider is named as the one who took it"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}

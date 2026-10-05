@@ -6,7 +6,9 @@ usage: tools/proof.py "<person>" [--fact name|sex|birth|death|parents|spouses|ch
 
 For each key fact:
   value       the value the tree holds, its basis (accepted, accepted in part, claim, rejected) and who decided it: the owner, a
-              session acting for the owner, the rule, or the owner's own word (a vouch); the tree file's own claim and how
+              session acting for the owner, or the owner's own word (a vouch) where a person's own decision on that statement
+              set its status, and otherwise what set it (the record's acceptance, a re-read or a carry, the rule), never the
+              owner; the tree file's own claim and how
               many of its citations are held; for a birth or a death accepted only in part, each part that is a claim beyond
               what the accepted statements give, what it rests on and what they give instead (Catalog.value_basis,
               docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted)
@@ -68,14 +70,19 @@ def words(c):
     if c.get("vouched"): return "your own word"
     return ", ".join(x for x in (c.get("source"), c.get("information"), c.get("evidence"), c.get("relationship")) if x)
 
-def decider(by, notes):
-    """Who made a decision, in words, from the assertion's own record of it."""
-    if (notes or {}).get("vouched"): return "your own word"
+def decider(by, notes, person_decided):
+    """Who made a decision, in words, from the assertion's own record of it: the owner, a session acting for them or their own
+    word (a vouch) where a person's own decision on this statement set its status (assertion.person_decided); otherwise what
+    set it, which is no person's decision on the statement: the rule, the acceptance of its record (the notes name the proposal
+    that wrote it), or a re-read or a carry."""
     by = by or ""
+    if (notes or {}).get("vouched"): return "your own word"
+    if person_decided:
+        if by.startswith("user:"): return "the owner"
+        if by.startswith("agent:") and " for user:" in by: return "a session for the owner"
+        return by or "unknown"
     if by.startswith("rule:"): return "the rule"
-    if by.startswith("user:"): return "the owner"
-    if by.startswith("agent:") and " for user:" in by: return "a session for the owner"
-    return by or "unknown"
+    return "the record's acceptance" if (notes or {}).get("proposal") else "a re-read or a carry"
 
 def _q(cx):
     q = cx.cursor(); q.row_factory = sqlite3.Row; return q
@@ -134,7 +141,7 @@ def subject_statements(cat, kind, sid, want=None, relative=None):
     another fact type than want is left out, the owner's own word (no record fact of its own) never."""
     cx, q = cat.cx, _q(cat.cx)
     out = []
-    for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end,
+    for r in q.execute("""SELECT a.id, a.status, a.asserted_by, a.person_decided, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end,
                                  pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona, pe.id AS persona_id
                           FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           LEFT JOIN persona pe ON pe.id=coalesce(pf.persona_id, a.persona_id)
@@ -142,7 +149,7 @@ def subject_statements(cat, kind, sid, want=None, relative=None):
         if want and r["fact_type"] and r["fact_type"] != want: continue
         try: notes = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
         except ValueError: notes = {}
-        st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"], "persona_id": r["persona_id"],
+        st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes, r["person_decided"]), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"], "persona_id": r["persona_id"],
               "said": re.sub(r"\s+on the record$", "", r["citation_text"] or "") if kind == "family_member" else None,
               "value": r["value_text"], "date": {"start": r["date_start"], "end": r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_end"] or r["date_text"] else None,
               "place": r["place"], "apid": notes.get("apid")}
