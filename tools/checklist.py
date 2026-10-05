@@ -24,7 +24,7 @@ Read-only. For one person it reports:
               check and the limits of one life (an identity question) run for
               every person, reviewed or not.
 """
-import argparse, collections, json, os, re, sys
+import argparse, collections, datetime, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
 from catalog import Catalog, ONCE, US_STATES, US_NAMES, jurisdictions, year
@@ -177,15 +177,23 @@ def build(cat: Catalog, pid: str):
                 if any(rx.search(c[0]) for c in cits): return "cited", rname
         return "missing", None
     DEPENDS = {"D03": "B01"}                      # FamilySearch collections need the API approval tracked on B01
-    def mode_for(ids, record):
-        """One mode for a search step: auto only when a source has a built connector (registry column) that answers this row
-        (connectors.answers), awaiting_approval when every source waits on an application (its status or its gate's is
-        blocked-apply), else assisted."""
-        srcs = [cat.sources.get(sid, {}) for sid in ids]
-        if any(s.get("connector") and answers(s["connector"], record) for s in srcs): return "assisted" if living else "auto"
+    def modes_for(ids, record):
+        """The mode of a search step at each of its sources: auto where a built connector (registry column) answers this row
+        (connectors.answers), assisted for a living or unknown person's, awaiting_approval where the source waits on an
+        application (its status or its gate's is blocked-apply), else assisted."""
         waits = lambda sid, s: s.get("status") == "blocked-apply" or cat.sources.get(DEPENDS.get(sid, ""), {}).get("status") == "blocked-apply"
-        if ids and all(waits(sid, s) for sid, s in zip(ids, srcs)): return "awaiting_approval"
-        return "assisted"
+        out = {}
+        for sid in ids:
+            s = cat.sources.get(sid, {})
+            if s.get("connector") and answers(s["connector"], record): out[sid] = "assisted" if living else "auto"
+            else: out[sid] = "awaiting_approval" if waits(sid, s) else "assisted"
+        return out
+    def mode_for(ids, record):
+        """One mode for a search step: auto when the loop searches at one of its sources at least, awaiting_approval when every
+        source waits on an application, else assisted."""
+        modes = modes_for(ids, record).values()
+        if "auto" in modes: return "auto"
+        return "awaiting_approval" if modes and all(m == "awaiting_approval" for m in modes) else "assisted"
     def cited_on(pattern, household):
         """The citations behind a row: [{apid, collection, collection_id, on: [[name, relation]]}], own first, then relatives'.
         A census page carries one record id per family member; those collapse to one citation per page."""
@@ -209,7 +217,7 @@ def build(cat: Catalog, pid: str):
              "na_reason": na if st == "n/a" else None, "note": (f"outside the usual window: {na}" if na and st != "n/a" else None),
              "citations": cited_on(pattern, household) if st in ("cited", "held") and pattern != "no-match" else []}
         if query and (st == "cited" or (st == "missing" and reviewed)):
-            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": "fetch" if st == "cited" else mode_for(sources, record), "free_mode": mode_for(sources, record), "expect": settles}
+            r["search"] = {"type": query[0], "fields": query[1], "sources": sources, "mode": "fetch" if st == "cited" else mode_for(sources, record), "free_mode": mode_for(sources, record), "modes": modes_for(sources, record), "expect": settles}
         (A if group == "A" else B).append(r)
     nb = cat.basis("person", pid)
     fnd = {"given": F(given, nb), "surname": F(surname, nb), "sex": F(sex, nb), "variants": F(foundation[0]["variants"], "claim"),
@@ -258,7 +266,7 @@ def build(cat: Catalog, pid: str):
         if r["status"] == "cited" or (r["status"] == "missing" and reviewed):
             mb = year_basis(m) if m else "claim"
             r["search"] = {"type": "couple", "fields": fields(spouse=F(f["spouse"], cat.link_basis(pid, "spouses")), year=F(my, mb), state=F(st_, place_basis(m, whole=False) if m and m["place"] else sb)),
-                           "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"], r["record"]), "free_mode": mode_for(r["sources"], r["record"]), "expect": r["settles"]}
+                           "sources": r["sources"], "mode": "fetch" if cited else mode_for(r["sources"], r["record"]), "free_mode": mode_for(r["sources"], r["record"]), "modes": modes_for(r["sources"], r["record"]), "expect": r["settles"]}
         A.append(r)
     dplace = PLACES(death["place"], place_basis(death), year=d) if death and death["place"] else F(home_state, sb)
     if known_death and known_death >= 1800:
@@ -285,7 +293,8 @@ def build(cat: Catalog, pid: str):
     row("A", "compiled genealogy / family history", MATCH["compiled"], ["L01", "L02", "L03", "B04"], "hints for everything; never proof", ("name", fields()), household=True)
     # B: individual records
     for label, e, kind in (("death record", death, "death"), ("birth record", birth, "birth")):
-        yr = e["year"] if e else (d if kind == "death" else b); yb = year_basis(e) if e and e["year"] else (db if kind == "death" else bb)
+        if kind == "death" and (e["year"] if e and e["year"] else d or 0) > datetime.date.today().year: continue   # a death still to come (the lifespan assumed to a year not yet reached, or a stated one) has no record to search for
+        yr = e["year"] if e else (None if kind == "death" else b); yb = year_basis(e) if e and e["year"] else (db if kind == "death" else bb)   # the year of a death nobody stated is not assumed from a lifespan: it is no claim
         country = (e["place"]["country"] if e and e["place"] and e["place"]["country"] else None) or ("united states" if in_us else next(iter(countries), None))
         st_ = us_state(e["place"] if e else None) or home_state; stb = place_basis(e, whole=False) if e and us_state(e["place"]) else sb
         if country and country != "united states":

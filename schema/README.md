@@ -81,7 +81,10 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   a person decided and still holding that decision, one `audit_log` row each under
   `migration:0.8.0`.
 - `search_plan.mode` is `auto` only when `source.connector` names a built connector
-  that answers the step's checklist row; the registry's free text never decides it. A
+  that answers the step's checklist row at one of the step's sources at least; the
+  registry's free text never decides it, and every Connector value of the registry names
+  a module under `tools/connectors/` (a tool that merely uses a source, the place
+  resolver at the gazetteers, is named in the row's notes, never as its connector). A
   connector may declare the rows it answers (`ROWS` in `tools/connectors/`: the New
   Jersey death index the death row alone, its source sitting on the birth and marriage
   rows too; the Kentucky indexes the death and birth rows, not the marriage row their

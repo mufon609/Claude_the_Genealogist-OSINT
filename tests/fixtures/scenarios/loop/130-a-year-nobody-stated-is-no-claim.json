@@ -1,0 +1,77 @@
+{
+ "title": "a death nobody stated is not searched for in a year the lifespan assumed, and one still to come is not searched for",
+ "line": "a man born in 1904 with no death in the file has a death-record search that names no year (the lifespan the plan assumes of him gates only the era rows, and no year of it is a claim), and a man born in 1993 with none has no death-record row to search at all, his assumed lifespan ending in a year not yet reached",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Francis Thomas Ahearn, born 30 Nov 1904, the file gives no death: his baseline reviewed on what it states, and deceased on the owner's word so the plan can write his searches",
+   "fact": {
+    "person": "I332737044989",
+    "fields": ["name", "sex", "birth", "death", "parents", "spouses", "children"],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "living": {
+    "person": "I332737044989",
+    "word": "deceased",
+    "note": "harness: so the steps are auto"
+   }
+  },
+  {
+   "say": "",
+   "plan": ["I332737044989"],
+   "expect": [
+    {
+     "baseline": {"person": "I332737044989", "complete": true},
+     "why": "the searches open only on a reviewed baseline"
+    },
+    {
+     "step": {
+      "person": "I332737044989",
+      "row_key_like": "death record:%",
+      "kind": "search",
+      "fields": {
+       "query": {"year": {"is": null}}
+      }
+     },
+     "why": "the file states no death, so no year of one is asked: the 1994 a lifespan of ninety years gives was a claim nobody made"
+    }
+   ]
+  },
+  {
+   "say": "the home person, born 8 Feb 1993, no death: his baseline reviewed, so the plan writes his searches",
+   "fact": {
+    "person": "I332737035562",
+    "fields": ["name", "sex", "birth", "death", "parents", "spouses", "children"],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   }
+  },
+  {
+   "say": "",
+   "plan": ["I332737035562"],
+   "expect": [
+    {
+     "baseline": {"person": "I332737035562", "complete": true},
+     "why": "the searches open only on a reviewed baseline"
+    },
+    {
+     "step": {
+      "person": "I332737035562",
+      "row_key_like": "death record:%",
+      "kind": "search",
+      "exists": false
+     },
+     "why": "a lifespan of ninety years from 1993 ends in 2083: a death in a year not yet reached has no record to search for"
+    }
+   ]
+  }
+ ]
+}

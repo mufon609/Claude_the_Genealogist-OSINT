@@ -83,6 +83,12 @@ the American holders of the obituary and cemetery rows, are left out only for
 a person whose every place lies outside it: a person whose places are not yet
 known keeps them, and a record the tree already cites or holds keeps its row.
 
+A death-record or birth-record search asks the year of an event only where the
+tree states one: the lifespan the generator assumes of a person with no death
+(ninety years from the birth) gates the era rows and is never a year to search
+for, and a death whose assumed year has not yet been reached has no row, since
+no record of it can exist.
+
 ## 3. From checklist to gaps to search tasks (automatic on opening a profile)
 
 For each checklist row: **held** (archived), **cited but not held** (the old
@@ -233,9 +239,12 @@ more than its accepted statements give marked `accepted in part`, saying in
 words what of its value is a claim), the generated questions, the Group A and Group B rows with
 held / cited / missing / n/a, the relative a citation sits on when it is not on
 the person, and the pre-built search step per gap with its execution mode per
-source (`auto`, `assisted`, `awaiting approval`, or `fetch` for a cited record,
-`blocked` for one with no free holder, `assisted` for one whose free holder's
-link takes nothing from the citation).
+source (`auto` where a built connector answers the row, `assisted`,
+`awaiting approval`, or `fetch` for a cited record, `blocked` for one with no
+free holder, `assisted` for one whose free holder's link takes nothing from the
+citation); the step itself is `auto` when the loop searches at one of its
+sources at least, and its rationale then names the sources the loop searches and
+those the owner searches by hand.
 `--json` gives the machine form; `--all` gives one line per person. A real
 citation always beats an era rule; the row is then marked with the rule it
 falls outside of. Every query field is `{value, basis}`: basis `accepted` or

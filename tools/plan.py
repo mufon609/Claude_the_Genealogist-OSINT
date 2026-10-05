@@ -267,6 +267,16 @@ def check_registry(cx, cat, r=None):
     missing = sorted(ids - have)
     if missing: raise RegistryOutOfStep(f"registry out of step with the catalog: source id(s) {', '.join(missing)} not in the source table; run python3 tools/initdb.py --sync-sources --db <this catalog>")
 
+def searched_where(cat, s, mode):
+    """What a step's rationale says of who searches where when its mode is auto yet some source of its row has no connector for it:
+    the loop at the sources it asks, the owner by hand at the others. Empty for any other mode or a row every source of
+    which the loop asks."""
+    name = lambda sid: cat.sources.get(sid, {}).get("name") or sid
+    modes = s.get("modes") or {}
+    hand = [name(sid) for sid, m in modes.items() if m != "auto"]
+    if mode != "auto" or not hand: return ""
+    return f"; searched by the loop at {', '.join(name(sid) for sid, m in modes.items() if m == 'auto')}, by hand at {', '.join(hand)}"
+
 def plan_person(cx, tree_id, pid, by):
     cat = Catalog(cx, tree_id); r = build(cat, pid); ts = now(); me = r["person"]["name"]
     check_registry(cx, cat, r)
@@ -288,11 +298,11 @@ def plan_person(cx, tree_id, pid, by):
                 if r["baseline"]["complete"] and (not own or all(f["mode"] == "blocked" for f in own)) and s.get("free_mode"):   # nothing fetchable from the citations (none with a record id, or every one blocked): search the free sources as for a missing row
                     searches.append({"step_key": f"search:{rk}", "row_key": rk, "question_key": None, "kind": "search", "query_type": s["type"], "query_json": dumps(s["fields"]),
                                      "locator_source_id": None, "locator_kind": None, "locator_value": None, "collection_id": None, "on_json": None,
-                                     "sources_json": dumps(s["sources"]), "mode": s["free_mode"], "expected": s["expect"], "rationale": f"{row['record']} is cited only at a holder this account cannot reach; searched at the free sources"})
+                                     "sources_json": dumps(s["sources"]), "mode": s["free_mode"], "expected": s["expect"], "rationale": f"{row['record']} is cited only at a holder this account cannot reach; searched at the free sources" + searched_where(cat, s, s["free_mode"])})
             else:
                 searches.append({"step_key": f"search:{rk}", "row_key": rk, "question_key": None, "kind": "search", "query_type": s["type"], "query_json": dumps(s["fields"]),
                                  "locator_source_id": None, "locator_kind": None, "locator_value": None, "collection_id": None, "on_json": None,
-                                 "sources_json": dumps(s["sources"]), "mode": s["mode"], "expected": s["expect"], "rationale": f"{row['record']} is missing for this person"})
+                                 "sources_json": dumps(s["sources"]), "mode": s["mode"], "expected": s["expect"], "rationale": f"{row['record']} is missing for this person" + searched_where(cat, s, s["mode"])})
     for lk in linked_records(cx, tree_id, cat, pid, me):                # a held record that names this person and links their own record: a lead
         if not any(lk["locator_value"] in (json.loads(f["query_json"]).get("url") or {}).get("value", "") for f in fetches): fetches.append(lk)
     fetches += gravestone_photos(cx, tree_id, cat, pid)                 # the stone itself, photographed on the person's own memorial

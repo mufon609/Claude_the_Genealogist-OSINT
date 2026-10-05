@@ -442,6 +442,16 @@ def compiles():
         except py_compile.PyCompileError as e: bad.append(f"{f}: {e.msg.splitlines()[0]}")
     return bad
 
+def registry_connectors():
+    """Every Connector value in data/data-sources.csv names a module under tools/connectors/ (what connectors.load imports): a
+    source whose value names none would raise in the plan and the runner on any step its row puts that source on."""
+    import csv, importlib.util
+    def built(name):
+        try: return importlib.util.find_spec(f"connectors.{name}") is not None
+        except ImportError: return False
+    with open(os.path.join(ROOT, "data", "data-sources.csv"), newline="", encoding="utf-8") as fh: rows = list(csv.DictReader(fh))
+    return [f"{r['ID']}'s Connector {r['Connector']!r} is no module under tools/connectors/" for r in rows if r["Connector"] and not built(r["Connector"])]
+
 def claude_files():
     """The agent and skill files under .claude/ are what code writes (tools/run_task.py claude_files: the kind's one text, its
     answer's form, its tools, the session's part): a file edited by hand, or left behind when the text, the tools or the schema
@@ -476,6 +486,8 @@ def every_check(a):
     print("ok   the evidence, the research log, the record of task runs and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on extraction and search_log is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
     bad_db = data_root(); bad += bool(bad_db)
     print("ok   the data root: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT, a --db outside it is refused, and collect takes saved pages from <DATA_ROOT>/downloads/, never the home's download folder" if not bad_db else "FAIL data root: " + "; ".join(bad_db))
+    bad_reg = registry_connectors(); bad += bool(bad_reg)
+    print("ok   every Connector value of the source registry names a module under tools/connectors/" if not bad_reg else "FAIL registry connectors: " + "; ".join(bad_reg))
     bad_claude = claude_files(); bad += bool(bad_claude)
     print("ok   the agent and skill files under .claude/ are the ones code writes from the task kind's text, its answer schema and its tool list" if not bad_claude else "FAIL claude files: " + "; ".join(bad_claude))
     bad += parsers.check(a.keep, a.show)
