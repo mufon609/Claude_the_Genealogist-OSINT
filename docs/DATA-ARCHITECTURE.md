@@ -201,6 +201,7 @@ tree/
                  says what each does)
   docs/          this file and its siblings
   app/person/    the person screen: stdlib server + one page, and read_record.md (what a reader of a record image writes)
+  .claude/       the agent and skill files Claude Code reads, written by tools/run_task.py from tools/tasks/ (decision 19)
 ```
 
 These data folders (`inbox/`, `downloads/`, `archive/`, `catalog/`,

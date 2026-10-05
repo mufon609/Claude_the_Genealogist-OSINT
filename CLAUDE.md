@@ -102,6 +102,7 @@ python3 tools/initdb.py --sync-sources      # after any change to data/data-sour
 python3 tools/turns.py [--turns N]          # the loop: what was saved taken in, then the next person at the edge, their turn, the next; a person whose pages wait for the browser waits, the loop goes on
 python3 tools/fetches.py next [K]           # the pages to save, one line each (`list` for all); then `tools/fetches.py collect`
 python3 tools/turns.py --turns 0            # after the browser session: what was saved taken in, the turns of those who waited finished
+python3 tools/run_task.py show [K]          # the next pages as a model's fetch task; the `tree-fetch` skill has a model save one, the owner present, and code judges and records it
 python3 tools/cards.py "<person>"           # the records waiting for a decision, one card each; --full every field
 python3 tools/conclude.py decide <proposal id> accept|reject --note "…"
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
@@ -128,7 +129,9 @@ catalog; a scratch copy is for testing code, never for decisions.
 2. A turn that leaves pages a connector cannot fetch lists them, and its
    person waits on them while the loop goes on: save the ones
    `tools/fetches.py next` names in the owner's browser by the
-   page-saves-itself method (§4); the next `tools/turns.py` (or
+   page-saves-itself method (§4), or have a model save them one at a time
+   with the `tree-fetch` skill (`tools/run_task.py`, the owner present to
+   approve the browser); the next `tools/turns.py` (or
    `tools/turn.py --resume`) takes them in and finishes the turns of the
    people they were saved for. When a site blocks a save or a search (a
    challenge, a sign-in), notify the owner and wait; continue once they have
