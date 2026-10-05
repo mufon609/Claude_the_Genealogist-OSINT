@@ -1,0 +1,201 @@
+{
+ "title": "a name alias stands again with its own words",
+ "line": "the rule's decision on John Y Davidson's index entry carried to the certificate's page, whose own words for him, John Young Davidson, became an alias; withdrawn, the alias goes undecided; taken again, the decision carried to the page makes those words stand again; withdrawn once more, a card an older matcher left putting the page's father row to him and accepted by the owner never takes up the subject row's words: only a decision stating them does",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "FamilySearch's index entry of his death, archived under the file's citation",
+   "archive": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html",
+    "source": "D03",
+    "collection": "Kentucky, Vital Record Indexes, 1911-1999",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ]
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "the rule takes the index entry as his",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+   }
+  },
+  {
+   "say": "FamilySearch's page of the certificate, archived under the same citation: a copy of the record, decided with it, its words for him an alias",
+   "archive": {
+    "fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html",
+    "source": "D03",
+    "collection": "Kentucky, Deaths, 1911-1967",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ]
+   },
+   "as": "page",
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "some": [
+        "John Young Davidson",
+        {
+         "any": true
+        },
+        "accepted"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule takes its decision back",
+   "withdraw": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    }
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "some": [
+        "John Young Davidson",
+        {
+         "any": true
+        },
+        "undecided"
+       ]
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule takes the index entry again",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+   },
+   "expect": [
+    {
+     "links": {
+      "person": "I332737204849",
+      "record": "page",
+      "persona": "John Young Davidson",
+      "is": [
+       "accepted"
+      ]
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "some": [
+        "John Young Davidson",
+        {
+         "any": true
+        },
+        "accepted"
+       ]
+      }
+     },
+     "why": "the decision stands again on the page, and the page's words with it"
+    }
+   ]
+  },
+  {
+   "say": "the rule takes it back once more",
+   "withdraw": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    }
+   }
+  },
+  {
+   "say": "a card an older matcher left, putting the page's father row, Y J Davidson, to him",
+   "legacy_card": {
+    "record": "page",
+    "row": 3,
+    "person": "I332737204849",
+    "version": "0.1.0"
+   },
+   "as": "father"
+  },
+  {
+   "say": "the owner accepts it",
+   "decide": {
+    "card": "$father.card",
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "some": [
+        "John Young Davidson",
+        {
+         "any": true
+        },
+        "undecided"
+       ]
+      }
+     },
+     "why": "the subject row's words are no word of the father row's: the alias they made stays as the withdrawal left it"
+    },
+    {
+     "alias": {
+      "person": "I332737204849",
+      "is": {
+       "some": [
+        "Y J Davidson",
+        {
+         "any": true
+        },
+        "accepted"
+       ]
+      }
+     },
+     "why": "the words of the row accepted are its own alias"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

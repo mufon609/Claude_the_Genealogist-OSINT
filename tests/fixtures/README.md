@@ -298,8 +298,9 @@ assertion id or `{record, event_type}` for that record's statement on the person
 comes back as its `error`), `reopen_conflict` (a conflict the rule resolved, taken back by the owner through
 `tools/conclude.py reopen`: the `person`'s one such question whose detail has `detail_has`, `note`), `place_card` (a place answer's card, its candidates the results of the
 geocoder's real answers named under `geocoder`, planted in the cache), `older_matcher`, `legacy_card` (a card an older matcher wrote for the row at sequence `row`
-of a results page `record`, put to `person`, planted undecided as that matcher's `version`: the matcher writes none now, so only
-an older one can stand for reconsider to meet), `older_reading` (a record's reading as an older reader left it in the owner's
+of a `record`, put to `person`, planted undecided as that matcher's `version`: a results page's row, or another row of a record put
+to a person the current matcher would not put it to; the matcher writes none of them now, so only an older one can stand for
+reconsider or a decision to meet), `older_reading` (a record's reading as an older reader left it in the owner's
 catalog and no reader writes now: the `extractor` and each persona with its facts copied from the catalog's own rows, a date
 read from its `date_text`; it stands as the record's current reading), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once

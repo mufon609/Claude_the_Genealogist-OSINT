@@ -1108,7 +1108,10 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     """The persona's own Name fact, when its words differ from the person's canonical name and are not already one of the
     person's own name rows (a birth or married name create_person already split out), becomes an alias at once: accepted,
     of the kind the difference is (backfill_aliases.classify, married_name when the record shows the person married under
-    it: shown_married), the record's words as written. Returns the alias id, or None when there is nothing to write."""
+    it: shown_married), the record's words as written. The same words from the same record, made an alias by a decision a
+    withdrawal or a give-back took back (undecided), stand again with this decision, stamped with it; an alias of other
+    words, another entry's of the same page among them, is never touched. Returns the alias id, or None when there is
+    nothing to write."""
     q = _q(cx)
     # the name the page shows, never one it keeps beneath
     fact = q.execute("""SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL
@@ -1127,9 +1130,18 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     if any(key(value) == key(" ".join(x for x in r if x))
            for r in q.execute("SELECT given, surname, suffix FROM person_name WHERE person_id=?", (person_id,))):
         return None
-    if q.execute(
-        "SELECT 1 FROM alias WHERE entity_kind='person' AND entity_id=? AND value=?", (person_id, value)
-    ).fetchone():
+    had = q.execute(
+        "SELECT id, status, source_artifact_sha256, notes FROM alias WHERE entity_kind='person' AND entity_id=? AND value=?",
+        (person_id, value)
+    ).fetchone()
+    if had:
+        # these words, from this record, made an alias by a decision a withdrawal or a give-back took back: they stand again
+        # with this decision, which states them
+        if had["status"] == "undecided" and had["source_artifact_sha256"] == sha and _notes(had).get("proposal"):
+            q.execute(
+                "UPDATE alias SET status='accepted', notes=json_set(notes,'$.proposal',?) WHERE id=?", (prop_id, had["id"])
+            )
+            return had["id"]
         return None
     kind, note = classify(
         fact["value_text"],
@@ -1885,9 +1897,6 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         # what the rule wrote and took back stands again; what it wrote undecided, and what a person set undecided on its own, stays so
         n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
                           AND {ACCEPTED_WITH_RECORD} AND NOT person_decided""", (by, ts, tree_id, prop_id)).rowcount
-        # the name alias a withdrawn decision on this record left undecided stands again with this one
-        q.execute("""UPDATE alias SET status='accepted', notes=json_set(notes,'$.proposal',?) WHERE tree_id=? AND entity_kind='person' AND entity_id=? AND source_artifact_sha256=?
-                     AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal') IS NOT NULL""", (prop_id, tree_id, person_id, pay["artifact_sha256"]))
         m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts)
         n += m
         alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
