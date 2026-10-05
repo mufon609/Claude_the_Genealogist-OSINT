@@ -1389,14 +1389,16 @@ surname agrees and the code wants it exact: say which §0 means and make them
 one. Each changes what the rule decides: a dry-run `reconsider` on a copy of
 the live catalog first, after a matcher version rise run for real on the copy.
 
-### C68. A unique match on a geocoder answer that was cut
+### C68. A card read from a cut geocoder answer
 
-`tools/resolve_places.py` asks the geocoder for six candidates and accepts a
-string when one of them verifies fully, though a full page of six may be cut
-(55 of the 751 cached answers hold exactly six; none of the 149 live unique
-acceptances came from a full page). A match unique within a cut list widens
-`CLAUDE.md`'s rule: ask again with a larger limit when a page comes back full,
-and accept only on an answer that was not cut.
+A place is accepted only on an answer that was not cut, but a string that
+ends as a card on a full page of six is not asked again, so its card offers
+the first six candidates alone: the right place may be the seventh, and a
+match there that a wider answer would have accepted goes to the owner instead.
+Ask such a string again for forty before its card is written; the harness
+holds no real forty-candidate answer, so capture one in a browser-free run of
+the resolver first and plant it (the gravesite and Archive answers show how a
+real answer becomes a fixture).
 
 ### C69. What a merge still leaves on the duplicate
 
