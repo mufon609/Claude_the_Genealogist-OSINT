@@ -969,7 +969,11 @@ Brant); a middle name on one side only is no difference. A
 wife written under her husband's surname is not a surname disagreement, nor is
 any woman's the record otherwise shows married: a daughter or sister carrying
 another surname beside a son-in-law or brother-in-law of that surname on the
-same record, or written "Mrs." A
+same record, or written "Mrs." Only a woman's: a persona the record says is
+male, or put to a person the tree holds as male, is never read so (a man whose
+record names his wife, or names a son-in-law of the surname it writes him under);
+where neither the record nor the tree gives the sex, the record's own words
+(a wife, a daughter or a sister, "Mrs.") are what make her the woman read so. A
 persona of the same name as a candidate that disagrees on something else is
 proposed as that candidate when more than the name ties it to them, with the
 disagreement in its rationale, so the owner sees the likely identity and the

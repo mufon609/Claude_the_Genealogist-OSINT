@@ -307,10 +307,12 @@ def compare(cat, persona, cand, chosen, birth_place=True):
         or next((same_surname(t, s) for _, r in names for t in r for _, s in keys if same_surname(t, s)), None)
     )
     surname_ok = bool(how)
-    # a wife under her husband's surname (the record's spouse or the tree's), or any woman shown married: a daughter or sister beside a son- or brother-in-law of that surname, or written "Mrs."
+    # a wife under her husband's surname (the record's spouse or the tree's), or any woman shown married: a daughter or sister
+    # beside a son- or brother-in-law of that surname, or written "Mrs."; never one the record or the tree says is a man
     married = (
         bool(ps)
         and not surname_ok
+        and "M" not in (persona["sex"], cand["sex"])
         and (
             persona.get("spouse_surname") == ps
             or any(same_surname(ps, s) for s in cand.get("spouse_surnames") or [])

@@ -1,0 +1,92 @@
+{
+ "title": "a married surname is a woman's",
+ "line": "a surname a record writes is read as a married one only for a woman: the obituary names Charles Miller, a son-in-law, and a card an older matcher left puts him to his brother-in-law Charles Beckam Davidson, whom the rule created from the same notice; Miller is the surname of a son-in-law on the record, but the record and the tree both say he is a man, so the surname disagrees, the card says so, and the rule refuses him on the name",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Robert Edgar Davidson's obituary, naming his brothers and sisters, his daughter Carol Miller and her husband Charles Miller",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "say": "its subject accepted by the owner: the rule creates the brothers and sisters it names, Charles Beckam Davidson among them",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "obit",
+      "persona": "Charles Beckam Davidson",
+      "kind": "new_person",
+      "status": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "a card an older matcher left, putting the son-in-law Charles Miller to Charles Beckam Davidson",
+   "legacy_card": {
+    "record": "obit",
+    "row": 15,
+    "person": {
+     "created": "Charles Beckam Davidson"
+    },
+    "version": "0.7.0"
+   },
+   "as": "card",
+   "expect": [
+    {
+     "compare": {
+      "card": "$card.card",
+      "absent": {
+       "none": {
+        "has": "her husband's surname"
+       }
+      },
+      "disagree": {
+       "some": "surname disagrees (record Charles Miller, tree Charles Beckam Davidson)"
+      },
+      "fields": {
+       "Name": "disagrees"
+      }
+     },
+     "why": "the son-in-law's own surname beside himself makes no married name of it: he is a man on the record and in the tree"
+    },
+    {
+     "rule": {
+      "record": "obit",
+      "persona": "Charles Miller",
+      "person": {
+       "created": "Charles Beckam Davidson"
+      },
+      "taken": false,
+      "why": {
+       "has": "surname disagrees"
+      }
+     },
+     "why": "the surname disagrees, a veto"
+    }
+   ]
+  }
+ ]
+}
