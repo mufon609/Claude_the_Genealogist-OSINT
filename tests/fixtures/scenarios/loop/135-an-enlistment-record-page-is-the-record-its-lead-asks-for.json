@@ -1,0 +1,115 @@
+{
+ "title": "an enlistment record page is the record its lead asks for",
+ "line": "a lead for the record behind a row of an enlistment search asks for that record by its URL, whose record id is the page's own identity: the record page saved from the list with the lead's key reaches the lead by the key, and nothing is set aside as another record",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the lead for the record behind a row of his enlistment search, as tools/plan.py's result_row_leads writes one for a row that fits: its locator the record's URL at the National Archives",
+   "step": {
+    "person": "I332737100409",
+    "row_key": "search result:",
+    "seq": 90,
+    "step_key": "fetch:row:https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&tf=F&bc=,sl,fd&rid=247275",
+    "kind": "fetch",
+    "query_type": "subject_record",
+    "query": {
+     "collection": {
+      "value": "WWII Army Enlistment Records (AAD)",
+      "basis": "record"
+     },
+     "name": {
+      "value": "Robert C Davidson",
+      "basis": "record"
+     },
+     "url": {
+      "value": "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&tf=F&bc=,sl,fd&rid=247275",
+      "basis": "record"
+     }
+    },
+    "locator": {
+     "source": "F01",
+     "kind": "url",
+     "value": "https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&tf=F&bc=,sl,fd&rid=247275"
+    },
+    "sources": [
+     "F01"
+    ],
+    "mode": "fetch",
+    "status": "planned",
+    "on": "[]",
+    "rationale": "harness: the lead a fitting row of an enlistment search makes, its record's URL the locator"
+   }
+  },
+  {
+   "say": "the record page saved from the list, the lead's key under its saved-from line",
+   "save": {
+    "holder": "F01",
+    "person": "I332737100409",
+    "fixture": "aad-enlistment-247275.html",
+    "folder": "downloads",
+    "key": true
+   },
+   "as": "saved",
+   "expect": [
+    {
+     "last": {
+      "key": {
+       "len": 1
+      }
+     },
+     "why": "the list's entry for the lead names one step: the lead"
+    }
+   ]
+  },
+  {
+   "say": "collect",
+   "collect": {
+    "folder": "$saved.folder"
+   },
+   "expect": [
+    {
+     "last": {
+      "results": [
+       {
+        "identity": "aad_record 247275",
+        "left": null,
+        "key": {
+         "named": 1,
+         "taken": 1,
+         "aside": []
+        },
+        "steps": {
+         "first": [
+          {
+           "any": true
+          },
+          "Robert Edgar Davidson",
+          "search result:",
+          {
+           "has": "page's own key names this step"
+          }
+         ]
+        }
+       }
+      ]
+     },
+     "why": "the page is record 247275, the record the lead's URL names: the key's step stands, none set aside as another record"
+    },
+    {
+     "step": {
+      "person": "I332737100409",
+      "step_key": "fetch:row:https://aad.archives.gov/aad/record-detail.jsp?dt=893&cat=WR26&tf=F&bc=,sl,fd&rid=247275",
+      "fields": {
+       "status": "done"
+      }
+     },
+     "why": "the lead's record is archived: done"
+    }
+   ]
+  }
+ ]
+}

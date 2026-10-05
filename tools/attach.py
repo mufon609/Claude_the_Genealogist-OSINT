@@ -235,14 +235,20 @@ def saved_steps(text):
     m = SAVED_KEY.search(text[:4000])
     return list(dict.fromkeys(i for i in m.group(1).split(",") if i)) if m else []
 
+AAD = "F01"
+AAD_RID = re.compile(r"[?&;]rid=(\d+)")
+
 def _asks_for(step):
     """The one record a fetch step asks for by the holder's own identity, as ("ark" | "memorial" | "aad_record", value) in the terms a
-    page's identity reads; None when its citation names no record of the holder's (a collection to search)."""
+    page's identity reads (an enlistment record by the record id its URL carries, as identity reads the page's); None when its
+    citation names no record of the holder's (a collection to search, a household's search) or its locator is a URL at another
+    holder (a gravestone photograph's image, which carries no key)."""
     if step["locator_kind"] == "ark": return "ark", step["locator_value"]
     if step["locator_kind"] == "memorial_id": return "memorial", step["locator_value"]
     m = MEMORIAL_URL.search((json.loads(step["query_json"] or "{}").get("url") or {}).get("value") or "")
     if m: return "memorial", m.group(1)
-    return ("aad_record", step["locator_value"]) if step["locator_kind"] == "url" else None
+    rid = AAD_RID.search(step["locator_value"] or "") if step["locator_kind"] == "url" and step["locator_source_id"] == AAD else None
+    return ("aad_record", rid.group(1)) if rid else None
 
 def _contradicts(step, kind, value, parsed):
     """Why the page's own identity contradicts a fetch step its key names, or None: a record page that is another record than the step
