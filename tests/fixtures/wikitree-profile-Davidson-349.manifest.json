@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "d22f883f1c954d76d98d575d63668a91cfa6b50a75c246b10d698d84ebfd9d6a",
+  "bytes": 13899,
+  "mime": "application/json",
+  "source_id": "B04",
+  "collection": "WikiTree profiles",
+  "locator": {
+    "kind": "url",
+    "value": "https://api.wikitree.com/api.php?action=getProfile&key=Davidson-349&fields=Id%2CName%2CFirstName%2CMiddleName%2CLastNameAtBirth%2CLastNameCurrent%2CBirthDate%2CDeathDate%2CBirthLocation%2CDeathLocation%2CGender%2CFather%2CMother%2CPrivacy%2CParents%2CSpouses%2CChildren%2CSiblings%2CBio%2CTouched&resolveRedirect=1&format=json&appId=tree-genealogy-dev"
+  },
+  "retrieved_at": "2026-09-20T11:28:13Z",
+  "retrieved_by": "agent:run_step",
+  "http": {
+    "status": 200,
+    "etag": null,
+    "last_modified": null,
+    "final_url": "https://api.wikitree.com/api.php?action=getProfile&key=Davidson-349&fields=Id%2CName%2CFirstName%2CMiddleName%2CLastNameAtBirth%2CLastNameCurrent%2CBirthDate%2CDeathDate%2CBirthLocation%2CDeathLocation%2CGender%2CFather%2CMother%2CPrivacy%2CParents%2CSpouses%2CChildren%2CSiblings%2CBio%2CTouched&resolveRedirect=1&format=json&appId=tree-genealogy-dev",
+    "content_type": "application/json; charset=utf-8"
+  },
+  "rights": {
+    "terms": "CC BY-SA style; appId param encouraged",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T4",
+  "pages": 1,
+  "notes": "{\"birth\":\"1876-12-00\",\"birth_place\":\"Bishop Auckland, County Durham, England, United Kingdom\",\"connector\":\"wikitree\",\"death\":\"0000-00-00\",\"death_place\":\"\",\"hit\":\"John William Davidson (Davidson-349) 1876-12-00–0000-00-00 Bishop Auckland, County Durham, England, United Kingdom\",\"id\":905672,\"locator\":{\"kind\":\"url\",\"value\":\"https://www.wikitree.com/wiki/Davidson-349\"},\"profile\":\"Davidson-349\",\"step_type\":\"name\"}"
+}

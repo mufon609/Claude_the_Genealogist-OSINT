@@ -380,9 +380,10 @@ class Finding:
     field: str = None             # what was compared: given name, surname, middle name, sex, birth date, burial place, residence place, memorial, relationship
     record: str = None            # the record's value, as the words write it
     tree: str = None              # the tree's value, as the words write it
-    only: str = None              # a date agreeing on the year only: the side that gives only a year, "record" or "tree"
+    only: str = None              # a date agreeing short of the day: the side that gives less, "record" or "tree" (the record when both give as much)
+    month: bool = False           # a date compared to the month, both sides giving one: agreeing on it (only: the side giving no day), or same_year, differing in it
     years: int = 0                # a date agreeing within so many years where the years differ (about, estimated or calculated)
-    same_year: bool = False       # a date disagreeing on the day in the same year
+    same_year: bool = False       # a date disagreeing in the same year: on the day, or on the month (month)
     bound: str = None             # a date within: the side whose bound holds the other, "record" or "tree", or "both" (two ranges that overlap)
     coarser: str = None           # a place agreeing coarser: the finest part the record gives, as the words write it
     level: int = None             # ... and that part's place among the tree's own parts below the country, finest first (place_given)
@@ -404,7 +405,8 @@ class Finding:
 def note(f):
     """What qualifies a date's or a place's finding, in words, or None: the note a rationale and a card carry."""
     if f.bound: return {"both": "the two ranges overlap", "record": "a bound on the record, the tree's date inside it", "tree": "a bound in the tree, the record's date inside it"}[f.bound]
-    if f.same_year: return "same year, different day"
+    if f.same_year: return f"same year, different {'month' if f.month else 'day'}"
+    if f.only and f.month: return f"month only; the {f.only} gives only the month"
     if f.only: return f"year only; the {f.only} gives only a year" + (f", within {f.years} years" if f.years else "")
     if f.held: return f"as {f.held[0]}, a name it held {f.held[1] or '?'}–{f.held[2] or '?'}"
     if f.granular: return "the same place, written at another granularity"
@@ -418,9 +420,11 @@ def date_verdict(rec, tree):
     (date_span, its edges inside it): ranges that cannot meet disagree, and a date inside a bound or two ranges that overlap are
     "within", never "agrees", since a bound names no day or year of its own: it keeps a disagreement from being read where there
     is none and never earns a point; the finding says which side is bounded. Both full dates: compared as dates, a different
-    day in the same year disagrees. Otherwise the years: a bare year against a full date agrees on the year only and the
-    finding says which side gives only a year; a date marked about, estimated or calculated on either side agrees within two
-    years."""
+    day in the same year disagrees. A date marked about, estimated or calculated on either side agrees within two years.
+    Otherwise both sides giving a month are compared to the month, a different month in the same year disagreeing (June 1901
+    and July 1901, 26 June 1901 and July 1901), and a month against a full date of it agrees to the month, the finding saying
+    which side gives only the month; else the years, a bare year against a month or a full date agreeing on the year only and
+    the finding saying which side gives only a year."""
     rec, tree = rec or {}, tree or {}
     rs, ts = rec.get("start") or rec.get("end"), tree.get("start") or tree.get("end")
     if not rs or not ts: return Finding("absent")
@@ -430,8 +434,12 @@ def date_verdict(rec, tree):
         if (a[0] and b[1] and a[0] > b[1]) or (b[0] and a[1] and b[0] > a[1]): return Finding("disagrees")
         return Finding("within", bound="both" if rec.get("qualifier") in BOUNDS and tree.get("qualifier") in BOUNDS else "record" if rec.get("qualifier") in BOUNDS else "tree")
     if len(rs) == 10 and len(ts) == 10: return Finding("agrees") if rs == ts else Finding("disagrees", same_year=rs[:4] == ts[:4])
-    tol = 2 if rec.get("qualifier") in NEAR or tree.get("qualifier") in NEAR else 0   # either side approximate: two years
-    if abs(int(rs[:4]) - int(ts[:4])) <= tol: return Finding("agrees", only="record" if len(rs) < 10 else "tree", years=tol if tol and rs[:4] != ts[:4] else 0)
+    near = rec.get("qualifier") in NEAR or tree.get("qualifier") in NEAR
+    tol = 2 if near else 0                                                            # either side approximate: two years
+    month = not near and len(rs) >= 7 and len(ts) >= 7                                # both give a month: compared to it
+    if month and rs[:7] != ts[:7]: return Finding("disagrees", same_year=rs[:4] == ts[:4], month=rs[:4] == ts[:4])
+    if abs(int(rs[:4]) - int(ts[:4])) <= tol:
+        return Finding("agrees", only="record" if len(rs) <= len(ts) else "tree", month=month, years=tol if tol and rs[:4] != ts[:4] else 0)
     return Finding("disagrees")
 
 ONCE = ("Birth", "Death", "Burial", "Cremation")   # what a life holds once: a person's events of one of these types are one event wherever their places agree, and two that stand apart are a conflict question; residences, censuses, occupations and the like repeat
@@ -462,9 +470,10 @@ def dates_one(a, b):
 def fuller_date(own, other):
     """Whether the event that holds date own takes date other when the two become one event (the fold, the import): own
     has no date and other has one; or the two agree (date_verdict, so a date marked about, estimated or calculated agrees
-    within two years) and other says more: more of the day, month and year, or the same exactly where own is marked about,
-    estimated or calculated (26 Jun 1901 over 1901, 24 April 1876 over CAL 1875). A bounded date (before, after, between) is
-    never taken nor replaced by another, and dates that disagree leave own as it is."""
+    within two years, and two that both give a month agree only in the same month) and other says more: more of the day,
+    month and year, or the same exactly where own is marked about, estimated or calculated (26 Jun 1901 over 1901 or Jun
+    1901, 24 April 1876 over CAL 1875; never 26 Jun 1901 over Jul 1901). A bounded date (before, after, between) is never
+    taken nor replaced by another, and dates that disagree leave own as it is."""
     so, sn = (own.get("start") or own.get("end") or ""), (other.get("start") or other.get("end") or "")
     if not sn or own.get("qualifier") in BOUNDS or other.get("qualifier") in BOUNDS: return bool(sn) and not so
     if not so: return True

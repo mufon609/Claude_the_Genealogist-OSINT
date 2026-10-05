@@ -578,8 +578,8 @@ they are: the page is archived with the search URL as locator, the log row
 carries the query as run and the number of results and pages, and the
 extractor makes one persona per row. The audit is the matcher's own
 comparison of every row with the person, dates compared as dates (a different
-day in the same year disagrees; a bare year against a full date agrees on the
-year only and says so): a row fits when the given name and the surname agree
+day in the same year disagrees, and so does a different month where both give
+one; a bare year against a full date agrees on the year only and says so): a row fits when the given name and the surname agree
 with a death date, a place or a birth date to the day, and nothing compared
 disagrees. No row is proposed as a card. A row that fits is a lead, a fetch
 step for its own memorial on the person's plan, saved by the one-call method
@@ -944,7 +944,9 @@ residence the record gives against every place the tree knows the person at,
 and the relationships the record states; a persona fits only on more than a
 name and a year (a place, a death, a full date or a stated relationship); a census index's estimated birth year and a
 household member's age become a calculated birth year the matcher allows two
-years on. As a bare year against a full date agrees on the year only and says so (§4), a place agrees on the part it
+years on. Two dates that both give a month, neither marked about, estimated or calculated, agree only in the same month:
+June 1901 and July 1901 disagree, in the same year, as 26 June 1901 and July 1901 do, and a month against a full date of it
+agrees to the month and says the record gives only the month. As a bare year against a full date agrees on the year only and says so (§4), a place agrees on the part it
 states even when it is coarser than the tree's own: a record place that names the tree's own place, or an ancestor of it
 in the resolved hierarchy (the county, or the state alone, spelled out or as its two-letter US code), agrees on the level
 it names and the rationale says which place that is; and a record place inside the tree's own — the tree's place with a finer
@@ -982,8 +984,9 @@ disagrees on anything, stays a hint on the page that says so. More than the
 name ties a persona to the person, and it is proposed as above: a record the
 file cites, one a held record links or one attached on the owner's word (none
 of them reached by a name search alone); a relationship the record states to a
-persona accepted on it, fitting a person, or carrying a card; a full date; a
-place that agrees at any level.
+persona accepted on it, fitting a person, or carrying a card; a full date, or a
+month of birth the record gives that agrees to the month; a place that agrees at
+any level.
 A persona of the same name that disagrees on both its dates is not a likely
 identity either: it stays a hint on the page, never a card. Nor is one born
 more than the matcher's window of three years from the candidate: another
@@ -1183,7 +1186,8 @@ statements, then the most statements, then the earliest. The other event's
 statements and notes move onto it as they are, statuses unchanged (a second
 statement of the same record fact stays where it was); the kept event takes a
 date it lacks, or one that agrees with its own and says more (26 Jun 1901 over
-1901, 24 April 1876 over CAL 1875), and a place it lacks, never on a date or
+1901 or Jun 1901, 24 April 1876 over CAL 1875; never 26 Jun 1901 over Jul 1901,
+another month), and a place it lacks, never on a date or
 place the owner or the rule has decided, and never a date that a date an
 accepted statement on either event gives disagrees with (the owner's word
 gives its event's own date): a fold never sets an accepted record's date aside

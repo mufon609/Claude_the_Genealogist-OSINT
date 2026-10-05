@@ -13,9 +13,11 @@ own step and question on the proposal, a relative takes the context they were
 first met in. Every persona on the extraction is compared with
 each candidate on name, sex, birth and death dates, burial and death place, and
 stated relationships. Dates are compared as dates when both sides carry a full
-date (a different day in the same year disagrees); a bare year against a full
-date agrees on the year only and says so; a record date marked about, estimated
-or calculated agrees within two years. A place agrees the same way on the part it states: a record place that names
+date (a different day in the same year disagrees), and to the month when both
+give one (a different month in the same year disagrees; a month against a full
+date of it agrees to the month and says so); a bare year against a fuller date
+agrees on the year only and says so; a date marked about, estimated or
+calculated on either side agrees within two years (catalog.date_verdict). A place agrees the same way on the part it states: a record place that names
 the tree's own place, or an ancestor of it in the resolved hierarchy (the county, or the state alone, spelled out or
 as its two-letter US code), agrees on the level it names and says so; a record place inside the tree's own (the town
 ahead of the state the tree holds) agrees on the level the tree states and says the record is finer; a place neither
@@ -109,7 +111,7 @@ from catalog import (
 from log_search import REOPENED
 
 # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
-MATCHER = ("rule", "matcher", "0.8.0")
+MATCHER = ("rule", "matcher", "0.9.0")
 # the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
 WINDOW = 3
 # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
@@ -817,7 +819,7 @@ def namesake(agree, disagree):
     nothing more, is a namesake, a hint and never a card (docs/RESEARCH-WORKFLOW.md §5–7)."""
     return (
         bool(disagree)
-        and all(a.field in NAME_ONLY or (a.field == "birth date" and a.only == "record") for a in agree)
+        and all(a.field in NAME_ONLY or (a.field == "birth date" and a.only == "record" and not a.month) for a in agree)
     )
 
 def matchable(cx, eid):

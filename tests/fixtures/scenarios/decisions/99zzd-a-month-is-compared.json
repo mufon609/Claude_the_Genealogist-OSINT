@@ -1,0 +1,71 @@
+{
+ "title": "a month is compared",
+ "line": "two dates that both give a month are compared to the month: the 1900 census gives Charlotte's birth as April 1882, which agrees with the file's 12 Apr 1882 to the month and says the record gives only the month; a WikiTree profile of a John William Davidson born December 1876, which a name search for John Y Davidson reached, disagrees with the file's 24 April 1876 in the same year, where comparing the years alone agreed",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 Lukens household page, on the owner's word that it is Charlotte's",
+   "attach": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html",
+    "about": "I332737039686"
+   },
+   "as": "c1900",
+   "expect": [
+    {
+     "compare": {
+      "card": {
+       "record": "c1900",
+       "person": "I332737039686"
+      },
+      "agree": {
+       "some": "birth date agrees (record April 1882, tree 12 Apr 1882: month only; the record gives only the month)"
+      },
+      "fields": {
+       "Birth date": "agrees"
+      }
+     },
+     "why": "the census gives the month and the year, the file the day: they agree to the month, and the finding says the record gives only the month, never only a year"
+    }
+   ]
+  },
+  {
+   "say": "the WikiTree profile Davidson-349, a namesake born in England, matched for John Y Davidson",
+   "archive": {
+    "fixture": "wikitree-profile-Davidson-349.json",
+    "manifest": "wikitree-profile-Davidson-349.manifest.json",
+    "source": "B04",
+    "extract": true,
+    "match": [
+     "I332737204849"
+    ]
+   },
+   "as": "wt",
+   "expect": [
+    {
+     "compare": {
+      "card": {
+       "record": "wt",
+       "person": "I332737204849"
+      },
+      "disagree": {
+       "some": "birth date disagrees (record DEC 1876, tree 24 April 1876: same year, different month)"
+      },
+      "agree": {
+       "none": {
+        "starts": "birth date"
+       }
+      },
+      "fields": {
+       "Birth date": "disagrees"
+      }
+     },
+     "why": "December 1876 and 24 April 1876 lie in one year but in two months: the dates disagree, where comparing the years alone agreed"
+    }
+   ]
+  }
+ ]
+}

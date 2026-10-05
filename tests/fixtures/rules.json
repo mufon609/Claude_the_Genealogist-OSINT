@@ -912,6 +912,51 @@
    "record": "AFT 10 May 1918",
    "tree": "10 May 1918",
    "verdict": "within"
+  },
+  {
+   "record": "Jun 1901",
+   "tree": "Jul 1901",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "26 Jun 1901",
+   "tree": "Jul 1901",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "Jul 1901",
+   "tree": "26 Jun 1901",
+   "verdict": "disagrees"
+  },
+  {
+   "record": "Jun 1901",
+   "tree": "26 Jun 1901",
+   "verdict": "agrees"
+  },
+  {
+   "record": "26 Jun 1901",
+   "tree": "Jun 1901",
+   "verdict": "agrees"
+  },
+  {
+   "record": "Jun 1901",
+   "tree": "1901",
+   "verdict": "agrees"
+  },
+  {
+   "record": "ABT Jun 1901",
+   "tree": "Jul 1901",
+   "verdict": "agrees"
+  },
+  {
+   "record": "Jun 1901",
+   "tree": "CAL Jul 1902",
+   "verdict": "agrees"
+  },
+  {
+   "record": "Jun 1901",
+   "tree": "Jul 1902",
+   "verdict": "disagrees"
   }
  ]
 }
