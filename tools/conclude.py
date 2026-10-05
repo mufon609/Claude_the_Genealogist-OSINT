@@ -3228,7 +3228,8 @@ def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
         if len(fids) > 1:
             raise ValueError("the parent has more than one family: name both parents")
         fid = fids[0] if fids else new_family(cx, tree_id, parents[0], ts)
-        rows = [(fid, pid, "child")] + ([(fid, x, "partner") for x in parents if x != parents[0]] if not fids else [])
+        # a family made here for two parents: each parent's partner row carries the same word, the first's included
+        rows = [(fid, pid, "child")] + ([(fid, x, "partner") for x in parents] if not fids and len(parents) > 1 else [])
     for f, who, role in rows:
         if not q.execute(
             "SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (f, who, role)
