@@ -285,17 +285,24 @@ Ancestry citation, and four FamilySearch record pages and all thirty census
 search pages are filed under Ancestry collections. Left, one piece closed
 before the next:
 
-1. **The household script.** Entries of one page of one form, across every
-   copy and index page, grouped as one household by the form's own rule
-   (insert-only, recorded with the script's version): a federal household by
-   its household identifier and the page, never by the line FamilySearch
-   repeats; a 1925 New York household by county, districts, page and a run of
-   lines. Shown on the two 1925 Peters pages (one household under a head not
-   held), the 1900 Lukens page and sheet image (eleven members under one
-   head), and a household whose members came on several pages; a household
-   not wholly held is a lead for the missing entry, the head's first: the
-   image's own index where its identifier is held, else a search of the
-   collection by surname, place and year, never by the given name alone.
+1. **The household's missing entries fetched.** The household script
+   (`tools/households.py`, `household`/`household_member`, schema 0.8.5) groups
+   the held census pages, 13 households live on 5 Oct 2026, and a household
+   not wholly held is a lead on its people's plans: the Peters household of
+   1925 (Mary, wife, line 23; Ruth, daughter, line 25; the head and line 24
+   missing) is a search of FamilySearch's 1925 collection for Peters at
+   Hempstead, Nassau. Its answer does not yet lead anywhere: a results row
+   for the head fits neither Ruth nor Mary, so no step follows to the head's
+   record (`attach.py` reaches a household step only through the saved
+   page's key, `_fetch_steps_searched` matches Ancestry record ids alone, and
+   `_asks_for` reads a locator of kind `url` as an AAD record). Make each row
+   of a household search's answer that carries the household's surname and
+   place a lead for its record page, whose line then says whether it belongs
+   to the run (the head's first); read FamilySearch's image index where a
+   household holds an image identifier (no reader of that page exists); and
+   have the 1925 reader keep the county as a locator, which the script now
+   reads off the residence. `catalog.holder_search` reads a lone surname as a
+   given name (`split_name("Peters")`), so the lead builds its link itself.
 2. **Calibration, the special cases found.** A reading task (BACKLOG A1, the
    reading kind) run on the held records of each form, compared with the
    script field by field and household by household, more than once; each
@@ -1333,7 +1340,8 @@ No route of `app/person/server.py` serves an archived object, so the card's
 archived copy cannot be opened and an image cannot be seen while it is read;
 and a conflict's resolution with its
 reason, `reopen`, `place` (C12), `merge` and `link` have no control, while the
-revise route takes a fetch step the page offers no control for. The key-fact route ignores the `conflicts` `facts.decide_fact` now returns, so the
+revise route takes a fetch step the page offers no control for. A fetch step whose locator is not an Ancestry record id shows no link (the
+household lead's link sits only in its fields). The key-fact route ignores the `conflicts` `facts.decide_fact` now returns, so the
 screen never says what the rule decided on them. A person
 who runs no terminal cannot finish a person's work on the screen
 (`docs/DATA-ARCHITECTURE.md` §7 decision 17).
