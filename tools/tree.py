@@ -3,13 +3,14 @@
 
   tools/tree.py create <slug> --name "Doe Family Tree" [--description ...]
   tools/tree.py list
-  tools/tree.py use <slug>          # sets catalog/.active-tree
+  tools/tree.py use <slug>          # sets catalog/.active-tree, written whole
   tools/tree.py show [<slug>]
   tools/tree.py overview [<slug>]      the tree as confirmed: home person upward, key facts accepted, the edge; where the tree comes from
-  tools/tree.py home "<person>" [--tree <slug>]   # the person the tree overview starts from
+  tools/tree.py home "<person>" [--tree <slug>]   # the person the tree overview starts from, named as every tool names one
 """
 import argparse, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from catalog import Catalog
 from treelib import ACTIVE_TREE_FILE, DB, ROOT, active_tree_slug, connect, dumps, exports_dir, imports_dir, now, tree_dir, ulid
 
 def cmd_create(cx, a):
@@ -45,7 +46,12 @@ def cmd_use(cx, a):
     if not cx.execute("SELECT 1 FROM tree WHERE slug=?", (a.slug,)).fetchone():
         sys.exit(f"tree '{a.slug}' does not exist")
     os.makedirs(os.path.dirname(ACTIVE_TREE_FILE), exist_ok=True)
-    with open(ACTIVE_TREE_FILE, "w", encoding="utf-8") as fh: fh.write(a.slug + "\n")
+    tmp = f"{ACTIVE_TREE_FILE}.{os.getpid()}.tmp"                    # written beside the file and put in its place in one step: a stop in the middle leaves the file as it was
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh: fh.write(a.slug + "\n")
+        os.replace(tmp, ACTIVE_TREE_FILE)
+    finally:
+        if os.path.exists(tmp): os.remove(tmp)
     print(f"active tree: {a.slug}")
 
 def cmd_show(cx, a):
@@ -73,16 +79,16 @@ def cmd_overview(cx, a):
     print(render(overview(cx, t[0]), cx))
 
 def cmd_home(cx, a):
-    """The home person: the overview lays the family out from them. A name or id, exact or a substring with one match."""
+    """The home person: the overview lays the family out from them. Named as every tool names a person (Catalog.find_person): the
+    id, the six characters of it ("Name [ABC123]" or alone), the exact name or a substring with one match; a person merged into
+    another is no match, so the home person is never a duplicate the merge moved everything off."""
     slug = a.tree or active_tree_slug()
     t = cx.execute("SELECT id FROM tree WHERE slug=?", (slug,)).fetchone()
     if not t: sys.exit(f"tree '{slug}' does not exist")
-    rows = cx.execute("SELECT id, display_name FROM person WHERE tree_id=? AND (id=? OR display_name=?)", (t[0], a.person, a.person)).fetchall()
-    if not rows: rows = cx.execute("SELECT id, display_name FROM person WHERE tree_id=? AND display_name LIKE ?", (t[0], f"%{a.person}%")).fetchall()
-    if len(rows) != 1: sys.exit("no such person" if not rows else "several match: " + ", ".join(r[1] for r in rows))
-    cx.execute("UPDATE tree SET home_person_id=?, updated_at=? WHERE id=?", (rows[0][0], now(), t[0]))
-    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), t[0], now(), a.by, "update", "tree", t[0], dumps({"home_person_id": rows[0][0]})))
-    cx.commit(); print(f"home person of {slug}: {rows[0][1]}")
+    pid = Catalog(cx, t[0]).find_person(a.person)
+    cx.execute("UPDATE tree SET home_person_id=?, updated_at=? WHERE id=?", (pid, now(), t[0]))
+    cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)", (ulid(), t[0], now(), a.by, "update", "tree", t[0], dumps({"home_person_id": pid})))
+    cx.commit(); print(f"home person of {slug}: {cx.execute('SELECT display_name FROM person WHERE id=?', (pid,)).fetchone()[0]}")
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--db", default=DB)

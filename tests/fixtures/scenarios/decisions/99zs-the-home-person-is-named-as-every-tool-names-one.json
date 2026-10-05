@@ -1,0 +1,88 @@
+{
+ "title": "the home person is named as every tool names a person",
+ "line": "tree.py home takes a person as Catalog.find_person does, the name with the six characters the tools print, and refuses a person merged into another: the home person is never a duplicate",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a person named as the tools print them, \"Name [six characters]\"",
+   "tree_home": {
+    "person": "I332737059537",
+    "form": "bracketed"
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "home": "I332737059537"
+     },
+     "why": "the form CLAUDE.md prescribes names the person and sets them as home"
+    }
+   ]
+  },
+  {
+   "say": "the file's second entry for the person merged into the first",
+   "merge": {
+    "duplicate": "I332737068288",
+    "kept": "I332737059537"
+   }
+  },
+  {
+   "say": "the home person set to another, then the merged duplicate named",
+   "tree_home": {
+    "person": "I332737035563",
+    "form": "bracketed"
+   },
+   "expect": [
+    {
+     "last": {
+      "code": 0,
+      "home": "I332737035563"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the duplicate, merged, named by the six characters the tools printed before the merge",
+   "tree_home": {
+    "person": "I332737068288",
+    "form": "bracketed"
+   },
+   "expect": [
+    {
+     "last": {
+      "code": {
+       "not": 0
+      },
+      "said": {
+       "has": "no person matching"
+      },
+      "home": "I332737035563"
+     },
+     "why": "a merged person is no match: the home person stays as it was"
+    }
+   ]
+  },
+  {
+   "say": "the duplicate named by its whole id, which the old query matched",
+   "tree_home": {
+    "person": "I332737068288",
+    "form": "id"
+   },
+   "expect": [
+    {
+     "last": {
+      "code": {
+       "not": 0
+      },
+      "home": "I332737035563"
+     },
+     "why": "no way of naming a merged person makes them the home person"
+    }
+   ]
+  }
+ ]
+}

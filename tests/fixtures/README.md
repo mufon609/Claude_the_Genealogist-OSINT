@@ -401,7 +401,9 @@ the `same_record` and `task_run` tables (the scratch catalog with both dropped a
 older catalog, and the owner's backups never enter git) is migrated by `tools/initdb.py --migrate` to the code's version, and one whose
 person vitals view is another definition gets the schema's own; a bag `tools/backup.py` writes under the scratch data root while a turn
 commits a record (after the objects are copied, and in the middle of the dump) holds an object for every artifact its dump has a row
-for, and no row of the dump names an artifact the dump has no row for.
+for, and no row of the dump names an artifact the dump has no row for; `tools/tree.py use` writes `catalog/.active-tree` whole (a run of the
+tool whose write stops leaves the file as it was). Its `tree_home` action (`housekeeping.py`) runs `tools/tree.py home` on a scenario's tree: the
+`person` named as `form` says (`bracketed`, the default, `id` or `name`), the result its `code`, what it `said` and the `home` person's entry id.
 
 ## What is simulated
 

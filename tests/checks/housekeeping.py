@@ -9,6 +9,22 @@ a record: it walks the data under tests/fixtures/.
 """
 import json, os, re, shutil, sqlite3, subprocess, sys, tempfile
 from common import BY, FIXTURES, ROOT, connect, run, scratch, tool
+from scenario import ACTIONS
+
+def a_tree_home(w, x):
+    """`tools/tree.py home` on the scenario's tree, a refusal not an error: the `person` named as `form` says (`bracketed`, the
+    default: "Name [six characters]" as the tools print it; `id`: the whole id; `name`: the display name), the exit code, what it
+    printed and the tree's home person afterwards as the harness file's entry id (None when there is none)."""
+    pid = w.person(x["person"])
+    name = w.cx.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone()[0]
+    arg = {"bracketed": f"{name} [{pid[-6:]}]", "id": pid, "name": name}[x.get("form", "bracketed")]
+    w.cx.commit()
+    r = subprocess.run([sys.executable, tool("tree.py"), "--db", w.db, "--by", BY, "home", arg, "--tree", w.slug], capture_output=True, text=True, env=os.environ)
+    home = w.cx.execute("""SELECT x.value FROM tree t JOIN external_id x ON x.entity_id=t.home_person_id AND x.entity_kind='person' AND x.system='ancestry_gedcom_xref'
+                           WHERE t.id=?""", (w.tid,)).fetchone()
+    return {"code": r.returncode, "said": r.stdout + r.stderr, "home": home[0] if home else None}
+
+ACTIONS["tree_home"] = a_tree_home
 
 def screen_links():
     """Every link the person screen builds from data goes through its `web` helper: no `href="${` outside it, and the helper,
@@ -166,6 +182,27 @@ def backup_bag():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+def active_tree():
+    """`tools/tree.py use` writes catalog/.active-tree whole: when the write stops after the text is written and before it takes
+    the file's place (os.replace raising, in a run of the tool itself), the file still names the tree it named, and nothing of the
+    write's own is left beside it."""
+    d, db = scratch(False); bad = []
+    try:
+        tool_run = lambda *args: subprocess.run([sys.executable, tool("tree.py"), "--db", db, *args], capture_output=True, text=True, env=os.environ)
+        for slug in ("a", "b"): tool_run("create", slug, "--name", slug)
+        path = os.path.join(d, "catalog", ".active-tree")
+        with open(path, encoding="utf-8") as fh: before = fh.read()
+        stop = "import os, runpy, sys\ndef stop(*a, **k): raise OSError('the write stopped')\nos.replace = stop\nsys.argv = sys.argv[1:]\nrunpy.run_path(sys.argv[0], run_name='__main__')"
+        r = subprocess.run([sys.executable, "-c", stop, tool("tree.py"), "--db", db, "use", "b"], capture_output=True, text=True, env=os.environ)
+        if not r.returncode: bad.append("`tree.py use` finished though the write stopped")
+        with open(path, encoding="utf-8") as fh: after = fh.read()
+        if after != before: bad.append(f"after a write that stopped .active-tree reads {after!r}, expected {before!r}")
+        left = sorted(set(os.listdir(os.path.join(d, "catalog"))) - {".active-tree", "tree.db", "tree.db-wal", "tree.db-shm"})
+        if left: bad.append(f"the write left {left} beside the catalog")
+        if tool_run("use", "b").returncode or open(path, encoding="utf-8").read() != "b\n": bad.append("`tree.py use b` did not make b the active tree")
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 def check(keep, show):
     """Each guard as one line: ok when it holds, FAIL with every reason when it does not. Returns how many failed."""
     failed = 0
@@ -173,6 +210,7 @@ def check(keep, show):
                     (commit_hook, "the commit hook refuses data by the name git stages it under (a letter beyond ASCII, a quote, a newline) and passes the harness's own .ged and the .gitkeep files; .gitignore keeps every .ged but the harness's, and the owner's own .claude settings, out of `git add`"),
                     (older_catalog, "a catalog from before the same_record and task_run tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply"),
                     (older_view, "a catalog whose person vitals view is another definition gets the schema's own from the 0.8.4 migration"),
+                    (active_tree, "the active tree is written whole: a write that stops after its text is written leaves .active-tree naming the tree it named, with nothing of the write's beside it"),
                     (backup_bag, "a bag written while a turn commits is whole and consistent: its manifest verifies, every artifact row of its catalog dump has its object in the payload, and no row of the dump names an artifact it has no row for")):
         bad = fn(); failed += bool(bad)
         print(f"ok   {says}" if not bad else f"FAIL {fn.__name__}: " + "; ".join(bad))
