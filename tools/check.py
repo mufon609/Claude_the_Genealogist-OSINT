@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, the evidence layer,
-the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
+the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, the small guards of tests/checks/housekeeping.py hold (the person screen's links), every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
 usage: tools/check.py [--verbose] [--show] [--keep] [--scenario NAME]
@@ -25,13 +25,13 @@ import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys, tem
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
 from common import BY, FIXTURES, scratch, tool
-import imports, loop, offline, parsers, scenario
+import housekeeping, imports, loop, offline, parsers, scenario
 
 def rules():
     """The name, place and date rules as the docs state them, and the version a reader's model id carries, on their own, against
     tests/fixtures/rules.json."""
     with open(os.path.join(FIXTURES, "rules.json"), encoding="utf-8") as fh: R = json.load(fh)
-    from catalog import collection_state, date_verdict, holder_search, kinds_as, note, place_verdict, prefills_nothing, record_standing, same_surname
+    from catalog import collection_state, date_verdict, fetch_target, holder_search, kinds_as, note, place_verdict, prefills_nothing, record_standing, same_surname, web_url
     bad = []
     for c in R["same_surname"]:
         got = same_surname(c["record"], c["tree"])
@@ -39,6 +39,12 @@ def rules():
     for c in R["holder_search"]:
         got = holder_search(c["holder"], {k: {"value": v, "basis": "citation"} for k, v in c["fields"].items()})
         if got != c["url"]: bad.append(f"holder_search({c['holder']['HolderKind']}, {c['holder']['HolderKey'][:40]!r}) gave {got!r}, expected {c['url']!r}")
+    for c in R["web_url"]:
+        got = web_url(c["url"]); want = c["url"] if c["href"] else None
+        if got != want: bad.append(f"web_url({c['url']!r}) gave {got!r}, expected {want!r}")
+    for c in R["fetch_target"]:
+        got = fetch_target(c["apid"], c["url"])
+        if got != c["target"]: bad.append(f"fetch_target({c['apid']!r}, {c['url']!r}) gave {got!r}, expected {c['target']!r}")
     for c in R["prefills_nothing"]:
         got = prefills_nothing(c["holder"], {k: {"value": v, "basis": "citation"} for k, v in c["fields"].items()})
         if got != c["nothing"]: bad.append(f"prefills_nothing({c['holder']['HolderKind']}, {c['holder']['HolderKey'][:40]!r}, {c['fields']!r}) gave {got!r}, expected {c['nothing']!r}")
@@ -503,7 +509,7 @@ def every_check(a):
     bad_files = compiles(); bad += bool(bad_files)
     print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad += bool(bad_rules)
-    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the web addresses a file's citation may carry and the link made of one, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     bad_conn = connectors_offline(); bad += bool(bad_conn)
     print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
@@ -520,6 +526,7 @@ def every_check(a):
     print("ok   every kind the standing rule names in code (the census before 1850, the register entry dated with the parents, the obituary) is a kind of data/evidence-classes.csv" if not bad_kinds else "FAIL rule kinds: " + "; ".join(bad_kinds))
     bad_claude = claude_files(); bad += bool(bad_claude)
     print("ok   the agent and skill files under .claude/ are the ones code writes from the task kind's text, its answer schema and its tool list" if not bad_claude else "FAIL claude files: " + "; ".join(bad_claude))
+    bad += housekeeping.check(a.keep, a.show)
     bad += parsers.check(a.keep, a.show)
     bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)
     bad += loop.check(a.keep, a.show)

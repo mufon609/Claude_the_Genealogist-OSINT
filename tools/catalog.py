@@ -218,12 +218,19 @@ def held_apids(cx, groups=None):
 
 HOLDERS = None                                   # data/holders.csv, read once per process by fetch_target
 
+def web_url(url):
+    """The URL when it is a web address (http or https, either case, no whitespace), else None: a file's URL becomes a link
+    only through this, so a `javascript:` or `data:` address in an imported citation is never one."""
+    return url if isinstance(url, str) and re.match(r"https?://\S+$", url, re.I) else None
+
 def fetch_target(apid, url=None, fields=None):
-    """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave; the free
-    holder's own search prefilled from the step's fields (the citation's details, never the person's facts) when they are given,
-    else its collection page; Ancestry's record page when no free holder is known (a membership is needed there)."""
+    """Where a cited record is opened: {url, holder}. The citation's own memorial URL when the holder is Find a Grave and the
+    file's URL is a web address (web_url); the free holder's own search prefilled from the step's fields (the citation's details,
+    never the person's facts) when they are given, else its collection page; Ancestry's record page when no free holder is known
+    (a membership is needed there)."""
     m = re.match(r"^\d+,(\d+)::(\d+)$", apid or "")
     if not m: return {"url": None, "holder": None}
+    url = web_url(url)
     global HOLDERS
     if HOLDERS is None: HOLDERS = holders()
     h = (HOLDERS.get(m.group(1)) or [None])[0]
@@ -251,8 +258,9 @@ def holder_search(h, fields):
     citation gives none, the place from its census place or its city and county). fs_images: no search, the collection is
     browsed (None). url: the holder's search template in HolderKey with its placeholders filled from the citation ({given},
     {surname}, {name}, {title} from the book title or the citation text, {year}, {date}, {mdy} the publication date as
-    Google Books' own cd_min/cd_max take it, {place}, {city}, {url} the citation's own URL), URL-encoded; None when a
-    placeholder has no value, so the holder's own page opens instead. site: the National
+    Google Books' own cd_min/cd_max take it, {place}, {city}, {url} the citation's own URL), URL-encoded; a template that is
+    {url} alone is the citation's URL itself, when it is a web address (web_url); None when a placeholder has no value, so the
+    holder's own page opens instead. site: the National
     Archives 1950 site's name search. None when the fields carry nothing to ask with."""
     v = lambda k: ((fields or {}).get(k) or {}).get("value")
     given, surname, _ = split_name(v("name"))
@@ -265,7 +273,7 @@ def holder_search(h, fields):
         vals = {"given": given, "surname": surname, "name": " ".join(x for x in (given, surname) if x) or None, "title": v("book title") or v("title") or v("citation"),
                 "year": year, "date": v("publication date") or v("date"), "mdy": _mdy(v("publication date") or v("date")),
                 "place": first_value(v("publication place")) or first_value(v("census place")) or first_value(v("place")), "city": v("city"), "url": v("url")}
-        if tpl == "{url}": return vals["url"]
+        if tpl == "{url}": return web_url(vals["url"])
         needed = set(PLACEHOLDER.findall(tpl))
         if any(not vals.get(k) for k in needed): return None
         return PLACEHOLDER.sub(lambda m: urllib.parse.quote(str(vals[m.group(1)]), safe=""), tpl)

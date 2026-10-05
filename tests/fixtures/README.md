@@ -388,6 +388,15 @@ person `name` holding the words given, `absent` for words no row holds, `clean` 
 The geocoder's answer for the place the first-level-unit scenario resolves is the owner's own cache entry, fetched on
 5 September 2026.
 
+## The guards
+
+`rules.json` holds plain-value cases for the pure rules `tools/check.py` runs on their own. Its `web_url` cases are the web
+addresses a file's citation may carry and the link each becomes (`href`: the escaped address, or nothing for an address that is
+not http or https: `javascript:`, `data:`, any case of a scheme, whitespace inside one): `catalog.web_url` is checked on them, and
+`tests/checks/housekeeping.py` runs the person screen's own `web` helper (`app/person/index.html`) on the same cases under node, so
+the Python reader of a file's address and the screen cannot differ. `housekeeping.py` holds the checks of the small guards around
+the catalog that no scenario reaches, each run on what it guards under a temporary directory.
+
 ## What is simulated
 
 Every response body, row, page and record the harness reads is real, but for the one stand-in at the end: a page or response

@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -81,6 +81,18 @@
   {
    "holder": {
     "HolderKind": "url",
+    "HolderKey": "{url}",
+    "HolderCollection": "x"
+   },
+   "fields": {
+    "name": "Noi Davidson",
+    "url": "javascript:alert(1)"
+   },
+   "url": null
+  },
+  {
+   "holder": {
+    "HolderKind": "url",
     "HolderKey": "https://archive.org/search?query=x+{year}",
     "HolderCollection": "x"
    },
@@ -138,6 +150,31 @@
    "url": "https://www.google.com/search?q=%22Boca%20Raton%20News%22&tbm=bks&tbs=cdr:1,cd_min:1%2F27%2F1986,cd_max:1%2F27%2F1986"
   }
  ],
+ "web_url": [
+  {"url": "https://www.findagrave.com/memorial/143847338", "href": "https://www.findagrave.com/memorial/143847338"},
+  {"url": "Http://Www.state.nj.us/Military/Cemetery", "href": "Http://Www.state.nj.us/Military/Cemetery"},
+  {"url": "http://www.legacy.com/obituaries/x?n=noi&m=1", "href": "http://www.legacy.com/obituaries/x?n=noi&amp;m=1"},
+  {"url": "https://example.org/\"onmouseover=\"alert(1)", "href": "https://example.org/&quot;onmouseover=&quot;alert(1)"},
+  {"url": "https://example.org/<b>", "href": "https://example.org/&lt;b&gt;"},
+  {"url": "javascript:alert(1)", "href": ""},
+  {"url": "JaVaScRiPt:alert(1)", "href": ""},
+  {"url": " javascript:alert(1)", "href": ""},
+  {"url": "java\tscript:alert(1)", "href": ""},
+  {"url": "data:text/html,<script>alert(1)</script>", "href": ""},
+  {"url": "vbscript:msgbox(1)", "href": ""},
+  {"url": "ftp://example.org/x", "href": ""},
+  {"url": "//example.org/x", "href": ""},
+  {"url": "https:javascript:alert(1)", "href": ""},
+  {"url": "https://example.org/a b", "href": ""},
+  {"url": "https://", "href": ""},
+  {"url": "", "href": ""},
+  {"url": null, "href": ""}
+ ],
+ "fetch_target": [
+  {"apid": "1,60525::1", "url": "https://www.findagrave.com/memorial/143847338", "target": {"url": "https://www.findagrave.com/memorial/143847338", "holder": "Find a Grave memorial"}},
+  {"apid": "1,60525::1", "url": "javascript:alert(1)", "target": {"url": "https://www.ancestry.com/discoveryui-content/view/1:60525", "holder": "Ancestry"}},
+  {"apid": "1,60525::1", "url": null, "target": {"url": "https://www.ancestry.com/discoveryui-content/view/1:60525", "holder": "Ancestry"}}
+ ],
  "prefills_nothing": [
   {
    "holder": {"HolderKind": "url", "HolderKey": "", "HolderCollection": "x"},
@@ -172,6 +209,11 @@
   {
    "holder": {"HolderKind": "url", "HolderKey": "{url}", "HolderCollection": "x"},
    "fields": {"name": "Noi Davidson"},
+   "nothing": true
+  },
+  {
+   "holder": {"HolderKind": "url", "HolderKey": "{url}", "HolderCollection": "x"},
+   "fields": {"name": "Noi Davidson", "url": "javascript:alert(1)"},
    "nothing": true
   },
   {

@@ -37,6 +37,7 @@ details summary{cursor:pointer;color:var(--mut);margin:8px 0}
 <main id="main"></main>
 <script>
 const $=s=>document.querySelector(s), h=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const web=u=>/^https?:\/\/\S+$/i.test(String(u??''))?h(u):'';
 const KEYS=['name','sex','birth','death','parents','spouses','children'];
 let P=null, SEL=null;
 const api=(p,o)=>fetch(p,o).then(r=>r.json());
@@ -69,7 +70,7 @@ function docHtml(c){const r=c.record;const id=c.id;
  const closes=c.closes.length?`<div style="margin-top:6px"><span class="mut">Adding it: </span>${c.closes.map(h).join('; ')}</div>`:'';
  const oddList=(c.odd||[]).filter(x=>x&&x!=='nothing');const odd=oddList.length?`<div style="margin-top:4px;color:var(--bad)">${oddList.map(h).join('; ')}</div>`:'';
  return `<div class="card doc" id="doc-${id}"><div class="doc-head"><b>${h(c.highlight)}</b></div>
-  <div class="mut">${h(r.holder||r.holder_id||'')}${r.collection?` · ${h(r.collection)}`:''}${r.identity.length?` · ${h(r.identity.join(', '))}`:''} <span class="pill">${h(r.tier||'')}</span>${r.page?` · <a href="${r.page}" target="_blank" rel="noopener">the holder's page</a>`:''}</div>
+  <div class="mut">${h(r.holder||r.holder_id||'')}${r.collection?` · ${h(r.collection)}`:''}${r.identity.length?` · ${h(r.identity.join(', '))}`:''} <span class="pill">${h(r.tier||'')}</span>${web(r.page)?` · <a href="${web(r.page)}" target="_blank" rel="noopener">the holder's page</a>`:''}</div>
   ${c.person?`<div class="mut">the tree: ${h(claimText(c.person.claim))}</div>`:c.subject?`<div class="mut">nobody in the tree yet; the record is about the family of ${h(c.subject)}</div>`:''}
   ${fields}${rels}${closes}${odd}
   <div style="margin-top:8px"><span class="seg"><button class="on-accepted" onclick="decideProposal('${id}','accepted')">Add</button><button onclick="ignore('${id}')">Ignore</button></span><span id="ig-${id}"></span></div></div>`}
@@ -133,7 +134,7 @@ function fieldsHtml(s){if(s.kind==='fetch'){const rows=Object.entries(s.fields).
 function stepsHtml(steps){if(!steps.length)return `<div class="mut">No plan step for this row yet — generate or refresh the plan above.</div>`;return steps.map(stepHtml).join('<hr style="border:0;border-top:1px solid var(--line)">')}
 function stepHtml(s){
  const logs=s.logs.length?`<div class="mut">Log:</div>`+s.logs.map(l=>`<div>${h(l.executed_at.slice(0,10))} <b>${h(l.outcome)}</b> <span class="mut">${h(l.executed_by)} ${h(l.notes||'')}</span>${l.artifacts_json?' <span class="pill">archived</span>':''}</div>`).join(''):'<div class="mut">Not tried yet.</div>';
- const where=s.kind==='fetch'?`<div>${h(s.collection||'')}${s.on.length?` <span class="mut">on ${h(s.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</span>`:''}${s.url?` <a href="${s.url}" target="_blank">open at ${h(s.holder)} ↗</a> <span class="mut">${s.mode==='blocked'?'(needs a membership)':s.mode==='assisted'?'(the holder\'s own search page, which takes nothing from the citation: search it by hand with the fields above)':'(the holder\'s search, prefilled from the citation) then save the record page and its image into inbox/'}</span>`:''}</div>`:`<div class="mut">sources: ${h(s.sources.join(', '))}${s.url?` <a href="${s.url}" target="_blank">open at ${h(s.holder)} ↗</a> <span class="mut">(the site's own search, built from the foundation) then save the results page into inbox/</span>`:''}</div>`;
+ const where=s.kind==='fetch'?`<div>${h(s.collection||'')}${s.on.length?` <span class="mut">on ${h(s.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</span>`:''}${web(s.url)?` <a href="${web(s.url)}" target="_blank" rel="noopener">open at ${h(s.holder)} ↗</a> <span class="mut">${s.mode==='blocked'?'(needs a membership)':s.mode==='assisted'?'(the holder\'s own search page, which takes nothing from the citation: search it by hand with the fields above)':'(the holder\'s search, prefilled from the citation) then save the record page and its image into inbox/'}</span>`:''}</div>`:`<div class="mut">sources: ${h(s.sources.join(', '))}${web(s.url)?` <a href="${web(s.url)}" target="_blank" rel="noopener">open at ${h(s.holder)} ↗</a> <span class="mut">(the site's own search, built from the foundation) then save the results page into inbox/</span>`:''}</div>`;
  return `<p><b>${s.kind==='fetch'?'Fetch':'Search'}</b> <span class="pill">${h(s.mode)}</span> <span class="pill">${h(s.type)}</span> <span class="pill">${h(s.status)}</span> <span class="mut">${h(s.rationale||'')}</span></p>${where}${s.expected?`<div class="mut">Expected: ${h(s.expected)}</div>`:''}${fieldsHtml(s)}${logs}
  <div style="margin-top:8px"><input type="text" id="ln-${s.id}" placeholder="note (what was searched, where)" style="width:100%"></div>
  <div style="margin-top:6px"><button onclick="logStep('${s.id}','none')">Nothing found</button> <button onclick="logStep('${s.id}','blocked')">Blocked</button>
@@ -142,7 +143,7 @@ function show(grp,i){SEL={grp,i};document.querySelectorAll('tr.row').forEach(e=>
  const rc=$('#rc2');const steps=stepsFor(grp,i);
  if(grp==='fp'){const r=P.footprint.records[i];rc.innerHTML=`<b>${h(r.collection)}</b><div class="mut">on ${h(r.on.map(x=>x[0]+' ('+x[1]+')').join(', '))}</div><p>Expected: ${h(r.expect)}</p>${r.held?'<p class="mut">held in the archive</p>':''}`+stepsHtml(steps);inbox();records(steps);return}
  const r=P.checklist[grp][i];let html=`<b>${h(r.record)}${r.instance?' '+h(r.instance):''}</b> <span class="st ${r.status}">${r.status}</span>${r.note?`<div class="mut">${h(r.note)}</div>`:''}<p>Settles: ${h(r.settles)}</p>`;
- if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${c.url?` <a href="${c.url}" target="_blank">open at ${h(c.holder)} ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
+ if(r.citations&&r.citations.length&&!steps.length){html+=`<div class="mut">Cited:</div>`+r.citations.map(c=>`<div>${h(c.collection)}${c.on.length?` <span class="mut">on ${h(c.on.map(x=>x[0]).join(', '))}</span>`:''}${web(c.url)?` <a href="${web(c.url)}" target="_blank" rel="noopener">open at ${h(c.holder)} ↗</a>`:''}${c.held?' <span class="pill">held</span>':''}</div>`).join('')}
  if(r.status==='missing'&&!r.search)html+=`<div class="mut">Search steps for missing records come after the baseline is reviewed.</div>`;
  if(steps.some(s=>s.kind==='search'))html+=`<div class="mut">An auto step runs through its connector (tools/run_step.py); for an assisted source open it, search with the fields below, and log the result here.</div>`;
  rc.innerHTML=html+stepsHtml(steps);inbox();records(steps,r)}
@@ -152,7 +153,7 @@ async function records(steps,row){const shas=shasOf(steps,row);if(!shas.length)r
  for(const sha of shas){const a=await api('/api/artifact/'+sha+'?person='+P.person.id);if(!a.error)box.insertAdjacentHTML('beforeend',recordHtml(a))}}
 function factLine(f){return `${h(f.type)}: ${h([f.value,f.date,f.place].filter(Boolean).join(' · '))}`}
 function recordHtml(a){const id=a.sha256.slice(0,12);
- let html=`<hr style="border:0;border-top:1px solid var(--line)"><p><b>Record held</b> ${h(a.filename||'')} ${a.tier?`<span class="pill">${h(a.tier)}</span>`:''}${a.collection?` <span class="mut">${h(a.collection)}</span>`:''}${a.url?` <a href="${a.url}" target="_blank">↗</a>`:''}</p>`;
+ let html=`<hr style="border:0;border-top:1px solid var(--line)"><p><b>Record held</b> ${h(a.filename||'')} ${a.tier?`<span class="pill">${h(a.tier)}</span>`:''}${a.collection?` <span class="mut">${h(a.collection)}</span>`:''}${web(a.url)?` <a href="${web(a.url)}" target="_blank" rel="noopener">↗</a>`:''}</p>`;
  if(a.candidates_text)html+=`<pre class="card-text">${h(a.candidates_text)}</pre>`;
  for(const e of a.extractions){html+=`<div class="mut">Extraction by ${h(e.extractor)}</div>`;
   for(const p of e.personas){const props=(a.proposals||[]).filter(x=>x.persona_id===p.id);
