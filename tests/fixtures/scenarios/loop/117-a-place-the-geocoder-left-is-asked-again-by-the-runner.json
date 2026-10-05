@@ -1,0 +1,67 @@
+{
+ "title": "a place string the geocoder left is asked again by the runner's opening pass",
+ "line": "a turn whose resolver the geocoder does not answer keeps the strings it left beside the catalog, whoever's they are; the next run's opening pass, before any turn and with nothing saved in the browser, asks the geocoder for them again through its cache, resolves what its answers settle, puts up a card for what they cannot, and keeps nothing more, so no person's never-answered string waits for a turn on that person",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "a turn on the man born at Worcester, the geocoder silent: the harness has no network and no answer planted",
+   "turn": {
+    "person": "I332737038183",
+    "geocoder_silent": true
+   },
+   "expect": [
+    {
+     "last": {"left": {"has": "did not answer (the harness has no network) on 5 place strings; they stay unresolved, kept beside the catalog, and the next turn or resume asks it again"}},
+     "why": "the silent geocoder named once, with the strings it left and what becomes of them"
+    },
+    {
+     "kept_places": {"is": {"len": 5, "has": "Norristown, Montgomery, Pennsylvania, United States of America"}},
+     "why": "the five strings are kept beside the catalog for the next call"
+    }
+   ]
+  },
+  {
+   "say": "the next run, starting no turn, with the geocoder's real answers for the five strings and Wikidata's items for the places they name",
+   "turns": {
+    "turns": 0,
+    "wikidata": {
+     "Q1010236": "wikidata-Q1010236-norristown.json",
+     "Q1345": "wikidata-Q1345-philadelphia.json",
+     "Q1185890": "wikidata-Q1185890-pottstown.json",
+     "Q1895826": "wikidata-Q1895826-warwick-township.json"
+    },
+    "geocoder": [
+     "nominatim-norristown-montgomery-pennsylvania-united-states.json",
+     "nominatim-philadelphia-pennsylvania-united-states.json",
+     "nominatim-pottstown-montgomery-pennsylvania-united-states.json",
+     "nominatim-warwick-bucks-pennsylvania-united-states.json",
+     "nominatim-worcester-montgomery-county-pennsylvania-united-states.json",
+     "nominatim-worcester-montgomery-pennsylvania-united-states.json",
+     "nominatim-worcester-pennsylvania-united-states.json"
+    ]
+   },
+   "expect": [
+    {
+     "last": {"printed": {"has": ["resume: nothing saved in the browser has come in", "places: 4 of 5 place string(s) resolved by the geocoder's answer", "places: 1 place string(s) the resolver could not settle, a card on the fact row for the owner"]}},
+     "why": "the opening pass asked the geocoder again for the strings kept, and says what its answers settled"
+    },
+    {
+     "place_string": {"raw": "Norristown, Montgomery, Pennsylvania, United States of America", "status": "accepted", "has_place": true},
+     "why": "a unique full match accepted, in a run that turned to nobody"
+    },
+    {
+     "place_card": {"raw": "Worcester, Montgomery County, Pennsylvania, United States of America", "status": "undecided"},
+     "why": "the one its answers cannot settle is the owner's card"
+    },
+    {
+     "kept_places": {"is": []},
+     "why": "every string was answered: none is kept"
+    }
+   ]
+  }
+ ]
+}

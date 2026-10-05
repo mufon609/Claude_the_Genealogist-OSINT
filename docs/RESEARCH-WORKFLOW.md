@@ -1581,8 +1581,9 @@ Last, this person's own pages at holders without a connector (`tools/fetches.py
 next`'s own pages, narrowed to their unrun steps) are printed under the report
 with the file name to save under and the save script's call, and the person
 waits on them: their name and the steps of those pages are kept beside the
-catalog (`<db>.turn-state.json`, one entry for each person who waits, none
-when nobody does), and the turn is over.
+catalog (`<db>.turn-state.json`, one entry for each person who waits, beside
+the place strings the geocoder left unanswered, the file gone when neither is
+there), and the turn is over.
 
 A page that comes in outside a collect (attached by hand, logged on the person
 screen) is a run on the step of a person who waits, and the next turn or resume
@@ -1600,7 +1601,13 @@ whatever has been saved (`tools/fetches.py collect` on `downloads/`,
 turns of the people who wait that it reached, running the resolver,
 `reconsider` and the plans only when a file came in; its own report names the
 files that reached nobody who waits, and with nothing saved it says who waits
-on how many pages. The turn run by hand
+on how many pages. Its resolver, and the resolver of every turn's tail, also
+asks again every place string an earlier call left unanswered, tree-wide,
+whoever's it is, through the geocoder's cache and at its rate (a resume with
+nothing saved runs the resolver for them alone), and keeps the ones the
+geocoder still does not answer: the strings a silent geocoder leaves behind a
+person whose remaining work is the owner's would otherwise wait for a turn on
+that person that the queue never gives. The turn run by hand
 has the runner's guard: a turn that fails anywhere but in its runs and its tail's
 parts stops there, what it had not committed rolled back, names its exception and
 exits with a failure status. The people who wait are kept beside the catalog in
@@ -1613,7 +1620,8 @@ the person, the date or place kept, its reason and the question id
 `tools/conclude.py reopen` gives it back by), who was created and what is
 left for the owner, in words; a source that did not answer (a connector, or
 the geocoder for the place strings) is named once, with the rows of the steps it
-was asked on or the number of strings it left, a run or a part of the tail
+was asked on or the number of strings it left (those strings kept beside the
+catalog for the next turn or resume), a run or a part of the tail
 that failed is named once with its exception, and a file left in the inbox that
 fulfils no step is named once per run, not in every report. A record the owner cites on their own word
 (`tools/cite.py`) is a fetch step on the plan a turn runs like any other;

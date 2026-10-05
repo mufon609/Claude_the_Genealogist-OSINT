@@ -25,7 +25,8 @@ turn run by hand alike; the hand-run process then exits with a failure status).
 Last, the person's own fetch list at holders with no connector (`tools/fetches.py list`, narrowed to steps on this
 person's plan that carry a link to open) is printed under the report, and the person waits on those pages: their entry
 is kept beside the database as `<db>.turn-state.json` (on the pattern of `catalog/.active-tree`; nothing here is catalog
-data), one entry for each person who waits, the file gone when nobody does. Nothing about a person who waits stops
+data), one entry for each person who waits, beside the place strings the geocoder left unanswered (below), the file gone
+when neither is there. Nothing about a person who waits stops
 anyone else's turn. The file is written whole (treelib.write_json_whole): a stop in the middle of the write leaves the
 state as it was. A collect, in any turn's tail or in `--resume`, credits each file to the people whose steps it
 reached, and finishes the turns of the people who wait that it reached: the resolver reads the strings behind their own
@@ -33,7 +34,7 @@ events beside the rest, the plan is regenerated for them, and their own report f
 and the pages they still wait on. A person whose page came in some other way (attached by hand with
 `tools/attach_inbox.py`, logged on the person screen) has a run on that step since they began to wait: the next turn or
 resume finishes their turn the same way, their report naming what those runs hold. `--resume` is that alone, with no turn of its own; the resolver, `reconsider` and the
-plans run only when a file came in. A state in the one-turn shape (a `person_id` at its top: one turn paused on its
+plans run only when a file came in, and the resolver alone when nothing came in but strings are kept for the geocoder. A state in the one-turn shape (a `person_id` at its top: one turn paused on its
 pages) is read as that person waiting on the pages the fetch list holds for them now, and written back in the shape
 above.
 
@@ -45,8 +46,10 @@ are the conflict questions it raised, the cards the rule did not take and the pa
 each (the person, the date or place kept, the rule's reason and the question id `tools/conclude.py reopen` gives it back
 by; conclude.rule_conflict_changes reads them from the audit log after the last row there when the turn began), every
 source that did not answer once, with what it was asked and what it said (a connector step logged error stays runnable,
-and a place string the geocoder did not answer stays unresolved, so the next turn asks that source again), and every run
-or part of the tail that failed, with its exception. A connector's answer no reader parses (a challenge page served in
+so the next turn asks that source again; a place string the geocoder did not answer stays unresolved and is kept beside
+the database, whoever's it is, and the resolver of every later turn's tail and of `--resume`, the runner's opening pass,
+asks the geocoder for it again through its cache and its rate until it answers), and every run or part of the tail that
+failed, with its exception. A connector's answer no reader parses (a challenge page served in
 place of the answer) is a source that did not answer, its exception named in what the source said (tools/run_step.py).
 A file left in the inbox that fulfils no step is named once per run (the runner passes the files already named,
 tools/turns.py), not in every turn's report.
@@ -68,25 +71,50 @@ RUNNER, PLANNER = "agent:run_step", "rule:plan@0.1.0"
 
 def state_path(db_path): return db_path + ".turn-state.json"
 
-def read_state(db_path):
-    """Every entry kept beside the database, of every tree: {tree_id, person_id, person, since, steps}, `since` the moment
-    the person began to wait and `steps` the steps of the pages they wait on. A state in the one-turn shape (a person_id
-    at its top) is that person's entry, since its started_at and steps None: the pages the fetch list holds for them now."""
+def read_file(db_path):
+    """What is kept beside the database, of every tree: {"waiting": the people who wait, "places": the place strings the
+    geocoder left unanswered}. A state in the one-turn shape (a person_id at its top) is that person waiting, no string kept."""
     try:
         with open(state_path(db_path), encoding="utf-8") as fh: st = json.load(fh)
     except FileNotFoundError:
-        return []
-    if "waiting" in st: return st["waiting"]
+        return {"waiting": [], "places": []}
+    if "waiting" in st or "places" in st: return {"waiting": st.get("waiting") or [], "places": st.get("places") or []}
     one = {"tree_id": st["tree_id"], "person_id": st["person_id"], "person": st.get("person")}
-    return [{**one, "since": st.get("started_at"), "steps": None}]
+    return {"waiting": [{**one, "since": st.get("started_at"), "steps": None}], "places": []}
 
-def write_state(db_path, entries):
-    """The entries kept beside the database; with none, the file is removed."""
-    if not entries:
+def write_file(db_path, waiting, places):
+    """Both lists kept beside the database, the file written whole; with neither, the file is removed."""
+    if not waiting and not places:
         try: os.remove(state_path(db_path))
         except FileNotFoundError: pass
         return
-    write_json_whole(state_path(db_path), {"waiting": entries})
+    write_json_whole(state_path(db_path), {"waiting": waiting, "places": places})
+
+def read_state(db_path):
+    """Every person who waits, of every tree: {tree_id, person_id, person, since, steps}, `since` the moment the person began
+    to wait and `steps` the steps of the pages they wait on (None for a state in the one-turn shape: the pages the fetch
+    list holds for them now)."""
+    return read_file(db_path)["waiting"]
+
+def write_state(db_path, entries):
+    """The people who wait, kept beside the database with the place strings kept there."""
+    write_file(db_path, entries, read_file(db_path)["places"])
+
+def unanswered_places(db_path, tree_id):
+    """The place strings of this tree whose geocoder request got no answer in an earlier call, as kept: {tree_id, id, raw,
+    since}."""
+    return [p for p in read_file(db_path)["places"] if p["tree_id"] == tree_id]
+
+def keep_unanswered(cx, db_path, tree_id, asked, left):
+    """The place strings this tree keeps for the geocoder after a call of the resolver: those it left unanswered now (left, ids),
+    and those kept from before that it was not asked for (`asked`, the ids it was given) and no resolver has read since. The
+    other trees' are kept as they are."""
+    f = read_file(db_path)
+    before = {p["id"]: p for p in f["places"] if p["tree_id"] == tree_id}
+    keep = [i for i in before if i not in asked] + list(left)
+    rows = {r[0]: r[1] for r in cx.execute(f"SELECT id, raw FROM place_string WHERE id IN ({','.join('?' * len(keep)) or 'NULL'}) AND resolver IS NULL AND place_id IS NULL AND status='undecided'", keep)}
+    mine = [{"tree_id": tree_id, "id": i, "raw": rows[i], "since": (before.get(i) or {}).get("since") or now()} for i in dict.fromkeys(keep) if i in rows]
+    write_file(db_path, f["waiting"], [p for p in f["places"] if p["tree_id"] != tree_id] + mine)
 
 def own_steps(cx, pid):
     """Every step on a person's plan, by id."""
@@ -221,14 +249,18 @@ def new_place_strings(cx, tree_id, people, since):
                               AND (ep.person_id IN ({marks}) OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id IN ({marks}) AND role='partner'))))
         ORDER BY ps.raw""", (since or "9999", tree_id, *people, *people)).fetchall()
 
-def resolve_places(cx, tree_id, people, since, by):
-    """The place resolver on the strings new_place_strings names: what it accepted, rejected as no place and left a card, and
-    the geocoder's silence if it did not answer (the strings it left stay unresolved, asked again by the next turn). None
-    when there is nothing to read."""
+def resolve_places(cx, tree_id, people, since, by, again=()):
+    """The place resolver on the strings new_place_strings names and on those of `again` (ids: the strings an earlier call left
+    unanswered) that no resolver has read since: what it accepted, rejected as no place and left a card, and the geocoder's
+    silence if it did not answer, with the ids of the strings it left (kept beside the database, keep_unanswered, and asked
+    again by the next call). None when there is nothing to read."""
     rows = new_place_strings(cx, tree_id, people, since)
+    marks = ",".join("?" * len(again)) or "NULL"
+    rows = sorted({r[0]: (r[0], r[1]) for r in list(rows) + cx.execute(f"SELECT id, raw FROM place_string WHERE id IN ({marks}) AND resolver IS NULL AND place_id IS NULL AND status='undecided'", list(again)).fetchall()}.values(), key=lambda r: r[1])
     if not rows: return None
     stats, report, unanswered = resolve_strings(cx, tree_id, by, rows)
-    return {"strings": len(rows), "accepted": stats["accepted"], "rejected": stats["rejected"], "cards": stats["undecided"] + stats["no_candidates"], "unanswered": unanswered}
+    left = [i for i, raw in rows if unanswered and raw in unanswered["strings"]]
+    return {"strings": len(rows), "accepted": stats["accepted"], "rejected": stats["rejected"], "cards": stats["undecided"] + stats["no_candidates"], "unanswered": unanswered, "left": left, "asked": [i for i, _ in rows]}
 
 def finish(cx, tree_id, slug, by, db, pid=None, since=None):
     """The tail: fetches.py collect, attach_inbox.py on whatever else the inbox holds, each one file per transaction (a
@@ -238,11 +270,13 @@ def finish(cx, tree_id, slug, by, db, pid=None, since=None):
     compared as placed); conclude.py reconsider; the plan regenerated for each of them. Each part guarded. The people who
     waited and wait no more, though no file of this call's reached them (a page attached by hand, or logged on the person
     screen, while they waited), are finished the same way, credited with no file. With no person of its own (a resume), the
-    resolver, reconsider and the plans run only when a file came in or such a person is there. Returns {results (every
-    file the collect and the attach took, one each), own (the files the call reports itself: those its own person's steps
-    were reached by, and those that reached nobody who waits), credited ({person id: their files}, for the people who
-    wait), ended ({person id: their entry}, those of them whose pages came in outside the call), places, recon, plans
-    ({person id: the plan's stats}), failures}."""
+    resolver, reconsider and the plans run only when a file came in or such a person is there. Every call's resolver also
+    asks again the strings an earlier call left unanswered (unanswered_places, tree-wide, through the geocoder's cache and
+    its rate), a resume with nothing else to do running the resolver for them alone; the strings it leaves unanswered are
+    kept for the next call (keep_unanswered). Returns {results (every file the collect and the attach took, one each), own
+    (the files the call reports itself: those its own person's steps were reached by, and those that reached nobody who
+    waits), credited ({person id: their files}, for the people who wait), ended ({person id: their entry}, those of them
+    whose pages came in outside the call), places, recon, plans ({person id: the plan's stats}), failures}."""
     out = {"results": [], "own": [], "credited": {}, "ended": {}, "places": None, "recon": [], "plans": {}, "failures": []}
     waiting_now = waiting(cx, db, tree_id)                          # read before the collect: a page it takes is no longer open
     who_waits = set(waiting_now) - {pid}
@@ -261,10 +295,14 @@ def finish(cx, tree_id, slug, by, db, pid=None, since=None):
     theirs = {id(r) for rs in out["credited"].values() for r in rs}
     mine = {id(r) for r in reached.get(pid, [])}
     out["own"] = [r for r in out["results"] if id(r) in mine or id(r) not in theirs]
-    if not pid and not any(not r.get("left") for r in out["results"]) and not out["ended"]: return out
+    came = bool(pid) or any(not r.get("left") for r in out["results"]) or bool(out["ended"])
+    again = [p["id"] for p in unanswered_places(db, tree_id)]
+    if not came and not again: return out
     people = ([pid] if pid else []) + list(out["credited"])
     began = min([t for t in [since] + [w.get("since") for w in out["ended"].values()] if t], default=None)        # a page that came in while they waited brought its place strings then
-    out["places"] = guarded(cx, out["failures"], "the place resolver", lambda: resolve_places(cx, tree_id, people, began, by))
+    out["places"] = guarded(cx, out["failures"], "the place resolver", lambda: resolve_places(cx, tree_id, people, began, by, again))
+    if out["places"]: keep_unanswered(cx, db, tree_id, out["places"]["asked"], out["places"]["left"])
+    if not came: return out
     out["recon"] = guarded(cx, out["failures"], "reconsider", lambda: reconsider(cx, tree_id, by)) or []
     for p in people:
         plan = lambda p=p: plan_person(cx, tree_id, p, PLANNER)
@@ -276,7 +314,7 @@ def finish(cx, tree_id, slug, by, db, pid=None, since=None):
 def places_decided_lines(places):
     """What the resolver settled for the turn, in words."""
     if not places or not (places["accepted"] or places["rejected"]): return []
-    return [f"  places: {places['accepted']} of {places['strings']} new place string(s) resolved by the geocoder's answer" + (f", {places['rejected']} set aside as no place" if places["rejected"] else "")]
+    return [f"  places: {places['accepted']} of {places['strings']} place string(s) resolved by the geocoder's answer" + (f", {places['rejected']} set aside as no place" if places["rejected"] else "")]
 
 def places_left_lines(cx, places):
     """What the resolver leaves: the cards it wrote for the owner (on the person's fact rows), and the geocoder that did not answer,
@@ -287,7 +325,7 @@ def places_left_lines(cx, places):
     if places["unanswered"]:
         n = (cx.execute("SELECT name FROM source WHERE id='N06'").fetchone() or ["OpenStreetMap Nominatim"])[0]
         k = len(places["unanswered"]["strings"])
-        out.append(f"  {n} (N06) did not answer ({places['unanswered']['said'][:200]}) on {k} place string{'s' if k != 1 else ''}; {'they stay' if k != 1 else 'it stays'} unresolved, the next turn asks it again")
+        out.append(f"  {n} (N06) did not answer ({places['unanswered']['said'][:200]}) on {k} place string{'s' if k != 1 else ''}; {'they stay' if k != 1 else 'it stays'} unresolved, kept beside the catalog, and the next turn or resume asks it again")
     return out
 
 def held_lines(conn_runs, results):
@@ -463,7 +501,9 @@ def resume_report(cx, tree_id, before_ids, tail, reported, mark, gone, db):
         pages = {e["url"] for x in w.values() for e in x["pages"]}
         said = f"{len(w)} person(s) wait on {len(pages)} page(s) to save in the browser (tools/fetches.py next)"
         out = [f"resume: nothing saved in the browser has come in; {said if w else 'nobody waits on a page to save in the browser'}"]
-        left = call_left_lines(tail["results"], [], set(), reported)
+        asked = places_decided_lines(tail["places"])                  # the strings an earlier call left unanswered, asked again
+        if asked: out += ["", "decided:"] + asked
+        left = call_left_lines(tail["results"], [], set(), reported) + places_left_lines(cx, tail["places"])
         if left: out += ["", "left:"] + left
         return "\n".join(out + gone_lines(gone))
     results = tail["own"]

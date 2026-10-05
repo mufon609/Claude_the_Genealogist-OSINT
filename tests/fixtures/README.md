@@ -373,7 +373,8 @@ under `tools/`: `awaited`, whether its code is one awaited call of an async func
 and the expectations `queue` (`first`, `named`,
 `not_named`, `passed`, `not_passed`, `reasons`: by person, or a list of `[person, pattern]` pairs for a person the rule created; the
 people who wait read as the tool reads them), `runnable`, `turn_state` (the entries of the people who wait: with `person` that person's,
-matching `is`, or none with `is` null; without, `is` null for nobody waiting), `task_run` (the `task_run` rows in the order written, matching `is`: each with its `launcher`, `steps`, `task`, `usage` and `answer` read from their JSON, `text_is_current` saying its hash is the task text's own, and `log`, the `search_log` row it names as its step's key and outcome), `turns_run` (the runner's turns in
+matching `is`, or none with `is` null; without, `is` null for nobody waiting), `task_run` (the `task_run` rows in the order written, matching `is`: each with its `launcher`, `steps`, `task`, `usage` and `answer` read from their JSON, `text_is_current` saying its hash is the task text's own, and `log`, the `search_log` row it names as its step's key and outcome), `kept_places` (the words of the place strings the geocoder left unanswered, kept beside the database for the tree, matching
+`is`), `turns_run` (the runner's turns in
 order, each `person`, `nothing_new` (no more records held after the turn than before), `failed`, `waits` (whether the person waits on pages now), its `passed` / `not_passed`, and
 `finished`, the people who waited whose turns the run finished), `locator_known`, `steps_by_collection`,
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
@@ -438,7 +439,7 @@ A holder that does not answer is simulated, a control signal and no record:
   titled "Just a moment..." saying it is the harness's stand-in for a holder's challenge page, served in place of the answer a JSON
   connector reads: every request of loop `106`'s turns.
 - The geocoder in a turn (`turn`, `turns`, `resume`) whose step says `geocoder_silent`: `loop.py` answers it from the resolver's cache
-  alone, and a query the cache lacks fails as an endpoint that does not answer, so no request is made: loop `12` (its first step,
+  alone, and a query the cache lacks fails as an endpoint that does not answer, so no request is made: loop `12` and `117` (their first step,
   the geocoder silent on purpose), `10`, `13`, `15`, `61`, `106`, `108`, `109`, `110` and `111`, whose turns read
   place strings no answer is planted for. A step that does not say it has the geocoder's answers it plants and no others, and a query
   they lack is a request, which fails the scenario.

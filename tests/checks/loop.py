@@ -478,6 +478,16 @@ def e_turn_state(w, x, want):
     if "is" in x and x["is"] is None: return mine is None, mine
     return mine is not None and has(mine, x.get("is", {})), mine
 
+def e_kept_places(w, x, want):
+    """The place strings the geocoder left unanswered, as kept beside the database for this tree (<db>.turn-state.json's
+    `places`, read from the file itself): their words, matching `is`."""
+    try:
+        with open(w.db + ".turn-state.json", encoding="utf-8") as fh: st = json.load(fh)
+    except FileNotFoundError:
+        st = {}
+    raws = sorted(p["raw"] for p in (st.get("places") or []) if p["tree_id"] == w.tid)
+    return has(raws, x["is"]), raws
+
 def e_turns_run(w, x, want):
     """The runner's count as the last turns action left it: the turns in order (each a person, whether it held nothing new,
     whether it failed, and whether the person waits on pages to save now), the people passed over this run and the people
@@ -605,7 +615,7 @@ def e_task_run(w, x, want):
         r["log"] = dict(log) if log else None
     return has(rows, w.value(x["is"])), [{k: r[k] for k in ("launcher", "task_kind", "holder_id", "model", "effort", "ended", "total_tokens", "tool_uses", "outcome", "differs", "cost_usd", "turns", "input_tokens", "output_tokens", "answer", "note", "log")} for r in rows]
 
-EXPECTS.update({"task_run": e_task_run, "queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows, "fetch_call": e_fetch_call,
+EXPECTS.update({"task_run": e_task_run, "kept_places": e_kept_places, "queue": e_queue, "runnable": e_runnable, "turn_state": e_turn_state, "turns_run": e_turns_run, "locator_known": e_locator_known, "steps_by_collection": e_steps_by_collection, "fetched_rows": e_fetched_rows, "fetch_call": e_fetch_call,
                 "place": e_place, "place_card": e_place_card, "place_group": e_place_group, "same_place": e_same_place, "event_place": e_event_place, "file_exists": e_file_exists})
 
 def check(keep, show, only=None):

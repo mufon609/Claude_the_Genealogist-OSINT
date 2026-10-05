@@ -5,8 +5,9 @@ usage: tools/turns.py [--turns N] [--detail] [--tree slug] [--db catalog/tree.db
 
 docs/RESEARCH-WORKFLOW.md §8: tools/queue.py names the next person at the edge of the confirmed tree and tools/turn.py runs
 one person's plan end to end; this runner first does what tools/turn.py --resume does (whatever has been saved in the
-browser is taken in, each file credited to the people whose steps it reached, and the turns of the people who wait that it
-reached are finished, turn.resume), then asks the queue, runs the turn with turn.py's own code (plan, every connector step,
+browser is taken in, each file credited to the people whose steps it reached, the turns of the people who wait that it
+reached are finished, and the place strings an earlier call left unanswered are asked of the geocoder again, tree-wide,
+turn.resume), then asks the queue, runs the turn with turn.py's own code (plan, every connector step,
 the standing rule's decisions, the tail of collect, attach, places, reconsider and the plan again, the pages its person
 waits on), prints the turn's report, and asks the queue again. A turn that leaves pages to save in the browser never stops
 the runner: its person waits (turn.set_waiting keeps them beside the database), the queue passes them over while every

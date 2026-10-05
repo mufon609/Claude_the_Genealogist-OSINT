@@ -17,7 +17,7 @@
     {
      "last": {
       "left": {
-       "has": "OpenStreetMap Nominatim (N06) did not answer (the harness has no network) on 5 place strings; they stay unresolved, the next turn asks it again"
+       "has": "OpenStreetMap Nominatim (N06) did not answer (the harness has no network) on 5 place strings; they stay unresolved, kept beside the catalog, and the next turn or resume asks it again"
       }
      },
      "why": "the silent source is named once, with the count of strings it left"
@@ -65,7 +65,7 @@
     {
      "last": {
       "printed": {
-       "has": "places: 4 of 5 new place string(s) resolved by the geocoder's answer"
+       "has": "places: 4 of 5 place string(s) resolved by the geocoder's answer"
       },
       "left": {
        "has": "places: 1 place string(s) the resolver could not settle, a card on the fact row for the owner"
@@ -139,7 +139,7 @@
     {
      "last": {
       "report": {
-       "has": "places: 1 of 1 new place string(s) resolved by the geocoder's answer"
+       "has": "places: 1 of 1 place string(s) resolved by the geocoder's answer"
       }
      },
      "why": "the string the record brought is resolved in the call that brought it in, though it is no string behind anyone's own events"
