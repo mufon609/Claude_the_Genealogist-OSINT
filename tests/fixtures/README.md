@@ -399,7 +399,9 @@ the catalog that no scenario reaches, each run on what it guards under a tempora
 git repository on names it must refuse (a letter beyond ASCII, a quote, a newline) and names it must pass; a catalog from before
 the `same_record` and `task_run` tables (the scratch catalog with both dropped and their versions forgotten: nothing in the harness is an
 older catalog, and the owner's backups never enter git) is migrated by `tools/initdb.py --migrate` to the code's version, and one whose
-person vitals view is another definition gets the schema's own.
+person vitals view is another definition gets the schema's own; a bag `tools/backup.py` writes under the scratch data root while a turn
+commits a record (after the objects are copied, and in the middle of the dump) holds an object for every artifact its dump has a row
+for, and no row of the dump names an artifact the dump has no row for.
 
 ## What is simulated
 

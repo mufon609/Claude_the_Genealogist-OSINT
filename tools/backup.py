@@ -15,9 +15,11 @@ verify_ok false; nothing is repaired here (docs/DATA-ARCHITECTURE.md §2: a corr
 tombstone).
 
 bag: a BagIt 1.0 bag (Library of Congress) holding archive/objects and archive/manifests under data/archive/ and the catalog
-as data/catalog/tree.sql, written from the live connection so the dump is consistent, with manifest-sha256.txt over the
-payload and tagmanifest-sha256.txt over the tag files. The bag's payload manifest is the fixity record of that copy. Every
-object is hashed again after copying; with --target the bag counts as a copy of each object on that storage target
+as data/catalog/tree.sql, with manifest-sha256.txt over the payload and tagmanifest-sha256.txt over the tag files. The dump is
+of one snapshot of the catalog (sqlite's backup, every page read at once whatever another process writes meanwhile), taken
+before the archive's objects are copied: an object is written before the row that names it, so every row of the dump has its
+object in the bag, and a turn writing while the bag is taken is in the dump whole or not at all. The bag's payload manifest
+is the fixity record of that copy. Every object is hashed again after copying; with --target the bag counts as a copy of each object on that storage target
 (a storage_target row named for the drive, kind local, uri file://<dest dir>, made when missing), so
 v_artifact_under_replicated goes quiet for objects the drive holds. A dump holds living-person data: a bag is never
 committed or shared.
@@ -66,8 +68,14 @@ def verify(cx, by, sample=None):
     return len(shas), bad
 
 def dump_sql(cx, path):
-    with open(path, "w", encoding="utf-8") as fh:
-        for line in cx.iterdump(): fh.write(line + "\n")
+    """The catalog as plain SQL at path, from a snapshot of it taken first (Connection.backup into memory: one read of every
+    page, so no table is dumped as it was before a write and another as it became after)."""
+    snap = sqlite3.connect(":memory:")
+    try:
+        cx.backup(snap)
+        with open(path, "w", encoding="utf-8") as fh:
+            for line in snap.iterdump(): fh.write(line + "\n")
+    finally: snap.close()
 
 def write_bag(cx, dest, by, target=None):
     """The bag directory written and its payload verified; returns (bag dir, objects bagged, bad objects)."""
@@ -75,10 +83,10 @@ def write_bag(cx, dest, by, target=None):
     if os.path.exists(bag): raise SystemExit(f"{bag} exists; a bag is written once, check it or bag into another directory")
     data = os.path.join(bag, "data"); os.makedirs(os.path.join(data, "catalog"))
     entries = []                                              # (relative payload path, sha256, bytes)
+    dump_sql(cx, os.path.join(data, "catalog", "tree.sql"))   # before the objects: a row of the dump never names an object the bag lacks
     for sub in ("objects", "manifests"):
         src = os.path.join(archive_dir(), sub)
         if os.path.isdir(src): shutil.copytree(src, os.path.join(data, "archive", sub))
-    dump_sql(cx, os.path.join(data, "catalog", "tree.sql"))
     for root, _, files in os.walk(data):
         for f in sorted(files):
             p = os.path.join(root, f); entries.append((os.path.relpath(p, bag).replace(os.sep, "/"), sha256_of(p), os.path.getsize(p)))

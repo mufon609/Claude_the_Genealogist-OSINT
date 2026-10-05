@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, the evidence layer,
-the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, the small guards of tests/checks/housekeeping.py hold (the person screen's links, the commit hook, the migrations of an older catalog), every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
+the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, the small guards of tests/checks/housekeeping.py hold (the person screen's links, the commit hook, the migrations of an older catalog, the backup's bag), every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
 usage: tools/check.py [--verbose] [--show] [--keep] [--scenario NAME]

@@ -8,7 +8,7 @@ shape it was written for; the bag is written under the scratch data root and rea
 a record: it walks the data under tests/fixtures/.
 """
 import json, os, re, shutil, sqlite3, subprocess, sys, tempfile
-from common import BY, FIXTURES, ROOT, TOOLS, connect, done, scratch, tool
+from common import BY, FIXTURES, ROOT, connect, run, scratch, tool
 
 def screen_links():
     """Every link the person screen builds from data goes through its `web` helper: no `href="${` outside it, and the helper,
@@ -107,13 +107,73 @@ def older_view():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+PAGES = ["va-gravesite-search-davidson-raymond-2007", "va-gravesite-search-davidson-noi", "va-gravesite-search-davidson-raymond-e",
+         "va-gravesite-search-davidson-raymond-page1"]
+
+class MidDump:
+    """The catalog's connection with a turn that writes in the middle of its dump: once the first row of `artifact` has been
+    dumped, write() runs, as another process committing a record would, and the dump goes on."""
+    def __init__(self, cx, write): self.cx, self.write, self.done = cx, write, False
+    def __getattr__(self, name): return getattr(self.cx, name)
+    def iterdump(self):
+        for line in self.cx.iterdump():
+            yield line
+            if line.startswith('INSERT INTO "artifact" ') and not self.done: self.done = True; self.write()
+
+def backup_bag():
+    """A bag written under the scratch data root is whole and consistent: its manifest verifies, every artifact row of its
+    dump has its object in the payload, and no other row of the dump names an artifact it has no row for, though a turn
+    commits a record after the objects are copied and another while the dump is written (`backup.py bag` then `check`
+    run on the same catalog as the tool is)."""
+    import re, backup
+    from treelib import archive_dir, archive_object, object_path
+    from extract import extract
+    d, db = scratch(False); bad = []
+    try:
+        def archive(name):
+            cx = connect(db)
+            with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
+            sha, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=None, locator_kind="file", locator_value=name + ".html", retrieved_by=BY, terms=None, cost="free", trust_tier=None)
+            extract(cx, sha, BY); cx.commit(); cx.close()
+            return sha
+        held = [archive(n) for n in PAGES[:2]]
+        cx = connect(db); drive = os.path.join(d, "drive"); os.makedirs(drive)
+        real = shutil.copytree
+        def copytree(src, dst, *a, **k):
+            out = real(src, dst, *a, **k)
+            if not hasattr(copytree, "late"): copytree.late = archive(PAGES[2])      # a record committed after the objects were copied
+            return out
+        backup.shutil.copytree = copytree
+        try: bag, n, bad_objects = backup.write_bag(MidDump(cx, lambda: archive(PAGES[3])), drive, BY)
+        finally: backup.shutil.copytree = real
+        if bad_objects: bad.append(f"the bag holds altered objects: {bad_objects}")
+        checked, broken = backup.check_bag(bag)
+        if broken: bad.append(f"the bag's manifest does not verify: {broken}")
+        with open(os.path.join(bag, "data", "catalog", "tree.sql"), encoding="utf-8") as fh: sql = fh.read()
+        rows = lambda table, before=0: re.findall(rf"""^INSERT INTO "{table}" VALUES\({"'[^']*'," * before}'([0-9a-f]{{64}})'""", sql, re.M)   # the sha256 in a column, `before` columns in
+        dumped = set(rows("artifact"))
+        if not set(held) <= dumped: bad.append(f"the dump lacks artifact rows the catalog held before the bag: {sorted(set(held) - dumped)}")
+        for sha in sorted(dumped):
+            if not os.path.isfile(os.path.join(bag, "data", "archive", os.path.relpath(object_path(sha), archive_dir()))): bad.append(f"the dump has a row for artifact {sha[:12]} and the bag has no object for it")
+        for table, before in (("extraction", 1), ("artifact_copy", 0)):
+            bad += [f"the dump has a {table} row for artifact {sha[:12]} and no artifact row for it" for sha in sorted(set(rows(table, before)) - dumped)]
+        r = run(tool("backup.py"), "bag", os.path.join(d, "second"), "--db", db)
+        second = r.split(":")[0]
+        if " 0 bad" not in r: bad.append(f"backup.py bag said: {r.strip()}")
+        r = run(tool("backup.py"), "check", second, "--db", db)
+        if " 0 bad" not in r: bad.append(f"backup.py check said: {r.strip()}")
+        cx.close()
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 def check(keep, show):
     """Each guard as one line: ok when it holds, FAIL with every reason when it does not. Returns how many failed."""
     failed = 0
     for fn, says in ((screen_links, "the person screen writes a URL into a link only through its `web` helper, which keeps a web address, escaped, and drops any other scheme"),
                     (commit_hook, "the commit hook refuses data by the name git stages it under (a letter beyond ASCII, a quote, a newline) and passes the harness's own .ged and the .gitkeep files; .gitignore keeps every .ged but the harness's, and the owner's own .claude settings, out of `git add`"),
                     (older_catalog, "a catalog from before the same_record and task_run tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply"),
-                    (older_view, "a catalog whose person vitals view is another definition gets the schema's own from the 0.8.4 migration")):
+                    (older_view, "a catalog whose person vitals view is another definition gets the schema's own from the 0.8.4 migration"),
+                    (backup_bag, "a bag written while a turn commits is whole and consistent: its manifest verifies, every artifact row of its catalog dump has its object in the payload, and no row of the dump names an artifact it has no row for")):
         bad = fn(); failed += bool(bad)
         print(f"ok   {says}" if not bad else f"FAIL {fn.__name__}: " + "; ".join(bad))
     return failed
