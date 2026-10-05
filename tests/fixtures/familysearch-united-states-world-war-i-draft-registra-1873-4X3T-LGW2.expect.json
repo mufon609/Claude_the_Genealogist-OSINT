@@ -1,0 +1,35 @@
+{
+ "archive": {
+  "mime": "text/html",
+  "source": "D03",
+  "locator": {
+   "kind": "ark",
+   "value": "ark:/61903/1:1:4X3T-LGW2"
+  }
+ },
+ "extractor": "familysearch-record",
+ "personas": 2,
+ "sequence": {
+  "1": {
+   "name": "James Joseph Ahearn",
+   "role": "subject",
+   "sex": "M",
+   "facts": [
+    {
+     "type": "Birth",
+     "date": "25 May 1873"
+    },
+    {
+     "type": "Race",
+     "value": "White"
+    }
+   ],
+   "why": "the registrant's own card: his name, sex and date of birth as the index gives them"
+  },
+  "2": {
+   "name": "Francis Ahearn",
+   "role": "",
+   "why": "the one person the page lists under the registrant's extended family, with no word for what he is to him"
+  }
+ }
+}

@@ -1,13 +1,11 @@
 {
  "title": "a page the model saved is taken by collect, and the report and the finding agree",
- "line": "the session's launcher on a page a model saved in the owner's browser into the data root's downloads/: the session's real report (the subagent answered saved with the script's ok line) and the page it saved, as the browser left it with its key: collect takes it, the outcome is what the attach made of it, the row carries the session's measures, names the run logged and is not marked as differing",
+ "line": "the session's launcher on the first page a model saved into the data root's downloads/, as it happened: the step as the live plan held it, the session's real report (the subagent answered saved with the script's ok line; 8895 tokens, 5 tool uses, 26788 ms) and the page it saved, as the browser left it with its key: collect takes it by its own identity, the outcome is the card the attach made of it, the row carries the session's measures, names the run logged and is not marked as differing",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
   "plan": true
  },
- "awaits": "task-session-report-saved.json",
- "capture": "with the owner present and the browser saving into the data root's downloads/: the tree-fetch skill, its report kept with python3 tools/run_task.py done --out tests/fixtures/task-session-report-saved.json, and the page it saved copied beside it from the archive",
  "steps": [
   {
    "say": "the lead the live plan held for James Joseph Ahearn's draft registration record, written as the owner's catalog holds it",
@@ -77,6 +75,25 @@
    },
    "expect": [
     {
+     "last": {
+      "launcher": "session",
+      "outcome": "card",
+      "differs": null,
+      "printed": {
+       "has": "card (the session launcher ended completed, 5 tool use(s), 8895 tokens, 26788 ms, no cost reported; the model reported saved)"
+      },
+      "state": {
+       "opened": {
+        "task": {
+         "link": "https://www.familysearch.org/ark:/61903/1:1:4X3T-LGW2?lang=en",
+         "file": "familysearch-united-states-world-war-i-draft-registra-1873-4X3T-LGW2.html"
+        }
+       }
+      }
+     },
+     "why": "the task handed out is the one the run was given, and the line printed is the live run's own but for its ids"
+    },
+    {
      "task_run": {
       "is": [
        {
@@ -85,25 +102,30 @@
         "model": "haiku",
         "effort": "low",
         "ended": "completed",
-        "outcome": {
-         "in": [
-          "read",
-          "card",
-          "taken"
-         ]
-        },
+        "outcome": "card",
         "differs": false,
         "cost_usd": null,
         "turns": null,
         "answer": {
          "status": "saved",
-         "line": {
-          "starts": "ok fs-record "
-         }
+         "line": "ok fs-record 128020B"
         },
         "log": {
          "outcome": "found",
          "step_key": "fetch:row:ark:/61903/1:1:4X3T-LGW2"
+        },
+        "total_tokens": 8895,
+        "tool_uses": 5,
+        "duration_ms": 26788,
+        "input_tokens": null,
+        "output_tokens": null,
+        "denials": null,
+        "text_is_current": true,
+        "note": {
+         "has": [
+          "ark ark:/61903/1:1:4X3T-LGW2",
+          "artifact f3f439c2796d"
+         ]
         }
        }
       ]
