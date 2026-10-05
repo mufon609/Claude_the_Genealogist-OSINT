@@ -1,6 +1,6 @@
 {
  "title": "a birthplace the rule keeps once its words are answered",
- "line": "the Massachusetts birth register's Northampton, the record of the birth itself, against the 1940 census's Pennsylvania, secondary information an informant gave: the classes favour the register without doubt, but a place is kept only as a place, so the rule waits on the owner's answer to the register's words and says so; once the words are answered, reconsider resolves the birthplace for Northampton, the event's place is the register's, the census's Pennsylvania stays as the census says it, and the written conclusion prints the resolution with its reason",
+ "line": "the Massachusetts birth register's Northampton, the record of the birth itself, against the 1940 census's Pennsylvania, secondary information an informant gave: the classes favour the register without doubt, but a place is kept only as a place, so the rule waits on the owner's answer to the register's words and says so; the owner's answer to the words lets the rule go over the conflicts there and then, and its own answer says the rule resolved the birthplace for Northampton, the event's place the register's, the census's Pennsylvania staying as the census says it; reconsider keeps it, and the written conclusion prints the resolution with its reason",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -105,41 +105,15 @@
    },
    "expect": [
     {
-     "conflict_rule": {
-      "person": "I332737037257",
-      "type": "Birth",
-      "axis": "place",
-      "taken": true,
-      "why": {
+     "last": {
+      "summary": {
        "has": [
-        "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand, Northampton, Hampshire, Massachusetts, United States (derivative, primary, direct)",
-        "Pennsylvania rests only on secondary information (the 1940 census schedule"
+        "the rule resolved Frederick Michael Ahearn's birth place, kept Northampton, Hampshire, Massachusetts, United States: the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand",
+        "(to take it back: tools/conclude.py reopen "
        ]
       }
      },
-     "why": "the words answered, the rule would now keep the register's place"
-    }
-   ]
-  },
-  {
-   "say": "reconsider resolves the birthplace for the register's Northampton",
-   "reconsider": {},
-   "expect": [
-    {
-     "last": {
-      "rows": {
-       "some": {
-        "kind": "conflict",
-        "taken": true,
-        "detail": {
-         "has": "birth place:"
-        },
-        "why": {
-         "starts": "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand"
-        }
-       }
-      }
-     }
+     "why": "the answer on the words changes the evidence the conflict is read on: the rule resolves it inside that decision, and the decision's own answer says so"
     },
     {
      "event": {
@@ -172,6 +146,41 @@
       "record": "c40",
       "rejected": 0
      }
+    }
+   ],
+   "say": "the owner's answer on the words: the rule goes over the father's conflicts there and then, and resolves the birthplace for the register's Northampton"
+  },
+  {
+   "say": "reconsider examines the resolution again: it holds",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "resolution",
+        "kept": true,
+        "detail": {
+         "has": "birth place:"
+        }
+       }
+      }
+     }
+    },
+    {
+     "conflict_rule": {
+      "person": "I332737037257",
+      "type": "Birth",
+      "axis": "place",
+      "taken": true,
+      "why": {
+       "has": [
+        "the birth register (Massachusetts, State Vital Records, 1638-1927) states the birth first-hand, Northampton, Hampshire, Massachusetts, United States (derivative, primary, direct)",
+        "Pennsylvania rests only on secondary information (the 1940 census schedule"
+       ]
+      }
+     },
+     "why": "the rule's own reading keeps the register's place"
     }
    ]
   },

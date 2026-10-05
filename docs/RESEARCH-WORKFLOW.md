@@ -1371,11 +1371,17 @@ row names the value kept, the event's value before and every statement set
 aside, and each statement stays as its record says it. The same
 difference read afterwards from the kept side is closed with it, so a
 regeneration reopens nothing, while a statement that comes later makes a
-question of its own. Every decision that changes a person's evidence
-regenerates the plan and then lets the rule go over the person's conflicts, as
-`reconsider` does for everyone, and then matches the person's undecided cards
-again (§5–7: the matcher's words as they now read, or the card superseded when
-the matcher no longer puts the persona to them). The rule resolves through the same path,
+question of its own. Every decision that changes a person's evidence (a card,
+a key fact, one statement, a place's words, a conflict resolved or reopened, a
+statement placed, a link or a divorce on the owner's word, a merge) regenerates
+the plans of the people it changes and then lets the rule go over their
+conflicts, as `reconsider` does for everyone, and then matches their undecided
+cards again (§5–7: the matcher's words as they now read, or the card superseded
+when the matcher no longer puts the persona to them), in the decision itself,
+whichever command or screen takes it (`conclude.settle_people`): a resolution of
+the rule's resting on a statement the owner has just rejected is taken back
+there and then, never left for the next `reconsider`, while a date or place the
+owner has resolved or reopened stays theirs. The rule resolves through the same path,
 recorded as `rule:classes-favour-one-side for <owner>`, when the classes favour
 one side without doubt (`conclude.classes_decide`): the statement it keeps
 holds the event first-hand (primary information, accepted, from a record whose

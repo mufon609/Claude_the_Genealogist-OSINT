@@ -34,7 +34,8 @@ again (rematch): one an older matcher wrote (the matcher is versioned, match.MAT
 read again since, and one the matcher would no longer put to that person as the person's evidence now stands close as
 superseded, and their records' current readings are matched again, the matcher proposing the personas afresh as it
 stands; a card it still puts to the same person keeps its id and takes the matcher's words as they now read. Every
-decision that changes a person's evidence matches that person's cards again the same way as it is taken (rematch_people:
+decision that changes a person's evidence, as it is taken and whichever command or screen takes it, regenerates the plans
+of the people it changes, lets the rule go over their conflicts and matches their cards again the same way (settle_people:
 a card, a key fact, one statement, a place's words, a resolution or a reopen, a placement, a link, a divorce, a merge).
 
 The rule decides a conflict on an event's date or place when the classes favour one side without doubt (classes_decide,
@@ -71,6 +72,9 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - rematch, rematch_people: the undecided cards the evidence has passed by matched again, for everyone (reconsider) or for the
   people a decision changed: closed as superseded and their records matched again, or their rationale the matcher's words as
   they now read.
+- settle_people: what every decision that changes a person's evidence does inside the function that takes it, once the
+  plans are regenerated: the rule over those people's conflicts (rule_conflicts), then their cards matched again
+  (rematch_people); decide_assertion, one statement decided on its own; statement_people, the people statements are about.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
   id, else its role, row and name), never to another row of the same name.
@@ -89,7 +93,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 - place: the owner's answer to Catalog.unplaced, a record's fact written onto the event the owner means.
 - fold, fold_plan: a person's or a family's events of one type that are one event folded into one, as a merge and tools/initdb.py's migration of an older catalog fold them.
 - resolve: the answer to a conflict question, the statement whose date or place the event keeps, with the reason: the owner's,
-  or the rule's (rule_conflicts, classes_decide); take_back and reopen: a resolution of the rule's taken back.
+  or the rule's (rule_conflicts, classes_decide, which write it through write_resolution and settle nothing more); take_back
+  and reopen: a resolution of the rule's taken back.
 """
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -724,8 +729,7 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
         if settle and touched and not dry_run:
             for pid, prop in touched.items():
                 answer_questions(cx, tree_id, pid, prop, by)
-            rule_conflicts(cx, tree_id, by, people=list(touched))
-            rematch_people(cx, tree_id, by, list(touched))
+            settle_people(cx, tree_id, by, list(touched))
     return rows
 
 def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
@@ -920,7 +924,8 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     for the audit trail. Refused when the persona fact does not exist or its persona is not accepted to a person, the event
     is not this tree's, is of another type than the fact or belongs to another person or family, or the fact's statement is
     already on it. One audit row per change; the plans of the person, and of the other partner on a family's event, are
-    regenerated. Returns what was written, or an error."""
+    regenerated, then the rule goes over their conflicts and their cards are matched again (settle_people). Returns what was
+    written, the rule's rows on the conflicts and the cards matched again, or an error."""
     q = _q(cx)
     ts = now()
     cat = Catalog(cx, tree_id)
@@ -1041,6 +1046,7 @@ def place(cx, tree_id, pf_id, event_id, by, note):
             )
         for p_ in people:
             plan_person(cx, tree_id, p_, by)
+        conflicts, rematched = settle_people(cx, tree_id, by, people)
         return {
             "ok": True,
             "assertion": had["id"],
@@ -1048,7 +1054,9 @@ def place(cx, tree_id, pf_id, event_id, by, note):
             "person": person_id,
             "event": event_id,
             "moved_from": had["subject_id"],
-            "retired": retired
+            "retired": retired,
+            "conflicts": conflicts,
+            "rematched": rematched
         }
     cite, status = _citation(cx, pf["artifact_sha256"])
     aid = ulid()
@@ -1072,7 +1080,16 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     )
     for p_ in people:
         plan_person(cx, tree_id, p_, by)
-    return {"ok": True, "assertion": aid, "status": status, "person": person_id, "event": event_id}
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    return {
+        "ok": True,
+        "assertion": aid,
+        "status": status,
+        "person": person_id,
+        "event": event_id,
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
 
 def shown_married(cx, tree_id, person_id, sha, written, canon_surname):
     """Whether the record shows this person married under `written`'s own surname: a wife under her husband's surname (the
@@ -1618,9 +1635,10 @@ def decide_place(cx, tree_id, p, status, by, note, choice, kind=None, alone=Fals
     group is decided alike by decide_place_string, accepted to the place the choice names on its own card (found by the
     candidate, not its number) or rejected with the same reason, each with its own audit row. kind classifies how the string
     answered on differs from the place's own name; the others' variant_kind is left unclassified. alone decides this card's
-    string only. Then the cards of the people whose facts carry the words are matched again (rematch_people). Returns the
-    answer on this card with `also` the answers on the others, a summary of all and `rematched`, or an error, in which case
-    the caller rolls back what was written."""
+    string only. Then the plans of the people whose facts carry the words (both partners for a family's event) are regenerated,
+    the rule goes over their conflicts and their cards are matched again (settle_people). Returns the answer on this card
+    with `also` the answers on the others, a summary of all with the rule's decisions on conflicts told in words
+    (rule_conflict_line), `conflicts` and `rematched`, or an error, in which case the caller rolls back what was written."""
     from resolve_places import candidate_key, place_groups
     others = [] if alone else [g for g in place_groups(cx, tree_id).get(p["id"], []) if g["proposal"] != p["id"]]
     first = decide_place_string(cx, tree_id, p, status, by, note, choice, kind)
@@ -1655,12 +1673,25 @@ def decide_place(cx, tree_id, p, status, by, note, choice, kind=None, alone=Fals
             ) + f" (the same question put {len(also) + 1} ways, answered alike)"
         }
     events = [e for r in [first] + also for e in r["event_ids"]]
-    people = [
-        r["person_id"]
-        for e in events
-        for r in q.execute("SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL", (e,))
-    ]
-    return {**first, "rematched": rematch_people(cx, tree_id, by, people)}
+    people = list(
+        dict.fromkeys(
+            r[0]
+            for e in events
+            for r in q.execute("""SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL
+                                  UNION SELECT fm.person_id FROM event_participant ep JOIN family_member fm ON fm.family_id=ep.family_id AND fm.role='partner'
+                                  WHERE ep.event_id=?""", (e, e))
+        )
+    )
+    for pid in people:
+        plan_person(cx, tree_id, pid, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    told = [rule_conflict_line(x) for x in rule_conflict_decisions(conflicts)]
+    return {
+        **first,
+        "summary": "; ".join([first["summary"]] + told),
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
 
 def decide_place_string(cx, tree_id, p, status, by, note, choice, kind=None):
     """The owner's answer on a place string the resolver left undecided (a place_resolution proposal): which real place its
@@ -1963,10 +1994,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
             )
         )
     )
-    # the conflicts the decision opened or changed, and the rule's own resolutions that rest on what it changed
-    conflicts = rule_conflicts(cx, tree_id, by, people=people)
-    # the cards these people's evidence has passed by: matched again
-    rematched = rematch_people(cx, tree_id, by, people)
+    # the conflicts the decision opened or changed, the rule's own resolutions that rest on what it changed, and the cards
+    # these people's evidence has passed by
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
     # the record's other personas come up next, against this person's relatives, on the current reading of the record
     if status == "accepted":
         eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
@@ -2398,9 +2428,7 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
             people.setdefault(pp["person_id"], pp["proposal_id"])
     for pid, prop in people.items():
         answer_questions(cx, tree_id, pid, prop, by)
-    if people:
-        rule_conflicts(cx, tree_id, by, people=list(people))
-        rematch_people(cx, tree_id, by, list(people))
+    settle_people(cx, tree_id, by, list(people))
     # the copy given back is matched again for the people it was given back from: its entry a card for the owner, or the rule's
     for sha in dict.fromkeys(b_["copy"] for b_ in back):
         match_record(
@@ -3214,8 +3242,10 @@ def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
     carries one Accepted assertion on the artifact, vouched, the owner's own decision on it (person_decided), with the owner's reason; a marriage the record dates becomes the
     family's Marriage event with the same assertion. kind is 'spouse' (other is the spouse) or 'child' (other is one parent
     or a list of both): the child joins the family that pairs the named parents; a parent with several families needs both
-    named; a family made here for two parents asserts their partnership on the same word. Refused for a person merged into
-    another (merged_refusal). Returns the family id."""
+    named; a family made here for two parents asserts their partnership on the same word. Then the plans of the family's
+    people are regenerated, the rule goes over their conflicts and their cards are matched again (settle_people). Refused for
+    a person merged into another (merged_refusal). Returns the family id, its people, the rule's rows on the conflicts and
+    the cards matched again."""
     q = _q(cx)
     ts = now()
     if refused := merged_refusal(cx, [pid] + (list(other) if isinstance(other, (list, tuple)) else [other])):
@@ -3314,14 +3344,20 @@ def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
             )
         )
     )
-    return fid
+    people = [r[0] for r in q.execute("SELECT DISTINCT person_id FROM family_member WHERE family_id=?", (fid,))]
+    for p_ in people:
+        plan_person(cx, tree_id, p_, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    return {"family": fid, "people": people, "conflicts": conflicts, "rematched": rematched}
 
 def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
     """The couple's family gets a Divorce event, dated as the records allow ("BET 1950 AND 1959"), with one Accepted assertion per
     piece of evidence the owner names: (artifact sha, persona_fact id or None, citation words), each the owner's own decision on
     it (person_decided). A divorced couple stays a family in
-    the tree, so the children keep both parents; the event is what the screen shows between the two lines. Refused for a
-    person merged into another (merged_refusal)."""
+    the tree, so the children keep both parents; the event is what the screen shows between the two lines. Then the two
+    people's plans are regenerated, the rule goes over their conflicts and their cards are matched again (settle_people).
+    Refused for a person merged into another (merged_refusal). Returns the event id, the rule's rows on the conflicts and the
+    cards matched again."""
     q = _q(cx)
     ts = now()
     if refused := merged_refusal(cx, [a, b]):
@@ -3348,7 +3384,10 @@ def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
         "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
         (ulid(), tree_id, ts, by, "accept", "event", eid, dumps({"divorce": [a, b], "date": date_text, "note": note}))
     )
-    return eid
+    for p_ in (a, b):
+        plan_person(cx, tree_id, p_, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, [a, b])
+    return {"event": eid, "conflicts": conflicts, "rematched": rematched}
 
 def _fold_event(q, eid, into, moved):
     """An event's statements and notes moved onto another of the same owner and type, their statuses unchanged; a statement
@@ -3669,7 +3708,9 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
     person (_repoint_proposals), the kept person's events folded as a merge folds them (fold), each folded event's
     participant returned to the duplicate's row (_back_to); the kept person's partner families with the same partners folded
     into the earliest (_fold_family), and that family's events folded the same way. Nothing else moves, and a merge already
-    complete changes nothing. One audit row. Returns what moved and folded."""
+    complete changes nothing. One audit row; then the kept person's plan is regenerated, the rule goes over their conflicts
+    and their cards are matched again (settle_people). Returns what moved and folded, the rule's rows on the conflicts and
+    the cards matched again."""
     q = _q(cx)
     ts = now()
     moved = {
@@ -3714,7 +3755,16 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
             dumps({"merge_completed": kept_id, "note": note, **moved})
         )
     )
-    return {"duplicate": dup_id, "kept": kept_id, "completed": True, **moved}
+    plan_person(cx, tree_id, kept_id, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, [kept_id])
+    return {
+        "duplicate": dup_id,
+        "kept": kept_id,
+        "completed": True,
+        **moved,
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
 
 def merge(cx, tree_id, dup_id, kept_id, by, note):
     """Close a duplicate_person question (RESEARCH-WORKFLOW §2; the worked example's "merging the two Thomas entries closes
@@ -3737,8 +3787,9 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     then exactly the kept person's own family's partners is folded the same way: its children's memberships and its own
     events move to that family, its partner memberships and their assertions fold onto the kept family's own, the family's
     events that are then one event fold too, and the duplicate's family row is left emptied, with the duplicate, for the
-    audit trail (a child of both joins the kept family's own membership). A pair already merged is completed instead
-    (complete_merge). Returns what moved."""
+    audit trail (a child of both joins the kept family's own membership). Then the kept person's plan is regenerated, the
+    rule goes over their conflicts and their cards are matched again (settle_people). A pair already merged is completed
+    instead (complete_merge). Returns what moved, the rule's rows on the conflicts and the cards matched again."""
     q = _q(cx)
     dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
     kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
@@ -3921,12 +3972,26 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
             dumps({"merged_into": kept_id, "proposal": prop_id, "note": note, **moved})
         )
     )
-    return {"proposal": prop_id, "duplicate": dup_id, "kept": kept_id, **moved}
+    plan_person(cx, tree_id, kept_id, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, [kept_id])
+    return {"proposal": prop_id, "duplicate": dup_id, "kept": kept_id, **moved, "conflicts": conflicts, "rematched": rematched}
 
 # a conflict line's own opening: the event type, lowercased, and the axis (Catalog.disagreements)
 CONFLICT_AXIS = re.compile(r"^(.+?) (date|place): ")
 
 def resolve(cx, tree_id, qid, keep, by, note):
+    """A conflict question closed with a written reason naming the value kept, by the owner or by the rule acting for them
+    (write_resolution); then the rule goes over the conflicts of the people the resolution was about and their cards are
+    matched again (settle_people), the owner's word on this date or place standing above the rule from then on
+    (owner_decided). Returns what write_resolution did with the rule's rows on the conflicts and the cards matched again,
+    or an error."""
+    out = write_resolution(cx, tree_id, qid, keep, by, note)
+    if "error" in out:
+        return out
+    conflicts, rematched = settle_people(cx, tree_id, by, out["people"])
+    return {**out, "conflicts": conflicts, "rematched": rematched}
+
+def write_resolution(cx, tree_id, qid, keep, by, note):
     """A conflict question closed with a written reason naming the value kept (docs/RESEARCH-WORKFLOW.md, the proof
     standard), by the owner, or by the rule acting for them (rule_conflicts, the reason its own words): the kept statement's
     date, or its place, becomes the event's own value (the event row's date fields, or its place_id), the question closes
@@ -3939,7 +4004,8 @@ def resolve(cx, tree_id, qid, keep, by, note):
     own. The owner resolving a question the rule resolved overrides the rule: the rule's resolution is taken back first
     (take_back), and nothing changes should the owner's be refused. Refused when the note is empty, the question is not an
     open conflict about an event's date or place, the statement is rejected, is not on the event the question is about, or
-    gives no value on that axis, or the place it gives is not yet resolved to a place. Returns what was done, or an error."""
+    gives no value on that axis, or the place it gives is not yet resolved to a place. Returns what was done, the people it
+    was about among it, or an error."""
     from plan import q_key
     q = _q(cx)
     ts = now()
@@ -3957,7 +4023,7 @@ def resolve(cx, tree_id, qid, keep, by, note):
             (qid, primary, qid)
         ).fetchone()
         out = (
-            resolve(cx, tree_id, reopened["id"], keep, by, note)
+            write_resolution(cx, tree_id, reopened["id"], keep, by, note)
             if reopened
             else {
                 "error": "the rule's resolution is taken back, but the difference no longer reads as this question: resolve the question the plan now holds"
@@ -4132,7 +4198,8 @@ def resolve(cx, tree_id, qid, keep, by, note):
         "kept": resolution["kept"],
         "set_aside": set_aside,
         "was": was,
-        "questions_closed": closed
+        "questions_closed": closed,
+        "people": list(dict.fromkeys(people))
     }
 
 # the source classes the record of the event itself is read from: its own image, or an index or transcript of it
@@ -4407,15 +4474,25 @@ def reopen(cx, tree_id, qid, by, note):
     """The owner reopens a conflict the rule resolved: taken back (take_back, reopened), the event's value back to what it was
     and the question open again, the owner's from now on; the rule never resolves that event's date or place again. Refused
     when the note is empty or the question is not one the rule resolved (the owner's own resolution stands as written).
-    Returns what was done, or an error."""
+    Then the rule goes over the conflicts of the people the questions set back are about, which leaves this date or place
+    to the owner (owner_decided), and their cards are matched again (settle_people). Returns what was done, the rule's rows
+    on the conflicts and the cards matched again, or an error."""
+    q = _q(cx)
     if not (note or "").strip():
         return {"error": "a reopen needs your written reason (--note)"}
-    rq = _q(cx).execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
+    rq = q.execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
     res = rule_resolution(rq)
     if not res:
         return {"error": "not a conflict the rule resolved"}
     ids = take_back(cx, tree_id, qid, by, note, now(), reopened=True)
-    st = _q(cx).execute("SELECT status FROM research_question WHERE id=?", (res.get("question") or qid,)).fetchone()
+    people = [rq["subject_person_id"]] + ([
+        r[0]
+        for r in q.execute(
+            f"SELECT subject_person_id FROM research_question WHERE id IN ({','.join('?' * len(ids))})", ids
+        )
+    ] if ids else [])
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    st = q.execute("SELECT status FROM research_question WHERE id=?", (res.get("question") or qid,)).fetchone()
     return {
         "ok": True,
         "question": res.get("question") or qid,
@@ -4423,7 +4500,9 @@ def reopen(cx, tree_id, qid, by, note):
         "axis": res["axis"],
         "restored": res["was"],
         "questions": ids,
-        "open": bool(st and st["status"] == "open")
+        "open": bool(st and st["status"] == "open"),
+        "conflicts": conflicts,
+        "rematched": rematched
     }
 
 def rule_conflict_decisions(rows):
@@ -4487,10 +4566,11 @@ def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
     when people is None). First every conflict it resolved, examined again as it stands now, newest first on each event's
     date or place: one it would no longer resolve so (classes_decide keeps nothing, or a value on another side) is taken
     back (take_back), the event's value back to what it was; one the owner has spoken on since is left as it is. Then every
-    open conflict on an event's date or place: where classes_decide keeps a statement it is resolved through resolve, the
-    owner's own path, the rule's reason as the note; every other stays the owner's with the reason the rule left it. A person
-    whose open conflict questions no longer read as the catalog does is planned again first, so the question resolved is
-    the one the catalog gives; dry_run writes nothing and reads the catalog's own lines instead. Returns one row per
+    open conflict on an event's date or place: where classes_decide keeps a statement it is resolved through
+    write_resolution, the owner's own path, the rule's reason as the note; every other stays the owner's with the reason the
+    rule left it. A person whose open conflict questions no longer read as the catalog does is planned again first, so the
+    question resolved is the one the catalog gives; dry_run writes nothing and reads the catalog's own lines instead.
+    Returns one row per
     resolution examined (kind resolution: kept, why) and per conflict decided or left (kind conflict: taken, why), each
     with the person, the question, its line and the date or place kept (value; none for a conflict left, or one a dry run
     would resolve); known, the questions the rule had resolved before a run that decides cards first (reconsider), makes a
@@ -4616,7 +4696,7 @@ def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
             taken = keep is not None
             value = None
             if taken and not dry_run:
-                r = resolve(cx, tree_id, qid, keep, actor, why)
+                r = write_resolution(cx, tree_id, qid, keep, actor, why)
                 if "error" in r:
                     taken, why = False, r["error"]
                 else:
@@ -5079,6 +5159,92 @@ def rematch_people(cx, tree_id, by, people):
     owner = by.split(" for ", 1)[-1] if by.startswith("rule:") else by
     return rematch(cx, tree_id, owner, now(), people=[p for p in dict.fromkeys(people) if p])[0]
 
+def settle_people(cx, tree_id, by, people):
+    """What follows every decision that changes these people's evidence once their plans are regenerated
+    (docs/RESEARCH-WORKFLOW.md §5–7), whichever command or screen took it: the rule goes over their conflicts
+    (rule_conflicts: its own resolutions there examined again, each open conflict on an event's date or place decided where
+    the classes favour one side without doubt, a date or place the owner has resolved, dismissed or reopened left to them),
+    then their undecided cards are matched again (rematch_people). Returns (the rule's rows on the conflicts, the rows of
+    the cards matched again)."""
+    people = [p for p in dict.fromkeys(people) if p]
+    if not people:
+        return [], []
+    conflicts = rule_conflicts(cx, tree_id, by, people=people)
+    return conflicts, rematch_people(cx, tree_id, by, people)
+
+def statement_people(cx, ids):
+    """The people statements are about, each once: the participants of a statement's event (both partners of a family's
+    event), the person it asserts, the member whose family membership it states."""
+    q = _q(cx)
+    out = []
+    for kind, sid in q.execute(
+        f"SELECT subject_kind, subject_id FROM assertion WHERE id IN ({','.join('?' * len(ids))})", list(ids)
+    ).fetchall() if ids else []:
+        if kind == "event":
+            out += [r[0] for r in q.execute("""SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL
+                                               UNION SELECT fm.person_id FROM event_participant ep JOIN family_member fm ON fm.family_id=ep.family_id AND fm.role='partner'
+                                               WHERE ep.event_id=?""", (sid, sid))]
+        elif kind == "person":
+            out.append(sid)
+        elif kind == "family_member":
+            out.append(json.loads(sid)[1])
+    return list(dict.fromkeys(out))
+
+def decide_assertion(cx, tree_id, aid, status, by, note):
+    """One statement of one record decided on its own (tools/conclude.py assertion): its status set, the person's own decision
+    on it (person_decided), one audit row; the plans of the people it is about regenerated, then the rule goes over their
+    conflicts and their cards are matched again (settle_people). Returns what was done, the rule's rows on the conflicts and the
+    cards matched again, or an error."""
+    q = _q(cx)
+    row = q.execute(
+        "SELECT id, subject_kind, subject_id, status, citation_text FROM assertion WHERE id=? AND tree_id=?",
+        (aid, tree_id)
+    ).fetchone()
+    if not row:
+        return {"error": "no such assertion in this tree"}
+    if status not in ("accepted", "rejected", "undecided"):
+        return {"error": "bad status"}
+    ts = now()
+    q.execute(
+        "UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, person_decided=TRUE WHERE id=?",
+        (status, by, ts, row["id"])
+    )
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            ulid(),
+            tree_id,
+            ts,
+            by,
+            {"accepted": "accept", "rejected": "reject", "undecided": "update"}[status],
+            "assertion",
+            row["id"],
+            dumps({"was": row["status"], "now": status, "subject": [row["subject_kind"], row["subject_id"]], "note": note})
+        )
+    )
+    people = statement_people(cx, [row["id"]])
+    for pid in people:
+        plan_person(cx, tree_id, pid, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    return {
+        "ok": True,
+        "assertion": row["id"],
+        "subject_kind": row["subject_kind"],
+        "citation": row["citation_text"],
+        "was": row["status"],
+        "status": status,
+        "people": people,
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
+
+def settled_lines(res):
+    """What followed a decision, one line each, as the command line tells it: each decision of the rule on a conflict
+    (rule_conflict_line), then each card it superseded (superseded_lines)."""
+    return [rule_conflict_line(x) for x in rule_conflict_decisions(res.get("conflicts") or [])] + superseded_lines(
+        res.get("rematched") or []
+    )
+
 def superseded_lines(rows):
     """The cards a decision superseded, one line each, as the command line tells them."""
     return [
@@ -5466,9 +5632,7 @@ def main():
             print(
                 f"    {left} card(s) still waiting on this record" if left else "    nothing else waits on this record"
             )
-            for x in rule_conflict_decisions(res["conflicts"]):
-                print("   ", rule_conflict_line(x))
-            for line in superseded_lines(res["rematched"]):
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "fact":
             from facts import decide_fact
@@ -5495,63 +5659,23 @@ def main():
                     f"    {e['id'][-6:]} {e['status']:9} {e['tier'] or '-':5} {e['citation'] or ''}"
                     + (" (your own word)" if e["vouched"] else " (the file's uncited claim)" if e["uncited"] else "")
                 )
-            for line in superseded_lines(res["rematched"]):
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "assertion":
-            row = cx.execute(
-                "SELECT id, subject_kind, subject_id, status, citation_text FROM assertion WHERE id=? AND tree_id=?",
-                (a.assertion, tree_id)
-            ).fetchone()
-            if not row:
-                raise SystemExit("no such assertion in this tree")
-            status = {"accept": "accepted", "reject": "rejected", "undecided": "undecided"}[a.verdict]
-            ts = now()
-            # a person's own decision on this statement
-            cx.execute(
-                "UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, person_decided=TRUE WHERE id=?",
-                (status, a.by, ts, row["id"])
+            res = decide_assertion(
+                cx,
+                tree_id,
+                a.assertion,
+                {"accept": "accepted", "reject": "rejected", "undecided": "undecided"}[a.verdict],
+                a.by,
+                a.note
             )
-            cx.execute(
-                "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-                (
-                    ulid(),
-                    tree_id,
-                    ts,
-                    a.by,
-                    {"accepted": "accept", "rejected": "reject", "undecided": "update"}[status],
-                    "assertion",
-                    row["id"],
-                    dumps(
-                        {
-                            "was": row["status"],
-                            "now": status,
-                            "subject": [row["subject_kind"], row["subject_id"]],
-                            "note": a.note
-                        }
-                    )
-                )
-            )
-            people = (
-                [
-                    r[0]
-                    for r in cx.execute(
-                        "SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL",
-                        (row["subject_id"],)
-                    )
-                ]
-                if row["subject_kind"] == "event"
-                else [row["subject_id"]]
-                if row["subject_kind"] == "person"
-                else [json.loads(row["subject_id"])[1]]
-                if row["subject_kind"] == "family_member"
-                else []
-            )
-            for pid in people:
-                plan_person(cx, tree_id, pid, a.by)
+            if "error" in res:
+                raise SystemExit(res["error"])
             print(
-                f"assertion {row['id'][-6:]} on {row['subject_kind']} ({row['citation_text'] or ''}): {row['status']} -> {status}; plan regenerated for {len(people)} person(s)"
+                f"assertion {res['assertion'][-6:]} on {res['subject_kind']} ({res['citation'] or ''}): {res['was']} -> {res['status']}; plan regenerated for {len(res['people'])} person(s)"
             )
-            for line in superseded_lines(rematch_people(cx, tree_id, a.by, people)):
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "place":
             res = place(cx, tree_id, a.persona_fact, a.event, a.by, a.note)
@@ -5570,7 +5694,7 @@ def main():
             print(
                 f"persona fact {a.persona_fact[-6:]} placed on event {res['event']}{moved}: {res['status']}, {who} [{res['person'][-6:]}]; plan regenerated"
             )
-            for line in superseded_lines(rematch_people(cx, tree_id, a.by, [res["person"]])):
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "facts":
             from facts import KEY_FACTS, claimed_parts, evidence_rows, fact_status
@@ -5680,22 +5804,17 @@ def main():
             if marriage:
                 marriage["qualifier"] = marriage.pop("date_qualifier")
             if a.spouse:
-                fid = link_on_word(
+                res = link_on_word(
                     cx, tree_id, pid, cat.find_person(a.spouse), "spouse", a.record, a.by, a.note, marriage=marriage
                 )
             else:
-                fid = link_on_word(
+                res = link_on_word(
                     cx, tree_id, pid, [cat.find_person(x) for x in a.parent], "child", a.record, a.by, a.note
                 )
-            print(f"family {fid}: {a.person} placed on your word; the record {a.record[:12]} carries the assertion")
-            for line in superseded_lines(
-                rematch_people(
-                    cx,
-                    tree_id,
-                    a.by,
-                    [r[0] for r in cx.execute("SELECT person_id FROM family_member WHERE family_id=?", (fid,))]
-                )
-            ):
+            print(
+                f"family {res['family']}: {a.person} placed on your word; the record {a.record[:12]} carries the assertion"
+            )
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "divorce":
             ev = []
@@ -5708,11 +5827,9 @@ def main():
                         parts[2] if len(parts) > 2 else "the record's own words"
                     )
                 )
-            eid = divorce(cx, tree_id, cat.find_person(a.a), cat.find_person(a.b), a.date, ev, a.by, a.note)
-            print(f"divorce event {eid} between {a.a} and {a.b}")
-            for line in superseded_lines(
-                rematch_people(cx, tree_id, a.by, [cat.find_person(a.a), cat.find_person(a.b)])
-            ):
+            res = divorce(cx, tree_id, cat.find_person(a.a), cat.find_person(a.b), a.date, ev, a.by, a.note)
+            print(f"divorce event {res['event']} between {a.a} and {a.b}")
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "resolve":
             res = resolve(cx, tree_id, a.question, a.keep, a.by, a.note)
@@ -5723,18 +5840,7 @@ def main():
                 + ("; ".join(f"{s['value']} ({s['record']})" for s in res["set_aside"]) or "nothing")
                 + f"; {len(res['questions_closed'])} question(s) closed"
             )
-            for line in superseded_lines(
-                rematch_people(
-                    cx,
-                    tree_id,
-                    a.by,
-                    [
-                        cx.execute(
-                            "SELECT subject_person_id FROM research_question WHERE id=?", (a.question,)
-                        ).fetchone()[0]
-                    ]
-                )
-            ):
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "reopen":
             res = reopen(cx, tree_id, a.question, a.by, a.note)
@@ -5746,18 +5852,7 @@ def main():
                 + ("open" if res["open"] else "closed: the difference no longer reads as it did")
                 + f"; the rule leaves this {res['axis']} to you from now on"
             )
-            for line in superseded_lines(
-                rematch_people(
-                    cx,
-                    tree_id,
-                    a.by,
-                    [
-                        cx.execute(
-                            "SELECT subject_person_id FROM research_question WHERE id=?", (a.question,)
-                        ).fetchone()[0]
-                    ]
-                )
-            ):
+            for line in settled_lines(res):
                 print("   ", line)
         elif a.cmd == "living":
             pid = cat.find_person(a.person)
@@ -5796,7 +5891,7 @@ def main():
                     f"{res['log_rows_carried']} run(s) carried onto it), {res['questions_moved']} question(s) moved "
                     f"({res['questions_dropped']} already open on the kept person), {res['questions_answered']} duplicate question(s) answered; proposal {res['proposal']}"
                 )
-            for line in superseded_lines(rematch_people(cx, tree_id, a.by, [kept_id])):
+            for line in settled_lines(res):
                 print("   ", line)
         cx.commit()
     except Exception:

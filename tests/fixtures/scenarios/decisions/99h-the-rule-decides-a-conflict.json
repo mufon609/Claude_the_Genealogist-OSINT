@@ -1,6 +1,6 @@
 {
  "title": "the rule decides a conflict the classes decide",
- "line": "a state death index dating the death the 11th, primary information from the record of the death itself, against the file's bare claim of the 10th: the rule resolves it as soon as the owner accepts the index, through the owner's own resolve, its reason in words from the classes and recorded as acting for the owner, the event carrying the 11th and the 10th kept as the file says it; reconsider keeps it while it holds, takes it back when the owner rejects the index's statement (the event's 10th restored from the resolution's own record of it), resolves it again once the statement stands again, and leaves it to the owner for good once the owner reopens it; the written conclusion prints the open question under its id, saying which statement the rule would keep before it has run and that the conflict is the owner's once reopened",
+ "line": "a state death index dating the death the 11th, primary information from the record of the death itself, against the file's bare claim of the 10th: the rule resolves it as soon as the owner accepts the index, through the owner's own resolve, its reason in words from the classes and recorded as acting for the owner, the event carrying the 11th and the 10th kept as the file says it; reconsider keeps it while it holds; the owner's rejection of the index's statement takes it back there and then (the event's 10th restored from the resolution's own record of it), the owner's accept of it again resolves it again there and then, each told in the command's own answer, and once the owner reopens it the conflict is the owner's for good; the written conclusion prints the open question under its id, naming the record by its number and saying the conflict is the owner's once reopened",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -177,30 +177,24 @@
    ]
   },
   {
-   "say": "the owner rejects the index's death statement on its own",
+   "say": "the owner rejects the index's death statement on its own: the resolution no longer holds, so the rule takes it back there and then, and the event's day is the 10th again",
    "assertion": {
     "record": "kyd",
     "person": "I332737204849",
     "event_type": "Death",
     "verdict": "reject"
-   }
-  },
-  {
-   "say": "reconsider: the resolution no longer holds, so the rule takes it back and the event's day is the 10th again",
-   "reconsider": {},
+   },
    "expect": [
     {
      "last": {
-      "rows": {
-       "some": {
-        "kind": "resolution",
-        "kept": false,
-        "why": {
-         "has": "no side holds primary information about the death"
-        }
-       }
+      "printed": {
+       "has": [
+        "the rule took back its resolution of John Y Davidson's death date (it had kept 11 Jun 1946): no side holds primary information about the death",
+        "(the difference is open for you again)"
+       ]
       }
-     }
+     },
+     "why": "the statement the resolution kept is rejected: the decision itself lets the rule go over his conflicts, and its answer tells what the rule took back"
     },
     {
      "event": {
@@ -234,7 +228,31 @@
    ]
   },
   {
-   "say": "the owner accepts the statement again: the plan opens the difference again",
+   "say": "reconsider finds nothing left to take back",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kind": "resolution",
+        "kept": false
+       }
+      }
+     },
+     "why": "the rejection took the resolution back as it was decided, not at the next reconsider"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "10 June 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the statement again: the rule resolves it again there and then, and says so with the question to reopen it by",
    "assertion": {
     "record": "kyd",
     "person": "I332737204849",
@@ -244,68 +262,44 @@
    },
    "expect": [
     {
+     "last": {
+      "printed": {
+       "has": [
+        "the rule resolved John Y Davidson's death date, kept 11 Jun 1946: the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand",
+        "(to take it back: tools/conclude.py reopen "
+       ]
+      }
+     },
+     "why": "the accept lets the rule go over his conflicts: the classes favour the index without doubt, and the command's answer names the resolution, its reason and the question id"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    },
+    {
      "question": {
       "person": "I332737204849",
       "kind": "conflict",
       "status": "open",
-      "detail_has": "death date:"
+      "detail_has": "death date:",
+      "exists": false
      }
     }
    ]
   },
   {
-   "say": "the written conclusion before the rule has run: the question is open, and the rule's own reading of it keeps the index's 11th",
-   "proof": {
-    "person": "I332737204849",
-    "fact": "death"
-   },
-   "expect": [
-    {
-     "last": {
-      "fact": {
-       "death": {
-        "conflicts": {
-         "some": {
-          "status": "open",
-          "question": {
-           "any": true
-          },
-          "verdict": {
-           "about": "death date",
-           "axis": "date",
-           "keep": {
-            "any": true
-           },
-           "why": {
-            "starts": "the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand"
-           }
-          }
-         }
-        }
-       }
-      },
-      "text": {
-       "has": [
-        "      #1 \"Kentucky, Vital Record Indexes, 1911-1999\", FamilySearch (https://www.familysearch.org/ark:/",
-        "]: death date: the tree, the file against Kentucky, Vital Record Indexes, 1911-1999 (#1): 10 June 1946 against 11 Jun 1946",
-        "\n    the rule would keep assertion "
-       ]
-      }
-     },
-     "why": "the classes decide it without doubt, so the line says which statement the rule would keep and why in the rule's words, while the question stays open until the rule or the owner closes it; the record's locator is printed in its citation and the conflict names it by its number"
-    }
-   ]
-  },
-  {
-   "say": "reconsider resolves it again",
+   "say": "reconsider examines the resolution the accept brought on: it holds",
    "reconsider": {},
    "expect": [
     {
      "last": {
       "rows": {
        "some": {
-        "kind": "conflict",
-        "taken": true,
+        "kind": "resolution",
+        "kept": true,
         "detail": {
          "has": "death date:"
         }
@@ -399,10 +393,14 @@
        }
       },
       "text": {
-       "has": "\n    the rule would not decide it: you reopened the rule's resolution of this death date: it is yours"
+       "has": [
+        "      #1 \"Kentucky, Vital Record Indexes, 1911-1999\", FamilySearch (https://www.familysearch.org/ark:/",
+        "]: death date: the tree, the file against Kentucky, Vital Record Indexes, 1911-1999 (#1): 10 June 1946 against 11 Jun 1946",
+        "\n    the rule would not decide it: you reopened the rule's resolution of this death date: it is yours"
+       ]
       }
      },
-     "why": "the reopened question prints under its own id, and the rule's reading says the conflict is the owner's"
+     "why": "the reopened question prints under its own id, the record's locator printed in its citation and the conflict naming it by its number, and the rule's reading says the conflict is the owner's"
     }
    ]
   },

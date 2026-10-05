@@ -1,6 +1,6 @@
 {
  "title": "the turn names what the rule decided on conflicts",
- "line": "a Kentucky death index entry accepted as John Y Davidson's, whose 11 June 1946 the rule keeps against the file's 10th, is rejected by the owner on its own statement: the turn's report names the resolution the rule takes back, the date it had kept and its reason; accepted again, the report names the resolution the rule makes, the date kept, its reason in its own words and the question id tools/conclude.py reopen takes, the question the owner then reopens; a later turn names nothing, the conflict being the owner's",
+ "line": "a Kentucky death index entry accepted as John Y Davidson's, whose 11 June 1946 the rule keeps against the file's 10th, is rejected by the owner on its own statement: the rejection's own answer names the resolution the rule takes back there and then, the date it had kept and its reason, and the turn after it names nothing, the take-back being before it began; accepted again, the accept's answer names the resolution the rule makes, the date kept, its reason in its own words and the question id tools/conclude.py reopen takes, the question the owner then reopens, and a turn names none of it",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -34,36 +34,25 @@
    ]
   },
   {
-   "say": "the owner rejects the index's death statement on its own",
+   "say": "the owner rejects the index's death statement on its own: the rule takes its resolution back inside that decision",
    "assertion": {
     "record": "kyd",
     "person": "I332737204849",
     "event_type": "Death",
     "verdict": "reject"
-   }
-  },
-  {
-   "say": "a turn on him: its tail's reconsider takes the resolution back, and the report says so, the date it had kept and why",
-   "turn": {
-    "person": "I332737204849",
-    "geocoder_silent": true
    },
-   "as": "back",
    "expect": [
     {
      "last": {
       "printed": {
        "has": [
-        "decided:\n  the rule took back its resolution of John Y Davidson's death date (it had kept 11 Jun 1946): no side holds primary information about the death",
+        "the rule took back its resolution of John Y Davidson's death date (it had kept 11 Jun 1946): no side holds primary information about the death",
         "(the difference is open for you again)"
        ],
-       "lacks": [
-        "nothing for the rule to take",
-        "tools/conclude.py reopen"
-       ]
+       "lacks": "tools/conclude.py reopen"
       }
      },
-     "why": "the owner's rejection left the 11th resting on no statement: the resolution is told where the rule's other decisions are, in its reason's own words, with nothing for the owner to reopen"
+     "why": "the owner's rejection left the 11th resting on no statement: the decision's own answer tells the take-back in the rule's words, with nothing for the owner to reopen"
     },
     {
      "event": {
@@ -76,7 +65,29 @@
    ]
   },
   {
-   "say": "the owner accepts the statement again: the difference is open",
+   "say": "a turn on him: the take-back was before it began, so its report names nothing the rule decided on conflicts",
+   "turn": {
+    "person": "I332737204849",
+    "geocoder_silent": true
+   },
+   "as": "back",
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": "decided:\n  nothing for the rule to take",
+       "lacks": [
+        "the rule took back",
+        "the rule resolved"
+       ]
+      }
+     },
+     "why": "a turn names the rule's decisions it took itself, never one a decision before it took"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the statement again: the rule resolves it inside that decision, and its answer names the person, the date kept, the rule's reason and the question to reopen it by",
    "assertion": {
     "record": "kyd",
     "person": "I332737204849",
@@ -86,37 +97,13 @@
    },
    "expect": [
     {
-     "question": {
-      "person": "I332737204849",
-      "kind": "conflict",
-      "status": "open",
-      "detail_has": "death date:"
-     }
-    }
-   ]
-  },
-  {
-   "say": "a turn on him again: its tail's reconsider resolves it, and the report names the person, the date kept, the rule's reason and the question to reopen it by",
-   "turn": {
-    "person": "I332737204849",
-    "geocoder_silent": true
-   },
-   "as": "made",
-   "expect": [
-    {
      "last": {
       "printed": {
        "has": [
-        "decided:\n  the rule resolved John Y Davidson's death date, kept 11 Jun 1946: the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand, 11 Jun 1946 (derivative, primary, direct); 10 June 1946 rests only on the file's claim (to take it back: tools/conclude.py reopen ",
+        "the rule resolved John Y Davidson's death date, kept 11 Jun 1946: the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand, 11 Jun 1946 (derivative, primary, direct); 10 June 1946 rests only on the file's claim (to take it back: tools/conclude.py reopen ",
         " --note \"…\")"
        ],
-       "lacks": [
-        "nothing for the rule to take",
-        "took back"
-       ]
-      },
-      "reopens": {
-       "len": 1
+       "lacks": "took back"
       }
      },
      "why": "one line for the one resolution, the reason as the rule wrote it and the command that gives it back"
@@ -128,10 +115,40 @@
       "canonical_date": "11 Jun 1946"
      }
     }
+   ],
+   "as": "made"
+  },
+  {
+   "say": "a turn on him again: the resolution was the accept's, so the report names none of it",
+   "turn": {
+    "person": "I332737204849",
+    "geocoder_silent": true
+   },
+   "expect": [
+    {
+     "last": {
+      "printed": {
+       "has": "decided:\n  nothing for the rule to take",
+       "lacks": [
+        "the rule resolved",
+        "the rule took back"
+       ]
+      },
+      "reopens": []
+     },
+     "why": "the resolution is before this turn began"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    }
    ]
   },
   {
-   "say": "the owner takes it back with the question the report named",
+   "say": "the owner takes it back with the question the accept's answer named",
    "reopen_conflict": {
     "person": "I332737204849",
     "detail_has": "death date:",
@@ -141,12 +158,15 @@
    "expect": [
     {
      "bound": {
-      "value": "$made.reopens",
-      "is": [
-       "$reopened.question_id"
-      ]
+      "value": "$made.printed",
+      "is": {
+       "has": [
+        "tools/conclude.py reopen ",
+        "$reopened.question_id"
+       ]
+      }
      },
-     "why": "the id in the report is the question the owner's reopen took back"
+     "why": "the id in the decision's answer is the question the owner's reopen took back"
     },
     {
      "event": {

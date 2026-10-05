@@ -207,11 +207,11 @@
    ]
   },
   {
-   "say": "a resume after the browser session, an unrelated page saved into the inbox by hand",
+   "say": "a resume after the browser session, an unrelated page saved into the inbox by hand: a household of another family",
    "resume": {
     "geocoder_silent": true,
     "inbox": [
-     "familysearch-census-1940-KQX1-VT9.html"
+     "familysearch-census-1950-6X5P-KT7T.html"
     ]
    },
    "expect": [
@@ -227,7 +227,7 @@
        "has": [
         "nothing saved in the browser has come in",
         "1 person(s) wait on",
-        "familysearch-census-1940-KQX1-VT9.html",
+        "familysearch-census-1950-6X5P-KT7T.html",
         "left in the inbox"
        ]
       },
@@ -238,14 +238,14 @@
     {
      "locator_known": {
       "kind": "ark",
-      "value": "ark:/61903/1:1:KQX1-VT9",
+      "value": "ark:/61903/1:1:6X5P-KT7T",
       "exists": false
      },
      "why": "the unrelated page is read for its identity and left: it fulfils none of her steps"
     },
     {
      "file": {
-      "name": "familysearch-census-1940-KQX1-VT9.html",
+      "name": "familysearch-census-1950-6X5P-KT7T.html",
       "exists": true
      },
      "why": "the unmatched file stays in the inbox, not filed under the tree"

@@ -1,0 +1,141 @@
+{
+ "title": "a key fact decided lets the rule go over the conflicts",
+ "line": "John Y Davidson's Kentucky death index entry accepted, the rule keeping its 11th against the file's 10th: the owner's rejection of his death as a key fact rejects every statement behind it, and the rule takes its resolution back inside that decision, the event's 10th restored; the owner's accept of the death again lets the statements stand, and the rule resolves the difference again inside that decision, each told in the decision's own result, as on the command line and the person screen",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "his Kentucky death index entry, which the file cites: died 11 Jun 1946",
+   "attach": {
+    "fixture": "familysearch-kentucky-death-index-1946-QKC9-LBLM.html"
+   },
+   "as": "kyd"
+  },
+  {
+   "say": "the owner accepts it as his: the rule resolves the death date on the index's 11th",
+   "decide": {
+    "card": {
+     "record": "kyd",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner rejects his death as a key fact: every statement behind it rejected, the rule takes its resolution back inside that decision",
+   "fact": {
+    "person": "I332737204849",
+    "field": "death",
+    "status": "rejected",
+    "note": "harness: the death not yet proved"
+   },
+   "expect": [
+    {
+     "last": {
+      "death": {
+       "ok": true,
+       "conflicts": {
+        "some": {
+         "kind": "resolution",
+         "kept": false,
+         "detail": {
+          "has": "death date:"
+         },
+         "value": "11 Jun 1946"
+        }
+       }
+      }
+     },
+     "why": "the statement the resolution kept is rejected with the fact: the key fact's decision lets the rule go over his conflicts, and its result says what the rule took back"
+    },
+    {
+     "audit": {
+      "entity": "research_question",
+      "diff_key": "withdrawn",
+      "is": [
+       {
+        "actor": {
+         "starts": "rule:classes-favour-one-side for "
+        },
+        "diff": {
+         "restored": {
+          "date_text": "10 June 1946"
+         },
+         "from": {
+          "date_text": "11 Jun 1946"
+         }
+        }
+       }
+      ]
+     },
+     "why": "the event's value restored from the resolution's own record of it, the rule acting for the owner"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts his death again: the statements behind it stand, and the rule resolves the difference again inside that decision",
+   "fact": {
+    "person": "I332737204849",
+    "field": "death",
+    "status": "accepted",
+    "note": "harness: the death proved"
+   },
+   "expect": [
+    {
+     "last": {
+      "death": {
+       "ok": true,
+       "conflicts": {
+        "some": {
+         "kind": "conflict",
+         "taken": true,
+         "value": "11 Jun 1946",
+         "why": {
+          "starts": "the death certificate (Kentucky, Vital Record Indexes, 1911-1999) states the death first-hand"
+         }
+        }
+       }
+      }
+     },
+     "why": "the record of the death itself against the file's claim: the classes decide it as soon as both stand again"
+    },
+    {
+     "event": {
+      "person": "I332737204849",
+      "type": "Death",
+      "canonical_date": "11 Jun 1946"
+     }
+    },
+    {
+     "question": {
+      "person": "I332737204849",
+      "kind": "conflict",
+      "status": "open",
+      "detail_has": "death date:",
+      "exists": false
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

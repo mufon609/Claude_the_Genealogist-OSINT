@@ -186,7 +186,7 @@
    "as": "third_death"
   },
   {
-   "say": "the owner moves the line's statement onto it",
+   "say": "the owner moves the line's statement onto it: the rule goes over his conflicts there and then and resolves that event's date on the line's 11th",
    "place": {
     "record": "rtr",
     "person": "I332737204849",
@@ -197,13 +197,21 @@
     {
      "last": {
       "ok": true,
-      "event": "$third_death.event"
-     }
+      "event": "$third_death.event",
+      "conflicts": {
+       "some": {
+        "kind": "conflict",
+        "taken": true,
+        "value": "11 JUN 1946"
+       }
+      }
+     },
+     "why": "the state's own index of the death against the planted event's bare 10th: the classes decide it, inside the placement"
     }
    ]
   },
   {
-   "say": "and resolves that event's date on the line's 11th",
+   "say": "the owner resolves that event's date on the line's 11th over the rule's resolution: the date is the owner's word from then on",
    "resolve_conflict": {
     "person": "I332737204849",
     "detail_has": "11 JUN 1946",
@@ -211,7 +219,8 @@
      "record": "rtr",
      "event_type": "Death"
     },
-    "note": "harness: the state's own index"
+    "note": "harness: the state's own index",
+    "over_rule": true
    },
    "expect": [
     {

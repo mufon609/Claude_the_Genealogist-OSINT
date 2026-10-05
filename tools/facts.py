@@ -9,13 +9,15 @@ value the page keeps beneath the one it shows, a link the record's indexer compu
 there, the accept is the person's own knowledge, recorded as a vouch on the tree file's persona. Reject and Undecided apply to
 every assertion behind the fact. Each statement the decision acts on records it as the person's own decision on that
 statement (assertion.person_decided, docs/RESEARCH-WORKFLOW.md §5–7), its status unchanged or not, so no re-read, carry,
-acceptance of its record or withdrawal by the rule changes it afterwards. Every decision writes an audit row and regenerates
-the person's plan.
+acceptance of its record or withdrawal by the rule changes it afterwards. Every decision writes an audit row, regenerates the
+plans of the people its statements are about, and then lets the rule go over their conflicts and matches their cards again
+(conclude.settle_people), whichever caller took it, the command line or the person screen.
 """
 import json, re
 from treelib import dumps, now, ulid
 from catalog import fetch_target, held_for, holdings, record_of, tier_sql
-from conclude import MARKS, answer_questions, rematch_people
+from conclude import MARKS, answer_questions, settle_people, statement_people
+from plan import plan_person
 
 KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
 
@@ -104,9 +106,11 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     and Undecided apply to every assertion behind the fact. Every statement the decision acts on is recorded as the person's
     own decision on it (person_decided, asserted_by and asserted_at the person's and now), whether its status changes or not;
     assertions counts the ones whose status changed.
-    An accept regenerates the plan and marks the questions it closes answered by the proposal that brought the evidence.
-    Whatever the decision, the person's undecided cards are matched again on the evidence as it now stands
-    (conclude.rematch_people), rematched the rows."""
+    Whatever the decision, the plans of the people its statements are about (the person, and the children whose memberships a
+    children fact touches) are regenerated, an accept marking the questions it closes answered by the proposal that brought
+    the evidence; then the rule goes over their conflicts (its own resolutions resting on a statement the decision changed
+    examined again, an open conflict the classes decide resolved) and their undecided cards are matched again on the
+    evidence as it now stands (conclude.settle_people): conflicts the rule's rows, rematched the cards' rows."""
     if (field not in KEY_FACTS and not (field.startswith("event:") and fact_subjects(cx, pid, field))) or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
     ts = now(); n = 0; vouched = []
     ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or (e["held"] and not e["marked"])]
@@ -122,11 +126,14 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     if note:
         cx.execute("INSERT INTO note (id,tree_id,entity_kind,entity_id,body,author,created_at) VALUES (?,?,?,?,?,?,?)",
                    (ulid(), tree_id, "person", pid, f"{field}: {status}. {note}", by, ts))
-    answered = []
+    answered, people = [], list(dict.fromkeys([pid] + statement_people(cx, ids)))
     if status == "accepted" and ids:                             # the proposal whose match brought the accepted evidence answers what the plan now closes
         props = [json.loads(r["notes"]).get("proposal") for r in cx.execute(f"SELECT notes FROM assertion WHERE id IN ({','.join('?'*len(ids))}) AND notes LIKE '{{%'", ids)]
-        answered = answer_questions(cx, tree_id, pid, next((x for x in props if x), None), by)
-    rematched = rematch_people(cx, tree_id, by, [pid])          # the person's cards compared with the evidence as it now stands
+        prop = next((x for x in props if x), None)
+        for p in people: answered += answer_questions(cx, tree_id, p, prop, by)
+    else:
+        for p in people: plan_person(cx, tree_id, p, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)   # the rule over their conflicts, their cards compared with the evidence as it now stands
     return {"ok": True, "field": field, "status": status, "assertions": n, "evidence": len(ids), "vouched": vouched, "answered": answered,
-            "rematched": rematched}   # evidence: the assertions the decision could act on
+            "conflicts": conflicts, "rematched": rematched}   # evidence: the assertions the decision could act on
 

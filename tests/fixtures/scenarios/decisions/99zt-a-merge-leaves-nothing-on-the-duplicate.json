@@ -1,6 +1,6 @@
 {
  "title": "a merge leaves nothing on the duplicate",
- "line": "the 1940 household's daughter merged into its son, the harness's own merge of two children of one family: her card names him from then on, her membership of the family folds onto his with the file's claim on it and leaves no row behind, and the owner's accept of her card lands on him",
+ "line": "the 1940 household's daughter merged into its son, the harness's own merge of two children of one family: her card names him from then on and is matched again inside the merge, where the matcher does not put her persona to him, so it closes superseded; her membership of the family folds onto his with the file's claim on it and leaves no row behind, and the owner's accept of his own card writes nothing on her",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -44,6 +44,17 @@
      "why": "the merge names the membership it folded with the statement it moved, and the card it re-pointed with the keys rewritten"
     },
     {
+     "last": {
+      "rematched": {
+       "some": {
+        "kind": "rematch",
+        "persona": "Alicia Ahern"
+       }
+      }
+     },
+     "why": "the merge changes the son's evidence: his cards are matched again as part of it, the rule over his conflicts first"
+    },
+    {
      "audit": {
       "entity": "person",
       "id": "I332737072856",
@@ -67,10 +78,11 @@
      "card": {
       "record": "c40",
       "persona": "Alicia Ahern",
-      "status": "undecided",
+      "status": "rejected",
+      "note": "superseded",
       "person_name": "Frederick Micheal Ahearn Jr"
      },
-     "why": "her card names the person she was merged into"
+     "why": "her card names the person she was merged into, and the merge matches his cards again: her persona is no fit for him, so the card closes superseded"
     },
     {
      "count": {
@@ -91,11 +103,11 @@
    ]
   },
   {
-   "say": "the owner accepts her card: it lands on the son",
+   "say": "the owner accepts the son's own card: nothing is written on the merged person",
    "decide": {
     "card": {
      "record": "c40",
-     "persona": "Alicia Ahern"
+     "person": "I332737036054"
     },
     "status": "accepted"
    },
@@ -104,7 +116,7 @@
      "links": {
       "person": "I332737036054",
       "record": "c40",
-      "persona": "Alicia Ahern",
+      "persona": "Frederick Ahern",
       "is": {
        "every": "accepted",
        "len": {

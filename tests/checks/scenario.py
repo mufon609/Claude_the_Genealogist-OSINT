@@ -473,8 +473,8 @@ def a_place(w, x):
 
 def a_link_on_word(w, x):
     from conclude import link_on_word
-    fid = link_on_word(w.cx, w.tid, w.person(x["person"]), w.people(x["others"]), x.get("kind", "child"), w.sha(x["record"]), BY, x.get("note", "harness: the owner's word"))
-    return {"family": fid, "person": w.person(x["person"])}
+    res = link_on_word(w.cx, w.tid, w.person(x["person"]), w.people(x["others"]), x.get("kind", "child"), w.sha(x["record"]), BY, x.get("note", "harness: the owner's word"))
+    return {**res, "person": w.person(x["person"])}
 
 def a_living(w, x):
     from conclude import living
@@ -628,7 +628,7 @@ def a_divorce(w, x):
                           (w.sha(e["record"]), e["persona"], e["fact_type"])).fetchone()
         if not pf: raise KeyError(f"no {e['fact_type']} fact of {e['persona']} on that record")
         ev.append((w.sha(e["record"]), pf[0], e.get("citation", "harness")))
-    return {"event": divorce(w.cx, w.tid, w.person(x["a"]), w.person(x["b"]), x["date"], ev, x.get("by", BY), x.get("note", "harness"))}
+    return divorce(w.cx, w.tid, w.person(x["a"]), w.person(x["b"]), x["date"], ev, x.get("by", BY), x.get("note", "harness"))
 
 def conflict_question(w, x, closed=False):
     """The person's one conflict question whose detail has `detail_has`: an open one, or with closed one the rule resolved
