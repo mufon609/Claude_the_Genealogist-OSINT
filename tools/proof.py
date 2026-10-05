@@ -36,7 +36,7 @@ are ordered by their class words, never scored.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
-from catalog import BOUNDS, Catalog, date_verdict, evidence_classes, key, place_verdict, record_of, same_surname, split_name
+from catalog import BOUNDS, Catalog, date_verdict, evidence_classes, key, note, place_verdict, record_of, same_surname, split_name
 from facts import KEY_FACTS, fact_subjects
 
 INFORMATION = ("primary", "secondary", "indeterminable", None)    # the order the classes favour a side in, best first
@@ -194,17 +194,16 @@ def agreement(field, st, tree):
     if field in ("birth", "death"):
         notes, says, bound = [], [], None
         if st["date"]:
-            v, n = date_verdict(st["date"], tree["date"])
-            if v == "disagrees": says.append(st["date"]["text"])
-            elif v == "agrees" and n:
-                near = re.search(r"within (\d+) years", n)        # another year, inside the two an about or calculated date allows, is not the year
-                notes.append(f"within {near.group(1)} years" if near else n.split(";")[0])
-            elif v == "within": bound = f"the date within: {n}"          # a bound neither agrees nor disagrees (catalog.date_verdict)
+            f = date_verdict(st["date"], tree["date"])
+            if f.verdict == "disagrees": says.append(st["date"]["text"])
+            elif f.verdict == "agrees" and f.years: notes.append(f"within {f.years} years")   # another year, inside the two an about or calculated date allows, is not the year
+            elif f.verdict == "agrees" and f.only: notes.append("year only")
+            elif f.verdict == "within": bound = f"the date within: {note(f)}"          # a bound neither agrees nor disagrees (catalog.date_verdict)
         placed = False
         if st["place"]:
-            v, n = place_verdict(st["place"], tree["place"])
-            if v == "disagrees": says.append(st["place"])
-            elif v == "agrees": placed = True; notes += [n] if n else []
+            f = place_verdict(st["place"], tree["place"])
+            if f.verdict == "disagrees": says.append(st["place"])
+            elif f.verdict == "agrees": placed = True; notes += [note(f)] if note(f) else []
         if not (st["date"] or st["place"]): return None
         if says: return f"says {', '.join(says)}"
         if bound and not placed: return bound
@@ -285,7 +284,7 @@ def same_value(axis, a, b):
     """Whether two values stand on one side: dates that agree by catalog.date_verdict, or one within the other's bound (a
     bound differs from no date inside it), places by catalog.place_verdict read either way (a coarser place agrees with a
     finer one inside it)."""
-    return date_verdict(a, b)[0] in ("agrees", "within") if axis == "date" else (place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees")
+    return date_verdict(a, b).verdict in ("agrees", "within") if axis == "date" else (place_verdict(a, b).verdict == "agrees" or place_verdict(b, a).verdict == "agrees")
 
 def sides(axis, sts):
     """The sides of a date or place conflict: the values the statements give (rejected ones and the owner's own word

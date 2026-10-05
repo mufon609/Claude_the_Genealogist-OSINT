@@ -31,7 +31,7 @@ def rules():
     """The name, place and date rules as the docs state them, and the version a reader's model id carries, on their own, against
     tests/fixtures/rules.json."""
     with open(os.path.join(FIXTURES, "rules.json"), encoding="utf-8") as fh: R = json.load(fh)
-    from catalog import collection_state, date_verdict, holder_search, kinds_as, place_verdict, prefills_nothing, record_standing, same_surname
+    from catalog import collection_state, date_verdict, holder_search, kinds_as, note, place_verdict, prefills_nothing, record_standing, same_surname
     bad = []
     for c in R["same_surname"]:
         got = same_surname(c["record"], c["tree"])
@@ -45,15 +45,15 @@ def rules():
     for kind in R["automated_kinds"]:
         if record_standing(kinds_as([kind]))[0] != "automated": bad.append(f"data/evidence-classes.csv gives {kind} no automated standing: its records would stay a hint until a person reads them")
     for c in R["place_verdict"]:
-        got = place_verdict(c["record"], c["tree"])
+        f = place_verdict(c["record"], c["tree"]); got = (f.verdict, note(f))
         if got != (c["verdict"], c["note"]): bad.append(f"place_verdict({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {(c['verdict'], c['note'])!r}")
     for c in R["place_verdict_with_record_state"]:
-        got = place_verdict(c["record"], c["tree"], record_state=c["record_state"])
+        f = place_verdict(c["record"], c["tree"], record_state=c["record_state"]); got = (f.verdict, note(f))
         if got != (c["verdict"], c["note"]): bad.append(f"place_verdict({c['record']!r}, {c['tree']!r}, record_state={c['record_state']!r}) gave {got!r}, expected {(c['verdict'], c['note'])!r}")
     from treelib import parse_gedcom_date
     as_read = lambda t: {k: v for k, v in zip(("start", "end", "qualifier"), (parse_gedcom_date(t)[f] for f in ("date_start", "date_end", "date_qualifier")))}
     for c in R["date_verdict"]:
-        got = date_verdict(as_read(c["record"]), as_read(c["tree"]))[0]
+        got = date_verdict(as_read(c["record"]), as_read(c["tree"])).verdict
         if got != c["verdict"]: bad.append(f"date_verdict({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {c['verdict']!r}")
     for c in R["collection_state"]:
         got = collection_state(c["name"])
@@ -73,7 +73,7 @@ def rules():
         if got != c["version"]: bad.append(f"model_version({c['id']!r}) gave {got!r}, expected {c['version']!r}")
     names = [tuple(x) for x in R["dated_names"]["names"]]
     for c in R["dated_names"]["cases"]:
-        got = place_verdict(c["record"], c["tree"], dated_names=names)
+        f = place_verdict(c["record"], c["tree"], dated_names=names); got = (f.verdict, note(f))
         if got != (c["verdict"], c["note"]): bad.append(f"place_verdict({c['record']!r}, {c['tree']!r}, dated_names=...) gave {got!r}, expected {(c['verdict'], c['note'])!r}")
     return bad
 

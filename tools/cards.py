@@ -24,7 +24,7 @@ prints every card whole, as render() and render_search() write it for the person
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, DB, connect, object_path, resolve_tree
-from catalog import Catalog, fetch_target, tier_sql, year, held_for, holds
+from catalog import Catalog, fetch_target, note as _note, tier_sql, year, held_for, holds
 from match import (
     COUNTRY,
     candidate as match_candidate,
@@ -34,12 +34,15 @@ from match import (
     personas_of,
     place_verdict as _place_verdict,
     proposals,
+    said,
     same_surname
 )
 from conclude import rule_accepts, sibling_home
 from plan import row_record
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
+# a year or a place agreeing beyond the name: what makes a row a hint (hints_on)
+BEYOND_NAME = ("birth date", "death date", "birth place", "burial place", "death place", "residence place")
 
 def _tokens(s):
     return [t for t in re.split(r"[,\s]+", (s or "").lower()) if re.sub(r"[^a-z]", "", t)]
@@ -180,11 +183,18 @@ def card(cx, tree_id, prop_id, cat=None):
             _, agree, disagree, absent, _ = (
                 compare(cat, pers, match_candidate(cat, person_id), {}) if pers else (None, [], [], [], None)
             )
-            g_ok = any(a.startswith("given name agrees") for a in agree)
-            s_ok = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
+            g_ok = any(a.field == "given name" for a in agree)
+            s_ok = any(a.field == "surname" for a in agree) or any(a.married for a in absent)
             note = (
-                next((a[a.index("(") - 1:].strip() for a in agree if a.startswith("surname agrees as")), None)
-                or next((a for a in absent if a.startswith("surname:")), None)
+                next(
+                    (
+                        f"(record {a.record}, tree {a.tree})"
+                        for a in agree
+                        if a.field == "surname" and a.spelling == "variant"
+                    ),
+                    None
+                )
+                or next((said(a) for a in absent if a.married), None)
             )
             fields.append(
                 {
@@ -213,7 +223,7 @@ def card(cx, tree_id, prop_id, cat=None):
             if not f and not c:
                 continue
             # the tree's own qualifier and range, as the matcher compares them
-            v, note = date_verdict(
+            dv = date_verdict(
                 {"start": f["date_start"], "end": f["date_end"], "qualifier": f["date_qualifier"]} if f else None, c
             )
             fields.append(
@@ -221,18 +231,18 @@ def card(cx, tree_id, prop_id, cat=None):
                     "field": f"{t} date",
                     "record": f["date_text"] if f else None,
                     "tree": c["date"] if c else None,
-                    "verdict": v,
-                    "note": note
+                    "verdict": dv.verdict,
+                    "note": _note(dv)
                 }
             )
-            pv, pnote = _place_verdict(f["place"] if f else None, c["place"] if c else None)
+            pv = _place_verdict(f["place"] if f else None, c["place"] if c else None)
             fields.append(
                 {
                     "field": f"{t} place",
                     "record": f["place"] if f else None,
                     "tree": c["place"] if c else None,
-                    "verdict": pv,
-                    "note": pnote
+                    "verdict": pv.verdict,
+                    "note": _note(pv)
                 }
             )
             if f and f["value_text"]:
@@ -866,29 +876,15 @@ def hints_on(cx, tree_id, sha, person_id):
             ).fetchone():
                 continue
             _, agree, disagree, absent, _ = compare(cat, pe, cand, {})
-            surname = (
-                any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
-            )
-            beyond = any(
-                a.startswith(
-                    (
-                        "birth date agrees",
-                        "death date agrees",
-                        "birth place agrees",
-                        "burial place agrees",
-                        "death place agrees",
-                        "residence place agrees"
-                    )
-                )
-                for a in agree
-            )
+            surname = any(a.field == "surname" for a in agree) or any(a.married for a in absent)
+            beyond = any(a.field in BEYOND_NAME for a in agree)
             why = held.get(pe["id"])
             out[pe["id"]] = {
                 "hint": bool(reviewed and ((surname and beyond) or why)),
                 "why": why,
-                "agrees": agree,
-                "disagrees": disagree,
-                "absent": absent
+                "agrees": [said(a) for a in agree],
+                "disagrees": [said(d) for d in disagree],
+                "absent": [said(a) for a in absent]
             }
     return out
 
@@ -954,9 +950,9 @@ def search_card(cx, tree_id, sha, person_id=None):
                 "memorial_id": region.get("memorial_id") or region.get("rid") or region.get("ark"),
                 "url": region.get("url"),
                 "fits": fits,
-                "agrees": agree,
-                "disagrees": disagree,
-                "absent": absent,
+                "agrees": [said(a) for a in agree],
+                "disagrees": [said(d) for d in disagree],
+                "absent": [said(a) for a in absent],
                 "decision": decision,
                 "lead": step["status"] if step else None
             }

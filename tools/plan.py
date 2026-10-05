@@ -236,7 +236,7 @@ def result_row_leads(cx, tree_id, cat, pid):
     for them (a person's decision stands); one accepted as them still is, its record not yet fetched; a row that does not fit
     stays a hint on the page. Dropped, like any generated step, once the row no longer fits."""
     from extract import POINTING_LISTINGS
-    from match import fitting_rows
+    from match import fitting_rows, said
     out = []; seen = set(); known = {}; q = cx.cursor(); q.row_factory = sqlite3.Row; f = lambda v: {"value": v, "basis": "record"}
     for page in q.execute(f"""SELECT DISTINCT e.id AS eid, x.name AS parser, ar.source_id, ar.locator_value AS url, e.ran_at FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id,
                                json_each(l.artifacts_json) j JOIN extraction e ON e.artifact_sha256=j.value JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
@@ -252,7 +252,7 @@ def result_row_leads(cx, tree_id, cat, pid):
             out.append({"step_key": f"fetch:row:{rid}", "row_key": "search result:", "question_key": None, "kind": "fetch", "query_type": "subject_record", "query_json": dumps({k: v for k, v in fields.items() if v["value"]}),
                         "locator_source_id": page["source_id"], "locator_kind": lkind, "locator_value": rid, "collection_id": None, "on_json": "[]", "sources_json": dumps([page["source_id"]]), "mode": "fetch",
                         "expected": "the record the row stands for: the person's own facts as the record states them",
-                        "rationale": f"row {region.get('row')} of a {holder} results page fits this person: {'; '.join(agree)}. A lead, not a card: fetch the row's own record"})
+                        "rationale": f"row {region.get('row')} of a {holder} results page fits this person: {'; '.join(map(said, agree))}. A lead, not a card: fetch the row's own record"})
     return out
 
 class RegistryOutOfStep(Exception):

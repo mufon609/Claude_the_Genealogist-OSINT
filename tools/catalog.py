@@ -2,7 +2,7 @@
 
 Shared by every tool and by the person screen. Nothing here writes.
 """
-import calendar, collections, csv, datetime, json, os, re, sqlite3, sys, unicodedata, urllib.parse
+import calendar, collections, csv, dataclasses, datetime, json, os, re, sqlite3, sys, unicodedata, urllib.parse
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -361,27 +361,70 @@ def search_target(sources, fields):
 COUNTRY = re.compile(r"\b(united states of america|united states|u\.s\.a\.|u\.s\.|usa|us)\b", re.I)
 
 def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
+
+@dataclasses.dataclass(frozen=True)
+class Finding:
+    """One comparison of a record's value with the tree's, as data (docs/RESEARCH-WORKFLOW.md §5–7): the verdict (agrees,
+    disagrees, within: a date inside a bound, neither agreeing nor disagreeing; absent), what qualifies it, and, as the matcher
+    compares a persona with a person (match.compare), the field and both values. Every reader reads these; the words are made
+    from them (note, match.said) and never read back. date_verdict and place_verdict fill the date's and the place's parts."""
+    verdict: str
+    field: str = None             # what was compared: given name, surname, middle name, sex, birth date, burial place, residence place, memorial, relationship
+    record: str = None            # the record's value, as the words write it
+    tree: str = None              # the tree's value, as the words write it
+    only: str = None              # a date agreeing on the year only: the side that gives only a year, "record" or "tree"
+    years: int = 0                # a date agreeing within so many years where the years differ (about, estimated or calculated)
+    same_year: bool = False       # a date disagreeing on the day in the same year
+    bound: str = None             # a date within: the side whose bound holds the other, "record" or "tree", or "both" (two ranges that overlap)
+    coarser: str = None           # a place agreeing coarser: the finest part the record gives, as the words write it
+    level: int = None             # ... and that part's place among the tree's own parts below the country, finest first (place_given)
+    finer: tuple = ()             # a place agreeing finer: the parts the record names ahead of the tree's finest, as written
+    supplied: str = None          # a bare county agreeing with the state of the record's own event place supplied
+    held: tuple = None            # a place agreeing on a dated former name: (name, valid from, valid to)
+    granular: bool = False        # one US place written at another granularity
+    spelling: str = None          # a surname agreeing as a spelling "variant" or "one letter apart" (same_surname)
+    married: bool = False         # a surname absent: the record writes her under her husband's
+    kind: str = None              # a relationship: the record's kind (child, parent, spouse, sibling, other)
+    word: str = None              # ... the record's own word for it
+    other: str = None             # ... the other persona's id
+    other_name: str = None        # ... the other persona's name
+    related: str = None           # ... the name of the person the other persona is matched as
+    role: str = None              # ... what that person would be of the candidate: parent, child, spouse, sibling
+    why: str = None               # a relationship absent: "unmatched", "unmapped" (a heading the matcher maps to no family link) or "no parents"
+    accepted: tuple = None        # a value the tree does not show that disagrees with an accepted statement: (that statement's value, its record)
+
+def note(f):
+    """What qualifies a date's or a place's finding, in words, or None: the note a rationale and a card carry."""
+    if f.bound: return {"both": "the two ranges overlap", "record": "a bound on the record, the tree's date inside it", "tree": "a bound in the tree, the record's date inside it"}[f.bound]
+    if f.same_year: return "same year, different day"
+    if f.only: return f"year only; the {f.only} gives only a year" + (f", within {f.years} years" if f.years else "")
+    if f.held: return f"as {f.held[0]}, a name it held {f.held[1] or '?'}–{f.held[2] or '?'}"
+    if f.granular: return "the same place, written at another granularity"
+    words = f"the record is finer: {', '.join(f.finer)}" if f.finer else f"the record gives only {f.coarser}" if f.coarser is not None else None
+    if f.supplied: return (f"{words}; " if words else "") + f"supplying {f.supplied}, the record's own event place, for the bare county"
+    return words
+
 def date_verdict(rec, tree):
     """A record date against the tree's, each {"start", "end", "text", "qualifier"}, a date that gives only its end (before)
-    read from that: (verdict, note). A date bounded before, after or between (BOUNDS) on either side is compared as its range
+    read from that: a Finding. A date bounded before, after or between (BOUNDS) on either side is compared as its range
     (date_span, its edges inside it): ranges that cannot meet disagree, and a date inside a bound or two ranges that overlap are
     "within", never "agrees", since a bound names no day or year of its own: it keeps a disagreement from being read where there
-    is none and never earns a point. Both full dates: compared as dates, a different day in the same year disagrees. Otherwise
-    the years: a bare year against a full date agrees on the year only and the note says which side gives only a year; a date
-    marked about, estimated or calculated on either side agrees within two years."""
+    is none and never earns a point; the finding says which side is bounded. Both full dates: compared as dates, a different
+    day in the same year disagrees. Otherwise the years: a bare year against a full date agrees on the year only and the
+    finding says which side gives only a year; a date marked about, estimated or calculated on either side agrees within two
+    years."""
     rec, tree = rec or {}, tree or {}
     rs, ts = rec.get("start") or rec.get("end"), tree.get("start") or tree.get("end")
-    if not rs or not ts: return "absent", None
+    if not rs or not ts: return Finding("absent")
     if rec.get("qualifier") in BOUNDS or tree.get("qualifier") in BOUNDS:
         a, b = (date_span(d.get("start"), d.get("end"), d.get("qualifier")) for d in (rec, tree))
-        if a is None or b is None: return "absent", None
-        if (a[0] and b[1] and a[0] > b[1]) or (b[0] and a[1] and b[0] > a[1]): return "disagrees", None
-        return "within", ("the two ranges overlap" if rec.get("qualifier") in BOUNDS and tree.get("qualifier") in BOUNDS
-                          else "a bound on the record, the tree's date inside it" if rec.get("qualifier") in BOUNDS else "a bound in the tree, the record's date inside it")
-    if len(rs) == 10 and len(ts) == 10: return ("agrees", None) if rs == ts else ("disagrees", "same year, different day" if rs[:4] == ts[:4] else None)
+        if a is None or b is None: return Finding("absent")
+        if (a[0] and b[1] and a[0] > b[1]) or (b[0] and a[1] and b[0] > a[1]): return Finding("disagrees")
+        return Finding("within", bound="both" if rec.get("qualifier") in BOUNDS and tree.get("qualifier") in BOUNDS else "record" if rec.get("qualifier") in BOUNDS else "tree")
+    if len(rs) == 10 and len(ts) == 10: return Finding("agrees") if rs == ts else Finding("disagrees", same_year=rs[:4] == ts[:4])
     tol = 2 if rec.get("qualifier") in NEAR or tree.get("qualifier") in NEAR else 0   # either side approximate: two years
-    if abs(int(rs[:4]) - int(ts[:4])) <= tol: return "agrees", "year only; " + ("the record gives only a year" if len(rs) < 10 else "the tree gives only a year") + (f", within {tol} years" if tol and rs[:4] != ts[:4] else "")
-    return "disagrees", None
+    if abs(int(rs[:4]) - int(ts[:4])) <= tol: return Finding("agrees", only="record" if len(rs) < 10 else "tree", years=tol if tol and rs[:4] != ts[:4] else 0)
+    return Finding("disagrees")
 
 ONCE = ("Birth", "Death", "Burial", "Cremation")   # what a life holds once: a person's events of one of these types are one event wherever their places agree, and two that stand apart are a conflict question; residences, censuses, occupations and the like repeat
 RECORD_FACTS = ("Unknown", "Age", "Identification Number", "Relationship")      # about the record or the page, not facts of the person
@@ -418,13 +461,13 @@ def fuller_date(own, other):
     if not sn or own.get("qualifier") in BOUNDS or other.get("qualifier") in BOUNDS: return bool(sn) and not so
     if not so: return True
     says = lambda d, s: (len(s), d.get("qualifier") not in NEAR)
-    return date_verdict(other, own)[0] == "agrees" and says(other, sn) > says(own, so)
+    return date_verdict(other, own).verdict == "agrees" and says(other, sn) > says(own, so)
 
 def places_one(a, b):
     """Whether two places are one, as the fold and the choice of an event read them: either absent, or one agrees with the
     other read either way (place_verdict: a coarser or finer naming of one place agrees, Pennsylvania with Montgomery
     County, Pennsylvania), so Amherst and Northampton are two."""
-    return not a or not b or place_verdict(a, b)[0] == "agrees" or place_verdict(b, a)[0] == "agrees"
+    return not a or not b or place_verdict(a, b).verdict == "agrees" or place_verdict(b, a).verdict == "agrees"
 
 def same_event(etype, kind, a, b):
     """Whether two events of one person, or of one family, of one type are one event (docs/RESEARCH-WORKFLOW.md §5–7, the
@@ -464,12 +507,9 @@ def place_given(said, own, record_state=None, dated_names=None):
     whole (the place itself, a place inside it, a name it held, the same place at another granularity); n when it names it
     only from its nth part below the country up, the n parts ahead of that beyond it (Kentucky against Logan County < Kentucky
     < United States: 1); None when the two do not agree."""
-    v, note = place_verdict(said, own, record_state=record_state, dated_names=dated_names)
-    if v != "agrees": return None
-    if "the record gives only" not in (note or ""): return 0
-    below = [n for n, _ in _place_parts(own) if n != "usa"]
-    mine = [n for n, _ in _place_parts(said) if n != "usa"]
-    return next((i for i, n in enumerate(below) if mine and key(n) == key(mine[0])), None)
+    f = place_verdict(said, own, record_state=record_state, dated_names=dated_names)
+    if f.verdict != "agrees": return None
+    return f.level if f.coarser is not None else 0
 
 def place_beyond(own, n):
     """(the first n parts of a place, own, as written; its nth part, the finest of the rest), each in words: what of a place a
@@ -607,33 +647,35 @@ def _place_verdict_once(record, tree, supply=None):
     parts = _place_parts                                              # (normalised, as written)
     tparts = [p for p, _ in parts(tree)]
     below = [p for p in tparts if p != "usa"]
-    if not below: return "absent", None                             # a tree place that names only the country says nothing to compare
+    if not below: return Finding("absent")                          # a tree place that names only the country says nothing to compare
     rparts = [(p, w) for p, w in parts(record) if p != "usa"]         # the country is not a part to count on either side
-    if not rparts: return "absent", None
+    if not rparts: return Finding("absent")
+    first = rparts[0][0]                                              # the record's own first part, before any state is supplied
     if supply: rparts = rparts + [(_place_part(supply), supply)]            # a bare county takes the record's own event place's state, for comparison only
     finer = rparts[:-len(below)] if len(rparts) > len(below) else []  # what the record names ahead of the tree's own finest part: a finer place, or a cemetery or building ahead of its town; not compared
     rparts = [p for p, _ in rparts[len(finer):]]
     tkeys = {key(p) for p in tparts}
-    if not all(key(p) in tkeys for p in rparts): return "disagrees", None
+    if not all(key(p) in tkeys for p in rparts): return Finding("disagrees")
     finest = rparts[0]                                                # the record's first-named jurisdiction is its finest
-    if key(finest) == key(below[0]): return ("agrees", "the record is finer: " + ", ".join(w for _, w in finer)) if finer else ("agrees", None)
+    if key(finest) == key(below[0]): return Finding("agrees", finer=tuple(w for _, w in finer))
     name = next((p for p in below if key(p) == key(finest)), finest)
-    return "agrees", f"the record gives only {name.title()}"
+    # the level is the record's own first part's among the tree's: none when a finer record names its first part nowhere in the tree's chain
+    return Finding("agrees", coarser=name.title(), level=next((i for i, p in enumerate(below) if key(p) == key(first)), None))
 
 def _dated_agree(record, dated_names):
     """Whether some part of record, tail-word first (so a hamlet or ward named ahead of it, "Ogau" in "Ogau Tonan",
     is never mistaken for the whole), is one of dated_names ([(name, valid_from, valid_to), ...], a place's own
-    former names from place_name): a note naming the name and the period it held it, or None."""
+    former names from place_name): that (name, valid_from, valid_to), or None."""
     for part in re.split(r"<|,", record):
         words = [w for w in part.strip().split() if w]
         for i in range(len(words)):
             tail = key(" ".join(words[i:]))
             for name, vf, vt in dated_names or []:
-                if tail and tail == key(name): return f"as {name}, a name it held {vf or '?'}–{vt or '?'}"
+                if tail and tail == key(name): return name, vf, vt
     return None
 
 def _same_granular(record, tree):
-    """The note when two US place strings name one place at another granularity, else None: with the administrative word
+    """Whether two US place strings name one place at another granularity: with the administrative word
     dropped from every part (Hempstead Town is Hempstead, Village of Lindenhurst is Lindenhurst, Northampton Ward 1 is
     Northampton), both name the same state as their last part, the same place as their first, and every part of the shorter
     is a part of the longer in the same order, so a county one side leaves out is no difference ("Northampton, Massachusetts"
@@ -641,14 +683,13 @@ def _same_granular(record, tree):
     North Hampton is not Northampton, Norriton not Norristown."""
     def parts(s): return [n for n, _ in _place_parts(s, administrative=True) if n != "usa"]
     r, t = parts(record), parts(tree)
-    if not r or not t or r[-1] not in US_STATES or r[-1] != t[-1] or r[0] != t[0]: return None
+    if not r or not t or r[-1] not in US_STATES or r[-1] != t[-1] or r[0] != t[0]: return False
     short, long_ = (r, t) if len(r) <= len(t) else (t, r)
     it = iter(long_)
-    if not all(p in it for p in short): return None
-    return "the same place, written at another granularity"
+    return all(p in it for p in short)
 
 def place_verdict(record, tree, record_state=None, dated_names=None):
-    """(verdict, note): agrees when every part the record states, at or below the country, is a part of the tree's resolved
+    """A Finding: agrees when every part the record states, at or below the country, is a part of the tree's resolved
     chain — 'Town < County < State < Country' — matched whole after normalisation (a jurisdiction word stripped, an
     abbreviated word written out (Mt. is Mount, St. is Saint, Ft. is Fort), a two-letter US state code expanded to its name, with or
     without a period), never as a substring of another word: 'Kent'
@@ -656,29 +697,27 @@ def place_verdict(record, tree, record_state=None, dated_names=None):
     parts below the country than the tree's own chain is read from the state backward, so what it names ahead of the
     tree's own finest part (the town when the tree holds only the state; a cemetery or building ahead of its town) is
     never compared: as a full date against a bare year agrees on the year, a finer record agrees on the level the tree
-    states, and the note says the record is finer and names those leading parts. A
-    coarser record (the state alone, or the county and state) still agrees, on the finest part it states, and the note
-    names that part; a full match down to the tree's own finest part carries no note. A part that is a real place but is
+    states, and the finding says the record is finer and names those leading parts. A
+    coarser record (the state alone, or the county and state) still agrees, on the finest part it states, and the finding
+    names that part and its level; a full match down to the tree's own finest part carries neither. A part that is a real place but is
     not in the tree's chain (a same-named town in another state, a county alone against a tree that holds only the state)
     disagrees — unless the record names a county alone: it then takes the state of the record's own event place
-    (record_state, collection_state on the record's own collection) for the comparison, the note saying so; or unless the
+    (record_state, collection_state on the record's own collection) for the comparison, the finding saying so; or unless the
     record names a dated former name of the tree's own place (dated_names, place_name rows with a valid_from or valid_to:
-    Tonan, a village Morioka absorbed in 1992) — it then agrees on that name, the note naming the period it held it; or
+    Tonan, a village Morioka absorbed in 1992) — it then agrees on that name, the finding naming the period it held it; or
     unless the two name one US place at another granularity (_same_granular: an administrative word such as Town, Village
     of, Borough, City or Ward N, or a county one side leaves out, with the rest of the name and the state agreeing) — it
-    then agrees, the note saying so. The string itself is never changed, only compared. absent when either side has none."""
-    if not record or not tree: return "absent", None
-    v, note = _place_verdict_once(record, tree)
-    if v == "disagrees" and record_state and re.search(r"\bcounty\b", record, re.I) and not re.search(r"<|,", record):
-        v2, note2 = _place_verdict_once(record, tree, supply=record_state)
-        if v2 == "agrees": return v2, (f"{note2}; " if note2 else "") + f"supplying {record_state}, the record's own event place, for the bare county"
-    if v == "disagrees" and dated_names:
-        note3 = _dated_agree(record, dated_names)
-        if note3: return "agrees", note3
-    if v == "disagrees":
-        note4 = _same_granular(record, tree)
-        if note4: return "agrees", note4
-    return v, note
+    then agrees, the finding saying so. The string itself is never changed, only compared. absent when either side has none."""
+    if not record or not tree: return Finding("absent")
+    f = _place_verdict_once(record, tree)
+    if f.verdict == "disagrees" and record_state and re.search(r"\bcounty\b", record, re.I) and not re.search(r"<|,", record):
+        f2 = _place_verdict_once(record, tree, supply=record_state)
+        if f2.verdict == "agrees": return dataclasses.replace(f2, supplied=record_state)
+    if f.verdict == "disagrees" and dated_names:
+        held = _dated_agree(record, dated_names)
+        if held: return Finding("agrees", held=held)
+    if f.verdict == "disagrees" and _same_granular(record, tree): return Finding("agrees", granular=True)
+    return f
 
 
 def served_as():
@@ -1150,23 +1189,22 @@ class Catalog:
                 tree_text = e[2] if axis == "date" else tree_place
                 tree_dated = self.dated_names(e[5]) if axis == "place" else None
                 def cmp(av, asa, bv, bsa):
-                    if axis == "date": return date_verdict(av, bv)
-                    v, note = place_verdict(av, bv, record_state=asa, dated_names=tree_dated)
-                    if v == "disagrees" and bsa:
-                        v2, note2 = place_verdict(bv, av, record_state=bsa, dated_names=tree_dated)
-                        if v2 == "agrees": return v2, note2
-                    return v, note
+                    """The two values' verdict: a place read the other way too, with the other side's state, where it disagrees."""
+                    if axis == "date": return date_verdict(av, bv).verdict
+                    v = place_verdict(av, bv, record_state=asa, dated_names=tree_dated).verdict
+                    if v == "disagrees" and bsa and place_verdict(bv, av, record_state=bsa, dated_names=tree_dated).verdict == "agrees": return "agrees"
+                    return v
                 accepted = [gk for gk in order if groups[gk]["status"] == "accepted" and value_of(gk) is not None]
                 pairs = []                                    # ("tree", key) or (key, key): a genuine disagreement found, before grouping
-                on_tree = lambda k: axis == "place" and tree_val is not None and cmp(value_of(k), groups[k]["state"], tree_val, None)[0] == "agrees"   # a place that is a part of the event's own place chain
+                on_tree = lambda k: axis == "place" and tree_val is not None and cmp(value_of(k), groups[k]["state"], tree_val, None) == "agrees"   # a place that is a part of the event's own place chain
                 for gk in accepted:
-                    v, _ = cmp(value_of(gk), groups[gk]["state"], tree_val, None)
+                    v = cmp(value_of(gk), groups[gk]["state"], tree_val, None)
                     if v == "disagrees": pairs.append(("tree", gk))
                     for ok in order:
                         if ok == gk or value_of(ok) is None: continue
                         if ok in accepted and order.index(ok) < order.index(gk): continue   # two accepted statements compared once
                         if v == "agrees" and on_tree(ok): continue                           # two statements that are each a part of the event's own place are parts of one place: a state and a town in it, written without the state, are no disagreement
-                        v2, _ = cmp(value_of(gk), groups[gk]["state"], value_of(ok), groups[ok]["state"])
+                        v2 = cmp(value_of(gk), groups[gk]["state"], value_of(ok), groups[ok]["state"])
                         if v2 == "disagrees": pairs.append((gk, ok))
                 if not pairs: continue
                 nodes = list(dict.fromkeys(n for p in pairs for n in p))
@@ -1175,7 +1213,7 @@ class Catalog:
                     while parent[x] != x: x = parent[x]
                     return x
                 vs = lambda n: (tree_val, None) if n == "tree" else (value_of(n), groups[n]["state"])
-                agrees = {(a, b) for i, a in enumerate(nodes) for b in nodes[i + 1:] if cmp(*vs(a), *vs(b))[0] == "agrees"}
+                agrees = {(a, b) for i, a in enumerate(nodes) for b in nodes[i + 1:] if cmp(*vs(a), *vs(b)) == "agrees"}
                 together = lambda a, b: (a, b) in agrees or (b, a) in agrees
                 for i, a in enumerate(nodes):                  # group by mutual agreement, among only the statements already in some disagreement; every member of a side agrees with every other, so a coarse statement agreeing with two that differ (a county holding two towns) joins neither to the other
                     for b in nodes[i + 1:]:
@@ -1319,7 +1357,7 @@ class Catalog:
                                                               WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", eid):
             label = self._statement(sha, pf, notes); every.append(label)
             said = own if pf is None else {"start": start or end, "end": end, "text": text, "qualifier": qual}
-            if date_verdict(said, own)[0] == "agrees": agree.append(label)
+            if date_verdict(said, own).verdict == "agrees": agree.append(label)
         return self._labels(agree or every) or "no statement"
     MARK_WORDS = {"alternate": "a value a page keeps beneath the one it shows", "placed": "a sibling placement", "computed": "a grouping the indexer computed"}
     def value_basis(self, eid):
@@ -1499,7 +1537,7 @@ class Catalog:
         for y, said in sorted(census.items()):
             for i, (la, ra, pa) in enumerate(said):
                 for lb, rb, pb in said[i + 1:]:
-                    if la != lb and place_verdict(pa, pb)[0] == "disagrees" and place_verdict(pb, pa)[0] == "disagrees":
+                    if la != lb and place_verdict(pa, pb).verdict == "disagrees" and place_verdict(pb, pa).verdict == "disagrees":
                         out.append(f"census {y}: {la} puts {name} at {ra}, {lb} at {rb}: one person in two places in one census")
         return list(dict.fromkeys(out))
     def dated_names(self, place_id):

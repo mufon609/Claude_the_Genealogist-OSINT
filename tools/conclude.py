@@ -99,6 +99,7 @@ from catalog import (
     MARKS,
     ONCE,
     RECORD_FACTS,
+    Finding,
     date_span,
     date_verdict,
     evidence_classes,
@@ -116,7 +117,16 @@ from catalog import (
 )
 from catalog import key as surname_key
 from match import (
-    MARRIED_IN_LAW, MATCHER, REL_OF, candidate, compare, fits_by_name_and_year, match, personas_of, split_persona_name
+    MARRIED_IN_LAW,
+    MATCHER,
+    REL_OF,
+    candidate,
+    compare,
+    fits_by_name_and_year,
+    match,
+    personas_of,
+    said,
+    split_persona_name
 )
 from plan import plan_person
 from log_search import release_household, restate
@@ -273,9 +283,9 @@ def gives(ev, r, axis, value, day=False):
         }
         if not d["start"]:
             return False
-        verdict, note = date_verdict(value, d)
-        return verdict == "agrees" and (not day or (len(d["start"]) == 10 and "year only" not in (note or "")))
-    return bool(r["raw"]) and place_verdict(value, r["raw"])[0] == "agrees"
+        f = date_verdict(value, d)
+        return f.verdict == "agrees" and (not day or (len(d["start"]) == 10 and not f.only))
+    return bool(r["raw"]) and place_verdict(value, r["raw"]).verdict == "agrees"
 
 def not_the_files_word(r, rec, keys, without=(), claim_only=False):
     """What keeps a statement on the tree (an assertion row: id, status, artifact_sha256, notes, imported) from standing
@@ -298,11 +308,6 @@ def not_the_files_word(r, rec, keys, without=(), claim_only=False):
     if r["status"] != "accepted":
         return "undecided"
     return "accepted" if claim_only else None
-
-def coarser(note):
-    """Whether place_verdict's note says the record gives a coarser place than the one it was compared with (a state or a
-    county against a town)."""
-    return (note or "").startswith("the record gives only")
 
 def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, without=()):
     """The tree's statements the standing rule may stand on for one point about the record under decision (sha; rec, what it
@@ -363,7 +368,7 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
                     "text": r["ev_text" if own else "date_text"],
                     "qualifier": r["ev_qualifier" if own else "date_qualifier"]
                 }
-                if not d["start"] or date_verdict(value, d)[0] != "agrees":
+                if not d["start"] or date_verdict(value, d).verdict != "agrees":
                     continue
                 day = len(d["start"]) == 10 and len((value or {}).get("start") or "") == 10
             elif axis == "place":
@@ -373,11 +378,11 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
                     else (cat.place(r["ev_id"], r["ev_place"])["text"] if r["ev_place"] else None)
                 )
                 names = cat.dated_names(r["ev_place"])  # the tree's own place's former names, on either side
-                if not raw or place_verdict(value, raw, dated_names=names)[0] != "agrees":
+                if not raw or place_verdict(value, raw, dated_names=names).verdict != "agrees":
                     continue
-                v, note = place_verdict(raw, tree, dated_names=names)
+                f = place_verdict(raw, tree, dated_names=names)
                 # a statement coarser than the tree's own place is no ground for it
-                if v != "agrees" or coarser(note):
+                if f.verdict != "agrees" or f.coarser is not None:
                     continue
             if axis and kind == "event":
                 if sid not in aside:
@@ -1539,7 +1544,7 @@ def record_says(cx, tree_id, pid, sha):
                     "SELECT id, date_text, date_start, date_end, date_qualifier, place_id FROM event WHERE id=?",
                     (a["subject_id"],)
                 ).fetchone()
-                dv, _ = date_verdict(
+                dv = date_verdict(
                     {
                         "start": a["date_start"],
                         "end": a["date_end"],
@@ -1552,11 +1557,11 @@ def record_says(cx, tree_id, pid, sha):
                         "text": ev["date_text"],
                         "qualifier": ev["date_qualifier"]
                     }
-                )
+                ).verdict
                 tp = cat.place(ev["id"], ev["place_id"])["text"] if ev["place_id"] else None
                 if dv == "disagrees":
                     item["disagrees"] = f"date: the tree says {ev['date_text']}"
-                elif place_verdict(a["raw"], tp)[0] == "disagrees":
+                elif place_verdict(a["raw"], tp).verdict == "disagrees":
                     item["disagrees"] = f"place: the tree says {tp}"
         out.append(item)
     return out
@@ -1947,8 +1952,8 @@ def _stands_for(cat, persona, cand, chosen):
     fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
     if fits:
         return True
-    given = any(a.startswith("given name agrees") for a in agree)
-    surname = any(a.startswith("surname agrees") for a in agree) or any(a.startswith("surname:") for a in absent)
+    given = any(a.field == "given name" for a in agree)
+    surname = any(a.field == "surname" for a in agree) or any(a.married for a in absent)
     return given and surname and not disagree
 
 FIELD_EVENT = {
@@ -1988,12 +1993,12 @@ def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_sta
     shown = (cat.place(eid, ev["place_id"]) or {}).get("text") if axis == "place" else None
     def part(p, state=None):
         """Whether a place names a part of the event's own place, not a place inside it."""
-        v, note = (
+        f = (
             place_verdict(p, shown, record_state=state, dated_names=cat.dated_names(ev["place_id"]))
             if shown
-            else ("absent", None)
+            else Finding("absent")
         )
-        return v == "agrees" and not (note or "").startswith("the record is finer")
+        return f.verdict == "agrees" and not f.finer
     out, aside = [], None
     for r in rows:
         own = r["persona_fact_id"] is None
@@ -2007,19 +2012,19 @@ def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_sta
                 "text": src["date_text"],
                 "qualifier": src["date_qualifier"]
             }
-            if not d["start"] or date_verdict(value, d)[0] != "disagrees":
+            if not d["start"] or date_verdict(value, d).verdict != "disagrees":
                 continue
-            said = d["text"] or d["start"]
+            given = d["text"] or d["start"]
         else:
             if own or not r["raw"]:
                 continue
-            said = cat._place_chain(r["place_id"])["text"] if r["place_id"] else r["raw"]
+            given = cat._place_chain(r["place_id"])["text"] if r["place_id"] else r["raw"]
             names = cat.dated_names(r["place_id"])
-            if place_verdict(value, said, record_state=record_state, dated_names=names)[0] == "agrees":
+            if place_verdict(value, given, record_state=record_state, dated_names=names).verdict == "agrees":
                 continue
-            if place_verdict(said, value, dated_names=names)[0] == "agrees":
+            if place_verdict(given, value, dated_names=names).verdict == "agrees":
                 continue
-            if part(value, record_state) and part(said):
+            if part(value, record_state) and part(given):
                 continue
         if primary and (own or (evidence_classes(cx, r["id"]) or {}).get("information") != "primary"):
             continue
@@ -2027,7 +2032,7 @@ def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_sta
             aside = set_aside(cx, eid, axis)
         if r["id"] in aside:
             continue
-        out.append((r["id"], said, cat.record_label(r["artifact_sha256"])))
+        out.append((r["id"], given, cat.record_label(r["artifact_sha256"])))
     return out
 
 def held_against(cx, tree_id, cand_id, other_id, kind, without=()):
@@ -2065,12 +2070,8 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
     place that disagrees with an accepted statement holding primary information is no veto either: the primary record
     stands, and the page's value, written undecided, is a contradiction of it, a conflict question once the page's identity
     is taken (the owner, 3 Oct 2026: a page anyone can edit is not trusted; use the primary document and tag the page as a
-    contradiction). without: proposal ids whose statements do not count (reconsider). Returns (vetoes, claims, conflicts), a
-    contradiction among the conflicts."""
-    rel = {}  # a relationship line's own opening -> (kind, the related candidate), as compare() words it
-    for kind, other_pid, as_written, other_name in persona["relations"]:
-        if chosen.get(other_pid):
-            rel[f"relationship disagrees: {as_written or kind} of {other_name},"] = (kind, chosen[other_pid])
+    contradiction). without: proposal ids whose statements do not count (reconsider). Returns (vetoes, claims, conflicts),
+    each a list of findings (catalog.Finding, in words by match.said), a contradiction among the conflicts."""
     state = persona.get("record_state")
     def accepted_against(field, primary=False):
         et, axis, at = FIELD_EVENT[field]
@@ -2078,7 +2079,7 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
         return against(cx, tree_id, eid, axis, persona[at], without, primary=primary, record_state=state) if eid else []
     vetoes, claims, conflicts, met = [], [], [], set()
     for d in disagree:
-        field = next((f for f in FIELD_EVENT if d.startswith(f)), None)
+        field = d.field if d.field in FIELD_EVENT else None
         if field:
             met.add(field)
         if field and cand["events"].get(FIELD_EVENT[field][0]) and not accepted_against(field):
@@ -2092,11 +2093,11 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
             and accepted_against(field, primary=True)
         ):
             conflicts.append(d)
-        elif d.startswith("relationship disagrees"):
-            kind, oc = next((v for k, v in rel.items() if d.startswith(k)), (None, None))
-            (vetoes if oc is None or held_against(cx, tree_id, cand["id"], oc["id"], kind, without) else claims).append(
-                d
-            )
+        elif d.field == "relationship":
+            # the relative the finding names, by its persona on the record
+            oc = chosen.get(d.other)
+            vetoed = oc is None or held_against(cx, tree_id, cand["id"], oc["id"], d.kind, without)
+            (vetoes if vetoed else claims).append(d)
         else:
             vetoes.append(d)
     # a value that agrees with what the event shows, or that the event does not show, met with the accepted statements
@@ -2107,10 +2108,13 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
         hit = accepted_against(field)
         if not hit:
             continue
-        said = value["text"] or value["start"] or value["end"] if axis == "date" else value
-        shown = cand[at]["text"] if axis == "date" else cand[at]
-        line = (f"{field} disagrees with an accepted statement (record {said}, accepted {hit[0][1]} on {hit[0][2]}; "
-                f"the tree shows {shown or 'none'})")
+        line = Finding(
+            "disagrees",
+            field=field,
+            record=value["text"] or value["start"] or value["end"] if axis == "date" else value,
+            tree=cand[at]["text"] if axis == "date" else cand[at],
+            accepted=(hit[0][1], hit[0][2])
+        )
         if field == "birth place":
             conflicts.append(line)
         elif editable_page and accepted_against(field, primary=True):
@@ -2374,12 +2378,12 @@ def rule_accepts(cx, tree_id, prop, without=()):
             ).fetchone()[0]
         ) + ", a copy of this record)"
     )
-    taken = next((i for i, (ok, _) in enumerate(seen) if ok), None)
-    veto = next((i for i, (ok, why) in enumerate(seen) if not ok and why.startswith("disagrees: ")), None)
+    taken = next((i for i, (ok, _, _) in enumerate(seen) if ok), None)
+    veto = next((i for i, (_, _, vetoes) in enumerate(seen) if vetoes), None)
     if taken is None:
         made = made_here(cx, tree_id, prop) if veto is None else None
         if not made:
-            return seen[0]
+            return seen[0][:2]
         ok, why = rule_accepts(cx, tree_id, made, without)
         return (
             True,
@@ -2415,8 +2419,9 @@ def made_here(cx, tree_id, prop):
     return None
 
 def rule_points(cx, tree_id, prop, without=()):
-    """Whether the record of a proposal is one the standing rule takes on its points, and why, in words: (True, reason) or
-    (False, why not), before identity is tested (rule_accepts).
+    """Whether the record of a proposal is one the standing rule takes on its points, and why, in words, with the
+    disagreements against an accepted value that refuse it (split_disagree's vetoes, as findings): (True, reason, []) or
+    (False, why not, vetoes, empty unless they are why), before identity is tested (rule_accepts).
     The record's kinds and their standing come from data/evidence-classes.csv (catalog.record_kinds, record_standing), on its
     current reading, the same for a page a parser read and an image read by hand or by the model; the persona is judged on that
     reading too, the persona of the same entry there (catalog.current_entry) with its facts and the relationships and personas
@@ -2439,12 +2444,12 @@ def rule_points(cx, tree_id, prop, without=()):
     pay = json.loads(prop["payload_json"])
     pid, sha = pay.get("person_id"), pay["artifact_sha256"]
     if prop["kind"] not in ("persona_match", "new_person") or (prop["kind"] == "persona_match" and not pid):
-        return False, "not a card the rule decides"
+        return False, "not a card the rule decides", []
     x = q.execute(f"""SELECT x.name, CASE WHEN json_valid(e.structured_json) THEN json_extract(e.structured_json,'$.collection') END AS read_collection, c.name AS collection, {tier_sql()} AS trust_tier, s.name AS source
                      FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256
                      LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
     if not x:
-        return False, "the record's extraction is gone"
+        return False, "the record's extraction is gone", []
     eid = pay["extraction_id"]
     while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]):
         eid = later
@@ -2456,21 +2461,22 @@ def rule_points(cx, tree_id, prop, without=()):
     survivors_kind = NAMED_SURVIVORS in kinds                            # identifying only through who it names
     if identity:
         if standing != "identity":
-            return False, f"a row on a {x['source'] or 'T4'} page anyone can edit is a hint until its own record is read: the owner decides it"
+            return False, f"a row on a {x['source'] or 'T4'} page anyone can edit is a hint until its own record is read: the owner decides it", []
     else:
         if standing != "automated":
             return False, f"a {coll} record is a hint until a person reads it (" + (
                 f"data/evidence-classes.csv reads it as {by_kind}, {standing}"
                 if by_kind
                 else "data/evidence-classes.csv holds no kind it reads as"
-            ) + ")"
+            ) + ")", []
         yr = year or (re.search(r"\b(1[5-9]\d\d)\b", coll) or [None, None])[1]
         if HEAD_ONLY[0] in kinds and yr and int(yr) < HEAD_ONLY[1]:
-            return False, f"a census before {HEAD_ONLY[1]} names only the head"
+            return False, f"a census before {HEAD_ONLY[1]} names only the head", []
         if by_kind == DATED_WITH_PARENTS and not dated_with_parents(cx, eid):
             return (
                 False,
-                "a church register entry is a hint until a person reads it, unless it is dated and names the parents"
+                "a church register entry is a hint until a person reads it, unless it is dated and names the parents",
+                []
             )
     cat = Catalog(cx, tree_id)
     # the record as its current reading gives it: the persona of the same entry there, else the proposal's own reading
@@ -2478,7 +2484,7 @@ def rule_points(cx, tree_id, prop, without=()):
     reading, persona_id = (eid, cur) if cur else (pay["extraction_id"], pay["persona_id"])
     persona = next((p for p in personas_of(cx, reading) if p["id"] == persona_id), None)
     if not persona:
-        return False, "persona not found"
+        return False, "persona not found", []
     # a link a decision under reconsideration wrote is not ground either
     skip = f"AND coalesce(pp.proposal_id,'') NOT IN ({','.join('?' * len(without))})" if without else ""
     chosen = {r["persona_id"]: candidate(cat, r["person_id"]) for r in q.execute(f"""SELECT pp.persona_id, pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
@@ -2486,7 +2492,7 @@ def rule_points(cx, tree_id, prop, without=()):
     # persona id -> candidate, genuinely decided on this record; the fitting loop below only guesses at a fit
     accepted_on_record = dict(chosen)
     if prop["kind"] == "new_person":
-        return rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record)
+        return (*rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record), [])
     fam = cat.family(pid)
     cand = candidate(cat, pid)
     relatives = [candidate(cat, rid) for g in ("parents", "spouses", "children") for rid, _ in fam[g]]
@@ -2545,7 +2551,7 @@ def rule_points(cx, tree_id, prop, without=()):
             return False
         c, other = chosen[other_pid], others[other_pid]
         for a in fitted[other_pid][0]:
-            field = next((f for f in FIELD_EVENT if a.startswith(f + " agrees")), None)
+            field = a.field if a.field in FIELD_EVENT else None
             if field:
                 et, axis, at = FIELD_EVENT[field]
                 if (
@@ -2553,17 +2559,17 @@ def rule_points(cx, tree_id, prop, without=()):
                     and rests_elsewhere(cx, c["events"][et], sha, axis, other[at], keys=keys, copies=rec["copies"])
                 ):
                     return True
-            elif a.startswith("residence place agrees"):
+            elif a.field == "residence place":
                 if any(
                     e["place"]
-                        and place_verdict(other["residence place"], e["place"]["text"])[0] == "agrees"
+                        and place_verdict(other["residence place"], e["place"]["text"]).verdict == "agrees"
                         and rests_elsewhere(
                             cx, e["id"], sha, "place", other["residence place"], keys=keys, copies=rec["copies"]
                         )
                     for e in cat.events(c["id"])
                 ):
                     return True
-            elif a.startswith("the same memorial"):
+            elif a.field == "memorial":
                 return True
         return False
     fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
@@ -2571,12 +2577,14 @@ def rule_points(cx, tree_id, prop, without=()):
         cx, tree_id, cand, persona, disagree, chosen, without, editable_page=identity
     )
     if vetoes:
-        return False, "disagrees: " + "; ".join(vetoes)
+        return False, "disagrees: " + "; ".join(map(said, vetoes)), vetoes
     claim_note = (
-        (" (disagrees with the tree's own claim, not yet accepted: " + "; ".join(claims) + ")") if claims else ""
+        (" (disagrees with the tree's own claim, not yet accepted: " + "; ".join(map(said, claims)) + ")")
+        if claims
+        else ""
     )
-    contradicts = [c for c in conflicts if not c.startswith("birth place")]
-    born = [c for c in conflicts if c.startswith("birth place")]
+    contradicts = [said(c) for c in conflicts if c.field != "birth place"]
+    born = [said(c) for c in conflicts if c.field == "birth place"]
     claim_note += (
         " (the birth place differs from an accepted one, never a veto: a conflict question once the record is taken: "
         + "; ".join(born)
@@ -2592,14 +2600,11 @@ def rule_points(cx, tree_id, prop, without=()):
         else ""
     )
     # a wife under her married name: not a disagreement, and not the surname's absence either
-    married = any(a.startswith("surname:") and "carries her husband's surname" in a for a in absent)
-    if (
-        not any(a.startswith("given name agrees") for a in agree)
-        or not (any(a.startswith("surname agrees") for a in agree) or married)
-    ):
-        return False, "the name does not agree in full"
-    if any(a.startswith("surname agrees, one letter apart") for a in agree):
-        return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground"
+    married = any(a.married for a in absent)
+    if not any(a.field == "given name" for a in agree) or not (any(a.field == "surname" for a in agree) or married):
+        return False, "the name does not agree in full", []
+    if any(a.field == "surname" and a.spelling == "one letter apart" for a in agree):
+        return False, "the surname agrees one letter apart: an indexer's slip a person reads, not the rule's ground", []
     relations = stated(persona)
     def joined(kind, other_pid):
         """The relative a stated relation names, when the tree links the two so on a membership not rejected (Catalog.family):
@@ -2609,7 +2614,7 @@ def rule_points(cx, tree_id, prop, without=()):
         return (group, oc) if oc and group and any(rid == oc["id"] for rid, _ in fam[group]) else None
     if identity:
         # both sides a full date, the same day
-        day = lambda t: any(a.startswith(f"{t} date agrees") and "year only" not in a for a in agree)
+        day = lambda t: any(a.field == f"{t} date" and not a.only for a in agree)
         # own: what agrees with the tree on nothing claimed or accepted, never a point -> what the tree has it from, in words
         points, own = [], {}
         def held(w, eid, axis, value, full=False, shown=False):
@@ -2627,7 +2632,7 @@ def rule_points(cx, tree_id, prop, without=()):
         for t, w, et in (("birth", "birth date to the day", "Birth"), ("death", "death date to the day", "Death")):
             if len(persona[t]["start"] or "") == 10:
                 held(w, cand["events"].get(et), "date", persona[t], full=True, shown=day(t))
-        if any(a.startswith("burial place agrees") for a in agree):
+        if any(a.field == "burial place" for a in agree):
             held("burial place", cand["events"].get("Burial"), "place", persona["burial place"], shown=True)
         anywhere = (set(), set(), set())  # no record's keys: the file's claim read whatever it cites
         # however many relatives the page lists, a stated parent or spouse is one of the four; a child or a sibling never
@@ -2664,10 +2669,10 @@ def rule_points(cx, tree_id, prop, without=()):
                     if points
                     else "the name alone agrees"
                 ) + own_note
-            )
+            ), []
         return True, "identity on a page anyone can edit: the name, " + ", ".join(
             points
-        ) + " agree with the tree; the page's facts are written undecided, never accepted" + own_note + claim_note
+        ) + " agree with the tree; the page's facts are written undecided, never accepted" + own_note + claim_note, []
     # the name is a claim, or accepted on nothing the rule may count here: the route through a stated relationship
     if cat.basis("person", pid) != "accepted" or not trusted_evidence(cx, tree_id, "person", [pid], without=without):
         rel = claimed_relation_match(
@@ -2701,20 +2706,22 @@ def rule_points(cx, tree_id, prop, without=()):
                 else ""
             )
             if any(c and o in accepted_on_record for k, o, c, n in relations):
-                return False, "the name is not accepted yet, and the record's relationship to the person accepted on it is its indexer's, not the record's own statement" + loose
+                return False, "the name is not accepted yet, and the record's relationship to the person accepted on it is its indexer's, not the record's own statement" + loose, []
             return False, (
                 "the name is not accepted yet"
                 if cat.basis("person", pid) != "accepted"
                 else "the accepted name rests on no trusted source and not on your own word"
-            ) + loose
-        if any(d.startswith("birth date disagrees") for d in disagree):
+            ) + loose, []
+        if any(d.field == "birth date" for d in disagree):
             return (
-                False, "the name is not accepted yet, and the birth year disagrees with the claimed relative's record"
+                False,
+                "the name is not accepted yet, and the birth year disagrees with the claimed relative's record",
+                []
             )
         if unplaced:
-            return True, f"a stated sibling: sibling {unplaced[1]}, already accepted on this record, and your tree holds no parents for {cand['name']}, so nothing contradicts it; the name and birth year agree, so the record's own name fact documents it, and they are placed beside {unplaced[1]} as a child of the same parents, undecided, where the tree holds those" + claim_note
+            return True, f"a stated sibling: sibling {unplaced[1]}, already accepted on this record, and your tree holds no parents for {cand['name']}, so nothing contradicts it; the name and birth year agree, so the record's own name fact documents it, and they are placed beside {unplaced[1]} as a child of the same parents, undecided, where the tree holds those" + claim_note, []
         group, other_cand, other_name = rel
-        return True, f"a claimed relationship: {REL_OF[group]} {other_name}, already accepted on this record, and your tree already links them so, claimed or accepted; the name and birth year agree, so the record's own name fact documents it" + claim_note
+        return True, f"a claimed relationship: {REL_OF[group]} {other_name}, already accepted on this record, and your tree already links them so, claimed or accepted; the name and birth year agree, so the record's own name fact documents it" + claim_note, []
     # points: (words, how many it counts); left: what agrees and earns nothing, said in the reason
     points, rel_points, left = [], [], []
     # one record is one source wherever it is held, and the same person's record of one event counts once
@@ -2736,13 +2743,12 @@ def rule_points(cx, tree_id, prop, without=()):
         points.append((f"{t} date to the day ({_on(day)})", 2) if day else (f"{t} date", 1))
     # a place stands on an accepted statement giving the place the event shows, whole
     for label, et in (("death place", "Death"), ("burial place", "Burial")):
-        line = next((a for a in agree if a.startswith(f"{label} agrees")), None)
-        if not line or not cand["events"].get(et):
+        found = next((a for a in agree if a.field == label), None)
+        if not found or not cand["events"].get(et):
             continue
-        coarse = re.search(r"the record gives only ([^;)]+)", line)
-        if coarse:
+        if found.coarser is not None:
             left.append(
-                f"the {label}, which the record gives only as {coarse.group(1)}, coarser than the tree's {cand[label]}"
+                f"the {label}, which the record gives only as {found.coarser}, coarser than the tree's {cand[label]}"
             )
             continue
         gs, shared = ground(
@@ -2823,14 +2829,14 @@ def rule_points(cx, tree_id, prop, without=()):
     if sum(n for _, n in points) < 2:
         return False, "agrees with the accepted name" + (
             f" and {points[0][0]}" if points else ""
-        ) + " only, counting facts from trusted sources; two are needed" + bare_note + left_note
+        ) + " only, counting facts from trusted sources; two are needed" + bare_note + left_note, []
     if survivors_kind and not rel_points:
         return False, "an obituary or newspaper text is ground only through who it names: " + (
             ", ".join(w for w, _ in points) or "the name"
-        ) + " agree, but none of the accepted relatives is among the survivors it names" + bare_note + left_note
+        ) + " agree, but none of the accepted relatives is among the survivors it names" + bare_note + left_note, []
     return True, "agrees with your accepted name, " + " and ".join(
         w for w, _ in points
-    ) + " from trusted sources; nothing disagrees against an accepted value" + claim_note + left_note
+    ) + " from trusted sources; nothing disagrees against an accepted value" + claim_note + left_note, []
 
 def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record):
     """Whether the rule creates the person a new_person card proposes, and why, in words (docs/RESEARCH-WORKFLOW.md §5–7): a
@@ -3099,7 +3105,7 @@ def identity_refused(cx, tree_id, prop, without=()):
     chosen = {o: candidate(cat, p) for o, p in accepted_on_record.items()}
     who = lambda rows: " and ".join(f"{n} [{i[-6:]}]" for i, n, _ in rows)
     on = lambda agree: ", ".join(
-        dict.fromkeys(a.split(" agrees")[0] if " agrees" in a else "the same memorial" for a in agree)
+        dict.fromkeys("the same memorial" if a.field == "memorial" else a.field for a in agree)
     ) + " agreeing"
     others = fits_as_well(cat, persona, pid, chosen, exclude)
     if others:
@@ -3420,7 +3426,7 @@ def _take_lacking(q, kept, other, ts, held=()):
     ).fetchone()
     decided, sets = kept["owner"] | kept["rule"], {}
     taken = {"start": o["date_start"] or o["date_end"], "end": o["date_end"], "qualifier": o["date_qualifier"]}
-    if "date" not in decided and not any(date_verdict(h, taken)[0] == "disagrees" for h in held) \
+    if "date" not in decided and not any(date_verdict(h, taken).verdict == "disagrees" for h in held) \
        and fuller_date({"start": k["date_start"], "end": k["date_end"], "qualifier": k["date_qualifier"]},
                        {"start": o["date_start"], "end": o["date_end"], "qualifier": o["date_qualifier"]}):
         sets.update({c: o[c] for c in ("date_text", "date_start", "date_end", "date_qualifier", "calendar")})
@@ -3894,7 +3900,7 @@ def resolve(cx, tree_id, qid, keep, by, note):
         else a["raw"]
     )
     differs = lambda v: (
-        date_verdict(kept_value, v)[0] if axis == "date" else place_verdict(kept_value, v)[0]
+        date_verdict(kept_value, v).verdict if axis == "date" else place_verdict(kept_value, v).verdict
     ) == "disagrees"
     set_aside = []
     for r in q.execute("""SELECT a.id, a.citation_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM assertion a

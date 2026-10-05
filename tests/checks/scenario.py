@@ -833,13 +833,14 @@ def e_compare(w, x, want):
     from cards import card as card_view
     from catalog import Catalog
     from conclude import split_disagree
-    from match import candidate, compare, personas_of
+    from match import candidate, compare, personas_of, said
     card = w.card(x["card"]); pay = json.loads(card["payload_json"]); cat = Catalog(w.cx, w.tid)
     persona = next(p for p in personas_of(w.cx, pay["extraction_id"]) if p["id"] == pay["persona_id"])
     cand = candidate(cat, pay["person_id"])
     fits, agree, disagree, absent, near = compare(cat, persona, cand, {})
     vetoes, claims, conflicts = split_disagree(w.cx, w.tid, cand, persona, disagree, {})
-    got = {"agree": agree, "disagree": disagree, "absent": absent, "vetoes": vetoes, "fields": {f["field"]: f["verdict"] for f in card_view(w.cx, w.tid, card["id"])["fields"]}}
+    words = lambda fs: [said(f) for f in fs]
+    got = {"agree": words(agree), "disagree": words(disagree), "absent": words(absent), "vetoes": words(vetoes), "fields": {f["field"]: f["verdict"] for f in card_view(w.cx, w.tid, card["id"])["fields"]}}
     return has(got, w.value({k: v for k, v in x.items() if k != "card"})), got
 
 def e_facts(w, x, want):

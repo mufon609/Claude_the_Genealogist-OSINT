@@ -86,19 +86,21 @@ a fetch step for the relative's own memorial instead, and the persona stays a
 hint on the page. The matcher is versioned like an extractor (MATCHER); every
 proposal carries the version that wrote it in generated_by.
 """
-import argparse, json, os, re, sys
+import argparse, dataclasses, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, ulid
 from catalog import (
     COUNTRY,
     SUFFIX,
     Catalog,
+    Finding,
     cited_persons,
     collection_state,
     date_verdict,
     edits,
     holds,
     key,
+    note,
     place_verdict,
     same_surname,
     soundex,
@@ -121,6 +123,10 @@ KIN_WORD = re.compile(
     re.I
 )
 NAME_ONLY = ("given name", "surname", "sex")  # what a namesake agrees on, besides a year of birth the record gives bare
+# a disagreement on one of these keeps a persona from fitting, the birth place unless compare is told otherwise
+UNFITTING = ("sex", "middle name", "birth date", "death date", "burial place", "death place")
+# an agreement on one of these is more than a name and a year
+STRONG = ("death date", "birth place", "burial place", "death place", "residence place")
 
 PREFIX = {
     "dr",
@@ -276,9 +282,10 @@ def split_persona_name(name_text):
     return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:] if len(key(p)) > 1])
 
 def compare(cat, persona, cand, chosen, birth_place=True):
-    """Agreements, disagreements and absences between a persona and a candidate person, in words. birth_place False: a birth
-    place that differs keeps the persona from fitting no more than it vetoes the standing rule (docs/RESEARCH-WORKFLOW.md
-    §5–7), as the rule reads a relative's persona on a record; the matcher's own proposals read it as written."""
+    """Agreements, disagreements and absences between a persona and a candidate person, as findings (catalog.Finding, in
+    words by said). birth_place False: a birth place that differs keeps the persona from fitting no more than it vetoes
+    the standing rule (docs/RESEARCH-WORKFLOW.md §5–7), as the rule reads a relative's persona on a record; the matcher's
+    own proposals read it as written."""
     agree, disagree, absent = [], [], []
     keys = name_keys(cat, cand["id"])
     # every name the record gives: at birth, current, as written elsewhere on it
@@ -310,117 +317,128 @@ def compare(cat, persona, cand, chosen, birth_place=True):
         )
     )
     (agree if given_ok else disagree).append(
-        f"given name {'agrees' if given_ok else 'disagrees'} (record {persona['name']}, tree {cand['name']})"
+        Finding("agrees" if given_ok else "disagrees", field="given name", record=persona["name"], tree=cand["name"])
     )
     if ps and married:
-        absent.append(f"surname: {persona['name']} carries her husband's surname on the record")
+        absent.append(Finding("absent", field="surname", record=persona["name"], married=True))
     elif ps:
         (agree if surname_ok else disagree).append(
-            f"surname {'agrees' if surname_ok else 'disagrees'}"
-            + {"variant": " as a spelling variant", "one letter apart": ", one letter apart"}.get(how, "")
-            + f" (record {persona['name']}, tree {cand['name']})"
+            Finding(
+                "agrees" if surname_ok else "disagrees",
+                field="surname",
+                record=persona["name"],
+                tree=cand["name"],
+                spelling=how if how in ("variant", "one letter apart") else None
+            )
         )
     else:
-        absent.append("surname")
+        absent.append(Finding("absent", field="surname"))
     rows = [(g or "", s or "") for g, s, *_ in cat.person(cand["id"])["names"]]
     # both carry a middle name or initial and they differ: another person, or a slip the owner reads
     if given_ok and middle_differs(persona["name"], rows, [s for _, s in rows]):
-        disagree.append(f"middle name disagrees (record {persona['name']}, tree {cand['name']})")
+        disagree.append(Finding("disagrees", field="middle name", record=persona["name"], tree=cand["name"]))
     if persona["sex"] and cand["sex"] in ("M", "F"):
         (agree if persona["sex"] == cand["sex"] else disagree).append(
-            f"sex {'agrees' if persona['sex'] == cand['sex'] else 'disagrees'} ({persona['sex']} in the record, {cand['sex']} in the tree)"
+            Finding(
+                "agrees" if persona["sex"] == cand["sex"] else "disagrees",
+                field="sex",
+                record=persona["sex"],
+                tree=cand["sex"]
+            )
         )
     else:
-        absent.append("sex")
+        absent.append(Finding("absent", field="sex"))
     dated = False
     for label in ("birth", "death"):
-        v, note = date_verdict(persona[label], cand[label])
-        if v == "absent":
-            absent.append(f"{label} date")
+        f = date_verdict(persona[label], cand[label])
+        if f.verdict == "absent":
+            absent.append(Finding("absent", field=f"{label} date"))
             continue
-        words = f"{label} date {v} (record {persona[label]['text']}, tree {cand[label]['text']}" + (
-            f": {note}" if note else ""
-        ) + ")"
+        f = dataclasses.replace(
+            f, field=f"{label} date", record=persona[label]["text"], tree=cand[label]["text"]
+        )
         # a bound neither agrees nor disagrees (catalog.date_verdict)
-        if v == "within":
-            absent.append(words)
+        if f.verdict == "within":
+            absent.append(f)
             continue
-        (agree if v == "agrees" else disagree).append(words)
-        dated = dated or v == "agrees"
+        (agree if f.verdict == "agrees" else disagree).append(f)
+        dated = dated or f.verdict == "agrees"
     for label in ("birth place", "burial place", "death place"):
-        v, note = place_verdict(
+        f = place_verdict(
             persona[label],
             cand[label],
             record_state=persona.get("record_state"),
             dated_names=cat.dated_names(cand.get(f"{label}_id"))
         )
-        if v == "absent":
-            absent.append(label)
+        if f.verdict == "absent":
+            absent.append(Finding("absent", field=label))
             continue
-        (agree if v == "agrees" else disagree).append(
-            f"{label} {v} (record {persona[label]}, tree {cand[label]}" + (f": {note}" if note else "") + ")"
+        (agree if f.verdict == "agrees" else disagree).append(
+            dataclasses.replace(f, field=label, record=persona[label], tree=cand[label])
         )
-        dated = dated or v == "agrees"
+        dated = dated or f.verdict == "agrees"
     if persona.get("residence place"):  # where the record puts the person, against every place the tree knows them at
         known = [p for p in cand.get("places") or [] if p]
-        hit = next((p for p in known if place_verdict(persona["residence place"], p)[0] == "agrees"), None)
+        hit = next(
+            (
+                (p, f)
+                for p in known
+                for f in [place_verdict(persona["residence place"], p)]
+                if f.verdict == "agrees"
+            ),
+            None
+        )
         if hit:
-            agree.append(f"residence place agrees (record {persona['residence place']}, tree {hit})")
+            agree.append(
+                dataclasses.replace(hit[1], field="residence place", record=persona["residence place"], tree=hit[0])
+            )
             dated = dated or True
         else:
-            absent.append(f"residence: {persona['residence place']} is not a place the tree knows them at")
+            absent.append(Finding("absent", field="residence place", record=persona["residence place"]))
     same = bool(persona.get("memorial")) and persona["memorial"] in (cand.get("memorials") or set())
     if same:
-        agree.append(f"the same memorial {persona['memorial']} is already accepted as {cand['name']}")
+        agree.append(Finding("agrees", field="memorial", record=persona["memorial"], tree=cand["name"]))
     rel_ok = False
     for kind, other_pid, as_written, other_name in persona["relations"]:
+        stated = dict(field="relationship", kind=kind, word=as_written, other=other_pid, other_name=other_name)
         other_cand = chosen.get(other_pid)
         if not other_cand:
-            absent.append(f"relationship to {other_name} ({as_written}): {other_name} not yet matched")
+            absent.append(Finding("absent", why="unmatched", **stated))
             continue
         fam = cat.family(cand["id"])
         group = {"child": "parents", "parent": "children", "spouse": "spouses", "sibling": "siblings"}.get(kind)
         if group is None:
-            absent.append(
-                f"relationship to {other_name} ({as_written}): the record's heading is not one the matcher maps to a family link"
-            )
+            absent.append(Finding("absent", why="unmapped", **stated))
             continue
         holds = any(rid == other_cand["id"] for rid, _ in fam[group])
         # a sibling is held through the parents: a candidate with none in the tree neither holds nor contradicts it
         if not holds and kind == "sibling" and not fam["parents"]:
-            absent.append(
-                f"relationship to {other_name} ({as_written}): {cand['name']} has no parents in the tree to hold or contradict a sibling"
-            )
+            absent.append(Finding("absent", why="no parents", tree=cand["name"], **stated))
             continue
         (agree if holds else disagree).append(
-            f"relationship {'agrees' if holds else 'disagrees'}: {as_written or kind} of {other_name}, "
-            f"{'and' if holds else 'but'} {other_cand['name']} is {'' if holds else 'not '}a {REL_OF[group]} of {cand['name']} in the tree"
+            Finding(
+                "agrees" if holds else "disagrees",
+                tree=cand["name"],
+                related=other_cand["name"],
+                role=REL_OF[group],
+                **stated
+            )
         )
         rel_ok = rel_ok or holds
-    clean = not any(
-        d.startswith(
-            ("sex", "middle name", "birth date", "death date", "burial place", "death place")
-            + (("birth place",) if birth_place else ())
-        )
-        for d in disagree
-    )
+    clean = not any(d.field in UNFITTING + (("birth place",) if birth_place else ()) for d in disagree)
     # more than a name and a year: a place, a death, or the day
     strong = (
-        any(
-            a.startswith(("death date", "birth place", "burial place", "death place", "residence place")) for a in agree
-        )
+        any(a.field in STRONG for a in agree)
         or any(
-            a.startswith("birth date agrees")
-                and "year only" not in a
-                and len((persona["birth"] or {}).get("start") or "") == 10
+            a.field == "birth date" and not a.only and len((persona["birth"] or {}).get("start") or "") == 10
             for a in agree
         )
     )
     fits = clean and (same or (given_ok and (((surname_ok or married) and dated and strong) or rel_ok)))
     # disagreeing on both is not a likely identity either
     both_dates = (
-        any(d.startswith("birth date disagrees") for d in disagree)
-        and any(d.startswith("death date disagrees") for d in disagree)
+        any(d.field == "birth date" for d in disagree)
+        and any(d.field == "death date" for d in disagree)
     )
     ry, cy = year((persona["birth"] or {}).get("start")), year((cand["birth"] or {}).get("start"))
     # born outside the matcher's own window: another generation, never a likely identity
@@ -435,11 +453,54 @@ def compare(cat, persona, cand, chosen, birth_place=True):
     near = (
         not fits
         and not far
-        and not any(d.startswith("sex") for d in disagree)
+        and not any(d.field == "sex" for d in disagree)
         and not both_dates
         and ((given_ok and (surname_ok or married or same)) or fitting)
     )
     return fits, agree, disagree, absent, near
+
+def said(f):
+    """A finding of compare's, or a disagreement conclude.split_disagree finds with an accepted statement, in words: the
+    sentence a rationale, a card and the rule's reasons carry. Nothing reads these words back."""
+    if f.accepted:
+        return (
+            f"{f.field} disagrees with an accepted statement "
+            f"(record {f.record}, accepted {f.accepted[0]} on {f.accepted[1]}; the tree shows {f.tree or 'none'})"
+        )
+    if f.field == "relationship" and f.why:
+        to = f"relationship to {f.other_name} ({f.word})"
+        if f.why == "unmatched":
+            return f"{to}: {f.other_name} not yet matched"
+        if f.why == "unmapped":
+            return f"{to}: the record's heading is not one the matcher maps to a family link"
+        return f"{to}: {f.tree} has no parents in the tree to hold or contradict a sibling"
+    if f.field == "relationship":
+        holds = f.verdict == "agrees"
+        return (
+            f"relationship {f.verdict}: {f.word or f.kind} of {f.other_name}, "
+            f"{'and' if holds else 'but'} {f.related} is {'' if holds else 'not '}a {f.role} of {f.tree} in the tree"
+        )
+    if f.field == "memorial":
+        return f"the same memorial {f.record} is already accepted as {f.tree}"
+    if f.married:
+        return f"surname: {f.record} carries her husband's surname on the record"
+    if f.field == "residence place" and f.verdict == "absent":
+        return f"residence: {f.record} is not a place the tree knows them at"
+    if f.verdict == "absent":
+        return f.field
+    if f.field == "sex":
+        return f"sex {f.verdict} ({f.record} in the record, {f.tree} in the tree)"
+    if f.field == "surname":
+        return (
+            f"surname {f.verdict}"
+            + {"variant": " as a spelling variant", "one letter apart": ", one letter apart"}.get(f.spelling, "")
+            + f" (record {f.record}, tree {f.tree})"
+        )
+    # where the record puts the person: the place the tree knows them at, no more
+    if f.field == "residence place":
+        return f"residence place agrees (record {f.record}, tree {f.tree})"
+    n = note(f)
+    return f"{f.field} {f.verdict} (record {f.record}, tree {f.tree}" + (f": {n}" if n else "") + ")"
 
 def _date(row):
     return (
@@ -706,7 +767,7 @@ def fitting_rows(cx, eid, person_id=None, known=None):
     """The rows of a results page that points at records (extract.POINTING_LISTINGS), as the current reading holds them, that fit
     a person the page was fetched for (persons_for, or person_id alone), by compare's own definition of fits: more than a name
     and a year, a place, a death, the day, a stated relationship, and nothing compared disagreeing. [(person id, the row's
-    persona as personas_of reads it, what agrees)], one entry for each person a row fits, in the page's order. Nothing is
+    persona as personas_of reads it, what agrees as findings)], one entry for each person a row fits, in the page's order. Nothing is
     written: the matcher proposes no row of such a page (match), so this is the one answer to which rows are worth their own
     record, read by tools/plan.py for the leads and by tools/attach.py for whether the run found anyone. Empty for any other
     extraction. known: {person id: (Catalog, candidate)} a caller asking about several pages keeps, so each person is read once."""
@@ -756,10 +817,7 @@ def namesake(agree, disagree):
     nothing more, is a namesake, a hint and never a card (docs/RESEARCH-WORKFLOW.md §5–7)."""
     return (
         bool(disagree)
-        and all(
-            a.startswith(NAME_ONLY) or (a.startswith("birth date agrees") and "the record gives only a year" in a)
-            for a in agree
-        )
+        and all(a.field in NAME_ONLY or (a.field == "birth date" and a.only == "record") for a in agree)
     )
 
 def matchable(cx, eid):
@@ -942,7 +1000,7 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
         chosen = {}  # persona id -> candidate, settled in passes so relationships can be checked
         nearly = {}  # persona id -> candidate of the same name with a disagreement: proposed, never taken
         # among near candidates the same name comes before the fitting check's surname or relationship alone, then more agreements
-        rank = lambda agree: (any(a.startswith("given name agrees") for a in agree), len(agree))
+        rank = lambda agree: (any(a.field == "given name" for a in agree), len(agree))
         for _ in range(2):
             for pr in personas:
                 best = None
@@ -992,7 +1050,7 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
                 pr["id"] in nearly
                 and pr["role"] in ("result", "listed", "named in the text")
                 and not any(
-                    not a.startswith(("given name", "surname")) for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]
+                    a.field not in ("given name", "surname") for a in compare(cat, pr, chosen[pr["id"]], chosen)[1]
                 )
             ):
                 # a row on a results page that is itself the record, a schedule row or a name in running text that agrees on the name alone is a hint on the page, not a card
@@ -1020,7 +1078,7 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
                     held[pr["id"]] = (
                         f"{pr['name']} ({pr['role']}) is a namesake of {c['name']}, not a card: the record was reached by a name search, agrees with "
                         f"{c['name']} on no more than the name, the sex and a year of birth, and disagrees: "
-                            + "; ".join(disagree)
+                            + "; ".join(said(d) for d in disagree)
                     )
                     continue
             # a new person is proposed only from a record already accepted as somebody's, for those it relates to them
@@ -1034,9 +1092,9 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
                     (", though something disagrees. " if disagree else ", on the name alone. ")
                     if pr["id"] in nearly
                     else ". "
-                ) + " ".join(s[0].upper() + s[1:] + "." for s in agree + disagree)
+                ) + " ".join(s[0].upper() + s[1:] + "." for s in map(said, agree + disagree))
                 if absent:
-                    text += " Absent: " + ", ".join(absent) + "."
+                    text += " Absent: " + ", ".join(map(said, absent)) + "."
                 if others:
                     text += " Also fits: " + ", ".join(others) + "."
                 kind, person_id, (pid, qid, step_id) = "persona_match", c["id"], ctx_of[c["id"]]
@@ -1067,7 +1125,7 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
                     continue
                 tried = [compare(cat, pr, c, chosen) for c in cands]
                 why = "; ".join(
-                    f"{c['name']}: " + (", ".join(d) if d else "nothing agrees")
+                    f"{c['name']}: " + (", ".join(map(said, d)) if d else "nothing agrees")
                     for c, (_, a, d, _, _) in zip(cands, tried)
                     if not a or d
                 )[:600]
