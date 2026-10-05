@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, the card's Name row from the matcher's findings, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, and the version a reader's model id carries. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, the card's Name row from the matcher's findings, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, the version a reader's model id carries, the record form a census collection and year were made on, what a federal census row settles by its form, and what the footprint expects of a relative's federal census by its form. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -957,6 +957,107 @@
    "record": "Jun 1901",
    "tree": "Jul 1902",
    "verdict": "disagrees"
+  }
+ ],
+ "census_form": [
+  {
+   "collection": "Census \u2022 New York, State Census, 1925",
+   "year": 1925,
+   "form": "ny-1925",
+   "why": "a FamilySearch state census page: the state the collection names, on its own form"
+  },
+  {
+   "collection": "New York, U.S., State Census, 1892",
+   "year": 1892,
+   "form": "ny-1892"
+  },
+  {
+   "collection": "Massachusetts, State Census, 1865",
+   "year": 1865,
+   "form": "ma-1865"
+  },
+  {
+   "collection": "Census \u2022 United States, Census, 1900",
+   "year": 1900,
+   "form": "us-1900",
+   "why": "any other census is the federal schedule of its year"
+  },
+  {
+   "collection": "1810 United States Federal Census",
+   "year": 1810,
+   "form": "us-1800-1810",
+   "why": "two years that share a shape are one form"
+  },
+  {
+   "collection": "New York, State Census, 1885",
+   "year": 1885,
+   "form": null,
+   "why": "a year the file has no form of"
+  },
+  {
+   "collection": "Ohio, State Census, 1855",
+   "year": 1855,
+   "form": null,
+   "why": "a state the file has no form of is never read on another state's form or the federal one"
+  }
+ ],
+ "census_settles": [
+  {
+   "year": 1840,
+   "settles": "head of household only; counted, not named"
+  },
+  {
+   "year": 1860,
+   "settles": "everyone in the house: ages, birthplaces",
+   "why": "the 1850 to 1870 schedules name every member and state no relationship"
+  },
+  {
+   "year": 1880,
+   "settles": "everyone in the house: ages, birthplaces, relationships"
+  },
+  {
+   "year": 1950,
+   "settles": "everyone in the house: ages, birthplaces, relationships"
+  }
+ ],
+ "footprint_expect": [
+  {
+   "collection": "1840 United States Federal Census",
+   "rel": "parent",
+   "alive": true,
+   "expect": "1840 household counted under the head; subject a tick mark unless head"
+  },
+  {
+   "collection": "1870 United States Federal Census",
+   "rel": "spouse",
+   "alive": true,
+   "expect": "1870 household: subject's age, birthplace"
+  },
+  {
+   "collection": "1880 United States Federal Census",
+   "rel": "spouse",
+   "alive": true,
+   "expect": "1880 household: subject's age, birthplace, relationship to head"
+  },
+  {
+   "collection": "1870 United States Federal Census",
+   "rel": "child",
+   "alive": false,
+   "expect": "1870 household of the child: subject not alive; indirect only",
+   "why": "Father of foreign birth and Mother of foreign birth are marks, not places"
+  },
+  {
+   "collection": "1920 United States Federal Census",
+   "rel": "child",
+   "alive": false,
+   "expect": "1920 household of the child: 'Father: Place of birth; Mother: Place of birth' names where the subject was born"
+  },
+  {
+   "collection": "1940 United States Federal Census",
+   "rel": "child",
+   "alive": false,
+   "expect": "1940 household of the child: 'Place of birth of father and mother (a supplementary question, asked of the persons on the two lines of each side marked Suppl. Quest.)' names where the subject was born",
+   "why": "the 1940 schedule asks the parents' birthplaces on its sample lines alone"
   }
  ]
 }

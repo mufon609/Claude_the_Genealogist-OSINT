@@ -18,6 +18,7 @@ import argparse, collections, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
 from catalog import Catalog, soundex, year
+from forms import form_for
 
 RELATION_NAMES = {"spouses": "spouse", "children": "child", "parents": "parent", "siblings": "sibling"}
 
@@ -49,15 +50,18 @@ def duplicates(cat: Catalog, pid: str):
     return out
 
 def expect(collection, rel, subject_alive_in_year, subject_sex):
-    """What a record about a relative is expected to say about the subject. Plain rules, by collection type."""
+    """What a record about a relative is expected to say about the subject. Plain rules, by collection type; a federal census by
+    its year's form (data/record-forms.csv): whether it names the subject or counts them under the head, states the
+    relationship to the head, and gives the birthplace of each person's father and mother, in the form's own words."""
     c = collection or ""
     m = re.match(r"^(\d{4}) United States Federal Census", c)
-    if m:
+    form = form_for(int(m.group(1))) if m else None
+    if form:
         y = int(m.group(1))
         if subject_alive_in_year(y):
-            if y < 1850: return f"{y} household counted under the head; subject a tick mark unless head"
-            return f"{y} household: subject's age, birthplace" + (", relationship to head" if y >= 1880 else "")
-        if rel == "child" and y >= 1880: return f"{y} household of the child: 'birthplace of father/mother' column names where the subject was born"
+            if form["names"] == "head": return f"{y} household counted under the head; subject a tick mark unless head"
+            return f"{y} household: subject's age, birthplace" + (", relationship to head" if form["relationship"] else "")
+        if rel == "child" and form["parents_birthplace"]: return f"{y} household of the child: '{form['parents_birthplace']}' names where the subject was born"
         return f"{y} household of the {rel}: subject not alive; indirect only"
     if re.search(r"State Census", c): return f"state census household with the {rel}"
     if re.search(r"Death", c) and not re.search(r"Social Security", c):

@@ -298,6 +298,58 @@ never raises a question a finer date of it might settle. One person in two
 places in one census year has no bound to set and stays a rule of the code
 (`Catalog.beyond_life`).
 
+## 5c. Record forms (`record-forms.csv`)
+
+A record is read by its form (`docs/DATA-ARCHITECTURE.md` §7 decision 21): the file holds one row for each shape a kind of
+record took, read by `tools/forms.py`. Today its rows are the census: every federal schedule from 1790 to 1950 and every
+state census `jurisdictions.csv` names (New York 1855 to 1925, Massachusetts 1855 and 1865). Years share a row only where
+the form is the same (the 1800 and 1810 schedules of inquiries were identical); any change in what the form asks or how its
+pages are laid out is a row of its own, so 1830 and 1840, or 1915 and 1925, are two rows. The grouping decision 21 speaks of
+(the head alone 1790 to 1840, every member and no relationship 1850 to 1870, a relationship to the head 1880 to 1950) is
+read from the rows' `names` and `relationship` columns, not from how rows are cut.
+
+The columns, one form per row:
+
+- `id` (`us-1900`, `ny-1925`, `us-1800-1810`), `kind` (the record kind as `evidence-classes.csv` names it, `census
+  household`), `jurisdiction` (`united states`, or a state as `jurisdictions.csv` writes it) and `years` (`;`-separated).
+- `lost`: what the sources say was lost of the form's schedules, empty where they say nothing. The 1890 population schedules
+  survive only in fragments, so the checklist's 1890 row is not applicable, as before.
+- `names`: `head` (the head of the family named, the rest counted) or `every member`.
+- `relationship`, `birth`, `parents_birthplace`: the form's own words for each person's relationship to the head, for what it
+  states of a birth (an age, a month of birth within the year, the month and year of 1900) and for the birthplace of each
+  person's father and mother; empty where the form has no such column. The 1870 schedule's Father of foreign birth and Mother
+  of foreign birth are marks, not places, so its `parents_birthplace` is empty; the 1940 and 1950 schedules ask the parents'
+  birthplaces only of the persons on their sample lines, and the words say so.
+- `states`: every column of the form in its own words, `;`-separated, grouped as the form groups them.
+- `locators`: what places an entry on the form, in these terms: `state`, `county`, `minor_division` (the township, town,
+  city, borough or precinct the heading names), `ward`, `block`, `supervisor_district`, `enumeration_district`,
+  `assembly_district`, `election_district`, `page`, `sheet` and `sheet_letter` (the A or B side), `line`, `dwelling` and
+  `family` (the numbers in order of visitation: the 1940 schedule's number of household in order of visitation is its
+  `family`, the 1950 serial number of dwelling unit its `dwelling`), and `image`, the page's image. Only what the row's
+  sources document is listed: no page or line numbering is listed for the New York censuses before 1925 or for
+  Massachusetts, whose sources give the questions alone.
+- `page`: the locators that together make one page (the state, the districts and the sheet with its side from 1900 to
+  1940), or `image` where the sources do not document how pages are numbered, so that only the page's image tells two pages
+  apart.
+- `household`: how a household is bounded on a page, `;`-separated: `one line` (a form that names the head alone: the line
+  is the household), `family number` (a run of lines opened by the line carrying the family's number in order of
+  visitation), `opened by the head` (the head's line opens the run: the enumerators' instructions from 1850 put the head, or
+  the father, mother or other ostensible head, first), `over a page break` (lines are filled and pages numbered in the order
+  visited, so a run continues from the last line of one page to the first of the next), `one schedule` (1890, one schedule
+  per family) or `unbounded` (New York 1892: no relationship and no family number).
+- `source`: the addresses the row rests on, `;`-separated, each opened when the row was written; `notes`: what the sources
+  say of the heading, the numbering of pages and lines and the order of names, in words.
+
+Sources. The federal rows rest on the Census Bureau's own: *Measuring America: The Decennial Censuses From 1790 to 2000*
+(2002), whose pages reproduce each schedule and its instructions (cited by the PDF's page), the questionnaire pages of
+census.gov for 1790 to 1860 (their index of questions) and the enumerators' instructions for 1850 to 1950, as census.gov
+serves them (the 1950 manual is a scan without a text layer, read from its images); the 1890 row also on the
+National Archives' *Prologue* account of the schedules' loss. The New York rows rest on the New York State Library's list
+of the questions of each state census and, for 1915 and 1925, the State Archives' finding aids for the schedules (series
+A0275 and A0276), which describe each page's heading. The Massachusetts rows rest on a genealogist's published list of the
+1855 and 1865 columns: the Massachusetts Archives' and the FamilySearch Research Wiki's pages on these censuses answered a
+script with a browser challenge when they were opened (5 October 2026), and are a better source to cite once read.
+
 ## 6. Deferred work
 
 Lives in `BACKLOG.md`. Rows whose `Status` is `blocked-apply` or `todo` with a

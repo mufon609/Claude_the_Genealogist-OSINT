@@ -15,7 +15,9 @@ Read-only. For one person it reports:
   checklist   Group A (records that hold several family members) then Group B
               (records about this person), each row gated by era, place and sex
               and marked held / cited / missing / n/a; a cited row names the
-              relative the citation sits on when it is not on this person
+              relative the citation sits on when it is not on this person; the
+              census rows are the years of data/record-forms.csv's forms (a form
+              whose schedules are lost is n/a), each saying what its form settles
   search      for every gap, the pre-built step: typed query, sources, mode;
               every query field is {value, basis accepted|claim|row|citation|record}, rejected
               facts are omitted. Before the baseline is reviewed only fetch
@@ -30,6 +32,7 @@ from treelib import DB, connect, resolve_tree
 from catalog import Catalog, ONCE, US_STATES, US_NAMES, jurisdictions, year
 from footprint import duplicates, footprint
 from connectors import answers
+from forms import form_for, forms, settles
 
 # where which records exist and who holds them, by state or country: reference data (data/jurisdictions.csv), never a family's own places
 J = jurisdictions()
@@ -228,10 +231,11 @@ def build(cat: Catalog, pid: str):
     census_from = b
     if foreign_born and us_years: census_from = max(b, min(us_years) - 10); notes.append(f"census rows start at {census_from}: earliest US event {min(us_years)}, arrival unknown")
     if b and in_us:
-        for y in range(1790, 1951, 10):
+        federal = sorted(((y, f) for f in forms() if f["kind"] == "census household" and f["jurisdiction"] == "united states" for y in f["years"]), key=lambda t: t[0])
+        for y, form in federal:                                   # the federal schedules' years, each with its form (data/record-forms.csv)
             if not (census_from <= y <= (d or 9999)): continue
-            if y == 1890: row("A", "census household", "no-match", ["D01"], "", None, na="1890 schedules lost", instance=str(y)); continue
-            note = "head of household only; counted, not named" if y < 1850 else "everyone in the house: ages, birthplaces, relationships"
+            if form["lost"]: row("A", "census household", "no-match", ["D01"], "", None, na=f"{y} schedules lost", instance=str(y)); continue
+            note = settles(form)
             near = next((e for e in ev if e["type"] == "Residence" and e["year"] and abs(e["year"] - y) <= 5 and e["place"]), None)
             row("A", "census household", MATCH["census"](y), ["D05" if y == 1950 else "D01", "D03"], note,
                 ("household", fields(year=ROW(y), place=PLACES(near["place"], place_basis(near), year=y) if near else None)),
@@ -240,7 +244,7 @@ def build(cat: Catalog, pid: str):
             if st_ in states:
                 for y in years:
                     if b <= y <= (d or 9999):
-                        row("A", f"{st_.title()} state census", MATCH["state_census"](st_, y), holders, "household off-decade",
+                        row("A", f"{st_.title()} state census", MATCH["state_census"](st_, y), holders, f"off-decade; {settles(form_for(y, st_))}",
                             ("household", fields(year=ROW(y), state=ROW(st_))), household=True, instance=str(y))
     # A: marriage per family
     for f in fam["families"]:

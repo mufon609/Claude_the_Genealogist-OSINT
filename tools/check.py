@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Green in one command: every tool compiles, the pure rules hold, the connectors read their saved answers, the evidence layer,
+"""Green in one command: every tool compiles, the pure rules hold, the record forms (data/record-forms.csv) hold to their columns and their sources, the connectors read their saved answers,the evidence layer,
 the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, the small guards of tests/checks/housekeeping.py hold (the person screen's links, the commit hook, the migrations of an older catalog, the backup's bag, the active tree's file), every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
@@ -83,6 +83,17 @@ def rules():
     for c in R["model_version"]:
         got = model_version(c["id"])
         if got != c["version"]: bad.append(f"model_version({c['id']!r}) gave {got!r}, expected {c['version']!r}")
+    from forms import census_form, form_for, settles
+    for c in R["census_form"]:
+        f = census_form(c["collection"], c["year"]); got = f["id"] if f else None
+        if got != c["form"]: bad.append(f"census_form({c['collection']!r}, {c['year']}) gave {got!r}, expected {c['form']!r}")
+    for c in R["census_settles"]:
+        got = settles(form_for(c["year"]))
+        if got != c["settles"]: bad.append(f"settles(form_for({c['year']})) gave {got!r}, expected {c['settles']!r}")
+    from footprint import expect
+    for c in R["footprint_expect"]:
+        got = expect(c["collection"], c["rel"], lambda y: c["alive"], None)
+        if got != c["expect"]: bad.append(f"footprint.expect({c['collection']!r}, {c['rel']!r}, alive {c['alive']}) gave {got!r}, expected {c['expect']!r}")
     names = [tuple(x) for x in R["dated_names"]["names"]]
     for c in R["dated_names"]["cases"]:
         f = place_verdict(c["record"], c["tree"], dated_names=names); got = (f.verdict, note(f))
@@ -481,6 +492,45 @@ def state_writes():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+def record_forms():
+    """data/record-forms.csv held to its own columns (forms.COLUMNS): one form per row, its id unique, its kind a kind of
+    data/evidence-classes.csv, its jurisdiction the United States or a state data/jurisdictions.csv gives a state census, its
+    years four digits in order and shared with no other form of its kind and jurisdiction, who it names, its locators and the
+    ones that make one page and how it bounds a household each in forms' own words, the page's locators among its own, what it
+    states given, and every row a source, each an https address. Every federal census year from 1790 to 1950 has a form, and
+    so does every state census year data/jurisdictions.csv names."""
+    import csv, forms
+    from catalog import evidence_table, jurisdictions
+    try:
+        with open(forms.PATH, newline="", encoding="utf-8") as fh: rows = list(csv.reader(fh))
+    except OSError as e: return [f"data/record-forms.csv cannot be read: {e}"]
+    if not rows or rows[0] != forms.COLUMNS: return [f"data/record-forms.csv's header is {rows[0] if rows else []}, its columns are {forms.COLUMNS}"]
+    bad, ids, held = [], set(), {}
+    state_census = jurisdictions()["state_census"]
+    for n, cells in enumerate(rows[1:], 2):
+        if len(cells) != len(forms.COLUMNS): bad.append(f"line {n}: {len(cells)} cells for {len(forms.COLUMNS)} columns"); continue
+        raw = dict(zip(forms.COLUMNS, cells)); f = forms.read_row(raw); at = f"line {n} ({f['id'] or 'no id'})"
+        say = lambda ok, why: None if ok else bad.append(f"{at}: {why}")
+        say(f["id"] and f["id"] not in ids, "an id, unique in the file"); ids.add(f["id"])
+        say(f["kind"] in evidence_table(), f"kind {f['kind']!r} is no kind of data/evidence-classes.csv")
+        say(f["jurisdiction"] == "united states" or f["jurisdiction"] in state_census, f"jurisdiction {f['jurisdiction']!r} is neither the United States nor a state data/jurisdictions.csv gives a state census")
+        years = [y.strip() for y in raw["years"].split(";")]
+        say(all(re.fullmatch(r"\d{4}", y) for y in years) and f["years"] == sorted(set(f["years"])), f"years {raw['years']!r} are not four-digit years in order")
+        for y in f["years"]:
+            other = held.setdefault((f["kind"], f["jurisdiction"], y), f["id"])
+            say(other == f["id"], f"{y} is already {other}'s")
+        say(f["names"] in forms.NAMES, f"names {f['names']!r} is none of {forms.NAMES}")
+        say(not (f["names"] == "head" and f["relationship"]), "a form that names the head alone states no relationship to the head")
+        say(f["states"], "what the form states, in its own words")
+        say(f["locators"] and set(f["locators"]) <= set(forms.LOCATORS), f"locators {f['locators']} not all of {forms.LOCATORS}")
+        say(f["page"] and set(f["page"]) <= set(f["locators"]), f"the page's locators {f['page']} are not all the form's own")
+        say(f["household"] and set(f["household"]) <= set(forms.HOUSEHOLD), f"household {f['household']} not all of {forms.HOUSEHOLD}")
+        say(f["source"] and all(s.startswith("https://") and " " not in s for s in f["source"]), f"source {raw['source']!r}: every row cites its sources, each an https address")
+    have = lambda j, y: ("census household", j, y) in held
+    bad += [f"no form of the federal census of {y}" for y in range(1790, 1951, 10) if not have("united states", y)]
+    bad += [f"no form of the {j} state census of {y}, a year data/jurisdictions.csv names" for j, (years, _) in state_census.items() for y in years if not have(j, y)]
+    return bad
+
 def rule_kinds():
     """The kinds of data/evidence-classes.csv the standing rule names in code (tools/conclude.py: the pre-1850 census that names
     only the head, the register entry dated with the parents, the obituary that identifies through its survivors): a name no
@@ -515,7 +565,7 @@ def every_check(a):
     bad_files = compiles(); bad += bool(bad_files)
     print("ok   every tool and check module compiles" if not bad_files else "FAIL compile: " + "; ".join(bad_files))
     bad_rules = rules(); bad += bool(bad_rules)
-    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the web addresses a file's citation may carry and the link made of one, the card's Name row from the matcher's findings, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
+    print("ok   the pure rules on tests/fixtures/rules.json: the surname rule, the holder search, the web addresses a file's citation may carry and the link made of one, the card's Name row from the matcher's findings, the rule's automated kinds, place_verdict's coarser, finer and dated agreement, date_verdict's bounded dates compared as their ranges, collection_state, a part of a place string against a candidate's names, the version a reader's model id carries, a census collection's record form, what a federal census row settles and what the footprint expects of one by its form" if not bad_rules else "FAIL rules: " + "; ".join(bad_rules))
     bad_conn = connectors_offline(); bad += bool(bad_conn)
     print("ok   connectors offline on tests/fixtures/connectors.json: a cited book asked by its title and its copies read from the Archive's answer, the search inside once per spelling, a lent book a none run; a cited obituary asked at the row's connectors in the paper's year; the gravesite locator's posted search and its results page read; the death index's whole file asked once and its surname's rows derived; Kentucky's death and birth indexes asked a year's file at a time, a surname's rows kept as the record and read by each index's own layout" if not bad_conn else "FAIL connectors: " + "; ".join(bad_conn))
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
@@ -528,6 +578,8 @@ def every_check(a):
     print("ok   every Connector value of the source registry names a module under tools/connectors/" if not bad_reg else "FAIL registry connectors: " + "; ".join(bad_reg))
     bad_state = state_writes(); bad += bool(bad_state)
     print("ok   the state kept beside a catalog is written whole: a write that fails midway leaves the file as it was, readable, with nothing of the write's beside it" if not bad_state else "FAIL state files: " + "; ".join(bad_state))
+    bad_forms = record_forms(); bad += bool(bad_forms)
+    print("ok   data/record-forms.csv holds to its own columns and every row to a source: a form for every federal census year from 1790 to 1950 and every state census year data/jurisdictions.csv names, each saying who it names, what it states, its locators, which make one page and how it bounds a household" if not bad_forms else "FAIL record forms: " + "; ".join(bad_forms))
     bad_kinds = rule_kinds(); bad += bool(bad_kinds)
     print("ok   every kind the standing rule names in code (the census before 1850, the register entry dated with the parents, the obituary) is a kind of data/evidence-classes.csv" if not bad_kinds else "FAIL rule kinds: " + "; ".join(bad_kinds))
     bad_claude = claude_files(); bad += bool(bad_claude)
