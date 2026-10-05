@@ -152,14 +152,21 @@ def unspread_links(cx: sqlite3.Connection) -> None:
                    (ulid(), tree, ts, actor, "delete", "person_persona", json.dumps([row["person_id"], row["persona_id"]]),
                     json.dumps({"removed": row, "spread_from": src, "why": "a decision on another entry of the page, spread by name and role; never a decision of its own"})))
 
+def triggers(table: str) -> list:
+    """schema/sqlite_extras.sql's insert-only triggers on one table, as their own statements: a migration that makes a table
+    makes the triggers on that table and no others, since the rest of the file holds the triggers of tables a later version
+    adds, which a catalog migrating through this version does not have yet."""
+    import re
+    return re.findall(rf"^CREATE TRIGGER trg_{table}_\w+ BEFORE (?:UPDATE|DELETE).*?^END;", read("schema/sqlite_extras.sql"), re.S | re.M)
+
 def same_records(cx: sqlite3.Connection) -> None:
     """The same_record table, insert-only like the rest of the evidence layer, and code's joins of the copies the archive
     already holds written once (conclude.join_copies, the joins every reading writes from now on), under the migration's own
     actor. Nothing decided changes: a decision on one copy reaches the others when tools/conclude.py reconsider carries it."""
     from conclude import join_copies
-    ddl = read("schema/catalog.sql"); extras = read("schema/sqlite_extras.sql")
+    ddl = read("schema/catalog.sql")
     script = ddl[ddl.index("CREATE TABLE same_record"):ddl.index("CREATE INDEX ix_same_record_b")] + "CREATE INDEX ix_same_record_b ON same_record(b_sha256, b_entry);\n" + \
-             extras[extras.index("CREATE TRIGGER trg_same_record_no_update"):]
+             "\n".join(triggers("same_record"))
     for word in ("TABLE", "INDEX", "TRIGGER"): script = script.replace(f"CREATE {word} ", f"CREATE {word} IF NOT EXISTS ")   # a catalog born with the table, replaying its migrations, keeps it
     cx.executescript(script)
     for sha, in cx.execute("SELECT DISTINCT artifact_sha256 FROM extraction WHERE status<>'failed' AND superseded_by IS NULL ORDER BY artifact_sha256").fetchall():
@@ -250,22 +257,19 @@ def insert_only(cx: sqlite3.Connection) -> None:
     """search_log.superseded_by, and schema/sqlite_extras.sql's insert-only triggers on the archive's locators and tombstones, the
     extractors, extractions and relations of the evidence, the research log and the audit trail (docs/DATA-ARCHITECTURE.md §1):
     every UPDATE refused but the write-once superseded_by on extraction and search_log, every DELETE refused. No row changes."""
-    import re
     if "superseded_by" not in [r[1] for r in cx.execute("PRAGMA table_info(search_log)")]:   # a catalog whose search_log an earlier rebuild made from today's DDL has it
         cx.execute("ALTER TABLE search_log ADD COLUMN superseded_by TEXT REFERENCES search_log(id)")
-    extras = read("schema/sqlite_extras.sql")
     for table in INSERT_ONLY:
-        for trigger in re.findall(rf"^CREATE TRIGGER trg_{table}_\w+ BEFORE (?:UPDATE|DELETE).*?^END;", extras, re.S | re.M):
+        for trigger in triggers(table):
             cx.execute(trigger.replace("CREATE TRIGGER ", "CREATE TRIGGER IF NOT EXISTS ", 1))
 
 def task_runs(cx: sqlite3.Connection) -> None:
     """The task_run table with its index and its insert-only triggers (tools/run_task.py: one row per model launched on a step),
     as schema/catalog.sql and schema/sqlite_extras.sql define them. No row changes."""
     ddl = read("schema/catalog.sql")
-    extras = read("schema/sqlite_extras.sql")
     start = ddl.index("CREATE TABLE task_run")
     index = "CREATE INDEX ix_task_run_kind ON task_run(task_kind, holder_id, model, effort);\n"
-    script = ddl[start:ddl.index(index, start)] + index + extras[extras.index("CREATE TRIGGER trg_task_run_no_update"):]
+    script = ddl[start:ddl.index(index, start)] + index + "\n".join(triggers("task_run"))
     for word in ("TABLE", "INDEX", "TRIGGER"):
         script = script.replace(f"CREATE {word} ", f"CREATE {word} IF NOT EXISTS ")   # a catalog born with the table, replaying its migrations, keeps it
     cx.executescript(script)

@@ -396,7 +396,9 @@ not http or https: `javascript:`, `data:`, any case of a scheme, whitespace insi
 `tests/checks/housekeeping.py` runs the person screen's own `web` helper (`app/person/index.html`) on the same cases under node, so
 the Python reader of a file's address and the screen cannot differ. `housekeeping.py` holds the checks of the small guards around
 the catalog that no scenario reaches, each run on what it guards under a temporary directory: the commit hook runs in a throwaway
-git repository on names it must refuse (a letter beyond ASCII, a quote, a newline) and names it must pass.
+git repository on names it must refuse (a letter beyond ASCII, a quote, a newline) and names it must pass; a catalog from before
+the `same_record` and `task_run` tables (the scratch catalog with both dropped and their versions forgotten: nothing in the harness is an
+older catalog, and the owner's backups never enter git) is migrated by `tools/initdb.py --migrate` to the code's version.
 
 ## What is simulated
 
