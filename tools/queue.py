@@ -16,8 +16,10 @@ nobody has accepted their parents and the file names none, for the records that 
 a birth or death record, an obituary, a census of their childhood's household), which their plan puts first, so the tree
 grows past the file on evidence: a parent such a record names is created by the rule and is the next card above. A card
 with none of these is settled and the walk moves on to the next. The file's other people (not reached by an accepted parents link)
-come after the confirmed line, in tools/tree.py overview's own "others" order, and only the ones a document or a
-conflict already waits on (overview's own filter), so nobody surfaces two links from anyone confirmed.
+come after the confirmed line, in tools/tree.py overview's own "others" order: only the ones a document or a
+conflict already waits on and who are one link (a parent, a child or a spouse the file names) from someone confirmed,
+the nearest first and, among those, the one reached from the earlier card of the confirmed walk; a person further from
+the confirmed tree is never named, and their questions wait with them.
 
 An open question names the next person only when a turn can still act on them: no plan has been made for them
 yet (a turn's own first move), or their plan still has a step a turn can advance. A step is that when a connector

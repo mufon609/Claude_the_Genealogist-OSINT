@@ -13,6 +13,8 @@ from treelib import dumps
 from catalog import Catalog
 from facts import KEY_FACTS, fact_status
 
+NEAR = 1                                                     # the most links a person the file names may be from the confirmed tree and still wait at its edge
+
 def person_card(cx, cat, pid):
     """One person as the overview shows them: name, years, how many key facts are accepted, the spouses the owner accepted
     with the marriage and divorce dates on the family that an accepted statement stands behind, the spouses the file claims as
@@ -86,7 +88,10 @@ def overview(cx, tree_id):
     """The tree overview: the people the owner has confirmed, laid out from the home person upward one row per generation, a
     card's parents above it (father then mother). The walk follows a parents link only where the owner accepted it, so the tree
     ends at the last accepted link; beyond it the file's claim of parents is named on the card as a claim, and the people it
-    names stay out of the tree until a decision puts them in. A link resting on an editable source alone is said so."""
+    names stay out of the tree until a decision puts them in. A link resting on an editable source alone is said so. The file's
+    other people with a document or a conflict waiting are the tree's edge, the ones within NEAR links (a parent, a child or a
+    spouse each) of someone confirmed, nearest first and, among those, the one reached from the earlier card of the walk first;
+    a person further from the tree has their questions wait with them."""
     cat = Catalog(cx, tree_id)
     home = cx.execute("SELECT home_person_id FROM tree WHERE id=?", (tree_id,)).fetchone()[0]
     if not home: return {"home": None, "generations": [], "others": people(cx, tree_id), "unconfirmed": 0}
@@ -104,7 +109,9 @@ def overview(cx, tree_id):
             cards.append(c)
         gens.append(cards); row = [p for c in cards for p in c["parents"]]
     others = [c for c in people(cx, tree_id) if c["id"] not in seen]
-    return {"home": home, "generations": gens, "others": [c for c in others if c["documents"] or c["conflicts"]], "unconfirmed": len(others), "origins": origins(cx, tree_id)}
+    reach = cat.link_distances([c["id"] for gen in gens for c in gen])
+    near = [c for c in others if (c["documents"] or c["conflicts"]) and reach.get(c["id"], (NEAR + 1,))[0] <= NEAR]
+    return {"home": home, "generations": gens, "others": sorted(near, key=lambda c: reach[c["id"]]), "unconfirmed": len(others), "origins": origins(cx, tree_id)}
 
 
 def render(o, cx):
@@ -124,7 +131,7 @@ def render(o, cx):
             years = (f"; {' and '.join(map(str, c['claimed_years']))} a claim") if c["claimed_years"] else ""   # a year no accepted statement gives
             out.append(f"  {c['name']} ({c['span'][0] or '?'}-{c['span'][1] or ''}) [{c['id'][-6:]}]  {c['accepted']} of {c['key_facts']} key facts" + years + (f"; {sp}" if sp else "") +
                        ("; " + "; ".join(w for w in waits if w) if any(waits) else "") + (f"\n      edge: {claim}" if claim else ""))
-    out.append(f"-- {o['unconfirmed']} more people in the file, not connected by an accepted link; {len(o['others'])} of them with a document or a conflict waiting")
+    out.append(f"-- {o['unconfirmed']} more people in the file, not connected by an accepted link; {len(o['others'])} of them one link from the tree with a document or a conflict waiting")
     p, d = o["origins"]["people"], o["origins"]["documents"]
     out.append(f"-- where the tree comes from: {p['file'] + p['record']} people, {p['file']} brought in by the file and {p['record']} by a record")
     out.append(f"   {sum(d.values())} accepted documents, {d['citation']} fetched for the file's citations, {d['lead']} for leads in held records, {d['search']} by searches, {d['hand']} by hand")

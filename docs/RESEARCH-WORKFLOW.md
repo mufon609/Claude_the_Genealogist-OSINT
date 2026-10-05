@@ -1468,8 +1468,11 @@ browser must save makes that person wait, never the loop: the loop goes on to
 the next person, and the person's turn is finished once a page of theirs has
 been saved. The queue a turn
 draws from is the edge of the confirmed tree, in the overview's own order
-(`tools/tree.py overview`): the home person's line first, then everyone a
-record names after. The living default (`docs/DATA-ARCHITECTURE.md` §7)
+(`tools/tree.py overview`): the home person's line first, then the people the
+file names that a document or a conflict waits on and who are one link (a
+parent, a child or a spouse) from someone confirmed, the nearest first. A
+person further from the confirmed tree is not at its edge: their questions wait
+with them until a link puts them within reach. The living default (`docs/DATA-ARCHITECTURE.md` §7)
 stands unchanged inside a turn. A challenge in the owner's browser pauses the
 session at the browser for the owner's hand (§4); it stops no turn, and it
 does not by itself make the source assisted-only. What a turn leaves for the

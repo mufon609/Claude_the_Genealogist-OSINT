@@ -1,0 +1,56 @@
+{
+ "title": "the queue's tail is the tree's edge: a person one link from someone confirmed",
+ "line": "once the parents of the home person, of his father and of his grandfather are accepted, his grandfather's parents and their daughter are confirmed or one link from the confirmed tree: a real, undecided card on the daughter names her, her place in the queue the edge's and not the alphabet's",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's word on the parents of the home person, of his father and of his grandfather: the grandfather's own parents are the farthest confirmed",
+   "fact": {
+    "person": "I332737035562",
+    "fields": ["parents"],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737035563",
+    "fields": ["parents"],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "",
+   "fact": {
+    "person": "I332737036054",
+    "fields": ["parents"],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "a census page names and cites the household of the grandfather's parents, their daughter among the four: a real document waits on each",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40",
+   "expect": [
+    {
+     "queue": {
+      "named": ["I332737072856"],
+      "reasons": {
+       "I332737072856": {"has": "document"}
+      }
+     },
+     "why": "the daughter is a child of someone confirmed, one link from the tree: her card is a real document to decide, so the queue names her"
+    }
+   ]
+  }
+ ]
+}

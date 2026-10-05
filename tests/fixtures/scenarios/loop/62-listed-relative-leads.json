@@ -1,6 +1,6 @@
 {
  "title": "leads are counted apart from documents to decide",
- "line": "a person named on a real, undecided card is named next by the queue; one whose only open work is a lead (a memorial's listed relative, tools/plan.py's listed_relative_leads) is neither named nor passed over, since Catalog.waiting never counts a lead as a document and the queue never adds a confirmed person on a lead's account alone",
+ "line": "a person four links from the confirmed tree is not named for a real, undecided card that waits on them, nor passed over; one whose only open work is a lead (a memorial's listed relative, tools/plan.py's listed_relative_leads) is neither named nor passed over either, since Catalog.waiting never counts a lead as a document and the queue never adds a confirmed person on a lead's account alone",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -8,7 +8,7 @@
  },
  "steps": [
   {
-   "say": "a census page names and cites four people, none yet decided: a real document waits on each",
+   "say": "a census page names and cites four people, none yet decided: a real document waits on each, and the nearest of them is two links from the home person, the only one confirmed",
    "attach": {
     "fixture": "familysearch-census-1940-KQX1-VT9.html"
    },
@@ -23,15 +23,16 @@
     {
      "queue": {
       "named": [
+       "I332737035562"
+      ],
+      "not_named": [
        "I332737072856"
       ],
-      "reasons": {
-       "I332737072856": {
-        "has": "document"
-       }
-      }
+      "not_passed": [
+       "I332737072856"
+      ]
      },
-     "why": "Alicia Ahern's card is a real document to decide, so the queue names her"
+     "why": "Alicia Ahern's card is a real document to decide, but she is four links from the confirmed tree: she is no one at its edge, and her card waits with her; the queue names only the home person, whose key facts are undecided"
     }
    ]
   },

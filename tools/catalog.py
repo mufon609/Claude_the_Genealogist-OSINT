@@ -1709,6 +1709,21 @@ class Catalog:
                                         "marriages": [{"id": m[0], "year": year(m[1]), "place": self.place(m[0], m[2]), "basis": self.basis("event", m[0]), "citations": self.citations("event", m[0])} for m in marr],
                                         "divorces": [{"id": x[0], "date": x[1], "year": year(x[2]), "basis": self.basis("event", x[0])} for x in div]})
         return fam
+    def link_distances(self, people):
+        """{person id: (the fewest family links from any of these people, the position in `people` of the one the nearest path
+        starts from)}: a parent, a child and a spouse are one link each, along every membership whose assertions are not all
+        rejected (accepted or claimed, as `family` reads them). The people themselves are at 0, and a person no chain of links
+        reaches is absent."""
+        dist = {p: (0, n) for n, p in enumerate(people)}; frontier = list(dist)
+        while frontier:
+            nxt = []
+            for pid in frontier:
+                fam = self.family(pid)
+                for rel in ("parents", "children", "spouses"):
+                    for other, _ in fam[rel]:
+                        if other not in dist: dist[other] = (dist[pid][0] + 1, dist[pid][1]); nxt.append(other)
+            frontier = nxt
+        return dist
     def home(self):
         """The tree's home person (tools/tree.py home), or None."""
         r = self.q("SELECT home_person_id FROM tree WHERE id=?", self.tree_id)
