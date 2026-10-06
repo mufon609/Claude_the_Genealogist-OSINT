@@ -405,7 +405,8 @@ order, each `person`, `nothing_new` (no more records held after the turn than be
 `fetched_rows` (`held` for a one-person row's value, `present` for a household row's key), `place` (`place_type`,
 `wikidata_id`, `gov_id`, a `dated_name` and its `dated` span, the `chain` of names up to the country), `place_card`, `event_place`. The fakes are code because they exercise the connectors' and the runner's contract; what they are asked with
 and answer with is in the scenario. `connectors.json` holds the same for the offline connector checks in `tools/check.py`: the
-names and titles they are asked with and the saved real responses they are read against.
+names and titles they are asked with and the saved real responses they are read against; its `district` place is a residence as the
+owner's catalog holds it, read off FamilySearch's 1950 census row for Dorothy J Peters, a place in the District of Columbia.
 
 The import scenarios (`scenarios/imports/`) add, through `tests/checks/imports.py`, how a file is read as itself. The file
 is always a fixture, the harness tree, written as another exporter would write it: the action `ingest` (`tools/ingest_gedcom.py`

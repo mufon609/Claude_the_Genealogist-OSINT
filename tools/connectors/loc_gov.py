@@ -7,16 +7,13 @@ Rate limits documented at https://www.loc.gov/apis/json-and-yaml/working-within-
 text services 150 per minute, image services 150 per minute; exceeding them blocks the client for an hour.
 """
 import json, re, urllib.parse
+from catalog import US_STATES
 from connectors import value
 from connectors.ia import name_parts
 
 SOURCE = "H01"
 COLLECTION = "Chronicling America (loc.gov)"
 RATE = {"search": 20, "text": 150, "image": 150}
-US_STATES = {"alabama","alaska","arizona","arkansas","california","colorado","connecticut","delaware","florida","georgia","hawaii","idaho","illinois","indiana","iowa",
-             "kansas","kentucky","louisiana","maine","maryland","massachusetts","michigan","minnesota","mississippi","missouri","montana","nebraska","nevada",
-             "new hampshire","new jersey","new mexico","new york","north carolina","north dakota","ohio","oklahoma","oregon","pennsylvania","rhode island",
-             "south carolina","south dakota","tennessee","texas","utah","vermont","virginia","washington","west virginia","wisconsin","wyoming"}
 
 def state_of(place):
     """The US state named in a place text ('Pottstown < Montgomery County < Pennsylvania < United States', or a raw string),

@@ -7,16 +7,15 @@ JPEG the result names. The site states no rate limit; the runner keeps to one re
 the site. The search is fuzzy, so a result is a hit only when a highlighted name carries both the surname and the given name.
 """
 import json, re, urllib.parse
+from catalog import US_STATE_TABLE, US_STATES, key
 from connectors import value
 from connectors.ia import name_parts
-from connectors.loc_gov import US_STATES
 
 SOURCE = "D05"
 COLLECTION = "1950 Census (National Archives)"
 RATE = {"search": 60, "json": 60, "image": 60}
 MOST = 200                                                   # results read before the step is asked to narrow: a county on the place
-ABBR = dict(zip(sorted(US_STATES), ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT",
-                                    "NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"]))
+ABBR = {name.lower(): abbrs[0].upper() for name, abbrs in US_STATE_TABLE.items()}   # a state's name to the postal code the site's state filter takes, the first of catalog.US_STATE_TABLE's
 
 def place_parts(place):
     """(county, state abbreviation) from a place text such as 'Hempstead < Nassau County < New York < United States', or the
@@ -68,8 +67,6 @@ def narrow(url, body):
     if t is None or t <= MOST: return None
     need = "a state" if not qs.get("state") else "a county" if not qs.get("county") else "a fuller name"
     return f"the source answered {t} results and only the first page was read: add {need} to the step's place and run it again"
-
-def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 
 def hits(url, body):
     """A schedule is a hit when a highlighted name carries both the given name and the surname searched. Within an enumeration
