@@ -346,7 +346,9 @@ date or place: `taken` and the reason, `why`), `extractor` (a reading's extracto
 trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `no_repeats`, `one_event` (no record fact
 stated on two events of its type that a person or a family holds), `whole`, `file` (`name` in the inbox or a `folder`, or a bound
 `path`, there or with `exists` false not; with `fixture`, holding that fixture's bytes),
-`count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`, `origins` (`overview.origins`: the `people` by what brought them in, `file` or
+`count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`, `unsupported` (the untrusted data
+report on a `person`: `listed`, whether `v_unsupported_person` lists them, and `events`, how many rows of `v_unsupported_event` are
+events they take part in), `origins` (`overview.origins`: the `people` by what brought them in, `file` or
 `record`, and the accepted `documents` by what fetched them, `citation`, `lead`, `search` or `hand`), `overview` (a `person`'s card on the
 tree overview, confirmed or at the edge, matching `is`: its `parents`, `claimed_parents`, `spouses`, `claimed_spouses`), `households` (the current
 stored households, those of a `form` when it is named, matching `is`: each one's `form`, `page`, `complete`, `missing`, `ground`,
@@ -432,8 +434,9 @@ the Python reader of a file's address and the screen cannot differ. `housekeepin
 the catalog that no scenario reaches, each run on what it guards under a temporary directory: the commit hook runs in a throwaway
 git repository on names it must refuse (a letter beyond ASCII, a quote, a newline) and names it must pass; a catalog from before
 the `same_record` and `task_run` tables (the scratch catalog with both dropped and their versions forgotten: nothing in the harness is an
-older catalog, and the owner's backups never enter git) is migrated by `tools/initdb.py --migrate` to the code's version, and one whose
-person vitals view is another definition gets the schema's own; a bag `tools/backup.py` writes under the scratch data root while a turn
+older catalog, and the owner's backups never enter git) is migrated by `tools/initdb.py --migrate` to the code's version, one whose
+person vitals view is another definition gets the schema's own, and one whose `person_persona` declares no reference to `proposal` and whose
+two `v_unsupported` views are the older ones gets the reference declared and the schema's views; a bag `tools/backup.py` writes under the scratch data root while a turn
 commits a record (after the objects are copied, and in the middle of the dump) holds an object for every artifact its dump has a row
 for, and no row of the dump names an artifact the dump has no row for; `tools/tree.py use` writes `catalog/.active-tree` whole (a run of the
 tool whose write stops leaves the file as it was). Its `tree_home` action (`housekeeping.py`) runs `tools/tree.py home` on a scenario's tree: the

@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.7
+-- tree catalog schema  v0.8.8
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -311,7 +311,9 @@ CREATE TABLE tree (
   slug            TEXT NOT NULL UNIQUE,   -- "ahearn"; used in paths and CLI
   name            TEXT NOT NULL,
   description     TEXT,
-  home_person_id  TEXT,                   -- REFERENCES person(id), declared below
+  home_person_id  TEXT,                   -- a person of this tree (tools/tree.py home, which sets one of the tree's own people, never one merged into another). Not
+                                          -- declared REFERENCES person(id): person is created after tree and references it, and two tables referring to each other
+                                          -- are declared in PostgreSQL only by an ALTER TABLE once both exist, a form SQLite does not have
   settings_json   TEXT,                   -- per-tree settings as JSON; none is defined today (the living default is the tier rule, the same for every tree)
   created_at      TEXT NOT NULL,
   updated_at      TEXT NOT NULL
@@ -409,12 +411,29 @@ CREATE TABLE event_participant (
 CREATE INDEX ix_event_participant_person ON event_participant(person_id);
 CREATE INDEX ix_event_participant_family ON event_participant(family_id);
 
+-- AI output waiting for a decision; each proposal answers a question about a person.
+CREATE TABLE proposal (
+  id            TEXT PRIMARY KEY,
+  tree_id       TEXT NOT NULL REFERENCES tree(id),
+  kind          TEXT NOT NULL CHECK (kind IN ('persona_match','new_person','fact','relation','place_resolution','duplicate_person')),
+  question_id   TEXT,                                   -- the research_question this proposal answers, when it answers one
+  payload_json  TEXT NOT NULL,
+  rationale     TEXT,
+  generated_by  TEXT NOT NULL REFERENCES extractor(id),
+  created_at    TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
+  decided_by    TEXT,
+  decided_at    TEXT,
+  decision_note TEXT
+);
+CREATE INDEX ix_proposal_status ON proposal(tree_id, status, kind);
+
 -- Conclusion <-> persona link. The core of the persona/person split.
 CREATE TABLE person_persona (
   person_id   TEXT NOT NULL REFERENCES person(id),
   persona_id  TEXT NOT NULL REFERENCES persona(id),
   status      TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
-  proposal_id TEXT,                     -- REFERENCES proposal(id), declared below
+  proposal_id TEXT REFERENCES proposal(id),   -- the card whose decision set the link; NULL for a link no card set (the import's own, the owner's word)
   decided_by  TEXT,
   decided_at  TEXT,
   PRIMARY KEY (person_id, persona_id)
@@ -443,23 +462,6 @@ CREATE TABLE assertion (
 CREATE INDEX ix_assertion_tree     ON assertion(tree_id);
 CREATE INDEX ix_assertion_subject  ON assertion(subject_kind, subject_id);
 CREATE INDEX ix_assertion_artifact ON assertion(artifact_sha256);
-
--- AI output waiting for a decision; each proposal answers a question about a person.
-CREATE TABLE proposal (
-  id            TEXT PRIMARY KEY,
-  tree_id       TEXT NOT NULL REFERENCES tree(id),
-  kind          TEXT NOT NULL CHECK (kind IN ('persona_match','new_person','fact','relation','place_resolution','duplicate_person')),
-  question_id   TEXT,                                   -- the research_question this proposal answers, when it answers one
-  payload_json  TEXT NOT NULL,
-  rationale     TEXT,
-  generated_by  TEXT NOT NULL REFERENCES extractor(id),
-  created_at    TEXT NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
-  decided_by    TEXT,
-  decided_at    TEXT,
-  decision_note TEXT
-);
-CREATE INDEX ix_proposal_status ON proposal(tree_id, status, kind);
 
 -- A fact-level question about a person, generated from gaps in the baseline (RESEARCH-WORKFLOW §2).
 -- open until answered, dismissed or, a conflict, resolved by the owner with a written reason naming the
@@ -683,17 +685,23 @@ SELECT
              AND EXISTS (SELECT 1 FROM assertion a WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status <> 'rejected')) AS has_death_evidence
 FROM person p;
 
--- Conclusions with no accepted assertion: the "untrusted data" report.
+-- Conclusions with no accepted assertion: the "untrusted data" report, of what is live. An event is live while a person not
+-- merged into another, or a family, holds it: an event folded into another (conclude.fold) has left the owner's events, its
+-- participant row gone or returned to the merged duplicate, and keeps its row only for the audit trail.
 CREATE VIEW v_unsupported_event AS
 SELECT e.* FROM event e
-WHERE NOT EXISTS (SELECT 1 FROM assertion a
+WHERE EXISTS (SELECT 1 FROM event_participant ep LEFT JOIN person p ON p.id = ep.person_id
+               WHERE ep.event_id = e.id AND (ep.family_id IS NOT NULL OR p.merged_into IS NULL))
+  AND NOT EXISTS (SELECT 1 FROM assertion a
                    WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status = 'accepted');
 
 -- A person is supported only by an ACCEPTED assertion on the person or on one of
--- their events. The persona link alone is not support (it is definitional).
+-- their events. The persona link alone is not support (it is definitional). A person
+-- merged into another is out of the report as out of every listing.
 CREATE VIEW v_unsupported_person AS
 SELECT p.* FROM person p
-WHERE NOT EXISTS (SELECT 1 FROM assertion a
+WHERE p.merged_into IS NULL
+  AND NOT EXISTS (SELECT 1 FROM assertion a
                    WHERE a.subject_kind = 'person' AND a.subject_id = p.id AND a.status = 'accepted')
   AND NOT EXISTS (SELECT 1 FROM assertion a
                    JOIN event_participant ep ON ep.event_id = a.subject_id AND ep.person_id = p.id

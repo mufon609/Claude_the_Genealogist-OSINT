@@ -1311,6 +1311,15 @@ def e_overview(w, x, want):
     card = next((c for gen in o["generations"] for c in gen if c["id"] == pid), None) or next((c for c in o["others"] if c["id"] == pid), None)
     return card is not None and has(card, w.value(x["is"])), card
 
+def e_unsupported(w, x, want):
+    """The untrusted data report (schema/catalog.sql's v_unsupported_person and v_unsupported_event) on a person: `listed`, whether
+    the person is a row of v_unsupported_person, and `events`, how many rows of v_unsupported_event are events the person takes part
+    in (event_participant), an event a merge folded and returned to the duplicate among them."""
+    pid = w.person(x["person"])
+    got = {"listed": bool(w.cx.execute("SELECT 1 FROM v_unsupported_person WHERE id=?", (pid,)).fetchone()),
+           "events": w.cx.execute("SELECT COUNT(*) FROM v_unsupported_event e WHERE EXISTS (SELECT 1 FROM event_participant ep WHERE ep.event_id=e.id AND ep.person_id=?)", (pid,)).fetchone()[0]}
+    return has(got, {k: v for k, v in x.items() if k in got}), got
+
 def e_households(w, x, want):
     """The current stored households as households_now reads them, with `form` only those of that form, matching `is`."""
     got = [h for h in households_now(w) if "form" not in x or h["form"] == x["form"]]
@@ -1337,7 +1346,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
            "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "overview": e_overview, "compare": e_compare,
-           "parents": e_parents, "households": e_households, "household_leads": e_household_leads}
+           "parents": e_parents, "households": e_households, "household_leads": e_household_leads, "unsupported": e_unsupported}
 
 def load(folder):
     """Every scenario file under a folder, in name order."""

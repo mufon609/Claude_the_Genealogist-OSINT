@@ -178,6 +178,44 @@ def dropped_schema():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
+UNDECLARED = [   # person_persona and the two views as a catalog before 0.8.8 held them
+    """CREATE TABLE person_persona_older (person_id TEXT NOT NULL REFERENCES person(id), persona_id TEXT NOT NULL REFERENCES persona(id),
+       status TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')), proposal_id TEXT, decided_by TEXT, decided_at TEXT, PRIMARY KEY (person_id, persona_id))""",
+    "DROP TABLE person_persona",
+    "ALTER TABLE person_persona_older RENAME TO person_persona",
+    "CREATE INDEX ix_person_persona_persona ON person_persona(persona_id)",
+    "DROP VIEW v_unsupported_event",
+    "CREATE VIEW v_unsupported_event AS SELECT e.* FROM event e WHERE NOT EXISTS (SELECT 1 FROM assertion a WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status = 'accepted')",
+    "DROP VIEW v_unsupported_person",
+    """CREATE VIEW v_unsupported_person AS SELECT p.* FROM person p WHERE NOT EXISTS (SELECT 1 FROM assertion a WHERE a.subject_kind = 'person' AND a.subject_id = p.id AND a.status = 'accepted')
+       AND NOT EXISTS (SELECT 1 FROM assertion a JOIN event_participant ep ON ep.event_id = a.subject_id AND ep.person_id = p.id WHERE a.subject_kind = 'event' AND a.status = 'accepted')"""
+]
+
+def declared_links():
+    """A catalog from before 0.8.8 (the scratch catalog with person_persona built without its reference to proposal and the
+    two v_unsupported views as they stood: UNDECLARED, the version forgotten) migrates to the code's version: person_persona's
+    proposal_id is a declared reference to proposal, its columns and index as a new catalog's, both views are the ones
+    schema/catalog.sql defines, and the catalog passes its integrity and foreign key checks."""
+    d, db = scratch(False); bad = []
+    try:
+        cx = connect(db)
+        sql = lambda name: cx.execute("SELECT sql FROM sqlite_master WHERE name=?", (name,)).fetchone()[0]
+        shape = lambda: ([tuple(r) for r in cx.execute("PRAGMA table_info(person_persona)")], [r[1] for r in cx.execute("PRAGMA index_list(person_persona)") if not r[1].startswith("sqlite_")])
+        views, columns = {v: sql(v) for v in ("v_unsupported_event", "v_unsupported_person")}, shape()
+        for stmt in UNDECLARED: cx.execute(stmt)
+        cx.execute("DELETE FROM schema_migration WHERE version='0.8.8'"); cx.commit(); cx.close()
+        r = subprocess.run([sys.executable, tool("initdb.py"), "--migrate", "--db", db], capture_output=True, text=True, env=os.environ)
+        if r.returncode: return [f"initdb.py --migrate on the catalog from before 0.8.8 stopped: {(r.stderr.strip().splitlines() or [''])[-1]}"]
+        cx = connect(db)
+        if not any(f["table"] == "proposal" and f["from"] == "proposal_id" and f["to"] == "id" for f in cx.execute("PRAGMA foreign_key_list(person_persona)")): bad.append("person_persona.proposal_id declares no reference to proposal(id) after the migration")
+        if shape() != columns: bad.append(f"person_persona's columns and indexes are {shape()} after the migration, a new catalog's are {columns}")
+        bad += [f"the migrated catalog's {v} is not the one schema/catalog.sql defines" for v, s in views.items() if sql(v) != s]
+        whole = cx.execute("PRAGMA integrity_check").fetchone()[0], cx.execute("PRAGMA foreign_key_check").fetchall()
+        if whole != ("ok", []): bad.append(f"the migrated catalog: integrity {whole[0]}, foreign keys {len(whole[1])}")
+        cx.close()
+    finally: shutil.rmtree(d, ignore_errors=True)
+    return bad
+
 PAGES = ["va-gravesite-search-davidson-raymond-2007", "va-gravesite-search-davidson-noi", "va-gravesite-search-davidson-raymond-e",
          "va-gravesite-search-davidson-raymond-page1"]
 
@@ -269,6 +307,7 @@ def check(keep, show):
                     (older_catalog, "a catalog from before the same_record, task_run and household tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply"),
                     (older_view, "a catalog whose person vitals view is another definition gets the schema's own from the 0.8.4 migration"),
                     (dropped_schema, "a catalog from before 0.8.6 loses what nothing reads (the full-text tables and their triggers, the page tables and columns, the private flags, the surname prefix, a name's prefix and nickname, the vitals view's dates), its triggers and views the schema's own, whole, and its dump loads into an empty database"),
+                    (declared_links, "a catalog from before 0.8.8 gets person_persona's reference to the card that set a link declared, its rows and index kept, and the untrusted data report's two views as the schema defines them, whole"),
                     (active_tree, "the active tree is written whole: a write that stops after its text is written leaves .active-tree naming the tree it named, with nothing of the write's beside it"),
                     (backup_bag, "a bag written while a turn commits is whole and consistent: its manifest verifies, every artifact row of its catalog dump has its object in the payload, no row of the dump names an artifact it has no row for, and the dump loads into an empty database in one pass")):
         bad = fn(); failed += bool(bad)

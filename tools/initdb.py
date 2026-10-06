@@ -28,8 +28,8 @@ def requery_questions(cx: sqlite3.Connection) -> None:
         cx.execute("UPDATE research_question SET q_key=? WHERE id=?", (q_key(json.loads(detail)), rid))
 
 def rebuild_table(cx: sqlite3.Connection, table: str) -> None:
-    """A table built again as schema/catalog.sql now defines it, for a CHECK the schema widens. SQLite changes a CHECK only by
-    building the table again: the table as schema/catalog.sql defines it is created beside the old, every row copied across
+    """A table built again as schema/catalog.sql now defines it, for a CHECK the schema widens or a reference it declares. SQLite
+    changes either only by building the table again: the table as schema/catalog.sql defines it is created beside the old, every row copied across
     unchanged, the old dropped and the new renamed, its indexes made again, with foreign keys off for the swap and every
     reference checked after it."""
     import re
@@ -290,13 +290,17 @@ def households(cx: sqlite3.Connection) -> None:
         script = script.replace(f"CREATE {word} ", f"CREATE {word} IF NOT EXISTS ")   # a catalog born with the tables, replaying its migrations, keeps them
     cx.executescript(script)
 
+def remake_view(cx: sqlite3.Connection, name: str) -> None:
+    """A view made again as schema/catalog.sql defines it."""
+    import re
+    view = re.search(rf"CREATE VIEW {name} AS.*?;\n", read("schema/catalog.sql"), re.S).group(0)
+    cx.execute(f"DROP VIEW IF EXISTS {name}")
+    cx.execute(view)
+
 def vitals_view(cx: sqlite3.Connection) -> None:
     """v_person_vitals made again as schema/catalog.sql defines it: held death evidence is an event of a death's kind with a
     statement not rejected, so a death the owner rejected no longer makes a person deceased (Catalog.living). No row changes."""
-    import re
-    view = re.search(r"CREATE VIEW v_person_vitals AS.*?;\n", read("schema/catalog.sql"), re.S).group(0)
-    cx.execute("DROP VIEW IF EXISTS v_person_vitals")
-    cx.execute(view)
+    remake_view(cx, "v_person_vitals")
 
 def dead_schema(cx: sqlite3.Connection) -> None:
     """What no tool reads or writes, dropped as schema/catalog.sql and schema/sqlite_extras.sql no longer define it: the three
@@ -326,6 +330,13 @@ def unread_names(cx: sqlite3.Connection) -> None:
     held = cx.execute(f"SELECT COUNT(*) FROM person_name WHERE {' OR '.join(f'{c} IS NOT NULL' for c in have)}").fetchone()[0] if have else 0
     if held: raise SystemExit(f"0.8.7 refused, nothing written: {held} name(s) hold a value in person_name.{' or '.join(have)}, which no tool reads")
     for column in have: cx.execute(f"ALTER TABLE person_name DROP COLUMN {column}")
+
+def declared_links(cx: sqlite3.Connection) -> None:
+    """person_persona built again (rebuild_table) with proposal_id a declared reference to proposal, every link's card checked
+    after the swap; v_unsupported_event and v_unsupported_person made again as schema/catalog.sql defines them, listing only
+    what is live: no person merged into another, no event folded out of the owner's. No row changes."""
+    rebuild_table(cx, "person_persona")
+    for view in ("v_unsupported_event", "v_unsupported_person"): remake_view(cx, view)
 
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
@@ -364,6 +375,8 @@ MIGRATIONS = [
      [dead_schema]),
     ("0.8.7", "person_name.prefix and nick dropped: no tool writes or reads them",
      [unread_names]),
+    ("0.8.8", "person_persona.proposal_id declared a reference to proposal; v_unsupported_person and v_unsupported_event list only what is live: no person merged into another, no event folded out of the owner's",
+     [declared_links]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

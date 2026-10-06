@@ -1,0 +1,33 @@
+{
+ "title": "the untrusted data report lists only what is live",
+ "line": "v_unsupported_person and v_unsupported_event list only what is live: after the harness's own merge of the 1940 household's daughter into its son, she is out of the report as out of every listing, and the events the merge folded into his and returned to her row are out of it too, while he and his own events, nothing of theirs accepted yet, stay in it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "before the merge, both are in the report with their events: nothing of theirs is accepted",
+   "expect": [
+    {"unsupported": {"person": "I332737072856", "listed": true, "events": {">=": 1}}},
+    {"unsupported": {"person": "I332737036054", "listed": true, "events": {">=": 1}}}
+   ]
+  },
+  {
+   "say": "the owner merges the daughter into the son, both children of one family",
+   "merge": {"duplicate": "I332737072856", "kept": "I332737036054", "note": "harness: two children of one family merged, as one child entered twice under the same parents would be"},
+   "expect": [
+    {"person_merged": {"person": "I332737072856", "into": "I332737036054"}},
+    {"last": {"events_folded": {">=": 1}}, "why": "the merge folds an event of hers into his"},
+    {"count": {"events_of": "I332737072856", "is": {">=": 1}}, "why": "each event it folded is returned to her row, out of his events, its row kept for the audit trail"},
+    {"unsupported": {"person": "I332737072856", "listed": false, "events": 0}, "why": "a person merged into another, and the events folded out of the owner's, are no longer the tree's: the report does not list them"},
+    {"unsupported": {"person": "I332737036054", "listed": true, "events": {">=": 1}}, "why": "the kept person and his events, nothing of theirs accepted, are still untrusted"}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}
