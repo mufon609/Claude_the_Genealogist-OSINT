@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.5
+-- tree catalog schema  v0.8.6
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -7,7 +7,7 @@
 --   * dates in records use the date_* column group (see persona_fact / event).
 --   * JSON is stored as TEXT (json_* functions exist on both engines).
 --   * booleans are BOOLEAN (SQLite stores 0/1).
---   * SQLite-only objects (FTS, triggers) live in sqlite_extras.sql, the insert-only triggers among them: artifact,
+--   * SQLite-only objects live in sqlite_extras.sql: the insert-only triggers on artifact,
 --     artifact_locator, tombstone, extractor, extraction, persona, persona_fact, persona_relation, same_record, household,
 --     household_member, search_log, task_run and audit_log take no UPDATE but a write-once superseded_by, and no DELETE.
 --   * DECISIONS: wherever a human decides, the column is `status` with exactly
@@ -154,28 +154,6 @@ CREATE TABLE artifact_locator (
 );
 CREATE INDEX ix_artifact_locator_value ON artifact_locator(kind, value);
 
-CREATE TABLE artifact_page (
-  id              TEXT PRIMARY KEY,
-  artifact_sha256 TEXT NOT NULL REFERENCES artifact(sha256),
-  page_no         INTEGER NOT NULL,
-  width_px        INTEGER,
-  height_px       INTEGER,
-  label           TEXT,                 -- "sheet 4B", "frame 217"
-  UNIQUE (artifact_sha256, page_no)
-);
-
--- Regenerable outputs (thumbnails, tiles, OCR text files). Not backed up.
-CREATE TABLE derivative (
-  id              TEXT PRIMARY KEY,
-  artifact_sha256 TEXT NOT NULL REFERENCES artifact(sha256),
-  page_id         TEXT REFERENCES artifact_page(id),
-  kind            TEXT NOT NULL,        -- thumb | web | tiles | ocr_text | hocr
-  path            TEXT NOT NULL,
-  generator       TEXT,
-  generated_at    TEXT NOT NULL
-);
-CREATE INDEX ix_derivative_artifact ON derivative(artifact_sha256);
-
 -- Deletion is a record, not an absence.
 CREATE TABLE tombstone (
   artifact_sha256 TEXT PRIMARY KEY REFERENCES artifact(sha256),
@@ -202,12 +180,11 @@ CREATE TABLE extractor (
   UNIQUE (kind, name, version, prompt_sha256)
 );
 
--- One run of one extractor over one artifact (or page). Never updated in place;
+-- One run of one extractor over one artifact. Never updated in place;
 -- a re-run inserts a new row and sets superseded_by on the old one, written once from empty.
 CREATE TABLE extraction (
   id              TEXT PRIMARY KEY,
   artifact_sha256 TEXT NOT NULL REFERENCES artifact(sha256),
-  page_id         TEXT REFERENCES artifact_page(id),
   extractor_id    TEXT NOT NULL REFERENCES extractor(id),
   ran_at          TEXT NOT NULL,
   status          TEXT NOT NULL DEFAULT 'complete'
@@ -224,7 +201,6 @@ CREATE TABLE persona (
   id              TEXT PRIMARY KEY,
   extraction_id   TEXT NOT NULL REFERENCES extraction(id),
   artifact_sha256 TEXT NOT NULL REFERENCES artifact(sha256),
-  page_id         TEXT REFERENCES artifact_page(id),
   name_text       TEXT,                 -- exactly as written
   sex             TEXT CHECK (sex IN ('M','F','X','U') OR sex IS NULL),
   role_in_record  TEXT,                 -- head | wife | child | deceased | informant | bride | groom | witness | passenger | registrant | ...
@@ -360,7 +336,6 @@ CREATE TABLE person (
   sex             TEXT CHECK (sex IN ('M','F','X','U') OR sex IS NULL),
   display_name    TEXT,                 -- cached from primary person_name
   living_override TEXT CHECK (living_override IN ('living','deceased') OR living_override IS NULL),
-  private         BOOLEAN NOT NULL DEFAULT FALSE,
   merged_into     TEXT REFERENCES person(id),   -- set by tools/conclude.py merge; the row stays for the audit trail, out of every listing, overview, plan and matcher run
   created_at      TEXT NOT NULL,
   updated_at      TEXT NOT NULL,
@@ -375,7 +350,6 @@ CREATE TABLE person_name (
   prefix      TEXT,
   given       TEXT,
   surname     TEXT,
-  surname_prefix TEXT,                  -- "van", "von"
   suffix      TEXT,
   nick        TEXT,
   is_primary  BOOLEAN NOT NULL DEFAULT FALSE,
@@ -650,8 +624,7 @@ CREATE TABLE note (
   entity_id   TEXT NOT NULL,
   body        TEXT NOT NULL,
   author      TEXT NOT NULL,
-  created_at  TEXT NOT NULL,
-  private     BOOLEAN NOT NULL DEFAULT FALSE
+  created_at  TEXT NOT NULL
 );
 CREATE INDEX ix_note_entity ON note(entity_kind, entity_id);
 
@@ -707,13 +680,6 @@ SELECT
   p.id AS person_id,
   p.display_name,
   p.living_override,
-  (SELECT MIN(e.date_start) FROM event e
-     JOIN event_participant ep ON ep.event_id = e.id
-    WHERE ep.person_id = p.id AND e.event_type = 'Birth')                         AS birth_date,
-  (SELECT MIN(e.date_start) FROM event e
-     JOIN event_participant ep ON ep.event_id = e.id
-    WHERE ep.person_id = p.id AND e.event_type IN ('Death','Burial','Cremation','Probate','Will')
-      AND EXISTS (SELECT 1 FROM assertion a WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status <> 'rejected')) AS death_date,
   EXISTS (SELECT 1 FROM event e JOIN event_participant ep ON ep.event_id = e.id
            WHERE ep.person_id = p.id AND e.event_type IN ('Death','Burial','Cremation','Probate','Will')
              AND EXISTS (SELECT 1 FROM assertion a WHERE a.subject_kind = 'event' AND a.subject_id = e.id AND a.status <> 'rejected')) AS has_death_evidence

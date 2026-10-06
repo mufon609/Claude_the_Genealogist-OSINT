@@ -2,9 +2,9 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 41 tables, 6 views. Schema 0.8.5. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 39 tables, 6 views. Schema 0.8.6. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
-| `sqlite_extras.sql` | SQLite-only: FTS5 tables on extraction text, persona names, notes; the insert-only triggers on the archive's rows, the evidence, the research log and the audit trail. |
+| `sqlite_extras.sql` | SQLite-only: the insert-only triggers on the archive's rows, the evidence, the research log and the audit trail. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
 
 Build a fresh catalog with `tools/initdb.py` (add `--force` to overwrite). It seeds
@@ -17,7 +17,7 @@ holders of cited collections) is read by the tools directly.
 
 ```
 1 REFERENCE    source, collection, event_type, place, place_name, place_string
-2 ARCHIVE      artifact, artifact_locator, artifact_page, derivative, tombstone
+2 ARCHIVE      artifact, artifact_locator, tombstone
 3 EVIDENCE     extractor, extraction, persona, persona_fact, persona_relation, same_record,
                household, household_member
 4 CONCLUSIONS  tree, tree_import, person, person_name, family, family_member, event,
@@ -204,8 +204,7 @@ Pre-1752 English-colony dates are `dual`.
 
 ## Migrating to Postgres
 
-Dump with `sqlite3 tree.db .dump`, drop the `fts_*` tables and triggers, load,
-then add tsvector indexes. The DDL uses no engine-specific types or clauses. The
+Dump with `sqlite3 tree.db .dump` and load. The DDL uses no engine-specific types or clauses. The
 tools do not yet: most of them and the screen use SQLite's `json_valid` /
 `json_extract`, `tools/backfill_aliases.py` uses `GLOB`, and `tools/log_search.py`
 uses `GROUP_CONCAT`. Those calls are the porting work.

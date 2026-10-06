@@ -1037,8 +1037,7 @@ def resolve_strings(cx, tree_id, by, rows, stats=None):
             candidates += alone[:12]
             if dated: candidates.append({**dated, "kind": "jurisdiction_change"})
             payload = {"raw": raw, "place_string_id": psid, "parsed": p, "queries": queries,
-                       "candidates": candidates,
-                       "suggested": 0 if scored and scored[0][0] >= 0.6 else None, "reason": reason}
+                       "candidates": candidates, "reason": reason}
             cx.execute("INSERT INTO proposal (id,tree_id,kind,payload_json,rationale,generated_by,created_at,status) VALUES (?,?,?,?,?,?,?,'undecided')",
                        (ulid(), tree_id, "place_resolution", dumps(payload), ((note + " ") if note else "") + reason, ext_id, ts))
             cx.execute("UPDATE place_string SET status='undecided', resolver=?, resolved_at=?, notes=? WHERE id=?",

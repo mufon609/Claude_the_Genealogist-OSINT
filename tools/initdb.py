@@ -298,6 +298,27 @@ def vitals_view(cx: sqlite3.Connection) -> None:
     cx.execute("DROP VIEW IF EXISTS v_person_vitals")
     cx.execute(view)
 
+def dead_schema(cx: sqlite3.Connection) -> None:
+    """What no tool reads or writes, dropped as schema/catalog.sql and schema/sqlite_extras.sql no longer define it: the three
+    full-text tables and the triggers that filled them, the derivative and artifact_page tables and the page_id columns of
+    extraction and persona pointing at a page, person.private, note.private and person_name.surname_prefix, and
+    v_person_vitals' birth and death dates (vitals_view). extraction's insert-only trigger, which named page_id, is made again
+    as the schema defines it. Each is dropped only where the catalog still has it. No row is lost but the full-text tables',
+    which only copied text other tables hold, and the dropped tables', which no tool wrote."""
+    for table in ("extraction", "persona", "note"):
+        cx.execute(f"DROP TRIGGER IF EXISTS trg_{table}_ai")
+        cx.execute(f"DROP TABLE IF EXISTS fts_{table}")
+    cx.execute("DROP TABLE IF EXISTS derivative")
+    columns = lambda table: [r[1] for r in cx.execute(f"PRAGMA table_info({table})")]
+    if "page_id" in columns("extraction"):
+        cx.execute("DROP TRIGGER IF EXISTS trg_extraction_no_update")
+        cx.execute("ALTER TABLE extraction DROP COLUMN page_id")
+        for trigger in triggers("extraction"): cx.execute(trigger.replace("CREATE TRIGGER ", "CREATE TRIGGER IF NOT EXISTS ", 1))
+    for table, column in (("persona", "page_id"), ("person", "private"), ("note", "private"), ("person_name", "surname_prefix")):
+        if column in columns(table): cx.execute(f"ALTER TABLE {table} DROP COLUMN {column}")
+    cx.execute("DROP TABLE IF EXISTS artifact_page")
+    vitals_view(cx)
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -331,6 +352,8 @@ MIGRATIONS = [
      [vitals_view]),
     ("0.8.5", "household, household_member: the households read off a census form (tools/households.py), insert-only, each grouping recorded with the script's version and a household grouped again superseding the one it replaces; evidence shared by every tree",
      [households]),
+    ("0.8.6", "what nothing reads dropped: the full-text tables and their triggers, the derivative and artifact_page tables, extraction.page_id, persona.page_id, person.private, note.private, person_name.surname_prefix, and v_person_vitals' birth and death dates",
+     [dead_schema]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

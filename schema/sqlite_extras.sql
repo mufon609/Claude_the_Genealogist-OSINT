@@ -1,37 +1,4 @@
 -- SQLite-only objects. Applied after catalog.sql when the engine is SQLite.
--- Postgres gets tsvector equivalents in a separate file when we get there.
-
-CREATE VIRTUAL TABLE fts_extraction USING fts5(
-  extraction_id UNINDEXED,
-  full_text,
-  tokenize = 'unicode61 remove_diacritics 2'
-);
-
-CREATE TRIGGER trg_extraction_ai AFTER INSERT ON extraction
-WHEN NEW.full_text IS NOT NULL BEGIN
-  INSERT INTO fts_extraction (extraction_id, full_text) VALUES (NEW.id, NEW.full_text);
-END;
-
-CREATE VIRTUAL TABLE fts_persona USING fts5(
-  persona_id UNINDEXED,
-  name_text,
-  tokenize = 'unicode61 remove_diacritics 2'
-);
-
-CREATE TRIGGER trg_persona_ai AFTER INSERT ON persona
-WHEN NEW.name_text IS NOT NULL BEGIN
-  INSERT INTO fts_persona (persona_id, name_text) VALUES (NEW.id, NEW.name_text);
-END;
-
-CREATE VIRTUAL TABLE fts_note USING fts5(
-  note_id UNINDEXED,
-  body,
-  tokenize = 'unicode61 remove_diacritics 2'
-);
-
-CREATE TRIGGER trg_note_ai AFTER INSERT ON note BEGIN
-  INSERT INTO fts_note (note_id, body) VALUES (NEW.id, NEW.body);
-END;
 
 -- Insert-only tables (CLAUDE.md hard rule 2; docs/DATA-ARCHITECTURE.md §1): the archive's rows, the evidence, the research
 -- log and the audit trail. A correction is a new row; the one UPDATE allowed is a write-once column, superseded_by on
@@ -73,7 +40,7 @@ END;
 CREATE TRIGGER trg_extractor_no_delete BEFORE DELETE ON extractor BEGIN
   SELECT RAISE(ABORT, 'extractor rows are never deleted');
 END;
-CREATE TRIGGER trg_extraction_no_update BEFORE UPDATE OF id, artifact_sha256, page_id, extractor_id, ran_at, status, full_text, structured_json, notes ON extraction BEGIN
+CREATE TRIGGER trg_extraction_no_update BEFORE UPDATE OF id, artifact_sha256, extractor_id, ran_at, status, full_text, structured_json, notes ON extraction BEGIN
   SELECT RAISE(ABORT, 'extraction rows are immutable; re-run the extraction');
 END;
 CREATE TRIGGER trg_extraction_superseded_once BEFORE UPDATE OF superseded_by ON extraction

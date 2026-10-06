@@ -165,7 +165,7 @@ Core tables (the full map by layer is in `schema/README.md`):
 | Table | Purpose |
 |---|---|
 | `source`, `collection` | Registry seeded from `data/data-sources.csv`; a collection is a named record set inside a source and holds the vendor id (Ancestry dbid). |
-| `artifact`, `artifact_page`, `tombstone` | One row per archived hash, mirroring the manifest; pages inside it; withdrawn artifacts and why. |
+| `artifact`, `tombstone` | One row per archived hash, mirroring the manifest; withdrawn artifacts and why. |
 | `extraction`, `persona`, `persona_fact` | One run of one extractor over an artifact; what one record says about one individual; the claims on that persona with region coordinates. |
 | `same_record` | Two archived copies of one record joined (decision 15), insert-only: on what they share of the record itself, by code for every tree, or on the owner's word in one tree. |
 | `tree`, `tree_import` | A workspace of conclusions; which artifact was imported into which tree. |
@@ -182,9 +182,10 @@ Core tables (the full map by layer is in `schema/README.md`):
 Identifiers: ULIDs for everything internal. Sortable, unique across machines,
 no coordination needed if the tree is later merged with a cousin's.
 
-Full text: SQLite FTS5 over extraction text now; Meilisearch or OpenSearch when
-the catalog leaves SQLite. Embeddings for AI retrieval live beside the
-extraction they came from and are regenerable; they are not archived.
+Full text: no tool searches the extractions' text yet; when one does, SQLite
+FTS5 while the catalog is on SQLite, Meilisearch or OpenSearch once it leaves.
+Embeddings for AI retrieval live beside the extraction they came from and are
+regenerable; they are not archived.
 
 ## 4. Repository layout
 
