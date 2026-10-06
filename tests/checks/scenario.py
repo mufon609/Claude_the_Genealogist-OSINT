@@ -907,7 +907,8 @@ def e_rule(w, x, want):
 def e_compare(w, x, want):
     """A card's persona against its person as the matcher compares them (match.compare): what agrees, disagrees and is
     absent, the disagreements the rule reads as vetoes (conclude.split_disagree), and the card's own fields with their
-    verdicts (cards.card), {field: verdict}."""
+    verdicts (cards.card), {field: verdict}, and as `rows`, each field in the card's order with what the record says
+    ({field, record, verdict}), a field the card lists twice listed twice."""
     from cards import card as card_view
     from catalog import Catalog
     from conclude import split_disagree
@@ -918,7 +919,9 @@ def e_compare(w, x, want):
     fits, agree, disagree, absent, near = compare(cat, persona, cand, {})
     vetoes, claims, conflicts = split_disagree(w.cx, w.tid, cand, persona, disagree, {})
     words = lambda fs: [said(f) for f in fs]
-    got = {"agree": words(agree), "disagree": words(disagree), "absent": words(absent), "vetoes": words(vetoes), "fields": {f["field"]: f["verdict"] for f in card_view(w.cx, w.tid, card["id"])["fields"]}}
+    fields = card_view(w.cx, w.tid, card["id"])["fields"]
+    got = {"agree": words(agree), "disagree": words(disagree), "absent": words(absent), "vetoes": words(vetoes), "fields": {f["field"]: f["verdict"] for f in fields},
+           "rows": [{k: f[k] for k in ("field", "record", "verdict")} for f in fields]}
     return has(got, w.value({k: v for k, v in x.items() if k != "card"})), got
 
 def e_facts(w, x, want):

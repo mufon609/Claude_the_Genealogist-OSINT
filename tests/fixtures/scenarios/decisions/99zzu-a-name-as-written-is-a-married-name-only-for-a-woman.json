@@ -1,0 +1,98 @@
+{
+ "title": "a name as written is a married name only for a woman",
+ "line": "the alias a decision writes from the name a record gives reads a married surname as the matcher does, a woman's only: Robert Edgar Davidson's obituary names Charles Miller, a son-in-law, and the owner accepts the card an older matcher left putting him to Charles Beckam Davidson; the son-in-law of that surname on the record is himself, and the record and the tree both say he is a man, so Charles Miller is no married name of his",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Robert Edgar Davidson's obituary, naming his brothers and sisters, his daughter Carol Miller and her husband Charles Miller",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "say": "its subject accepted by the owner: the rule creates the brothers and sisters it names, Charles Beckam Davidson among them",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "a card an older matcher left, putting the son-in-law Charles Miller to Charles Beckam Davidson",
+   "legacy_card": {
+    "record": "obit",
+    "row": 15,
+    "person": {
+     "created": "Charles Beckam Davidson"
+    },
+    "version": "0.7.0"
+   },
+   "as": "card"
+  },
+  {
+   "say": "the owner accepts that card all the same",
+   "decide": {
+    "card": "$card.card",
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": {
+       "created": "Charles Beckam Davidson"
+      },
+      "is": {
+       "some": [
+        "Charles Miller",
+        {
+         "not": "married_name"
+        },
+        "accepted"
+       ]
+      }
+     },
+     "why": "the record writes him Charles Miller beside a son-in-law of that surname, himself, but the record and the tree both say he is a man: his name as written is no married name, as the matcher reads none for him"
+    },
+    {
+     "alias": {
+      "person": {
+       "created": "Charles Beckam Davidson"
+      },
+      "is": {
+       "none": {
+        "some": "married_name"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

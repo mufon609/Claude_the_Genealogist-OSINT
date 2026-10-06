@@ -1,0 +1,187 @@
+{
+ "title": "what the comparison finds is what the words say",
+ "line": "the card, the proof and the hint say what the comparison now finds: Charlotte's 1900 card lists the Residence the page shows and no field for the Norristown it keeps beneath, and once it is accepted the proof says her birth agrees to the month only; a WikiTree profile a name search for John Y Davidson reached, born in another month of his year, is a namesake on the name and the sex alone, never on a year of birth",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 Lukens household page, on the owner's word that it is Charlotte's: each Residence it gives shows Norriton Township and keeps Norristown beneath",
+   "attach": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html",
+    "about": "I332737039686"
+   },
+   "as": "c1900",
+   "expect": [
+    {
+     "compare": {
+      "card": {
+       "record": "c1900",
+       "person": "I332737039686"
+      },
+      "rows": {
+       "some": {
+        "field": "Residence",
+        "record": {
+         "has": "Norriton Township"
+        }
+       }
+      }
+     }
+    },
+    {
+     "compare": {
+      "card": {
+       "record": "c1900",
+       "person": "I332737039686"
+      },
+      "rows": {
+       "none": {
+        "field": "Residence",
+        "record": {
+         "has": "1900 Norristown"
+        }
+       }
+      }
+     },
+     "why": "the Norristown the page keeps beneath the Residence it shows is no value of the record's: the card lists it as no field of its own, as the matcher compares none"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts her card",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "person": "I332737039686"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the proof of her birth",
+   "proof": {
+    "person": "I332737039686",
+    "fact": "birth"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "birth": {
+        "evidence": {
+         "some": {
+          "says": {
+           "some": {
+            "starts": "agrees: month only"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "the census's April 1882 agrees with the file's 12 Apr 1882 to the month: the proof says the month only, never the year only"
+    }
+   ]
+  },
+  {
+   "say": "the owner's word on John Y's key facts: his baseline reviewed, his searches open",
+   "fact": {
+    "person": "I332737204849",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "parents",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the baseline reviewed"
+   },
+   "expect": [
+    {
+     "step_count": {
+      "person": "I332737204849",
+      "kind": "search",
+      "is": {
+       ">=": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the WikiTree profile Davidson-349, a John William Davidson born in England in December 1876, as the connector archived it",
+   "archive": {
+    "fixture": "wikitree-profile-Davidson-349.json",
+    "manifest": "wikitree-profile-Davidson-349.manifest.json",
+    "source": "B04",
+    "extract": true
+   },
+   "as": "wt"
+  },
+  {
+   "say": "one of his searches found it: the profile is the search's own result",
+   "log": {
+    "step": {
+     "person": "I332737204849",
+     "kind": "search"
+    },
+    "outcome": "found",
+    "artifacts": [
+     "wt"
+    ]
+   }
+  },
+  {
+   "say": "the profile matched for the person the search was run for",
+   "match": {
+    "record": "wt"
+   },
+   "expect": [
+    {
+     "last": {
+      "written": []
+     },
+     "why": "the name and the sex agree, the birth disagrees in the month: a namesake a name search reached, no card"
+    },
+    {
+     "hints": {
+      "record": "wt",
+      "person": "I332737204849",
+      "hints": {
+       "some": {
+        "hint": true,
+        "why": {
+         "has": [
+          "is a namesake of John Y Davidson, not a card",
+          "on no more than the name and the sex, and disagrees",
+          "birth date disagrees"
+         ],
+         "lacks": "a year of birth"
+        }
+       }
+      }
+     },
+     "why": "December 1876 is not his 24 April 1876: the hint says what agrees, the name and the sex, and never a year of birth that disagrees"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

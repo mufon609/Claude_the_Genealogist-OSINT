@@ -186,8 +186,8 @@ def written_name(keys, given, later):
     return any(same_given(given, k) for k, _ in keys), "agrees" if "agrees" in hows else next((h for h in hows if h), "")
 
 def agreement(field, st, tree):
-    """Whether a statement agrees with the tree's value, in words: agrees (with a note: the year only, a coarser place, a
-    spelling variant), the date within a bound (catalog.date_verdict: neither agrees nor disagrees), or what it says instead.
+    """Whether a statement agrees with the tree's value, in words: agrees (with a note: the month only, the year only, a
+    coarser place, a spelling variant), the date within a bound (catalog.date_verdict: neither agrees nor disagrees), or what it says instead.
     None where there is nothing to compare. A name is read as the matcher reads one (tree: the person's name, the keys of
     their name rows and name_keys, which adds every alias): it agrees when its first given name and a surname after it are
     the person's by written_name, and says so in a note when only an alias holds them."""
@@ -218,7 +218,7 @@ def agreement(field, st, tree):
             f = date_verdict(st["date"], tree["date"])
             if f.verdict == "disagrees": says.append(st["date"]["text"])
             elif f.verdict == "agrees" and f.years: notes.append(f"within {f.years} years")   # another year, inside the two an about or calculated date allows, is not the year
-            elif f.verdict == "agrees" and f.only: notes.append("year only")
+            elif f.verdict == "agrees" and f.only: notes.append("month only" if f.month else "year only")   # a month both give, one with no day, agrees to the month
             elif f.verdict == "within": bound = f"the date within: {note(f)}"          # a bound neither agrees nor disagrees (catalog.date_verdict)
         placed = False
         if st["place"]:

@@ -1113,10 +1113,15 @@ def place(cx, tree_id, pf_id, event_id, by, note):
         "rematched": rematched
     }
 
-def shown_married(cx, tree_id, person_id, sha, written, canon_surname):
-    """Whether the record shows this person married under `written`'s own surname: a wife under her husband's surname (the
-    tree's own recorded spouse, claimed or accepted), a daughter or sister under her husband's, named beside a son-in-law
-    or brother-in-law of that surname on the same record, or written "Mrs."."""
+def shown_married(cx, tree_id, person_id, persona_id, sha, written, canon_surname):
+    """Whether the record shows this person married under `written`'s own surname, as match.compare reads a married surname:
+    a woman's only, never a person the record (the persona's sex) or the tree says is a man; then a wife under her husband's
+    surname (the tree's own recorded spouse, claimed or accepted), a daughter or sister under her husband's, named beside a
+    son-in-law or brother-in-law of that surname on the same record, or written "Mrs."."""
+    q = _q(cx)
+    sexes = [r[0] for r in q.execute("SELECT sex FROM persona WHERE id=? UNION ALL SELECT sex FROM person WHERE id=?", (persona_id, person_id))]
+    if "M" in sexes:
+        return False
     if re.match(r"^\s*mrs\.?\b", written or "", re.I):
         return True
     rest = split_persona_name(written)[1]
@@ -1125,7 +1130,6 @@ def shown_married(cx, tree_id, person_id, sha, written, canon_surname):
     ws = rest[-1]
     if ws == surname_key(canon_surname or ""):
         return False
-    q = _q(cx)
     spouses = [
         surname_key(n.split()[-1]) for _, n in Catalog(cx, tree_id).family(person_id)["spouses"] if n and n.split()
     ]
@@ -1187,7 +1191,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
         name["given"],
         name["surname"],
         name["suffix"],
-        married=shown_married(cx, tree_id, person_id, sha, fact["value_text"], name["surname"])
+        married=shown_married(cx, tree_id, person_id, persona_id, sha, fact["value_text"], name["surname"])
     )
     aid = ulid()
     cx.execute(

@@ -1000,9 +1000,11 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
                 _, agree, disagree, _, _ = compare(cat, pr, c, chosen)
                 # a namesake: the name, the sex and a bare year, something disagreeing, nothing more: a hint on the page
                 if namesake(agree, disagree):
+                    fields = {a.field for a in agree}
+                    on = ["the name"] + ["the sex"] * ("sex" in fields) + ["a year of birth"] * ("birth date" in fields)
                     held[pr["id"]] = (
                         f"{pr['name']} ({pr['role']}) is a namesake of {c['name']}, not a card: the record was reached by a name search, agrees with "
-                        f"{c['name']} on no more than the name, the sex and a year of birth, and disagrees: "
+                        f"{c['name']} on no more than {', '.join(on[:-1]) + ' and ' + on[-1] if len(on) > 1 else on[0]}, and disagrees: "
                             + "; ".join(said(d) for d in disagree)
                     )
                     continue

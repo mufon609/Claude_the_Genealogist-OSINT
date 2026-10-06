@@ -8,7 +8,8 @@ One card per proposal, in the shape the owner approved (docs/RESEARCH-CHECKLIST.
 highlight of what the record is and the links it makes; the person and the fact or link with the tree's value, each date or
 place that is a claim beyond what an accepted statement gives said to be one (docs/RESEARCH-WORKFLOW.md §5–7); the record
 with its holder, collection, own identity and trust tier; the primary document as the archived path and the holder's page;
-what the record says field by field against the tree's value, as agrees, disagrees or absent; the relationships the record
+what the record says field by field against the tree's value, as agrees, disagrees or absent, a value the page keeps
+beneath the one it shows no field of its own (the matcher compares none); the relationships the record
 states and who on it is already matched or accepted; what accepting closes, from the person's open questions when the step
 carries one and from the checklist row otherwise; anything odd. No scores. The person screen's proposal panel shows the same
 card from card() and render() here, so the two never drift. hints_on gives the record's hints for a person, the rows that
@@ -63,8 +64,11 @@ def _fmt(date_text, place):
     return ", ".join(x for x in (date_text, place) if x) or None
 
 def persona_facts(cx, persona_id):
+    """The facts the record states of a persona, as the matcher compares them: a value the page keeps beneath the one it shows
+    (a fact whose region marks it alternate) is none of them (match.personas_of), so the card lists no field for it."""
     return [dict(r) for r in cx.execute("""SELECT pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw AS place, pf.region_json
-                                           FROM persona_fact pf LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=? ORDER BY pf.id""", (persona_id,))]
+                                           FROM persona_fact pf LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=?
+                                           AND NOT (json_valid(pf.region_json) AND json_extract(pf.region_json,'$.alternate') IS NOT NULL) ORDER BY pf.id""", (persona_id,))]
 
 def persona_status(cx, tree_id, persona_id):
     """How a persona on the record stands to the tree: accepted as <person>, proposed as <person>, proposed as a new person,

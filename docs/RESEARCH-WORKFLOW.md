@@ -1048,7 +1048,10 @@ same record, or written "Mrs." Only a woman's: a persona the record says is
 male, or put to a person the tree holds as male, is never read so (a man whose
 record names his wife, or names a son-in-law of the surname it writes him under);
 where neither the record nor the tree gives the sex, the record's own words
-(a wife, a daughter or a sister, "Mrs.") are what make her the woman read so. A
+(a wife, a daughter or a sister, "Mrs.") are what make her the woman read so.
+The name as written that an accepted record leaves as an alias is read the same
+way: it is a married name only where she is read so, never a man's
+(`conclude.shown_married`). A
 persona of the same name as a candidate that disagrees on something else is
 proposed as that candidate when more than the name ties it to them, with the
 disagreement in its rationale, so the owner sees the likely identity and the
@@ -1059,7 +1062,8 @@ persona stays a hint on the page. A namesake is not proposed either: a persona
 on a record reached by a name search alone (a search step's own result, or the
 record behind a row of a results page), whose only agreement with the candidate
 is the name, the sex and at most a year of birth the record gives bare, and that
-disagrees on anything, stays a hint on the page that says so. More than the
+disagrees on anything, stays a hint on the page that says so, naming what of
+them agrees (a year of birth only where it does). More than the
 name ties a persona to the person, and it is proposed as above: a record the
 file cites, one a held record links or one attached on the owner's word (none
 of them reached by a name search alone); a relationship the record states to a
@@ -1132,7 +1136,8 @@ statement but rejected ones, one an older reading made of a misread value,
 leaves the person's events and stays for the audit trail). A value the page
 keeps beneath the one it shows is never raised so: it is never accepted with
 its record, never ground for the rule and never a conflict, so where it stands
-decides nothing to ask the owner about, and it stays with its record; placed by
+decides nothing to ask the owner about, and it stays with its record, no field
+of the record's on its decision card; placed by
 the owner all the same, it is written undecided and marked, as an acceptance
 writes it where the event is plain. A statement placed is written under the
 decision that accepted the record, so a rejection or a withdrawal of that
