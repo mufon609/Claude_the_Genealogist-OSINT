@@ -1,0 +1,192 @@
+{
+ "title": "a placement is not the file's word",
+ "line": "the brother an obituary names, placed beside its subject as a child of the couple, is linked to his parents by that placement alone: the person screen calls each link undecided, never the file's claim, his overview card names no parent the file claims, his parents fact rests on records nobody has accepted, and the queue, which takes a parent the file names before the card's own person, takes neither parent at his card",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner's own word on the parents' names; the mother's death, 30 October 1918, stays the file's claim",
+   "fact": {
+    "person": "I332737204852",
+    "fields": [
+     "name"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "fact": {
+    "person": "I332737204849",
+    "fields": [
+     "name"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   }
+  },
+  {
+   "say": "his obituary, the file's own citation, naming his brother Joe Davidson, whom the tree does not hold",
+   "archive": {
+    "fixture": "familysearch-obituary-collection-2004-QL71-6HG3.html",
+    "source": "B02",
+    "collection": "U.S., Obituary Collection, 1930-Current",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7545::2520318"
+    },
+    "extract": true,
+    "match": null,
+    "rule": true
+   },
+   "as": "obit"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737100409"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the owner creates the brother from the obituary",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "persona": "Joe Davidson"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the birth year his Find a Grave index entry gives him (1925), planted: no harness record dates his birth",
+   "event": {
+    "person": {
+     "created": "Joe Davidson"
+    },
+    "type": "Birth",
+    "date": "1925",
+    "date_start": "1925"
+   }
+  },
+  {
+   "say": "the parents accepted on the obituary by the owner",
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737204852"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "obit",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the obituary read again: with no death of hers accepted, the brother is placed beside its subject as a child of the couple, undecided: the tree links him to his parents by that placement alone",
+   "reread": {
+    "record": "obit"
+   }
+  },
+  {
+   "say": "the person screen on him: each parent is linked by the placement, which is no claim of the file's",
+   "person_view": {
+    "person": {
+     "created": "Joe Davidson"
+    }
+   },
+   "expect": [
+    {
+     "last": {
+      "family": {
+       "parents": {
+        "len": 2,
+        "every": {
+         "said": "undecided"
+        }
+       }
+      }
+     },
+     "why": "a sibling placement is undecided and no claim of the file's: the screen says so, never \"file's claim\""
+    }
+   ]
+  },
+  {
+   "say": "his parents fact written out",
+   "proof": {
+    "person": {
+     "created": "Joe Davidson"
+    },
+    "fact": "parents"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "parents": {
+        "basis": "undecided",
+        "verdict": "no record accepted",
+        "why": [
+         "it rests only on records nobody has accepted"
+        ]
+       }
+      }
+     },
+     "why": "the link is undecided, and nothing of it is the file's claim or the owner's word: it rests on the placement the rule wrote"
+    }
+   ]
+  },
+  {
+   "say": "he becomes the tree's home person, so the queue's walk starts at his card",
+   "tree_home": {
+    "person": {
+     "created": "Joe Davidson"
+    }
+   },
+   "expect": [
+    {
+     "queue": {
+      "first": {
+       "created": "Joe Davidson"
+      },
+      "first_reason": {
+       "starts": "confirmed, with an open question"
+      }
+     },
+     "why": "the queue takes a parent the file names before the card's own person; a parent the tree links by a sibling placement alone is not one, so the card's own person is first"
+    },
+    {
+     "overview": {
+      "person": {
+       "created": "Joe Davidson"
+      },
+      "is": {
+       "parents": [],
+       "claimed_parents": []
+      }
+     },
+     "why": "his card at the edge of the confirmed tree names the parents the file claims, and the file claims none of his"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

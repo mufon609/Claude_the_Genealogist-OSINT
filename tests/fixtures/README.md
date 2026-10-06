@@ -347,7 +347,8 @@ trusted ground for the rule; `stating` a date or a place), `plan_idempotent`, `n
 stated on two events of its type that a person or a family holds), `whole`, `file` (`name` in the inbox or a `folder`, or a bound
 `path`, there or with `exists` false not; with `fixture`, holding that fixture's bytes),
 `count`, `proposal_status`, `proposals_of`, `person_merged`, `find_person`, `listed`, `assertion_subject`, `origins` (`overview.origins`: the `people` by what brought them in, `file` or
-`record`, and the accepted `documents` by what fetched them, `citation`, `lead`, `search` or `hand`), `households` (the current
+`record`, and the accepted `documents` by what fetched them, `citation`, `lead`, `search` or `hand`), `overview` (a `person`'s card on the
+tree overview, confirmed or at the edge, matching `is`: its `parents`, `claimed_parents`, `spouses`, `claimed_spouses`), `households` (the current
 stored households, those of a `form` when it is named, matching `is`: each one's `form`, `page`, `complete`, `missing`, `ground`,
 `grouped_by` and `members` in line order, a member's `name` as written, `relationship` as stated, `head`, `line`, `entry` and the
 `record`, the label of the first step bound to its file), `household_leads` (what each household not wholly held that the tree

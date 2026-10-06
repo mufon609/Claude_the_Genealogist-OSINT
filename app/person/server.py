@@ -370,7 +370,13 @@ def person_view(cx, tree_id, pid):
                         WHERE p.tree_id=? AND p.status<>'undecided' AND p.kind IN ('persona_match','new_person') AND coalesce(p.decision_note,'')<>'superseded'
                         AND (json_extract(p.payload_json,'$.person_id')=? OR (p.kind='new_person' AND json_extract(p.payload_json,'$.subject_person_id')=?)) ORDER BY p.decided_at DESC""", (tree_id, pid, pid))]
     fam = cat.family(pid)
-    r["family"] = {k: [{"id": i, "name": n, "accepted": fact_status(cx, pid, k) == "accepted" if k in ("parents", "spouses", "children") else None} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
+    def said(group, other):
+        """What a relative's link rests on while the person's key fact for the group is not accepted: "file's claim" when the link
+        stands on the file's word (Catalog.linked_on_word), "undecided" when it rests on something else (a sibling placement,
+        a page anyone can edit); None once the key fact is accepted, and for a sibling."""
+        if group == "siblings" or fact_status(cx, pid, group) == "accepted": return None
+        return "file's claim" if cat.linked_on_word(pid, other, group) else "undecided"
+    r["family"] = {k: [{"id": i, "name": n, "said": said(k, i)} for i, n in fam[k]] for k in ("parents", "spouses", "children", "siblings")}
     for sp in r["family"]["spouses"]:                                    # what the couple's family says: married when, divorced when
         f = next((x for x in fam["families"] if x["spouse_id"] == sp["id"]), None)
         if not f: continue

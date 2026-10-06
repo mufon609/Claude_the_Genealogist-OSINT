@@ -17,9 +17,9 @@ NEAR = 1                                                     # the most links a 
 
 def person_card(cx, cat, pid):
     """One person as the overview shows them: name, years, how many key facts are accepted, the spouses the owner accepted
-    with the marriage and divorce dates on the family that an accepted statement stands behind, the spouses the file claims as
-    claims, and what waits. A year, or a marriage's or a divorce's date, shown though no accepted statement gives it is said
-    to be a claim (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted): claimed_years, and ", a claim" on
+    with the marriage and divorce dates on the family that an accepted statement stands behind, the spouses the file claims
+    (Catalog.family's word: the file's claim or an accepted statement on each one's membership) as claims, and what waits. A
+    year, or a marriage's or a divorce's date, shown though no accepted statement gives it is said to be a claim (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted): claimed_years, and ", a claim" on
     the marriage's or divorce's own date."""
     name, sex = cx.execute("SELECT display_name, sex FROM person WHERE id=?", (pid,)).fetchone()
     ev = cat.events(pid)
@@ -29,7 +29,7 @@ def person_card(cx, cat, pid):
         """Whether an accepted statement gives the event's date to one of these levels (Catalog.value_basis)."""
         r = cat.value_basis(e["id"]) if e["basis"] == "accepted" else None
         return bool(r and r["date"] and r["date"]["level"] in level)
-    fam = cat.family(pid); spouses, claimed = [], []
+    fam = cat.family(pid, word=True); spouses, claimed = [], []
     for f in fam["families"]:
         if not f["spouse_id"]: continue
         if cat.basis("family_member", dumps([f["id"], pid, "partner"])) == "accepted" and cat.basis("family_member", dumps([f["id"], f["spouse_id"], "partner"])) == "accepted":
@@ -87,11 +87,11 @@ def origins(cx, tree_id):
 def overview(cx, tree_id):
     """The tree overview: the people the owner has confirmed, laid out from the home person upward one row per generation, a
     card's parents above it (father then mother). The walk follows a parents link only where the owner accepted it, so the tree
-    ends at the last accepted link; beyond it the file's claim of parents is named on the card as a claim, and the people it
-    names stay out of the tree until a decision puts them in. A link resting on an editable source alone is said so. The file's
-    other people with a document or a conflict waiting are the tree's edge, the ones within NEAR links (a parent, a child or a
-    spouse each) of someone confirmed, nearest first and, among those, the one reached from the earlier card of the walk first;
-    a person further from the tree has their questions wait with them."""
+    ends at the last accepted link; beyond it the file's claim of parents (Catalog.family's word) is named on the card as a
+    claim, and the people it names stay out of the tree until a decision puts them in. A link resting on an editable source
+    alone is said so. The file's other people with a document or a conflict waiting are the tree's edge, the ones within NEAR
+    links (a parent, a child or a spouse each) of someone confirmed, nearest first and, among those, the one reached from the
+    earlier card of the walk first; a person further from the tree has their questions wait with them."""
     cat = Catalog(cx, tree_id)
     home = cx.execute("SELECT home_person_id FROM tree WHERE id=?", (tree_id,)).fetchone()[0]
     if not home: return {"home": None, "generations": [], "others": people(cx, tree_id), "unconfirmed": 0}
@@ -101,8 +101,8 @@ def overview(cx, tree_id):
         for pid in row:
             if pid in seen: continue
             seen.add(pid); c = person_card(cx, cat, pid)
-            parents = sorted(cat.family(pid)["parents"], key=lambda x: 0 if (cx.execute("SELECT sex FROM person WHERE id=?", (x[0],)).fetchone() or [""])[0] == "M" else 1)
             accepted = fact_status(cx, pid, "parents") == "accepted"
+            parents = sorted(cat.family(pid, word=not accepted)["parents"], key=lambda x: 0 if (cx.execute("SELECT sex FROM person WHERE id=?", (x[0],)).fetchone() or [""])[0] == "M" else 1)
             c["parents"] = [p for p, _ in parents] if accepted else []
             c["link_trusted"] = link_trusted(cx, tree_id, pid) if accepted else None
             c["claimed_parents"] = [n for _, n in parents] if parents and not accepted else []

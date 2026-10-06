@@ -1303,6 +1303,14 @@ def e_origins(w, x, want):
     got = origins(w.cx, w.tid)
     return has(got, {k: v for k, v in x.items() if k in ("people", "documents")}), got
 
+def e_overview(w, x, want):
+    """A person's card on the tree overview (tools/overview.py overview), among the confirmed generations or the others at the
+    edge, matching `is`: its `parents`, `claimed_parents`, `spouses`, `claimed_spouses` and the rest."""
+    from overview import overview
+    o = overview(w.cx, w.tid); pid = w.person(x["person"])
+    card = next((c for gen in o["generations"] for c in gen if c["id"] == pid), None) or next((c for c in o["others"] if c["id"] == pid), None)
+    return card is not None and has(card, w.value(x["is"])), card
+
 def e_households(w, x, want):
     """The current stored households as households_now reads them, with `form` only those of that form, matching `is`."""
     got = [h for h in households_now(w) if "form" not in x or h["form"] == x["form"]]
@@ -1328,7 +1336,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
-           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "compare": e_compare,
+           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "overview": e_overview, "compare": e_compare,
            "parents": e_parents, "households": e_households, "household_leads": e_household_leads}
 
 def load(folder):

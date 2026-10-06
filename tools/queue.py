@@ -9,15 +9,17 @@ confirmed tree's, and the confirmed tree starts at the tree's home person: a tre
 (tools/tree.py home "<person>"), rather than walking the file's people in no order that means anything. Walks
 tools/tree.py overview's own order, the home person's line first, generation by generation (a card's parents
 father then mother), then the file's other people in the order overview lists them. At each confirmed card the
-edge is: a parent or spouse the file names whose link is not yet accepted, taken before the card's own person
-(never a person two links from anyone confirmed); else the card's own person when a document waits to be
+edge is: a parent or spouse the file names whose link is not yet accepted (the file's word: each one's membership the
+file's claim or accepted, Catalog.family's word; a relative the tree links only by a sibling placement, a page anyone can
+edit or a link a withdrawn decision left is not one), taken before the card's own person (never a person two links from
+anyone confirmed); else the card's own person when a document waits to be
 decided, a conflict is open, or a key fact is still undecided (an open question); else the card's own person when
 nobody has accepted their parents and the file names none, for the records that name parents (checklist.names_parents:
 a birth or death record, an obituary, a census of their childhood's household), which their plan puts first, so the tree
 grows past the file on evidence: a parent such a record names is created by the rule and is the next card above. A card
 with none of these is settled and the walk moves on to the next. The file's other people (not reached by an accepted parents link)
 come after the confirmed line, in tools/tree.py overview's own "others" order: only the ones a document or a
-conflict already waits on and who are one link (a parent, a child or a spouse the file names) from someone confirmed,
+conflict already waits on and who are one link (a parent, a child or a spouse, by any link not rejected: Catalog.link_distances) from someone confirmed,
 the nearest first and, among those, the one reached from the earlier card of the confirmed walk; a person further from
 the confirmed tree is never named, and their questions wait with them.
 
@@ -94,7 +96,7 @@ def edge(cx, tree_id, waits=None):
             out.append({"id": pid, "name": name, "reason": reason, "kind": kind})
     for gen in ov["generations"]:
         for c in gen:
-            pid = c["id"]; fam = cat.family(pid)
+            pid = c["id"]; fam = cat.family(pid, word=True)
             if cat.link_basis(pid, "parents") != "accepted":
                 for ppid, pname in fam["parents"]:
                     add(ppid, pname, f"parent the file names for {c['name']}, link not yet accepted", "parent link")

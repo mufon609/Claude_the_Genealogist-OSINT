@@ -188,8 +188,8 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   holder and the page and holding the run as it stood; refused, nothing written, where such
   a run sits on a step standing done.
 - Living status is computed by the app (`Catalog.living`) from the person's tier
-  (their generation from the home person along the tree's family links, accepted or
-  claimed; `docs/DATA-ARCHITECTURE.md` §7 decision 3), held death evidence
+  (their generation from the home person along every family link the tree holds that is
+  not rejected; `docs/DATA-ARCHITECTURE.md` §7 decision 3), held death evidence
   (`v_person_vitals.has_death_evidence`: a death, burial, cremation, probate or will event
   with a statement not rejected, so the file's undecided claim counts and a claim the owner
   rejected does not; the 0.8.4 migration, `tools/initdb.py`'s `vitals_view`, made the view

@@ -5,7 +5,7 @@
 usage: tools/proof.py "<person>" [--fact name|sex|birth|death|parents|spouses|children] [--json] [--tree slug] [--db catalog/tree.db]
 
 For each key fact:
-  value       the value the tree holds, its basis (accepted, accepted in part, claim, rejected) and who decided it: the owner, a
+  value       the value the tree holds, its basis (accepted, accepted in part, undecided, rejected) and who decided it: the owner, a
               session acting for the owner, or the owner's own word (a vouch) where a person's own decision on that statement
               set its status, and otherwise what set it (the record's acceptance, a re-read or a carry, the rule), never the
               owner; the tree file's own claim and how
@@ -392,13 +392,15 @@ def rows_text(rows):
     return ", ".join(rec + (" " + ", ".join(str(i) for i in insts if i) if any(insts) else "") for rec, insts in by.items())
 
 # ---------------------------------------------------------------- the conclusion
-def conclusion(basis, accepted, vouched, open_conflicts, rows, claimed=()):
+def conclusion(basis, accepted, vouched, open_conflicts, rows, claimed=(), *, files):
     """(verdict, reasons): the written conclusion's own words. claimed: the parts of the value that rest on a claim
-    (Catalog.claim_reasons), each owing an argument."""
+    (Catalog.claim_reasons), each owing an argument. files: whether the file's own claim of the fact is among its statements
+    not rejected; a fact no record, no word of the owner's and no claim of the file's stands behind rests on records nobody
+    has accepted."""
     if basis is None: return "no claim", []
     if basis == "rejected": return "rejected", []
     if not accepted:
-        return "no record accepted", (["it rests on your own word"] if vouched else ["it rests on the file's claim"])
+        return "no record accepted", (["it rests on your own word"] if vouched else ["it rests on the file's claim"] if files else ["it rests only on records nobody has accepted"])
     owed = []
     cls = [s["classes"] or {} for s in accepted]
     if not any(c.get("evidence") == "direct" for c in cls): owed.append("it rests only on indirect evidence")
@@ -443,7 +445,7 @@ def build(cat, pid, only=None):
         reading = cat.value_basis(event["id"]) if event else None
         claimed = cat.claim_words(reading)
         fact_basis = "accepted in part" if claimed else basis[field]
-        verdict, why = conclusion(fact_basis, accepted, vouched, sum(1 for c in cf if c["status"] == "open"), rs, claimed=cat.claim_reasons(reading))
+        verdict, why = conclusion(fact_basis, accepted, vouched, sum(1 for c in cf if c["status"] == "open"), rs, claimed=cat.claim_reasons(reading), files=bool(files))
         facts.append({"fact": field, "value": value, "basis": fact_basis, "reading": reading, "claimed": claimed,
                       "decided_by": list(dict.fromkeys(s["by"] for s in sts if s["status"] == "accepted")),
                       "file": {"claims": bool(files), "citations": len(apids), "held": len(held)} if files else None,

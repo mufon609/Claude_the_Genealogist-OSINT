@@ -559,6 +559,29 @@ MARKS = ("placed", "alternate", "computed")
 def marked(a="a"):
     """The SQL true of a statement, the assertion row under alias a, that carries one of the MARKS."""
     return f"(json_valid({a}.notes) AND coalesce(" + ", ".join(f"json_extract({a}.notes,'$.{m}')" for m in MARKS) + ") IS NOT NULL)"
+
+def notes_of(text):
+    """A statement's notes (assertion.notes) as a dict, {} when they are none, not JSON or not an object."""
+    try: n = json.loads(text) if text and text.startswith("{") else {}
+    except ValueError: return {}
+    return n if isinstance(n, dict) else {}
+
+# the two memberships of a family that join a person to a relative of each relation group: the person's own, the relative's
+MEMBERSHIPS = {"parents": ("child", "partner"), "children": ("partner", "child"), "spouses": ("partner", "partner"), "siblings": ("child", "child")}
+
+def files_word(status, notes, imported, claim_only=False):
+    """What keeps a statement on the tree from standing claimed or accepted (docs/RESEARCH-WORKFLOW.md §0 and §5–7), or None
+    when it stands: the file's claim, the import's own statement (imported: on a file this tree imported, tree_import), stands;
+    with claim_only nothing else does, otherwise an accepted statement does too. Never one carrying one of the MARKS (the
+    mark's own name: a sibling placement, a value a page keeps beneath, a link an indexer computed); anything else not accepted
+    (a page anyone can edit, a link a withdrawn decision left) is "undecided", and an accepted statement read for the claim
+    alone "accepted". notes: the statement's notes as a dict. The caller has left the rejected out."""
+    mark = next((m for m in MARKS if notes.get(m) is not None), None)
+    if mark: return mark
+    if imported: return None
+    if status != "accepted": return "undecided"
+    return "accepted" if claim_only else None
+
 DATE_LEVELS = ("whole", "month", "year")                 # how much of an event's own date a statement gives, finest first (date_given)
 
 def date_given(said, own):
@@ -1115,8 +1138,7 @@ def statement_of(cx, assertion_id):
     a = cx.execute("SELECT subject_kind, persona_fact_id, persona_id, artifact_sha256, citation_text, notes FROM assertion WHERE id=?", (assertion_id,)).fetchone()
     if not a: return None
     subject_kind, pf_id, persona_id, sha, cite, notes = a
-    try: n = json.loads(notes) if notes and notes.startswith("{") else {}
-    except ValueError: n = {}
+    n = notes_of(notes)
     if n.get("vouched"): return {"kind": "vouch", "sha": sha}
     out = {"kind": "file", "sha": sha, "persona": persona_id, "extraction": None, "fact_type": None, "labels": [], "qualifier": None, "relation": None}
     if pf_id:
@@ -1480,9 +1502,7 @@ class Catalog:
                           WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", eid)
         statements = []
         for aid, status, notes, sha, pf, ftype, dtext, dstart, dend, dqual, raw, ps_place, imported, tier, coll in rows:
-            try: n = json.loads(notes) if notes and notes.startswith("{") else {}
-            except ValueError: n = {}
-            n = n if isinstance(n, dict) else {}
+            n = notes_of(notes)
             mark = next((m for m in MARKS if n.get(m) is not None), None)
             word = bool(n.get("vouched"))
             if not word and (pf is None or ftype != etype): continue        # a statement of another type is no value of this event
@@ -1585,10 +1605,11 @@ class Catalog:
         docs/DATA-ARCHITECTURE.md §7 decision 12), one line each naming both dates' records or claims and the limit broken,
         for an identity question: an accepted statement on the person's events or their marriages' dated after the death the
         tree shows (the types a life holds after its end excepted: life_limits' after_death_types) or before the birth (a
-        birth statement excepted); as a child of each parent a family link gives (accepted or the file's claim, never a
-        rejected one), a parent too young or too old at the birth, or a birth after the mother's death or too long after the
-        father's (parent_limit); and two census records of one year (record_kinds' census household, the statement of the
-        record's own year), each accepted, putting the person in places that do not agree either way (place_verdict). The
+        birth statement excepted); as a child of each parent a family link gives, every link the tree holds that is not
+        rejected (the child's membership and the parent's each: accepted, the file's claim, a sibling placement, a membership a
+        page anyone can edit states), so a link the rule placed is tested as the file's is, a parent too young or too old at
+        the birth, or a birth after the mother's death or too long after the father's (parent_limit); and two census records
+        of one year (record_kinds' census household, the statement of the record's own year), each accepted, putting the person in places that do not agree either way (place_verdict). The
         dates compared are the events' own as the tree shows them (life_event), whatever stands behind them, each named, so
         the owner reads whether a claim or a record is what breaks. Nothing is changed here."""
         L = life_limits(); out = []; kinds = {}
@@ -1741,7 +1762,7 @@ class Catalog:
         return scored[0][0]
     KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
     def key_fact_basis(self, pid, ev=None):
-        """basis per key fact: accepted | claim | rejected | None (no claim)."""
+        """basis per key fact (basis, link_basis): accepted | undecided | rejected | None (the tree holds none)."""
         ev = self.events(pid) if ev is None else ev
         out = {"name": self.basis("person", pid), "sex": self.basis("person", pid)}
         for f in ("birth", "death"):
@@ -1750,14 +1771,32 @@ class Catalog:
         return out
     def baseline(self, pid, ev=None):
         """The baseline is complete when no key fact is Undecided; absent and rejected facts are decided."""
-        kb = self.key_fact_basis(pid, ev); und = [f for f in self.KEY_FACTS if kb[f] == "claim"]
+        kb = self.key_fact_basis(pid, ev); und = [f for f in self.KEY_FACTS if kb[f] == "undecided"]
         return {"key_facts": len(kb), "key_facts_accepted": sum(1 for b in kb.values() if b == "accepted"), "undecided": und, "complete": not und}
     def link_rejected(self, fid, person_id, role):
         """True when every assertion behind this family membership is rejected."""
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind='family_member' AND subject_id=?", json.dumps([fid, person_id, role], separators=(",", ":"), sort_keys=True))}
         return bool(st) and st <= {"rejected"}
+    def on_word(self, fid, person_id, role):
+        """Whether a family membership stands claimed or accepted (files_word): one of its statements not rejected is the file's
+        claim, the import's own statement on a file this tree imported, or accepted; a sibling placement, an indexer's grouping,
+        a page anyone can edit and a link a withdrawn decision left are no such statement."""
+        return any(files_word(status, notes_of(notes), imported) is None
+                   for status, notes, imported in self.q("""SELECT a.status, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?)
+                                                            FROM assertion a WHERE a.tree_id=? AND a.subject_kind='family_member' AND a.subject_id=? AND a.status<>'rejected'""",
+                                                         self.tree_id, self.tree_id, json.dumps([fid, person_id, role], separators=(",", ":"), sort_keys=True)))
+    def linked_on_word(self, pid, other, group):
+        """Whether the tree links a person to another by a relation group (parents, children, spouses, siblings) claimed or
+        accepted: in a family joining the two, the membership of each stands so (on_word). The rule reads a link the same way
+        for a record under decision, that record's own statements left out (conclude.claimed_or_accepted)."""
+        mine, theirs = MEMBERSHIPS[group]
+        return any(self.on_word(fid, pid, mine) and self.on_word(fid, other, theirs)
+                   for fid, in self.q("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
+                                         WHERE fm.person_id=? AND fm.role=?""", other, theirs, pid, mine))
     def link_basis(self, pid, field):
-        """accepted | claim | None for parents / spouses / children, from the family_member assertions behind them."""
+        """accepted | undecided | rejected | None for parents / spouses / children, from the family_member assertions behind them
+        (as basis reads a subject's): undecided whatever the statements not accepted are, the file's claim, a sibling placement
+        or a page anyone can edit."""
         if field == "children":
             subs = [json.dumps([f, c, "child"], separators=(",", ":"), sort_keys=True) for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid)
                     for c, in self.q("SELECT person_id FROM family_member WHERE family_id=? AND role='child'", f)]
@@ -1767,10 +1806,12 @@ class Catalog:
         if not subs: return None
         st = set()
         for sid in subs: st |= {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind='family_member' AND subject_id=?", sid)}
-        return "accepted" if "accepted" in st else ("rejected" if st and st <= {"rejected"} else "claim")
+        return "accepted" if "accepted" in st else ("rejected" if st and st <= {"rejected"} else "undecided")
     def basis(self, kind, sid):
+        """accepted when a statement on the subject is accepted, rejected when every one is, undecided otherwise: the three
+        states of the statements behind it, whatever they rest on (the file's claim among others, on_word)."""
         st = {r[0] for r in self.q("SELECT status FROM assertion WHERE subject_kind=? AND subject_id=?", kind, sid)}
-        return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "claim")
+        return "accepted" if "accepted" in st else ("rejected" if st == {"rejected"} else "undecided")
     def is_subject(self, sha, person_id):
         """Whether the persona accepted as this person on this artifact is the record's own subject: the persona others on
         it relate to, with no relation of its own to another persona (the deceased of an obituary, the memorial's subject,
@@ -1820,13 +1861,16 @@ class Catalog:
                                           OR (a.subject_kind='event' AND a.subject_id IN (SELECT event_id FROM event_participant WHERE person_id=?)))""", self.tree_id, pid, pid)}
         editable_only = bool(tiers) and tiers <= {"T4"}         # every accepted fact rests on a source anyone can edit
         return {"documents": docs, "runs_next": runs, "needs_hand": hand, "conflicts": conflicts, "editable_only": editable_only, "leads": leads}
-    def family(self, pid):
-        """Relatives through family memberships; a membership whose assertions are all rejected does not count."""
+    def family(self, pid, word=False):
+        """Relatives through family memberships: every membership whose assertions are not all rejected (accepted or
+        undecided, whatever an undecided one rests on); with word, only memberships that stand claimed or accepted (on_word:
+        the file's claim or an accepted statement), so the relatives are the ones the file names or a record confirmed."""
+        counts = self.on_word if word else (lambda f, p, r: not self.link_rejected(f, p, r))
         fam = {"parents": [], "spouses": [], "children": [], "siblings": [], "families": []}
         for fid, role in self.q("SELECT family_id, role FROM family_member WHERE person_id=?", pid):
-            if self.link_rejected(fid, pid, role): continue
+            if not counts(fid, pid, role): continue
             members = [m for m in self.q("SELECT fm.person_id, fm.role, p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=?", fid)
-                       if not self.link_rejected(fid, m[0], m[1])]
+                       if counts(fid, m[0], m[1])]
             if role == "child":
                 fam["parents"] += [(m[0], m[2]) for m in members if m[1] == "partner"]
                 fam["siblings"] += [(m[0], m[2]) for m in members if m[1] == "child" and m[0] != pid]
@@ -1842,8 +1886,8 @@ class Catalog:
     def link_distances(self, people):
         """{person id: (the fewest family links from any of these people, the position in `people` of the one the nearest path
         starts from)}: a parent, a child and a spouse are one link each, along every membership whose assertions are not all
-        rejected (accepted or claimed, as `family` reads them). The people themselves are at 0, and a person no chain of links
-        reaches is absent."""
+        rejected (accepted or undecided, as `family` reads them). The people themselves are at 0, and a person no chain of
+        links reaches is absent."""
         dist = {p: (0, n) for n, p in enumerate(people)}; frontier = list(dist)
         while frontier:
             nxt = []
@@ -1861,7 +1905,7 @@ class Catalog:
     def tiers(self):
         """{person id: generation relative to the home person} for everyone a chain of family links reaches from the home
         person (docs/DATA-ARCHITECTURE.md §7 decision 3): a parent one generation up, a child one down, a partner the same,
-        along every membership whose assertions are not all rejected (accepted or claimed, as `family` reads them); a person
+        along every membership whose assertions are not all rejected (accepted or undecided, as `family` reads them); a person
         reached by more than one path takes the nearest generation. Up is positive. Computed once per Catalog; empty when
         the tree has no home person."""
         if self._tiers is not None: return self._tiers

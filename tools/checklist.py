@@ -5,9 +5,9 @@ usage: tools/checklist.py "<person name or id>" [--tree slug] [--json]
        tools/checklist.py --all [--tree slug]          # one line per person
 
 Read-only. For one person it reports:
-  foundation  the facts search would be seeded with, each marked accepted or claim
-              (an Undecided fact is a claim; nothing runs on claims until reviewed; a date or a place
-              is accepted only as far as an accepted statement gives it, Catalog.value_basis, and a
+  foundation  the facts search would be seeded with, each marked as Catalog.basis reads its statements,
+              accepted, undecided or rejected (nothing runs on an undecided fact until reviewed; a date or
+              a place is accepted only as far as an accepted statement gives it, Catalog.value_basis, and a
               birth or death showing more than that is accepted in part, the claim said in words), and the
               living default's reading of the person (Catalog.living: the tier, held death
               evidence, the owner's word), which sets a search step's mode
@@ -19,9 +19,9 @@ Read-only. For one person it reports:
               census rows are the years of data/record-forms.csv's forms (a form
               whose schedules are lost is n/a), each saying what its form settles
   search      for every gap, the pre-built step: typed query, sources, mode;
-              every query field is {value, basis accepted|claim|row|citation|record}, rejected
-              facts are omitted. Before the baseline is reviewed only fetch
-              steps for cited records exist: no search steps, no footprint,
+              every query field is {value, basis accepted|claim|row|citation|record}, an undecided
+              fact a claim (docs/RESEARCH-WORKFLOW.md §0), rejected facts omitted. Before the baseline
+              is reviewed only fetch steps for cited records exist: no search steps, no footprint,
               no unlinked persons (docs/RESEARCH-WORKFLOW.md §2); the duplicate
               check and the limits of one life (an identity question) run for
               every person, reviewed or not.
@@ -101,7 +101,8 @@ def build(cat: Catalog, pid: str):
         r = reading(e)
         return "accepted" if r and r["place"] and r["place"]["level"] is not None and (r["place"]["level"] == 0 or not whole) else "claim"
     def value_word(e):
-        """accepted when all an event shows is accepted, accepted in part when some of it is a claim, else the event's basis."""
+        """accepted when all an event shows is accepted, accepted in part when some of it is a claim, else the event's basis
+        (undecided or rejected)."""
         r = reading(e)
         if r is None: return e["basis"] if e else None
         return "accepted in part" if cat.claim_words(r) else "accepted"
@@ -121,11 +122,11 @@ def build(cat: Catalog, pid: str):
                    field("spouses", [n for _, n in fam["spouses"]], cat.link_basis(pid, "spouses")),
                    field("children", [n for _, n in fam["children"]], cat.link_basis(pid, "children")),
                    field("residences", [{"year": e["year"], "place": e["place"]["text"] if e["place"] else e["date_text"], "basis": value_word(e)} for e in stays],
-                         "accepted" if ev and all(value_word(e) == "accepted" for e in stays) else "claim")]
+                         "accepted" if ev and all(value_word(e) == "accepted" for e in stays) else "undecided")]
     baseline = cat.baseline(pid, ev); reviewed = baseline["complete"]
-    # ---- the fields every query is built from: {value, basis}; a rejected or absent fact is left out
+    # ---- the fields every query is built from: {value, basis}; a rejected or absent fact is left out, an undecided one a claim
     def F(value, basis):
-        return None if basis == "rejected" or value in (None, "", []) else {"value": value, "basis": basis or "claim"}
+        return None if basis == "rejected" or value in (None, "", []) else {"value": value, "basis": "claim" if basis in (None, "undecided") else basis}
     def PLACES(place, basis, year=None):
         """A search step's place field, every accurate name in order (docs/RESEARCH-WORKFLOW.md §3, Catalog.place_search_names):
         the name valid at year first, then the person's own as-written strings for it, then its current name, then every other

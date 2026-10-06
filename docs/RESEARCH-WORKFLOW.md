@@ -23,7 +23,17 @@ An Undecided fact in a query carries basis `claim`; an Accepted one carries
 gives is accepted, a day only the file gives is a claim); a citation's own detail carries `citation`, a checklist row's value
 `row`, what a held record itself says (the name as written, the record it
 links) `record`, and the search as it was run on a saved results page `run`.
-Nothing is searched on claims alone.
+Nothing is searched on claims alone. Outside a query a statement that is not
+accepted is undecided, whatever it rests on (`Catalog.basis`, a key fact's
+basis); the file's word is the import's own statement, not rejected, and a
+test that reads a link or a value "claimed or accepted" counts that statement
+and accepted ones alone, never a sibling placement, an indexer's grouping, a
+page anyone can edit or a link a withdrawn decision left: the route through a
+stated relationship and a page's identity (§5–7), the queue's edge and the
+overview's claimed parents and spouses (§8, `docs/RESEARCH-CHECKLIST.md` §6b).
+The limits of one life (§5–7) and the living default's tiers
+(`docs/DATA-ARCHITECTURE.md` §7 decision 3) count every family link the tree
+holds that is not rejected.
 
 **Lead.** A piece of follow-up work about one person that the evidence produced
 and the loop can act on: a record to fetch because a held record names it
@@ -1384,8 +1394,10 @@ birth), or a parent-child relationship it states to a person accepted on it
 that breaks the limits of one life below.
 
 **The limits of one life.** Every plan regeneration tests each person's family
-links, accepted or the file's claims (never a rejected one), and their accepted
-dated statements against the limits of one life, which are data
+links, every one the tree holds that is not rejected (accepted, the file's
+claim, a sibling placement the rule wrote, a membership a page anyone can edit
+states: a link the tree holds is tested whatever it rests on), and their
+accepted dated statements against the limits of one life, which are data
 (`data/life-limits.csv`, the reasoning in `data/DATA-SOURCES.md`), beside the
 conflicts (`Catalog.beyond_life`): a statement dated after the death or before
 the birth; a mother or a father too young or too old at a child's birth; a
@@ -1781,8 +1793,11 @@ confirmed tree starts from them; `tools/turns.py` refuses the same way. It
 walks the overview's own order,
 the home person's line first, generation by generation, and at each confirmed
 card takes a parent or spouse the file names whose link is not yet accepted
-before the card's own person, then that person when a document waits, a
-conflict is open or a key fact is undecided and a turn can still act on them:
+(the file's word, §0: each one's membership the file's claim or an accepted
+statement; a relative the tree links only by a sibling placement or a page
+anyone can edit is not one) before the card's own person, then that person
+when a document waits, a conflict is open or a key fact is undecided and a
+turn can still act on them:
 a step a connector can run with no run since the plan last wrote its fields,
 or a page the fetch list can name. A confirmed person settled but for their
 parents, whom nobody has accepted and the file names none, is the edge for

@@ -309,9 +309,10 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    Pub. L. 95-416 / 44 U.S.C. 2108(b); PA deaths 50 years and births 105
    years under Act 110 of 2011); stored per row in the source registry and
    configurable there. `presumed_living` is decided by tier. A person's tier
-   is their generation relative to the tree's home person, counted along the
-   family links the tree holds, accepted or claimed (a `family_member` row
-   whose assertion is not rejected): a parent is one generation up, a child
+   is their generation relative to the tree's home person, counted along
+   every family link the tree holds that is not rejected (a `family_member`
+   row with a statement not rejected: accepted, the file's claim or any other
+   undecided statement): a parent is one generation up, a child
    one down, a partner shares the tier, and a person reached by more than one
    path takes the nearest. The home person's generation and their parents'
    (tiers 0 and 1) are living. The grandparents' generation (tier 2) is
@@ -388,8 +389,9 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    (compared across the whole tree, spelling variants included), the person
    holds no other persona on that reading, and nothing the record would add
    falls outside the person's life as accepted. Every plan regeneration tests
-   each person's family links (accepted or the file's claims, never a
-   rejected one) and accepted statements against the limits of one life: a statement dated after the death or before the birth, a parent too
+   each person's family links (every one the tree holds that is not
+   rejected, whatever it rests on: accepted, the file's claim, a sibling
+   placement, a page's membership) and accepted statements against the limits of one life: a statement dated after the death or before the birth, a parent too
    young or too old at a child's birth, a child born after the mother's death
    or more than ten months after the father's, one person in two places in
    one census. The limits are data. A hit is a question about the person that

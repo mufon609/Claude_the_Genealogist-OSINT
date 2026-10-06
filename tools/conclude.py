@@ -105,16 +105,19 @@ from treelib import DB, connect, dumps, now, parse_gedcom_date, resolve_tree, ul
 from catalog import Catalog, current_entry, latest_reading, page_entries, persona_key, source_tier, split_name, tier_sql
 from catalog import (
     MARKS,
+    MEMBERSHIPS,
     ONCE,
     RECORD_FACTS,
     Finding,
     date_span,
     date_verdict,
     evidence_classes,
+    files_word,
     fuller_date,
     holds,
     life_limits,
     marked,
+    notes_of,
     parent_limit,
     place_verdict,
     record_kinds,
@@ -268,12 +271,8 @@ STATEMENT_JOINS = (
 )
 
 def _notes(r):
-    """An assertion row's notes as a dict, {} when they are none or not an object."""
-    try:
-        notes = json.loads(r["notes"] or "{}")
-    except ValueError:
-        return {}
-    return notes if isinstance(notes, dict) else {}
+    """An assertion row's notes as a dict (catalog.notes_of)."""
+    return notes_of(r["notes"])
 
 def gives(ev, r, axis, value, day=False):
     """Whether a statement on an event (r: STATEMENT_COLUMNS; ev: the event's own date fields) gives a date that agrees with
@@ -295,25 +294,22 @@ def gives(ev, r, axis, value, day=False):
 
 def not_the_files_word(r, rec, keys, without=(), claim_only=False):
     """What keeps a statement on the tree (an assertion row: id, status, artifact_sha256, notes, imported) from standing
-    claimed or accepted (docs/RESEARCH-WORKFLOW.md §5–7), or None when it stands: the file's claim, the import's own
-    statement (on a file this tree imported, tree_import) not rejected, stands; with claim_only nothing else does, otherwise
-    an accepted statement does too. Never one from the record under decision on any of its copies (rec: record_self,
-    "self"), one carrying one of the MARKS (the mark's own name), one a decision in without wrote or one in without itself
-    (reconsider, unless: "without"), or a claim whose own citation is that record (keys: record_keys, "cites"); anything
-    else not accepted is "undecided", and an accepted statement read for the claim alone "accepted"."""
+    claimed or accepted for the record under decision, or None when it stands: catalog.files_word (the file's claim, the
+    import's own statement not rejected; with claim_only that alone, otherwise an accepted statement too; never one carrying
+    one of the MARKS), and never one from the record under decision on any of its copies (rec: record_self, "self"), one a
+    decision in without wrote or one in without itself (reconsider, unless: "without"), or a claim whose own citation is
+    that record (keys: record_keys, "cites")."""
     notes = _notes(r)
     if r["artifact_sha256"] in rec["copies"]:
         return "self"
-    mark = next((m for m in MARKS if notes.get(m) is not None), None)
-    if mark:
-        return mark
+    word = files_word(r["status"], notes, r["imported"], claim_only)
+    if word in MARKS:
+        return word
     if r["id"] in without or notes.get("proposal") in without:
         return "without"
-    if r["imported"]:
-        return "cites" if cites_record(notes, keys) else None
-    if r["status"] != "accepted":
-        return "undecided"
-    return "accepted" if claim_only else None
+    if r["imported"] and cites_record(notes, keys):
+        return "cites"
+    return word
 
 def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, without=()):
     """The tree's statements the standing rule may stand on for one point about the record under decision (sha; rec, what it
@@ -2269,23 +2265,16 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
             vetoes.append(line)
     return vetoes, claims, conflicts
 
-# a relation group: the person's own role in the family joining the two, then the relative's
-MEMBERSHIPS = {
-    "parents": ("child", "partner"),
-    "children": ("partner", "child"),
-    "spouses": ("partner", "partner"),
-    "siblings": ("child", "child")
-}
-
 def claimed_or_accepted(cx, tree_id, pid, other, group, rec, keys, without=(), claim_only=False):
     """Whether the tree links a person to another by a relation group (parents, children, spouses, siblings), claimed or
-    accepted (docs/RESEARCH-WORKFLOW.md §5–7): in a family joining the two, the membership of each carries an accepted
-    statement or the file's claim of it, the import's own statement (on a file this tree imported, tree_import), not
-    rejected; with claim_only, the file's claim alone. Nothing else is the file's word: an undecided statement from a page
-    anyone can edit or a link a withdrawn decision left claims nothing, and an indexer's grouping or a sibling placement
-    (MARKS) nothing whatever its status. A statement from the record under decision on any of its copies (rec: record_self),
-    a claim whose own citation is that record (keys: record_keys), one a decision in without wrote and one in without itself
-    (reconsider, unless) never count (not_the_files_word)."""
+    accepted (docs/RESEARCH-WORKFLOW.md §5–7), as Catalog.linked_on_word reads a link, for the record under decision: in a
+    family joining the two, the membership of each carries an accepted statement or the file's claim of it, the import's own
+    statement (on a file this tree imported, tree_import), not rejected; with claim_only, the file's claim alone. Nothing
+    else is the file's word: an undecided statement from a page anyone can edit or a link a withdrawn decision left claims
+    nothing, and an indexer's grouping or a sibling placement (MARKS) nothing whatever its status. A statement from the
+    record under decision on any of its copies (rec: record_self), a claim whose own citation is that record (keys:
+    record_keys), one a decision in without wrote and one in without itself (reconsider, unless) never count
+    (not_the_files_word)."""
     q = _q(cx)
     mine, theirs = MEMBERSHIPS[group]
     def stands(fid, who, role):
