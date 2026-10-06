@@ -897,7 +897,13 @@ name never takes it, and a persona the new extraction does not find that way
 carries only when its name and role are on one persona in each extraction), an
 accepted one asserting the new facts the record gives and nothing it already
 asserted, a statement a person decided keeping the state they gave it, and the matcher
-proposes the rest again. The matcher is versioned
+proposes the rest again. Once for the reading, never once per persona, the
+people whose evidence it changed (each person an accepted decision carried to,
+both people of every family link that wrote, and each person a decision on
+another copy of the record reached) have their plans regenerated, a question
+the regeneration closes answered by the decision carried to them, and the rule
+goes over their conflicts and their cards are matched again, as a decision does
+(`conclude.settle_carried`, below). The matcher is versioned
 the same way (`rule:matcher` at the version `tools/match.py` names, raised
 with any change to what fits). A card is matched again whenever the evidence
 has passed it by (`tools/conclude.py` rematch): one an older matcher wrote; one
@@ -923,7 +929,8 @@ withdrew keeps the words written before the record was taken: its own
 statements stand on the person now). Every decision that changes a person's
 evidence does this for that person's cards as it is taken (a card, a key fact,
 one statement, a place's words, a conflict resolved or reopened, a statement
-placed, a link or a divorce on the owner's word, a merge), and
+placed, a link or a divorce on the owner's word, a merge, a decision carried to
+a record's new reading or to another copy of it), and
 `tools/conclude.py reconsider` does it for every card, and again for the people
 whose date or place its own pass over the conflicts kept or gave back. A record
 image gets no
@@ -1443,7 +1450,8 @@ difference read afterwards from the kept side is closed with it, so a
 regeneration reopens nothing, while a statement that comes later makes a
 question of its own. Every decision that changes a person's evidence (a card,
 a key fact, one statement, a place's words, a conflict resolved or reopened, a
-statement placed, a link or a divorce on the owner's word, a merge) regenerates
+statement placed, a link or a divorce on the owner's word, a merge, a decision
+carried to a record's new reading or to another copy of it) regenerates
 the plans of the people it changes and then lets the rule go over their
 conflicts, as `reconsider` does for everyone, and then matches their undecided
 cards again (§5–7: the matcher's words as they now read, or the card superseded

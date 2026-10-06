@@ -48,7 +48,11 @@ decision to the new persona of the same entry on the page (catalog.persona_key:
 its record id, else its role, row and name): the decision was about that entry
 of the record, and the bytes have not changed; an accepted link then asserts
 the new extraction's facts and links the same way the decision did, adding only
-what the record did not already assert. Everything else is matched again. A
+what the record did not already assert. Then, once for the reading, the people
+whose evidence the carried links and the copies' carried decisions changed have
+their plans regenerated, the rule goes over their conflicts and their cards are
+matched again, as a decision does (conclude.settle_carried). Everything else is
+matched again. A
 decision the rule took on the old extraction and withdraws later leaves its card
 undecided there; tools/conclude.py rematch (reconsider) closes that card the
 same way and matches the current reading again.
@@ -175,7 +179,7 @@ import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
-from conclude import assert_facts, carry, join_copies, link_family
+from conclude import assert_facts, carry, join_copies, link_family, settle_carried
 from catalog import is_identity, page_entries
 from forms import census_form, form_for
 
@@ -1323,9 +1327,13 @@ def extract(cx, sha, by):
     {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "familysearch_search": write_fs_search, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
      "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va, "nj_death_index": write_nj_death,
      "ky_death_index": write_ky_index, "ky_birth_index": write_ky_index}.get(kind, write_personas)(w, parsed)
-    w.n["links_carried"] = carry_links(cx, old, eid, sha, by, ts)
+    w.n["links_carried"], touched = carry_links(cx, old, eid, sha, by, ts)
     w.n["copies_joined"] = len(join_copies(cx, sha, by, ts))      # the other copies of this record the archive holds (same_record), and the decisions on them
-    w.n["decisions_carried"] = len(carry(cx, by, sha))
+    copies = carry(cx, by, sha, settle=False)
+    w.n["decisions_carried"] = len(copies)
+    for c in copies:
+        if c["kept"] is None: touched.setdefault((c["tree"], c["person"]), c["proposal"])
+    settle_carried(cx, by, touched)                              # once for the reading: plans, the rule over conflicts, cards matched again
     cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
     return eid, w.n
@@ -1338,8 +1346,10 @@ def carry_links(cx, old, eid, sha, by, ts):
     otherwise the link stays behind and the matcher proposes the persona again: a card coming back is safe, a link on another
     row is not. An accepted link asserts the new facts and links onto the person as the decision did, a statement whose status
     a person decided on its own (assertion.person_decided) keeping it. An undecided link is not a decision, so it does not
-    carry. Returns how many links were carried."""
-    n, carried = 0, []
+    carry. Returns how many links were carried, and the people whose evidence the accepted ones changed, {(tree id, person
+    id): the decision's proposal}: each person an accepted link carried to, and both people of every family link it wrote
+    (conclude.settle_carried goes over them)."""
+    n, carried, touched = 0, [], {}
     new = page_entries(cx, sha, eid)
     one_of = lambda entries, name, role: [e for e in entries if e[2] == name and e[3] == role]
     for o in old:
@@ -1357,8 +1367,11 @@ def carry_links(cx, old, eid, sha, by, ts):
                 cx.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (pp[0], pid, pp[1], pp[2], pp[3], pp[4])); n += 1
                 if pp[1] == "accepted": carried.append((pp[7], pp[0], pid, pp[2]))
     for tree_id, person_id, pid, prop_id in carried:            # links first, so the family relations see every accepted persona
-        assert_facts(cx, tree_id, person_id, pid, prop_id, by, ts); link_family(cx, tree_id, person_id, pid, sha, prop_id, by, ts)
-    return n
+        assert_facts(cx, tree_id, person_id, pid, prop_id, by, ts)
+        touched[(tree_id, person_id)] = prop_id                  # a person's own decision over another's that linked them
+        for m in link_family(cx, tree_id, person_id, pid, sha, prop_id, by, ts):
+            for who in (m["person"], m["of"]): touched.setdefault((tree_id, who), prop_id)
+    return n, touched
 
 def stale(cx):
     """The archived pages whose current reading a parser of this file made at a version older than its own now: (sha256,

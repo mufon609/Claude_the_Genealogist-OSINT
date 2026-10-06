@@ -36,7 +36,8 @@ superseded, and their records' current readings are matched again, the matcher p
 stands; a card it still puts to the same person keeps its id and takes the matcher's words as they now read. Every
 decision that changes a person's evidence, as it is taken and whichever command or screen takes it, regenerates the plans
 of the people it changes, lets the rule go over their conflicts and matches their cards again the same way (settle_people:
-a card, a key fact, one statement, a place's words, a resolution or a reopen, a placement, a link, a divorce, a merge).
+a card, a key fact, one statement, a place's words, a resolution or a reopen, a placement, a link, a divorce, a merge; and
+settle_carried, once for them all, for decisions carried to a record's new reading or to another copy of it).
 
 The rule decides a conflict on an event's date or place when the classes favour one side without doubt (classes_decide,
 docs/RESEARCH-WORKFLOW.md, the proof standard): one side holds the event first-hand, primary information from the record of
@@ -74,7 +75,9 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
   they now read.
 - settle_people: what every decision that changes a person's evidence does inside the function that takes it, once the
   plans are regenerated: the rule over those people's conflicts (rule_conflicts), then their cards matched again
-  (rematch_people); decide_assertion, one statement decided on its own; statement_people, the people statements are about.
+  (rematch_people); settle_carried, the same once for every person a re-read's carried links (extract.carry_links) or a
+  decision carried to other copies (carry) changed, each person's plan regenerated with the question it closes answered by
+  the decision carried; decide_assertion, one statement decided on its own; statement_people, the people statements are about.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
   id, else its role, row and name), never to another row of the same name.
@@ -591,13 +594,15 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
     the page. A link on a copy that carries the same decision follows its status; one a person or the rule decided otherwise
     on that copy is never undone, and is said so, nor is a statement of the copy whose status a person decided on its own
     (person_decided). settle: the people whose evidence changed have their plans regenerated,
-    their conflicts gone over by the rule and their cards matched again, as a decision does (decide does that itself, so it
-    carries with settle off). Returns one row per link carried: tree, proposal, person, persona, copy, status, and kept for a
-    copy decided otherwise."""
+    their conflicts gone over by the rule and their cards matched again, as a decision does (settle_carried; decide does that
+    itself, and a re-read does it once for its links and the copies' together, so each carries with settle off). Returns one
+    row per link carried: tree, proposal, person, persona, copy, status, and kept for a copy decided otherwise (a row with
+    kept None is a link written)."""
     from catalog import copy_entry, current_reading, entry_on, record_copies
     q = _q(cx)
     ts = now()
     rows = []
+    touched = {}
     trees = trees or [t for t, in q.execute("SELECT id FROM tree ORDER BY id")]
     nodes = [(sha, "")] + [tuple(n) for n in q.execute("""SELECT a_sha256, a_entry FROM same_record WHERE a_sha256=? AND a_entry<>'' UNION
                                                           SELECT b_sha256, b_entry FROM same_record WHERE b_sha256=? AND b_entry<>''""", (sha, sha))]
@@ -609,7 +614,6 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
         ps = [p for p, in q.execute("SELECT id FROM persona WHERE extraction_id=? ORDER BY sequence, id", (r,))]
         return r, ps if not node[1] else [p for p in ps if copy_entry(cx, p) == tuple(node)]
     for tree_id in trees:
-        touched = {}
         done = set()
         for node in nodes:
             copies = record_copies(cx, tree_id, *node)
@@ -723,12 +727,24 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
                                     )
                                 )
                             )
-                            touched.setdefault(src["person_id"], src["proposal_id"])
-        if settle and touched and not dry_run:
-            for pid, prop in touched.items():
-                answer_questions(cx, tree_id, pid, prop, by)
-            settle_people(cx, tree_id, by, list(touched))
+                            touched.setdefault((tree_id, src["person_id"]), src["proposal_id"])
+    if settle and not dry_run:
+        settle_carried(cx, by, touched)
     return rows
+
+def settle_carried(cx, by, touched):
+    """What follows decisions carried onto a record's new reading (a re-read, extract.carry_links) or onto its other copies
+    (carry), once for them all: in each tree, the plans of the people whose evidence they changed regenerated, a question
+    the regeneration closes answered by the decision carried to that person (answer_questions), then the rule over their
+    conflicts and their cards matched again (settle_people). touched: {(tree id, person id): the proposal of the decision
+    carried}."""
+    trees = {}
+    for (tree_id, pid), prop in touched.items():
+        trees.setdefault(tree_id, {}).setdefault(pid, prop)
+    for tree_id, people in trees.items():
+        for pid, prop in people.items():
+            answer_questions(cx, tree_id, pid, prop, by)
+        settle_people(cx, tree_id, by, list(people))
 
 def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record

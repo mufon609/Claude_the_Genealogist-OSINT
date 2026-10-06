@@ -970,9 +970,9 @@ def e_disagreements(w, x, want):
     d = w.catalog().disagreements(w.person(x["person"])); return has(d, x["is"]), d
 
 def e_question(w, x, want):
-    q = "SELECT kind, status, detail_json FROM research_question WHERE subject_person_id=?"; args = [w.person(x["person"])]
-    if "kind" in x: q += " AND kind=?"; args.append(x["kind"])
-    if "status" in x: q += " AND status=?"; args.append(x["status"])
+    q = "SELECT kind, status, closed_reason, detail_json FROM research_question WHERE subject_person_id=?"; args = [w.person(x["person"])]
+    for k in ("kind", "status", "closed_reason"):
+        if k in x: q += f" AND {k}=?"; args.append(x[k])
     rows = [dict(r) for r in w.cx.execute(q, args)]
     if "detail_has" in x: rows = [r for r in rows if x["detail_has"] in (r["detail_json"] or "")]
     if "count" in x: return has(len(rows), x["count"]), rows
