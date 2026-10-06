@@ -823,23 +823,18 @@ US state anywhere in it is read as American even when its last part names
 another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
 the country the string ends with first.
 
-### C29. What one home for each rule and no dead schema leave
+### C29. What a withdrawal and the state names still leave
 
-Each name rule now lives in `catalog.py` and the plumbing in `treelib.py`
-(Soundex, edit distance, the name reader, the nickname table, the suffix test,
-the walk to a record's current reading), and the tables and columns nothing
-read are gone (schema 0.8.6). Left: `connectors/nara_1950.key` copies
-`catalog.key`, and `connectors/loc_gov.US_STATES` copies `catalog`'s state
-names without the District of Columbia; `person_name.prefix` and `nick` are
-neither written nor read; `artifact.http_status`, `etag` and `last_modified`
-are empty on every row though most manifests carry them; `schema/catalog.sql`'s
-"REFERENCES … declared below" (`tree.home_person_id`, `proposal_id`) are never
-declared; the `v_unsupported_*` views count merged persons and folded events;
-the tracked `inbox/.gitkeep` is no longer needed now that `treelib.inbox_dir`
-makes the folder; and no tool writes `tombstone` although hard rule 2 relies
-on it: make it the one way a removal is written, and honoured (`holdings`,
-`held_for`, `fetched_rows` and the screen still count a withdrawn artifact as
-held, and the one live tombstone was written by hand).
+A file is withdrawn by `tools/tombstone.py` and the holdings pass it by, but
+some readers still count it: `plan.py` (an artifact at a locator that is no
+record id counts held whether withdrawn or not), and `cards.py`, the rule's
+trust test (`conclude.TRUSTED_ARTIFACT`) and `facts.py`'s visible evidence read
+statements on a withdrawn record as evidence. And two state readers are
+wrong: `extract.write_va` spells a state by title-casing `nara_1950.ABBR`
+("District Of Columbia"; use `catalog.us_state`), and both the 1950 census
+and loc.gov connectors take the first state-like part of a place, so
+"Washington, District of Columbia, United States" (Robert McCreery's 1850
+census row) is asked as Washington state.
 
 ### C33. A family-held photograph in the harness
 
@@ -1375,19 +1370,13 @@ by pattern. `foreign_key_check` sees none of them (none dangles on 4 Oct
 2026), and 93 `json_extract` calls across 11 files read them. Beside C29 and
 C45: give each link the column it is, with its foreign key, a link at a time.
 
-### C65. What the month comparison and the kept-beneath values still leave in the words
+### C65. An approximate pair of months is noted as a year
 
-The comparison now reads months, the shown event and no value a page keeps
-beneath, and a married surname is a woman's; a few readers still word it the
-old way. `proof.agreement` prints "year only" for an agreement to the month;
-an approximate pair of months (ABT Jun 1901 against Jul 1901) is noted as "the
-record gives only a year"; the namesake hint keeps the words "and a year of
-birth" when the birth date disagrees; `cards.card` lists values the page keeps
-beneath as fields of their own (Charlotte D Lukens's 1900 card shows
-"Residence absent" twice); `check.py`'s line for `date_verdict` names its
-bounds alone. And `conclude.shown_married` checks no sex, so a man shown under
-his wife's surname would take the alias kind married_name. Bring each to what
-the comparison now finds.
+`catalog.date_verdict` notes ABT Jun 1901 against Jul 1901 as "the record gives
+only a year": where both sides give a month and either is about, estimated or
+calculated, mark that side and say the months were not compared. No real record
+carries such a pair yet, and `tools/check.py`'s `date_verdict` cases compare the
+verdict and not its note: have the cases compare a note where they give one.
 
 ### C66. What the reading of an event's value per part leaves
 
@@ -1568,16 +1557,17 @@ holds no real forty-candidate answer, so capture one in a browser-free run of
 the resolver first and plant it (the gravesite and Archive answers show how a
 real answer becomes a fixture).
 
-### C69. A decision regenerates too few people's plans
+### C69. Other paths that regenerate too few plans
 
-`conclude.decide` regenerates the plans, and lets the rule go over the
-conflicts, of the person, the person the record was fetched for and the
-partners its family links joined, but not a child whose membership those links
-wrote, nor the other partner when a new partner membership joins an existing
-family. On the 1900 Lukens page's first reading, Charlotte's missing parents
-and Milton's missing spouse stayed open after the owner created Milton and
-Annie, until something else regenerated their plans. Take every person whose
-membership the decision's links wrote, and show it on that page.
+`conclude.link_people` names everyone a membership change reaches, and
+`decide`, `withdraw` and `statement_people` use it; the rest do not:
+`extract.carry_links` regenerates each link's two ends alone, `conclude.carry`
+ignores what `link_family` returns, `copies_on_word` regenerates only the
+decided persons, and a merge (`merge`, `complete_merge`) only the kept person,
+so a partner the record does not name and the members of a family a link
+joined keep stale plans. And `conclude.shown_married` reads in-laws from any
+extraction of the file (`LIMIT 1`), a superseded reading among them, where it
+should read the persona's own.
 
 ### C70. The fetch list prints one page twice
 
