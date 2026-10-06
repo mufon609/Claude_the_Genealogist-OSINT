@@ -18,7 +18,7 @@ A dismissed question stays closed when the plan is regenerated.
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid, year_field, year_in
-from catalog import Catalog
+from catalog import Catalog, withdrawals
 
 def rendered_query(query_json, revisions_json):
     """The step's fields ({value, basis} each) after the person's include/revise: an excluded field is dropped,
@@ -94,9 +94,11 @@ ON_WORD = "on the owner's word about "                 # the note prefix of the 
 def holds_record(cx, sha):
     """Whether an archived file is a record a fetch step's found run may close the step with: a file never parsed (an image, a
     photograph of the stone) is what was fetched; a page is one when its current reading (the latest not superseded) is
-    complete and not a pointing listing (extract.POINTING_LISTINGS). A listing that points at records is not one, and a
-    page no parser read holds nothing, so neither closes the step it was logged on."""
+    complete and not a pointing listing (extract.POINTING_LISTINGS). A listing that points at records is not one, a page no
+    parser read holds nothing, and a withdrawn file (tools/tombstone.py) holds no record, so none of them closes the step it was
+    logged on: the plan opens a step such a file alone closed again (closed_by_pointers)."""
     from extract import POINTING_LISTINGS
+    if withdrawals(cx, [sha]): return False
     e = cx.execute("""SELECT e.status, x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND e.superseded_by IS NULL
                       ORDER BY e.ran_at DESC, e.id DESC LIMIT 1""", (sha,)).fetchone()
     return True if not e else e[0] == "complete" and e[1] not in POINTING_LISTINGS
@@ -142,8 +144,8 @@ def hold_unread(cx, by, log_id):
     return restate(cx, by, log_id, outcome="unread", note=UNREAD)
 
 def closed_by_pointers(cx, step_id):
-    """Whether a step's found runs, since it was last reopened, are all pages that point at its record or hold nothing
-    (not holds_record): the step stands done on listings or pages no parser read alone (an unread run, the attach's and the runner's word
+    """Whether a step's found runs, since it was last reopened, are all pages that point at its record, hold nothing or were
+    withdrawn (not holds_record): the step stands done on listings or pages no parser read alone (an unread run, the attach's and the runner's word
     for a record no parser reads, is not a found run and closes nothing). False when it has no found run since, when
     a found run carries no artifact (a hand's found: the owner's word) or is the owner's word about a record (ON_WORD), or
     when any found run carries a record."""

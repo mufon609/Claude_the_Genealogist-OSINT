@@ -148,8 +148,14 @@ outside the vendor.
   `check`), S3 with Object Lock
   (see §7; disabled until the project is finished). Derivatives are excluded
   from off-site backup; they regenerate.
-- Deletion is a tombstone row in the catalog. Bytes go to a quarantined bag,
-  not to /dev/null, unless a takedown requires otherwise.
+- Deletion is a tombstone row in the catalog, written by `tools/tombstone.py` alone (decision
+  13), with its reason, who withdrew the file and when, and an audit row. Quarantined, the
+  default, the bytes stay in the archive and in its bags, never sent to /dev/null; a takedown
+  (`--destroy`) removes them and keeps the manifest. The artifact row, its readings and the
+  runs that archived it stay as written; no reader counts a withdrawn file as held
+  (`catalog.not_withdrawn`: the holdings, a citation's held record, a done step's held rows,
+  the person screen's steps and runs), a step it alone closed opens again at the next plan,
+  the attach refuses its bytes, and the fixity run skips it.
 
 ## 3. Catalog (the database)
 

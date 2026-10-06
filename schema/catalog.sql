@@ -154,7 +154,8 @@ CREATE TABLE artifact_locator (
 );
 CREATE INDEX ix_artifact_locator_value ON artifact_locator(kind, value);
 
--- Deletion is a record, not an absence.
+-- Deletion is a record, not an absence: a file withdrawn from the evidence, written by tools/tombstone.py alone with an audit row.
+-- quarantined keeps its bytes in the archive, destroyed (a takedown) removes them; no reader counts it held (catalog.not_withdrawn).
 CREATE TABLE tombstone (
   artifact_sha256 TEXT PRIMARY KEY REFERENCES artifact(sha256),
   reason          TEXT NOT NULL,

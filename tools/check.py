@@ -400,6 +400,7 @@ def insert_only():
     from extract import extract
     from households import regroup
     from log_search import log
+    from tombstone import tombstone
     d, db = scratch(False); bad = []
     try:
         cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
@@ -415,7 +416,7 @@ def insert_only():
         regroup(cx, BY)
         ts = now(); tid = ulid()
         cx.execute("INSERT INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (shas[0], "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007"))
-        cx.execute("INSERT INTO tombstone (artifact_sha256,reason,disposition,tombstoned_at,tombstoned_by) VALUES (?,?,?,?,?)", (shas[1], "check: a tombstone row to try", "quarantined", ts, BY))
+        tombstone(cx, shas[1], "check: a tombstone row to try", BY)
         cx.execute("INSERT INTO tree (id,slug,name,created_at,updated_at) VALUES (?,?,?,?,?)", (tid, "check", "the check's tree", ts, ts))
         cx.execute("INSERT INTO same_record (id,tree_id,a_sha256,b_sha256,same,basis,decided_by,decided_at) VALUES (?,?,?,?,?,?,?,?)", (ulid(), tid, shas[0], shas[1], False, "owner", BY, ts))
         for sha in shas: log(cx, tid, BY, source_id="E03", outcome="found", artifacts=[sha], query={"surname": {"value": "Davidson", "basis": "accepted"}})

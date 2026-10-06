@@ -323,7 +323,9 @@ entry of the page, the shape the 0.7.5 migration corrects), `merge` (a `duplicat
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
 a regeneration to be checked against a prior state, such as a legacy truncated key), `households` (the households grouped
 again and stored where they changed, `tools/households.py` regroup, as the plan groups them: `kept`, `written`, `superseded`,
-`ungrouped`, every row the table holds as `rows`, and the current `households`).
+`ungrouped`, every row the table holds as `rows`, and the current `households`), `tombstone` (a file withdrawn through `tools/tombstone.py`:
+the `record` a step bound, its `reason`, `destroy` for a takedown; the tool's result, `object` where its bytes are or were, or `refused`, what
+its refusal said).
 
 Expectations: `last` (the action's result against a pattern), `bound`, `cards` (the cards on a record: `people`,
 `kind`, `count`, `personas`), `card` (`status`, `kind`, `decided_by`, `decided_at`, `note`, `rationale`), `rule` (`taken`, `why`),

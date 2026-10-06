@@ -38,10 +38,10 @@ naming the earlier run's own artifact), and the file leaves the inbox with nothi
 whose identity matches no step is not archived by the inbox tool; the screen still attaches it to the step the person
 chose. Archived bytes are linked, not copied, and a step already logged with the same artifact is not logged again.
 """
-import json, mimetypes, os, re, sqlite3, sys, urllib.parse
+import hashlib, json, mimetypes, os, re, sqlite3, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, move_free, now, object_path, ulid
-from catalog import collection_tier, dbid_of, first_given, first_value, holders, holds, person_named, split_name, split_persona_name
+from catalog import collection_tier, dbid_of, first_given, first_value, holders, holds, person_named, split_name, split_persona_name, withdrawals
 from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
@@ -497,6 +497,12 @@ def _source_row(cx, sid):
 def _cost(text):
     t = (text or "").strip().lower(); return next((c for c in ("free", "paid", "member") if t.startswith(c)), "unknown")
 
+def refuse_withdrawn(cx, data):
+    """ValueError when these bytes are an archived file withdrawn from the evidence (tools/tombstone.py): saved again, they are
+    attached to nothing, and the file stays where it was."""
+    sha = hashlib.sha256(data).hexdigest(); w = withdrawals(cx, [sha]).get(sha)
+    if w: raise ValueError(f"the file is {sha[:12]}, withdrawn from the archive on {w['at'][:10]} by {w['by']}: {w['reason']}; nothing attached")
+
 def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None, value=None, parsed=None, about=None):
     """Archive one inbox file for these steps (provenance from the first: the record's kind gives the trust tier, where it was
     retrieved gives terms and cost; the locator is the step's, or the search URL for a results page), log a found run on every
@@ -507,7 +513,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
     log_search.unread_record) has it read again as unread, the note saying so, and closes nothing; each a new row superseding
     the found one (log_search.restate), whose id `logs` then names. Then the steps the run closes are marked done: a search step by
     the found run; a fetch step only when the page is the record it cites (log_search.holds_record), so a listing that points at
-    records leaves it planned. Returns what happened."""
+    records leaves it planned. A file withdrawn from the archive is refused (refuse_withdrawn). Returns what happened."""
     src = os.path.join(inbox_dir(), os.path.basename(name))
     if not os.path.isfile(src): raise ValueError("file not in inbox")
     if not steps and not about: raise ValueError("no step to attach to")
@@ -536,6 +542,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         query = {k: {"value": v, "basis": "run"} for k, v in parsed["query"].items()}
         note = "; ".join(x for x in (f"{parsed['count'] if parsed['count'] is not None else len(parsed['rows'])} matching records, page {parsed['page']} of {parsed['pages']}, {len(parsed['rows'])} rows on this page", note) if x)
     with open(src, "rb") as fh: data = fh.read()
+    refuse_withdrawn(cx, data)
     sha, new = archive_object(cx, data, mime=mime, source_id=holder or st["locator_source_id"] or (sources[0] if sources else None), collection_id=st["collection_id"], collection_name=cname,
                               locator_kind=lkind, locator_value=lvalue, retrieved_by=by, terms=from_row.get("terms"),
                               cost=_cost(from_row.get("cost")), trust_tier=kind_row.get("trust_tier") or from_row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
@@ -586,6 +593,7 @@ def attach_held(cx, tree_id, slug, name, about_id, by, note=None):
     cid = col[0] if col else ulid()
     if not col: cx.execute("INSERT INTO collection (id,source_id,name,external_key_kind,external_key) VALUES (?,?,?,?,?)", (cid, "M05", "Family-held originals", "other", "family"))
     with open(src, "rb") as fh: data = fh.read()
+    refuse_withdrawn(cx, data)
     sha, new = archive_object(cx, data, mime=mime, source_id="M05", collection_id=cid, collection_name="Family-held originals", locator_kind="file", locator_value=os.path.basename(src),
                               retrieved_by=by, terms=row.get("terms"), cost="free", trust_tier=row.get("trust_tier"), original_filename=os.path.basename(src), notes=note)
     cx.execute("INSERT INTO note (id,tree_id,entity_kind,entity_id,body,author,created_at) VALUES (?,?,?,?,?,?,?)",

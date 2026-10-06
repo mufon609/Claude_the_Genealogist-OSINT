@@ -859,6 +859,15 @@ ACTIONS["legacy_card"] = a_legacy_card
 ACTIONS["older_reading"] = a_older_reading
 ACTIONS["households"] = a_households
 
+def a_tombstone(w, x):
+    """A file withdrawn from the evidence through tools/tombstone.py: the `record` a step bound, with its `reason`, `destroy` for a
+    takedown; the tool's result, or what its refusal said under `refused`."""
+    from tombstone import tombstone
+    try: return tombstone(w.cx, w.sha(x["record"]), x.get("reason"), x.get("by", BY), destroy=bool(x.get("destroy")))
+    except SystemExit as e: w.cx.rollback(); return {"refused": str(e)}
+
+ACTIONS["tombstone"] = a_tombstone
+
 # ---------------------------------------------------------------- expectations: each returns (ok, what was found)
 
 def e_last(w, x, want):

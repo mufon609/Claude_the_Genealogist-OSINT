@@ -37,7 +37,8 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   `task_run` and `audit_log` are
   insert-only: triggers abort every UPDATE and DELETE but the write-once `superseded_by`
   on `extraction`, `household` and `search_log`, set from empty to the row that restates the old one.
-  Corrections are new rows; removals are `tombstone` rows. A run read again (its records
+  Corrections are new rows; removals are `tombstone` rows, written by `tools/tombstone.py` alone and held by no
+  reader (`catalog.not_withdrawn`, `docs/DATA-ARCHITECTURE.md` §2). A run read again (its records
   fit no one, or no parser reads them) or carried onto the kept person's step by a merge
   is a new row restating it (`log_search.restate`), and every reader reads the rows whose
   `superseded_by` is empty. `tools/check.py` tries each column of each table. The 0.8.1
@@ -250,6 +251,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/proof.py "<person>" [--fact …] [--json]` | Read-only. The proof standard's written conclusion per key fact: the value, the evidence grouped by original with its class words (`data/evidence-classes.csv`) and citations, each conflict with its question id and, while open, the rule's own reading of it, the research by checklist row, who decided, and whether it meets the standard or an argument is still owed. |
 | `tools/overview.py` | The tree as confirmed from the home person upward, shared by `tree.py overview` and the screen, and where the tree comes from (`origins`). |
 | `tools/check.py` | Green in one command: every tool compiles, every global name a tool reads resolves (a name another module of the repository gives is one it defines), the pure rules, every parser on its saved page and every scenario on a scratch catalog, none of them sending a request, `--scenario NAME` for one (`tests/fixtures/README.md`). |
+| `tools/tombstone.py <sha256> --reason … [--destroy]` | An archived file withdrawn from the evidence: its tombstone and one audit row under `--by`; quarantined, its bytes kept, or with `--destroy`, a takedown, its bytes removed and its manifest kept; refused for a file already withdrawn; what still rests on it in each tree printed for the owner to decide again. No reader counts it held from then on. |
 | `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. Every write carries an audit row under `--by`. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen; the one home of the name rules every tool reads a name by (its parts, short forms, titles and suffixes, Soundex and edit distance). |
 | `tools/forms.py` | Read-only. The record forms (`data/record-forms.csv`, `data/DATA-SOURCES.md` §5c): the form a census of a collection and year was made on, who it names, what it states, its locators, how it bounds a household and the locator a run of lines is read by, read by the checklist, the footprint, the readers, which keep each entry's locators in its persona's `region_json`, and the household script. |

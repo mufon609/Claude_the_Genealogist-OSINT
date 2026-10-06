@@ -232,11 +232,23 @@ def cited_persons(cx, apid):
                      ELSE (SELECT ep.person_id FROM event_participant ep WHERE ep.event_id=a.subject_id AND ep.person_id IS NOT NULL LIMIT 1) END
                      FROM assertion a WHERE json_valid(a.notes) AND json_extract(a.notes,'$.apid')=?""", (apid,)) if r[0]]
 
+def not_withdrawn(col):
+    """SQL: the artifact whose sha256 is the column `col` has no tombstone (tools/tombstone.py), so it may count as held. Every
+    reader of what the archive holds reads it; a withdrawn file's rows and readings stay as written, held by nobody."""
+    return f"NOT EXISTS (SELECT 1 FROM tombstone t WHERE t.artifact_sha256={col})"
+
+def withdrawals(cx, shas):
+    """{sha256: {reason, disposition, at, by}} for each of these artifacts that has been withdrawn (its tombstone row)."""
+    shas = [s for s in dict.fromkeys(shas) if s]
+    if not shas: return {}
+    return {s: {"reason": r, "disposition": d, "at": at, "by": by} for s, r, d, at, by in cx.execute(
+        f"SELECT artifact_sha256, reason, disposition, tombstoned_at, tombstoned_by FROM tombstone WHERE artifact_sha256 IN ({','.join('?' * len(shas))})", shas)}
+
 def holds(cx, sha, groups=None):
     """The record ids an archived artifact holds. A sheet image or a schedule shows the whole sheet, so it holds every citation
     naming the sheet; an HTML record page shows one household, so it holds its own citation and those of the people it names
-    (person_named against the page's personas), never another household's on the same sheet."""
-    a = cx.execute("SELECT locator_kind, locator_value, mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
+    (person_named against the page's personas), never another household's on the same sheet. A withdrawn artifact holds none."""
+    a = cx.execute(f"SELECT locator_kind, locator_value, mime FROM artifact WHERE sha256=? AND {not_withdrawn('sha256')}", (sha,)).fetchone()
     if not a or a[0] != "apid" or not a[1]: return set()
     group = same_page(cx, a[1], groups)
     if not (a[2] or "").startswith("text/html"): return set(group)
@@ -245,10 +257,10 @@ def holds(cx, sha, groups=None):
 
 def holdings(cx, groups=None):
     """[(sha256, the record id it was archived under, mime, the ids it holds, the people it holds or None for an image)] for every
-    artifact archived under a record id, first archived first."""
+    artifact archived under a record id and not withdrawn, first archived first."""
     groups = page_groups(cx) if groups is None else groups
     return [(sha, own, mime or "", holds(cx, sha, groups), page_people(cx, sha) if (mime or "").startswith("text/html") else None)
-            for sha, own, mime in cx.execute("SELECT sha256, locator_value, mime FROM artifact WHERE locator_kind='apid' AND locator_value IS NOT NULL ORDER BY retrieved_at, sha256")]
+            for sha, own, mime in cx.execute(f"SELECT sha256, locator_value, mime FROM artifact WHERE locator_kind='apid' AND locator_value IS NOT NULL AND {not_withdrawn('sha256')} ORDER BY retrieved_at, sha256")]
 
 def held_for(cx, apid, person_id, holdings_=None):
     """The archived record that holds this citation for this person: an artifact archived under the id itself, a sheet image or a
@@ -261,10 +273,11 @@ def held_for(cx, apid, person_id, holdings_=None):
 
 def held_apids(cx, groups=None):
     """{record id: sha256} for every citation whose record is in the archive: the id the record was archived under and every other
-    id the artifact holds (holds: the whole sheet for an image, the household it names for a record page), the first archived winning."""
+    id the artifact holds (holds: the whole sheet for an image, the household it names for a record page), the first archived winning;
+    a withdrawn artifact holds none."""
     groups = page_groups(cx) if groups is None else groups
     out = {}
-    for sha, in cx.execute("SELECT sha256 FROM artifact WHERE locator_kind='apid' ORDER BY retrieved_at, sha256"):
+    for sha, in cx.execute(f"SELECT sha256 FROM artifact WHERE locator_kind='apid' AND {not_withdrawn('sha256')} ORDER BY retrieved_at, sha256"):
         for a in holds(cx, sha, groups): out.setdefault(a, sha)
     return out
 
@@ -1827,15 +1840,15 @@ class Catalog:
         citation whose accepted persona for person_id is the record's own subject (is_subject), for a one-person checklist
         row (an obituary, a death or birth record, a cemetery record, naturalization, a draft card, Social Security): a
         record that merely names the person, without being their own, stays cited, never held. Household rows (census,
-        church, passenger lists) pass subject_only=False and count every member."""
+        church, passenger lists) pass subject_only=False and count every member. A withdrawn record is held by nobody."""
         out = []
-        for cname, notes, sha, tier, cid in self.q(f"""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, {tier_sql()}, COALESCE(c.id, ac.id) FROM assertion a
+        for cname, notes, sha, tier, cid, live in self.q(f"""SELECT COALESCE(c.name, ac.name), a.notes, a.artifact_sha256, {tier_sql()}, COALESCE(c.id, ac.id), {not_withdrawn('a.artifact_sha256')} FROM assertion a
                 LEFT JOIN collection c ON json_valid(a.notes) AND c.id=json_extract(a.notes,'$.collection_id')
                 LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                 LEFT JOIN collection ac ON ac.id=ar.collection_id
                 WHERE a.subject_kind=? AND a.subject_id=? AND a.status<>'rejected'""", kind, sid):
             apid = json.loads(notes).get("apid") if notes and notes.startswith("{") else None
-            held = sha if sha and (tier or "")[:2] in ("T1", "T2", "T3") else (self.held_for(apid, person_id) if person_id else self.held_apids().get(apid))   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
+            held = sha if sha and live and (tier or "")[:2] in ("T1", "T2", "T3") else (self.held_for(apid, person_id) if person_id else self.held_apids().get(apid))   # the record a match attached, or the archived page the citation names; the T4 tree export is not a held record
             if held and subject_only and not (person_id and self.is_subject(held, person_id)): held = None
             if cname or held: out.append((cname or "", apid, held, cid))
         return out
@@ -1945,7 +1958,7 @@ class Catalog:
         return {"status": "deceased", "tier": tier, "reason": f"tier {tier}, deceased by default"}
     def fetched_rows(self, pid):
         """Checklist row keys (record:instance) with a done step whose record is held: an archived artifact in its log, or an
-        artifact at the step's locator (for a record id, one that holds it for this person). {row key: whether a held record
+        artifact at the step's locator (for a record id, one that holds it for this person), never one withdrawn. {row key: whether a held record
         is on the person themselves (a step with on_json []) and is that record's own subject there (is_subject), not merely
         named on a record that is someone else's -- the same gate a one-person row's own citations already pass
         (person_citations subject_only=True). A household row is held by any of them regardless: the key's presence, not
@@ -1953,11 +1966,12 @@ class Catalog:
         out = {}
         for sid, rk, lkind, lval, on in self.q("SELECT id, row_key, locator_kind, locator_value, on_json FROM search_plan WHERE person_id=? AND status='done'", pid):
             shas = {s for js, in self.q("SELECT artifacts_json FROM search_log WHERE plan_step_id=? AND artifacts_json IS NOT NULL AND artifacts_json<>'[]' AND superseded_by IS NULL", sid) for s in json.loads(js)}
+            shas -= set(withdrawals(self.cx, shas))
             if not shas and lkind == "apid" and lval:
                 h = self.held_for(lval, pid)
                 if h: shas.add(h)
             if not shas and lkind and lval:
-                shas |= {s for s, in self.q("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", lkind, lval)}
+                shas |= {s for s, in self.q(f"SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=? AND {not_withdrawn('sha256')}", lkind, lval)}
             if not shas: continue
             on_person = (on or "[]") == "[]"
             out[rk] = out.get(rk, False) or (on_person and any(self.is_subject(s, pid) for s in shas))

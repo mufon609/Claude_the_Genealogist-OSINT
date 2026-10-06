@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 from treelib import DB, active_tree_slug, connect, dumps, inbox_dir, now, ulid, year_field
-from catalog import Catalog, fetch_target, held_for, holdings, holds, search_target, tier_sql
+from catalog import Catalog, fetch_target, held_for, holdings, holds, not_withdrawn, search_target, tier_sql, withdrawals
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
@@ -50,18 +50,28 @@ def tree_of(cx, slug=None):
 
 # ------------------------------------------------------------------ what supports a key fact: tools/facts.py
 # ------------------------------------------------------------------ views
+def held_run(cx, run):
+    """A run of a step as the screen shows it: a file it archived that has been withdrawn since (tools/tombstone.py) is no record
+    the step holds, so it leaves the run's artifacts, and the run's note says it was withdrawn, when and why."""
+    shas = json.loads(run["artifacts_json"] or "[]"); gone = withdrawals(cx, shas)
+    if not gone: return run
+    kept = [s for s in shas if s not in gone]
+    said = [f"{s[:12]} withdrawn on {w['at'][:10]}: {w['reason']}" for s, w in gone.items()]
+    return {**run, "artifacts_json": dumps(kept) if kept else None, "notes": "; ".join(x for x in (run["notes"], *said) if x)}
+
 def plan_view(cx, cat, pid):
     """The person's open fact-level questions and every step, each with its log and its fields as rendered; a fetch step's held
-    record is read from the catalog's own holdings (Catalog.holdings), built once for the view."""
+    record is read from the catalog's own holdings (Catalog.holdings), built once for the view, and a withdrawn file is held by
+    no step and no run (held_run)."""
     questions = [{"id": q["id"], "kind": q["kind"], "detail": json.loads(q["detail_json"] or "{}"),
                   "steps": cx.execute("SELECT COUNT(*) FROM search_plan WHERE question_id=?", (q["id"],)).fetchone()[0]}
                  for q in cx.execute("SELECT id, kind, detail_json FROM research_question WHERE subject_person_id=? AND status='open' ORDER BY kind", (pid,))]
     steps = []
     for s in cx.execute("SELECT * FROM search_plan WHERE person_id=? ORDER BY seq", (pid,)):
-        logs = [dict(l) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY executed_at", (s["id"],))]
+        logs = [held_run(cx, dict(l)) for l in cx.execute("SELECT id, executed_at, executed_by, outcome, notes, artifacts_json FROM search_log WHERE plan_step_id=? AND superseded_by IS NULL ORDER BY executed_at", (s["id"],))]
         col = cx.execute("SELECT name FROM collection WHERE id=?", (s["collection_id"],)).fetchone() if s["collection_id"] else None
         if s["locator_kind"] == "apid": sha = cat.held_for(s["locator_value"], pid)
-        else: a = cx.execute("SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=?", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None; sha = a["sha256"] if a else None
+        else: a = cx.execute(f"SELECT sha256 FROM artifact WHERE locator_kind=? AND locator_value=? AND {not_withdrawn('sha256')}", (s["locator_kind"], s["locator_value"])).fetchone() if s["locator_value"] else None; sha = a["sha256"] if a else None
         fields = json.loads(s["query_json"])
         steps.append({"id": s["id"], "seq": s["seq"], "row_key": s["row_key"], "question_id": s["question_id"], "kind": s["kind"], "type": s["query_type"], "status": s["status"], "archived": sha,
                       "mode": s["mode"], "sources": json.loads(s["sources_json"]), "fields": fields, "revisions": json.loads(s["revisions_json"] or "{}"),
@@ -280,7 +290,7 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
             closed.append(f"question answered: {q['kind']} {json.loads(q['detail_json'] or '{}').get('detail') or ''}".strip())
         hs = holdings(cx); ids = {k for k in holds(cx, pe["artifact_sha256"]) if held_for(cx, k, person_id, hs) == pe["artifact_sha256"]}
         for st in cx.execute("SELECT row_key, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='done' ORDER BY seq", (person_id,)):
-            if (st["locator_kind"] == "apid" and st["locator_value"] in ids) or (st["locator_kind"] != "apid" and st["locator_value"] and cx.execute("SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=?", (pe["artifact_sha256"], st["locator_kind"], st["locator_value"])).fetchone()):
+            if (st["locator_kind"] == "apid" and st["locator_value"] in ids) or (st["locator_kind"] != "apid" and st["locator_value"] and cx.execute(f"SELECT 1 FROM artifact WHERE sha256=? AND locator_kind=? AND locator_value=? AND {not_withdrawn('sha256')}", (pe["artifact_sha256"], st["locator_kind"], st["locator_value"])).fetchone()):
                 closed.append(f"the {st['row_key'].split(':')[0]} row for {who}: held, this record")
         rs = record_says(cx, tree_id, person_id, pe["artifact_sha256"]) if person_id else []
         if any(f["status"] == "accepted" and not f["link"] for f in rs): made.append("accepted with the record: " + ", ".join(f["fact"] for f in rs if f["status"] == "accepted"))

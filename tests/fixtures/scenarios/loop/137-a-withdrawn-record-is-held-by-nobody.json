@@ -1,0 +1,104 @@
+{
+ "title": "a withdrawn record is held by nobody",
+ "line": "a file withdrawn through tools/tombstone.py, its reason and an audit row written and its bytes kept in the archive, is held by no reader: Abram C Brant's memorial, the record his cemetery row and its step held, leaves the row cited, the done step's held rows and the screen's step and run without it, the run's note saying it was withdrawn and why; withdrawn twice it is refused; the plan opens the step it alone closed again; saved again its bytes are attached to nothing; and a takedown removes a file's bytes, its rows and manifest kept",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Abram C Brant's memorial arrives through the inbox, fulfilling the fetch step of his cemetery row",
+   "attach": {"fixture": "findagrave-memorial-78019650.html"},
+   "as": "mem",
+   "expect": [
+    {"checklist_row": {"person": "I332737038183", "record": "cemetery / family plot", "status": "held"}, "why": "the memorial holds his cemetery row"},
+    {"fetched_rows": {"person": "I332737038183", "row": "cemetery / family plot:", "held": true}, "why": "a done step whose run archived the record, his own as its subject"},
+    {"step": {"person": "I332737038183", "row_key": "cemetery / family plot:", "kind": "fetch", "fields": {"status": "done"}}}
+   ]
+  },
+  {
+   "say": "the screen shows the record held on the step and on its run",
+   "person_view": {"person": "I332737038183"},
+   "as": "before",
+   "expect": [
+    {"bound": {"value": "$before.plan.steps", "is": {"some": {"row_key": "cemetery / family plot:", "archived": "$mem.sha", "logs": {"some": {"artifacts_json": {"has": "$mem.sha"}}}}}}}
+   ]
+  },
+  {
+   "say": "the owner withdraws the memorial page from the evidence, with the reason",
+   "tombstone": {"record": "mem", "reason": "harness: the page withdrawn, to walk what a withdrawal changes"},
+   "as": "gone",
+   "expect": [
+    {"last": {"sha256": "$mem.sha", "disposition": "quarantined", "resting": {"harness": {"links": {"has": "Abram C Brant"}, "statements": {">=": 1}}}},
+     "why": "quarantined by default, and what still rests on it in the tree is named for the owner to decide again"},
+    {"audit": {"entity": "tombstone", "id": "$mem.sha", "is": [{"action": "insert", "diff": {"reason": "harness: the page withdrawn, to walk what a withdrawal changes", "disposition": "quarantined"}}]},
+     "why": "one audit row under who withdrew it, holding the reason"},
+    {"file": {"path": "$gone.object", "exists": true}, "why": "quarantined, its bytes stay in the archive"},
+    {"artifact": {"record": "mem", "source_id": "E01"}, "why": "the artifact row stays as written"}
+   ]
+  },
+  {
+   "say": "nobody counts it held: his cemetery row is cited again, the done step holds no row, and the screen's step and run carry it no more",
+   "person_view": {"person": "I332737038183"},
+   "as": "after",
+   "expect": [
+    {"checklist_row": {"person": "I332737038183", "record": "cemetery / family plot", "status": "cited"}},
+    {"fetched_rows": {"person": "I332737038183", "row": "cemetery / family plot:", "present": false}},
+    {"citations_held": {"person": "I332737038183", "count": 0}},
+    {"bound": {"value": "$after.plan.steps", "is": {"none": {"archived": "$mem.sha"}}}, "why": "no step opens the withdrawn record as held"},
+    {"bound": {"value": "$after.plan.steps", "is": {"some": {"row_key": "cemetery / family plot:", "logs": {"some": {"artifacts_json": {"is": null}, "notes": {"has": ["withdrawn on", "harness: the page withdrawn"]}}}}}},
+     "why": "the run stays on the step's log as what happened, saying the file it archived was withdrawn and why"}
+   ]
+  },
+  {
+   "say": "withdrawn a second time, it is refused, its tombstone named",
+   "tombstone": {"record": "mem", "reason": "harness: again"},
+   "expect": [
+    {"last": {"refused": {"has": ["was withdrawn on", "harness: the page withdrawn"]}}}
+   ]
+  },
+  {
+   "say": "the plan opens again the step the withdrawn page alone closed",
+   "plan": ["I332737038183"],
+   "expect": [
+    {"step": {"person": "I332737038183", "row_key": "cemetery / family plot:", "kind": "fetch", "fields": {"status": "planned"}}}
+   ]
+  },
+  {
+   "say": "the same page saved again is attached to nothing, and stays in the inbox",
+   "save": {"fixture": "findagrave-memorial-78019650.html", "name": "findagrave-memorial-78019650.html"},
+   "expect": [
+    {"file": {"name": "findagrave-memorial-78019650.html"}}
+   ]
+  },
+  {
+   "say": "",
+   "attach_inbox": {},
+   "expect": [
+    {"last": {"results": [{"left": {"has": ["withdrawn from the archive", "nothing attached"]}}]}},
+    {"file": {"name": "findagrave-memorial-78019650.html"}, "why": "left where it was"},
+    {"step": {"person": "I332737038183", "row_key": "cemetery / family plot:", "kind": "fetch", "fields": {"status": "planned"}}}
+   ]
+  },
+  {
+   "say": "an item's metadata the Archive served, archived and taken down: its bytes removed, its row and manifest kept",
+   "archive": {"fixture": "ia-metadata-spinneyfamilygen00phil.json", "source": "L02", "manifest": "ia-metadata-spinneyfamilygen00phil.manifest.json"},
+   "as": "md"
+  },
+  {
+   "say": "",
+   "tombstone": {"record": "md", "reason": "harness: a takedown", "destroy": true},
+   "as": "down",
+   "expect": [
+    {"last": {"disposition": "destroyed"}},
+    {"file": {"path": "$down.object", "exists": false}, "why": "a takedown removes the bytes"},
+    {"artifact": {"record": "md", "source_id": "L02"}, "why": "the row and its manifest stay, saying what was held"}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}
