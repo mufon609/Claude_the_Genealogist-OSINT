@@ -349,9 +349,8 @@ moved without its imports fails it wherever it is used, run or not. Of
 `conclude.py`'s functions only `dated_with_parents` and `kept_agrees` are
 entered by no check (C46), so the side-by-side proof alone covers them.
 
-**Blocked by:** C29's shared
-rules and dead code, C72 and C69, and C50's renaming, each of which is cheaper
-before the split than after it.
+**Blocked by:** C29's shared rules and dead code, and C50's renaming, each of
+which is cheaper before the split than after it.
 
 ---
 
@@ -1584,21 +1583,16 @@ holds no real forty-candidate answer, so capture one in a browser-free run of
 the resolver first and plant it (the gravesite and Archive answers show how a
 real answer becomes a fixture).
 
-### C69. What a merge still leaves on the duplicate
+### C69. A decision regenerates too few people's plans
 
-A merge moves the duplicate's persona links, statements, memberships, steps,
-questions and cards onto the kept person, but three things stay on the merged
-row: an open question whose key the kept person already holds, in any status,
-stays open on the duplicate (live on 5 Oct 2026: five, Matthew Ahern's and
-Diane Ahern's death dates, Noi Davidson's missing parents, Daniel Davidson's
-birth and death dates); a `person_persona` row whose persona the kept person
-already links stays, so a decision on it can stay with the merged person (none
-live); and the duplicate's name aliases are never moved (none live). Close or
-fold the question as the kept person's twin, fold the link as a membership
-the kept person holds is folded, move the aliases, and have the merge run
-again on a pair complete an older one, as it now does for cards and
-memberships; show the five live questions closed on a copy of the live
-catalog.
+`conclude.decide` regenerates the plans, and lets the rule go over the
+conflicts, of the person, the person the record was fetched for and the
+partners its family links joined, but not a child whose membership those links
+wrote, nor the other partner when a new partner membership joins an existing
+family. On the 1900 Lukens page's first reading, Charlotte's missing parents
+and Milton's missing spouse stayed open after the owner created Milton and
+Annie, until something else regenerated their plans. Take every person whose
+membership the decision's links wrote, and show it on that page.
 
 ### C70. The fetch list prints one page twice
 
@@ -1629,13 +1623,6 @@ the parent its record states, give a one-parent family its parent's
 membership, keep the spouse path off a family that holds children of one
 parent, and give the owner a tool that moves a child to the family the record
 supports, shown on the six above on a copy of the live catalog.
-
-### C72. A re-read writes links with nobody going over them
-
-`extract.carry_links`, which carries a decision onto the record's new reading,
-writes statements and family links without regenerating the people's plans and
-without the rule's pass over their conflicts and cards (`conclude.settle_people`),
-which every decision now runs. Run it for the people a re-read touches.
 
 ## Externally blocked
 
