@@ -351,7 +351,8 @@ entered by no check (C46), so the side-by-side proof alone covers them.
 
 Every piece it waited on is done (5 Oct 2026): the safety net, the re-read's
 and the merge's leftovers, one home for each shared rule, the dead schema and
-the claim label. It waits only on a session with room to finish it.
+the claim label. It waits only on a session with room to finish it, started from
+`REFACTOR-PROMPT.md`.
 
 ---
 

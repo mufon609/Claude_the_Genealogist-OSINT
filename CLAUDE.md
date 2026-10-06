@@ -33,6 +33,7 @@ on to the next.
 | Tables, invariants, tools | `schema/README.md`, `schema/catalog.sql` |
 | Deferred work | `BACKLOG.md` |
 | The audit's terms of reference | `docs/AUDIT-PROMPT.md` |
+| The decision code's split, to start in a fresh session | `REFACTOR-PROMPT.md` |
 
 Anything marked accepted in those docs stands. Do not reopen it in code;
 propose a change as a `BACKLOG.md` entry with the reason, never by building
