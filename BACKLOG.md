@@ -349,8 +349,9 @@ moved without its imports fails it wherever it is used, run or not. Of
 `conclude.py`'s functions only `dated_with_parents` and `kept_agrees` are
 entered by no check (C46), so the side-by-side proof alone covers them.
 
-**Blocked by:** C29's shared rules and dead code, and C50's renaming, each of
-which is cheaper before the split than after it.
+Every piece it waited on is done (5 Oct 2026): the safety net, the re-read's
+and the merge's leftovers, one home for each shared rule, the dead schema and
+the claim label. It waits only on a session with room to finish it.
 
 ---
 
@@ -821,26 +822,23 @@ US state anywhere in it is read as American even when its last part names
 another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
 the country the string ends with first.
 
-### C29. One home for each shared rule, and no dead schema
+### C29. What one home for each rule and no dead schema leave
 
-Soundex is written twice (`catalog.py`, `backfill_aliases.py`), edit distance twice, name splitting three times, the
-nickname table twice, the suffix set twice; `initdb.py` re-implements `ulid`
-without the monotonic rule `treelib.py` promises.
-The `derivative` and `artifact_page` tables are never used, the three FTS
-tables are filled and never queried, and no tool writes `tombstone` although
-hard rule 2 relies on it. `backfill_aliases.py` takes `--by` and ignores it. `connectors/ky_vital_index.year_of` does what `treelib.year_in` does, and the tracked `inbox/.gitkeep` is no longer needed now that `treelib.inbox_dir` makes the folder.
-Keep each rule in `catalog.py`, drop what nothing reads (or give it its
-reader), and make `tombstone` the one way a removal is written, and honoured:
-`holdings`, `held_for`, `fetched_rows` and the screen still count a withdrawn
-artifact as held, and the one live tombstone was written by hand. Also dead or
-unfilled: `person.private`, `note.private`, `geonames_id`, `surname_prefix`, the
-`page_id` columns, the place card's `suggested` key; `artifact.http_status`,
-`etag` and `last_modified` are empty on every row though most manifests carry
-them; `schema/catalog.sql`'s "REFERENCES … declared below" are never declared;
-the `v_unsupported_*` views count merged persons and folded events; `v_person_vitals.birth_date` is read by nothing; `tools/tree.py` writes `.active-tree` whole with its own copy of what `treelib.write_json_whole` does for JSON; and the walk
-to a record's current reading is written four times in `conclude.py` beside
-`catalog.current_reading`.
-
+Each name rule now lives in `catalog.py` and the plumbing in `treelib.py`
+(Soundex, edit distance, the name reader, the nickname table, the suffix test,
+the walk to a record's current reading), and the tables and columns nothing
+read are gone (schema 0.8.6). Left: `connectors/nara_1950.key` copies
+`catalog.key`, and `connectors/loc_gov.US_STATES` copies `catalog`'s state
+names without the District of Columbia; `person_name.prefix` and `nick` are
+neither written nor read; `artifact.http_status`, `etag` and `last_modified`
+are empty on every row though most manifests carry them; `schema/catalog.sql`'s
+"REFERENCES … declared below" (`tree.home_person_id`, `proposal_id`) are never
+declared; the `v_unsupported_*` views count merged persons and folded events;
+the tracked `inbox/.gitkeep` is no longer needed now that `treelib.inbox_dir`
+makes the folder; and no tool writes `tombstone` although hard rule 2 relies
+on it: make it the one way a removal is written, and honoured (`holdings`,
+`held_for`, `fetched_rows` and the screen still count a withdrawn artifact as
+held, and the one live tombstone was written by hand).
 
 ### C33. A family-held photograph in the harness
 
@@ -1207,20 +1205,6 @@ where it wants a label finds no decision and does nothing, silently; and the
 `notes` is plain text, as the gravestone photograph's is, so a real fixture
 cannot be archived through it. And `has` passes a `lacks` or a `none` on a
 value that is missing altogether.
-
-### C50. "Claim" means two things in the code
-
-`docs/RESEARCH-WORKFLOW.md` §0 defines a claim as the imported file's word.
-`Catalog.basis`, `link_basis` and `family` label as `claim` every membership
-whose statements are not all rejected, a page anyone can edit and a sibling
-placement included, and their readers take the label at §0's word: the queue's
-edge "a parent or spouse the file names" (`tools/queue.py`) counts a parent the
-tree links only by a placement, and the limits of one life (§5–7,
-`docs/DATA-ARCHITECTURE.md` §7 decision 12, `Catalog.beyond_life`) are said to
-test "accepted or the file's claims" while they test every link not rejected.
-The rule's own reader is `conclude.claimed_or_accepted`. Call Catalog's label
-what it is, have each reader that means the file's word read the file's word,
-and make the docs say what each test reads.
 
 ### C51. A refusal says the indexer's when the record also states the relationship
 
