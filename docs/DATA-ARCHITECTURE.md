@@ -191,7 +191,7 @@ regenerable; they are not archived.
 
 ```
 tree/
-  inbox/         drop zone: put a file here, run an ingest tool, it is moved out
+  inbox/         drop zone: put a file here, run an ingest tool, it is moved out (git-ignored; made on first use)
   downloads/     where the browser saves the pages a turn waits on (git-ignored); collect moves them to inbox/
   archive/       layer 2: objects/ manifests/ bags/  (git-ignored; backed up by bag)
   catalog/       tree.db + .active-tree             (git-ignored; dumped to SQL into a bag)

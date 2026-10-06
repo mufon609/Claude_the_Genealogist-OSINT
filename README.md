@@ -21,7 +21,7 @@ on to the next.
 | `schema/` | Portable DDL, seed taxonomy, manifest JSON Schema. `schema/README.md` maps tables to layers. |
 | `tools/` | `initdb.py`, `tree.py`, `ingest_gedcom.py`, `resolve_places.py`, `backfill_aliases.py`, `checklist.py`, `footprint.py`, `plan.py`, `log_search.py`, `attach_inbox.py`, `fetches.py`, `cards.py`, `proof.py`, `extract.py`, `match.py`, `conclude.py`, `run_step.py`, `run_task.py`, `cite.py`, `queue.py`, `turn.py`, `turns.py`, `backup.py`, `check.py`; shared modules `catalog.py`, `attach.py`, `facts.py`, `overview.py`, `treelib.py`; `save_page.js` and `save_image.js`, the page-saves-itself and image-saves-itself scripts the owner's browser runs; `tools/connectors/` one module per free source with an endpoint; `tools/tasks/` the one text of each kind of task a model runs (`run_task.py`). `tools/hooks/` holds the commit guard. `tests/checks/` holds the harness (`parsers.py`, `scenario.py`, `loop.py`, `imports.py`, `cut_gedcom.py`) and `tests/fixtures/` its saved pages, their `.expect.json` sidecars, the scenarios and the harness tree. |
 | `trees/<slug>/` | Per-tree folder: README, `imports/` (named copies, ignored), `exports/` (snapshots, ignored). |
-| `inbox/` | Drop zone for files to ingest. |
+| `inbox/` | Drop zone for files to ingest, made by the first tool that uses it. |
 | `downloads/` | Where the browser saves the pages a turn waits on: the owner sets it as the browser's download location once; `tools/fetches.py collect` moves them into `inbox/`. No tool reads the owner's own download folder. |
 | `app/person/` | The person screen: stdlib server plus one page, and `read_record.md`, what a reader of a record image writes. |
 | `CLAUDE.md` | Operating rules for an AI contributor. |
@@ -30,7 +30,7 @@ on to the next.
 | `BACKLOG.md` | Deferred work, self-governing. |
 
 Not in git: `archive/` (content-addressed masters), `catalog/*.db`, `derivatives/`,
-what `inbox/` and `downloads/` hold, and everything under `trees/*/imports` and `trees/*/exports`. Those are backed up by
+`inbox/`, what `downloads/` holds, and everything under `trees/*/imports` and `trees/*/exports`. Those are backed up by
 BagIt bags, not by git, and the commit hook refuses them: install it once with
 `git config core.hooksPath tools/hooks`. Set `DATA_ROOT` to keep those directories,
 the catalog among them, somewhere else, as a scratch run does: a tool given no `--db`

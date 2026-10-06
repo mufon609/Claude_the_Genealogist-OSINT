@@ -319,6 +319,14 @@ def dead_schema(cx: sqlite3.Connection) -> None:
     cx.execute("DROP TABLE IF EXISTS artifact_page")
     vitals_view(cx)
 
+def unread_names(cx: sqlite3.Connection) -> None:
+    """person_name.prefix and nick, which no tool writes or reads, dropped where the catalog still has them. Refused, nothing
+    written, where a row holds a value in either: a value written by hand would be lost, and where it goes is the owner's."""
+    have = [c for c in ("prefix", "nick") if c in [r[1] for r in cx.execute("PRAGMA table_info(person_name)")]]
+    held = cx.execute(f"SELECT COUNT(*) FROM person_name WHERE {' OR '.join(f'{c} IS NOT NULL' for c in have)}").fetchone()[0] if have else 0
+    if held: raise SystemExit(f"0.8.7 refused, nothing written: {held} name(s) hold a value in person_name.{' or '.join(have)}, which no tool reads")
+    for column in have: cx.execute(f"ALTER TABLE person_name DROP COLUMN {column}")
+
 # One entry per schema version added after the catalog's first release: (version, note, statements), a statement either
 # SQL or a callable(cx) for a correction SQL alone cannot make.
 # Applied in order to a catalog whose schema_migration lacks that version; already-applied versions are skipped.
@@ -354,6 +362,8 @@ MIGRATIONS = [
      [households]),
     ("0.8.6", "what nothing reads dropped: the full-text tables and their triggers, the derivative and artifact_page tables, extraction.page_id, persona.page_id, person.private, note.private, person_name.surname_prefix, and v_person_vitals' birth and death dates",
      [dead_schema]),
+    ("0.8.7", "person_name.prefix and nick dropped: no tool writes or reads them",
+     [unread_names]),
 ]
 
 def migrate(cx: sqlite3.Connection) -> list:

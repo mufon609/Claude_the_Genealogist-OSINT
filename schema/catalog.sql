@@ -1,5 +1,5 @@
 -- =============================================================================
--- tree catalog schema  v0.8.6
+-- tree catalog schema  v0.8.7
 -- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
@@ -347,11 +347,9 @@ CREATE TABLE person_name (
   id          TEXT PRIMARY KEY,
   person_id   TEXT NOT NULL REFERENCES person(id),
   name_type   TEXT NOT NULL DEFAULT 'birth' CHECK (name_type IN ('birth','married','aka','religious','immigrant','anglicized','other')),
-  prefix      TEXT,
   given       TEXT,
   surname     TEXT,
   suffix      TEXT,
-  nick        TEXT,
   is_primary  BOOLEAN NOT NULL DEFAULT FALSE,
   sort_key    TEXT                      -- "cassel, abraham b"
 );

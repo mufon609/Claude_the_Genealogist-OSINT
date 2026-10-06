@@ -408,7 +408,7 @@ class H(BaseHTTPRequestHandler):
             if tree_id is None: self.send({"error": "no tree"}, code=400); return
             if u.path == "/api/tree": self.send({"slug": slug, "name": tname, "by": CFG["by"], "trees": [r["slug"] for r in cx.execute("SELECT slug FROM tree ORDER BY slug")]}); return
             if u.path == "/api/overview": self.send(overview(cx, tree_id)); return
-            if u.path == "/api/inbox": self.send(sorted(os.path.basename(f) for f in glob.glob(os.path.join(inbox_dir(), "*")) if os.path.isfile(f) and not f.endswith(".gitkeep"))); return
+            if u.path == "/api/inbox": self.send(sorted(os.path.basename(f) for f in glob.glob(os.path.join(inbox_dir(), "*")) if os.path.isfile(f))); return
             ma = re.match(r"^/api/artifact/([0-9a-f]{64})$", u.path)
             if ma:
                 v = artifact_view(cx, tree_id, ma.group(1), q.get("person", [""])[0])

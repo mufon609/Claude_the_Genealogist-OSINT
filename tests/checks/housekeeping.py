@@ -37,8 +37,8 @@ def screen_links():
 
 REFUSED = ["x.ged", "ü.ged", "archive/page.html", "archive/ü/page.html", 'archive/a"b.txt', "derivatives/ü.txt", "inbox/ü.html",
            "downloads/ü.html", "catalog/tree.db", "catalog/ü.db-wal", "trees/t/imports/ü.ged", "trees/t/exports/ü.txt",
-           "catalog/tree.db.turn-state.json", "x.ged\ntests/fixtures/harness.ged"]
-ALLOWED = ["notes.txt", "ü.txt", "tests/fixtures/harness.ged", "inbox/.gitkeep", "downloads/.gitkeep"]
+           "catalog/tree.db.turn-state.json", "x.ged\ntests/fixtures/harness.ged", "inbox/.gitkeep"]
+ALLOWED = ["notes.txt", "ü.txt", "tests/fixtures/harness.ged", "downloads/.gitkeep"]
 IGNORED = ["ü.ged", "archive/page.html", ".claude/output-styles/style.md", ".claude/settings.local.json"]
 KEPT = ["tests/fixtures/harness.ged", ".claude/agents/tree-fetch.md", ".claude/skills/tree-fetch/SKILL.md"]
 
@@ -46,7 +46,7 @@ def commit_hook():
     """The commit hook refuses data by the name git stages it under, and .gitignore keeps it out of `git add`: in a throwaway
     repository holding the repo's own .gitignore, every name of REFUSED staged alone is refused by tools/hooks/pre-commit with the
     name in what it says (a letter beyond ASCII, a quote and a newline in a name among them, names git writes quoted unless
-    asked for NUL-separated), every name of ALLOWED passes (the harness's own .ged, the folders' .gitkeep), and `git add` skips
+    asked for NUL-separated, and the inbox's .gitkeep, the folder being made on first use), every name of ALLOWED passes (the harness's own .ged, the downloads folder's .gitkeep), and `git add` skips
     the IGNORED names and takes the KEPT ones."""
     hook = os.path.join(ROOT, "tools", "hooks", "pre-commit")
     d = tempfile.mkdtemp(prefix="tree-hook-"); bad = []
@@ -120,7 +120,7 @@ def older_view():
     finally: shutil.rmtree(d, ignore_errors=True)
     return bad
 
-DROPPED = [   # what the 0.8.6 migration drops, as a catalog before it held it
+DROPPED = [   # what the 0.8.6 and 0.8.7 migrations drop, as a catalog before them held it
     "CREATE TABLE artifact_page (id TEXT PRIMARY KEY, artifact_sha256 TEXT NOT NULL REFERENCES artifact(sha256), page_no INTEGER NOT NULL, width_px INTEGER, height_px INTEGER, label TEXT, UNIQUE (artifact_sha256, page_no))",
     "CREATE TABLE derivative (id TEXT PRIMARY KEY, artifact_sha256 TEXT NOT NULL REFERENCES artifact(sha256), page_id TEXT REFERENCES artifact_page(id), kind TEXT NOT NULL, path TEXT NOT NULL, generator TEXT, generated_at TEXT NOT NULL)",
     "CREATE INDEX ix_derivative_artifact ON derivative(artifact_sha256)",
@@ -129,6 +129,8 @@ DROPPED = [   # what the 0.8.6 migration drops, as a catalog before it held it
     "ALTER TABLE person ADD COLUMN private BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE note ADD COLUMN private BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE person_name ADD COLUMN surname_prefix TEXT",
+    "ALTER TABLE person_name ADD COLUMN prefix TEXT",
+    "ALTER TABLE person_name ADD COLUMN nick TEXT",
     "DROP TRIGGER trg_extraction_no_update",
     "CREATE TRIGGER trg_extraction_no_update BEFORE UPDATE OF id, artifact_sha256, page_id, extractor_id, ran_at, status, full_text, structured_json, notes ON extraction BEGIN SELECT RAISE(ABORT, 'extraction rows are immutable; re-run the extraction'); END",
     "CREATE VIRTUAL TABLE fts_extraction USING fts5(extraction_id UNINDEXED, full_text, tokenize = 'unicode61 remove_diacritics 2')",
@@ -148,7 +150,7 @@ DROPPED = [   # what the 0.8.6 migration drops, as a catalog before it held it
 ]
 
 def dropped_schema():
-    """A catalog from before 0.8.6 (the scratch catalog with what that version drops put back as it stood: DROPPED) migrates to
+    """A catalog from before 0.8.6 (the scratch catalog with what that version and 0.8.7 drop put back as it stood: DROPPED) migrates to
     the code's version: afterwards nothing of DROPPED is left, its triggers and views are the ones schema/catalog.sql and
     schema/sqlite_extras.sql define (extraction's insert-only trigger and the person vitals view among them), it passes its
     integrity and foreign key checks, and its dump loads into an empty database in one pass."""
@@ -159,7 +161,7 @@ def dropped_schema():
         columns = lambda: {(t, c) for t, in cx.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall() for c in [r[1] for r in cx.execute(f"PRAGMA table_info({t})")]}
         defined, defined_columns = schema(), columns()
         for stmt in DROPPED: cx.execute(stmt)
-        cx.execute("DELETE FROM schema_migration WHERE version='0.8.6'"); cx.commit(); cx.close()
+        cx.execute("DELETE FROM schema_migration WHERE version IN ('0.8.6','0.8.7')"); cx.commit(); cx.close()
         r = subprocess.run([sys.executable, tool("initdb.py"), "--migrate", "--db", db], capture_output=True, text=True, env=os.environ)
         if r.returncode: return [f"initdb.py --migrate on the catalog from before 0.8.6 stopped: {(r.stderr.strip().splitlines() or [''])[-1]}"]
         cx = connect(db)
@@ -263,10 +265,10 @@ def check(keep, show):
     """Each guard as one line: ok when it holds, FAIL with every reason when it does not. Returns how many failed."""
     failed = 0
     for fn, says in ((screen_links, "the person screen writes a URL into a link only through its `web` helper, which keeps a web address, escaped, and drops any other scheme"),
-                    (commit_hook, "the commit hook refuses data by the name git stages it under (a letter beyond ASCII, a quote, a newline) and passes the harness's own .ged and the .gitkeep files; .gitignore keeps every .ged but the harness's, and the owner's own .claude settings, out of `git add`"),
+                    (commit_hook, "the commit hook refuses data by the name git stages it under (a letter beyond ASCII, a quote, a newline) and passes the harness's own .ged and the downloads folder's .gitkeep; .gitignore keeps every .ged but the harness's, and the owner's own .claude settings, out of `git add`"),
                     (older_catalog, "a catalog from before the same_record, task_run and household tables migrates to the code's version: each table with its own triggers, every version recorded, integrity and foreign keys whole, a second run with nothing to apply"),
                     (older_view, "a catalog whose person vitals view is another definition gets the schema's own from the 0.8.4 migration"),
-                    (dropped_schema, "a catalog from before 0.8.6 loses what nothing reads (the full-text tables and their triggers, the page tables and columns, the private flags, the surname prefix, the vitals view's dates), its triggers and views the schema's own, whole, and its dump loads into an empty database"),
+                    (dropped_schema, "a catalog from before 0.8.6 loses what nothing reads (the full-text tables and their triggers, the page tables and columns, the private flags, the surname prefix, a name's prefix and nickname, the vitals view's dates), its triggers and views the schema's own, whole, and its dump loads into an empty database"),
                     (active_tree, "the active tree is written whole: a write that stops after its text is written leaves .active-tree naming the tree it named, with nothing of the write's beside it"),
                     (backup_bag, "a bag written while a turn commits is whole and consistent: its manifest verifies, every artifact row of its catalog dump has its object in the payload, no row of the dump names an artifact it has no row for, and the dump loads into an empty database in one pass")):
         bad = fn(); failed += bool(bad)
