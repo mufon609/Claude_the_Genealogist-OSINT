@@ -79,7 +79,8 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
   decision carried to other copies (carry) changed, each person's plan regenerated with the question it closes answered by
   the decision carried; decide_assertion, one statement decided on its own; statement_people, the people statements are about;
   link_people, everyone whose family a decision's links reach (the member and the family's partners, everyone in a family a
-  link joined someone to anew), whose plans a decision, a rejection, a key fact and a withdrawal regenerate.
+  link joined someone to anew), whose plans a decision, a rejection, a key fact, a withdrawal, a carry to another copy or a
+  new reading, the owner's word giving a copy back and a merge (merge_people) regenerate.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
   id, else its role, row and name), never to another row of the same name.
@@ -595,7 +596,8 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
     link_family, the decision's own actor and proposal), so the reading of an image with no card of its own is decided with
     the page. A link on a copy that carries the same decision follows its status; one a person or the rule decided otherwise
     on that copy is never undone, and is said so, nor is a statement of the copy whose status a person decided on its own
-    (person_decided). settle: the people whose evidence changed have their plans regenerated,
+    (person_decided). settle: the people whose evidence changed (each person a link carried to, and everyone whose family a
+    family link the carry wrote reaches, link_people) have their plans regenerated,
     their conflicts gone over by the rule and their cards matched again, as a decision does (settle_carried; decide does that
     itself, and a re-read does it once for its links and the copies' together, so each carries with settle off). Returns one
     row per link carried: tree, proposal, person, persona, copy, status, and kept for a copy decided otherwise (a row with
@@ -699,7 +701,7 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
                                     src["decided_by"],
                                     ts
                                 )
-                                link_family(
+                                members = link_family(
                                     cx,
                                     tree_id,
                                     src["person_id"],
@@ -709,6 +711,13 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
                                     src["decided_by"],
                                     ts
                                 )
+                                # everyone whose family a link the carry wrote reaches, as a decision's
+                                for who in link_people(
+                                    cx,
+                                    [(m["family"], m["person"], m["role"]) for m in members],
+                                    joined=[m["family"] for m in members if m["new"]]
+                                ):
+                                    touched.setdefault((tree_id, who), src["proposal_id"])
                             q.execute(
                                 "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                                 (
@@ -1117,11 +1126,12 @@ def place(cx, tree_id, pf_id, event_id, by, note):
         "rematched": rematched
     }
 
-def shown_married(cx, tree_id, person_id, persona_id, sha, written, canon_surname):
+def shown_married(cx, tree_id, person_id, persona_id, written, canon_surname):
     """Whether the record shows this person married under `written`'s own surname, as match.compare reads a married surname:
     a woman's only, never a person the record (the persona's sex) or the tree says is a man; then a wife under her husband's
     surname (the tree's own recorded spouse, claimed or accepted), a daughter or sister under her husband's, named beside a
-    son-in-law or brother-in-law of that surname on the same record, or written "Mrs."."""
+    son-in-law or brother-in-law of that surname on the persona's own reading of the record (never another reading of the
+    page, a superseded one among them), or written "Mrs."."""
     q = _q(cx)
     sexes = [r[0] for r in q.execute("SELECT sex FROM persona WHERE id=? UNION ALL SELECT sex FROM person WHERE id=?", (persona_id, person_id))]
     if "M" in sexes:
@@ -1139,9 +1149,7 @@ def shown_married(cx, tree_id, person_id, persona_id, sha, written, canon_surnam
     ]
     if any(same_surname(ws, s) for s in spouses):
         return True
-    eid = q.execute("SELECT extraction_id FROM persona WHERE artifact_sha256=? LIMIT 1", (sha,)).fetchone()
-    if not eid:
-        return False
+    eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()
     in_laws = [
         name
         for role, name in q.execute(
@@ -1195,7 +1203,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
         name["given"],
         name["surname"],
         name["suffix"],
-        married=shown_married(cx, tree_id, person_id, persona_id, sha, fact["value_text"], name["surname"])
+        married=shown_married(cx, tree_id, person_id, persona_id, fact["value_text"], name["surname"])
     )
     aid = ulid()
     cx.execute(
@@ -2442,8 +2450,8 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
     found for the pair: one record (same), and every decision on either carried to the other (carry); or not one record, and
     what a decision on one had carried to the other given back: the link on the copy, its statements under that decision and
     the name alias the carry wrote from its words undecided again (a statement whose status a person decided on its own,
-    person_decided, keeping it), the people's plans,
-    conflicts and cards gone over again, and the copy matched again, its entry a card
+    person_decided, keeping it), the plans, conflicts and cards gone over again of each person given back and of everyone
+    whose family a family link given back with them reaches (link_people), and the copy matched again, its entry a card
     for the owner or the rule's. a, b: (sha256, entry). Returns the rows carried, or the links given back."""
     from catalog import current_reading, record_copies
     q = _q(cx)
@@ -2482,11 +2490,19 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
                 "UPDATE person_persona SET status='undecided', decided_by=NULL, decided_at=NULL WHERE person_id=? AND persona_id=?",
                 (pp["person_id"], pp["persona_id"])
             )
-            q.execute(
-                """UPDATE assertion SET status='undecided', asserted_by=?, asserted_at=? WHERE tree_id=? AND artifact_sha256=? AND status<>'undecided' AND NOT person_decided
-                         AND json_valid(notes) AND json_extract(notes,'$.proposal')=?""",
-                (by, ts, tree_id, x[0], pp["proposal_id"])
-            )
+            given = [
+                a
+                for a, in q.execute(
+                    """SELECT id FROM assertion WHERE tree_id=? AND artifact_sha256=? AND status<>'undecided' AND NOT person_decided
+                       AND json_valid(notes) AND json_extract(notes,'$.proposal')=?""",
+                    (tree_id, x[0], pp["proposal_id"])
+                ).fetchall()
+            ]
+            if given:
+                q.execute(
+                    f"UPDATE assertion SET status='undecided', asserted_by=?, asserted_at=? WHERE id IN ({','.join('?' * len(given))})",
+                    (by, ts, *given)
+                )
             # the copy's own words for the person, which the carry made an alias under that decision, go back with it
             q.execute(
                 """UPDATE alias SET status='undecided' WHERE tree_id=? AND entity_kind='person' AND entity_id=? AND source_artifact_sha256=? AND status='accepted'
@@ -2496,7 +2512,9 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
             back.append(
                 {"person": pp["person_id"], "persona": pp["persona_id"], "proposal": pp["proposal_id"], "copy": x[0]}
             )
-            people.setdefault(pp["person_id"], pp["proposal_id"])
+            # the person given back, and everyone whose family a link given back with them reaches
+            for who in [pp["person_id"]] + link_people(cx, memberships_of(cx, given)):
+                people.setdefault(who, pp["proposal_id"])
     for pid, prop in people.items():
         answer_questions(cx, tree_id, pid, prop, by)
     settle_people(cx, tree_id, by, list(people))
@@ -3856,6 +3874,13 @@ def _move_questions(q, dup_id, kept_id, prop_id, ts, moved):
         q.execute("UPDATE research_question SET subject_person_id=? WHERE id=?", (kept_id, question["id"]))
         moved["questions_moved"] += 1
 
+def merge_people(cx, kept_id, dup_fams, moved):
+    """Everyone whose family a merge changed, the kept person first: everyone in each family the duplicate's memberships moved
+    into (dup_fams, read before they moved) and in each family a fold emptied another into (folded_families), the family's
+    shape changed for each of them (link_people's joined: the kept person's spouses, children, parents and siblings there)."""
+    joined = dict.fromkeys(list(dup_fams) + [f["into_family_id"] for f in moved["folded_families"]])
+    return list(dict.fromkeys([kept_id] + link_people(cx, [], joined=joined)))
+
 def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
     """A merge made before a merge did all it does now, completed: a persona link the duplicate still holds moved or folded
     onto the kept person's (_move_links), a family membership moved or folded the same way (_move_memberships), its name
@@ -3864,9 +3889,10 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
     naming the duplicate re-pointed to the kept person (_repoint_proposals), the kept person's events folded as a merge
     folds them (fold), each folded event's participant returned to the duplicate's row (_back_to); the kept person's partner
     families with the same partners folded into the earliest (_fold_family), and that family's events folded the same way.
-    Nothing else moves, and a merge already complete changes nothing. One audit row; then the kept person's plan is
-    regenerated, the rule goes over their conflicts and their cards are matched again (settle_people). Returns what moved
-    and folded, the rule's rows on the conflicts and the cards matched again."""
+    Nothing else moves, and a merge already complete changes nothing. One audit row; then the plans of everyone whose family
+    it changed are regenerated (merge_people: the kept person and everyone in a family a membership moved into or a fold
+    emptied another into), the rule goes over their conflicts and their cards are matched again (settle_people). Returns
+    what moved and folded, the rule's rows on the conflicts and the cards matched again."""
     q = _q(cx)
     ts = now()
     moved = {
@@ -3892,6 +3918,7 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
            AND json_extract(payload_json,'$.kept_person_id')=? ORDER BY created_at DESC, id DESC""",
         (tree_id, dup_id, kept_id)
     ).fetchone()
+    dup_fams = [f for f, in q.execute("SELECT DISTINCT family_id FROM family_member WHERE person_id=?", (dup_id,)).fetchall()]
     _move_links(q, dup_id, kept_id, moved)
     _move_memberships(q, dup_id, kept_id, moved)
     _move_aliases(q, dup_id, kept_id, moved)
@@ -3925,8 +3952,10 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
             dumps({"merge_completed": kept_id, "note": note, **moved})
         )
     )
-    plan_person(cx, tree_id, kept_id, by)
-    conflicts, rematched = settle_people(cx, tree_id, by, [kept_id])
+    people = merge_people(cx, kept_id, dup_fams, moved)
+    for pid in people:
+        plan_person(cx, tree_id, pid, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
     return {
         "duplicate": dup_id,
         "kept": kept_id,
@@ -3962,9 +3991,11 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     then exactly the kept person's own family's partners is folded the same way: its children's memberships and its own
     events move to that family, its partner memberships and their assertions fold onto the kept family's own, the family's
     events that are then one event fold too, and the duplicate's family row is left emptied, with the duplicate, for the
-    audit trail (a child of both joins the kept family's own membership). Then the kept person's plan is regenerated, the
-    rule goes over their conflicts and their cards are matched again (settle_people). A pair already merged is completed
-    instead (complete_merge). Returns what moved, the rule's rows on the conflicts and the cards matched again."""
+    audit trail (a child of both joins the kept family's own membership). Then the plans of everyone whose family the merge
+    changed are regenerated (merge_people: the kept person and everyone in a family a membership moved into or a fold
+    emptied another into, so the duplicate's spouse, children and parents see the kept person in its place), the rule goes
+    over their conflicts and their cards are matched again (settle_people). A pair already merged is completed instead
+    (complete_merge). Returns what moved, the rule's rows on the conflicts and the cards matched again."""
     q = _q(cx)
     dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
     kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
@@ -4008,6 +4039,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         "folded_families": []
     }
 
+    dup_fams = [f for f, in q.execute("SELECT DISTINCT family_id FROM family_member WHERE person_id=?", (dup_id,)).fetchall()]
     _move_links(q, dup_id, kept_id, moved)
 
     for ep_id, eid, role, fam in q.execute(
@@ -4130,8 +4162,10 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
             dumps({"merged_into": kept_id, "proposal": prop_id, "note": note, **moved})
         )
     )
-    plan_person(cx, tree_id, kept_id, by)
-    conflicts, rematched = settle_people(cx, tree_id, by, [kept_id])
+    people = merge_people(cx, kept_id, dup_fams, moved)
+    for pid in people:
+        plan_person(cx, tree_id, pid, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
     return {"proposal": prop_id, "duplicate": dup_id, "kept": kept_id, **moved, "conflicts": conflicts, "rematched": rematched}
 
 # a conflict line's own opening: the event type, lowercased, and the axis (Catalog.disagreements)

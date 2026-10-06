@@ -1,0 +1,59 @@
+{
+ "title": "a carry or a give-back regenerates the plans of everyone its links reach",
+ "line": "John Y Davidson's death certificate decided on FamilySearch's page of it, him by the owner and his mother Ellen on it, which writes his membership of his parents' family; the certificate's image, read by the model, takes both decisions as a copy of the record, and the carry writes the same membership from the image: inside the reading the plan of his father John Young Davidson, the family's other partner and neither end of the link, is regenerated with theirs; the owner's word that the image is another record gives the link back, and his plan is regenerated in that word too",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "FamilySearch's page of his death certificate, matched for him and his mother",
+   "archive": {"fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html", "source": "D03", "collection": "Kentucky, Deaths, 1911-1967", "locator": {"kind": "apid", "value": "1,3077::604036"}, "extract": true, "match": ["I332737204849", "I332737209655"]},
+   "as": "page"
+  },
+  {
+   "say": "the owner accepts him on it",
+   "decide": {"card": {"record": "page", "person": "I332737204849"}, "status": "accepted"}
+  },
+  {
+   "say": "and his mother: her decision writes his membership of his parents' family",
+   "decide": {"card": {"record": "page", "person": "I332737209655"}, "status": "accepted"},
+   "expect": [
+    {"states": {"record": "page", "person": "I332737204849", "kind": "family_member", "is": {"some": {"status": "accepted"}}}},
+    {"audit": {"entity": "search_plan", "person": "I332737209721", "is": {"len": 2}}, "why": "his plan as her decision left it: the decision itself reaches him, the family's other partner"}
+   ]
+  },
+  {
+   "say": "the certificate's image, archived under the same citation",
+   "seed": {"fixture": "familysearch-kentucky-death-records-1946-N983-M2R.jpg", "source": "D03", "collection": "Kentucky, U.S., Death Index, 1911-2000", "mime": "image/jpeg", "locator": {"kind": "apid", "value": "1,3077::604036"}},
+   "as": "image"
+  },
+  {
+   "say": "the model reads the deceased from the image, typed by the harness from its own words: John Young Davidson, 71, died the 11th day of June 1946 at Franklin, Simpson County, state file 14205",
+   "transcribe": {"record": "image", "form": {"name": "John Young Davidson", "role": "deceased", "sex": "M", "age": "71", "year": 1946, "death_date": "11 Jun 1946", "death_place": "Franklin, Simpson, Ky.", "number": "14205", "bbox": [290, 660, 1310, 32], "image_is": "record"}, "by": "llm:harness"},
+   "as": "read"
+  },
+  {
+   "say": "and his mother from line 14, her maiden name: Ellen McCreary",
+   "transcribe": {"record": "image", "form": {"name": "Ellen McCreary", "role": "mother", "sex": "F", "bbox": [290, 1207, 650, 30], "image_is": "record"}, "relations": [{"persona": "$read.persona", "kind": "parent", "text": "Mother"}], "by": "llm:harness"},
+   "expect": [
+    {"last": {"ok": true, "proposals": 0}, "why": "a copy of the record the owner decided: her entry takes her decision, no card"},
+    {"states": {"record": "image", "person": "I332737204849", "kind": "family_member", "is": [{"status": "accepted"}]}, "why": "the carry writes his membership from the image, the copy that states it"},
+    {"audit": {"entity": "search_plan", "person": "I332737209721", "is": {"len": 3}}, "why": "the link the carry wrote is a membership of his family: his plan is regenerated inside the reading, as a decision regenerates the plans of everyone its links reach, though he is neither end of it"}
+   ]
+  },
+  {
+   "say": "the owner's word: the image is not this record",
+   "copies": {"a": "image", "b": "page", "same": false, "note": "harness: the image kept apart to see what the decision carried to it given back"},
+   "expect": [
+    {"states": {"record": "image", "person": "I332737204849", "kind": "family_member", "is": [{"status": "undecided"}]}, "why": "the membership the carry wrote goes back with the decisions"},
+    {"audit": {"entity": "search_plan", "person": "I332737209721", "is": {"len": 4}}, "why": "the link given back is a membership of his family: his plan is regenerated in the owner's word"}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}, {"no_repeats": true}]
+  }
+ ]
+}

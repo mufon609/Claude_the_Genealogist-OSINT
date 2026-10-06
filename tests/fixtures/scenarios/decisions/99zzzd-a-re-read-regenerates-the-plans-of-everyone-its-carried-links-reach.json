@@ -1,0 +1,58 @@
+{
+ "title": "a re-read regenerates the plans of everyone its carried links reach",
+ "line": "John Y Davidson's 1900 household as the record parser's 0.6.0 left it in the owner's catalog, every relationship FamilySearch's own grouping: the owner accepts him and his mother Ellen on it, the grouping writing his membership of his parents' family undecided; read again by the parser as it now stands, the page states Ellan his mother, the link carried to the new reading writes his membership accepted, and inside the re-read the plan of his father John Young Davidson, the family's other partner, whom the record does not name and who is neither end of the link, is regenerated with theirs",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 Davidson household page archived as the owner's archive holds it, not read",
+   "archive": {"fixture": "familysearch-census-1900-M9HX-SWP.html", "source": "D03", "collection": "1900 United States Federal Census", "locator": {"kind": "apid", "value": "1,7602::5537739"}},
+   "as": "c1900"
+  },
+  {
+   "say": "the reading the record parser's 0.6.0 left in the owner's catalog: the household's relationships only as FamilySearch's tables group them",
+   "older_reading": {
+    "record": "c1900",
+    "extractor": {"kind": "rule", "name": "familysearch-record", "version": "0.6.0"},
+    "personas": [
+     {"name": "John Davidson", "sex": "M", "role": "head", "sequence": 1, "region": {"ark": "ark:/61903/1:1:M9HX-SWP", "label": "record"}, "facts": [{"type": "Name", "value": "John Davidson", "region": {"labels": ["Name"]}}, {"type": "Sex", "value": "Male", "region": {"labels": ["Sex"]}}, {"type": "Age", "value": "25", "region": {"labels": ["Age"]}}, {"type": "Birth", "date_text": "Apr 1875", "place": "Kentucky", "region": {"labels": ["Birth Date", "Birthplace"]}}, {"type": "Marital Status", "value": "Married", "region": {"labels": ["Marital Status"]}}, {"type": "Race", "value": "White", "region": {"labels": ["Race"]}}, {"type": "Unknown", "value": "Years Married: 4", "region": {"labels": ["Years Married"]}}, {"type": "Unknown", "value": "Father's Birthplace: South Carolina", "region": {"labels": ["Father's Birthplace"]}}, {"type": "Unknown", "value": "Mother's Birthplace: Tennessee", "region": {"labels": ["Mother's Birthplace"]}}, {"type": "Unknown", "value": "Event Place (Original): Magisterial District 2 Adairville town, ED 42, Logan, Kentucky, United States", "region": {"labels": ["Event Place (Original)"]}}, {"type": "Relationship", "value": "Head", "region": {"labels": ["Relationship to Head of Household"]}}, {"type": "Residence", "date_text": "1900", "place": "Magisterial District 2 Adairville, Logan, Kentucky, United States", "region": {"labels": ["Residence Date", "Residence Place"]}}]},
+     {"name": "Ellan E Davidson", "sex": "F", "role": "mother", "sequence": 2, "region": {"label": "John Davidson's Parents and Siblings", "url": "/ark:/61903/1:1:M9HX-SWY?lang=en"}, "facts": [{"type": "Name", "value": "Ellan E Davidson", "region": {"labels": ["Name"]}}, {"type": "Sex", "value": "F", "region": {"labels": ["Sex"]}}, {"type": "Age", "value": "65", "region": {"labels": ["Age"]}}, {"type": "Birth", "date_text": "CAL 1835", "place": "Tennessee", "region": {"labels": ["Age", "Birthplace"]}}], "relations": [{"kind": "parent", "value": "Mother", "region": {"computed": true, "label": "John Davidson's Parents and Siblings"}, "to": 1}]},
+     {"name": "Lena H Davidson", "sex": "F", "role": "wife", "sequence": 3, "region": {"label": "John Davidson's Spouses and Children", "url": "/ark:/61903/1:1:M9HX-SW5?lang=en"}, "facts": [{"type": "Name", "value": "Lena H Davidson", "region": {"labels": ["Name"]}}, {"type": "Sex", "value": "F", "region": {"labels": ["Sex"]}}, {"type": "Age", "value": "21", "region": {"labels": ["Age"]}}, {"type": "Birth", "date_text": "CAL 1879", "place": "Kentucky", "region": {"labels": ["Age", "Birthplace"]}}], "relations": [{"kind": "spouse", "value": "Wife", "region": {"computed": true, "label": "John Davidson's Spouses and Children"}, "to": 1}]},
+     {"name": "Willie R Davidson", "sex": "M", "role": "son", "sequence": 4, "region": {"label": "John Davidson's Spouses and Children", "url": "/ark:/61903/1:1:M9HX-SWT?lang=en"}, "facts": [{"type": "Name", "value": "Willie R Davidson", "region": {"labels": ["Name"]}}, {"type": "Sex", "value": "M", "region": {"labels": ["Sex"]}}, {"type": "Age", "value": "0", "region": {"labels": ["Age"]}}, {"type": "Birth", "date_text": "CAL 1900", "place": "Kentucky", "region": {"labels": ["Age", "Birthplace"]}}], "relations": [{"kind": "child", "value": "Son", "region": {"computed": true, "label": "John Davidson's Spouses and Children"}, "to": 1}]},
+     {"name": "Cassie E Davidson", "sex": "F", "role": "daughter", "sequence": 5, "region": {"label": "John Davidson's Spouses and Children", "url": "/ark:/61903/1:1:M9HX-SWR?lang=en"}, "facts": [{"type": "Name", "value": "Cassie E Davidson", "region": {"labels": ["Name"]}}, {"type": "Sex", "value": "F", "region": {"labels": ["Sex"]}}, {"type": "Age", "value": "3", "region": {"labels": ["Age"]}}, {"type": "Birth", "date_text": "CAL 1897", "place": "Kentucky", "region": {"labels": ["Age", "Birthplace"]}}], "relations": [{"kind": "child", "value": "Daughter", "region": {"computed": true, "label": "John Davidson's Spouses and Children"}, "to": 1}]}
+    ]
+   }
+  },
+  {
+   "say": "matched for him",
+   "match": {"record": "c1900", "about": ["I332737204849"]}
+  },
+  {
+   "say": "the owner accepts him",
+   "decide": {"card": {"record": "c1900", "person": "I332737204849"}, "status": "accepted"}
+  },
+  {
+   "say": "and his mother: the grouping writes his membership of his parents' family undecided",
+   "decide": {"card": {"record": "c1900", "person": "I332737209655"}, "status": "accepted"},
+   "expect": [
+    {"states": {"record": "c1900", "person": "I332737204849", "kind": "family_member", "is": [{"status": "undecided"}]}},
+    {"audit": {"entity": "search_plan", "person": "I332737209721", "is": {"len": 2}}, "why": "his plan as the decisions on the older reading left it"}
+   ]
+  },
+  {
+   "say": "the page read again by the parser as it now stands: the link carried to the new reading writes what it states",
+   "reread": {"record": "c1900"},
+   "expect": [
+    {"states": {"record": "c1900", "person": "I332737204849", "kind": "family_member", "is": {"some": {"status": "accepted"}}}, "why": "the page states Ellan the head's mother: his membership of his parents' family, accepted"},
+    {"audit": {"entity": "search_plan", "person": "I332737209721", "is": {"len": 3}}, "why": "the carried link is a membership of his family, his son's: his plan is regenerated inside the re-read, as a decision regenerates the plans of everyone its links reach, though he is neither end of the link"}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}, {"no_repeats": true}]
+  }
+ ]
+}

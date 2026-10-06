@@ -1,0 +1,55 @@
+{
+ "title": "a merge regenerates the plans of everyone in the families it joins",
+ "line": "the file's two entries for Thomas Ahearn, each Alice McGee's husband: her plan asks for the marriage record once per husband; merged, the second's family folds into the first's and inside the merge her plan asks once, never left for the next plan run; and the 1940 household's daughter, merged into its son as an older merge left her, her membership of her parents' family beside his: the merge run again folds it, and inside it her mother Helen Sara Brant's plan is regenerated with his",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Alice McGee's plan as the file leaves it: the marriage record cited for her is a step once per husband, both named Thomas Ahearn",
+   "expect": [
+    {"step": {"person": "I332737059556", "step_key": "fetch:1,2511::15589360:2", "fields": {"row_key": "marriage record:Thomas Ahearn", "status": "planned"}}}
+   ]
+  },
+  {
+   "say": "the owner merges the second entry into the first",
+   "merge": {"duplicate": "I332737068288", "kept": "I332737059537", "note": "harness: the file's two entries for one man"},
+   "expect": [
+    {"last": {"folded_families": {"len": 1}}, "why": "the second's family with her folds into the first's"},
+    {"step": {"person": "I332737059556", "step_key": "fetch:1,2511::15589360:2", "exists": false}, "why": "one husband now: her plan, regenerated inside the merge, asks for the marriage record once"},
+    {"step": {"person": "I332737059556", "step_key": "fetch:1,2511::15589360", "fields": {"status": "planned"}}}
+   ]
+  },
+  {
+   "say": "the 1940 page arrives through the inbox: a card for each of the four it names",
+   "attach": {"fixture": "familysearch-census-1940-KQX1-VT9.html"},
+   "as": "c40"
+  },
+  {
+   "say": "the rule takes the daughter's card",
+   "decide": {"card": {"record": "c40", "person": "I332737072856"}, "status": "accepted", "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"}
+  },
+  {
+   "say": "the daughter merged into the son as an older merge left it: her membership of her parents' family beside his",
+   "merge": {"duplicate": "I332737072856", "kept": "I332737036054", "note": "harness: two children of one family merged, as one child entered twice under the same parents would be", "older": true},
+   "expect": [
+    {"count": {"family_rows_of": "I332737072856", "is": 1}},
+    {"audit": {"entity": "search_plan", "person": "I332737037573", "is": {"len": 2}}, "why": "her mother's plan as the older merge left it"}
+   ]
+  },
+  {
+   "say": "the merge run again on the pair completes it",
+   "merge": {"duplicate": "I332737072856", "kept": "I332737036054"},
+   "expect": [
+    {"last": {"completed": true, "folded_memberships": [{"role": "child"}]}},
+    {"audit": {"entity": "search_plan", "person": "I332737037573", "is": {"len": 3}}, "why": "the fold changes her parents' family: her mother's plan is regenerated inside the merge, not only the kept son's"}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}, {"no_repeats": true}]
+  }
+ ]
+}

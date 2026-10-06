@@ -924,8 +924,9 @@ accepted one asserting the new facts the record gives and nothing it already
 asserted, a statement a person decided keeping the state they gave it, and the matcher
 proposes the rest again. Once for the reading, never once per persona, the
 people whose evidence it changed (each person an accepted decision carried to,
-both people of every family link that wrote, and each person a decision on
-another copy of the record reached) have their plans regenerated, a question
+everyone whose family a family link that wrote reaches, as a decision's links
+reach them, below, and the same of a decision on another copy of the record)
+have their plans regenerated, a question
 the regeneration closes answered by the decision carried to them, and the rule
 goes over their conflicts and their cards are matched again, as a decision does
 (`conclude.settle_carried`, below). The matcher is versioned
@@ -1471,7 +1472,11 @@ everyone in a family a link puts someone into anew (Annie joining Milton's
 family as Charlotte's mother gives him a spouse; Charlotte placed under him
 gives her parents); so does a rejection, a key fact or one statement decided,
 and the rule's withdrawal, for the links they turn rejected, decide or take
-back (`conclude.link_people`). An open question of
+back, a decision carried to a record's new reading or to another copy of it and
+the owner's word giving a copy back, for the links they write or give back
+(`conclude.link_people`), and a merge, for everyone in each family the
+duplicate's memberships move into or a fold empties another into (the kept
+person's spouses, children, parents and siblings there). An open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the
 evidence; a `conflict` closes when it is resolved with a written reason, by a

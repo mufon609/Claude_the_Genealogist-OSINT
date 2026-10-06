@@ -179,7 +179,7 @@ import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
-from conclude import assert_facts, carry, join_copies, link_family, settle_carried
+from conclude import assert_facts, carry, join_copies, link_family, link_people, settle_carried
 from catalog import is_identity, page_entries
 from forms import census_form, form_for
 
@@ -1347,8 +1347,9 @@ def carry_links(cx, old, eid, sha, by, ts):
     row is not. An accepted link asserts the new facts and links onto the person as the decision did, a statement whose status
     a person decided on its own (assertion.person_decided) keeping it. An undecided link is not a decision, so it does not
     carry. Returns how many links were carried, and the people whose evidence the accepted ones changed, {(tree id, person
-    id): the decision's proposal}: each person an accepted link carried to, and both people of every family link it wrote
-    (conclude.settle_carried goes over them)."""
+    id): the decision's proposal}: each person an accepted link carried to, and everyone whose family a family link it wrote
+    reaches, as a decision's (conclude.link_people: the member and the family's partners, and everyone in a family it put
+    someone into anew), which conclude.settle_carried goes over."""
     n, carried, touched = 0, [], {}
     new = page_entries(cx, sha, eid)
     one_of = lambda entries, name, role: [e for e in entries if e[2] == name and e[3] == role]
@@ -1369,8 +1370,9 @@ def carry_links(cx, old, eid, sha, by, ts):
     for tree_id, person_id, pid, prop_id in carried:            # links first, so the family relations see every accepted persona
         assert_facts(cx, tree_id, person_id, pid, prop_id, by, ts)
         touched[(tree_id, person_id)] = prop_id                  # a person's own decision over another's that linked them
-        for m in link_family(cx, tree_id, person_id, pid, sha, prop_id, by, ts):
-            for who in (m["person"], m["of"]): touched.setdefault((tree_id, who), prop_id)
+        members = link_family(cx, tree_id, person_id, pid, sha, prop_id, by, ts)
+        for who in link_people(cx, [(m["family"], m["person"], m["role"]) for m in members], joined=[m["family"] for m in members if m["new"]]):
+            touched.setdefault((tree_id, who), prop_id)
     return n, touched
 
 def stale(cx):
