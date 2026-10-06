@@ -2,51 +2,23 @@
 """Create `undecided` aliases for persons from the as-written names on their accepted
 personas, and classify resolved place strings (place_string.variant_kind).
 
-usage: tools/backfill_aliases.py [--tree slug] [--dry-run]
+usage: tools/backfill_aliases.py [--tree slug] [--dry-run] [--by user:<you>]
 
-Never edits evidence. Never promotes an alias to a name. Re-runnable: existing
+Every alias, note and audit row it writes names --by as who wrote it. Never edits evidence. Never promotes an alias to a name. Re-runnable: existing
 alias rows are left alone (UNIQUE on entity/value).
 """
 import argparse, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid
-
-NICK = {"abram": "abraham", "fred": "frederick", "fredrick": "frederick", "bill": "william", "will": "william", "willie": "william",
-        "betty": "elizabeth", "bess": "elizabeth", "eliza": "elizabeth", "lizzie": "elizabeth", "peggy": "margaret", "maggie": "margaret",
-        "polly": "mary", "molly": "mary", "sally": "sarah", "jack": "john", "jim": "james", "jimmy": "james", "patsy": "martha",
-        "patty": "martha", "nancy": "ann", "annie": "ann", "anna": "ann", "kate": "catherine", "katie": "catherine", "cathy": "catherine",
-        "catharine": "catherine", "harry": "henry", "hank": "henry", "ned": "edward", "ted": "edward", "dick": "richard",
-        "bob": "robert", "rob": "robert", "tom": "thomas", "dave": "david", "chris": "christopher", "matt": "matthew",
-        "mattie": "martha", "hattie": "harriet", "mike": "michael", "pat": "patrick", "jenny": "jane", "jennie": "jane"}
-
-def soundex(s):
-    s = re.sub(r"[^a-z]", "", s.lower())
-    if not s: return ""
-    codes = {**dict.fromkeys("bfpv", "1"), **dict.fromkeys("cgjkqsxz", "2"), **dict.fromkeys("dt", "3"), "l": "4", **dict.fromkeys("mn", "5"), "r": "6"}
-    out, last = s[0].upper(), codes.get(s[0], "")
-    for ch in s[1:]:
-        c = codes.get(ch, "")
-        if c and c != last: out += c
-        if ch not in "hw": last = c
-    return (out + "000")[:4]
-
-def lev(a, b):
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        cur = [i]
-        for j, cb in enumerate(b, 1):
-            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
-        prev = cur
-    return prev[-1]
+from catalog import edits, gedcom_name, short_form, soundex, split_name
 
 def clean(s): return re.sub(r"\s+", " ", re.sub(r"[^\w\s'-]", " ", (s or "").replace("/", " "))).strip()
 def key(s): return re.sub(r"[^a-z0-9 ]", "", clean(s).lower())
 
 def split_gedcom_name(v):
-    m = re.match(r"^(.*?)\s*/([^/]*)/\s*(.*)$", v or "")
-    if m: return clean(m.group(1)), clean(m.group(2)), clean(m.group(3))
-    from catalog import split_name
-    g, s, suf = split_name(clean(v)); return g or "", s or "", suf or ""
+    """(given, surname, suffix) of a name as written, cleaned: a GEDCOM NAME by its slashed surname (catalog.gedcom_name), any
+    other by catalog.split_name; "" for a part that is not there."""
+    g, s, suf = gedcom_name(v) or split_name(clean(v)); return clean(g), clean(s), clean(suf)
 
 def classify(written, given, surname, suffix, married=False):
     """Return (kind, note) for a written name that differs from the canonical given/surname/suffix. married says the record
@@ -60,15 +32,15 @@ def classify(written, given, surname, suffix, married=False):
         return "detail", f"suffix differs: '{wx}' vs '{x}'"
     if key(ws) != key(s) and ws and s:
         if married: return "married_name", f"surname {ws} vs {s}: the record shows her married"
-        if soundex(ws) == soundex(s) and lev(key(ws), key(s)) > 2: return "phonetic", f"surname {ws} ~ {s} (same Soundex)"
-        if lev(key(ws), key(s)) <= 2: return "typo", f"surname {ws} vs {s}"
+        if soundex(ws) == soundex(s) and edits(key(ws), key(s)) > 2: return "phonetic", f"surname {ws} ~ {s} (same Soundex)"
+        if edits(key(ws), key(s)) <= 2: return "typo", f"surname {ws} vs {s}"
         if key(s) in key(ws) or key(ws) in key(s): return "detail", f"surname {ws} contains/contained in {s}"
         return "unclassified", f"surname {ws} vs {s}"
     a, b = key(wg).split(), key(g).split()
     if a and b and all(len(t) == 1 for t in a) and all(t[0] == u[0] for t, u in zip(a, b)): return "abbreviation", "initials"
-    if a and b and NICK.get(a[0], a[0]) == NICK.get(b[0], b[0]) and a[0] != b[0]: return "nickname", f"{a[0]} ~ {b[0]}"
-    if lev(key(wg), key(g)) <= 2: return "typo", f"given {wg} vs {g}"
-    if a and b and a[0] != b[0] and lev(a[0], b[0]) <= 2: return "typo", f"first given {a[0]} vs {b[0]} (other tokens differ too: '{wg}' vs '{g}')"
+    if a and b and a[0] != b[0] and short_form(a[0], b[0]): return "nickname", f"{a[0]} ~ {b[0]}"
+    if edits(key(wg), key(g)) <= 2: return "typo", f"given {wg} vs {g}"
+    if a and b and a[0] != b[0] and edits(a[0], b[0]) <= 2: return "typo", f"first given {a[0]} vs {b[0]} (other tokens differ too: '{wg}' vs '{g}')"
     if a and b and (a[0] == b[0] or set(a) & set(b)): return "detail", f"given names differ in count/order: '{wg}' vs '{g}'"
     return "unclassified", f"given {wg} vs {g}"
 
@@ -105,7 +77,7 @@ def classify_place(raw, notes):
     leaf = (match.get("display_name") or "").split(",")[0].strip()
     ln = lambda s: re.sub(r"\b(county|township|twp|town of|village of|city of)\b", "", s.lower()).strip()
     if first.endswith(".") and leaf and ln(leaf).startswith(ln(first.rstrip("."))): return "abbreviation"
-    if first and leaf and ln(first) != ln(leaf) and (first in checks) and lev(ln(first), ln(leaf)) <= 3 and not re.search(r"\d", first):
+    if first and leaf and ln(first) != ln(leaf) and (first in checks) and edits(ln(first), ln(leaf)) <= 3 and not re.search(r"\d", first):
         if first.endswith(".") or len(first) <= 5: return "abbreviation"
         return "typo"
     if re.search(r"\bAllemagne\b|\bSilesa\b", raw): return "translation"
@@ -142,12 +114,12 @@ def main():
     cx = connect(a.db)
     tree_id, slug = resolve_tree(cx, a.tree)
     import collections; stats = collections.Counter(); report = []
-    ts = now(); actor = "rule:alias-backfill@0.1.0"
-    backfill_persons(cx, tree_id, actor, ts, stats, report)
-    flag_bad_canonical_names(cx, tree_id, actor, ts, stats, report)
+    ts = now()
+    backfill_persons(cx, tree_id, a.by, ts, stats, report)
+    flag_bad_canonical_names(cx, tree_id, a.by, ts, stats, report)
     backfill_places(cx, stats, report)
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
-               (ulid(), tree_id, ts, actor, "insert", "alias", "batch", dumps(dict(stats))))
+               (ulid(), tree_id, ts, a.by, "insert", "alias", "batch", dumps(dict(stats))))
     cx.rollback() if a.dry_run else cx.commit()
     for tag, a_, b_ in report: print(f"{tag:6} {a_[:70]:70} {b_[:60]}")
     print("\n" + dumps(dict(stats)))

@@ -30,7 +30,7 @@ import argparse, collections, json, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import (ROOT, DB, Node, connect, dumps, imports_dir, inbox_dir, manifest_path, now, object_path, parse_gedcom,
                      parse_gedcom_date, redistributable, resolve_tree, sha256_file, ulid)
-from catalog import fuller_date, same_event
+from catalog import fuller_date, gedcom_name, same_event
 
 EXTRACTOR = ("rule", "gedcom-ingest", "0.1.0")
 EXTRACTOR_TAG = ":".join(EXTRACTOR[:2]) + "@" + EXTRACTOR[2]   # who asserts imported claims and links personas: the extractor, not the user
@@ -326,9 +326,7 @@ class Ingest:
             given = name.val("GIVN") if name else None
             surname = name.val("SURN") if name else None
             suffix = name.val("NSFX") if name else None
-            if name and not (given or surname):
-                m = re.match(r"^(.*?)\s*/([^/]*)/\s*(.*)$", name.value or "")
-                if m: given, surname, suffix = m.group(1).strip() or None, m.group(2).strip() or None, m.group(3).strip() or None
+            if name and not (given or surname): given, surname, suffix = gedcom_name(name.value) or (given, surname, suffix)
             display = " ".join(x for x in [given, surname, suffix] if x) or name_text
             self.cx.execute("INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)",
                             (pid, self.tree_id, sex, display, self.ts, self.ts))
@@ -337,10 +335,8 @@ class Ingest:
             self.cx.execute("""INSERT INTO person_name (id,person_id,name_type,given,surname,suffix,is_primary,sort_key)
                                VALUES (?,?,?,?,?,?,?,?)""", (ulid(), pid, "birth", given, surname, suffix, True, sort_key))
             for nm in names[1:]:                               # additional NAME records -> non-primary names
-                m = re.match(r"^(.*?)\s*/([^/]*)/\s*(.*)$", nm.value or "")
-                g2, s2, x2 = (nm.val("GIVN") or (m.group(1).strip() if m else None) or None,
-                              nm.val("SURN") or (m.group(2).strip() if m else None) or None,
-                              nm.val("NSFX") or (m.group(3).strip() if m else None) or None)
+                written = gedcom_name(nm.value) or (None, None, None)
+                g2, s2, x2 = nm.val("GIVN") or written[0], nm.val("SURN") or written[1], nm.val("NSFX") or written[2]
                 ntype = {"married": "married", "aka": "aka", "birth": "birth", "immigrant": "immigrant"}.get((nm.val("TYPE") or "").lower(), "aka")
                 self.cx.execute("""INSERT INTO person_name (id,person_id,name_type,given,surname,suffix,is_primary,sort_key)
                                    VALUES (?,?,?,?,?,?,?,?)""",

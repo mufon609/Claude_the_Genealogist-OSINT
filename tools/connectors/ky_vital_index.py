@@ -31,8 +31,10 @@ Which index and which years a step asks:
     husband's).
 """
 import re, urllib.parse
+from catalog import is_suffix
 from connectors import value
 from connectors.ia import name_parts
+from treelib import year_in
 
 SOURCE = "C06"
 COLLECTION = "Kentucky, U.S., Death and Birth Indexes, 1911-1989"
@@ -63,7 +65,6 @@ DEATH_ROW = re.compile(r" {3}(?P<surname>\S.{15})(?P<given>.{11})(?P<middle>.{7}
                        r"(?P<date>\d\d/\d\d/\d{4}) (?P<vol>.{3}) {2}(?P<number>.{5}) ?/(?P<filed>\d{4})")
 BIRTH_ROW = re.compile(r"[\x00 ](?P<surname>[A-Z].{18})(?P<given>.{13})(?P<middle>.{14})(?P<date>\d\d-\d\d-\d{4}) {2}(?P<number>\d{3}-\d{5}-\d{4}) "
                        r"(?P<county>.{6}) (?P<mother_given>.{11})(?P<mother_middle>.) (?P<mother_surname>.{17})(?P<rest>.*)")
-SUFFIX = {"JR", "SR", "II", "III", "IV"}
 
 def county(code):
     """The county a five-letter code names, as "<County> County, Kentucky"; None for a blank or unknown code."""
@@ -76,9 +77,10 @@ def kentucky_county(written):
     return next((n for n in COUNTIES.values() if re.sub(r"[^A-Z]", "", n.upper()) == k), None) if k else None
 
 def surname_key(s):
-    """A surname as the index is searched by: its letters, a suffix the index writes after it (DAVIDSON JR) set aside."""
+    """A surname as the index is searched by: its letters, a suffix the index writes after it (DAVIDSON JR, catalog.is_suffix)
+    set aside."""
     words = (s or "").upper().split()
-    if len(words) > 1 and words[-1].strip(".") in SUFFIX: words = words[:-1]
+    if len(words) > 1 and is_suffix(words[-1]): words = words[:-1]
     return re.sub(r"[^A-Z]", "", " ".join(words))
 
 def rows(body):
@@ -112,10 +114,6 @@ def derivative(matched):
     reproduces byte for byte."""
     return b"".join(r["raw"] + b"\r\n" for r in matched)
 
-def year_of(v):
-    m = re.search(r"\b(1[89]\d\d|20\d\d)\b", str(v or ""))
-    return int(m.group(1)) if m else None
-
 def index_of(fields):
     """("death" | "birth", None), or (None, what the connector wants): a citation names its index in its collection; a search
     step's year equal to its birth year is the birth row's, any other year the death row's."""
@@ -124,7 +122,7 @@ def index_of(fields):
         if "kentucky" in coll and "death index" in coll: return "death", None
         if "kentucky" in coll and "birth index" in coll: return "birth", None
         return None, "a citation of the Kentucky death or birth index: these files are those indexes alone"
-    year, birth = year_of(value(fields, "year")), year_of(value(fields, "birth_year"))
+    year, birth = year_in(value(fields, "year")), year_in(value(fields, "birth_year"))
     if not year: return None, "the year of the death or birth: the index is one file per year"
     return ("birth" if birth == year else "death"), None
 
@@ -138,11 +136,11 @@ def asked(fields):
     given, surname = name_parts(fields)
     if not surname: return None, "a surname"
     if fetch:
-        y = year_of(value(fields, "year")) or next((year_of(value(fields, k)) for k in ("date", "death date", "birth date", "event date") if year_of(value(fields, k))), None)
+        y = year_in(value(fields, "year")) or next((year_in(value(fields, k)) for k in ("date", "death date", "birth date", "event date") if year_in(value(fields, k))), None)
         if not y: return None, f"the year of the {index}: the citation names none, and the index is one file per year"
         years = [y]
     else:
-        y = year_of(value(fields, "year")); basis = (fields.get("year") or {}).get("basis") if isinstance(fields.get("year"), dict) else None
+        y = year_in(value(fields, "year")); basis = (fields.get("year") or {}).get("basis") if isinstance(fields.get("year"), dict) else None
         years = [y] if basis == "accepted" else [y - 1, y, y + 1]
     years = [y for y in years if YEARS[0] <= y <= YEARS[1]]
     if not years: return None, f"a year the index covers ({YEARS[0]}-{YEARS[1]})"

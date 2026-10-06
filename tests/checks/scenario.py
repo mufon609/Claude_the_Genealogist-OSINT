@@ -264,6 +264,11 @@ def a_sync_sources(w, x):
     w.cx.commit()
     return {"printed": run(tool("initdb.py"), "--db", w.db, "--sync-sources").strip()}
 
+def a_backfill(w, x):
+    """tools/backfill_aliases.py on the scenario's tree, run as the harness session (BY): its printed lines."""
+    w.cx.commit()
+    return {"printed": run(tool("backfill_aliases.py"), "--db", w.db, "--tree", w.slug, "--by", BY)}
+
 def a_proof(w, x):
     """tools/proof.py's written conclusion for a person (proof.build, one fact when `fact` names it): its whole, each fact
     also under `fact.<name>`, and the text it prints."""
@@ -844,7 +849,7 @@ def a_question(w, x):
     w.cx.commit()
     return {"question": qid}
 
-ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "proof": a_proof, "dismiss": a_dismiss, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
+ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "backfill": a_backfill, "proof": a_proof, "dismiss": a_dismiss, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect, "block_filing": a_block_filing, "attach_inbox": a_attach_inbox,
            "question": a_question, "post": a_post,

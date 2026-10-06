@@ -1,6 +1,8 @@
 """Read-only access to a tree's people, events, places, citations and families.
 
-Shared by every tool and by the person screen. Nothing here writes.
+Shared by every tool and by the person screen. Nothing here writes. The name rules every tool reads a name by live here and
+nowhere else: a name's parts (name_tokens, split_name, split_persona_name, name_words, gedcom_name), its titles, suffixes and
+short forms (PREFIX, SUFFIX, NICKNAMES), Soundex, edit distance and the surname rule.
 """
 import calendar, collections, csv, dataclasses, datetime, json, os, re, sqlite3, sys, unicodedata, urllib.parse
 
@@ -35,21 +37,77 @@ US_NAMES = {"united states","usa","united states of america","us","british colon
 
 def year(s): return int(s[:4]) if s and s[:4].isdigit() else None
 
-SUFFIX = {"jr", "sr", "ii", "iii", "iv", "esq"}
+# ---------------------------------------------------------------- a name as written, read into its parts
+SUFFIX = {"jr", "sr", "ii", "iii", "iv", "esq"}          # written after a surname, never the surname
+PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt",
+          "cpl", "pfc", "cmdr", "adm"}                    # a title written ahead of a name, never a given name
+NICKNAMES = [                                             # a given name's common short forms, each group one name (docs/RESEARCH-WORKFLOW.md \u00a75\u20137)
+    {"william", "willie", "will", "bill", "billy"}, {"charles", "charley", "charlie", "chas"}, {"robert", "bob", "bobby", "rob"},
+    {"john", "johnny", "jno", "jack"}, {"james", "jim", "jimmy", "jas"}, {"joseph", "joe", "jos"}, {"thomas", "tom", "thos"},
+    {"richard", "dick"}, {"edward", "ed", "eddie", "ned", "ted"}, {"frederick", "fredrick", "fred", "freddie"}, {"raymond", "ray"},
+    {"daniel", "dan", "danny"}, {"benjamin", "ben"}, {"samuel", "sam"}, {"henry", "harry", "hank"}, {"david", "dave"}, {"michael", "mike"},
+    {"elizabeth", "eliza", "lizzie", "betty", "beth", "bess", "bessie"}, {"margaret", "maggie", "peggy", "madge"},
+    {"mary", "mamie", "polly", "molly", "mae", "may"}, {"catherine", "catharine", "katherine", "kathryn", "kate", "katie", "cathy"},
+    {"ann", "anna", "annie", "nancy"}, {"sarah", "sallie", "sally"}, {"jane", "jennie", "jenny"}, {"harriet", "hattie"},
+    {"lura", "lou", "laura"}, {"corinne", "carinne", "corrine"}, {"helen", "nellie", "ellen"}, {"susan", "susanna", "susannah", "sue", "susie"},
+    {"minerva", "minnie"}, {"matthew", "matt"}, {"patrick", "pat", "paddy"}, {"abraham", "abram", "abe"},
+    {"christian", "chris", "christ", "christopher"}, {"adeline", "addie"}, {"charlotte", "lottie"}, {"emily", "emma"},
+    {"martha", "mattie", "patsy", "patty"}, {"cassandra", "cassie"}, {"ollie", "oli", "oliver", "olive"}
+]
+QUOTED = re.compile(r"[\u201c\"][^\u201d\"]*[\u201d\"]|(?<!\w)'[^']+'(?!\w)")   # a nickname written in quotes inside a name: John "Jack" Doe
 
-def split_name(text):
-    """(given names, surname, suffix) from a name as written: "John Alan Doe Jr" is given "John Alan",
-    surname "Doe", suffix "Jr"; "Doe, John A" (surname first, as an index writes it) the same way round. None for a
-    part that is not there."""
-    t = re.sub(r"[\u201c\u201d\"']", " ", text or "").strip()
+def name_tokens(text):
+    """A name's words as written, the right way round: quotation marks taken off (an apostrophe inside a word is the name's own,
+    O'Connell, Rob't), and a surname written first, as an index writes it ("Doe, John A"), put last."""
+    t = re.sub(r"[\u201c\u201d\"]|(?<!\w)'|'(?!\w)", " ", text or "").strip()
     m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", t)
     if m: t = f"{m.group(2)} {m.group(1)}"
-    parts = [p for p in t.replace(",", " ").split() if p]
+    return [p for p in t.replace(",", " ").split() if p]
+
+def is_suffix(word):
+    """Whether a word written after a surname is a suffix (SUFFIX: Jr, Sr, III), in any case, with or without its periods."""
+    return key(word) in SUFFIX
+
+def split_name(text):
+    """(given names, surname, suffix) from a name as written (name_tokens): "John Alan Doe Jr" is given "John Alan",
+    surname "Doe", suffix "Jr" (SUFFIX); "Doe, John A" (surname first, as an index writes it) the same way round. None for a
+    part that is not there."""
+    parts = name_tokens(text)
     suffix = None
-    if len(parts) > 1 and parts[-1].strip(".").lower() in SUFFIX: suffix = parts.pop()
+    if len(parts) > 1 and is_suffix(parts[-1]): suffix = parts.pop()
     if not parts: return None, None, suffix
     if len(parts) == 1: return parts[0], None, suffix
     return " ".join(parts[:-1]), parts[-1], suffix
+
+def gedcom_name(value):
+    """(given, surname, suffix) of a GEDCOM NAME written with its surname between slashes ("John Alan /Doe/ Jr"), each stripped
+    and None when empty; None for a value with no slashed surname."""
+    m = re.match(r"^(.*?)\s*/([^/]*)/\s*(.*)$", value or "")
+    return tuple(g.strip() or None for g in m.groups()) if m else None
+
+def name_words(text, quoted=False):
+    """The keys of a name's words in order, the right way round (name_tokens), a leading title (PREFIX: Dr, Maj) and a trailing
+    suffix (SUFFIX: Jr, III) dropped; a nickname in quotes left out, or with quoted kept as one more word."""
+    words = [key(p) for p in name_tokens(text if quoted else QUOTED.sub(" ", text or "")) if key(p)]
+    while words and words[0] in PREFIX: words.pop(0)
+    while len(words) > 1 and is_suffix(words[-1]): words.pop()
+    return words
+
+def split_persona_name(text):
+    """(the first given name's key, [the key of every later word]) of a name as written (name_words, a nickname in quotes kept
+    as one more word), an initial never among the later words: a memorial writes a woman's name with her birth surname inside
+    it (Jane Ann Roe Doe), so any word after the given name may be the surname the tree knows."""
+    words = name_words(text, quoted=True)
+    return (words[0] if words else "", [w for w in words[1:] if len(w) > 1])
+
+def first_given(s):
+    """The key of the first word of given names as the tree, a record or a search writes them; "" for none."""
+    words = str(s or "").split()
+    return key(words[0]) if words else ""
+
+def short_form(a, b):
+    """Whether two given-name keys are one name through its common short forms (NICKNAMES): Willie for William."""
+    return any(a in g and b in g for g in NICKNAMES)
 
 def holders():
     """Free holders of the Ancestry collections the tree cites (data/holders.csv): {dbid: [row, ...]}, first row preferred."""
@@ -136,25 +194,19 @@ def same_surname(a, b):
     if len(a) >= 5 and len(b) >= 5 and a[0] == b[0] and edits(a, b) == 1: return "one letter apart"
     return ""
 
-def name_parts(text):
-    """(the first given name's key, the keys of every later word) of a name as written, a title (Mr, Mrs, Dr) dropped; any later
-    word may be the surname (a memorial writes a married woman's birth surname inside her name)."""
-    parts = [key(x) for x in re.sub(r"^(mr|mrs|miss|ms|dr)\.?\s+", "", (text or "").strip(), flags=re.I).split() if key(x)]
-    return (parts[0], parts[1:]) if parts else ("", [])
-
 def person_named(cx, person_id, people):
     """Whether a record that names these people names this person. Each is a name as written or (name, birth year): one of them
-    carries the person's first given name and a surname the tree holds for them, as written or as a spelling variant, or a wife's
+    (split_persona_name) carries the person's first given name and a surname the tree holds for them, as written or as a spelling variant, or a wife's
     husband's surname, and where the record and the tree both give a birth year the two lie within three years (a calculated
     year allows two; a five-year-old and her aunt of the same name are not one person)."""
-    keys = [(key((g or "").split()[0]) if g else "", key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (person_id,))]
+    keys = [(first_given(g), key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (person_id,))]
     born = next((year(r[0]) for r in cx.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
                                                    WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (person_id,))), None)
     keys += [(g, key((sp or "").split()[-1])) for g, _ in list(keys) for sp, in cx.execute("""SELECT p.display_name FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.role='partner' AND x.person_id<>fm.person_id
                                                                                                    JOIN person p ON p.id=x.person_id WHERE fm.person_id=? AND fm.role='partner'""", (person_id,)) if sp]
     for item in people:
         n, y = item if isinstance(item, tuple) else (item, None)
-        pg, rest = name_parts(n)
+        pg, rest = split_persona_name(n)
         if not (pg and any(pg == g and any(same_surname(t, s) for t in rest) for g, s in keys)): continue
         if y and born and abs(y - born) > 3: continue
         return True
@@ -862,13 +914,20 @@ def page_entries(cx, sha, extraction_id=None):
     return [(pid, eid, name, role, persona_key(role, seq, name, region)) for pid, eid, name, role, seq, region in
             cx.execute(f"SELECT id, extraction_id, name_text, role_in_record, sequence, region_json FROM persona WHERE {where} ORDER BY extraction_id, sequence, id", args)]
 
+def latest_reading(cx, extraction_id):
+    """The reading that took a reading's place: the extraction it is superseded by, and that one's in turn; itself when nothing
+    supersedes it."""
+    eid = extraction_id
+    while (later := cx.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()[0]): eid = later
+    return eid
+
 def current_entry(cx, persona_id):
     """The persona of the same entry (persona_key) on the current reading of its page, the reading its own extraction is in
-    turn superseded by; itself when its reading is current, None when the current reading has no persona of that entry."""
+    turn superseded by (latest_reading); itself when its reading is current, None when the current reading has no persona of
+    that entry."""
     row = cx.execute("SELECT extraction_id, artifact_sha256, role_in_record, sequence, name_text, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
     if not row: return None
-    eid = row[0]
-    while (later := cx.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()[0]): eid = later
+    eid = latest_reading(cx, row[0])
     if eid == row[0]: return persona_id
     k = persona_key(row[2], row[3], row[4], row[5])
     return next((pid for pid, _, _, _, key in page_entries(cx, row[1], eid) if key == k), None)

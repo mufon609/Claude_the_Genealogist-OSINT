@@ -274,7 +274,8 @@ line; `{"reset_to": version}` first forgets every later version's own row, since
 migration already recorded applied, so a correction is met the way an older catalog upgraded through it would;
 `"refused": true` when the correction refusing is the outcome expected, what it printed coming back as `refused`),
 `sync_sources` (`tools/initdb.py --sync-sources` on the scratch catalog itself: the registry's rows and every
-collection's tier, its printed line), `proof` (`tools/proof.py`'s summary of a `person`, one `fact` when named: its
+collection's tier, its printed line), `backfill` (`tools/backfill_aliases.py` on the scenario's tree as the harness session,
+its printed lines), `proof` (`tools/proof.py`'s summary of a `person`, one `fact` when named: its
 whole, each fact also under `fact.<name>`, and its `text`), `dismiss` (a person's one open question of `kind`, a conflict when none is
 named, whose detail carries `detail_has`, closed by the owner through `tools/log_search.py --dismiss` with a `note`; a refusal comes back
 as `error`), `post` (a POST handed to the person screen's own handler with no socket, or a GET when `method` says so: `path`, its parts joined, a part a string or

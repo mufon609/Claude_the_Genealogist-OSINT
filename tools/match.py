@@ -93,25 +93,28 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, ulid
 from catalog import (
     COUNTRY,
-    SUFFIX,
     Catalog,
     Finding,
     cited_persons,
     collection_state,
     date_verdict,
     edits,
+    first_given,
     holds,
     key,
+    name_words,
     note,
     place_verdict,
     same_surname,
+    short_form,
     soundex,
+    split_persona_name,
     year
 )
 from log_search import REOPENED
 
 # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
-MATCHER = ("rule", "matcher", "0.9.0")
+MATCHER = ("rule", "matcher", "0.10.0")
 # the matcher's own window on a birth year, in years: the fitting check's reach, and beyond it no likely identity
 WINDOW = 3
 # extractor name -> the page's own subject role; every other persona on such an extraction is a relative the page merely lists, a lead (tools/plan.py), never a card
@@ -130,79 +133,14 @@ UNFITTING = ("sex", "middle name", "birth date", "death date", "burial place", "
 # an agreement on one of these is more than a name and a year
 STRONG = ("death date", "birth place", "burial place", "death place", "residence place")
 
-PREFIX = {
-    "dr",
-    "mr",
-    "mrs",
-    "ms",
-    "miss",
-    "rev",
-    "fr",
-    "sr",
-    "hon",
-    "prof",
-    "judge",
-    "maj",
-    "capt",
-    "cpt",
-    "col",
-    "gen",
-    "lt",
-    "sgt",
-    "pvt",
-    "cpl",
-    "pfc",
-    "cmdr",
-    "adm"
-}
-def first_given(s):
-    return key((s or "").split()[0]) if (s or "").strip() else ""
-NICK = [
-    {"william", "willie", "will", "bill", "billy"},
-    {"charles", "charley", "charlie", "chas"},
-    {"robert", "bob", "bobby", "rob"},
-    {"john", "johnny", "jno", "jack"},
-    {"james", "jim", "jimmy", "jas"},
-    {"joseph", "joe", "jos"},
-    {"thomas", "tom", "thos"},
-    {"richard", "dick"},
-    {"edward", "ed", "eddie", "ned"},
-    {"frederick", "fred", "freddie"},
-    {"raymond", "ray"},
-    {"daniel", "dan", "danny"},
-    {"benjamin", "ben"},
-    {"samuel", "sam"},
-    {"elizabeth", "eliza", "lizzie", "betty", "beth", "bess", "bessie"},
-    {"margaret", "maggie", "peggy", "madge"},
-    {"mary", "mamie", "polly", "mae", "may"},
-    {"catherine", "katherine", "kate", "katie", "kathryn"},
-    {"ann", "anna", "annie", "nancy"},
-    {"sarah", "sallie", "sally"},
-    {"jane", "jennie", "jenny"},
-    {"lura", "lou", "laura"},
-    {"corinne", "carinne", "corrine"},
-    {"helen", "nellie", "ellen"},
-    {"susan", "susanna", "susannah", "sue", "susie"},
-    {"minerva", "minnie"},
-    {"matthew", "matt"},
-    {"patrick", "pat", "paddy"},
-    {"abraham", "abram", "abe"},
-    {"christian", "chris", "christ", "christopher"},
-    {"adeline", "addie"},
-    {"charlotte", "lottie"},
-    {"emily", "emma"},
-    {"martha", "mattie", "patsy"},
-    {"cassandra", "cassie"},
-    {"ollie", "oli", "oliver", "olive"}
-]
 def same_given(a, b):
-    """Two given-name keys are the same name: equal, one an initial of the other, a nickname of the other, or one letter apart when
-    both are five letters or longer (a transcriber's slip)."""
+    """Two given-name keys are the same name: equal, one an initial of the other, a short form of the other (catalog.short_form),
+    or one letter apart when both are five letters or longer (a transcriber's slip)."""
     if not a or not b:
         return False
     if a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b)):
         return True
-    if any(a in g and b in g for g in NICK):
+    if short_form(a, b):
         return True
     if min(len(a), len(b)) >= 5 and abs(len(a) - len(b)) <= 1:
         if len(a) == len(b):
@@ -221,21 +159,6 @@ def name_keys(cat, pid):
         if len(parts) >= 2:
             keys.add((first_given(parts[0]), key(parts[-1])))
     return keys
-
-def name_words(text):
-    """The keys of a name's words in order, the right way round: a nickname in quotes left out, a surname written first
-    (Doe, John A.) put last, a leading prefix (Dr, Maj) and a trailing suffix (Jr, III) dropped."""
-    t = re.sub(r"[“\"][^”\"]*[”\"]|(?<!\w)'[^']+'(?!\w)", " ", text or "")
-    t = re.sub(r"[“”\"']", " ", t).strip()
-    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", t)
-    if m:
-        t = f"{m.group(2)} {m.group(1)}"
-    words = [key(p) for p in t.replace(",", " ").split() if key(p)]
-    while words and words[0] in PREFIX:
-        words.pop(0)
-    while len(words) > 1 and words[-1] in SUFFIX:
-        words.pop()
-    return words
 
 def same_middle(a, b):
     """Two middle-name keys are one name: one an initial of the other, the same name or a short form (same_given), or a
@@ -265,23 +188,6 @@ def middle_differs(written, names, surnames):
     if any(same_middle(m, x) for m in mine for t in theirs for x in t):
         return None
     return mine[0], theirs[0][0]
-
-def split_persona_name(name_text):
-    """(first given name key, [every later token's key]) with a leading prefix (Dr, Maj) dropped and quotes gone: a memorial writes a
-    woman's name with her birth surname inside it (Jane Ann Roe Doe), so any token after the given name may be the surname
-    the tree knows, and a nickname in quotes is one more token."""
-    text = re.sub(r"[\u201c\u201d\"']", " ", name_text or "").strip()
-    m = re.match(r"^([^,\s]+)\s*,\s*(.+)$", text)                   # a census writes the surname first: "Doe, John A."
-    if m:
-        text = f"{m.group(2)} {m.group(1)}"
-    parts = [p for p in text.replace(",", " ").split() if key(p)]
-    while parts and key(parts[0]) in PREFIX:
-        parts.pop(0)
-    # Jr, Sr, III are not a surname
-    while len(parts) > 1 and parts[-1].strip(".").lower() in SUFFIX:
-        parts.pop()
-    # an initial is not a surname
-    return (first_given(parts[0]) if parts else "", [key(p) for p in parts[1:] if len(key(p)) > 1])
 
 def compare(cat, persona, cand, chosen, birth_place=True):
     """Agreements, disagreements and absences between a persona and a candidate person, as findings (catalog.Finding, in

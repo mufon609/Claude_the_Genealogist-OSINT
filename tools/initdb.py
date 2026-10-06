@@ -16,12 +16,9 @@ version, one column or index at a time, and runs any one-time data correction a
 later version needs (a row-by-row fix of what an older version wrote, never a decision); each schema
 version this catalog lacks runs once and is recorded in schema_migration. Stdlib only.
 """
-import argparse, csv, datetime as dt, json, os, sqlite3, sys, time
+import argparse, csv, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, SCHEMA_VERSION, archive_dir, in_data_root
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+from treelib import DB, ROOT, SCHEMA_VERSION, archive_dir, in_data_root, now, ulid, ulid_time
 
 def requery_questions(cx: sqlite3.Connection) -> None:
     """Every research_question row's key recomputed from its own detail_json with plan.q_key, open and closed alike: the
@@ -202,10 +199,6 @@ def person_decisions(cx: sqlite3.Connection) -> list:
     at its writing. A person is user:<name> or agent:<session> for user:<name>."""
     from facts import fact_subjects
     person = lambda actor: actor.startswith("user:") or (actor.startswith("agent:") and " for user:" in actor)
-    def born(ulid_):                                                  # when a statement was written, from its own id
-        ms = 0
-        for ch in ulid_[:10]: ms = ms * 32 + _B32.index(ch)
-        return dt.datetime.fromtimestamp(ms / 1000, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     out = []
     for r in cx.execute("SELECT actor, at, entity_id, diff_json FROM audit_log WHERE entity_kind='person' ORDER BY id").fetchall():
         actor, at, pid, d = r[0], r[1], r[2], json.loads(r[3] or "{}")
@@ -214,7 +207,7 @@ def person_decisions(cx: sqlite3.Connection) -> list:
             if d.get("vouched"): out += [(a, d["status"], actor, at, "fact") for a in d["vouched"]]; continue
             for kind, sid in fact_subjects(cx, pid, d["fact"]):
                 for a, status, by, by_at in cx.execute("SELECT id, status, asserted_by, asserted_at FROM assertion WHERE subject_kind=? AND subject_id=?", (kind, sid)).fetchall():
-                    if (by, by_at) == (actor, at) or (born(a) <= at and (d["status"] != "accepted" or (status == "accepted" and by_at < at))): out.append((a, d["status"], actor, at, "fact"))
+                    if (by, by_at) == (actor, at) or (ulid_time(a) <= at and (d["status"] != "accepted" or (status == "accepted" and by_at < at))): out.append((a, d["status"], actor, at, "fact"))
         out += [(a, "undecided", actor, at, "set back") for a in d.get("set_back", [])] + [(a, "accepted", actor, at, "restored") for a in d.get("restored", [])]
     for actor, at, a, d in cx.execute("SELECT actor, at, entity_id, diff_json FROM audit_log WHERE entity_kind='assertion' AND json_valid(diff_json) AND json_extract(diff_json,'$.now') IS NOT NULL ORDER BY id").fetchall():
         if person(actor): out.append((a, json.loads(d)["now"], actor, at, "assertion"))
@@ -350,17 +343,6 @@ def migrate(cx: sqlite3.Connection) -> list:
         cx.execute("INSERT INTO schema_migration (version, applied_at, notes) VALUES (?,?,?)", (version, now(), note))
         applied.append(version)
     return applied
-
-def ulid() -> str:
-    """Crockford-base32 ULID: 48-bit ms timestamp + 80 random bits."""
-    n = (int(time.time() * 1000) << 80) | int.from_bytes(os.urandom(10), "big")
-    out = []
-    for _ in range(26):
-        out.append(_B32[n & 31]); n >>= 5
-    return "".join(reversed(out))
-
-def now() -> str:
-    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 def read(rel: str) -> str:
     with open(os.path.join(ROOT, rel), encoding="utf-8") as fh:

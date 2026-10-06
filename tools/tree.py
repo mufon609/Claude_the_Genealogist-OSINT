@@ -11,7 +11,7 @@
 import argparse, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from catalog import Catalog
-from treelib import ACTIVE_TREE_FILE, DB, ROOT, active_tree_slug, connect, dumps, exports_dir, imports_dir, now, tree_dir, ulid
+from treelib import ACTIVE_TREE_FILE, DB, ROOT, active_tree_slug, connect, dumps, exports_dir, imports_dir, now, tree_dir, ulid, write_text_whole
 
 def cmd_create(cx, a):
     if cx.execute("SELECT 1 FROM tree WHERE slug=?", (a.slug,)).fetchone():
@@ -46,12 +46,7 @@ def cmd_use(cx, a):
     if not cx.execute("SELECT 1 FROM tree WHERE slug=?", (a.slug,)).fetchone():
         sys.exit(f"tree '{a.slug}' does not exist")
     os.makedirs(os.path.dirname(ACTIVE_TREE_FILE), exist_ok=True)
-    tmp = f"{ACTIVE_TREE_FILE}.{os.getpid()}.tmp"                    # written beside the file and put in its place in one step: a stop in the middle leaves the file as it was
-    try:
-        with open(tmp, "w", encoding="utf-8") as fh: fh.write(a.slug + "\n")
-        os.replace(tmp, ACTIVE_TREE_FILE)
-    finally:
-        if os.path.exists(tmp): os.remove(tmp)
+    write_text_whole(ACTIVE_TREE_FILE, a.slug + "\n")
     print(f"active tree: {a.slug}")
 
 def cmd_show(cx, a):

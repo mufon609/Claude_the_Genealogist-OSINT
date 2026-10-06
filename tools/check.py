@@ -36,6 +36,22 @@ def rules():
     for c in R["same_surname"]:
         got = same_surname(c["record"], c["tree"])
         if got != c["verdict"]: bad.append(f"same_surname({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {c['verdict']!r}")
+    from match import same_given
+    for c in R["same_given"]:
+        got = same_given(c["a"], c["b"])
+        if got != c["same"]: bad.append(f"match.same_given({c['a']!r}, {c['b']!r}) gave {got!r}, expected {c['same']!r}")
+    from backfill_aliases import classify
+    for c in R["alias_kind"]:
+        got = classify(c["written"], c["given"], c["surname"], c.get("suffix"))[0]
+        if got != c["kind"]: bad.append(f"backfill_aliases.classify({c['written']!r}, {c['given']!r}, {c['surname']!r}, {c.get('suffix')!r}) gave {got!r}, expected {c['kind']!r}")
+    from catalog import gedcom_name, name_words, split_name, split_persona_name
+    for c in R["name_reading"]:
+        got = {"split_name": list(split_name(c["name"])), "persona": list(split_persona_name(c["name"])), "words": name_words(c["name"])}
+        want = {k: c[k] for k in got}
+        if got != want: bad.append(f"the name {c['name']!r} read as {got!r}, expected {want!r}")
+    for c in R["gedcom_name"]:
+        got = gedcom_name(c["value"]); got = list(got) if got else None
+        if got != c["parts"]: bad.append(f"gedcom_name({c['value']!r}) gave {got!r}, expected {c['parts']!r}")
     for c in R["holder_search"]:
         got = holder_search(c["holder"], {k: {"value": v, "basis": "citation"} for k, v in c["fields"].items()})
         if got != c["url"]: bad.append(f"holder_search({c['holder']['HolderKind']}, {c['holder']['HolderKey'][:40]!r}) gave {got!r}, expected {c['url']!r}")

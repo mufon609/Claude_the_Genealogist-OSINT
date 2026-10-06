@@ -245,10 +245,10 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/overview.py` | The tree as confirmed from the home person upward, shared by `tree.py overview` and the screen, and where the tree comes from (`origins`). |
 | `tools/check.py` | Green in one command: every tool compiles, every global name a tool reads resolves (a name another module of the repository gives is one it defines), the pure rules, every parser on its saved page and every scenario on a scratch catalog, none of them sending a request, `--scenario NAME` for one (`tests/fixtures/README.md`). |
 | `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. Every write carries an audit row under `--by`. |
-| `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen. |
+| `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen; the one home of the name rules every tool reads a name by (its parts, short forms, titles and suffixes, Soundex and edit distance). |
 | `tools/forms.py` | Read-only. The record forms (`data/record-forms.csv`, `data/DATA-SOURCES.md` §5c): the form a census of a collection and year was made on, who it names, what it states, its locators, how it bounds a household and the locator a run of lines is read by, read by the checklist, the footprint, the readers, which keep each entry's locators in its persona's `region_json`, and the household script. |
 | `tools/households.py show / write` | The households read off a census form: every current census reading's entries grouped by the form's own rule (one entry one member across its copies, a FamilySearch record one household, a run of lines on one page under its head), each member's relationship to the head as stated, what is missing named; `show` prints them as grouped now and the entries in none, `write` stores them insert-only where they changed (`docs/RESEARCH-WORKFLOW.md` §5–7, households). |
-| `tools/treelib.py` | Shared helpers: ULIDs, GEDCOM parsing (its encoding from the byte order mark and the header's `CHAR`), data paths, and `connect`. |
+| `tools/treelib.py` | Shared helpers: ULIDs, GEDCOM parsing (its encoding from the byte order mark and the header's `CHAR`), data paths, a file written whole, and `connect`. |
 
 ### How the GEDCOM ingest maps records
 

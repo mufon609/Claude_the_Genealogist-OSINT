@@ -102,7 +102,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
-from catalog import Catalog, current_entry, page_entries, persona_key, source_tier, split_name, tier_sql
+from catalog import Catalog, current_entry, latest_reading, page_entries, persona_key, source_tier, split_name, tier_sql
 from catalog import (
     MARKS,
     ONCE,
@@ -122,7 +122,8 @@ from catalog import (
     record_standing,
     relation_classes,
     same_event,
-    same_surname
+    same_surname,
+    split_persona_name
 )
 from catalog import key as surname_key
 from match import (
@@ -134,8 +135,7 @@ from match import (
     fits_by_name_and_year,
     match,
     personas_of,
-    said,
-    split_persona_name
+    said
 )
 from plan import plan_person
 from forms import census_form
@@ -2071,11 +2071,7 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     conflicts, rematched = settle_people(cx, tree_id, by, people)
     # the record's other personas come up next, against this person's relatives, on the current reading of the record
     if status == "accepted":
-        eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
-        while (
-            later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]
-        ):
-            eid = later
+        eid = latest_reading(cx, q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"])
         match_record(cx, eid, by.split(" for ", 1)[-1] if by.startswith("rule:") else by)
     return {
         "ok": True,
@@ -2606,9 +2602,7 @@ def rule_points(cx, tree_id, prop, without=()):
                      LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
     if not x:
         return False, "the record's extraction is gone", []
-    eid = pay["extraction_id"]
-    while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (eid,)).fetchone()["superseded_by"]):
-        eid = later
+    eid = latest_reading(cx, pay["extraction_id"])
     kinds, year = record_kinds(cx, sha, eid)
     standing, by_kind = record_standing(kinds)
     coll = x["read_collection"] or x["collection"] or x["name"]
@@ -3236,9 +3230,7 @@ def identity_refused(cx, tree_id, prop, without=()):
     q = _q(cx)
     pay = json.loads(prop["payload_json"])
     cat = Catalog(cx, tree_id)
-    ext = pay["extraction_id"]
-    while (later := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (ext,)).fetchone()["superseded_by"]):
-        ext = later
+    ext = latest_reading(cx, pay["extraction_id"])
     cur = current_entry(cx, pay["persona_id"])
     if not cur:
         return NO_LONGER_READ
@@ -5208,16 +5200,11 @@ def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
         pay = json.loads(p["payload_json"])
         eid = pay["extraction_id"]
         if p["superseded_by"]:
-            cur = eid
-            while (
-                nxt := q.execute("SELECT superseded_by FROM extraction WHERE id=?", (cur,)).fetchone()["superseded_by"]
-            ):
-                cur = nxt
             close(
                 p,
                 pay,
                 "written on a reading of the record that a later reading superseded: superseded, the current reading matched again",
-                cur
+                latest_reading(cx, eid)
             )
         elif p["generated_by"] != current:
             close(p, pay, f"the matcher at {p['version']} wrote it; superseded, proposed again at {MATCHER[2]}", eid)

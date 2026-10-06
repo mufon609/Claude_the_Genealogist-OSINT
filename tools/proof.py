@@ -37,9 +37,9 @@ are ordered by their class words, never scored.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
-from catalog import BOUNDS, Catalog, date_verdict, evidence_classes, key, note, place_verdict, record_of, same_surname, split_name
+from catalog import BOUNDS, Catalog, date_verdict, evidence_classes, first_given, key, name_words, note, place_verdict, record_of, same_surname, split_name, split_persona_name
 from facts import KEY_FACTS, fact_subjects
-from match import first_given, name_keys, name_words, same_given, split_persona_name
+from match import name_keys, same_given
 
 INFORMATION = ("primary", "secondary", "indeterminable", None)    # the order the classes favour a side in, best first
 SOURCE = ("original", "derivative", "authored", None)

@@ -32,6 +32,12 @@ def ulid() -> str:
         out.append(_B32[n & 31]); n >>= 5
     return "".join(reversed(out))
 
+def ulid_time(id_: str) -> str:
+    """The moment a ULID was minted, from its first ten characters (the milliseconds), written as now() writes one."""
+    ms = 0
+    for ch in id_[:10]: ms = ms * 32 + _B32.index(ch)
+    return dt.datetime.fromtimestamp(ms / 1000, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 def now() -> str:
     return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -265,17 +271,20 @@ def archive_object(cx, data: bytes, *, mime, source_id, collection_id, locator_k
     return sha, True
 
 
-def write_json_whole(path, data, **kw):
-    """The file at path holds data as JSON, whole: the text is made first (a value that cannot be written raises before the file is
-    touched) and written to a file beside it that replaces it in one step, so a stop in the middle of the write leaves the file as
-    it was and never half of the new one."""
-    text = json.dumps(data, **kw)
+def write_text_whole(path, text):
+    """The file at path holds text, whole: written to a file beside it that replaces it in one step, so a stop in the middle of the
+    write leaves the file as it was and never half of the new one."""
     tmp = f"{path}.{os.getpid()}.tmp"
     try:
         with open(tmp, "w", encoding="utf-8") as fh: fh.write(text)
         os.replace(tmp, path)
     finally:
         if os.path.exists(tmp): os.remove(tmp)
+
+def write_json_whole(path, data, **kw):
+    """The file at path holds data as JSON, whole (write_text_whole): the text is made first, so a value that cannot be written
+    raises before the file is touched."""
+    write_text_whole(path, json.dumps(data, **kw))
 
 # ---------------------------------------------------------------- trees / profiles
 ACTIVE_TREE_FILE = os.path.join(DATA_ROOT, "catalog", ".active-tree")

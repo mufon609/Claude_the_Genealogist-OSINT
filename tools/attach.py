@@ -41,7 +41,7 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 import json, mimetypes, os, re, sqlite3, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, move_free, now, object_path, ulid
-from catalog import collection_tier, dbid_of, first_value, holders, holds, name_parts, person_named, split_name
+from catalog import collection_tier, dbid_of, first_given, first_value, holders, holds, person_named, split_name, split_persona_name
 from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
@@ -118,8 +118,7 @@ def _same_search(step, qy):
     """A cemetery search step whose foundation fields, after the person's revisions, are the results page's own query: the
     surname, the first given name, and the birth and death years where both sides have them."""
     f = rendered_query(step["query_json"], step["revisions_json"]); v = lambda k: (f.get(k) or {}).get("value")
-    first = lambda s: name_key(str(s).split()[0]) if s and str(s).split() else ""
-    if name_key(v("surname")) != name_key(qy.get("lastname")) or first(v("given")) != first(qy.get("firstname")): return False
+    if name_key(v("surname")) != name_key(qy.get("lastname")) or first_given(v("given")) != first_given(qy.get("firstname")): return False
     return all(not (v(fk) and qy.get(qk)) or str(v(fk)) == str(qy[qk]) for fk, qk in (("birth_year", "birthyear"), ("death_year", "deathyear")))
 
 def _same_fs_search(cx, step, qy):
@@ -127,8 +126,7 @@ def _same_fs_search(cx, step, qy):
     page's own query: the surname, the first given name, a birth year inside the page's birth range where both have one, and for
     a census household step the collection searched being that year's census (data/holders.csv)."""
     f = rendered_query(step["query_json"], step["revisions_json"]); v = lambda k: (f.get(k) or {}).get("value")
-    first = lambda s: name_key(str(s).split()[0]) if s and str(s).split() else ""
-    if name_key(v("surname")) != name_key(qy.get("q.surname")) or first(v("given")) != first(qy.get("q.givenName")): return False
+    if name_key(v("surname")) != name_key(qy.get("q.surname")) or first_given(v("given")) != first_given(qy.get("q.givenName")): return False
     if v("birth_year") and qy.get("q.birthLikeDate.from") and qy.get("q.birthLikeDate.to"):
         if not (int(qy["q.birthLikeDate.from"]) <= int(v("birth_year")) <= int(qy["q.birthLikeDate.to"])): return False
     if v("year") and qy.get("f.collectionId"):
@@ -153,7 +151,7 @@ def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=Non
     the name the citation sits on is the name searched (the first given name and the surname, a suffix set aside through
     split_name so a citation ending "Jr", "Sr", "II"... is searched, and matched, on its own surname, never the suffix).
     Planned or done: a step found at another holder since still ran this search."""
-    pg, sn = name_key((given or "").split()[0]) if (given or "").split() else "", name_key(surname)
+    pg, sn = first_given(given), name_key(surname)
     if not sn: return []
     dbids = _held_at(holder_id, holder_key)
     if not dbids: return []
@@ -164,7 +162,7 @@ def _fetch_steps_searched(cx, tree_id, holder_id, given, surname, holder_key=Non
         q = json.loads(r["query_json"] or "{}")
         if MEMORIAL_URL.search((q.get("url") or {}).get("value") or ""): continue            # a memorial cited by its own URL is fetched as itself, never searched for
         cgiven, csurname, _ = split_name((q.get("name") or {}).get("value") or "")     # the suffix set aside; the surname is what was searched
-        cg = name_key((cgiven or "").split()[0]) if cgiven else ""
+        cg = first_given(cgiven)
         if not csurname or (cg and pg and cg != pg) or name_key(csurname) != sn: continue
         out.append(r)
     return _why(out, "the citation's own search at the holder: its name and collection")
@@ -211,7 +209,7 @@ def steps_for(cx, tree_id, kind, value, parsed=None):
         out = []
         for r in rows:
             q = json.loads(r["query_json"] or "{}"); v = lambda k: (q.get(k) or {}).get("value")
-            given = name_key((v("given") or "").split()[0]) if v("given") else ""
+            given = first_given(v("given"))
             if name_key(v("surname") or "") != words[0] or (given and len(words) > 1 and given != words[1]): continue
             if yb and v("birth_year") and int(v("birth_year")) % 100 != int(yb) % 100: continue
             out.append(r)
@@ -327,7 +325,7 @@ def _steps_by_collection(cx, tree_id, parsed):
     at, so long as the holder's collection agrees."""
     from catalog import same_surname
     fields = {k.lower(): v for k, v in parsed.get("fields") or []}
-    pg, rest = _split_name(parsed.get("name") or "")
+    pg, rest = split_persona_name(parsed.get("name") or "")
     if not pg or not rest: return []
     kind = (fields.get("event type") or "").lower()                        # the record's own event before its heading: FamilySearch mislabels a heading ("Death" over a birth)
     row = next((r for rx, r in ROW_OF if re.search(rx, kind)), None) if kind else None
@@ -342,7 +340,7 @@ def _steps_by_collection(cx, tree_id, parsed):
         if not cited and not (row and r["row_key"].startswith(row + ":")): continue
         inst = r["row_key"].split(":", 1)[1] if ":" in r["row_key"] else ""
         if year and inst.isdigit() and abs(int(inst) - year) > 2: continue      # the row's year (birth record:1932) against the record's own: a father's birth is not his son's
-        keys = {(name_key((g or "").split()[0]) if g else "", name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
+        keys = {(first_given(g), name_key(sn)) for g, sn in cx.execute("SELECT given, surname FROM person_name WHERE person_id=?", (r["person_id"],))}
         if any(g == pg and any(same_surname(t, sn) for t in rest) for g, sn in keys): out.append(r); by_coll[r["id"]] = cited   # as written, a spelling variant or an indexer's slip
     when = f", in {year}" if year else ""
     return _why(out, lambda r: f"a {record_coll} record naming {parsed.get('name')}, the citation's own collection at its holder and the person's name{when}" if by_coll[r["id"]]
@@ -384,8 +382,6 @@ def _named_on(cx, person_id, parsed):
     born = lambda age: yr - _int(age) if yr and _int(age) is not None else None
     people = [(p.get("name") or "", born(f.get("age")))] + [(m.get("name") or "", born(m.get("age"))) for m in p.get("members") or []]
     return person_named(cx, person_id, people)
-
-def _split_name(text): return name_parts(text)
 
 def _rows_of(kind, parsed):
     """A results page's rows by the record ids they carry (an ark, a memorial id, an AAD record id), in order."""

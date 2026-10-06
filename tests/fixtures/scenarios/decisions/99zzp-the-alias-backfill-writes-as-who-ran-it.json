@@ -1,0 +1,37 @@
+{
+ "title": "the alias backfill writes as who ran it",
+ "line": "tools/backfill_aliases.py records what it writes under the --by it is given, the session that ran it, never a name of its own",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562"
+ },
+ "steps": [
+  {
+   "say": "the backfill run by the harness session over the imported tree",
+   "backfill": {},
+   "expect": [
+    {
+     "audit": {
+      "entity": "alias",
+      "id": "batch",
+      "is": [
+       {
+        "actor": "agent:check",
+        "action": "insert"
+       }
+      ]
+     },
+     "why": "the batch's audit row names the session that ran the backfill, as every tool that writes records its --by"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    }
+   ]
+  }
+ ]
+}

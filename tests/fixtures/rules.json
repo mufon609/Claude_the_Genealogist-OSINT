@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, the card's Name row from the matcher's findings, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, the version a reader's model id carries, the record form a census collection and year were made on, what a federal census row settles by its form, and what the footprint expects of a relative's federal census by its form. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the given names one through a short form or not, the alias kind a written name's difference is, how a name as written is read into its parts (catalog.split_name, split_persona_name, name_words) and a GEDCOM NAME by its slashed surname, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, the card's Name row from the matcher's findings, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, the version a reader's model id carries, the record form a census collection and year were made on, what a federal census row settles by its form, and what the footprint expects of a relative's federal census by its form. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -41,6 +41,42 @@
    "tree": "ahearn",
    "verdict": ""
   }
+ ],
+ "same_given": [
+  {"a": "willie", "b": "william", "same": true},
+  {"a": "charley", "b": "charles", "same": true},
+  {"a": "fred", "b": "fredrick", "same": true},
+  {"a": "harry", "b": "henry", "same": true},
+  {"a": "hank", "b": "henry", "same": true},
+  {"a": "ted", "b": "edward", "same": true},
+  {"a": "dave", "b": "david", "same": true},
+  {"a": "mike", "b": "michael", "same": true},
+  {"a": "molly", "b": "mary", "same": true},
+  {"a": "cathy", "b": "catherine", "same": true},
+  {"a": "patty", "b": "martha", "same": true},
+  {"a": "hattie", "b": "harriet", "same": true},
+  {"a": "john", "b": "james", "same": false},
+  {"a": "j", "b": "john", "same": true}
+ ],
+ "alias_kind": [
+  {"written": "Charley Doe", "given": "Charles", "surname": "Doe", "kind": "nickname"},
+  {"written": "Harry Doe", "given": "Henry", "surname": "Doe", "kind": "nickname"},
+  {"written": "Jno Doe", "given": "John", "surname": "Doe", "kind": "nickname"},
+  {"written": "Jon Doe", "given": "John", "surname": "Doe", "kind": "typo"},
+  {"written": "John /Doe/", "given": "John", "surname": "Doe", "suffix": "Jr", "kind": "detail"}
+ ],
+ "name_reading": [
+  {"name": "Doe, John A.", "split_name": ["John A.", "Doe", null], "persona": ["john", ["doe"]], "words": ["john", "a", "doe"]},
+  {"name": "Rev. John Alan Doe Jr", "split_name": ["Rev. John Alan", "Doe", "Jr"], "persona": ["john", ["alan", "doe"]], "words": ["john", "alan", "doe"]},
+  {"name": "John \"Jack\" Doe", "split_name": ["John Jack", "Doe", null], "persona": ["john", ["jack", "doe"]], "words": ["john", "doe"]},
+  {"name": "Mrs. Jane Roe Doe", "split_name": ["Mrs. Jane Roe", "Doe", null], "persona": ["jane", ["roe", "doe"]], "words": ["jane", "roe", "doe"]},
+  {"name": "DOE JR", "split_name": ["DOE", null, "JR"], "persona": ["doe", []], "words": ["doe"]},
+  {"name": "Jane 'Jenny' O'Doe", "split_name": ["Jane Jenny", "O'Doe", null], "persona": ["jane", ["jenny", "odoe"]], "words": ["jane", "odoe"]}
+ ],
+ "gedcom_name": [
+  {"value": "John Alan /Doe/ Jr", "parts": ["John Alan", "Doe", "Jr"]},
+  {"value": "/Doe/", "parts": [null, "Doe", null]},
+  {"value": "John Doe", "parts": null}
  ],
  "holder_search": [
   {
