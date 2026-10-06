@@ -1455,7 +1455,15 @@ below), the rest left to the owner with the rule's reason. Run it
 after any change to the rule, to the matcher or to a source's tier.
 
 Every accept, of a match, a new person or a fact,
-regenerates the person's plan in the same request, and an open question of
+regenerates the person's plan in the same request, and the plans of everyone
+whose family its links change: for each membership its statements state (on
+every copy of the record), the member and the family's partners, a child's
+statement being each parent's child and a partner's the other's spouse, and
+everyone in a family a link puts someone into anew (Annie joining Milton's
+family as Charlotte's mother gives him a spouse; Charlotte placed under him
+gives her parents); so does a rejection, a key fact or one statement decided,
+and the rule's withdrawal, for the links they turn rejected, decide or take
+back (`conclude.link_people`). An open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
 regeneration closes is closed as `answered` with the proposal that brought the
 evidence; a `conflict` closes when it is resolved with a written reason, by a

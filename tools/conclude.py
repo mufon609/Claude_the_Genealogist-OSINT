@@ -77,7 +77,9 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
   plans are regenerated: the rule over those people's conflicts (rule_conflicts), then their cards matched again
   (rematch_people); settle_carried, the same once for every person a re-read's carried links (extract.carry_links) or a
   decision carried to other copies (carry) changed, each person's plan regenerated with the question it closes answered by
-  the decision carried; decide_assertion, one statement decided on its own; statement_people, the people statements are about.
+  the decision carried; decide_assertion, one statement decided on its own; statement_people, the people statements are about;
+  link_people, everyone whose family a decision's links reach (the member and the family's partners, everyone in a family a
+  link joined someone to anew), whose plans a decision, a rejection, a key fact and a withdrawal regenerate.
 - link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage.
 - same_personas: a decision, a withdrawal or a rejection applies to every reading's persona of that entry of the record (its record
   id, else its role, row and name), never to another row of the same name.
@@ -1910,8 +1912,10 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     """A decision on a proposal: is this record's persona this person (persona_match), or a person the tree does not have
     (new_person); or, on a place_resolution proposal, the owner's answer on a place card (decide_place, choice naming the
     candidate, kind how the string differs from the place's name, alone for this card's string only). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
-    family links it states with persons already matched on it accepted (link_family), the plans of the person and of the
-    person the record was fetched for regenerated and the questions that closes marked answered (the regeneration logs a
+    family links it states with persons already matched on it accepted (link_family), the plans of the person, of the
+    person the record was fetched for and of everyone whose family the decision's links changed (link_people: each
+    membership the decision's statements state, on every copy of the record, its person and the family's partners, and
+    everyone in a family a link put someone into anew) regenerated and the questions that closes marked answered (the regeneration logs a
     household record, a census page whichever way it arrived, found on the person's own step for its census year,
     plan_person through log_search.hold_household, so their row reads held and no runner searches that census again for a
     household the tree has read, the way the runner logs the household's other steps for a connector's answer); on a page
@@ -1921,8 +1925,9 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link,
     every assertion and the name alias the rule wrote turn rejected, and so does every family link the decision was one of
     the two acceptances for, written by the other's decision (links_resting_on, what a withdrawal takes back: the persona is
-    not this person, so the record states no link of theirs), and a step held by the record for this person is planned
-    again; rejecting a card whose decision the rule took back turns rejected what that decision wrote and the links its
+    not this person, so the record states no link of theirs), a step held by the record for this person is planned
+    again, and the plans are regenerated as an acceptance's are, of everyone whose family the links turned rejected changed
+    among them; rejecting a card whose decision the rule took back turns rejected what that decision wrote and the links its
     withdrawal took back the same way, and either rejection is the person's own decision on each of those statements
     (person_decided), so no later acceptance of the other card writes the link again. One the rule took back (withdraw) is
     accepted with everything it had written standing again, its name alias included, save a statement a person has decided
@@ -2007,19 +2012,17 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     # the decision is the record's: every other copy's persona of this entry takes it
     if person_id:
         carry(cx, by, pay["artifact_sha256"], trees=[tree_id], settle=False)
-    # a spouse joined on the record: the marriage it dates is now on their family too; a link taken back with a rejection,
-    # each person it joined
-    linked = [
-        json.loads(r["subject_id"])[1]
-        for r in q.execute(
-            f"SELECT subject_id FROM assertion WHERE subject_kind='family_member' AND id IN ({','.join('?' * len(links))})",
-            links
-        )
-    ] if links else []
+    # everyone whose family the decision changed: each membership its own statements state, on every copy (written now, set
+    # again or turned rejected), and each a rejection took back, with the family's partners; everyone in a family a link put
+    # someone into anew
     people = [
         pid
         for pid in dict.fromkeys(
-            [person_id, pay.get("subject_person_id")] + [m["of"] for m in members if m["role"] == "partner"] + linked
+            [person_id, pay.get("subject_person_id")] + link_people(
+                cx,
+                decision_memberships(cx, tree_id, prop_id) + memberships_of(cx, links),
+                joined=dict.fromkeys(m["family"] for m in members if m["new"])
+            )
         )
         if pid
     ]
@@ -5020,7 +5023,8 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
     later makes them Accepted again), and every family link the decision was one of the two acceptances for, written by the
     other's decision, with the family facts written with a spouse link (links_resting_on: accepting either card again
     writes it again); the questions the decision answered are closed as gap_gone so the plan reopens the ones whose gap is
-    back, the plans of everyone whose links changed are regenerated, and the audit row says why. The record is a card for
+    back, the plans of the person, of the person the record was fetched for and of everyone whose family the links taken
+    back reach (link_people) are regenerated, and the audit row says why. The record is a card for
     the owner again. Returns how many assertions were taken back."""
     q = _q(cx)
     p = q.execute(
@@ -5031,17 +5035,8 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
         raise ValueError("not a decision the rule made")
     pay = json.loads(p["payload_json"])
     links = links_resting_on(cx, tree_id, prop_id)
-    linked = (
-        [
-            json.loads(r["subject_id"])[1]
-            for r in q.execute(
-                f"SELECT subject_id FROM assertion WHERE subject_kind='family_member' AND id IN ({','.join('?' * len(links))})",
-                links
-            )
-        ]
-        if links
-        else []
-    )
+    # everyone whose family the links taken back reach: the decision's own and those it was one of the two acceptances for
+    linked = link_people(cx, decision_memberships(cx, tree_id, prop_id) + memberships_of(cx, links))
     n = q.execute(
         """UPDATE assertion SET status='undecided', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='accepted' AND NOT person_decided
                      AND json_valid(notes) AND json_extract(notes,'$.proposal')=?""", (by, ts, tree_id, prop_id)
@@ -5306,9 +5301,45 @@ def settle_people(cx, tree_id, by, people):
     conflicts = rule_conflicts(cx, tree_id, by, people=people)
     return conflicts, rematch_people(cx, tree_id, by, people)
 
+def link_people(cx, links, joined=()):
+    """Everyone whose family a change to these memberships reaches, each once: for each membership (family id, person id,
+    role) a decision wrote, decided or took back, its person and every partner of its family (a child's membership is each
+    parent's child, a partner's the other partner's spouse); and everyone in each family of joined, one the decision put
+    someone into anew (a partner joining a family that holds children, a child joining a couple), the family's shape changed
+    for each of them."""
+    q = _q(cx)
+    out = []
+    for fid, who, role in links:
+        out += [who] + [r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,))]
+    for fid in joined:
+        out += [r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=?", (fid,))]
+    return list(dict.fromkeys(out))
+
+def memberships_of(cx, ids):
+    """The memberships (family id, person id, role) the family_member statements among these assertion ids state."""
+    return [
+        tuple(json.loads(r[0]))
+        for r in _q(cx).execute(
+            f"SELECT subject_id FROM assertion WHERE subject_kind='family_member' AND id IN ({','.join('?' * len(ids))})",
+            list(ids)
+        )
+    ] if ids else []
+
+def decision_memberships(cx, tree_id, prop_id):
+    """The memberships (family id, person id, role) a decision's own statements state, on every copy of its record it was
+    carried to."""
+    return [
+        tuple(json.loads(r[0]))
+        for r in _q(cx).execute(
+            """SELECT DISTINCT subject_id FROM assertion WHERE tree_id=? AND subject_kind='family_member' AND json_valid(notes)
+               AND json_extract(notes,'$.proposal')=?""",
+            (tree_id, prop_id)
+        )
+    ]
+
 def statement_people(cx, ids):
     """The people statements are about, each once: the participants of a statement's event (both partners of a family's
-    event), the person it asserts, the member whose family membership it states."""
+    event), the person it asserts, and for a family membership the member and the family's partners (link_people)."""
     q = _q(cx)
     out = []
     for kind, sid in q.execute(
@@ -5321,7 +5352,7 @@ def statement_people(cx, ids):
         elif kind == "person":
             out.append(sid)
         elif kind == "family_member":
-            out.append(json.loads(sid)[1])
+            out += link_people(cx, [tuple(json.loads(sid))])
     return list(dict.fromkeys(out))
 
 def decide_assertion(cx, tree_id, aid, status, by, note):

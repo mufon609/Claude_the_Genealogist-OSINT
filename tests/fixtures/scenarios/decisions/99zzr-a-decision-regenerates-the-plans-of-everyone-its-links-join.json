@@ -1,0 +1,1586 @@
+{
+ "title": "a decision regenerates the plans of everyone its links join",
+ "line": "Charlotte's 1900 household as the record parser's first version read it in the owner's catalog, its relationships only FamilySearch's own groupings: the owner accepts her and creates her father Milton from it, the link writing her membership in his new family, so her plan is regenerated in his creation and her missing parents closes as answered; then her mother Annie, who joins Milton's family as its second partner, so his plan is regenerated in her creation too and his missing spouse closes",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1900 Lukens household page archived as the owner's archive holds it, not read",
+   "archive": {
+    "fixture": "familysearch-census-1900-M3QL-XYW.html",
+    "source": "D03",
+    "collection": "1900 United States Federal Census",
+    "locator": {
+     "kind": "apid",
+     "value": "1,7602::47389682"
+    }
+   },
+   "as": "c1900"
+  },
+  {
+   "say": "the reading the record parser's first version left in the owner's catalog: the household's relationships only as FamilySearch's Parents and Siblings table groups them",
+   "older_reading": {
+    "record": "c1900",
+    "extractor": {
+     "kind": "rule",
+     "name": "familysearch-record",
+     "version": "0.1.0"
+    },
+    "personas": [
+     {
+      "sequence": 1,
+      "name": "Charlotte A Lukens",
+      "role": "daughter",
+      "sex": "F",
+      "region": {
+       "ark": "ark:/61903/1:1:M3QL-XYW",
+       "label": "record"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Charlotte A Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "18 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "April 1882",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Daughter",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 2,
+      "name": "Milton Lukens",
+      "role": "father",
+      "sex": "M",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XY3?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Milton Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Male",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "51 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "October 1849",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Married",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Number of Living Children: 8",
+        "region": {
+         "labels": [
+          "Number of Living Children"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Years Married: 22",
+        "region": {
+         "labels": [
+          "Years Married"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Number of Children: 11",
+        "region": {
+         "labels": [
+          "Number of Children"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Head",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "to": 1,
+        "value": "Father",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 3,
+      "name": "Annie M Lukens",
+      "role": "mother",
+      "sex": "F",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XYQ?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Annie M Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "37 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "October 1863",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Married",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Number of Living Children: 8",
+        "region": {
+         "labels": [
+          "Number of Living Children"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Years Married: 22",
+        "region": {
+         "labels": [
+          "Years Married"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Number of Children: 11",
+        "region": {
+         "labels": [
+          "Number of Children"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: England",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Ireland",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Wife",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "to": 1,
+        "value": "Mother",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 4,
+      "name": "Susan Lukens",
+      "role": "sister",
+      "sex": "F",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XY7?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Susan Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "22 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "October 1878",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Daughter",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Sister",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 5,
+      "name": "Emmaline Lukens",
+      "role": "sister",
+      "sex": "F",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XY8?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Emmaline Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "3 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "March 1897",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Daughter",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Sister",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 6,
+      "name": "Annie Lukens",
+      "role": "sister",
+      "sex": "F",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XYD?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Annie Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "1 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "April 1899",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Daughter",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Sister",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 7,
+      "name": "James G Lukens",
+      "role": "brother",
+      "sex": "M",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XYC?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "James G Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Male",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "8 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "August 1892",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Son",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Brother",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 8,
+      "name": "Mary G Lukens",
+      "role": "sister",
+      "sex": "F",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XY4?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Mary G Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "16 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "June 1884",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Daughter",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Sister",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 9,
+      "name": "William P Lukens",
+      "role": "brother",
+      "sex": "M",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XYH?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "William P Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Male",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "11 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "August 1889",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Son",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Brother",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 10,
+      "name": "Grace D Lukens",
+      "role": "sister",
+      "sex": "F",
+      "region": {
+       "label": "Charlotte A Lukens's Parents and Siblings",
+       "url": "/ark:/61903/1:1:M3QL-XYZ?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Grace D Lukens",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "7 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "September 1893",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Daughter",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Pennsylvania",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Sister",
+        "region": {
+         "label": "Charlotte A Lukens's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 11,
+      "name": "Mary Bolton",
+      "role": "maternal grandmother",
+      "sex": "F",
+      "region": {
+       "label": "Charlotte A Lukens's Extended Family",
+       "url": "/ark:/61903/1:1:M3QL-XY6?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Mary Bolton",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Female",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "70 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "1830",
+        "place": "Ireland",
+        "region": {
+         "labels": [
+          "Birth Date",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Arrival",
+        "date_text": "1835",
+        "region": {
+         "labels": [
+          "Arrival Date"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Widowed",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "White",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Number of Living Children: 1",
+        "region": {
+         "labels": [
+          "Number of Living Children"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Number of Children: 2",
+        "region": {
+         "labels": [
+          "Number of Children"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Father's Birthplace: Ireland",
+        "region": {
+         "labels": [
+          "Father's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Mother's Birthplace: Ireland",
+        "region": {
+         "labels": [
+          "Mother's Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place (Original): Norristown borough Ward 6, ED 240, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Event Place (Original)"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Mother-in-law",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "1900",
+        "place": "Norriton Township, Montgomery, Pennsylvania, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "other",
+        "to": 1,
+        "value": "Maternal Grandmother",
+        "region": {
+         "label": "Charlotte A Lukens's Extended Family"
+        }
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "say": "matched for Charlotte",
+   "match": {
+    "record": "c1900",
+    "about": [
+     "I332737039686"
+    ]
+   }
+  },
+  {
+   "say": "the owner accepts her",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "person": "I332737039686"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the owner creates her father from the page",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "persona": "Milton Lukens"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": "I332737039686",
+      "kind": "missing_parents",
+      "status": "closed",
+      "closed_reason": "answered",
+      "count": 1
+     },
+     "why": "the page makes Milton her father: the decision writes her membership in his family, so her plan is regenerated in it and her missing parents closes as answered by his creation"
+    },
+    {
+     "question": {
+      "person": "I332737039686",
+      "kind": "missing_parents",
+      "status": "open",
+      "count": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "and her mother",
+   "decide": {
+    "card": {
+     "record": "c1900",
+     "persona": "Annie M Lukens"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": {
+       "name": "Milton Lukens"
+      },
+      "kind": "missing_spouse",
+      "status": "open",
+      "count": 0
+     },
+     "why": "the page makes Annie Charlotte's mother: she joins Milton's family as its second partner, so his plan is regenerated in the decision and his missing spouse closes, never left for the next plan run"
+    },
+    {
+     "question": {
+      "person": {
+       "name": "Annie M Lukens"
+      },
+      "kind": "missing_spouse",
+      "status": "open",
+      "count": 0
+     }
+    },
+    {
+     "step_count": {
+      "person": {
+       "name": "Milton Lukens"
+      },
+      "kind": "search",
+      "is": 0
+     },
+     "why": "the table's grouping writes the couple's link undecided: his spouses are not decided, so no search opens on his plan"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

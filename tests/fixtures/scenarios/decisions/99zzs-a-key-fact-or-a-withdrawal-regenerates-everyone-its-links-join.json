@@ -1,0 +1,181 @@
+{
+ "title": "a key fact or a withdrawal regenerates everyone its links join",
+ "line": "a decision on a family link reaches both people it joins, whichever path takes it: the owner rejects Charlotte's side of her marriage, and Abram, left with no wife in the tree, is asked for one in the same decision; on John Y's death certificate the rule's decision on his mother writes his own parents link, so his searches open in her decision, and when the rule takes that decision back his searches go in the withdrawal, never left for the next plan run",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the owner rejects Charlotte's statement of her marriage to Abram, the file's claim of it",
+   "fact": {
+    "person": "I332737039686",
+    "field": "spouses",
+    "status": "rejected",
+    "note": "harness: the owner's own decision on the link"
+   },
+   "expect": [
+    {
+     "question": {
+      "person": "I332737038183",
+      "kind": "missing_spouse",
+      "status": "open",
+      "count": 1
+     },
+     "why": "his one wife's side of the marriage is rejected, so the tree holds no spouse of his: his plan is regenerated in her decision and asks for one, never left for the next plan run"
+    }
+   ]
+  },
+  {
+   "say": "the owner's word on John Y's key facts, all but his parents",
+   "fact": {
+    "person": "I332737204849",
+    "fields": [
+     "name",
+     "sex",
+     "birth",
+     "death",
+     "spouses",
+     "children"
+    ],
+    "status": "accepted",
+    "note": "harness: the owner's word"
+   },
+   "expect": [
+    {
+     "step_count": {
+      "person": "I332737204849",
+      "kind": "search",
+      "is": 0
+     },
+     "why": "his parents are not decided: no search opens on his plan"
+    }
+   ]
+  },
+  {
+   "say": "FamilySearch's page of his death certificate, matched for him and his mother",
+   "archive": {
+    "fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html",
+    "source": "D03",
+    "collection": "Kentucky, Deaths, 1911-1967",
+    "locator": {
+     "kind": "apid",
+     "value": "1,3077::604036"
+    },
+    "extract": true,
+    "match": [
+     "I332737204849",
+     "I332737209655"
+    ]
+   },
+   "as": "page"
+  },
+  {
+   "say": "the owner accepts him on it: the first of the two acceptances, which writes no link yet",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737204849"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the rule takes his mother on it: the second acceptance writes his parents link, his statement under her decision",
+   "decide": {
+    "card": {
+     "record": "page",
+     "person": "I332737209655"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "family_member",
+      "is": {
+       "some": {
+        "status": "accepted",
+        "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"
+       }
+      }
+     },
+     "why": "his statement of his parents, written by her decision (his wife's, taken by the rule once he was accepted, is the other)"
+    },
+    {
+     "step_count": {
+      "person": "I332737204849",
+      "kind": "search",
+      "is": {
+       ">=": 1
+      }
+     },
+     "why": "her decision writes his own membership: his parents decided, his plan is regenerated in her decision and his searches open"
+    }
+   ]
+  },
+  {
+   "say": "the loop plans him again, as it stands",
+   "plan": [
+    "I332737204849"
+   ],
+   "expect": [
+    {
+     "step_count": {
+      "person": "I332737204849",
+      "kind": "search",
+      "is": {
+       ">=": 1
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule takes its decision on her back",
+   "withdraw": {
+    "card": {
+     "record": "page",
+     "person": "I332737209655"
+    }
+   },
+   "expect": [
+    {
+     "states": {
+      "record": "page",
+      "person": "I332737204849",
+      "kind": "family_member",
+      "is": {
+       "some": {
+        "status": "undecided"
+       }
+      }
+     }
+    },
+    {
+     "step_count": {
+      "person": "I332737204849",
+      "kind": "search",
+      "is": 0
+     },
+     "why": "the withdrawal takes back the link her decision wrote: his parents undecided again, his plan regenerated in the withdrawal and his searches gone"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

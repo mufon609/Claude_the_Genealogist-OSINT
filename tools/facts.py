@@ -106,8 +106,9 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     and Undecided apply to every assertion behind the fact. Every statement the decision acts on is recorded as the person's
     own decision on it (person_decided, asserted_by and asserted_at the person's and now), whether its status changes or not;
     assertions counts the ones whose status changed.
-    Whatever the decision, the plans of the people its statements are about (the person, and the children whose memberships a
-    children fact touches) are regenerated, an accept marking the questions it closes answered by the proposal that brought
+    Whatever the decision, the plans of the people its statements are about (the person, and for a family link each member
+    whose membership it states with the family's partners, conclude.statement_people: a child and both parents, a spouse
+    and the other) are regenerated, an accept marking the questions it closes answered by the proposal that brought
     the evidence; then the rule goes over their conflicts (its own resolutions resting on a statement the decision changed
     examined again, an open conflict the classes decide resolved) and their undecided cards are matched again on the
     evidence as it now stands (conclude.settle_people): conflicts the rule's rows, rematched the cards' rows."""
