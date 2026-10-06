@@ -332,8 +332,8 @@ Expectations: `last` (the action's result against a pattern), `bound`, `cards` (
 `surname`), `event` (`strings` by status, `shown`, `canonical_date`, `basis`, `events`), `family_event` (the events of a `type` on the family `a` and `b` are partners in: `events`, each one's date as written in date order, `dates`, how many statements each carries, `per_event`, in the same order, and with `record` its `statements` on them by status and `per_event` that record's alone), `disagreements`, `question` (a person's questions by `kind`, `status` and `closed_reason`, `detail_has` in the detail: whether any is there, or their `count`),
 `assertions_on`, `links` (a person's link statuses on a record's personas, by `persona` name, `role` and `sequence` row), `is_subject`, `citations_held`,
 `checklist_row`, `baseline`, `waiting`, `step`, `step_count`, `fetch_entries`, `fetch_call` (the call the list gives the save script for the page serving a `step`: its `call` text and the steps it `serves`), `search_log`, `named_for`, `audit`, `hints`,
-`living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row,
-`tier` as `catalog.tier_sql` reads it and `collection_tier` its collection's own), `artifact_where`, `classes` (a
+`living`, `mode` (`planned` for the plan's own), `foundation`, `results_page`, `place_string`, `artifact` (its row, the
+`http_status`, `http_etag` and `http_last_modified` among it, `tier` as `catalog.tier_sql` reads it and `collection_tier` its collection's own), `artifact_where`, `classes` (a
 record's statements on a person's events of an `event_type`, or on a family `link`, read by
 `catalog.evidence_classes`: some statement's `source`, `information`, `evidence`, `relationship`, `original`),
 `statement` (which reading a record's statements on a person's events of an `event_type` are read through,
@@ -382,7 +382,7 @@ state beside the database written in the one-turn shape, a turn on `person` paus
 them), `run` (one step through `tools/run_step.py` and its real connectors, only the network call
 replaced: one answer per request as `fetch: {answers: [{url_has, fixture, content_type | error | challenge}]}`, each answer for the first request
 carrying its `url_has` that no earlier request took (with `every`, for every such request): a saved real response, refused for any request but the one its manifest or
-sidecar says it was asked at, or the harness's stand-in for a holder that did not
+sidecar says it was asked at and served with the status, ETag and Last-Modified its manifest records (status 200 and neither header where it records none), or the harness's stand-in for a holder that did not
 answer (`error`) or served a challenge page in place of its answer (`challenge`); a request nothing answers fails the step, whatever the runner made of the refusal; no `fetch` for no network at all; `dry` for a dry run, `again` for a run by the
 step's id at every connector, `fails` as a turn's; each connector's result names `failed`, the failure of a run that failed; the result's `records` are the sha256 of every record the runner archived and read, `archived` of every response), `run_all` (`--all` with a run that regenerates
 the plan or raises, as the data says), `run_connector` (`run_step.run_connector` with the real `connector` named, answered like `run`: the

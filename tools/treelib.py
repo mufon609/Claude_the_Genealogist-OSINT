@@ -251,7 +251,10 @@ def archive_object(cx, data: bytes, *, mime, source_id, collection_id, locator_k
     the manifest names the row that said so. derived_from is the sha256 of the artifact these bytes were computed from (a
     surname's own rows out of a whole downloaded file): the derivative gets its own row and its own extraction, never the
     parent's, so re-deriving the same rows from the same parent reuses the same bytes and the same row, and a different
-    surname's rows never supersede this one's. Returns (sha256, True when the object is new)."""
+    surname's rows never supersede this one's. http is the response the bytes came in (a connector's request, tools/run_step.py:
+    status, etag, last_modified, final_url, content_type): the manifest keeps it whole and the row its status, ETag and
+    Last-Modified; bytes no request brought (a page saved in the browser, a file given by hand, a derivative computed from a
+    response in hand) have none. Returns (sha256, True when the object is new)."""
     sha = hashlib.sha256(data).hexdigest(); ts = now()
     if cx.execute("SELECT 1 FROM artifact WHERE sha256=?", (sha,)).fetchone(): return sha, False
     redist = redistributable(terms)
@@ -264,8 +267,11 @@ def archive_object(cx, data: bytes, *, mime, source_id, collection_id, locator_k
     os.makedirs(os.path.dirname(dst), exist_ok=True); os.makedirs(os.path.dirname(man), exist_ok=True)
     with open(dst, "wb") as fh: fh.write(data)
     with open(man, "w", encoding="utf-8") as fh: json.dump(manifest, fh, ensure_ascii=False, indent=2)
-    cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,terms,redistributable,cost,trust_tier,original_filename,page_count,derived_from,manifest_json,created_at)
-                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, len(data), mime, source_id, collection_id, locator_kind, locator_value, ts, retrieved_by,
+    got = http or {}
+    cx.execute("""INSERT INTO artifact (sha256,byte_size,mime,source_id,collection_id,locator_kind,locator_value,retrieved_at,retrieved_by,http_status,http_etag,http_last_modified,
+                                       terms,redistributable,cost,trust_tier,original_filename,page_count,derived_from,manifest_json,created_at)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (sha, len(data), mime, source_id, collection_id, locator_kind, locator_value, ts, retrieved_by,
+                                                                  got.get("status"), got.get("etag"), got.get("last_modified"),
                                                                   manifest["rights"]["terms"], redist, manifest["rights"]["cost"], trust_tier, original_filename, pages, derived_from, dumps(manifest), ts))
     cx.execute("INSERT INTO artifact_copy (artifact_sha256,target_name,stored_at,last_verified,verify_ok) VALUES (?,?,?,?,?)", (sha, "local", ts, ts, True))
     return sha, True

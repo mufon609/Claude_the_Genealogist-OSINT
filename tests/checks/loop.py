@@ -207,6 +207,13 @@ def asked_at(fixture):
             if loc.get("kind") == "url": return loc["value"]
     return None
 
+def served(fixture):
+    """The headers a saved real response came with, as its manifest records them (<stem>.manifest.json's http: status, etag,
+    last_modified); {} for a fixture whose manifest records none or that has a sidecar instead."""
+    path = os.path.join(FIXTURES, fixture.rsplit(".", 1)[0] + ".manifest.json")
+    if not os.path.exists(path): return {}
+    with open(path, encoding="utf-8") as fh: return json.load(fh).get("http") or {}
+
 def answers_request(loc, url, data):
     """Whether a response asked at `loc` is the answer to this request: a GET at the locator's own URL (a fragment marks an
     excerpt of that answer: #excerpt, #bytes=), or a form posted to the locator's host whose fields carry the values the
@@ -222,7 +229,8 @@ def answered_by(fetch, missed=None):
     """The network call a run is played back with, from the data: `answers`, one for each request, in the order the requests
     come. An answer is for the first request carrying its `url_has` that no earlier request has taken (with `every`, for every
     such request): a saved real response (`fixture` under tests/fixtures/, its `content_type`), which answers only the request
-    it was asked at (asked_at); an `error` the source's connection raises, the harness's stand-in for a holder that did not
+    it was asked at (asked_at), with the status, ETag and Last-Modified its manifest records (served; status 200 and neither
+    header where it records none); an `error` the source's connection raises, the harness's stand-in for a holder that did not
     answer (a timeout, a refusal); or `challenge`, the harness's stand-in for a challenge or maintenance page a holder serves
     with status 200 in place of its answer (CHALLENGE, text/html), which carries no record of anyone (docs/DATA-ARCHITECTURE.md
     §7 decision 8). A request the data does not answer, or answers with another request's response, fails the run, and is
@@ -230,7 +238,9 @@ def answered_by(fetch, missed=None):
     network at all."""
     import urllib.error
     used = set(); missed = [] if missed is None else missed
-    def meta(url, content_type): return {"status": 200, "etag": None, "last_modified": None, "final_url": url, "content_type": content_type}
+    def meta(url, content_type, fixture=None):
+        h = served(fixture) if fixture else {}
+        return {"status": h.get("status", 200), "etag": h.get("etag"), "last_modified": h.get("last_modified"), "final_url": url, "content_type": content_type}
     def refused(said):
         missed.append(said)
         return AssertionError(said)
@@ -242,7 +252,7 @@ def answered_by(fetch, missed=None):
             if ans.get("challenge"): return CHALLENGE, meta(url, "text/html; charset=utf-8")
             loc = asked_at(ans["fixture"])
             if loc and not answers_request(loc, url, data): raise refused(f"{ans['fixture']} is the answer to {loc}, not to {url}{' ' + json.dumps(data) if data else ''}")
-            with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"))
+            with open(os.path.join(FIXTURES, ans["fixture"]), "rb") as fh: return fh.read(), meta(url, ans.get("content_type", "application/json"), ans["fixture"])
         raise refused(f"a request went out that the data does not answer: {url}")
     return fake_fetch
 

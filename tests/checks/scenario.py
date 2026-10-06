@@ -1134,11 +1134,11 @@ def e_place_string(w, x, want):
 
 def e_artifact(w, x, want):
     from catalog import tier_sql
-    row = w.cx.execute(f"""SELECT ar.source_id, ar.mime, ar.locator_kind, ar.locator_value, ar.redistributable, ar.manifest_json, ar.derived_from, {tier_sql()} AS tier,
+    row = w.cx.execute(f"""SELECT ar.source_id, ar.mime, ar.locator_kind, ar.locator_value, ar.redistributable, ar.manifest_json, ar.derived_from, ar.http_status, ar.http_etag, ar.http_last_modified, {tier_sql()} AS tier,
                                   (SELECT c.trust_tier FROM collection c WHERE c.id=ar.collection_id) AS collection_tier FROM artifact ar LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?""", (w.sha(x["record"]),)).fetchone()
     if not row: return False, None
     got = dict(row); got["manifest"] = json.loads(got.pop("manifest_json") or "{}")
-    return has(got, w.value({k: v for k, v in x.items() if k in got})), {k: got[k] for k in ("source_id", "mime", "locator_kind", "locator_value", "redistributable", "tier", "collection_tier")}
+    return has(got, w.value({k: v for k, v in x.items() if k in got})), {k: got[k] for k in ("source_id", "mime", "locator_kind", "locator_value", "redistributable", "tier", "collection_tier", "derived_from", "http_status", "http_etag", "http_last_modified")}
 
 def e_artifact_where(w, x, want):
     row = w.cx.execute("SELECT redistributable, manifest_json FROM artifact WHERE mime=?", (x["mime"],)).fetchone()

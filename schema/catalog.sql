@@ -127,9 +127,9 @@ CREATE TABLE artifact (
   locator_value       TEXT,
   retrieved_at        TEXT NOT NULL,
   retrieved_by        TEXT NOT NULL,    -- user:<name> | agent:<name>@<version>
-  http_status         INTEGER,
-  http_etag           TEXT,
-  http_last_modified  TEXT,
+  http_status         INTEGER,          -- the response's status, ETag and Last-Modified as the connector's request received them (treelib.archive_object),
+  http_etag           TEXT,             --   as manifest_json's http holds them whole; NULL for bytes no request brought (a page saved in the browser, a file
+  http_last_modified  TEXT,             --   given by hand, a derivative computed from a response in hand), and on the rows archived before the writer filled them
   terms               TEXT,             -- public-domain | cc-by | ancestry-tos | familysearch-tos | ...
   redistributable     BOOLEAN NOT NULL DEFAULT FALSE,
   cost                TEXT CHECK (cost IN ('free','paid','member','unknown')),

@@ -1,0 +1,43 @@
+{
+ "title": "a response keeps the headers it came with",
+ "line": "a connector's response is archived with the HTTP status, ETag and Last-Modified it came with on its artifact row as on its manifest: the New Jersey death index's file carries the Internet Archive's own; the surname's rows the runner computes from it came with no response and carry none",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the death record the file cites for Frederick Micheal Ahearn Jr, run through the real death index connector: the file's lines played back with the headers the Internet Archive served them with",
+   "run": {
+    "step": {"person": "I332737036054", "row_key": "death record:2016", "kind": "fetch", "holder": "C09"},
+    "fetch": {
+     "answers": [
+      {"url_has": "newjerseydeathindex", "fixture": "nj-death-index-2006-2017-excerpt.csv", "content_type": "text/csv"}
+     ]
+    }
+   },
+   "as": "nj",
+   "expect": [
+    {
+     "last": {"results": [{"connector": "nj_death_index", "outcome": "found"}], "archived": {"len": 2}, "records": {"len": 1}},
+     "why": "the whole file and the surname's rows archived, the rows the record"
+    },
+    {
+     "artifact": {"record": "nj.archived.0", "locator_value": "https://archive.org/download/newjerseydeathindex_2006-2017_data_csv/Reclaim_The_Records_-_New_Jersey_Death_Index_-_2006-2017.csv",
+                  "http_status": 200, "http_etag": "\"5b56a52a-4282c4b\"", "http_last_modified": "Tue, 24 Jul 2018 04:03:54 GMT",
+                  "manifest": {"http": {"status": 200, "etag": "\"5b56a52a-4282c4b\"", "last_modified": "Tue, 24 Jul 2018 04:03:54 GMT"}}},
+     "why": "the file's row carries the status, ETag and Last-Modified the holder served it with, as its manifest does"
+    },
+    {
+     "artifact": {"record": "nj.records.0", "derived_from": "$nj.archived.0", "http_status": {"is": null}, "http_etag": {"is": null}, "http_last_modified": {"is": null}},
+     "why": "the surname's rows were computed from the file in hand, no request of their own: no response, no headers"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}]
+  }
+ ]
+}
