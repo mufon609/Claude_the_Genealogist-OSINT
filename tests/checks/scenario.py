@@ -777,9 +777,12 @@ def a_persona_link(w, x):
 
 def a_merge(w, x):
     """The owner's merge of a `duplicate` into the person it duplicates (`kept`), through conclude.merge. With `older`, the
-    merge as an older tools/conclude.py left it, which re-pointed no proposal and left a membership the kept person already
-    held on the duplicate's row: each proposal the merge re-pointed put back to name the duplicate, each membership it folded
-    put back on the duplicate's row with the statements it moved, the shape the merge run again on the pair completes."""
+    merge as an older tools/conclude.py left it, which re-pointed no proposal, moved no name alias and left on the duplicate's
+    row a membership or a persona link the kept person already held and, open, a question whose key the kept person held:
+    each proposal the merge re-pointed put back to name the duplicate, each membership it folded put back on the
+    duplicate's row with the statements it moved, each persona link it folded put back there as it was (the kept person's
+    own row as it was too), each alias it moved or folded put back on the duplicate, each question it closed open again, the
+    shape the merge run again on the pair completes."""
     from conclude import merge
     dup, kept = w.person(x["duplicate"]), w.person(x["kept"])
     res = merge(w.cx, w.tid, dup, kept, BY, x.get("note", "harness: same identity"))
@@ -789,6 +792,13 @@ def a_merge(w, x):
         for m in res["folded_memberships"]:
             w.cx.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (m["family_id"], dup, m["role"]))
             w.cx.execute(f"UPDATE assertion SET subject_id=? WHERE id IN ({','.join('?' * len(m['statements']))})", (w.treelib.dumps([m["family_id"], dup, m["role"]]), *m["statements"]))
+        for f in res["folded_links"]:
+            row = lambda r: (r["status"], r["proposal_id"], r["decided_by"], r["decided_at"])
+            w.cx.execute("INSERT INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (dup, f["persona"], *row(f)))
+            w.cx.execute("UPDATE person_persona SET status=?, proposal_id=?, decided_by=?, decided_at=? WHERE person_id=? AND persona_id=?", (*row(f["kept"]), kept, f["persona"]))
+        for a in res["aliases_moved"]: w.cx.execute("UPDATE alias SET entity_id=? WHERE id=?", (dup, a["alias"]))
+        for a in res["folded_aliases"]: w.cx.execute(f"INSERT INTO alias ({','.join(a)}) VALUES ({','.join('?' * len(a))})", tuple(a.values()))
+        for c in res["closed_questions"]: w.cx.execute("UPDATE research_question SET status='open', closed_reason=NULL, closed_at=NULL, answered_by_proposal_id=NULL WHERE id=?", (c["question"],))
     return res
 
 def a_cite(w, x):

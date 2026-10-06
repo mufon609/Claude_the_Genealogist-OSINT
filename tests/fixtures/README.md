@@ -318,7 +318,7 @@ read from its `date_text`, a `place` as its words, and its `relations` to the re
 under `to`; it stands as the record's current reading), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided; with `card`, the link that card's decision wrote on another row of the same name before a decision reached only its own
-entry of the page, the shape the 0.7.5 migration corrects), `merge` (a `duplicate` merged into the person it duplicates, `kept`, with a `note`; `older` for the merge as an older tool left it, every proposal it re-pointed naming the duplicate again and every membership it folded back on the duplicate's row with the statements it moved, the shape the merge run again on the pair completes), `cite`, `question` (a research_question row patched by
+entry of the page, the shape the 0.7.5 migration corrects), `merge` (a `duplicate` merged into the person it duplicates, `kept`, with a `note`; `older` for the merge as an older tool left it, every proposal it re-pointed naming the duplicate again, every membership it folded back on the duplicate's row with the statements it moved, every persona link it folded back there as it was (the kept person's own row as it was too), every name alias it moved or folded the duplicate's again and every question it closed open again, the shape the merge run again on the pair completes), `cite`, `question` (a research_question row patched by
 hand into a shape nothing today writes, found by `kind` and `detail_has` among the person's own and set from `set`, for
 a regeneration to be checked against a prior state, such as a legacy truncated key), `households` (the households grouped
 again and stored where they changed, `tools/households.py` regroup, as the plan groups them: `kept`, `written`, `superseded`,
@@ -505,9 +505,11 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   person's (decisions `71`, `99f`, the marriage index). On the marriage index each persona's line is counted on the image and
   its row's `bbox` is in the image's own pixels; on the stone the `bbox` is the inscription's panel; on the certificate the
   `bbox` is the full name's line; on the obituary each persona's line is the order the notice names them.
-- `merge` of two children of one family (decisions `99zt`, `99zu`): the owner's file enters no child twice under the same
-  parents, so the harness merges the 1940 household's daughter into its son, both the file's own children of that family, to
-  walk the merge of two members of one family; no person, page or record is invented.
+- `merge` of two children of one family (decisions `99zt`, `99zu`, `99zzn`, `99zzo`): the owner's file enters no child twice
+  under the same parents, so the harness merges the 1940 household's daughter into its son, or the 1920 household's Anna R into
+  her sister Alicia M, both the file's own children of that family, to walk the merge of two members of one family; in `99zzn`
+  and `99zzo` the harness's own decision (`persona_link`) puts the 1920 census's Alicia M to Anna as well, as one child entered
+  twice would carry the same entry, so the merge meets a persona both link; no person, page or record is invented.
 - `save`: a real page or image written into the inbox or a download folder as the owner's browser leaves it, under the fetch
   list's name or the one given; with `key`, the save script's key comment written under the page's own saved-from line, as
   `tools/save_page.js` writes it (loop `41`, `42`, `43`, `108`). `tools/check.py`'s test of that script writes the script's own head over

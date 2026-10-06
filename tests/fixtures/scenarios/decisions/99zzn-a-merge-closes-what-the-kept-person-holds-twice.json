@@ -1,0 +1,237 @@
+{
+ "title": "a merge leaves nothing open and no decision on the duplicate",
+ "line": "the 1920 household's Anna R merged into her sister Alicia M, the harness's own merge of two children of one family: the question both hold, a missing spouse, closes on Anna as answered by the merge and her others move; the census's Alicia M, which the harness's own decision had put to Anna as well, folds onto Alicia's link, the rule's decision standing and nothing left on Anna; and Anna's name as the census writes it moves to Alicia as an alias",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1920 page: the father accepted by the owner",
+   "attach": {
+    "fixture": "familysearch-census-1920-MXBF-NHK.html"
+   },
+   "as": "c20"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the rule takes Alicia, the daughter the census states his, her name as the census writes it an alias",
+   "reconsider": {},
+   "expect": [
+    {
+     "card": {
+      "record": "c20",
+      "person": "I332737044990",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts Anna on the census, her name as it writes it an alias",
+   "decide": {
+    "card": {
+     "record": "c20",
+     "person": "I332737058557"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "alias": {
+      "person": "I332737058557",
+      "is": [
+       [
+        "Anna R Ahearn",
+        {
+         "any": true
+        },
+        "accepted"
+       ]
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "say": "the harness's own decision putting the census's Alicia M to Anna as well, as one child entered twice would carry the same entry",
+   "persona_link": {
+    "record": "c20",
+    "role": "daughter",
+    "persona": "Alicia M Ahearn",
+    "person": "I332737058557",
+    "status": "accepted"
+   },
+   "as": "alicia_m",
+   "expect": [
+    {
+     "question": {
+      "person": "I332737058557",
+      "kind": "missing_spouse",
+      "status": "open",
+      "count": 1
+     }
+    },
+    {
+     "question": {
+      "person": "I332737044990",
+      "kind": "missing_spouse",
+      "status": "open",
+      "count": 1
+     },
+     "why": "both hold the question of a missing spouse"
+    }
+   ]
+  },
+  {
+   "say": "the owner merges Anna into Alicia",
+   "merge": {
+    "duplicate": "I332737058557",
+    "kept": "I332737044990",
+    "note": "harness: two children of one family merged, as one child entered twice under the same parents would be"
+   },
+   "expect": [
+    {
+     "last": {
+      "closed_questions": [
+       {
+        "q_key": "missing_spouse:",
+        "kind": "missing_spouse",
+        "reason": "the kept person holds a question of this key: closed as answered by the merge"
+       }
+      ],
+      "folded_links": [
+       {
+        "status": "accepted",
+        "kept": {
+         "status": "accepted",
+         "decided_by": {
+          "starts": "rule:"
+         }
+        },
+        "decision_moved": false
+       }
+      ],
+      "aliases_moved": [
+       {
+        "value": "Anna R Ahearn"
+       }
+      ]
+     },
+     "why": "the merge names the question it closed, the link it folded with both rows as they were, and the alias it moved"
+    },
+    {
+     "question": {
+      "person": "I332737058557",
+      "status": "open",
+      "count": 0
+     },
+     "why": "nothing stays open on the merged person: the question the kept person holds is closed, the others moved"
+    },
+    {
+     "question": {
+      "person": "I332737058557",
+      "kind": "missing_spouse",
+      "status": "closed",
+      "count": 1
+     }
+    },
+    {
+     "audit": {
+      "entity": "person",
+      "id": "I332737058557",
+      "action": "update",
+      "is": {
+       "some": {
+        "diff": {
+         "closed_questions": {
+          "len": 1
+         },
+         "folded_links": {
+          "len": 1
+         },
+         "aliases_moved": {
+          "len": 1
+         }
+        }
+       }
+      }
+     },
+     "why": "the merge's audit row names all three"
+    },
+    {
+     "count": {
+      "persona_links_of": "I332737058557",
+      "is": 0
+     },
+     "why": "the census's Alicia M folds onto Alicia's own link, the rule's decision standing; Anna's own entry moves with the rest"
+    },
+    {
+     "person_persona": {
+      "person": "I332737044990",
+      "persona": "$alicia_m.persona",
+      "status": "accepted"
+     }
+    },
+    {
+     "alias": {
+      "person": "I332737044990",
+      "is": {
+       "len": 2,
+       "some": [
+        "Anna R Ahearn",
+        {
+         "any": true
+        },
+        "accepted"
+       ]
+      }
+     },
+     "why": "Anna's name as the census writes it is the kept person's alias now, beside Alicia's own"
+    },
+    {
+     "alias": {
+      "person": "I332737058557",
+      "is": []
+     }
+    }
+   ]
+  },
+  {
+   "say": "the rule re-examines: nothing the merge left changes",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "wrote": 0
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

@@ -3782,30 +3782,120 @@ def _repoint_proposals(q, tree_id, dup_id, kept_id, moved):
             )
         moved["proposals_repointed"].append({"proposal": prop_id, "rewritten": ks})
 
+def _move_links(q, dup_id, kept_id, moved):
+    """A merge's persona links: each of the duplicate's person_persona rows moves to the kept person; a row whose persona the
+    kept person already links is folded onto theirs, as a membership the kept person holds is folded: the kept person's row
+    stands, taking the duplicate's decision (its status, proposal, decider and moment) only where its own is undecided,
+    which is no decision, and the duplicate's row goes, so no decision on that persona stays with the merged person. Each
+    fold is named in folded_links with both rows as they were and whether the decision moved."""
+    cols = "status, proposal_id, decided_by, decided_at"
+    for r in q.execute(f"SELECT persona_id, {cols} FROM person_persona WHERE person_id=? ORDER BY persona_id", (dup_id,)).fetchall():
+        held = q.execute(f"SELECT {cols} FROM person_persona WHERE person_id=? AND persona_id=?", (kept_id, r["persona_id"])).fetchone()
+        if not held:
+            q.execute(
+                "UPDATE person_persona SET person_id=? WHERE person_id=? AND persona_id=?", (kept_id, dup_id, r["persona_id"])
+            )
+            moved["persona_links"] += 1
+            continue
+        took = held["status"] == "undecided" and r["status"] != "undecided"
+        if took:
+            q.execute(
+                "UPDATE person_persona SET status=?, proposal_id=?, decided_by=?, decided_at=? WHERE person_id=? AND persona_id=?",
+                (r["status"], r["proposal_id"], r["decided_by"], r["decided_at"], kept_id, r["persona_id"])
+            )
+        q.execute("DELETE FROM person_persona WHERE person_id=? AND persona_id=?", (dup_id, r["persona_id"]))
+        moved["folded_links"].append(
+            {
+                "persona": r["persona_id"],
+                **{k: r[k] for k in ("status", "proposal_id", "decided_by", "decided_at")},
+                "kept": {k: held[k] for k in ("status", "proposal_id", "decided_by", "decided_at")},
+                "decision_moved": took
+            }
+        )
+
+def _move_aliases(q, dup_id, kept_id, moved):
+    """A merge's name aliases: each of the duplicate's moves to the kept person, named in aliases_moved; one whose words the
+    kept person already holds as an alias is folded onto theirs, the kept person's row standing as it is (a person holds a
+    name as written once, and write_name_alias never writes words the person already holds) and the duplicate's row gone,
+    named whole in folded_aliases, the only trace of it afterwards."""
+    for a in q.execute("SELECT * FROM alias WHERE entity_kind='person' AND entity_id=? ORDER BY value, id", (dup_id,)).fetchall():
+        if q.execute(
+            "SELECT 1 FROM alias WHERE entity_kind='person' AND entity_id=? AND value=?", (kept_id, a["value"])
+        ).fetchone():
+            q.execute("DELETE FROM alias WHERE id=?", (a["id"],))
+            moved["folded_aliases"].append(dict(a))
+            continue
+        q.execute("UPDATE alias SET entity_id=? WHERE id=?", (kept_id, a["id"]))
+        moved["aliases_moved"].append({"alias": a["id"], "value": a["value"]})
+
+def _move_questions(q, dup_id, kept_id, prop_id, ts, moved):
+    """A merge's research questions: each of the duplicate's moves to the kept person, save the duplicate_person question
+    between the two (the merge's own to answer) and one whose key the kept person already holds, in any status: the kept
+    person's question asked twice, which an open one on the duplicate closes as answered by the merge (answered_by_proposal_id
+    the merge's duplicate_person proposal), each named in closed_questions by its id, key and kind."""
+    for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=? ORDER BY id", (dup_id,)).fetchall():
+        if question["kind"] == "duplicate_person" and question["q_key"] == f"duplicate_person:{kept_id}":
+            continue
+        if q.execute(
+            "SELECT 1 FROM research_question WHERE subject_person_id=? AND q_key=?", (kept_id, question["q_key"])
+        ).fetchone():
+            if question["status"] == "open":
+                q.execute(
+                    "UPDATE research_question SET status='closed', closed_reason='answered', closed_at=?, answered_by_proposal_id=? WHERE id=?",
+                    (ts, prop_id, question["id"])
+                )
+                moved["closed_questions"].append(
+                    {
+                        "question": question["id"],
+                        "q_key": question["q_key"],
+                        "kind": question["kind"],
+                        "reason": "the kept person holds a question of this key: closed as answered by the merge"
+                    }
+                )
+            continue
+        q.execute("UPDATE research_question SET subject_person_id=? WHERE id=?", (kept_id, question["id"]))
+        moved["questions_moved"] += 1
+
 def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
-    """A merge made before a merge did all it does now, completed: a family membership the duplicate still holds moved or
-    folded onto the kept person's (_move_memberships), every proposal still naming the duplicate re-pointed to the kept
-    person (_repoint_proposals), the kept person's events folded as a merge folds them (fold), each folded event's
-    participant returned to the duplicate's row (_back_to); the kept person's partner families with the same partners folded
-    into the earliest (_fold_family), and that family's events folded the same way. Nothing else moves, and a merge already
-    complete changes nothing. One audit row; then the kept person's plan is regenerated, the rule goes over their conflicts
-    and their cards are matched again (settle_people). Returns what moved and folded, the rule's rows on the conflicts and
-    the cards matched again."""
+    """A merge made before a merge did all it does now, completed: a persona link the duplicate still holds moved or folded
+    onto the kept person's (_move_links), a family membership moved or folded the same way (_move_memberships), its name
+    aliases moved or folded (_move_aliases), a question still on it closed as answered by the merge where the kept person
+    holds its key, else moved (_move_questions, answered by the pair's own duplicate_person proposal), every proposal still
+    naming the duplicate re-pointed to the kept person (_repoint_proposals), the kept person's events folded as a merge
+    folds them (fold), each folded event's participant returned to the duplicate's row (_back_to); the kept person's partner
+    families with the same partners folded into the earliest (_fold_family), and that family's events folded the same way.
+    Nothing else moves, and a merge already complete changes nothing. One audit row; then the kept person's plan is
+    regenerated, the rule goes over their conflicts and their cards are matched again (settle_people). Returns what moved
+    and folded, the rule's rows on the conflicts and the cards matched again."""
     q = _q(cx)
     ts = now()
     moved = {
+        "persona_links": 0,
         "family_memberships": 0,
         "events_folded": 0,
         "event_assertions_folded": 0,
         "families_folded": 0,
         "family_children_moved": 0,
         "family_events_moved": 0,
+        "questions_moved": 0,
+        "folded_links": [],
         "folded_memberships": [],
+        "aliases_moved": [],
+        "folded_aliases": [],
+        "closed_questions": [],
         "proposals_repointed": [],
         "folded_events": [],
         "folded_families": []
     }
+    merged_by = q.execute(
+        """SELECT id FROM proposal WHERE tree_id=? AND kind='duplicate_person' AND json_extract(payload_json,'$.duplicate_person_id')=?
+           AND json_extract(payload_json,'$.kept_person_id')=? ORDER BY created_at DESC, id DESC""",
+        (tree_id, dup_id, kept_id)
+    ).fetchone()
+    _move_links(q, dup_id, kept_id, moved)
     _move_memberships(q, dup_id, kept_id, moved)
+    _move_aliases(q, dup_id, kept_id, moved)
+    _move_questions(q, dup_id, kept_id, merged_by["id"] if merged_by else None, ts, moved)
     _repoint_proposals(q, tree_id, dup_id, kept_id, moved)
     fold(cx, tree_id, ("person", kept_id), retire=_back_to(q, dup_id, kept_id), moved=moved)
     fams = _partner_families(q, kept_id)
@@ -3848,16 +3938,21 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
 
 def merge(cx, tree_id, dup_id, kept_id, by, note):
     """Close a duplicate_person question (RESEARCH-WORKFLOW §2; the worked example's "merging the two Thomas entries closes
-    the question"): the duplicate's persona links, assertions, event and family memberships, plan steps, search log rows and
-    open questions move onto the person it duplicates, a membership the kept person already holds in the same family and role
-    folded onto theirs with its statements (_move_memberships), every proposal naming the duplicate re-pointed to the kept
-    person (_repoint_proposals), `person.merged_into` is set so the duplicate's own row stays for the
-    audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records the
-    decision with the owner's note; the duplicate_person question between the two, on either side, closes answered by it. A
-    moved step the kept person's plan already has by step_key keeps whichever of the two carries search_log runs (neither carrying runs keeps the kept person's own); the duplicate's runs, if any, are carried
-    onto the survivor rather than lost, each a new row restating it (log_search.restate), the duplicate's step left on its row,
-    skipped, holding the runs it superseded. A dropped step or question is named in the audit row by its key, row (a step's) and
-    rationale, and why it was dropped, the way plan.py's own audit row names what it drops.
+    the question"): the duplicate's persona links, assertions, event and family memberships, name aliases, plan steps, search
+    log rows and questions move onto the person it duplicates; a persona link whose persona the kept person already links is
+    folded onto theirs, the kept person's row taking the duplicate's decision only where its own is undecided (_move_links),
+    a membership the kept person already holds in the same family and role folded onto theirs with its statements
+    (_move_memberships), an alias of words the kept person already holds folded onto theirs (_move_aliases), and a question
+    whose key the kept person already holds, in any status, left on the duplicate and closed, where open, as answered by the
+    merge (_move_questions), so nothing open and no decision stays with the merged person; every proposal naming the
+    duplicate re-pointed to the kept person (_repoint_proposals), `person.merged_into` is set so the duplicate's own row stays
+    for the audit trail but out of every listing, overview, plan and matcher run, and one `duplicate_person` proposal records
+    the decision with the owner's note; the duplicate_person question between the two, on either side, closes answered by
+    it. A moved step the kept person's plan already has by step_key keeps whichever of the two carries search_log runs
+    (neither carrying runs keeps the kept person's own); the duplicate's runs, if any, are carried onto the survivor rather
+    than lost, each a new row restating it (log_search.restate), the duplicate's step left on its row, skipped, holding the
+    runs it superseded. A dropped step, a closed question and a folded link or alias are named in the audit row (a step by
+    its key, row and rationale, and why it was dropped, the way plan.py's own audit row names what it drops).
 
     The duplicate's events join the kept person's, and the kept person's events of one type that are then one event are
     folded (fold, docs/RESEARCH-WORKFLOW.md §5–7: places agreeing or one absent, and the type held once in a life or the
@@ -3901,25 +3996,19 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         "plan_steps_dropped": 0,
         "log_rows_carried": 0,
         "questions_moved": 0,
-        "questions_dropped": 0,
         "questions_answered": 0,
         "dropped_steps": [],
-        "dropped_questions": [],
+        "closed_questions": [],
+        "folded_links": [],
         "folded_memberships": [],
+        "aliases_moved": [],
+        "folded_aliases": [],
         "proposals_repointed": [],
         "folded_events": [],
         "folded_families": []
     }
 
-    for persona_id, in q.execute("SELECT persona_id FROM person_persona WHERE person_id=?", (dup_id,)).fetchall():
-        if q.execute(
-            "SELECT 1 FROM person_persona WHERE person_id=? AND persona_id=?", (kept_id, persona_id)
-        ).fetchone():
-            continue
-        q.execute(
-            "UPDATE person_persona SET person_id=? WHERE person_id=? AND persona_id=?", (kept_id, dup_id, persona_id)
-        )
-        moved["persona_links"] += 1
+    _move_links(q, dup_id, kept_id, moved)
 
     for ep_id, eid, role, fam in q.execute(
         "SELECT id, event_id, role, family_id FROM event_participant WHERE person_id=?", (dup_id,)
@@ -3947,6 +4036,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         if other:
             _fold_family(q, fid, other, moved)
             fold(cx, tree_id, ("family", other), moved=moved)
+    _move_aliases(q, dup_id, kept_id, moved)
 
     moved["assertions"] = q.execute(
         "UPDATE assertion SET subject_id=? WHERE subject_kind='person' AND subject_id=?", (kept_id, dup_id)
@@ -4006,19 +4096,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
         )
         # the duplicate question between the two, either side's, is the one the merge answers
         moved["questions_answered"] += 1
-    for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=?", (dup_id,)).fetchall():
-        # answered above, or closed already: never a question of the kept person about themselves
-        if question["kind"] == "duplicate_person" and question["q_key"] == f"duplicate_person:{kept_id}":
-            continue
-        if q.execute(
-            "SELECT 1 FROM research_question WHERE subject_person_id=? AND q_key=?", (kept_id, question["q_key"])
-        ).fetchone():
-            moved["questions_dropped"] += 1
-            moved["dropped_questions"].append({"q_key": question["q_key"], "kind": question["kind"],
-                                               "reason": "the kept person already has an open question of this key"})
-            continue
-        q.execute("UPDATE research_question SET subject_person_id=? WHERE id=?", (kept_id, question["id"]))
-        moved["questions_moved"] += 1
+    _move_questions(q, dup_id, kept_id, prop_id, ts, moved)
 
     _repoint_proposals(q, tree_id, dup_id, kept_id, moved)
     q.execute("UPDATE person SET merged_into=?, updated_at=? WHERE id=?", (kept_id, ts, dup_id))
@@ -5957,19 +6035,25 @@ def main():
             )
             if res.get("completed"):
                 print(
-                    f"{a.duplicate} already merged into {a.kept}; completed: {res['family_memberships']} family membership(s) moved, "
-                    f"{len(res['folded_memberships'])} folded onto the kept person's own, {len(res['proposals_repointed'])} proposal(s) re-pointed, "
+                    f"{a.duplicate} already merged into {a.kept}; completed: {res['persona_links']} persona link(s) moved "
+                    f"({len(res['folded_links'])} folded onto the kept person's own), {res['family_memberships']} family membership(s) moved, "
+                    f"{len(res['folded_memberships'])} folded onto the kept person's own, {len(res['aliases_moved'])} alias(es) moved "
+                    f"({len(res['folded_aliases'])} folded), {res['questions_moved']} question(s) moved, {len(res['closed_questions'])} the kept "
+                    f"person holds closed as answered by the merge, {len(res['proposals_repointed'])} proposal(s) re-pointed, "
                     f"{res['events_folded']} event(s) folded ({res['event_assertions_folded']} statement(s) moved), "
                     f"{res['families_folded']} family(ies) folded ({res['family_children_moved']} child membership(s), {res['family_events_moved']} family event(s))"
                 )
             else:
                 print(
-                    f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s), {res['assertions']} assertion(s), "
+                    f"{a.duplicate} merged into {a.kept}: {res['persona_links']} persona link(s) ({len(res['folded_links'])} more folded onto "
+                    f"the kept person's own), {res['assertions']} assertion(s), "
                     f"{res['event_participants']} event participant(s), {res['family_memberships']} family membership(s) "
-                    f"({len(res['folded_memberships'])} more folded onto the kept person's own), {len(res['proposals_repointed'])} proposal(s) re-pointed, "
+                    f"({len(res['folded_memberships'])} more folded onto the kept person's own), {len(res['aliases_moved'])} alias(es) "
+                    f"({len(res['folded_aliases'])} more folded), {len(res['proposals_repointed'])} proposal(s) re-pointed, "
                     f"{res['plan_steps_moved']} plan step(s) moved ({res['plan_steps_dropped']} dropped as already on the kept person's plan, "
                     f"{res['log_rows_carried']} run(s) carried onto it), {res['questions_moved']} question(s) moved "
-                    f"({res['questions_dropped']} already open on the kept person), {res['questions_answered']} duplicate question(s) answered; proposal {res['proposal']}"
+                    f"({len(res['closed_questions'])} the kept person holds closed as answered by the merge), "
+                    f"{res['questions_answered']} duplicate question(s) answered; proposal {res['proposal']}"
                 )
             for line in settled_lines(res):
                 print("   ", line)

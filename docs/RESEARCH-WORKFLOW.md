@@ -171,6 +171,21 @@ tree already cites exist, because the review needs those records. The duplicate
 check and the limits of one life run for every person, reviewed or not: a
 second entry or an impossible link is settled before anything is built on it.
 
+A duplicate is settled by merging it into the person it duplicates
+(`tools/conclude.py merge`), which answers the `duplicate_person` question on
+both sides. Everything the duplicate holds moves to the kept person: its
+persona links, statements, event and family memberships, name aliases, plan
+steps, runs and questions. Where the kept person already holds the same thing,
+the duplicate's is folded onto theirs: a membership of the same family and role
+gives its statements to the kept person's; a link to the same persona leaves
+the kept person's decision standing, and gives its own only where the kept
+person's link is undecided, which is no decision; an alias of the same words
+leaves the kept person's; a question of the same key, in any status, is the
+kept person's question asked twice, and the duplicate's closes, where open, as
+answered by the merge. The duplicate's row stays for the audit trail, out of
+every listing, holding nothing open and no decision. The merge run again on a
+merged pair completes what an older merge left on the duplicate.
+
 ## 3. Plan: the search ladder
 
 The first rung is not a record type and not a name. It is **the family's own

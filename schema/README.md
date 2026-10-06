@@ -119,12 +119,17 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   event of theirs). `v_unsupported_person` lists the rest; after an import that
   is everyone, by design.
 - A `person.merged_into` (`tools/conclude.py merge`) marks a duplicate found and merged
-  (RESEARCH-WORKFLOW §2's `duplicate_person`): its persona links, assertions, family memberships
-  (one the kept person already holds folded onto theirs), plan steps and open questions move to the
-  kept person, every proposal naming it is re-pointed to the kept person, a run on a step the kept person also has is
-  carried onto the kept step as a new row (the duplicate's step left on its row, skipped), one `proposal` of kind
-  `duplicate_person` and one `audit_log` row record what moved, and the row itself stays,
-  out of every listing, overview, plan and matcher run.
+  (RESEARCH-WORKFLOW §2's `duplicate_person`): its persona links (one whose persona the kept person
+  already links folded onto theirs, the kept person's row taking the duplicate's decision only where
+  its own is undecided), assertions, family memberships (one the kept person already holds folded onto
+  theirs), name aliases (one of words the kept person already holds folded onto theirs), plan steps
+  and questions move to the kept person, a question whose key the kept person already holds staying
+  on the duplicate, closed as answered by the merge where it was open; every proposal naming it is
+  re-pointed to the kept person, a run on a step the kept person also has is carried onto the kept
+  step as a new row (the duplicate's step left on its row, skipped), one `proposal` of kind
+  `duplicate_person` and one `audit_log` row record what moved and what folded, and the row itself
+  stays, out of every listing, overview, plan and matcher run, holding nothing open and no decision.
+  The merge run again on a merged pair completes an older merge the same way.
 - One statement, one event: a record's event fact is asserted on one `event` of its type,
   the person's or the family's (`Catalog.event_for`), or on none while the choice is the
   owner's (`Catalog.unplaced`), and a person's or a family's events of one type that are one

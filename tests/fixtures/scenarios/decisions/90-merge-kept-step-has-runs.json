@@ -37,9 +37,11 @@
       "assertions": 1,
       "plan_steps_dropped": 1,
       "questions_moved": 1,
-      "questions_dropped": 1
+      "closed_questions": {
+       "len": 1
+      }
      },
-     "why": "the persona link and the assertion move; the colliding step is dropped and the questions follow"
+     "why": "the persona link and the assertion move; the colliding step is dropped and the questions follow, the one the kept person holds closed on the duplicate"
     },
     {
      "last": {
@@ -54,14 +56,22 @@
     },
     {
      "last": {
-      "dropped_questions": [
+      "closed_questions": [
        {
         "q_key": "missing_parents:",
         "kind": "missing_parents",
-        "reason": "the kept person already has an open question of this key"
+        "reason": "the kept person holds a question of this key: closed as answered by the merge"
        }
       ]
      }
+    },
+    {
+     "question": {
+      "person": "I332737068288",
+      "status": "open",
+      "count": 0
+     },
+     "why": "nothing stays open on the merged entry"
     },
     {
      "audit": {
