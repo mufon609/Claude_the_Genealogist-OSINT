@@ -7,7 +7,7 @@ JPEG the result names. The site states no rate limit; the runner keeps to one re
 the site. The search is fuzzy, so a result is a hit only when a highlighted name carries both the surname and the given name.
 """
 import json, re, urllib.parse
-from catalog import US_STATE_TABLE, US_STATES, key
+from catalog import US_STATE_TABLE, key
 from connectors import value
 from connectors.ia import name_parts
 
@@ -19,12 +19,16 @@ ABBR = {name.lower(): abbrs[0].upper() for name, abbrs in US_STATE_TABLE.items()
 
 def place_parts(place):
     """(county, state abbreviation) from a place text such as 'Hempstead < Nassau County < New York < United States', or the
-    first name when the field carries several (catalog.first_value)."""
-    from catalog import first_value
+    first name when the field carries several (catalog.first_value): the state the place's own, as the catalog reads it
+    (catalog.place_state: its last part that is not the country), so Washington, District of Columbia is asked in the
+    District; the county a part written so, else the part just below the state's own, when that is neither the place itself
+    nor the state named again."""
+    from catalog import first_value, place_state, us_state
     parts = [p.strip() for p in re.split(r"[<,]", first_value(place) or "") if p.strip()]
-    state = next((p for p in parts if p.lower() in US_STATES), None)
+    state = place_state(first_value(place))
     county = next((re.sub(r"\s+County$", "", p, flags=re.I) for p in parts if re.search(r"\bCounty$", p, re.I)), None)
-    if county is None and state and len(parts) >= 2 and parts[parts.index(state) - 1] != parts[0]: county = parts[parts.index(state) - 1]
+    at = max((i for i, p in enumerate(parts) if us_state(p) == state), default=0) if state else 0
+    if county is None and at >= 2 and parts[at - 1] != parts[0] and us_state(parts[at - 1]) != state: county = parts[at - 1]
     return county, ABBR.get(state.lower()) if state else None
 
 def wants(fields):

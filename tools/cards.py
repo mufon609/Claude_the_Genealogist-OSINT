@@ -11,7 +11,8 @@ with its holder, collection, own identity and trust tier; the primary document a
 what the record says field by field against the tree's value, as agrees, disagrees or absent, a value the page keeps
 beneath the one it shows no field of its own (the matcher compares none); the relationships the record
 states and who on it is already matched or accepted; what accepting closes, from the person's open questions when the step
-carries one and from the checklist row otherwise; anything odd. No scores. The person screen's proposal panel shows the same
+carries one and from the checklist row otherwise, and nothing on a record withdrawn from the evidence (tools/tombstone.py);
+anything odd. No scores. The person screen's proposal panel shows the same
 card from card() and render() here, so the two never drift. hints_on gives the record's hints for a person, the rows that
 overlap them without identifying them, for the same screen. Nothing here writes.
 
@@ -25,7 +26,7 @@ prints every card whole, as render() and render_search() write it for the person
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, DB, connect, object_path, resolve_tree
-from catalog import Catalog, fetch_target, note as _note, tier_sql, year, held_for, holds
+from catalog import Catalog, fetch_target, note as _note, tier_sql, year, held_for, holds, withdrawals
 from match import (
     COUNTRY,
     candidate as match_candidate,
@@ -339,7 +340,11 @@ def card(cx, tree_id, prop_id, cat=None):
     # ---- what accepting closes
     closes = []
     subject = pay.get("subject_person_id")
-    if person_id:
+    gone = withdrawals(cx, [sha]).get(sha)
+    if person_id and gone:
+        # a record withdrawn from the evidence holds no step and its statements are evidence for nothing (docs/DATA-ARCHITECTURE.md §2)
+        closes.append(f"nothing: the record was withdrawn from the evidence on {gone['at'][:10]} ({gone['reason']}), and its statements are evidence for nothing")
+    elif person_id:
         # the citations this record holds for this person
         hs = cat.holdings()
         ids = {k for k in holds(cx, sha, cat.page_groups()) if held_for(cx, k, person_id, hs) == sha}

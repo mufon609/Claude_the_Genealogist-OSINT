@@ -7,7 +7,6 @@ Rate limits documented at https://www.loc.gov/apis/json-and-yaml/working-within-
 text services 150 per minute, image services 150 per minute; exceeding them blocks the client for an hour.
 """
 import json, re, urllib.parse
-from catalog import US_STATES
 from connectors import value
 from connectors.ia import name_parts
 
@@ -16,12 +15,13 @@ COLLECTION = "Chronicling America (loc.gov)"
 RATE = {"search": 20, "text": 150, "image": 150}
 
 def state_of(place):
-    """The US state named in a place text ('Pottstown < Montgomery County < Pennsylvania < United States', or a raw string),
-    or the first name when the field carries several accurate names for a place (catalog.first_value)."""
-    from catalog import first_value
-    for part in re.split(r"[<,]", first_value(place) or ""):
-        if part.strip().lower() in US_STATES: return part.strip().lower()
-    return None
+    """The US state a place text names as its own ('Pottstown < Montgomery County < Pennsylvania < United States', or a raw
+    string), or the first name's when the field carries several accurate names for a place (catalog.first_value), lowercased
+    as the collection's location_state facet writes it: the state as the catalog reads it (catalog.place_state, its last part
+    that is not the country), so Washington, District of Columbia is in the District."""
+    from catalog import first_value, place_state
+    state = place_state(first_value(place))
+    return state.lower() if state else None
 
 def wants(fields):
     return None if name_parts(fields)[1] else "a surname"

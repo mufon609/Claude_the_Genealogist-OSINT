@@ -155,7 +155,14 @@ outside the vendor.
   runs that archived it stay as written; no reader counts a withdrawn file as held
   (`catalog.not_withdrawn`: the holdings, a citation's held record, a done step's held rows,
   the person screen's steps and runs), a step it alone closed opens again at the next plan,
-  the attach refuses its bytes, and the fixity run skips it.
+  the attach refuses its bytes, and the fixity run skips it. The statements resting on it (every
+  assertion citing it) stay as written too, their status unchanged (hard rule 2), and a decision
+  on it stands until a person takes it again; from the withdrawal on they are evidence for nothing:
+  the standing rule stands on none of them and takes no card on the file (`reconsider` withdraws a
+  decision the rule took there), no conflict, unplaced fact or limit of one life is read from them,
+  what of an event's value is accepted takes nothing from them, the proof counts none of them and
+  names the record withdrawn, a card on the file closes nothing, and a key fact's accept acts on
+  none of them (`docs/RESEARCH-WORKFLOW.md` §5–7).
 
 ## 3. Catalog (the database)
 

@@ -187,7 +187,7 @@ EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("r
               "familysearch": ("rule", "familysearch-record", "0.8.1"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.2.0"),
               "locgov": ("rule", "loc-gov-ocr", "0.1.0"), "ia_inside": ("rule", "ia-search-inside", "0.1.0"),
               "aad_search": ("rule", "aad-search", "0.1.0"), "aad_record": ("rule", "aad-enlistment", "0.1.0"), "wikitree": ("rule", "wikitree-profile", "0.1.0"),
-              "va_graves": ("rule", "va-gravesite", "0.2.0"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
+              "va_graves": ("rule", "va-gravesite", "0.2.1"), "nj_death_index": ("rule", "nj-death-index", "0.1.0"),
               "ky_death_index": ("rule", "ky-death-index", "0.1.0"), "ky_birth_index": ("rule", "ky-birth-index", "0.1.0"),
               None: ("rule", "extract", "0.1.0")}
 RESULTS_LISTINGS = ("findagrave-search", "familysearch-search", "aad-search", "va-gravesite", "nj-death-index", "ky-death-index", "ky-birth-index")   # the extractors that read a results listing, one persona per row: a row's own record is the document (docs/RESEARCH-WORKFLOW.md §0), so a listing on which no row fits anyone is a none run (§4), its rows kept on the artifact as candidates
@@ -952,13 +952,13 @@ VA_RELATIONSHIP = re.compile(r"^\s*(.+?)\s+OF\s+(.+?)\s*$", re.I)   # a dependen
 
 def write_va(w, parsed):
     """One persona per decedent the gravesite locator lists: the name the right way round, the dates of birth and death as
-    written (month first), the burial in the cemetery at its town and state with the section and site as the plot, rank and
+    written (month first), the burial in the cemetery at its town and state (the postal code written as the state's name by
+    catalog.us_state: DC is the District of Columbia) with the section and site as the plot, rank and
     branch and the war period as one Military Service attribute, the row and the page in the region. A dependent's row names
     the veteran the dependent is buried with (Relationships: WIFE OF DAVIDSON, RAYMOND E): the veteran is a persona of the
     same row, the row's rank and branch and war period the veteran's Military Service, and the dependent is related to the
     veteran as written (kind spouse, "WIFE"). A row is a result: one that fits nobody stays on the page as a hint."""
-    from connectors.nara_1950 import ABBR
-    states = {v: k.title() for k, v in ABBR.items()}
+    from catalog import us_state
     seq = 1
     for r in parsed["rows"]:
         name = va_name(r.get("name")) or "(unnamed)"
@@ -966,7 +966,7 @@ def write_va(w, parsed):
         w.fact(pid, "Name", name, labels=["Name"])
         if r.get("birth"): w.fact(pid, "Birth", None, r["birth"], None, ["Date of Birth"])
         if r.get("death"): w.fact(pid, "Death", None, r["death"], None, ["Date of Death"])
-        place = ", ".join(x for x in (r.get("cemetery"), (r.get("city") or "").title() or None, states.get(r.get("state")) or r.get("state")) if x) or None
+        place = ", ".join(x for x in (r.get("cemetery"), (r.get("city") or "").title() or None, us_state(r.get("state")) or r.get("state")) if x) or None
         if place or r.get("buried_at"): w.fact(pid, "Burial", f"Plot: {r['buried_at']}" if r.get("buried_at") else None, None, place, ["Cemetery", "Buried At", "Cemetery Address"])
         service = ", ".join(x for x in (r.get("rank_branch"), r.get("war")) if x)
         rel = VA_RELATIONSHIP.match(r.get("relationship") or "")

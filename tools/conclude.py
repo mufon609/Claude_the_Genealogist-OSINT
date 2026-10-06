@@ -104,7 +104,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, parse_gedcom_date, resolve_tree, ulid
-from catalog import Catalog, current_entry, latest_reading, page_entries, persona_key, source_tier, split_name, tier_sql
+from catalog import Catalog, current_entry, latest_reading, page_entries, persona_key, source_tier, split_name, tier_sql, withdrawals
 from catalog import (
     MARKS,
     MEMBERSHIPS,
@@ -119,6 +119,7 @@ from catalog import (
     holds,
     life_limits,
     marked,
+    not_withdrawn,
     notes_of,
     parent_limit,
     place_verdict,
@@ -191,9 +192,9 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()
     must itself state one (its persona fact's; the event's own for a vouch with no fact), so a record that states an event
     with no date or no place, asserted on the person's one event of the type, is never ground for a date or a place another
     source gave that event. day: the assertion must itself state a full date. A statement carrying one of the MARKS (a sibling
-    placement, a value the page keeps beneath, a link the indexer computed) never counts, whatever its status. without:
-    proposal ids whose assertions do not count (a rule decision under reconsideration and every rule decision after it), and
-    statements that do not (unless)."""
+    placement, a value the page keeps beneath, a link the indexer computed) never counts, whatever its status, nor does one
+    resting on a withdrawn file (catalog.not_withdrawn: evidence for nothing). without: proposal ids whose assertions do not
+    count (a rule decision under reconsideration and every rule decision after it), and statements that do not (unless)."""
     q = _q(cx)
     skip, skipped = unless(without)
     full = "AND length(coalesce(pf.date_start, CASE WHEN pf.id IS NULL THEN ev.date_start END)) = 10" if day else ""
@@ -204,7 +205,7 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()
     for sid in ids:
         if q.execute(f"""SELECT 1 FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                          LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN event ev ON a.subject_kind='event' AND ev.id=a.subject_id
-                         WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} {skip} {full}
+                         WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} AND {not_withdrawn('a.artifact_sha256')} {skip} {full}
                          AND (substr({tier_sql()},1,2) IN ('T1','T2','T3') OR (json_valid(a.notes) AND (json_extract(a.notes,'$.vouched')=1 OR json_extract(a.notes,'$.uncited')=1)))""", (tree_id, kind, sid, *skipped)).fetchone():
             return True
     return False
@@ -250,15 +251,15 @@ def cites_record(notes, keys):
 def rests_elsewhere(cx, eid, sha, axis, value, keys=None, copies=()):
     """Whether the event's value that a related persona's value agrees with stands on some statement other than the record
     under decision, so that the persona stands for the tree's relative on more than the relationship the record states
-    (rule_points, grounded): a statement on the event that is not rejected, not the record's own (on any of its copies) and
-    not a claim whose own citation is that record (docs/RESEARCH-WORKFLOW.md, the proof standard: such a claim never counts),
-    giving a date or a place that agrees with value (gives)."""
+    (rule_points, grounded): a statement on the event that is not rejected, not the record's own (on any of its copies), not
+    a claim whose own citation is that record (docs/RESEARCH-WORKFLOW.md, the proof standard: such a claim never counts) and
+    resting on no withdrawn file, giving a date or a place that agrees with value (gives)."""
     q = _q(cx)
     keys = keys or record_keys(cx, sha)
     ev = q.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
     for r in q.execute(f"""SELECT {STATEMENT_COLUMNS} FROM assertion a {STATEMENT_JOINS}
                            WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected'""", (eid,)):
-        if r["artifact_sha256"] == sha or r["artifact_sha256"] in copies:
+        if r["artifact_sha256"] == sha or r["artifact_sha256"] in copies or r["withdrawn"]:
             continue
         if cites_record(_notes(r), keys):
             continue
@@ -266,8 +267,9 @@ def rests_elsewhere(cx, eid, sha, axis, value, keys=None, copies=()):
             return True
     return False
 
-# a statement on an event as gives() reads it
-STATEMENT_COLUMNS = "a.id, a.status, a.artifact_sha256, a.notes, a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw"
+# a statement on an event as gives() reads it, and whether it rests on a withdrawn file (catalog.not_withdrawn)
+STATEMENT_COLUMNS = ("a.id, a.status, a.artifact_sha256, a.notes, a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw, "
+                     f"NOT {not_withdrawn('a.artifact_sha256')} AS withdrawn")
 STATEMENT_JOINS = (
     "LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id"
 )
@@ -298,13 +300,14 @@ def not_the_files_word(r, rec, keys, without=(), claim_only=False):
     """What keeps a statement on the tree (an assertion row: id, status, artifact_sha256, notes, imported) from standing
     claimed or accepted for the record under decision, or None when it stands: catalog.files_word (the file's claim, the
     import's own statement not rejected; with claim_only that alone, otherwise an accepted statement too; never one carrying
-    one of the MARKS), and never one from the record under decision on any of its copies (rec: record_self, "self"), one a
+    one of the MARKS, nor one resting on a withdrawn file, "withdrawn"), and never one from the record under decision on any
+    of its copies (rec: record_self, "self"), one a
     decision in without wrote or one in without itself (reconsider, unless: "without"), or a claim whose own citation is
     that record (keys: record_keys, "cites")."""
     notes = _notes(r)
     if r["artifact_sha256"] in rec["copies"]:
         return "self"
-    word = files_word(r["status"], notes, r["imported"], claim_only)
+    word = files_word(r["status"], notes, r["imported"], claim_only, withdrawn=r["withdrawn"])
     if word in MARKS:
         return word
     if r["id"] in without or notes.get("proposal") in without:
@@ -318,8 +321,8 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
     is: record_self): accepted assertions on these subjects (the event compared, or the memberships joining two people)
     resting on a trusted source (T1–T3) or on the owner's own word (a vouch, or the file's uncited claim the owner accepted),
     never a statement carrying one of the MARKS (a sibling placement, a value the page keeps beneath, a link the indexer
-    computed), the record itself on any of its copies (same_record: one record is one source wherever it is held), a claim whose
-    own citation is it, or a statement from the same original about the same person's same event: a record whose classes
+    computed) or resting on a withdrawn file (catalog.not_withdrawn), the record itself on any of its copies (same_record:
+    one record is one source wherever it is held), a claim whose own citation is it, or a statement from the same original about the same person's same event: a record whose classes
     name the same original (catalog.evidence_classes, record_original), the record of the same person (record_owners) and,
     where both give one, of the same year, which the code cannot show to be another copy of it and still counts once with it
     (two indexes of one certificate, two papers' obituaries of one death), never by the kind alone, which two people's
@@ -352,7 +355,8 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
                                FROM assertion a LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                                LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                                LEFT JOIN event ev ON a.subject_kind='event' AND ev.id=a.subject_id
-                               WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} {skip} ORDER BY a.asserted_at, a.id""", (tree_id, kind, sid, *skipped)).fetchall():
+                               WHERE a.tree_id=? AND a.subject_kind=? AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} AND {not_withdrawn('a.artifact_sha256')} {skip}
+                               ORDER BY a.asserted_at, a.id""", (tree_id, kind, sid, *skipped)).fetchall():
             if r["artifact_sha256"] == sha:
                 continue
             try:
@@ -2118,9 +2122,9 @@ def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_sta
     qualifier}; a place, its words): what the standing rule refuses a record on (docs/RESEARCH-WORKFLOW.md §5–7, what of an
     event's value is accepted), whatever the event itself shows, so a claim the event shows never vetoes, and a record that
     agrees with that claim is still refused where an accepted statement gives another value. A statement counts when it is
-    accepted, of the event's own type, carries no mark (MARKS) and is not one a standing resolution set aside
-    (catalog.set_aside); the owner's own word with no record fact of its own (a vouch: facts.vouch) stands for the event's
-    own date as it stands, and gives no place. A place is compared as the place the statement's words are resolved to when
+    accepted, of the event's own type, carries no mark (MARKS), rests on no withdrawn file (catalog.not_withdrawn) and is not
+    one a standing resolution set aside (catalog.set_aside); the owner's own word with no record fact of its own (a vouch:
+    facts.vouch) stands for the event's own date as it stands, and gives no place. A place is compared as the place the statement's words are resolved to when
     they are, and disagrees when neither agrees with the other (catalog.place_verdict, a bare county on the record read
     with record_state, the state of its own collection), unless both name parts of the event's own place, neither inside it,
     as Catalog.disagreements reads two such statements (a death index's state and an obituary's town written without it are
@@ -2137,7 +2141,7 @@ def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_sta
     rows = q.execute(f"""SELECT a.id, a.artifact_sha256, a.persona_fact_id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw,
                                 CASE WHEN ps.status='accepted' THEN ps.place_id END AS place_id
                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
-                         WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} {skip}
+                         WHERE a.subject_kind='event' AND a.subject_id=? AND a.status='accepted' AND NOT {marked()} AND {not_withdrawn('a.artifact_sha256')} {skip}
                          ORDER BY a.asserted_at, a.id""", (eid, *skipped)).fetchall()
     shown = (cat.place(eid, ev["place_id"]) or {}).get("text") if axis == "place" else None
     def part(p, state=None):
@@ -2278,14 +2282,16 @@ def claimed_or_accepted(cx, tree_id, pid, other, group, rec, keys, without=(), c
     family joining the two, the membership of each carries an accepted statement or the file's claim of it, the import's own
     statement (on a file this tree imported, tree_import), not rejected; with claim_only, the file's claim alone. Nothing
     else is the file's word: an undecided statement from a page anyone can edit or a link a withdrawn decision left claims
-    nothing, and an indexer's grouping or a sibling placement (MARKS) nothing whatever its status. A statement from the
+    nothing, and an indexer's grouping, a sibling placement (MARKS) or a statement resting on a withdrawn file nothing
+    whatever its status. A statement from the
     record under decision on any of its copies (rec: record_self), a claim whose own citation is that record (keys:
     record_keys), one a decision in without wrote and one in without itself (reconsider, unless) never count
     (not_the_files_word)."""
     q = _q(cx)
     mine, theirs = MEMBERSHIPS[group]
     def stands(fid, who, role):
-        return any(not_the_files_word(r, rec, keys, without, claim_only) is None for r in q.execute(f"""SELECT a.id, a.status, a.artifact_sha256, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?) AS imported
+        return any(not_the_files_word(r, rec, keys, without, claim_only) is None for r in q.execute(f"""SELECT a.id, a.status, a.artifact_sha256, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?) AS imported,
+                                          NOT {not_withdrawn('a.artifact_sha256')} AS withdrawn
                                           FROM assertion a WHERE a.tree_id=? AND a.subject_kind='family_member' AND a.subject_id=? AND a.status<>'rejected'""", (tree_id, tree_id, dumps([fid, who, role]))).fetchall())
     return any(stands(fid, pid, mine) and stands(fid, other, theirs) for fid, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?
                                         WHERE fm.person_id=? AND fm.role=?""", (other, theirs, pid, mine)).fetchall())
@@ -2299,6 +2305,7 @@ LEFT_OUT = {
     "computed": "a link a record's indexer computed",
     "without": "a later decision of the rule",
     "undecided": "a statement left undecided",
+    "withdrawn": "a statement on a withdrawn record",
     "editable": "an undecided fact another page anyone can edit types",
     "aside": "a statement the event's value was decided against"
 }
@@ -2585,7 +2592,8 @@ def rule_points(cx, tree_id, prop, without=()):
     (T4) of an identity kind gives the identity alone, on the name and three of birth day, death day, burial place and one
     stated parent or spouse whom the tree links so, each claimed or accepted (event_claimed_or_accepted, claimed_or_accepted),
     a claim citing the page not among them, however many relatives it lists, the reason naming what it left out; a child or
-    a sibling is none of the four. without: proposal ids whose
+    a sibling is none of the four. A record withdrawn from the evidence (tools/tombstone.py) is refused whatever it states:
+    its statements are evidence for nothing, so the owner decides it. without: proposal ids whose
     assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by the
     relationship route, as it was taken."""
     q = _q(cx)
@@ -2598,6 +2606,9 @@ def rule_points(cx, tree_id, prop, without=()):
                      LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE e.id=?""", (pay["extraction_id"],)).fetchone()
     if not x:
         return False, "the record's extraction is gone", []
+    gone = withdrawals(cx, [sha]).get(sha)
+    if gone:
+        return False, f"the record was withdrawn from the evidence on {gone['at'][:10]} ({gone['reason']}): its statements are evidence for nothing, the owner decides it", []
     eid = latest_reading(cx, pay["extraction_id"])
     kinds, year = record_kinds(cx, sha, eid)
     standing, by_kind = record_standing(kinds)
@@ -3081,13 +3092,14 @@ def accepted_span(cx, tree_id, pid, etype, without=()):
     """What the person's accepted statements of an event type a life holds once say of its date: (earliest, latest, words),
     the earliest day any of them can stand for and the latest (catalog.date_span; None on a side one of them leaves open),
     and the dates as written; None when none is accepted or none gives a date. A statement with no record fact of its own
-    (the owner's word) stands for the event's own date. without: proposal ids whose statements do not count, and statements
-    that do not (reconsider, unless)."""
+    (the owner's word) stands for the event's own date; one resting on a withdrawn file (catalog.not_withdrawn) says nothing.
+    without: proposal ids whose statements do not count, and statements that do not (reconsider, unless)."""
     skip, skipped = unless(without)
     spans, words = [], []
     for r in _q(cx).execute(f"""SELECT a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, e.date_text AS ev_text, e.date_start AS ev_start, e.date_end AS ev_end, e.date_qualifier AS ev_q
                                 FROM assertion a JOIN event e ON e.id=a.subject_id JOIN event_participant ep ON ep.event_id=e.id LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
-                                WHERE a.tree_id=? AND a.subject_kind='event' AND a.status='accepted' AND ep.person_id=? AND e.event_type=? {skip} ORDER BY a.asserted_at, a.id""", (tree_id, pid, etype, *skipped)):
+                                WHERE a.tree_id=? AND a.subject_kind='event' AND a.status='accepted' AND {not_withdrawn('a.artifact_sha256')} AND ep.person_id=? AND e.event_type=? {skip}
+                                ORDER BY a.asserted_at, a.id""", (tree_id, pid, etype, *skipped)):
         own = r["persona_fact_id"] is None
         sp = (
             date_span(r["ev_start"], r["ev_end"], r["ev_q"])
@@ -4390,9 +4402,9 @@ def owner_decided(cx, tree_id, ev, axis):
 def classes_decide(cx, tree_id, eid, axis):
     """The rule's test on a conflict about one event's date or place (docs/RESEARCH-WORKFLOW.md §5–7, the proof standard:
     conflicts kept, cited, pointed out, then decided): (the assertion id of the statement it keeps, or None; why, a sentence
-    in words from the classes). The statements on the event of its own type, rejected ones and the owner's own word aside,
-    are read by their classes (data/evidence-classes.csv, catalog.evidence_classes), a place compared as the place its words
-    are resolved to, as Catalog.disagreements compares it. A statement holds the event first-hand when it is primary
+    in words from the classes). The statements on the event of its own type, rejected ones, the owner's own word and those
+    resting on a withdrawn file (evidence for nothing) aside, are read by their classes (data/evidence-classes.csv,
+    catalog.evidence_classes), a place compared as the place its words are resolved to, as Catalog.disagreements compares it. A statement holds the event first-hand when it is primary
     information, accepted as the person's, from a record whose source class is original or derivative (the record of the
     event itself, or an index or transcript of it) and nobody can edit at will (T1–T3), direct evidence, and the event the
     record was made for: an event the table names primary for the record's kind (a census household's residence, a death
@@ -4423,7 +4435,7 @@ def classes_decide(cx, tree_id, eid, axis):
         return None, said
     sts, extra = [], {}
     for s in subject_statements(cat, "event", eid, want=ev["event_type"]):
-        if s["status"] == "rejected":
+        if s["status"] == "rejected" or s["withdrawn"]:
             continue
         r = q.execute("""SELECT a.notes, ps.place_id, ps.status, pf.persona_id, NOT EXISTS (SELECT 1 FROM persona_relation pr WHERE pr.persona_id=pf.persona_id) AS own
                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.id=?""", (s["id"],)).fetchone()

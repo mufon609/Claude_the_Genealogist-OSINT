@@ -57,7 +57,7 @@ sync command (tools/initdb.py --sync-sources) when the registry is out of step.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid
-from catalog import Catalog, dbid_of, browse_only, prefills_nothing, year
+from catalog import Catalog, dbid_of, browse_only, not_withdrawn, prefills_nothing, year
 from checklist import build, names_parents
 from households import OPEN_AT_ONCE, ark_id, candidates, page_words, regroup, said, waiting_for
 from log_search import closed_by_pointers, hold_household
@@ -337,6 +337,13 @@ def searched_where(cat, s, mode):
     if mode != "auto" or not hand: return ""
     return f"; searched by the loop at {', '.join(name(sid) for sid, m in modes.items() if m == 'auto')}, by hand at {', '.join(hand)}"
 
+def archived_at(cx, kind, value):
+    """Whether the archive holds a file at a locator that is no record id (a URL, an ark, a memorial id), as the file was
+    archived under or as artifact_locator names it, never one withdrawn (catalog.not_withdrawn): a fetch step at such a
+    locator is done by that file alone."""
+    return bool(cx.execute(f"""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=? AND {not_withdrawn('sha256')}
+                               UNION SELECT 1 FROM artifact_locator WHERE kind=? AND value=? AND {not_withdrawn('artifact_sha256')}""", (kind, value, kind, value)).fetchone())
+
 def plan_person(cx, tree_id, pid, by):
     cat = Catalog(cx, tree_id); r = build(cat, pid); ts = now(); me = r["person"]["name"]
     check_registry(cx, cat, r)
@@ -414,13 +421,11 @@ def plan_person(cx, tree_id, pid, by):
             cx.execute("""INSERT INTO search_plan (row_key,question_id,seq,kind,query_type,query_json,locator_source_id,locator_kind,locator_value,collection_id,on_json,sources_json,mode,expected,rationale,
                           id,person_id,step_key,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'planned',?)""", cols + (ulid(), pid, st["step_key"], ts)); stats["steps_new"] += 1
     for sid, lkind, lval in cx.execute("SELECT id, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='planned'", (pid,)).fetchall():
-        if (lkind == "apid" and cat.held_for(lval, pid)) or (lkind and lkind != "apid" and lval and cx.execute("""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?
-                UNION SELECT 1 FROM artifact_locator WHERE kind=? AND value=?""", (lkind, lval, lkind, lval)).fetchone()):
+        if (lkind == "apid" and cat.held_for(lval, pid)) or (lkind and lkind != "apid" and lval and archived_at(cx, lkind, lval)):
             cx.execute("UPDATE search_plan SET status='done' WHERE id=?", (sid,)); stats["steps_done_by_archive"] += 1
     for sid, lkind, lval in cx.execute("SELECT id, locator_kind, locator_value FROM search_plan WHERE person_id=? AND kind='fetch' AND status='done'", (pid,)).fetchall():
         if not (lkind and lval): continue                            # a done fetch step whose citation the archive does not hold, closed by pages that point at its record or hold nothing: planned again
-        if (lkind == "apid" and cat.held_for(lval, pid)) or (lkind != "apid" and cx.execute("""SELECT 1 FROM artifact WHERE locator_kind=? AND locator_value=?
-                UNION SELECT 1 FROM artifact_locator WHERE kind=? AND value=?""", (lkind, lval, lkind, lval)).fetchone()): continue
+        if (lkind == "apid" and cat.held_for(lval, pid)) or (lkind != "apid" and archived_at(cx, lkind, lval)): continue
         if closed_by_pointers(cx, sid): cx.execute("UPDATE search_plan SET status='planned' WHERE id=?", (sid,)); stats["steps_planned_again"] = stats.get("steps_planned_again", 0) + 1
     for sha, in cx.execute("SELECT DISTINCT pe.artifact_sha256 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id WHERE pp.person_id=? AND pp.status='accepted'", (pid,)).fetchall():
         held = hold_household(cx, tree_id, pid, sha, by)                 # a household record accepted onto the person holds their own step for its census year, whenever the plan opens or keeps one

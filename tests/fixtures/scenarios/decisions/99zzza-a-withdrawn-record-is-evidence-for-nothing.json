@@ -1,0 +1,134 @@
+{
+ "title": "a withdrawn record is evidence for nothing",
+ "line": "a file withdrawn through tools/tombstone.py leaves the statements resting on it as written and makes them evidence for nothing: Helen Brant's gravestone photograph, saved for its step and read for her and for Frederick M Ahearn, her reading accepted by the owner, is withdrawn; her statements from it stay accepted and her death fact stays decided, but the rule stands on none of them, the proof counts none and names the record withdrawn, the part of her death's value the stone gave is a claim again, Frederick's card on it is one the rule refuses and that closes nothing, an accept of her death fact acts on none of it, and the plan opens the photograph's step again; her memorial withdrawn as well, reconsider takes back the identity the rule took on it",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Helen Sara Brant's memorial arrives, the page the owner saved, and the rule takes her identity on it",
+   "attach": {"fixture": "findagrave-memorial-142698059.html"},
+   "as": "dmem",
+   "expect": [
+    {"last": {"identity": "memorial 142698059"}}
+   ]
+  },
+  {
+   "say": "her plan: the stone's photograph is a fetch step under her cemetery row",
+   "plan": ["I332737037573"],
+   "expect": [
+    {"step": {"person": "I332737037573", "step_key": "fetch:photo:117088371", "fields": {"status": "planned", "locator_kind": "url", "locator_value": {"ends": "142698059_1424121146.jpg"}}}}
+   ]
+  },
+  {
+   "say": "the stone's photograph saved in the browser under the list's name",
+   "save": {"holder": "E05", "person": "I332737037573", "url_has": "142698059_1424121146.jpg", "fixture": "findagrave-photo-142698059-117088371.jpg", "folder": "downloads"},
+   "as": "photo"
+  },
+  {
+   "say": "collect brings it in, archived at the step's own link, and the step is done",
+   "collect": {"folder": "$photo.folder"},
+   "as": "got",
+   "expect": [
+    {"step": {"person": "I332737037573", "step_key": "fetch:photo:117088371", "fields": {"status": "done"}}}
+   ]
+  },
+  {
+   "say": "the stone read, typed by the harness in the model's place from the image's own words: her panel, HELEN BRANT, JULY 11 1909, JAN 24, 1986",
+   "transcribe": {"record": "$got.results.0.sha256", "form": {"name": "Helen Brant Ahearn", "role": "named on the stone", "birth_date": "11 Jul 1909", "death_date": "24 Jan 1986", "bbox": [1626, 1279, 812, 345], "image_is": "record"}, "by": "llm:harness"},
+   "as": "stone"
+  },
+  {
+   "say": "and his panel, FREDERICK M, MAY 22, 1907, FEB. 19, 2001, under the AHEARN they share",
+   "transcribe": {"record": "$got.results.0.sha256", "form": {"name": "Frederick M Ahearn", "role": "named on the stone", "birth_date": "22 May 1907", "death_date": "19 Feb 2001", "bbox": [669, 1273, 792, 359], "image_is": "record"}, "by": "llm:harness"}
+  },
+  {
+   "say": "the owner accepts the stone as hers: its dates are accepted statements on her birth and death, Frederick's panel a card put to her husband",
+   "decide": {"card": {"record": "stone", "person": "I332737037573"}, "status": "accepted"},
+   "expect": [
+    {"states": {"person": "I332737037573", "record": "stone", "event_type": "Death", "is": [{"status": "accepted"}]}},
+    {"trusted": {"event": {"person": "I332737037573", "type": "Death"}, "stating": "date"}, "why": "an accepted statement on a record nobody can edit gives her death's date: ground for the rule"},
+    {"card": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}, "status": "undecided"}}
+   ]
+  },
+  {
+   "say": "her death's proof counts the stone",
+   "proof": {"person": "I332737037573", "fact": "death"},
+   "expect": [
+    {"last": {"fact": {"death": {"verdict": {"not": "no record accepted"}, "evidence": {"some": {"status": "accepted", "label": {"starts": "gravestone"}}}}}}}
+   ]
+  },
+  {
+   "say": "the owner withdraws the photograph from the evidence, with the reason",
+   "tombstone": {"record": "stone", "reason": "harness: the photograph withdrawn, to walk what a withdrawal does to the statements resting on it"},
+   "expect": [
+    {"last": {"resting": {"harness": {"links": {"has": "Helen Sara Brant"}, "statements": {">=": 3}, "cards": 1}}}, "why": "what rests on it is named for the owner to decide again"}
+   ]
+  },
+  {
+   "say": "her statements from it stay as written and her death fact stays decided, but none is ground for the rule",
+   "expect": [
+    {"states": {"person": "I332737037573", "record": "stone", "event_type": "Death", "is": [{"status": "accepted", "person_decided": false}]}, "why": "evidence is immutable and a withdrawal undoes no decision: the statement stays accepted"},
+    {"facts": {"person": "I332737037573", "death": "accepted"}, "why": "the owner's decision on the record stands until the owner takes it again"},
+    {"trusted": {"event": {"person": "I332737037573", "type": "Death"}, "stating": "date", "is": false}, "why": "a statement resting on a withdrawn file is evidence for nothing: the rule stands on none"}
+   ]
+  },
+  {
+   "say": "her death's proof counts none of it, names the record withdrawn, and says the date it gave is a claim again",
+   "proof": {"person": "I332737037573", "fact": "death"},
+   "expect": [
+    {"last": {"fact": {"death": {"verdict": "no record accepted", "why": {"has": "a record accepted for it is withdrawn from the evidence"}, "evidence": {"some": {"status": "accepted", "withdrawn": true}},
+                                 "claimed": {"some": {"has": ["the date 24 Jan 1986 a claim", "a withdrawn record"]}}}}}},
+    {"last": {"text": {"has": "accepted, withdrawn from the evidence"}}}
+   ]
+  },
+  {
+   "say": "the owner accepts her death fact again: the decision acts on the evidence a person can see, never on the statement resting on the withdrawn record",
+   "fact": {"person": "I332737037573", "field": "death", "status": "accepted", "note": "harness: the death decided again"},
+   "expect": [
+    {"states": {"person": "I332737037573", "record": "stone", "event_type": "Death", "is": [{"status": "accepted", "person_decided": false}]}, "why": "the withdrawn record's statement is no evidence the accept acts on, so it carries no decision of the owner's"}
+   ]
+  },
+  {
+   "say": "Frederick's card on the withdrawn record: the rule refuses it, and accepting it closes nothing",
+   "person_view": {"person": {"name": "Frederick Michael Ahearn"}},
+   "as": "view",
+   "expect": [
+    {"rule": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}, "taken": false, "why": {"has": ["withdrawn from the evidence", "harness: the photograph withdrawn"]}}},
+    {"bound": {"value": "$view.documents", "is": {"some": {"closes": [{"starts": "nothing: the record was withdrawn from the evidence"}]}}}}
+   ]
+  },
+  {
+   "say": "reconsider takes nothing on it",
+   "reconsider": {},
+   "expect": [
+    {"card": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}, "status": "undecided"}}
+   ]
+  },
+  {
+   "say": "her plan opens the step the withdrawn photograph alone closed",
+   "plan": ["I332737037573"],
+   "expect": [
+    {"step": {"person": "I332737037573", "step_key": "fetch:photo:117088371", "fields": {"status": "planned"}}, "why": "the archive holds no file at the step's link that is not withdrawn"}
+   ]
+  },
+  {
+   "say": "her memorial withdrawn too, the page on which the rule took her identity",
+   "tombstone": {"record": "dmem", "reason": "harness: the memorial withdrawn, to walk what reconsider does with a decision of the rule's on it"}
+  },
+  {
+   "say": "reconsider takes back the identity the rule took on the withdrawn page: a card for the owner again",
+   "reconsider": {},
+   "expect": [
+    {"last": {"rows": {"some": {"kind": "decision", "kept": false, "person": "Helen Sara Brant", "why": {"has": "withdrawn from the evidence"}}}}},
+    {"card": {"record": "dmem", "person": "I332737037573", "status": "undecided"}, "why": "the rule would no longer take it: the record is evidence for nothing, so the owner decides it"}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}, {"no_repeats": true}]
+  }
+ ]
+}

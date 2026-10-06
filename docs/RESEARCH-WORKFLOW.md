@@ -1229,8 +1229,11 @@ granularity or by a name it held). The owner's own word on the fact (a vouch,
 or the owner's word on a link or a divorce) gives the event's value whole. A
 statement gives nothing accepted when it is not accepted, when it is not of the
 event's own type, when it carries a mark (a sibling placement, a value a page
-keeps beneath the one it shows, a grouping the indexer computed), and when a
-standing resolution set it aside, the event's value decided against it. What
+keeps beneath the one it shows, a grouping the indexer computed), when its
+record is withdrawn from the evidence (`tools/tombstone.py`: the statement stays
+as written, its status unchanged, and is evidence for nothing,
+`docs/DATA-ARCHITECTURE.md` §2), and when a standing resolution set it aside,
+the event's value decided against it. What
 the event shows beyond what is accepted is a claim, and is said to be one, with
 what it rests on (the file's claim, a page anyone can edit, a record not yet
 accepted), wherever the value is shown or read: the proof summary, the person
@@ -1718,7 +1721,12 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   never an accepted family link. A statement marked as a sibling placement, a
   value the page keeps beneath the one it shows or a link the record's indexer
   computed is never the ground of a point, nor a link, a date or a place the tree
-  holds against a record or claims, whatever its status: the record does not state it. For the
+  holds against a record or claims, whatever its status: the record does not state it. Nor is a
+  statement resting on a file withdrawn from the evidence (`tools/tombstone.py`), whatever its
+  status: it stays as written and is evidence for nothing, no side of a conflict, no date the
+  limits of one life test, and no record the written conclusion counts (it names the record
+  withdrawn); the rule takes no card on such a file, a card on it closes nothing, and a key fact's
+  accept acts on none of its statements. For the
   same reason a value the page keeps beneath the one it shows is no name, date or place of the
   record's when the record is compared with the tree: the given name and surname the rule tests
   are the ones the page shows (a shown Fred M Ahern with Fred M. Ahearn beneath agrees as a

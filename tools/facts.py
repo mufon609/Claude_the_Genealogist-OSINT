@@ -4,7 +4,7 @@ behind it, the evidence rows a person can see, a vouch on the owner's own knowle
 A fact's status comes from the documents accepted about the person: it is the decision on the fact, and a birth or a death
 accepted on a record is not thereby accepted in all its event shows, the parts of its date or place no accepted statement
 gives being a claim (claimed_parts, docs/RESEARCH-WORKFLOW.md §5–7). Accept touches only assertions whose evidence is visible
-(the file's uncited claim, a held record) and that state the fact: one carrying a mark (conclude.MARKS: a sibling placement, a
+(the file's uncited claim, a held record, never a statement resting on a withdrawn file) and that state the fact: one carrying a mark (conclude.MARKS: a sibling placement, a
 value the page keeps beneath the one it shows, a link the record's indexer computed) stays as it is. When no such assertion is
 there, the accept is the person's own knowledge, recorded as a vouch on the tree file's persona. Reject and Undecided apply to
 every assertion behind the fact. Each statement the decision acts on records it as the person's own decision on that
@@ -15,7 +15,7 @@ plans of the people its statements are about, and then lets the rule go over the
 """
 import json, re
 from treelib import dumps, now, ulid
-from catalog import fetch_target, held_for, holdings, record_of, tier_sql
+from catalog import fetch_target, held_for, holdings, not_withdrawn, record_of, tier_sql
 from conclude import MARKS, answer_questions, settle_people, statement_people
 from plan import plan_person
 
@@ -56,18 +56,21 @@ def claimed_parts(cat, pid, field):
 def evidence_rows(cx, pid, field, hs=None):
     """The statements behind one key fact as the person screen shows them, each with the record it is a statement of: record,
     the key of that record (catalog.record_of: one record is one source wherever it is held, so the screen cites it once
-    with its copies beneath), the same for every copy of it; marked, whether it carries one of conclude.MARKS. hs is the
-    archive's holdings (catalog.holdings) when the caller reads many facts of a view, built once for all; built here when not given."""
+    with its copies beneath), the same for every copy of it; marked, whether it carries one of conclude.MARKS; held, whether
+    its evidence is visible: the file's uncited claim, a vouch, a citation whose record the archive holds, or a record nobody
+    can edit at will, never one withdrawn from the evidence (catalog.not_withdrawn: its statement stays as written, evidence
+    for nothing). hs is the archive's holdings (catalog.holdings) when the caller reads many facts of a view, built once for
+    all; built here when not given."""
     if hs is None: hs = holdings(cx)
     out = []
     tree_id = cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0]
     for k, i in fact_subjects(cx, pid, field):
-        for r in cx.execute(f"""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, {tier_sql()} AS trust_tier,
+        for r in cx.execute(f"""SELECT a.id, a.citation_text, a.status, a.notes, a.artifact_sha256, {tier_sql()} AS trust_tier, NOT {not_withdrawn('a.artifact_sha256')} AS withdrawn,
                                        coalesce((SELECT persona_id FROM persona_fact WHERE id=a.persona_fact_id), a.persona_id) AS persona FROM assertion a
                                LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id WHERE a.subject_kind=? AND a.subject_id=?""", (k, i)):
             n = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
             apid = n.get("apid"); uncited = bool(n.get("uncited")); vouched = bool(n.get("vouched"))
-            visible = uncited or vouched or bool(apid and held_for(cx, apid, pid, hs)) or ((r["trust_tier"] or "")[:2] in ("T1", "T2", "T3"))   # the evidence the person can see
+            visible = not r["withdrawn"] and (uncited or vouched or bool(apid and held_for(cx, apid, pid, hs)) or ((r["trust_tier"] or "")[:2] in ("T1", "T2", "T3")))   # the evidence the person can see
             ident = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in cx.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=? ORDER BY kind", (r["artifact_sha256"],))) if r["artifact_sha256"] else ""
             if not ident and r["artifact_sha256"]:
                 loc = cx.execute("SELECT locator_value, manifest_json FROM artifact WHERE sha256=?", (r["artifact_sha256"],)).fetchone()
@@ -99,7 +102,8 @@ def vouch(cx, tree_id, pid, field, ts, by):
     return out
 
 def decide_fact(cx, tree_id, pid, field, status, note, by):
-    """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held) and
+    """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held, never
+    one withdrawn from the evidence) and
     that state the fact; a citation to a record not yet fetched stays Undecided, and so does a statement carrying one of
     conclude.MARKS (a sibling placement, a value the page keeps beneath, a link the indexer computed), which the decision leaves
     as it is. When no such assertion is behind the fact, the accept is the person's own knowledge: a vouch (see vouch). Reject

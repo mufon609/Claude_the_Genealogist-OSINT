@@ -33,6 +33,15 @@ def us_state(word):
     None for any other word."""
     return _STATE_WORDS.get(re.sub(r"[.\s]", "", (word or "").lower()))
 
+def place_state(place):
+    """The state (or the District of Columbia) a place string names as its own, written as its name is, as _place_parts reads
+    a place: its last part that is not the country, when that part names a state (us_state), so Washington, District of
+    Columbia, United States is in the District of Columbia, never Washington state, and Washington, Tyne and Wear, England
+    is in none. None when that part names no state."""
+    parts = [p.strip(" .") for p in re.split(r"<|,", place or "") if p.strip(" .")]
+    last = next((p for p in reversed(parts) if COUNTRY.sub("usa", p.lower()).strip() != "usa"), None)
+    return us_state(last) if last else None
+
 US_NAMES = {"united states","usa","united states of america","us","british colonies","north america"}
 
 def year(s): return int(s[:4]) if s and s[:4].isdigit() else None
@@ -233,8 +242,10 @@ def cited_persons(cx, apid):
                      FROM assertion a WHERE json_valid(a.notes) AND json_extract(a.notes,'$.apid')=?""", (apid,)) if r[0]]
 
 def not_withdrawn(col):
-    """SQL: the artifact whose sha256 is the column `col` has no tombstone (tools/tombstone.py), so it may count as held. Every
-    reader of what the archive holds reads it; a withdrawn file's rows and readings stay as written, held by nobody."""
+    """SQL: the artifact whose sha256 is the column `col` has no tombstone (tools/tombstone.py), so it may count as held, and a
+    statement resting on it (an assertion whose artifact_sha256 is col) may count as evidence. Every reader of what the archive
+    holds and of what a statement is evidence for reads it; a withdrawn file's rows, readings and statements stay as written,
+    held by nobody and evidence for nothing (docs/DATA-ARCHITECTURE.md §2)."""
     return f"NOT EXISTS (SELECT 1 FROM tombstone t WHERE t.artifact_sha256={col})"
 
 def withdrawals(cx, shas):
@@ -582,13 +593,15 @@ def notes_of(text):
 # the two memberships of a family that join a person to a relative of each relation group: the person's own, the relative's
 MEMBERSHIPS = {"parents": ("child", "partner"), "children": ("partner", "child"), "spouses": ("partner", "partner"), "siblings": ("child", "child")}
 
-def files_word(status, notes, imported, claim_only=False):
+def files_word(status, notes, imported, claim_only=False, withdrawn=False):
     """What keeps a statement on the tree from standing claimed or accepted (docs/RESEARCH-WORKFLOW.md §0 and §5–7), or None
     when it stands: the file's claim, the import's own statement (imported: on a file this tree imported, tree_import), stands;
-    with claim_only nothing else does, otherwise an accepted statement does too. Never one carrying one of the MARKS (the
-    mark's own name: a sibling placement, a value a page keeps beneath, a link an indexer computed); anything else not accepted
-    (a page anyone can edit, a link a withdrawn decision left) is "undecided", and an accepted statement read for the claim
-    alone "accepted". notes: the statement's notes as a dict. The caller has left the rejected out."""
+    with claim_only nothing else does, otherwise an accepted statement does too. Never one resting on a withdrawn file
+    (withdrawn: its record has a tombstone, not_withdrawn), "withdrawn", nor one carrying one of the MARKS (the mark's own name:
+    a sibling placement, a value a page keeps beneath, a link an indexer computed); anything else not accepted (a page anyone
+    can edit, a link a withdrawn decision left) is "undecided", and an accepted statement read for the claim alone "accepted".
+    notes: the statement's notes as a dict. The caller has left the rejected out."""
+    if withdrawn: return "withdrawn"
     mark = next((m for m in MARKS if notes.get(m) is not None), None)
     if mark: return mark
     if imported: return None
@@ -1262,7 +1275,8 @@ class Catalog:
         middle_differs: John A. against John D) is a line too, one per record. A statement carrying one of the MARKS (a
         value the page keeps beneath the one it shows, a sibling placement, a grouping the indexer computed) is none of
         these, whatever its status: the record does not state it (docs/RESEARCH-WORKFLOW.md, the proof standard), so it
-        neither raises a difference nor joins its record's own date or place."""
+        neither raises a difference nor joins its record's own date or place; nor is a statement resting on a withdrawn file
+        (not_withdrawn), which stays as written and is evidence for nothing."""
         out = []
         from match import middle_differs                      # the matcher's own rule for a middle name, so a conflict is raised on exactly what made the card
         rows = [(g or "", s or "") for g, s in self.q("SELECT given, surname FROM person_name WHERE person_id=?", pid)]
@@ -1270,7 +1284,7 @@ class Catalog:
         for written, coll, loc in ([] if event else self.q(f"""SELECT pf.value_text, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value FROM assertion a
                                             JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                                             WHERE a.subject_kind='person' AND a.subject_id=? AND a.status='accepted' AND pf.fact_type='Name' AND pf.value_text IS NOT NULL
-                                            AND NOT {marked()} ORDER BY a.asserted_at, a.id""", pid)):
+                                            AND NOT {marked()} AND {not_withdrawn('a.artifact_sha256')} ORDER BY a.asserted_at, a.id""", pid)):
             if middle_differs(written, rows, [s for _, s in rows]):
                 out.append(f"name: the tree against {coll}" + (f" ({loc})" if loc else "") + f": {shown} against {written}")
         for e in self.q(f"""SELECT DISTINCT e.id, e.event_type, e.date_text, e.date_start, e.date_qualifier, e.place_id, e.date_end FROM event e JOIN event_participant ep ON ep.event_id=e.id
@@ -1285,7 +1299,7 @@ class Catalog:
                              FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                              JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                              WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' AND pf.fact_type=? AND NOT {marked()}
-                             ORDER BY a.asserted_at, a.id""", e[0], e[1])
+                             AND {not_withdrawn('a.artifact_sha256')} ORDER BY a.asserted_at, a.id""", e[0], e[1])
             groups, order = {}, []                            # one group per record (record_of: its copies wherever they are held), whatever collection name cites it
             for f in rows:
                 gk = record_of(self.cx, self.tree_id, f[10], f[11])
@@ -1414,7 +1428,8 @@ class Catalog:
         placed (Catalog.stated_on). A value the page keeps beneath the one it shows (a fact whose region marks it alternate)
         is never asked: it is never accepted with its record, never ground for the rule and never a conflict, so where it
         stands decides nothing the owner should be asked about (docs/RESEARCH-WORKFLOW.md §5–7); it stays with its record,
-        and tools/conclude.py place given one writes it undecided and marked."""
+        and tools/conclude.py place given one writes it undecided and marked. A record withdrawn from the evidence
+        (not_withdrawn) asks nothing either: its facts are evidence for nothing."""
         out, seen = [], set()
         fams = [f for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid)]
         for row in self.q(f"""SELECT pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.place_string_id, pf.value_text, et.kind, pe.id, pe.artifact_sha256,
@@ -1423,7 +1438,7 @@ class Catalog:
                               JOIN event_type et ON et.name=pf.fact_type JOIN artifact ar ON ar.sha256=pe.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id
                               WHERE pp.person_id=? AND pp.status='accepted' AND et.kind IN ('event','attribute','family_event') AND pf.fact_type NOT IN ('Name','Sex',{','.join('?' * len(RECORD_FACTS))})
                               AND NOT (pf.fact_type='Residence' AND pf.date_start IS NULL AND pf.date_end IS NULL)
-                              AND NOT (json_valid(pf.region_json) AND json_extract(pf.region_json,'$.alternate') IS NOT NULL)
+                              AND NOT (json_valid(pf.region_json) AND json_extract(pf.region_json,'$.alternate') IS NOT NULL) AND {not_withdrawn('pe.artifact_sha256')}
                               AND NOT EXISTS (SELECT 1 FROM assertion a WHERE a.persona_fact_id=pf.id) ORDER BY x.superseded_by IS NOT NULL, pf.id""", pid, *RECORD_FACTS):
             fid, ftype, dtext, kind, persona, sha, label = row[0], row[1], row[2], row[8], row[9], row[10], row[11]
             f = dict(zip(("id", "fact_type", "date_text", "date_start", "date_end", "date_qualifier", "place_string_id", "value_text"), row[:8]))
@@ -1493,11 +1508,12 @@ class Catalog:
         level is how much of the value accepted statements give: for a date "whole", "month", "year" (date_given) or None, for
         a place 0 for the whole, n for all but its first n parts (place_given) or None. An accepted statement gives its own
         date and place, the place as its words are resolved when they are; one of another type than the event's, one carrying
-        a mark (MARKS) and one a standing resolution set aside (set_aside) give nothing; the owner's own word (a vouch, a link
-        or a divorce on their word: notes vouched) gives the whole. given is the accepted part in words (the date to its level,
-        the finest part of the place), claim the part beyond it (the whole value when nothing of it is accepted), on what the
-        claim rests on, in words (the statements not accepted that give more than is accepted: the file, a page anyone can
-        edit, a record not yet accepted, a value a page keeps beneath), beside each accepted statement that gives no part of
+        a mark (MARKS), one resting on a withdrawn file (not_withdrawn: evidence for nothing, whatever its status) and one a
+        standing resolution set aside (set_aside) give nothing; the owner's own word (a vouch, a link or a divorce on their
+        word: notes vouched) gives the whole. given is the accepted part in words (the date to its level, the finest part of
+        the place), claim the part beyond it (the whole value when nothing of it is accepted), on what the claim rests on, in
+        words (the statements not accepted that give more than is accepted: the file, a page anyone can edit, a record not
+        yet accepted, a withdrawn record, a value a page keeps beneath), beside each accepted statement that gives no part of
         the value, its value and its record in words."""
         etype, text, start, end, qual, place_id = self.q("""SELECT event_type, date_text, date_start, date_end, date_qualifier, place_id
                                                             FROM event WHERE id=?""", eid)[0]
@@ -1507,26 +1523,27 @@ class Catalog:
         dated = self.dated_names(place_id)
         rows = self.q(f"""SELECT a.id, a.status, a.notes, a.artifact_sha256, pf.id, pf.fact_type, pf.date_text, pf.date_start, pf.date_end,
                                  pf.date_qualifier, ps.raw, CASE WHEN ps.status='accepted' THEN ps.place_id END,
-                                 a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import), {tier_sql()}, c.name
+                                 a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import), {tier_sql()}, c.name, NOT {not_withdrawn('a.artifact_sha256')}
                           FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id
                           LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 LEFT JOIN source s ON s.id=ar.source_id
                           LEFT JOIN collection c ON c.id=ar.collection_id
                           WHERE a.subject_kind='event' AND a.subject_id=? AND a.status<>'rejected' ORDER BY a.asserted_at, a.id""", eid)
         statements = []
-        for aid, status, notes, sha, pf, ftype, dtext, dstart, dend, dqual, raw, ps_place, imported, tier, coll in rows:
+        for aid, status, notes, sha, pf, ftype, dtext, dstart, dend, dqual, raw, ps_place, imported, tier, coll, gone in rows:
             n = notes_of(notes)
             mark = next((m for m in MARKS if n.get(m) is not None), None)
-            word = bool(n.get("vouched"))
+            word = bool(n.get("vouched")) and not gone
             if not word and (pf is None or ftype != etype): continue        # a statement of another type is no value of this event
-            if mark: kind = self.MARK_WORDS[mark]
+            if gone: kind = "a withdrawn record"
+            elif mark: kind = self.MARK_WORDS[mark]
             elif imported: kind = "the file"
             elif (tier or "")[:2] == "T4": kind = "a page anyone can edit"
             else: kind = "a record not yet accepted"
             place = None
             if raw: place = self._place_chain(ps_place)["text"] if ps_place else raw
             date = {"start": dstart or dend, "end": dend, "text": dtext, "qualifier": dqual} if (dstart or dend) else None
-            statements.append({"id": aid, "accepted": status == "accepted" and not mark, "word": word, "kind": kind, "sha": sha,
+            statements.append({"id": aid, "accepted": status == "accepted" and not mark and not gone, "word": word, "kind": kind, "sha": sha,
                                "state": collection_state(coll), "date": date, "place": place})
         out = {}
         for axis, own in (("date", own_date), ("place", own_place)):
@@ -1622,7 +1639,8 @@ class Catalog:
         rejected (the child's membership and the parent's each: accepted, the file's claim, a sibling placement, a membership a
         page anyone can edit states), so a link the rule placed is tested as the file's is, a parent too young or too old at
         the birth, or a birth after the mother's death or too long after the father's (parent_limit); and two census records
-        of one year (record_kinds' census household, the statement of the record's own year), each accepted, putting the person in places that do not agree either way (place_verdict). The
+        of one year (record_kinds' census household, the statement of the record's own year), each accepted, putting the person in places that do not agree either way (place_verdict).
+        A statement resting on a withdrawn file (not_withdrawn) is none of these accepted statements. The
         dates compared are the events' own as the tree shows them (life_event), whatever stands behind them, each named, so
         the owner reads whether a claim or a record is what breaks. Nothing is changed here."""
         L = life_limits(); out = []; kinds = {}
@@ -1631,7 +1649,7 @@ class Catalog:
         fams = [f for f, in self.q("SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", pid) if not self.link_rejected(f, pid, "partner")]
         for sha, ftype, text, start, end, qual in self.q(f"""SELECT DISTINCT a.artifact_sha256, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier FROM assertion a
                                                              JOIN persona_fact pf ON pf.id=a.persona_fact_id JOIN event_participant ep ON ep.event_id=a.subject_id
-                                                             WHERE a.subject_kind='event' AND a.status='accepted' AND coalesce(pf.date_start, pf.date_end) IS NOT NULL
+                                                             WHERE a.subject_kind='event' AND a.status='accepted' AND coalesce(pf.date_start, pf.date_end) IS NOT NULL AND {not_withdrawn('a.artifact_sha256')}
                                                              AND (ep.person_id=? OR ep.family_id IN ({','.join('?' * len(fams)) or "''"})) ORDER BY pf.date_start, a.asserted_at, a.id""", pid, *fams):
             span = date_span(start, end, qual)
             if not span: continue
@@ -1652,9 +1670,9 @@ class Catalog:
                 on, words = hit; d = pb if on == "birth" else pd
                 out.append(f"{name}, born {birth['text']} ({birth['said']}), a child of {pname} (the link: {link}), {'born' if on == 'birth' else 'who died'} {d['text']} ({d['said']}): {words}")
         census = {}
-        for sha, start, raw, ps_id in self.q("""SELECT DISTINCT a.artifact_sha256, pf.date_start, ps.raw, ps.id FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
+        for sha, start, raw, ps_id in self.q(f"""SELECT DISTINCT a.artifact_sha256, pf.date_start, ps.raw, ps.id FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
                                                  JOIN place_string ps ON ps.id=pf.place_string_id JOIN event_participant ep ON ep.event_id=a.subject_id
-                                                 WHERE a.subject_kind='event' AND a.status='accepted' AND ep.person_id=? AND pf.fact_type IN ('Residence','Census')
+                                                 WHERE a.subject_kind='event' AND a.status='accepted' AND {not_withdrawn('a.artifact_sha256')} AND ep.person_id=? AND pf.fact_type IN ('Residence','Census')
                                                  AND pf.date_start IS NOT NULL ORDER BY pf.date_start, a.asserted_at""", pid):
             if sha not in kinds: kinds[sha] = record_kinds(self.cx, sha)
             k, yr = kinds[sha]
@@ -1793,9 +1811,10 @@ class Catalog:
     def on_word(self, fid, person_id, role):
         """Whether a family membership stands claimed or accepted (files_word): one of its statements not rejected is the file's
         claim, the import's own statement on a file this tree imported, or accepted; a sibling placement, an indexer's grouping,
-        a page anyone can edit and a link a withdrawn decision left are no such statement."""
-        return any(files_word(status, notes_of(notes), imported) is None
-                   for status, notes, imported in self.q("""SELECT a.status, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?)
+        a page anyone can edit, a link a withdrawn decision left and a statement resting on a withdrawn file are no such statement."""
+        return any(files_word(status, notes_of(notes), imported, withdrawn=gone) is None
+                   for status, notes, imported, gone in self.q(f"""SELECT a.status, a.notes, a.artifact_sha256 IN (SELECT artifact_sha256 FROM tree_import WHERE tree_id=?),
+                                                                  NOT {not_withdrawn('a.artifact_sha256')}
                                                             FROM assertion a WHERE a.tree_id=? AND a.subject_kind='family_member' AND a.subject_id=? AND a.status<>'rejected'""",
                                                          self.tree_id, self.tree_id, json.dumps([fid, person_id, role], separators=(",", ":"), sort_keys=True)))
     def linked_on_word(self, pid, other, group):
