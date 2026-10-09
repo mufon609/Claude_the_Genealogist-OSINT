@@ -837,3 +837,27 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   **[rule.proof.5]** A record's locator is printed once per proof, at its first mention, and
   every later mention is its number. Pure code: the model reads only what code
   cannot, a handwritten image or a newspaper's text.
+- **[rule.proof.6]** **Two people's relationship.** `tools/kin.py "<person>" "<person>"`
+  writes the path between two people through the family links the tree has
+  accepted, as the queue and the overview read them (a parent when the child's
+  parents fact is accepted and the parent is a partner of a family the child
+  stands in; a spouse when both partner memberships are accepted; never a
+  claim, a sibling placement, an indexer's grouping or a page anyone can edit
+  on its own), one link per line with the two people, the relation, the record
+  the link rests on and the proof's reading of that record, its class words and
+  whether its source is one the rule trusts, a vouched link resting on the
+  owner's own word; the relationship in words, read off the path's shape (a
+  grandparent, a half-sibling, a second cousin once removed, related by marriage
+  through a named couple, related through a child both are parents of); and the
+  chain's standing, its least-proven link's, the links compared in one stated
+  order (a record the rule trusts, in the classes' own order; the owner's word;
+  the file's claim accepted; a page anyone can edit; a record withdrawn from
+  the evidence), never a number. Several paths: the shortest by links, among
+  those the one whose weakest link is strongest; `--all` the other paths near
+  it, at most five, in that order; `--json` the chain. With no accepted path
+  the answer is never "no": the nearest path the file claims is printed, each
+  link not yet accepted with what would prove it, the checklist's own records
+  for that link (a record naming the child's parents; the marriage record for
+  a spouse link) with their status; with no claimed path either, the people on
+  each side at whom the links end, whose parents nobody names. A claim shorter
+  than the accepted path follows the chain the same way.

@@ -1,0 +1,100 @@
+{
+ "title": "two people with no path",
+ "line": "two people no chain of links joins, accepted or claimed: tools/kin.py says where a path would open, the people on each side at whom the links end, whose parents nobody names, and for the one whose own parents nobody names the checklist's records that would name them",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the home person and a person the file names in no family",
+   "kin": {
+    "a": "I332737035562",
+    "b": "I332738926170"
+   },
+   "expect": [
+    {
+     "last": {
+      "accepted": false,
+      "chain": null,
+      "others": [],
+      "claimed": null,
+      "links_end": {
+       "some": [
+        "Elizabeth D'Armand"
+       ]
+      }
+     },
+     "why": "no accepted path, no claimed path: her side ends at herself"
+    },
+    {
+     "last": {
+      "links_end": {
+       "some": {
+        "has": [
+         "Thomas Ahearn",
+         "Alice McGee",
+         "Annie E Scannell",
+         "Abram C Brant",
+         "Charlotte D Lukens",
+         "Carol Evers",
+         "Noi Davidson",
+         "Ruth M Peters",
+         "Lena Howard Bell",
+         "John Young Davidson",
+         "Ellen E McCrary"
+        ],
+        "lacks": [
+         "Matthew Alan Ahearn",
+         "Patrick Michael Ahearn",
+         "Reiko Diane Davidson",
+         "Frederick Micheal Ahearn Jr",
+         "Elizabeth D'Armand",
+         "Anna Rose Ahearn"
+        ]
+       }
+      }
+     },
+     "why": "the home person's side ends at the ancestors the file names no parents for, never at a person whose parents it names, nor at anyone no chain of links reaches"
+    },
+    {
+     "last": {
+      "parents_owed": {
+       "some": {
+        "has": [
+         {
+          "record": "birth record",
+          "status": "missing"
+         },
+         {
+          "record": "death record",
+          "status": "missing"
+         }
+        ]
+       },
+       "len": 1
+      }
+     },
+     "why": "the records that would name her parents, with the checklist's status; the home person's parents are claimed, so nothing is owed on him"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "Matthew Alan Ahearn and Elizabeth D'Armand are not yet joined by accepted links, nor by links the file claims; a path would open where the links end:",
+        "  on Matthew Alan Ahearn's side the links end at ",
+        "Thomas Ahearn",
+        ": nobody names their parents",
+        "  on Elizabeth D'Armand's side the links end at Elizabeth D'Armand: nobody names their parents",
+        "  the records that would name Elizabeth D'Armand's parents: ",
+        "birth record (missing)"
+       ]
+      }
+     },
+     "why": "the printed answer names where the path would open and what would open it"
+    }
+   ]
+  }
+ ]
+}

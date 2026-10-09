@@ -1,0 +1,189 @@
+{
+ "title": "two people joined by marriage",
+ "line": "a path through a spouse link is said to be by marriage through the couple: the groom's mother, whom the marriage index names and the rule takes on the file's claim of her (secondary information), down to him and across to his wife, whom the index states first-hand; the chain's standing its weakest link's, the mother's; husband and wife one link apart are wife and husband",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1901 marriage index the file cites, the husband and the wife accepted on it",
+   "attach": {
+    "fixture": "familysearch-massachusetts-marriage-index-1901-N445-429.html"
+   },
+   "as": "ma"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "ma",
+     "person": "I332737043939"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "ma",
+     "person": "I332737044799"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737043939",
+      "spouses": "accepted"
+     },
+     "why": "the couple joined on the record"
+    },
+    {
+     "card": {
+      "record": "ma",
+      "person": "I332737059556",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     },
+     "why": "the mother the index names for the groom, whom the file claims, is taken by the rule: her link to him rests on the index too"
+    },
+    {
+     "facts": {
+      "person": "I332737043939",
+      "parents": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "husband and wife",
+   "kin": {
+    "a": "I332737043939",
+    "b": "I332737044799"
+   },
+   "expect": [
+    {
+     "last": {
+      "chain": {
+       "links": [
+        {
+         "kind": "spouse",
+         "relation": "wife",
+         "standing": {
+          "basis": "a record the rule trusts",
+          "classes": {
+           "relationship": "stated"
+          },
+          "said": {
+           "has": "Wife"
+          }
+         }
+        }
+       ],
+       "relationship": {
+        "sentence": "Annie E Scannell is James Joseph Ahearn's wife"
+       },
+       "standing": {
+        "basis": "a record the rule trusts"
+       }
+      },
+      "claimed": null
+     },
+     "why": "one spouse link, the index's own statement of the wife"
+    }
+   ]
+  },
+  {
+   "say": "his mother and his wife",
+   "kin": {
+    "a": "I332737059556",
+    "b": "I332737044799"
+   },
+   "expect": [
+    {
+     "last": {
+      "accepted": true,
+      "claimed": null,
+      "chain": {
+       "links": [
+        {
+         "to": {
+          "name": "James Joseph Ahearn"
+         },
+         "kind": "child",
+         "relation": "son",
+         "accepted": true,
+         "standing": {
+          "basis": "a record the rule trusts",
+          "trusted": true,
+          "record": {
+           "has": "marriage register"
+          },
+          "classes": {
+           "information": "secondary",
+           "relationship": "stated"
+          },
+          "said": [
+           "Mother"
+          ]
+         }
+        },
+        {
+         "to": {
+          "name": "Annie E Scannell"
+         },
+         "kind": "spouse",
+         "relation": "wife",
+         "accepted": true,
+         "standing": {
+          "basis": "a record the rule trusts",
+          "classes": {
+           "information": "primary",
+           "relationship": "stated"
+          },
+          "said": [
+           "Wife"
+          ]
+         }
+        }
+       ],
+       "relationship": {
+        "sentence": "Alice McGee and Annie E Scannell are related by marriage through James Joseph Ahearn and Annie E Scannell",
+        "through": {
+         "len": 2
+        }
+       },
+       "standing": {
+        "basis": "a record the rule trusts",
+        "link": [
+         "Alice McGee",
+         "James Joseph Ahearn"
+        ]
+       }
+      }
+     },
+     "why": "down to her son, whom the index names her the mother of (secondary information), then across the spouse link it states first-hand: related by marriage through the couple, the chain standing on its weakest link, the mother's"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "Alice McGee and Annie E Scannell, through accepted links, 2 links:",
+        "  James Joseph Ahearn is the son of Alice McGee: 1901 marriage register (",
+        "secondary, direct, stated; accepted [Mother]; a source the rule trusts",
+        "  Annie E Scannell is the wife of James Joseph Ahearn: 1901 marriage register (",
+        "primary, direct, stated; accepted [Wife]; a source the rule trusts",
+        "  relationship: Alice McGee and Annie E Scannell are related by marriage through James Joseph Ahearn and Annie E Scannell",
+        "  standing: its weakest link's, Alice McGee to James Joseph Ahearn: 1901 marriage register ("
+       ]
+      }
+     },
+     "why": "the printed chain says so"
+    }
+   ]
+  }
+ ]
+}

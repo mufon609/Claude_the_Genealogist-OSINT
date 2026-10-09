@@ -113,6 +113,7 @@ python3 tools/conclude.py decide <proposal id> accept|reject --note "…"
 python3 tools/conclude.py fact "<person>" <birth|death|parents|…> accept|reject|undecided   # a key fact; accept with no held evidence is your own word (a vouch)
 python3 tools/conclude.py resolve <question id> --keep <assertion id> --note "…"   # a conflict closed with the reason; `reopen <question id> --note "…"` takes back one the rule decided
 python3 tools/proof.py "<person>"           # each key fact against the proof standard: evidence and its classes, research, conflicts
+python3 tools/kin.py "<person>" "<person>"  # the two people's relationship through accepted links alone: each link's record and standing, the chain's standing its weakest link's; with none, the nearest path the file claims and what each unaccepted link owes; --all the other paths
 python3 tools/tree.py overview              # the tree as confirmed, from the home person upward, its edge, and where it comes from
 python3 app/person/server.py --by user:<you>   # the person screen on http://127.0.0.1:8765/
 DATA_ROOT=<scratch> python3 tools/<tool>.py   # a scratch run, for testing code: the catalog, archive, inbox and downloads under <scratch>; a --db outside DATA_ROOT is refused

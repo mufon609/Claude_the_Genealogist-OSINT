@@ -248,7 +248,7 @@ log's note prefixes); 2 the readers and comparers (`readers`, `matcher`,
 `households`, `resolve_places`, `footprint`, `checklist`, `connectors`); 3
 `log_search`, `plan`, `attach`, `fetch_list`; 4 the decision code by job (`rule`,
 `conflicts`, `decisions`, `copies`, `merges`, `reconsider`, `arrival`) with
-`facts`, `proof`, `cards`, `overview`; 5 the commands (`conclude`, `extract`,
+`facts`, `proof`, `cards`, `overview`, `kin`; 5 the commands (`conclude`, `extract`,
 `match`, `fetches`, `turn`, `turns`, `queue`, `run_step`, `run_task`, `tree`,
 `ingest_gedcom`, `initdb`, `backup`, `tombstone`, `cite`, `backfill_aliases`,
 `attach_inbox`, `check`) and the person screen's server. A module added takes its
@@ -291,6 +291,7 @@ row in the table in the commit that adds it.
 | `tools/cards.py "<person>" / --all` | Read-only. Every Undecided proposal as a decision card in plain words, the same card the person screen shows. |
 | `tools/proof.py "<person>" [--fact …] [--json]` | Read-only. The proof standard's written conclusion per key fact: the value, the evidence grouped by original with its class words (`data/evidence-classes.csv`) and citations, each conflict with its question id and, while open, the rule's own reading of it, the research by checklist row, who decided, and whether it meets the standard or an argument is still owed. |
 | `tools/overview.py` | The tree as confirmed from the home person upward, shared by `tree.py overview` and the screen, and where the tree comes from (`origins`). |
+| `tools/kin.py "<person>" "<person>" [--all] [--json]` | Read-only. Two people's relationship through accepted links alone: the path one link per line with the record each link rests on and the proof's reading of it, the relationship in words, and the chain's standing, its least-proven link's; `--all` the other paths near it; with no accepted path, the nearest path the file claims with what each unaccepted link owes, the checklist's own records. |
 | `tools/check.py` | Green in one command: every tool compiles, every global name a tool reads resolves (a name another module of the repository gives is one it defines), the tools' imports are in layers with no cycle, the pure rules, every parser on its saved page and every scenario on a scratch catalog, none of them sending a request, `--scenario NAME` for one (`tests/fixtures/README.md`). |
 | `tools/tombstone.py <sha256> --reason … [--destroy]` | An archived file withdrawn from the evidence: its tombstone and one audit row under `--by`; quarantined, its bytes kept, or with `--destroy`, a takedown, its bytes removed and its manifest kept; refused for a file already withdrawn; what still rests on it in each tree printed for the owner to decide again. No reader counts it held from then on. |
 | `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. Every write carries an audit row under `--by`. |

@@ -1,0 +1,168 @@
+{
+ "title": "two people joined through a claim",
+ "line": "with no accepted path between two people the answer is never no: tools/kin.py prints the nearest path the file claims, the accepted link with its standing and the link not yet accepted with what would prove it, the checklist's own records that name the child's parents with their status, the birth register held among them (the card on it undecided), and the relationship the file claims",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 household page arrives through the inbox",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "say": "the son accepted on it",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the father accepted: the father-son link the census states",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737036054",
+      "parents": "accepted"
+     },
+     "why": "the son's parents link stands on the census's own statement"
+    }
+   ]
+  },
+  {
+   "say": "the father's birth record arrives and his card is accepted on it",
+   "attach": {
+    "fixture": "familysearch-massachusetts-birth-records-1907-FXJ3-Z7X.html"
+   },
+   "as": "birth"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "birth",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "card": {
+      "record": "birth",
+      "person": "I332737043939",
+      "status": "undecided"
+     },
+     "why": "the father the register names, one letter apart, is a card for the owner: the link to him is not accepted yet"
+    }
+   ]
+  },
+  {
+   "say": "the grandson and the grandfather the file claims, the link to whom waits on the register's card",
+   "kin": {
+    "a": "I332737036054",
+    "b": "I332737043939"
+   },
+   "expect": [
+    {
+     "last": {
+      "accepted": false,
+      "chain": null,
+      "others": [],
+      "claimed": {
+       "owed": 1,
+       "all_accepted": false,
+       "links": [
+        {
+         "to": {
+          "name": "Frederick Michael Ahearn"
+         },
+         "relation": "father",
+         "accepted": true,
+         "standing": {
+          "basis": "a record the rule trusts"
+         }
+        },
+        {
+         "to": {
+          "name": "James Joseph Ahearn"
+         },
+         "relation": "father",
+         "accepted": false,
+         "proves": {
+          "some": {
+           "record": "birth record",
+           "instance": "1907",
+           "status": "held"
+          }
+         }
+        }
+       ],
+       "relationship": {
+        "sentence": "James Joseph Ahearn is Frederick Micheal Ahearn Jr's grandfather"
+       },
+       "standing": {
+        "basis": "a record the rule trusts"
+       }
+      }
+     },
+     "why": "no accepted path: the nearest claimed one, its accepted link read as the chain reads it, its unaccepted link with the checklist's records that name the father's parents, the held birth register among them"
+    },
+    {
+     "last": {
+      "claimed": {
+       "links": {
+        "some": {
+         "accepted": false,
+         "proves": {
+          "every": {
+           "record": {
+            "in": [
+             "birth record",
+             "death record",
+             "obituary",
+             "census household"
+            ]
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "what would prove a parent link is a record that names the person's parents: a birth or death record, an obituary, a census of their childhood"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "Frederick Micheal Ahearn Jr and James Joseph Ahearn are not yet joined by accepted links; the nearest path the file claims, 2 links, 1 of them not yet accepted:",
+        "  Frederick Michael Ahearn is the father of Frederick Micheal Ahearn Jr: 1940 census schedule (",
+        "  James Joseph Ahearn is the father of Frederick Michael Ahearn: not yet accepted; what would prove it: ",
+        "birth record 1907 (held)",
+        "  the relationship the file claims: James Joseph Ahearn is Frederick Micheal Ahearn Jr's grandfather"
+       ],
+       "lacks": [
+        "through accepted links, ",
+        "  standing:"
+       ]
+      }
+     },
+     "why": "the printed answer says what is owed and claims no standing for a chain the file claims"
+    }
+   ]
+  }
+ ]
+}

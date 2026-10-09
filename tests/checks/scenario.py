@@ -277,6 +277,15 @@ def a_proof(w, x):
     r = build(Catalog(w.cx, w.tid), w.person(x["person"]), only=x.get("fact"))
     return {**r, "fact": {f["fact"]: f for f in r["facts"]}, "text": render(r, full=bool(x.get("fact")))}
 
+def a_kin(w, x):
+    """tools/kin.py's answer for two people, `a` and `b` (kin.build): the chain through accepted links, the other paths, the
+    path the file claims where it is the nearest or shorter, where the links end when there is none, and the `text` it prints
+    (`all` for --all's)."""
+    from catalog import Catalog
+    from kin import build, render
+    r = build(Catalog(w.cx, w.tid), w.person(x["a"]), w.person(x["b"]))
+    return {**r, "text": render(r, all=bool(x.get("all")))}
+
 def a_dismiss(w, x):
     """A question closed by the owner (tools/log_search.py --dismiss): the person's one open question of the `kind` (conflict
     when none is given) whose detail carries `detail_has`, closed with the owner's `note`; a refusal comes back as {"error": ...}."""
@@ -852,7 +861,7 @@ def a_question(w, x):
     w.cx.commit()
     return {"question": qid}
 
-ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "backfill": a_backfill, "proof": a_proof, "dismiss": a_dismiss, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
+ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources, "backfill": a_backfill, "proof": a_proof, "kin": a_kin, "dismiss": a_dismiss, "attach": a_attach, "archive": a_archive, "reread": a_reread, "match": a_match, "decide": a_decide, "withdraw": a_withdraw, "reconsider": a_reconsider,
            "fact": a_fact, "assertion": a_assertion, "place": a_place, "link_on_word": a_link_on_word, "living": a_living, "living_route": a_living_route, "transcribe": a_transcribe, "view": a_view,
            "person_view": a_person_view, "save": a_save, "collect": a_collect, "block_filing": a_block_filing, "attach_inbox": a_attach_inbox,
            "question": a_question, "post": a_post,

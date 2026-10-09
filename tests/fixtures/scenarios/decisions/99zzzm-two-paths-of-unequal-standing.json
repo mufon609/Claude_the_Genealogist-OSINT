@@ -1,0 +1,268 @@
+{
+ "title": "two paths of unequal standing",
+ "line": "the 1940 census accepted for the son, the mother and the father joins the parents only through the son, the couple being FamilySearch's own grouping: tools/kin.py prints that path, related through the son, and the shorter path the file claims, the spouse link not yet accepted with the marriage record that would prove it; once the owner accepts the couple on their own word the spouse link is the shortest path and the answer, its standing their word, and --all prints the other path, two links on the census, whose standing is a record the rule trusts: the shortest path is the answer, and every path's standing is said",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1940 household page arrives through the inbox",
+   "attach": {
+    "fixture": "familysearch-census-1940-KQX1-VT9.html"
+   },
+   "as": "c40"
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the father accepted: the father-son link the census states; the couple, FamilySearch's grouping, stays undecided",
+   "decide": {
+    "card": {
+     "record": "c40",
+     "person": "I332737037257"
+    },
+    "status": "accepted"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737036054",
+      "parents": "accepted"
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737037257",
+      "spouses": "undecided"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the parents, joined through accepted links only by their son; the file's shorter claim beside it",
+   "kin": {
+    "a": "I332737037257",
+    "b": "I332737037573",
+    "all": true
+   },
+   "expect": [
+    {
+     "last": {
+      "accepted": true,
+      "chain": {
+       "links": [
+        {
+         "to": {
+          "name": "Frederick Micheal Ahearn Jr"
+         },
+         "relation": "son",
+         "standing": {
+          "basis": "a record the rule trusts"
+         }
+        },
+        {
+         "to": {
+          "name": "Helen Sara Brant"
+         },
+         "relation": "mother",
+         "standing": {
+          "basis": "a record the rule trusts"
+         }
+        }
+       ],
+       "relationship": {
+        "sentence": "Frederick Michael Ahearn and Helen Sara Brant are related through Frederick Micheal Ahearn Jr, a child of Frederick Michael Ahearn and of Helen Sara Brant"
+       }
+      },
+      "claimed": {
+       "owed": 1,
+       "links": [
+        {
+         "kind": "spouse",
+         "relation": "wife",
+         "accepted": false,
+         "proves": {
+          "some": {
+           "record": "marriage record",
+           "instance": "Helen Sara Brant"
+          }
+         }
+        }
+       ],
+       "relationship": {
+        "sentence": "Helen Sara Brant is Frederick Michael Ahearn's wife"
+       }
+      }
+     },
+     "why": "the accepted path goes down to the son and up to his other parent, said so; the file claims the couple in one link, not yet accepted, and the marriage record would prove it"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "Frederick Michael Ahearn and Helen Sara Brant, through accepted links, 2 links:",
+        "  relationship: Frederick Michael Ahearn and Helen Sara Brant are related through Frederick Micheal Ahearn Jr, a child of Frederick Michael Ahearn and of Helen Sara Brant",
+        "the file claims a shorter path, 1 link, 1 of them not yet accepted:",
+        "  Helen Sara Brant is the wife of Frederick Michael Ahearn: not yet accepted; what would prove it: marriage record Helen Sara Brant (",
+        "  the relationship the file claims: Helen Sara Brant is Frederick Michael Ahearn's wife"
+       ]
+      }
+     },
+     "why": "the printed answer: the accepted chain, then the shorter claim with what is owed"
+    }
+   ]
+  },
+  {
+   "say": "the owner accepts the couple on each partner: the file's own claim, on their word; one partner's accept leaves the other's membership undecided, so the spouse link needs both",
+   "fact": {
+    "person": "I332737037573",
+    "field": "spouses",
+    "status": "accepted",
+    "note": "harness: the owner knows the couple"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737037573",
+      "spouses": "accepted"
+     }
+    },
+    {
+     "facts": {
+      "person": "I332737037257",
+      "spouses": "undecided"
+     },
+     "why": "his own partner membership is still the file's undecided claim: no spouse link yet, as the overview reads one"
+    }
+   ]
+  },
+  {
+   "kin": {
+    "a": "I332737037257",
+    "b": "I332737037573"
+   },
+   "expect": [
+    {
+     "last": {
+      "chain": {
+       "links": {
+        "len": 2
+       }
+      },
+      "claimed": {
+       "links": [
+        {
+         "kind": "spouse",
+         "accepted": false
+        }
+       ]
+      }
+     },
+     "why": "with one partner's membership accepted the couple is still not a link: the file's claim is still the shorter path"
+    }
+   ]
+  },
+  {
+   "fact": {
+    "person": "I332737037257",
+    "field": "spouses",
+    "status": "accepted",
+    "note": "harness: the owner knows the couple"
+   },
+   "expect": [
+    {
+     "facts": {
+      "person": "I332737037257",
+      "spouses": "accepted"
+     }
+    }
+   ]
+  },
+  {
+   "say": "the couple again, every path",
+   "kin": {
+    "a": "I332737037257",
+    "b": "I332737037573",
+    "all": true
+   },
+   "expect": [
+    {
+     "last": {
+      "claimed": null,
+      "chain": {
+       "links": [
+        {
+         "kind": "spouse",
+         "relation": "wife",
+         "standing": {
+          "basis": "your own word"
+         }
+        }
+       ],
+       "relationship": {
+        "sentence": "Helen Sara Brant is Frederick Michael Ahearn's wife"
+       },
+       "standing": {
+        "basis": "your own word"
+       }
+      },
+      "others": [
+       {
+        "links": {
+         "len": 2
+        },
+        "standing": {
+         "basis": "a record the rule trusts",
+         "link": [
+          "Frederick Michael Ahearn",
+          "Frederick Micheal Ahearn Jr"
+         ]
+        },
+        "relationship": {
+         "sentence": {
+          "has": "related through Frederick Micheal Ahearn Jr"
+         }
+        }
+       }
+      ]
+     },
+     "why": "the shortest path is the answer though the other path stands better: one link on the owner's word, then the two links on the census, each path's standing said"
+    },
+    {
+     "last": {
+      "text": {
+       "has": [
+        "Frederick Michael Ahearn and Helen Sara Brant, through accepted links, 1 link:",
+        "  Helen Sara Brant is the wife of Frederick Michael Ahearn: your own word",
+        "  standing: its weakest link's, Frederick Michael Ahearn to Helen Sara Brant: your own word",
+        "another path, 2 links:",
+        "  Frederick Micheal Ahearn Jr is the son of Frederick Michael Ahearn: 1940 census schedule (",
+        "  standing: its weakest link's, Frederick Michael Ahearn to Frederick Micheal Ahearn Jr: 1940 census schedule ("
+       ],
+       "lacks": "the file claims"
+      }
+     },
+     "why": "--all prints the other path in the same form, with its own standing"
+    }
+   ]
+  }
+ ]
+}

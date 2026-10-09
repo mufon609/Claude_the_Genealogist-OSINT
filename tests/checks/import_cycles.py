@@ -24,7 +24,7 @@ LAYERS = {
     1: ["catalog"],
     2: ["readers", "matcher", "households", "resolve_places", "footprint", "checklist", "connectors"],
     3: ["log_search", "plan", "attach", "fetch_list"],
-    4: ["rule", "decisions", "copies", "merges", "reconsider", "conflicts", "arrival", "facts", "proof", "cards", "overview"],
+    4: ["rule", "decisions", "copies", "merges", "reconsider", "conflicts", "arrival", "facts", "proof", "cards", "overview", "kin"],
     5: ["conclude", "extract", "match", "fetches", "turn", "turns", "queue", "run_step", "run_task", "tree", "ingest_gedcom", "initdb", "backup", "tombstone",
         "cite", "backfill_aliases", "attach_inbox", "check", "server"],
 }
