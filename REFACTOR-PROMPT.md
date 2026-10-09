@@ -162,10 +162,7 @@ A move moves a function's text unchanged; where a move changes a call site
    `tests/checks/rule_ids.py`, written with this part and run by
    `tools/check.py`, fails where a docstring cites an identifier no doc holds,
    and lists under `--verbose` the identifiers no docstring cites.
-3. **The backlog triaged**, as A4 says: overlapping entries merged, nothing
-   that is still true dropped.
-
-4. **The tools in layers**, as A5 says: each move above, one module a commit,
+3. **The tools in layers**, as A5 says: each move above, one module a commit,
    with the same proof. The cycle check (`tests/checks/import_cycles.py`)
    joins `tools/check.py` in A5's closing commit, once it passes: never
    before, and never with an allowlist.

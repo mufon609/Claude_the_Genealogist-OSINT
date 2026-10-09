@@ -15,15 +15,21 @@ or superseded.
 BACKLOG is written, identified, and closed. Nothing outside it governs it.
 
 **Sections.** Open items are partitioned by dependency shape:
+**D — Decisions wanted from the owner** (first in the file: a question only
+the owner's word settles, one short paragraph saying what is asked and what
+each answer changes; the work it unlocks stays in its own section under a
+`**Blocked by:** D<n>` line, and the entry closes when the answer is written
+where it belongs, the lines naming it going with it),
 **A — Priority sequence** (ordering / coupling constraints),
 **B — Parallel batch** (items that only make sense shipped together),
-**C — Anytime** (no upstream blockers). **Default focus is C:** no
-dependencies, finishable in one pass. Reserve A and B for sessions scoped
+**C — Anytime** (no upstream blockers in the code; an entry may wait on an
+owner's decision in D). **Default focus is C:** no dependencies,
+finishable in one pass. Reserve A and B for sessions scoped
 to them — starting a constrained item out of order half-bakes it and
 clutters the file. Cross-reference entries with `**Blocks:**` /
 `**Blocked by:**` lines so the dependency graph stays inline.
 
-**Identifiers** (A1, B1, C1…) are positional working labels, not stable
+**Identifiers** (D1, A1, B1, C1…) are positional working labels, not stable
 IDs. A new entry takes the lowest unused number in its section, so numbers
 **recycle**; once a section — and ultimately the whole BACKLOG — is cleared,
 numbering restarts from 1. Because an ID is transient, **never reference it
@@ -48,6 +54,141 @@ the app generates for a tree; they live in the catalog, not here.
 **Externally-blocked items** waiting on an event the repo can't drive
 (API approval, a registry we do not control) live under "Externally
 blocked" at the foot of this file.
+
+## D. Decisions wanted from the owner
+
+Questions only the owner's word settles. Each says what is asked and what
+each answer changes; the work it unlocks stays in C under a
+`**Blocked by:**` line naming it.
+
+### D1. What a parent–child point stands on
+
+A record stating that someone is a person's parent counts as a point only
+where the tree already holds that link. Today either family membership
+carries it, the child's or the parent's own as partner, so a parent's
+accepted marriage stands in for a child's parentage. If the child's
+membership must carry it (alone, or with the parent's partner row): on a
+copy of the live catalog of 3 Oct 2026 requiring both rows withdrew 14 of
+the rule's decisions, among them Dan Davidson on his mother's obituary,
+which names her alone, and Mary Castello's 1917 death-index card. If either
+membership, as now: nothing is withdrawn. Either way, say how a record that
+names one parent counts. Unlocks C4.
+
+### D2. The claimed-relationship route once the name is held
+
+The rule takes a person on a record through a relationship the record states
+to someone already accepted on it while the person's own name is not yet
+held on trusted ground. Once the name is held, the record is judged on its
+points, and a reconsider withdraws what the route took (scenario 60: Robert
+Davidson's 1940 census, after the Ohio death index is accepted). If the
+route stands whenever the points fall short, as the 15 Sept ruling's "a
+person the file claims" reads: more ground never takes back what less
+allowed, and §5–7 says so. If not: the docs stand as written, and such
+decisions are withdrawn as the name becomes held. Unlocks C33.
+
+### D3. A conflict one side of which rests only on claims and editable pages
+
+The rule settles a conflict only when the side it keeps holds primary
+information. If a side resting on records nobody can edit, agreeing with
+one another, also outweighs a side resting only on the file's claim and
+pages anyone can edit (the owner's own accepted word never outweighed):
+John Y Davidson's birth settles as April 1875 (the 1900 census, his 1946
+death certificate) against 24 April 1876 (the file, three Find a Grave
+memorials), once his gravestone photograph is read, and such conflicts
+leave the owner's list. If not: they stay the owner's, as today. Unlocks
+C21.
+
+### D4. A place written one letter apart
+
+A surname one letter apart agrees as a spelling variant; a place has no such
+rule (the resolver offers a close spelling on its card, marked near, and
+verifies nothing). If a place string one letter or one space apart from a
+resolved place's name, in the same state and county where the string gives
+them, agrees as a variant:
+Frederick Michael Ahearn's draft card ("North Hampton, Massachusetts"
+against the tree's Northampton) is taken when its other points hold. If
+not: such a record stays a card. Unlocks C10.
+
+### D5. A fact the current reading of a record no longer states
+
+A page read again by a newer reader can drop a fact the older reading
+wrote, and the accepted statement on it stays, resting on the superseded
+reading (`catalog.statement_of`). If such a statement is withdrawn with its
+reading: a re-read takes back what its reader no longer finds, as it did by
+hand for Noi Davidson's Military Service "MSGT US AIR FORCE", which the
+gravesite locator's newer reader gives to her husband. If it is kept as the
+record's word: it stays until a person takes it back. Either answer is written into `docs/DATA-ARCHITECTURE.md`
+and the re-read does it. Unlocks C27.
+
+### D6. The circumstances under which a record misstates a date on purpose
+
+The owner asked for the structure ("this project needs a database of
+circumstances where we could possibly see contradicting information in
+primary sources"). The design that waits on their word: `data/circumstances.csv`,
+reference data for any family (a circumstance, the record kinds and field it
+touches, the direction and usual size of the misstatement, the condition
+that makes it likely, the records free of it, sources checked); a date
+conflict that fits a row names it; the rule never settles such a conflict
+for the record made under the incentive; the row's research lines become
+leads. If accepted: written into `docs/DATA-ARCHITECTURE.md` §7 and the
+proof standard, then built. If changed: the design follows the owner's
+words. Unlocks C32.
+
+### D7. A document's topic
+
+The catalog classes evidence by the kind of document and its trust, never by
+the part of a life it reveals. If each record kind or fact type carries a
+topic in data (military first), a person carries the topics of their
+accepted records, derived and never typed, and each topic names the record
+sets it leaves for the person and their close family as leads: Raymond Earl
+Davidson's service records are sought for him and for Noi Davidson as a
+veteran's wife, and her Military Service event is answered. If not: the
+loop finds records by kind alone. Unlocks C35.
+
+### D8. What "the loop works" means
+
+The goal says what the system is for and not what reaching it looks like,
+so progress is read off commits. The owner names the state that counts as
+the loop working: for instance people and documents brought by evidence
+rather than the file, turns run without a session, what still reaches the
+owner and why. The answer is written into `README.md` beside the goal and
+`tools/tree.py overview` prints it. Unlocks C42.
+
+### D9. How a page two trees hold is read
+
+Hard rule 4 gives every import its own extraction; `docs/DATA-ARCHITECTURE.md`
+§4a makes fetched pages shared evidence. If each tree reads a fetched page
+on its own: extraction and persona carry a tree, as an import's do. If the
+trees share one reading with their decisions apart: extraction and persona
+stay without a tree, and every reader that joins `person_persona`,
+`proposal` or `search_plan` is scoped to its tree, so a second tree's
+re-read never resets the first tree's cards. Unlocks C8.
+
+### D10. What the harness may write by hand
+
+`docs/DATA-ARCHITECTURE.md` §7 decision 8 lets the harness simulate a
+holder's failure to answer and nothing else, yet scenarios log `none` and
+`found` runs no holder gave and plant rows in a writer's shape. If decision
+8 stands: each such run is answered by a real run, or a holder's silence
+where the path allows, and each planted row is reached through the tool that
+writes it. If decision 8 says a run written to reach a path is the harness's
+bookkeeping and no answer: the scenarios stay and the docs say so. Unlocks
+C26.
+
+### D11. The second family
+
+The harness runs on a cut of the owner's export, with no invented people or
+records, so nothing proves the tools on another family. The owner names a
+real second tree: another family's export they hold, or a published
+public-domain one. Its scenario is what most harness gaps wait on. Unlocks
+C20.
+
+### D12. A family-held photograph as a fixture
+
+The two family-held photographs a scenario drops into the inbox are a
+stand-in file; the photographs the archive holds are marked private. Hard
+rule 7 lets any archived document the owner chooses sit in `tests/`. The
+owner names one, and the stand-in goes. Unlocks C25.
 
 ---
 
@@ -117,7 +258,7 @@ search for a hand. What is left, one piece closed before the next:
    model reports blocked leaves a run on its step that says so, so the same
    page is not launched again until a person has passed the block; today only
    the `task_run` row holds it.
-5. **The other kinds.** A search at a holder without a connector (C53: its
+5. **The other kinds.** A search at a holder without a connector (C45: its
    results page is the save, its `none` the parser's reading of that page,
    never the model's word); a gravestone photograph (`tools/save_image.js`);
    a reading of a held record no parser reads (`app/person/read_record.md`
@@ -186,7 +327,7 @@ accepted on the record. With those decided the rule took 12 more by itself (3
 of the 62, and 9 personas it then proposed, one a new person), a second run
 changed nothing, and 25 were left: 13 pages anyone can edit waiting for a
 trusted record of a day or a burial; 7 household members whose relationship
-to the head is on their own page of the census (C36); a state index's line of
+to the head is on their own page of the census (C30); a state index's line of
 a certificate already accepted (a copy to join, decision 15); a marriage
 index entry of two names (2 cards); a model's reading that differs in one
 initial, to be read again; and one real question, a half-brother's mother.
@@ -210,7 +351,7 @@ than one link from the confirmed tree, whom the queue no longer names.
 
 The loop's automatic half was rehearsed the same day on a scratch copy, every
 step a connector can run: 229 steps in 39 minutes with no error run; 73 found
-and 301 `none`, 236 of those with no request sent (C28); 159 files
+and 301 `none`, 236 of those with no request sent (C9); 159 files
 archived and 860 personas read, nearly all names in a book's running text;
 one record taken by the rule, none of the 62 waiting cards answered, and 3
 new cards, each a namesake's profile at WikiTree. Re-reading the 106 waiting
@@ -327,7 +468,7 @@ line on top; thirteen files import from it, and it imports `facts.py` and
 `proof.py` as they import it. Every worker that changes a decision reads all
 of it, and batches that touch it queue behind one another.
 `docs/RESEARCH-WORKFLOW.md` (2,043 lines) states the same rule in words, and
-where the two part is where audits find defects (C60). The target layering
+where the two part is where audits find defects (C31). The target layering
 the split serves is `REFACTOR-PROMPT.md`'s ("The target: the tools in
 layers"): layer 4 holds the split's modules beside `facts`, `proof`, `cards`
 and `overview`, and the command line is layer 5. The work, behaviour
@@ -357,14 +498,13 @@ unchanged, nothing else in flight while it runs:
    it implements. The check `tests/checks/rule_ids.py`, written with this
    part and run by `tools/check.py`, fails where a docstring cites an
    identifier no doc holds, and lists under `--verbose` the identifiers no
-   docstring cites.
-3. **The backlog triaged.** Overlapping entries merged, so a worker reads
-   fewer and sharper ones.
+   docstring cites. Closing it closes, clause by clause, the entry where the
+   rule and its words part (C31).
 
 The check that every name a tool reads resolves runs (`tests/checks/unresolved_names.py`): a function
 moved without its imports fails it wherever it is used, run or not. Of
 `conclude.py`'s functions only `dated_with_parents` and `kept_agrees` are
-entered by no check (C46), so the side-by-side proof alone covers them.
+entered by no check (C41), so the side-by-side proof alone covers them.
 
 Every piece it waited on is done (5 Oct 2026): the safety net, the re-read's
 and the merge's leftovers, one home for each shared rule, the dead schema and
@@ -431,9 +571,9 @@ instead of trusting the stored flag on an old row — the same thing
 
 ---
 
-## C. Anytime (no dependencies)
+## C. Anytime (no dependencies in the code)
 
-No upstream blockers; safe to pick up in any session. Default-focus tier.
+No upstream blockers in the code; safe to pick up in any session. Default-focus tier. An entry that waits on the owner's word says so with a `**Blocked by:** D<n>` line.
 
 ### C1. The New York State marriage index as a source
 
@@ -455,8 +595,9 @@ letters and digits one by one), so the block's pages cannot be found by
 words. The codes run in order through the item, so the
 step must find the block by the page order instead: a page's code read from
 its image, the pages narrowed between two read, then the block's pages
-fetched. The one New York marriage row open on a reviewed person (Raymond
-Earl Davidson and Noi Davidson) carries no year to choose an item by. The
+fetched. On the live catalog of 9 Oct 2026 the open New York marriage rows are Carol
+Evers and Frederick Micheal Ahearn Jr's (a fetch blocked at the cited index)
+and John and Dolores Evers's (a search only). The
 planner blocks every fetch step at a `scanned_index` holder
 (`data/holders.csv`) by the holder's kind alone, whatever record it cites;
 this page-locating step is what unblocks them, for the New York index and
@@ -481,7 +622,7 @@ by-name path does. The test needs a real page of such a holder saved by the
 script with its key; none is archived (the pages of those holders so far came
 through connectors).
 
-### C4. Confirm the shadow-root save on archive.org
+### C3. Confirm the shadow-root save on archive.org
 
 `tools/save_page.js` serializes the page's open shadow roots as declarative
 shadow DOM (`getHTML` with every open root) when its plain copy comes out
@@ -494,7 +635,7 @@ says `EMPTY` (closed shadow roots, or content drawn in a canvas), make those
 steps assisted with the page's own link and say so in
 `docs/RESEARCH-WORKFLOW.md` §4.
 
-### C5. A relationship point stands on either membership of the family
+### C4. A relationship point stands on either membership of the family
 
 `conclude.rule_points` grounds a stated relationship on the accepted statements
 of either membership joining the two people (`ground` over both rows), so one
@@ -510,7 +651,7 @@ memberships, and count a record that names both parents of a child against the
 tree's accepted couple as that couple, so those stay taken; show both on
 the Ahearn and Davidson records above.
 
-Decision wanted first, measured on a copy of the live catalog of 3 Oct 2026:
+Measured on a copy of the live catalog of 3 Oct 2026:
 requiring both rows of one family withdraws 14 rule decisions, and the
 entry's own cases do not read as it says. Joe Davidson is not in the file: the
 owner created him from his brother's memorial, and his place in Lena Howard
@@ -527,18 +668,22 @@ obituary names his mother alone: his decision stands only on Noi's partner
 row, the shape this entry calls the defect. Underneath: `link_family` writes a
 parent–child statement on the child's row only, so a parent's partner row has
 ground only from a record that states the couple, and "both rows" makes a
-marriage's evidence a condition of every parentage point. Say what grounds a
-parent–child point (the child's row, or the child's row and the parent's
-partner row), how a record naming one parent counts, and whether Dan's and
-Mary's decisions stand.
+marriage's evidence a condition of every parentage point. What grounds a
+parent–child point, and how a record naming one parent counts, is D1; the
+work follows its answer, on a copy of the live catalog first.
 
-### C6. Rule paths the harness no longer exercises, for want of a real record
+**Blocked by:** D1.
 
-The pure name rules need no record: `match.same_given` (the one-letter slip
-and the nicknames), `same_middle`, `middle_differs`, `name_words` and
-`split_persona_name` take examples in `tests/fixtures/rules.json` as the other
-pure rules there do, which covers the name side of the garbled-initials and
-short-form paths below; the rest of this entry waits on real records.
+### C5. Rule paths the harness no longer exercises, for want of a real record
+
+**Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This one waits on real records, which a second family's export would bring.
+
+The pure name rules need no record: `tests/fixtures/rules.json` holds
+examples of `match.same_given`'s nicknames and initials, `name_words` and
+`split_persona_name`; `same_given`'s one-letter slip, `same_middle` and
+`middle_differs` take theirs there too, which covers the name side of the
+garbled-initials and short-form paths below; the rest of this entry waits on
+real records.
 
 When the harness became data (no invented test data, no names in the
 harness code), every scenario that only a planted person or a made-up
@@ -613,7 +758,7 @@ catalog holds against his obituary's Woodburn. No scenario reaches a statement c
 or a death place: every value FamilySearch keeps beneath a shown birth or death
 date in the fixtures says the same as the shown one and is no fact of its own,
 so neither the date and place veto skipping an accepted value a page keeps
-beneath (`conclude._grounded`) nor the identity naming one it left out
+beneath (`conclude.against`) nor the identity naming one it left out
 (`conclude.event_claimed_or_accepted`) has a record to run on; nor does the
 identity's naming of an undecided fact another page anyone can edit types (the
 harness holds one page anyone can edit per person) or of a later decision of
@@ -628,7 +773,7 @@ page-saves-itself method or a connector's answer), add it under
 `tests/fixtures/` with its sidecar, write the scenario as data under
 `tests/fixtures/scenarios/`, one per path, and strike it here.
 
-### C7. Hints on the person page
+### C6. Hints on the person page
 
 A run that found pages naming the person on the name alone (a directory
 line, a book mention, a newspaper hit) leaves them held under the step, and
@@ -641,7 +786,7 @@ across all their held records are kept, as §0 says they are. Add one, each
 hint with what agrees, what is missing and the page, for research when the
 leads run dry, never as a feed.
 
-### C8. A connector for the Pennsylvania Newspaper Archive
+### C7. A connector for the Pennsylvania Newspaper Archive
 
 The archive at panewsarchive.psu.edu runs Open ONI and answers a declared
 tool: a JSON page search (`/search/pages/results/?searchType=advanced&proxtext=…&date1=YYYY-MM-DD&date2=…&dateFilterType=range&format=json`,
@@ -658,7 +803,9 @@ The JSON search answers a declared tool (132 hits for Heebner 1900–1930;
 and Democrat 1850–78 and German-language papers; no Norristown or Pottstown
 title); it has reset connections before, so a refusal makes the step assisted.
 
-### C9. Tree isolation has no harness, and some readers ignore the tree
+### C8. Tree isolation has no harness, and some readers ignore the tree
+
+**Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This one waits on it: two trees need a second family.
 
 Every scenario builds one tree, so nothing shows a second tree over the same
 archive ignoring the first one's decisions (`CLAUDE.md` hard rule 4).
@@ -666,9 +813,8 @@ archive ignoring the first one's decisions (`CLAUDE.md` hard rule 4).
 `extraction` and `persona` carry no tree: `extract.extract` supersedes the
 current extraction of a page and rejects its undecided proposals whichever
 tree they belong to, so a second tree reading a page the first holds would
-reset the first tree's cards. Decide how a page held by two trees is read
-(hard rule 4 says every import gets its own extraction; fetched pages are
-shared evidence in `docs/DATA-ARCHITECTURE.md` §4a), write a scenario with
+reset the first tree's cards. Read a page held by two trees as D9 settles,
+write a scenario with
 two trees and one archived page, decided in the first and undecided in the
 second, and scope every reader that joins `person_persona`, `proposal` or
 `search_plan` by artifact or persona to its tree. Three more places cross
@@ -679,53 +825,103 @@ a second tree sharing an undecided string gets its words and no card);
 the calling tree alone; and `app/person/index.html` never sends `?tree=`, so
 the screen serves the active tree only.
 
-### C10. A run of several requests one of which got no answer is asked again
+**Blocked by:** D9 for the reading of a shared page; the three places above
+are not.
 
-A run whose step carries one place name, or none, can still send several
-requests: `connectors/ky_vital_index.py` asks one year's file at a time over
-the step's years. One year's file unanswered (a timeout, a refusal) and another
-answered with no row under the surname is logged `none` (`run_step.outcome_of`:
-errors and an answer), and `log_search.same_fields` reads the run as the step's
-own fields, so the step is closed at that source though one year was never
-read. The runner marks only a place name whose request got no answer
-(`unanswered`). Mark the run's unanswered requests whatever made them, so the
-next turn asks again, and show it on a Kentucky index step over two years.
-The same holds where some hits arrived and others did not: a 1950 district
-search whose neighbour's schedule arrives while the household's own times out
-is `found` and closes the step, the lost name logged unanswered and never asked
-again; a run is `found` for the step only when the hit that answers the step's
-own person arrived.
+### C9. A run says what it asked
 
-### C11. A place written one letter apart disagrees
+A run's log row is the catalog's word that a holder was asked and what it
+answered, and the proof standard's reasonably exhaustive research can be read
+only from `search_log`. Today a run can say `none` where the holder was never
+asked, or asked in part, and the step closes at that source. Each connector
+asks over the years and fields it can answer and says `none` only for those;
+the row says what was sent, what the holder reported, how much was read and
+whether the list was cut.
+
+- **The log.** `search_log` records no request sent, no total the holder
+  reported, nothing about how many were read, and no truncation (a total
+  lives in free-text notes cut at 1,000 characters, `run_step.py`). Live on 4
+  Oct 2026, 89 of the 140 connector runs logged `none` sent no request at all
+  (a field the source wants was missing, or the person's years lie outside
+  it), told apart from an empty answer only by the note. The connectors stop
+  early and say nothing: `connectors/ia.py` reads five items and three pages
+  of each, `wikitree.py` five profiles, `loc_gov.py` the first twenty results
+  with no next page, `ia_directories.py` six towns, and `plan.py` puts at most
+  twelve footprint records on a plan. `found` means a hit's record arrived,
+  not that a persona was put to someone: 42 of the 44 `found` runs at the OCR
+  and WikiTree sources on 4 Oct led to no proposal and no link. And
+  `log_search.same_fields` leaves `surname_variants` out, so a spelling
+  learned later never asks a source again. Give the log the request, the
+  holder's total, the number read and whether the list was cut, as columns;
+  log a cap as a cut; let `found` mean a persona the matcher put to someone,
+  the rest `none` with the page held; and count the variants as fields.
+- **A run of several requests, one unanswered.** A run whose step carries
+  one place name, or none, can still send several requests:
+  `connectors/ky_vital_index.py` asks one year's file at a time over the
+  step's years. One year's file unanswered (a timeout, a refusal) and another
+  answered with no row under the surname is logged `none`
+  (`run_step.outcome_of`: errors and an answer), and `log_search.same_fields`
+  reads the run as the step's own fields, so the step is closed though one
+  year was never read. The runner marks only a place name whose request got
+  no answer (`unanswered`). Mark the run's unanswered requests whatever made
+  them, so the next turn asks again, and show it on a Kentucky index step over
+  two years. The same where some hits arrived and others did not: a 1950
+  district search whose neighbour's schedule arrives while the household's
+  own times out is `found` and closes the step, the lost name logged
+  unanswered and never asked again; a run is `found` for the step only when
+  the hit that answers the step's own person arrived.
+- **Connectors that never looked.** `connectors/nj_death_index.py` reads the
+  2006–2017 file alone, but the registry's coverage (C09, New Jersey
+  1848–2017) is what lets a step ask it, and the connector checks no year:
+  Dennis Scannell and Mary Castello are logged `none` there and never asked
+  again. `va_graves.py` asks the middle initial as "begins with", so a
+  veteran indexed with none is missed; `ky_vital_index.py` takes a year equal
+  to the birth year to mean the birth index, so an infant's death is looked
+  for among births; `loc_gov.py` asks the death year alone where the gate
+  allows that year and the next. Wire the New Jersey 2001–2005 file or refuse
+  the step before it, and ask the two live `none` runs again. Every New
+  Jersey step also downloads the 69 MB file again: cache it as C16 says for
+  Kentucky.
+- **A challenge page read as an empty answer.** A JSON connector raises on a
+  challenge or maintenance page served with status 200 in place of its
+  answer, and the run is logged error (`run_step.unreadable`). The CSV and
+  HTML connectors read such a page as an answer with nothing in it:
+  `nj_death_index.rows` and `ky_vital_index`'s readers find no row under the
+  surname, `va_graves.total` gives None and `results` an empty list where the
+  page lacks its table. Give each such connector a test that the body is its
+  answer (the index file's header line, the year file's layout, the gravesite
+  page's own result or no-result markers), raising when it is not, so the
+  page is an error run and the step is asked again; show it on loop `106`'s
+  turn, where New Jersey's index and the gravesite locator log `none` on the
+  harness's challenge page.
+
+### C10. A place written one letter apart disagrees
 
 Frederick Michael Ahearn's card on his WWII draft registration card
 (FamilySearch, ark `Q2SN-6M4R`, cited by the file) agrees on the name and the
 birth day and disagrees on the birth place: the record writes "North Hampton,
 Massachusetts", the tree has Northampton, Hampshire County, resolved and
-accepted. `tools/catalog.py`'s `place_verdict` (which `tools/match.py` uses) counts two places the same when
-both resolve to one place or one is a dated name of the other
-(`docs/DATA-ARCHITECTURE.md` §8), and "North Hampton, Massachusetts" is an
-unresolved string, so the disagreement stands and the rule leaves the record
-a card. A surname has a rule (as written or a spelling variant,
-`docs/RESEARCH-WORKFLOW.md` §5–7); a place has none, and §8's `typo` and
-`transcription` kinds are classified only once a string is resolved. Decide
-the rule in the docs: whether a string one letter (a space) apart from a
-resolved place's name, in the same state and county where the string gives
-them, agrees as a spelling variant, and whether the resolver offers the
-resolved place as such a string's candidate on the same ground; then the
-matcher applies it. Until then such a record is a card.
+accepted. The resolver offers such a close spelling on its card, marked near
+and verifying nothing (`docs/DATA-ARCHITECTURE.md` §8, `resolve_places.near_name`),
+but `catalog.place_verdict` (which `tools/match.py` uses) counts two places the
+same only when both resolve to one place or one is a dated name of the other,
+so the disagreement stands and the rule leaves the record a card. Once D4 is
+answered, write the rule into the docs and the matcher applies it. Until then
+such a record is a card.
 
-### C12. The person screen has no control for a record's unplaced fact
+**Blocked by:** D4.
+
+### C11. The person screen has no control for a record's unplaced fact
 
 `Catalog.unplaced` raises an accepted record's fact whose event is the owner's
 choice (an undated fact among several events of its type, a dated one equally
 close to two or more, one of a type a life holds once that fits none of
-several) as a conflict question, and only `tools/conclude.py place` answers it. Show the question on the person screen
+several, an attribute's fact, a family's fact) as a conflict question, and only `tools/conclude.py place` answers it. Show the question on the person screen
 with the person's events of that type to choose from, writing through
 `conclude.place` with its audit row, as the living line's control writes
 through `conclude.living`.
 
-### C13. A connector for Open Archives, the Dutch records
+### C12. A connector for Open Archives, the Dutch records
 
 api.openarch.nl answers a declared tool with no key: `records/search.json`
 by name and event place (each record's person name, event type, date and
@@ -740,7 +936,7 @@ declared tool (70 records for Sijtske Lieuwes, 6 for Rittinghuysen at
 Amsterdam) and has had outages: an unanswered request is an error run, asked
 again next turn.
 
-### C15. A family's own facts in the file lose their place
+### C13. A family's own facts in the file lose their place
 
 `tools/ingest_gedcom.py` writes a FAM record's own MARR (or DIV, ENGA, ...) as
 an event whose statement carries no persona fact, a family being no persona:
@@ -752,7 +948,7 @@ reads it as absent, joining any marriage of its year. Write the FAM record's
 facts as persona facts (on each partner's persona, as an Ancestry INDI-level
 MARR already is), so the file's date and place are statements like any other.
 
-### C16. A connector for the New York State death index
+### C14. A connector for the New York State death index
 
 Reclaim the Records' New York State death index 1880–1971 (outside New York
 City) is a CSV per year or five years on the Internet Archive (year, Soundex,
@@ -765,7 +961,7 @@ cached, the surname's rows kept as the derivative, one persona per row; the
 place codes need their own table from the release's documentation before a
 place is read.
 
-### C17. One connector for CONTENTdm collections
+### C15. One connector for CONTENTdm collections
 
 The Tennessee Virtual Archive (death certificates, marriages, births), Ohio
 Memory and the Alabama archives (L04) all run CONTENTdm, whose JSON search
@@ -776,7 +972,7 @@ step is two hops: the index volume for the name, then the certificate by
 number. Build one connector for the shape when a reviewed person's
 Tennessee or Ohio step needs it.
 
-### C18. A year-filed index read by byte range, and asked with the event's year
+### C16. A year-filed index read by byte range, and asked with the event's year
 
 The Kentucky indexes (and the New Jersey one) are one sorted file per year,
 3 to 11 MB, and the Archive serves byte ranges: a binary search by surname
@@ -790,10 +986,10 @@ holder (`data/holders.csv`). Such an index takes the year of the person's
 accepted event of that type (`docs/DATA-ARCHITECTURE.md` §7 decision 11): put
 it first for those citations.
 
-### C19. Reasonably exhaustive data for every place a family names
+### C17. Reasonably exhaustive data for every place a family names
 
 `data/jurisdictions.csv` holds the places this tree's research has needed:
-seven states' statewide registration, two states' censuses, five countries'
+seven states' statewide registration, two states' censuses, four countries'
 church holders and civil registration. Any other place gets its rows with no
 holder. Fill the table for every US state (statewide birth, death and marriage
 registration years, state censuses, the holders that index them) and for the
@@ -801,7 +997,7 @@ countries emigrants came from, from the FamilySearch Research Wiki and the
 state archives, each row citing where its years come from, with a registry
 row for each new holder; then a family from anywhere gets a full checklist.
 
-### C20. Place overrides belong to the tree
+### C18. Place overrides belong to the tree
 
 `data/place-overrides.json` holds this tree's own strings (the Berthelsdorf
 review, the Silesian notes) in a file every tree reads. Read a tree's own
@@ -809,7 +1005,7 @@ overrides from `trees/<slug>/` beside a shared file of corrections true for
 any tree (a place string meaning no place), and move this tree's entries
 there; the place scenarios plant their own.
 
-### C21. Citations from exports other than Ancestry's
+### C19. Citations from exports other than Ancestry's
 
 The planner turns a citation into a fetch step through Ancestry's own record
 id (`_APID`) and `data/holders.csv`'s map of Ancestry collections to free
@@ -820,13 +1016,14 @@ build no footprint, and the checklist reads a record the file cites as missing. 
 FamilySearch ark in a citation, a URL, a source title with a page), and route
 each to its holder.
 
-### C22. A second family in the harness
+### C20. A second family in the harness
+
+**Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This is that scenario.
 
 The harness runs on a cut of the owner's export, by the owner's ruling (no
 invented people or records), so nothing proves the tools on a family with
 other places, other denominations and another export's citations. With the
-owner's choice of a real second tree (another family's export they hold, or a
-published public-domain one), add a scenario that ingests it beside the
+real second tree the owner names (D11), add a scenario that ingests it beside the
 harness tree, builds its checklists and plans, and shows nothing of the first
 family reaching the second (the tree-isolation entry above). The harness is
 narrower than `tools/check.py` and `tests/checks/scenario.py` say ("another
@@ -836,22 +1033,23 @@ family's export runs unchanged"): the walker names people under the
 and source ids; a second family's export from another program needs those
 read from the import first.
 
-### C23. A conflict one side of which rests only on claims and editable pages
+**Blocked by:** D11.
+
+### C21. A conflict one side of which rests only on claims and editable pages
 
 The rule resolves a conflict only when the side it keeps holds primary
 information (`conclude.classes_decide`), so John Y Davidson's birth date stays
 the owner's although 24 April 1876 rests only on the file's claim and three
 Find a Grave memorials while Apr 1875 rests on the 1900 census and his 1946
-death certificate, records nobody can edit. Decide in the docs whether a side
-resting on records nobody can edit, agreeing with one another, outweighs a side
-resting only on the file's claim and pages anyone can edit, the file's
-uncited claim the owner accepted being their own word and never outweighed;
-§7 decision 9 reads contested classes toward the owner, and the owner's own
-words put the human only where doubt is serious. Then the rule applies it,
+death certificate, records nobody can edit. Write D3's answer into the docs
+(§7 decision 9 reads contested classes toward the owner, and the owner's own
+words put the human only where doubt is serious); then the rule applies it,
 reasonably exhaustive research first: his memorial shows a gravestone
 photograph not yet held (photo 102379026), which may carry 1876 itself.
 
-### C24. A held image nobody has read is research waiting, not held
+**Blocked by:** D3.
+
+### C22. A held image nobody has read is research waiting, not held
 
 A gravestone photograph is a primary source (registry E05, T1) and becomes
 evidence only once read: the transcription path (`app/person/server.py`
@@ -870,7 +1068,7 @@ the model, with a person where the image is in doubt), which the queue counts as
 work a turn can do. Show it on a real image the harness holds, then read the
 seven live and decide them like Helen's and Frederick's.
 
-### C27. An import from anywhere is read as itself
+### C23. An import from anywhere is read as itself
 
 Beyond citations: the gazetteer routing for Ireland, Germany and Poland, the
 Silesian place rules and the church denominations are written in code
@@ -881,7 +1079,7 @@ US state anywhere in it is read as American even when its last part names
 another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
 the country the string ends with first.
 
-### C29. A key fact resting on a withdrawn record asks nothing of the person
+### C24. A key fact resting on a withdrawn record asks nothing of the person
 
 A file withdrawn by `tools/tombstone.py` is evidence for nothing, and the proof
 says so, but `Catalog.basis` still reads a key fact accepted when its only
@@ -894,31 +1092,42 @@ rests on a withdrawn file, asking the owner to take the decision again
 it again). And the owner's own word (`facts.vouch`) is written on the tree
 file's persona, so withdrawing an imported file would make every vouch on it
 count for nothing: have the tombstone refuse a file a tree imported, or keep a
-vouch standing whatever its carrier.
+vouch standing whatever its carrier. And `conclude.decide` still accepts a
+card whose file is withdrawn, writing accepted statements that count for
+nothing: the accept should be refused with the reason, and a withdrawal
+should close the file's open cards.
 
-### C33. A family-held photograph in the harness
+### C25. A family-held photograph in the harness
+
+**Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This one does not wait on it: it waits on the owner's photograph.
 
 `decisions/95-cited-on-the-owners-word` drops two family-held photographs into
 the inbox, and the harness writes the smallest of JPEG files for them, the one
 stand-in file `tests/fixtures/README.md` ("What is simulated") still names. The
 only family-held photographs the archive holds are marked private and never
-redistributed; whether one may sit in `tests/` is the owner's choice (CLAUDE.md,
-hard rule 7). Once the owner names one, archive it as a fixture with its
+redistributed; hard rule 7 lets the one the owner chooses sit in `tests/`. Once
+the owner names one (D12), archive it as a fixture with its
 manifest, attach it in place of the stand-in, and drop `stand_in` from
 `tests/checks/scenario.py` and the README.
 
+**Blocked by:** D12.
+
 ### C26. Runs that stand for an answer no holder gave
+
+**Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This one does not wait on it: it is the harness's own runs.
 
 `docs/DATA-ARCHITECTURE.md` §7 decision 8 lets the harness simulate a holder's
 failure to answer and nothing else, but a turn scenario's `fake_run` logs `none`
-with no request behind it (loop `10`, `12`, `13`, `15`, `60`, `61`, `63`), and
-the `log` action writes `none` and `found` runs by hand (loop `10`, `31`, `50`,
-`63`, `72`, `101`; decisions `90`), each the catalog's word that a holder
-answered nothing, or answered, where no holder did. `tests/fixtures/README.md`
-lists them. Either answer each with a real run (the connectors through `run`
-on the archive's own answers, a saved page through `save` and `collect`) or a
-holder's silence where the path allows it, or have decision 8 say that a run
-written to reach a path is the harness's bookkeeping and no answer. The same
+with no request behind it by its default (loop `12`, `13`, `111`, `112`), and
+the `log` action writes `none` and `found` runs by hand (decisions `60`, `90`,
+`90a`, `99zd`, `99zp`, `99zzt`; loop `10`, `31`, `32`, `46`, `50`, `63`, `70`,
+`72`, `101`, `123`, `125`), each the catalog's word that a holder answered
+nothing, or answered, where no holder did. `tests/fixtures/README.md` lists
+them. As D10 settles: answer each with a real run (the connectors through
+`run` on the archive's own answers, a saved page through `save` and
+`collect`) or a holder's silence where the path allows it, or write into
+decision 8 that a run written to reach a path is the harness's bookkeeping
+and no answer. The same
 holds for the actions that write catalog rows by hand in the shape a writer of
 the tools writes them (`a_step` in 27 scenarios, `a_place_card`,
 `a_file_family`, `a_persona_link`, `a_legacy_card`, `a_event`, `a_question`,
@@ -927,20 +1136,24 @@ and `older_reading`, which plants a reading an older reader made as the live
 catalog holds it):
 when the writer changes, those scenarios go on testing rows the code no longer
 writes. Reach each through the tool that writes it.
-### C30. A fact a reading no longer states stays on the person
+
+**Blocked by:** D10.
+
+### C27. A fact a reading no longer states stays on the person
 
 A page read again by a newer reader can drop a fact the older reading wrote,
 and the accepted statement on it stays: `catalog.statement_of` reads a
 statement through the record's current reading and falls back on the
 assertion's own reading where the current one has no such fact. The gravesite
 locator's reader now gives a dependent's row's rank and branch to the veteran
-the row names, yet Noi Davidson's two pages of the locator, read again, leave
-her Military Service "MSGT US AIR FORCE" accepted on the superseded readings.
-Decide what a statement the current reading no longer makes is (withdrawn with
-its reading, or kept as the record's word), write it into
-`docs/DATA-ARCHITECTURE.md`, and have the re-read do it; show it on that page.
+the row names; Noi Davidson's two pages of the locator, read again, left her
+Military Service "MSGT US AIR FORCE" accepted on the superseded readings until
+a session rejected both statements on 3 Oct 2026. Write D5's answer into
+`docs/DATA-ARCHITECTURE.md` and have the re-read do it; show it on that page.
 
-### C31. Objects a check run archived into the live archive
+**Blocked by:** D5.
+
+### C28. Objects a check run archived into the live archive
 
 Fifteen manifests under the live `archive/manifests/` say `retrieved_by:
 agent:check`, all at 2026-09-15T14:44:31Z: the harness's own fixtures (the
@@ -953,11 +1166,13 @@ the live one. For those fixtures the archive's copy proves
 nothing about where the bytes came from, and the live catalog may hold rows
 for them. Find what that run wrote (artifacts, extractions, personas, runs)
 through a tool that reads the catalog, say what the owner should keep, and
-correct the README rows that rest on those copies. A tool refuses a `--db`
+correct the README rows that rest on those copies. Read-only on 9 Oct 2026:
+no artifact row says `agent:check`; 10 of the 15 objects have rows under
+another retriever, cited by search-log rows, and 5 have no row. A tool refuses a `--db`
 outside its data root (`treelib.in_data_root`) and every check runs under a
 scratch `DATA_ROOT`, so this entry is the cleanup alone.
 
-### C35. Family links accepted on a grouping the record does not state
+### C29. Family links accepted on a grouping the record does not state
 
 An accept writes a family link the record's indexer computed undecided, but
 decisions made before the FamilySearch reader marked its relations, the
@@ -972,7 +1187,7 @@ noted as the indexer's, one audit row each; the same statements under the
 owner's own decisions are the owner's to answer, listed for them, since a
 person's decision is never undone by the rule.
 
-### C36. A FamilySearch household page saved with every member's details open
+### C30. A FamilySearch household page saved with every member's details open
 
 A census states every member's relationship to the head, but a FamilySearch
 record page shows that column only in each member's own details table, which
@@ -981,22 +1196,95 @@ census pages in the archive, one (the 1900 Lukens household) was saved with
 every member's details open; on the rest the column shows for the page's own
 person and the head alone, so on a page whose own person is not the head every
 other member's relationship to the head is read only as FamilySearch's grouping
-(computed), and the rule takes no one through it. Have `tools/save_page.js` press the page's "Open All" buttons on an
-`fs-record` page and wait for the details tables before it saves (confirm on a
-real page that the details render without a request the method does not make),
-then save the archived census pages again by the same method.
+(computed), and the rule takes no one through it. `tools/save_page.js` presses
+every "Open All" on an `fs-record` page before it saves, untried in a browser:
+confirm on a real page that the details render without a request the method
+does not make, then save the archived census pages again by the same method.
 
-### C37. The route through a stated relationship says a birth year agrees where none was compared
+### C31. Where the rule and its words part
 
-`conclude.rule_accepts` takes a persona through a relationship the record
-states with the reason "the name and birth year agree", whatever the record
-gives: the gravesite locator's row for Noi Davidson names the veteran she is
-buried with by name alone, and the reason the rule takes the veteran as
-Raymond Earl Davidson says the birth year agrees. `docs/RESEARCH-WORKFLOW.md` says a birth
-year agrees "where both have one": say the birth year in the reason only when
-both sides give one, and show it on that row.
+Each bullet is a place where the code and the rule's text say different
+things, with its live case where one is known. A4 part 2 closes them clause
+by clause: as each clause of the rule gets its identifier, the code that
+implements it is brought to the words or the words to the code, and the
+bullet goes. A bullet that changes what the rule decides ends with a dry-run
+`reconsider` on a copy of the live catalog.
 
-### C38. Circumstances under which a record misstates a date on purpose
+- **The route's reason.** The claimed-relationship route
+  (`conclude.rule_points`) gives the reason "the name and birth year agree"
+  whatever the record gives, where §5–7 says a birth year agrees "where both
+  have one". Live: the gravesite locator's row for Noi Davidson names the
+  veteran she is buried with by name alone, and the reason the rule takes him
+  as Raymond Earl Davidson says the birth year agrees. Say the birth year only
+  when both sides give one.
+- **A refusal that says "the indexer's".** When the route finds nothing,
+  `rule_points` says the relationship is "its indexer's, not the record's own
+  statement" whenever any computed relationship ties the persona to a person
+  accepted on the record, even beside one the record states. Live: Dennis
+  Scannell on the 1917 Massachusetts death index, father of Annie Scannell
+  Ahearn as the index states, his couple with Mary Costello FamilySearch's
+  grouping. Say the indexer's only when no stated relationship to a person
+  accepted on the record is there, and otherwise name the stated one and why
+  it does not count.
+- **The census before 1850.** The rule's census test reads the form
+  (`forms.census_form`, `data/record-forms.csv`) and holds back a head-only
+  form and a year with no form, but passes a census whose year is unknown,
+  and takes the year from the collection's name by pattern when the record
+  gives none. Hold such a census back until its year is read from the record
+  or its citation, never from a name's digits.
+- **The name variants.** `match.same_given` reads a bare initial as agreeing
+  with a given name, where §5–7 lets an initial agree only for a middle name,
+  and with a day counting double a name and one date then take a record; and
+  §5–7 does not say which variants count as the name, while the rule reads
+  every alias not rejected as one (`Catalog.person`, `match.name_keys`: 60
+  undecided aliases counted on 4 Oct 2026). Say in §5–7 which variants the
+  rule counts.
+- **What of an event's value is accepted.** §5–7 reads a date per part
+  everywhere and a place per part where it is shown; five places still read
+  the value the event shows. A place's point (`rule_points`, `ground`) needs
+  an accepted statement that gives the shown place whole, so a record
+  agreeing with an accepted place earns nothing where the event shows another
+  on a claim. The matcher compares with the shown values (`match.candidate`,
+  `compare`), so a reading that differs from the claims on both dates is a
+  hint, never a card, though it agrees with the accepted statements.
+  `facts.decide_fact` accepts the file's claim citing a held record with the
+  file's own value, so accepting a birth whose held census gives a calculated
+  year makes the file's day read accepted. The veto (`conclude.against`) never
+  reads a place the owner's own word gives, where `ground` and
+  `trusted_evidence` do. `Catalog.disagreements` never compares two places
+  both finer than the event's own. Beside them: `checklist.build` gives the
+  field for a country abroad the year's basis.
+- **The comparison as data.** The comparison returns findings and the rule
+  reads them, but four places in `tools/cards.py` still read words (the stored
+  rationale of a card an older matcher wrote, a results row served as words,
+  the card's own name note, an "accepted as" status), and `tools/conclude.py`
+  reads the lines of `Catalog.disagreements` by pattern (`CONFLICT_AXIS`,
+  `conflict_lines`), a comparison of its own that returns no findings yet.
+  `place_verdict` says a record's place agrees as coarser ("the record gives
+  only New York") where `place_given` finds its first part nowhere in the
+  tree's place and says the two do not agree (Manhattan, New York, New York
+  against Brooklyn, New York): one of the two is wrong. No scenario reaches
+  the residence-place test of a relative's grounding.
+- **A page anyone can edit.** Its identity counts a burial place at any
+  granularity, where the trusted route leaves out one coarser than the
+  tree's; it is tier T4 in one place and anything outside T1 to T3 in
+  another; and `rests_elsewhere` takes undecided statements of such a page,
+  and marked values, as what makes a relative's persona stand for the
+  relative.
+- **What the rule creates.** It creates a grandchild or a half sibling and
+  writes no family link; and `conclude.rule_creates` still words refusals for
+  a persona with no full name or no word of kinship, which the matcher no
+  longer proposes.
+- **Cards.** `cards.card` works out its verdicts without the record's state
+  or the dated names, so a card can show "disagrees" where the rule read
+  "agrees"; a card code closed is stored `rejected` under the session's or the
+  owner's name, told from a person's rejection only by the note `superseded`
+  (1,334 of the 1,339 rejected cards live on 4 Oct 2026); and the matcher
+  never proposes a persona that carries any rejected link, to anyone.
+- **The proof.** It makes "meets the standard" wait on research the docs call
+  "not a gate".
+
+### C32. Circumstances under which a record misstates a date on purpose
 
 A record made at the event can carry a false age or date for good: a boy who
 gave himself an earlier birth year to enlist under age keeps it on every
@@ -1026,7 +1314,9 @@ holds what recurs in any family. Write the decision into
 `docs/DATA-ARCHITECTURE.md` §7 and the proof standard before the code, and show
 it on a real record the archive holds.
 
-### C3. A decision taken on a claimed relationship that reconsider would withdraw
+**Blocked by:** D6.
+
+### C33. A decision taken on a claimed relationship that reconsider would withdraw
 
 In scenario `60-confirmed-on-a-record` the rule takes Robert Davidson on the
 1940 census through the relationship it states to his son, accepted on it,
@@ -1035,9 +1325,7 @@ him on the Ohio death index (step 9), a dry-run `reconsider` would withdraw
 that census decision: with his name now held, `conclude.rule_points` judges the
 record by two points, not by the claimed-relationship route, and the son's
 link is a claim (one point). More accepted ground refuses what less allowed.
-The owner's ruling of 15 Sept covers "a person the file claims" whether or not
-the name is held; the docs narrowed the route to a name not yet held. Let the
-route stand when the points fall short (the change is one fallback before "two
+If D2 lets the route stand when the points fall short (the change is one fallback before "two
 are needed"), state it in `docs/RESEARCH-WORKFLOW.md` §5–7, and show on scenario
 60 that a reconsider after step 9 keeps every decision. Before that, close the
 gap it exposes in scenario `99c-a-sibling-born-after-a-parent-died`: with the
@@ -1048,7 +1336,9 @@ death afterwards leaves it. Examine an undecided sibling placement again when a
 parent's death is accepted (`conclude.died_before`), as a re-read does, and
 remove the placement the limits of one life refuse, with its note.
 
-### C39. A second copy of a held record is left in the inbox
+**Blocked by:** D2.
+
+### C34. A second copy of a held record is left in the inbox
 
 `tools/attach.py` places a saved page on the plan step its identity reaches; once
 one copy of a cited record is held (John Y Davidson's 1946 certificate page, done
@@ -1060,7 +1350,7 @@ it, and let `conclude.join_copies` and `conclude.carry` make it a copy of the
 record the step holds; the harness scenario `99ze` archives the index entry by
 hand for this reason.
 
-### C40. A document's topic, and the leads it opens for a person and their family
+### C35. A document's topic, and the leads it opens for a person and their family
 
 The catalog classifies evidence by the kind of document and its trust, never by
 the part of a life it reveals (military service, immigration, a church, a
@@ -1082,42 +1372,9 @@ turns into leads. Start with military; write it as a design decision before
 building. Noi's Military Service event, whose two statements are rejected,
 waits on this.
 
-### C25. A search's log says whether it was exhaustive
+**Blocked by:** D7.
 
-The proof standard asks for reasonably exhaustive research, and a program can
-show it only from `search_log`, which records no request sent, no total the
-holder reported, nothing about how many were read, and no truncation (a total
-lives in free-text notes cut at 1,000 characters, `run_step.py`). Live, 89 of
-the 140 connector runs logged `none` sent no request at all (a field the
-source wants was missing, or the person's years lie outside it), told apart
-from an empty answer only by the note. The connectors stop early and say
-nothing: `connectors/ia.py` reads five items and three pages of each,
-`wikitree.py` five profiles, `loc_gov.py` the first twenty results with no
-next page, `ia_directories.py` six towns, and `plan.py` puts at most twelve
-footprint records on a plan. `found` means the surname stood on a page: 42 of
-the 44 `found` runs at the OCR and WikiTree sources led to no proposal and no
-link. And `log_search.same_fields` leaves `surname_variants` out, so a
-spelling learned later never asks a source again. Give the log the request,
-the holder's total, the number read and whether the list was cut, as columns;
-log a cap as a cut; let `found` mean a persona the matcher put to someone, the
-rest `none` with the page held; and count the variants as fields.
-
-### C28. Connectors that answer "none" where they never looked
-
-`connectors/nj_death_index.py` reads the 2006–2017 file alone, but the
-registry's coverage (C09, New Jersey 1848–2017) is what lets a step ask it, and
-the connector checks no year: Dennis Scannell and Mary Castello are logged
-`none` there and never asked again. `va_graves.py` asks the middle initial as
-"begins with", so a veteran indexed with none is missed; `ky_vital_index.py`
-takes a year equal to the birth year to mean the birth index, so an infant's
-death is looked for among births; `loc_gov.py` asks the death year alone where
-the gate allows that year and the next. Each connector asks over the years and
-fields it can answer and says `none` only for those (the New Jersey 2001–2005
-file wired or the step refused before it), and the two live `none` runs are
-asked again. Every New Jersey step also downloads the 69 MB file again: cache
-it as C18 says for Kentucky.
-
-### C32. A record reaches a step on what it states, and is read once
+### C36. A record reaches a step on what it states, and is read once
 
 Three paths put or read a record on less than it states. `extract.py`'s
 Ancestry-index parser claims any HTML page holding a two-cell table, untested
@@ -1134,69 +1391,69 @@ alone. Give the catch-all parser a real page or drop it, require the record's
 own identity (a name and a fact that agrees) before the collection path closes
 a step, and read held bytes again only when a reader is newer.
 
-### C41. Code that holds what the data should, or this family's own words
+### C37. Code that holds what the data should, or this family's own words
 
 Decision 7 (no code names a family's people, places or denominations) and
-decision 12 (the limits of one life are data). `match.py`'s nickname table
-carries this tree's members (Lura, Lou, Laura; Corinne, Carinne, Corrine;
-Cassie; Ollie) and groups distinct names as one (Oliver and Olive, Emily and
-Emma, Helen and Ellen, Christian and Christopher), and `same_given`'s one-letter
-rule makes Harry Larry and Edwin Erwin, while a surname one letter apart is
-refused. `conclude.died_before` holds a father's margin of a year and reads
-unknown sex as a mother where `data/life-limits.csv` says ten months and reads
-it as a father; `footprint.py` holds a ninety-year life, a birth twenty years
-before the first event and a 15–50 parent window. Registry ids are written in
-`plan.py`, `fetches.py`, `attach.py`, `turn.py` and `cards.py` (D03, E01 and
-others). Decision 3's release years live in the registry and are never read:
-`checklist.py` holds the 1950 census cut-off and the draft, Social Security and
-directory eras, and finds military records by "Army|Navy|Veterans" (no Air
-Force, which C40 needs). `checklist.py`'s `DEPENDS={"D03":"B01"}`, D03's
-registry note and `docs/RESEARCH-WORKFLOW.md` §4's "FamilySearch after
-Innovator approval" still wait on the API decision 4 rules out.
-`backfill_aliases.py` names this tree's own misspelling "Silesa" and fifteen
-states where `catalog.py` holds all. Move each into the data it belongs to, or
-the table that already holds it, and the nickname groups to a data file of
-true equivalents. The words of kinship are held twice and in English: the
-matcher's `KIN_WORD`, by which a new person is proposed, and the rule's
-`FAMILY_WORD`, by which one is created, differ (a "Maternal Grandmother" is a
-card the rule refuses).
+decision 12 (the limits of one life are data). The rule's thresholds are
+data, as the life limits are: the matcher's three-year window
+(`match.WINDOW`), the two points a record needs and the three of four a page
+anyone can edit needs (both in `conclude.rule_points`), and the trusted tiers
+(`conclude.TRUSTED`, written again as literals elsewhere in `conclude.py`, in
+`catalog.py` and in `facts.py`, and the rule's creation reading T1 and T2).
+`catalog.NICKNAMES` carries this tree's members (Lura, Lou, Laura; Corinne,
+Carinne, Corrine; Cassie; Ollie) and groups distinct names as one (Oliver and
+Olive, Emily and Emma, Helen and Ellen, Christian and Christopher), and
+`match.same_given`'s one-letter rule makes Harry Larry and Edwin Erwin, while
+a surname one letter apart is refused. `conclude.died_before` holds a
+father's margin of a year and reads unknown sex as a mother where
+`data/life-limits.csv` says ten months and `catalog.py` reads it as a father;
+`footprint.py` holds a ninety-year life, a birth twenty years before the
+first event and a 15–50 parent window. Registry ids are written in `plan.py`,
+`fetches.py`, `attach.py`, `cards.py`, `households.py`, `catalog.py` and
+`ingest_gedcom.py` (D03, E01 and others). Decision 3's release years live in
+the registry and are never read: `checklist.py` sends the 1950 census to its
+holder in code, holds the draft, Social Security and directory eras, and finds
+military records by "Army|Navy|Veterans" (no Air Force, which C35 needs).
+`checklist.py`'s `DEPENDS={"D03":"B01"}` and D03's registry note still wait on
+the API decision 4 rules out. `backfill_aliases.py` names this tree's own
+misspelling "Silesa" and fifteen states where `catalog.py` holds all. Move
+each into the data it belongs to, or the table that already holds it, and the
+nickname groups to a data file of true equivalents. The words of kinship are
+held twice and in English: the matcher's `KIN_WORD`, by which a new person is
+proposed, and the rule's `FAMILY_WORD`, by which one is created, differ (a
+"Maternal Grandmother" is a card the rule refuses).
 
-### C42. The move to Postgres is not a dump and restore yet
+### C38. The move to Postgres is not a dump and restore yet
 
-`schema/catalog.sql` says it runs on Postgres without edits, but `same_record`
-references `tree` before `tree` is created. The code uses `INSERT OR
-IGNORE`/`REPLACE`, `IS ?`, `json_set`, `json_each`, `LIKE` as a
-case-insensitive match (the person lookup relies on it) and `ORDER BY rowid`
-(`match.py`, `conclude.py`: fact order by physical insertion), none of which
-`schema/README.md`'s porting list names, and that list drops the insert-only
-triggers, so hard rule 2 would stand on nothing after a port. And the
-one-time corrections in `initdb.py` (0.7.3 to 0.7.9) import today's `plan`,
+`schema/README.md` ("Migrating to Postgres") lists the porting work: the DDL
+order (`same_record` is created before the `tree` it references), the
+insert-only triggers to be written again and carried over, so hard rule 2
+stands after a port, the SQL constructs the tools send, and `.dump`'s order
+(`search_plan` before `research_question`) and booleans written as 0 and 1.
+Do each: put the DDL in order, carry the triggers over, change each construct
+(about 1,100 statements go straight to `sqlite3` across the tools and the
+screen), and make the dump load. Two more the list leaves out: the one-time
+corrections in `initdb.py` (0.7.3 to 0.7.9) import today's `plan`,
 `conclude` and `catalog`, while `rebuild_table` reads today's DDL and commits
 in the middle of a migration, so an old backup migrated later runs today's
-logic and a failure leaves a version half applied and unrecorded. `rebuild_table`
-also drops a rebuilt table's triggers, harmless while every rebuild comes
-before the 0.8.1 triggers but not for a later migration that rebuilds a
-protected table. Make the DDL order right, list every construct the port must
-change, carry the triggers over (and recreate them after any rebuild), and
-make each migration one transaction that names the code it needs. On the
-live catalog the dump itself fails the recipe: `.dump` writes `search_plan`
-before the rebuilt `research_question` it references, and booleans as 0 and
-1; about a thousand statements go straight to `sqlite3` across the tools, and
-the FTS tables are never queried. The backup bag's `tree.sql` cannot be loaded
-into a fresh SQLite in one pass: `iterdump` writes the FTS tables through `writable_schema`,
-and their inserts fail with no such table.
+logic and a failure leaves a version half applied and unrecorded; and
+`rebuild_table` drops a rebuilt table's triggers, harmless while no rebuilt
+table carries any (0.8.8 rebuilds `person_persona`, which has none) but not
+for a later migration that rebuilds a protected table. Make each migration
+one transaction that names the code it needs, and recreate the triggers after
+any rebuild.
 
-### C44. A live reconsider reaches its end in one run
+### C39. A live reconsider reaches its end in one run
 
 A live `tools/conclude.py reconsider` can leave decisions that a second run
 withdraws (cards on several readings of one page, fits that depend on order),
 so every live run is followed by a dry run expected to change nothing, and a
-full copy of the catalog is taken before each live change (twenty sit in
-`catalog/` now). Run the withdrawals, the cards and the conflicts until a pass
+full copy of the catalog is taken before each live change (thirty-seven sit
+in `catalog/` on 9 Oct 2026). Run the withdrawals, the cards and the conflicts until a pass
 changes nothing, within the one call, and show on a scenario that a second
 run changes nothing; then the habit can go.
 
-### C45. Reads that scan the whole tree
+### C40. Reads that scan the whole tree
 
 Fine at 145 people, each grows with the tree: `catalog.cited_persons` scans
 every assertion with `json_extract` per call; `held_for` walks every holding
@@ -1214,36 +1471,42 @@ record is viewed, unmeasured on a record of many names. Every turn's tail runs `
 two to three minutes a turn at 145 people: a turn re-examines what its own
 records and decisions touch.
 
-### C46. Tools no check runs
+### C41. Tools no check runs
 
-Measured across every process a check run starts: `tools/backup.py` (the
-archive's fixity and its bags) and `tools/cite.py` run no line; the screen's
-HTTP layer (`do_GET`, `do_POST`) is never reached, the scenarios calling its
-route functions directly; `run_step.fetch` (rate limit, User-Agent, POST),
-`loc_gov.hits` and `total`, `catalog.*_search_url` and `search_target` never
-run, and `cards.py`'s command line neither: of its functions, measured on 5 Oct
-2026, `render_cli`, `render_compact`, `render_search`, `render_search_compact`,
-`cards_for`, `grouped`, `rule_verdict`, `row_line`, `relation_lines`, `main` and
-their helpers never run (what the owner reads with `tools/cards.py "<person>"`),
-nor `conclude.dated_with_parents` and `kept_agrees`, `facts.claimed_parts`,
-`catalog.place_beyond` and `Catalog.same_page`. No scenario reaches `proof.py`'s "the rule would keep assertion" line, nor a
-turn that names a conflict the rule decided inside it: with real fixtures the
-turn's place resolver stops at the first geocoder query it holds no answer for. Each can be shown on records the harness already holds: a bag
-written and checked under the scratch root, a citation made and run, a POST
-through the server.
+**Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This one does not wait on it: each path can be shown on records the harness holds.
 
-### C47. What "the loop works" means
+Measured across every process a check run starts: `tools/backup.py`'s fixity
+(`verify`) and `tools/cite.py` run no line (the bag is written and checked);
+the screen's GET routes other than `/api/tree` are never reached through
+HTTP (its POST routes are); `run_step.fetch` (rate limit, User-Agent, POST),
+`loc_gov.hits` and `total` never run, nor, as far as reading the checks shows,
+`catalog.*_search_url` and `search_target`; and `cards.py`'s command line
+neither: of its functions, measured on 5 Oct 2026, `render_cli`,
+`render_compact`, `render_search_compact`, `cards_for`, `grouped`,
+`rule_verdict`, `row_line`, `relation_lines`, `main` and their helpers never
+run (what the owner reads with `tools/cards.py "<person>"`), nor
+`conclude.dated_with_parents` and `kept_agrees`, `facts.claimed_parts`,
+`catalog.place_beyond` and `Catalog.same_page`. No scenario reaches
+`proof.py`'s "the rule would keep assertion" line, nor a turn that names a
+conflict the rule decided inside it: with real fixtures the turn's place
+resolver stops at the first geocoder query it holds no answer for. Each can be
+shown on records the harness already holds: the archive's fixity checked
+under the scratch root, a citation made and run, a GET through the server.
+
+### C42. What "the loop works" means
 
 The goal says what the system is for and never what reaching it looks like,
 so progress is read off commits. `tools/tree.py overview` already counts where
 the tree comes from (people from the file and from records; documents from
-citations, leads, searches and by hand). Decision wanted from the owner: the
-state that counts as the loop working (people and documents brought by
-evidence rather than the file, turns run without a session, what still reaches
-the owner and why), written into `README.md` beside the goal and printed by
-the overview.
+citations, leads, searches and by hand). Once the owner has named the state
+that counts as the loop working (D8), write it into `README.md` beside the
+goal and have the overview print it.
 
-### C48. A key the harness does not know inside an expectation or an action passes
+**Blocked by:** D8.
+
+### C43. A key the harness does not know inside an expectation or an action passes
+
+**Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This one does not wait on it: it is the walker's own strictness.
 
 An entry of `expect` and a step now fail on a key beside the one the walker
 knows, but the expectations and actions read the value they are given by
@@ -1262,36 +1525,7 @@ where it wants a label finds no decision and does nothing, silently; and the
 cannot be archived through it. And `has` passes a `lacks` or a `none` on a
 value that is missing altogether.
 
-### C51. A refusal says the indexer's when the record also states the relationship
-
-When the claimed-relationship route finds nothing, `conclude.rule_points` says
-"the record's relationship to the person accepted on it is its indexer's, not
-the record's own statement" whenever any relationship the indexer computed ties
-the persona to a person accepted on the record, even beside one the record
-states. Dennis Scannell on the 1917 Massachusetts death index is the father of
-Annie Scannell Ahearn, which the index states; his couple with Mary Costello is
-FamilySearch's grouping, so the reason misnames why the route failed (the tree
-held his link to Annie only on that record's own statement). Say the indexer's
-only when no stated relationship to a person accepted on the record is there,
-and otherwise name the stated one and why it does not count, as the clause
-naming the link the tree holds on nothing that claims it already does.
-
-### C52. A challenge page a non-JSON reader takes for an empty answer is logged none
-
-A JSON connector raises on a challenge or maintenance page served with status
-200 in place of its answer, and the run is logged error (`run_step.unreadable`).
-The CSV and HTML connectors read such a page as an answer with nothing in it:
-`nj_death_index.rows` and `ky_vital_index`'s readers find no row under the
-surname, `va_graves.total` gives None and `results` an empty list where the page
-lacks its table. The run is logged `none`, the holder's word that it holds
-nothing, and `log_search.same_fields` closes the step at that source. Give each
-such connector a test that the body is its answer (the index file's header
-line, the year file's layout, the gravesite page's own result or no-result
-markers), raising when it is not, so the page is an error run and the step is
-asked again; show it on loop `106`'s turn, where New Jersey's index and the
-gravesite locator log `none` on the harness's challenge page.
-
-### C43. A cited record is not closed by the first page of a search's results
+### C44. A cited record is not closed by the first page of a search's results
 
 When no row of a saved FamilySearch results page fits the person, `attach`
 restates the run `none`, the fetch list then hides the step and the queue
@@ -1302,7 +1536,7 @@ is a cut, not an absence (`docs/DATA-ARCHITECTURE.md` §7 decision 17). The
 search narrowed by the citation's own fields, then the next page, is the
 step's next save; the step is `none` only when every page has been read.
 
-### C53. A new search at a holder without a connector is the loop's work
+### C45. A new search at a holder without a connector is the loop's work
 
 The fetch list holds fetch steps only (`tools/fetches.py`), the queue counts
 only those and the steps a connector runs (`tools/queue.py`), and
@@ -1313,19 +1547,19 @@ The tree grows past the file only where a connector answers. Put a search
 whose holder takes a link on the fetch list, its results page the save, as
 §8 already reads; with A1 a model runs it.
 
-### C56. The search ladder as built
+### C46. The search ladder as built
 
 `docs/RESEARCH-WORKFLOW.md` §3 has six layers and §2 a ranking. Layer 0 is
 planned (twelve records at most), layer 3 as United States census rows, layer
 2 only as each person's own rows; layer 1 is printed by the checklist and
 never planned; layers 4 and 5 and the `surname_locality` query are in the doc
-alone; no search step carries a question (0 of 186 on 4 Oct 2026), and the
+alone; no search step carries a question (0 of 180 on 9 Oct 2026), and the
 ranking is not implemented. Build each layer, or make §2 and §3 say what is
 built.
 
-### C57. Names and records beyond English and the United States
+### C47. Names and records beyond English and the United States
 
-Beside C19, C22 and C41: the checklist's census rows are the United States'
+Beside C17, C20 and C37: the checklist's census rows are the United States'
 alone, and `before_civil` is computed and never used; `catalog.key` and
 `soundex` drop every letter outside a to z (Müller keys as mller, and a name
 in another script has no key); `split_name` takes the last word as the
@@ -1335,20 +1569,18 @@ whose people lived in Ireland, Germany or the Netherlands gets blocked
 fetches and assisted rows with no link. Show each on the second family's
 export when the harness has one.
 
-### C58. The name variants the rule stands on
+### C48. The name variants the rule stands on
 
 `conclude.write_name_alias` writes an alias accepted whatever the tier of the
 record it came from, and the rule reads every alias not rejected as the
 person's name (`Catalog.person`, `match.name_keys`): on 4 Oct 2026, 3
 accepted aliases come from pages anyone can edit and 60 undecided ones count
 as names. A withdrawal leaves its alias undecided, so a decision taken back
-still shapes later ones. `match.same_given` reads a bare initial as agreeing
-with a given name, which §5–7 does not say, and with a day counting double a
-name and one date then take a record. Say in §5–7 which variants the rule
-counts as the name, write an alias with the standing of its record, and take
-a withdrawn decision's alias with it.
+still shapes later ones. Write an alias with the standing of its record, and
+take a withdrawn decision's alias with it. Which variants the rule counts as
+the name is a clause of the entry where the rule and its words part (C31).
 
-### C59. A card a person or a session accepted can be taken back
+### C49. A card a person or a session accepted can be taken back
 
 `conclude.decide` rejects only an acceptance the rule made: a card accepted
 by the owner or by a session answers "already decided", no tool turns that
@@ -1356,28 +1588,7 @@ persona link back, and `reconsider` never examines it (8 cards on 4 Oct 2026
 were accepted by sessions). Give `tools/conclude.py decide` the taking back
 of any acceptance, by a person, with its reason and audit row.
 
-### C60. Where the rule and its words part in small ways
-
-Each read in the code, none with a live case unless said: the identity of a
-page anyone can edit counts a burial place at any granularity, where the
-trusted route leaves out one coarser than the tree's; `rests_elsewhere` takes
-undecided statements of a page anyone can edit, and marked values, as what
-makes a relative's persona stand for the relative; the rule creates a
-grandchild or a half sibling and writes no family link; `conclude.place`
-writes its accepted statement without the proposal's id, so rejecting or
-withdrawing the record leaves it accepted; `cards.card` works out its
-verdicts without the record's state or the dated names, so a card can show
-"disagrees" where the rule read "agrees"; a card code closed is stored
-`rejected` under the session's or the owner's name, told from a person's
-rejection only by the note `superseded` (1,334 of the 1,339 rejected cards
-live); "a page anyone can edit" is tier T4 in one place and anything outside
-T1 to T3 in another; the matcher never proposes a persona that carries any
-rejected link, to anyone; and the proof makes "meets the standard" wait on
-research the docs call "not a gate"; and `conclude.rule_creates` still words
-refusals for a persona with no full name or no word of kinship, which the
-matcher no longer proposes. Bring each to the docs, or the docs to it.
-
-### C61. The proof shows every conflict and argues the family links
+### C50. The proof shows every conflict and argues the family links
 
 `proof.fact_of` shows only the conflicts on a birth, a death and a marriage,
 so the open name conflicts and the limits-of-one-life questions are invisible
@@ -1391,13 +1602,13 @@ Print every open question on the fact, the agreement on a family link and
 the linkage reason, so the written conclusion is the reasoning and not only
 the verdict.
 
-### C62. Insert-only against REPLACE, and the archive's files against a rewrite
+### C51. Insert-only against REPLACE, and the archive's files against a rewrite
 
 `INSERT OR REPLACE` rewrites a row of a protected table under the live
 triggers (shown on a scratch copy on `audit_log` and `artifact`); with
 `PRAGMA recursive_triggers=ON` it is refused, no connection sets it (ten
 places open one), and `tools/check.py`'s insert-only check tries UPDATE and
-DELETE alone. No tool replaces into a protected table today. Beside C31:
+DELETE alone. No tool replaces into a protected table today. Beside C28:
 `treelib.archive_object` writes the object and its sidecar again whenever its
 catalog lacks the row, before the commit, and removes nothing when the
 transaction fails: 10 sidecars disagree with their row's `manifest_json` (7
@@ -1409,48 +1620,28 @@ set where every connection is opened) and check it; write an object and its
 sidecar once, never over one that exists; compare sidecars with rows in
 `tools/backup.py verify`; hold the manifests to their schema.
 
-### C63. The screen shows the record it asks about
+### C52. The screen shows the record it asks about
 
 No route of `app/person/server.py` serves an archived object, so the card's
 archived copy cannot be opened and an image cannot be seen while it is read;
 and a conflict's resolution with its
-reason, `reopen`, `place` (C12), `merge` and `link` have no control, while the
+reason, `reopen`, `place` (C11), `merge` and `link` have no control, while the
 revise route takes a fetch step the page offers no control for. A fetch step whose locator is not an Ancestry record id shows no link (the
 household lead's link sits only in its fields). The key-fact route ignores the `conflicts` `facts.decide_fact` now returns, so the
 screen never says what the rule decided on them. A person
 who runs no terminal cannot finish a person's work on the screen
 (`docs/DATA-ARCHITECTURE.md` §7 decision 17).
 
-### C64. Links the database can check
+### C53. Links the database can check
 
 `assertion.subject_id` is one column for seven kinds of subject, its
 composite keys JSON; a card's person, persona and artifact are in
 `proposal.payload_json`; a citation's identity is in `assertion.notes`, found
 by pattern. `foreign_key_check` sees none of them (none dangles on 4 Oct
-2026), and 93 `json_extract` calls across 11 files read them. Beside C45:
+2026), and 113 `json_extract` calls across 13 files read them (9 Oct). Beside C40:
 give each link the column it is, with its foreign key, a link at a time.
 
-### C66. What the reading of an event's value per part leaves
-
-`docs/RESEARCH-WORKFLOW.md` §5–7 (what of an event's value is accepted) reads
-a date per part everywhere and a place per part where it is shown; five
-places still read the value the event shows, and each change to them changes
-what the rule decides, so each ends with a dry-run `reconsider` on a copy of
-the live catalog. A place's point (`conclude.rule_points`, `ground`) needs an
-accepted statement that gives the shown place whole, so a record agreeing
-with an accepted place earns nothing where the event shows another on a
-claim. The matcher compares with the shown values (`match.candidate`,
-`compare`), so a reading that differs from the claims on both dates is a
-hint, never a card, though it agrees with the accepted statements.
-`facts.decide_fact` accepts the file's claim citing a held record with the
-file's own value, so accepting a birth whose held census gives a calculated
-year makes the file's day read accepted. The veto (`conclude.against`) never
-reads a place the owner's own word gives, where `ground` and
-`trusted_evidence` do. `Catalog.disagreements` never compares two places both
-finer than the event's own. Beside them: `checklist.build` gives the field
-for a country abroad the year's basis.
-
-### C67. A document that came through the browser is marked so, and listed with what would replace it
+### C54. A document that came through the browser is marked so, and listed with what would replace it
 
 `docs/DATA-ARCHITECTURE.md` §7 decision 20. On 4 Oct 2026 about 160 archived
 files came through the owner's browser or by hand (FamilySearch 113, Find a
@@ -1469,42 +1660,17 @@ already held (`same_record`). Where a replacement is a step a connector can
 run, the plan carries it. Nothing is removed when a better copy arrives: it
 joins the record, and the page saved in the browser stays beneath it.
 
-### C49. An assumed birth year is no claim either
+### C55. An assumed birth year is no claim either
 
 A death nobody stated is no longer searched for under the year an assumed
-lifespan gives. The plan still gives every search step a `birth_year` worked
+lifespan gives. The checklist still gives every search step a `birth_year` worked
 out as twenty years before the person's first dated event, with basis
 `claim`: a year nobody stated, sent to a holder as if the file said it. Say
 in `docs/RESEARCH-CHECKLIST.md` what a search carries for a person with no
 stated birth (a window from the dated events, said to be one), and build
 that.
 
-### C14. The census before 1850 is held back only when its year is known
-
-The rule's guard for a census that names only the head of a household
-(`conclude.py`, the kind and year in `HEAD_ONLY`) passes a census whose year
-is unknown, and takes the year from the collection's name by pattern when the
-record gives none. A census the rule cannot date is not shown to be one that
-names every member: hold it back until its year is read from the record, and
-read the year from the record or its citation, never from a name's digits. It
-changes what the rule takes, so it ends with a dry-run `reconsider` on a copy
-of the live catalog.
-
-### C34. What the comparison as data leaves
-
-The comparison returns findings and the rule reads them. Left: four places in
-`tools/cards.py` still read words (the stored rationale of a card an older
-matcher wrote, a results row served as words, the card's own name note), and
-`tools/conclude.py` reads the lines of `Catalog.disagreements` by pattern, a
-comparison of its own that returns no findings yet. `place_verdict` says a
-record's place agrees as coarser ("the record gives only New York") where
-`place_given` finds its first part nowhere in the tree's place and says the
-two do not agree (Manhattan, New York, New York against Brooklyn, New York):
-one of the two is wrong. And no scenario reaches the residence-place test of
-a relative's grounding: a reader left unconverted there was caught only by
-the dry run on a copy of the live catalog.
-
-### C68. A card read from a cut geocoder answer
+### C56. A card read from a cut geocoder answer
 
 A place is accepted only on an answer that was not cut, but a string that
 ends as a card on a full page of six is not asked again, so its card offers
@@ -1515,7 +1681,7 @@ holds no real forty-candidate answer, so capture one in a browser-free run of
 the resolver first and plant it (the gravesite and Archive answers show how a
 real answer becomes a fixture).
 
-### C70. The fetch list prints one page twice
+### C57. The fetch list prints one page twice
 
 Where two entries of `tools/fetches.py list` share a link and a file name (the
 Pennsylvania and New Jersey church-register search and the Pennsylvania
@@ -1523,7 +1689,7 @@ marriages search for Enos Heebner Cassel, live on 5 Oct 2026), the list and
 `next` print the page twice, so the owner or a model saves it twice. Print one
 entry for one link, its steps joined, as entries that share a record are.
 
-### C71. A child's membership does not say which parent the record names
+### C58. A child's membership does not say which parent the record names
 
 `link_family` no longer puts a child named with one parent beside a partner the
 record does not name, but the shape it leaves still misleads. A child's
@@ -1539,7 +1705,7 @@ since no tool moves a child out of a family: Cassie, William Rhea, Charles
 Beckham and Corinne Davidson in John Y Davidson and Lena Howard Bell's family
 (the 1900 and 1920 censuses and the NUMIDENT, which name John Y alone), Joanne
 and Dolores Evers in John Evers and Dolores Evers's (the 1950 census). Beside
-C5, which asks what grounds a parent-child point: have a child's statement name
+C4, which asks what grounds a parent-child point: have a child's statement name
 the parent its record states, give a one-parent family its parent's
 membership, keep the spouse path off a family that holds children of one
 parent, and give the owner a tool that moves a child to the family the record
