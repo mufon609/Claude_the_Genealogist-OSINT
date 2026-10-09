@@ -1,5 +1,5 @@
 {
- "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the given names one through a short form or not, the alias kind a written name's difference is, how a name as written is read into its parts (catalog.split_name, split_persona_name, name_words) and a GEDCOM NAME by its slashed surname, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, the card's Name row from the matcher's findings, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, and two dates that both give a month, compared to it unless one is about (another month disagreeing, a month agreeing with a full date of it), collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, the version a reader's model id carries, the record form a census collection and year were made on, what a federal census row settles by its form, and what the footprint expects of a relative's federal census by its form. Examples, not records of anyone.",
+ "about": "What tools/check.py's rules() runs the pure rules against: the surname rule's pairs, the given names one through a short form or not, the alias kind a written name's difference is, how a name as written is read into its parts (catalog.split_name, split_persona_name, name_words) and a GEDCOM NAME by its slashed surname, the holder search's templates and fields, the web addresses a file's citation may carry (a `javascript:` address among them) and the link a citation's address becomes, the card's Name row from the matcher's findings, whether a holder's link takes anything from a citation, place_verdict's record-against-tree cases, date_verdict's bounded dates (before, after, between, from–to) against a date or a range inside, outside and on the edge, and two dates that both give a month, compared to it unless one is about, estimated or calculated (another month disagreeing, a month agreeing with a full date of it), with the note a card and the rule's reasons carry where a case gives one (the months not compared beside an about date, a month or a year only), collection_state's names, a place's dated names, the place resolver's reading of a string into the queries it sends, how a part of a string stands to the names of a candidate, the version a reader's model id carries, the record form a census collection and year were made on, what a federal census row settles by its form, and what the footprint expects of a relative's federal census by its form. Examples, not records of anyone.",
  "same_surname": [
   {
    "record": "ahearn",
@@ -980,27 +980,44 @@
   {
    "record": "Jun 1901",
    "tree": "26 Jun 1901",
-   "verdict": "agrees"
+   "verdict": "agrees",
+   "note": "month only; the record gives only the month"
   },
   {
    "record": "26 Jun 1901",
    "tree": "Jun 1901",
-   "verdict": "agrees"
+   "verdict": "agrees",
+   "note": "month only; the tree gives only the month"
   },
   {
    "record": "Jun 1901",
    "tree": "1901",
-   "verdict": "agrees"
+   "verdict": "agrees",
+   "note": "year only; the tree gives only a year"
   },
   {
    "record": "ABT Jun 1901",
    "tree": "Jul 1901",
-   "verdict": "agrees"
+   "verdict": "agrees",
+   "note": "the months not compared; the record's date is marked about"
+  },
+  {
+   "record": "ABT Jun 1901",
+   "tree": "EST Jul 1901",
+   "verdict": "agrees",
+   "note": "the months not compared; the record's date is marked about and the tree's date is marked estimated"
+  },
+  {
+   "record": "ABT 1901",
+   "tree": "Jul 1901",
+   "verdict": "agrees",
+   "note": "year only; the record gives only a year"
   },
   {
    "record": "Jun 1901",
    "tree": "CAL Jul 1902",
-   "verdict": "agrees"
+   "verdict": "agrees",
+   "note": "the months not compared; the tree's date is marked calculated, within 2 years"
   },
   {
    "record": "Jun 1901",

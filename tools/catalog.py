@@ -463,6 +463,7 @@ class Finding:
     only: str = None              # a date agreeing short of the day: the side that gives less, "record" or "tree" (the record when both give as much)
     month: bool = False           # a date compared to the month, both sides giving one: agreeing on it (only: the side giving no day), or same_year, differing in it
     years: int = 0                # a date agreeing within so many years where the years differ (about, estimated or calculated)
+    near: tuple = ()              # a date agreeing where both sides give a month and either is marked about, estimated or calculated: (side, its mark) for each side so marked; the months were not compared
     same_year: bool = False       # a date disagreeing in the same year: on the day, or on the month (month)
     bound: str = None             # a date within: the side whose bound holds the other, "record" or "tree", or "both" (two ranges that overlap)
     coarser: str = None           # a place agreeing coarser: the finest part the record gives, as the words write it
@@ -486,6 +487,7 @@ def note(f):
     """What qualifies a date's or a place's finding, in words, or None: the note a rationale and a card carry."""
     if f.bound: return {"both": "the two ranges overlap", "record": "a bound on the record, the tree's date inside it", "tree": "a bound in the tree, the record's date inside it"}[f.bound]
     if f.same_year: return f"same year, different {'month' if f.month else 'day'}"
+    if f.near: return "the months not compared; " + " and ".join(f"the {side}'s date is marked {mark}" for side, mark in f.near) + (f", within {f.years} years" if f.years else "")
     if f.only and f.month: return f"month only; the {f.only} gives only the month"
     if f.only: return f"year only; the {f.only} gives only a year" + (f", within {f.years} years" if f.years else "")
     if f.held: return f"as {f.held[0]}, a name it held {f.held[1] or '?'}–{f.held[2] or '?'}"
@@ -500,8 +502,9 @@ def date_verdict(rec, tree):
     (date_span, its edges inside it): ranges that cannot meet disagree, and a date inside a bound or two ranges that overlap are
     "within", never "agrees", since a bound names no day or year of its own: it keeps a disagreement from being read where there
     is none and never earns a point; the finding says which side is bounded. Both full dates: compared as dates, a different
-    day in the same year disagrees. A date marked about, estimated or calculated on either side agrees within two years.
-    Otherwise both sides giving a month are compared to the month, a different month in the same year disagreeing (June 1901
+    day in the same year disagrees. A date marked about, estimated or calculated on either side agrees within two years, its
+    months not compared, and where both sides give a month the finding names the side so marked (near). Otherwise both sides
+    giving a month are compared to the month, a different month in the same year disagreeing (June 1901
     and July 1901, 26 June 1901 and July 1901), and a month against a full date of it agrees to the month, the finding saying
     which side gives only the month; else the years, a bare year against a month or a full date agreeing on the year only and
     the finding saying which side gives only a year."""
@@ -519,7 +522,8 @@ def date_verdict(rec, tree):
     month = not near and len(rs) >= 7 and len(ts) >= 7                                # both give a month: compared to it
     if month and rs[:7] != ts[:7]: return Finding("disagrees", same_year=rs[:4] == ts[:4], month=rs[:4] == ts[:4])
     if abs(int(rs[:4]) - int(ts[:4])) <= tol:
-        return Finding("agrees", only="record" if len(rs) <= len(ts) else "tree", month=month, years=tol if tol and rs[:4] != ts[:4] else 0)
+        marked = tuple((side, d.get("qualifier")) for side, d in (("record", rec), ("tree", tree)) if d.get("qualifier") in NEAR) if near and len(rs) >= 7 and len(ts) >= 7 else ()
+        return Finding("agrees", only="record" if len(rs) <= len(ts) else "tree", month=month, years=tol if tol and rs[:4] != ts[:4] else 0, near=marked)
     return Finding("disagrees")
 
 ONCE = ("Birth", "Death", "Burial", "Cremation")   # what a life holds once: a person's events of one of these types are one event wherever their places agree, and two that stand apart are a conflict question; residences, censuses, occupations and the like repeat

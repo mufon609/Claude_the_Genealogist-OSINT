@@ -1022,7 +1022,9 @@ name and a year (a place, a death, a full date or a stated relationship); a cens
 household member's age become a calculated birth year the matcher allows two
 years on. Two dates that both give a month, neither marked about, estimated or calculated, agree only in the same month:
 June 1901 and July 1901 disagree, in the same year, as 26 June 1901 and July 1901 do, and a month against a full date of it
-agrees to the month and says the record gives only the month. As a bare year against a full date agrees on the year only and says so (§4), a place agrees on the part it
+agrees to the month and says the record gives only the month; where either is marked about, estimated or calculated the
+months are not compared (such a date agrees within two years), and the rationale says so and names the side so marked
+(about June 1901 against July 1901), never that a side gives only a year. As a bare year against a full date agrees on the year only and says so (§4), a place agrees on the part it
 states even when it is coarser than the tree's own: a record place that names the tree's own place, or an ancestor of it
 in the resolved hierarchy (the county, or the state alone, spelled out or as its two-letter US code), agrees on the level
 it names and the rationale says which place that is; and a record place inside the tree's own — the tree's place with a finer

@@ -81,8 +81,8 @@ def rules():
     from treelib import parse_gedcom_date
     as_read = lambda t: {k: v for k, v in zip(("start", "end", "qualifier"), (parse_gedcom_date(t)[f] for f in ("date_start", "date_end", "date_qualifier")))}
     for c in R["date_verdict"]:
-        got = date_verdict(as_read(c["record"]), as_read(c["tree"])).verdict
-        if got != c["verdict"]: bad.append(f"date_verdict({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {c['verdict']!r}")
+        f = date_verdict(as_read(c["record"]), as_read(c["tree"])); got, want = ((f.verdict, note(f)), (c["verdict"], c["note"])) if "note" in c else (f.verdict, c["verdict"])
+        if got != want: bad.append(f"date_verdict({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {want!r}")
     for c in R["collection_state"]:
         got = collection_state(c["name"])
         if got != c["state"]: bad.append(f"collection_state({c['name']!r}) gave {got!r}, expected {c['state']!r}")
