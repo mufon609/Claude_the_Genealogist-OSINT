@@ -11,12 +11,12 @@ every assertion behind the fact. Each statement the decision acts on records it 
 statement (assertion.person_decided, docs/RULE.md), its status unchanged or not, so no re-read, carry,
 acceptance of its record or withdrawal by the rule changes it afterwards. Every decision writes an audit row, regenerates the
 plans of the people its statements are about, and then lets the rule go over their conflicts and matches their cards again
-(conclude.settle_people), whichever caller took it, the command line or the person screen.
+(decisions.settle_people), whichever caller took it, the command line or the person screen.
 """
 import json, re
 from treelib import dumps, now, ulid
 from catalog import MARKS, fetch_target, held_for, holdings, not_withdrawn, record_of, tier_sql
-from conclude import answer_questions, settle_people, statement_people
+from decisions import answer_questions, settle_people, statement_people
 from plan import plan_person
 
 KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
@@ -117,11 +117,11 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     own decision on it (person_decided, asserted_by and asserted_at the person's and now), whether its status changes or not;
     assertions counts the ones whose status changed.
     Whatever the decision, the plans of the people its statements are about (the person, and for a family link each member
-    whose membership it states with the family's partners, conclude.statement_people: a child and both parents, a spouse
+    whose membership it states with the family's partners, decisions.statement_people: a child and both parents, a spouse
     and the other) are regenerated, an accept marking the questions it closes answered by the proposal that brought
     the evidence; then the rule goes over their conflicts (its own resolutions resting on a statement the decision changed
     examined again, an open conflict the classes decide resolved) and their undecided cards are matched again on the
-    evidence as it now stands (conclude.settle_people): conflicts the rule's rows, rematched the cards' rows.
+    evidence as it now stands (decisions.settle_people): conflicts the rule's rows, rematched the cards' rows.
     Implements [rule.terms.7], [rule.value.5], [rule.accept.9], [rule.own.2], [rule.points.8], [rule.points.9]."""
     if (field not in KEY_FACTS and not (field.startswith("event:") and fact_subjects(cx, pid, field))) or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
     ts = now(); n = 0; vouched = []

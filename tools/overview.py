@@ -56,7 +56,7 @@ def link_trusted(cx, tree_id, pid):
 def origins(cx, tree_id):
     """Where the tree comes from. The people (merged ones aside) by what brought them in: the file (the import gives each
     person the file's own record id, external_id *gedcom_xref) or a record (a decision on a record's card created them,
-    conclude.create_person). The accepted documents (a record a person of the tree is accepted on, on its current reading;
+    decisions.create_person). The accepted documents (a record a person of the tree is accepted on, on its current reading;
     the file itself aside) by what fetched them, read from the runs that first held the document (its earliest run's
     moment; a reopen's row and a household's bookkeeping row aside) and their steps' field bases: by hand (a run on the
     owner's word, a step the owner wrote, basis owner, or no run at all), else a fetch step on the file's citation (basis

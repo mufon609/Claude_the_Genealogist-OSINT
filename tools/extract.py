@@ -4,7 +4,7 @@
 usage: tools/extract.py <sha256 | path> [--db catalog/tree.db] [--by user:<you>]
        tools/extract.py --stale [--db catalog/tree.db] [--by user:<you>]   every page whose current reading an older version of its parser made, read again
 
-Each reading is followed by the matcher and the standing rule (conclude.match_record).
+Each reading is followed by the matcher and the standing rule (decisions.match_record).
 
 A parser claims the page by its own marker, or the extraction fails. A Find a
 Grave memorial (body id memorial-summary) goes to rule:findagrave-memorial@0.4.0;
@@ -51,7 +51,7 @@ the new extraction's facts and links the same way the decision did, adding only
 what the record did not already assert. Then, once for the reading, the people
 whose evidence the carried links and the copies' carried decisions changed have
 their plans regenerated, the rule goes over their conflicts and their cards are
-matched again, as a decision does (conclude.settle_carried). Everything else is
+matched again, as a decision does (decisions.settle_carried). Everything else is
 matched again. A
 decision the rule took on the old extraction and withdraws later leaves its card
 undecided there; tools/conclude.py rematch (reconsider) closes that card the
@@ -179,7 +179,8 @@ import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
-from conclude import assert_facts, carry, join_copies, link_family, link_people, settle_carried
+from conclude import join_copies
+from decisions import assert_facts, carry, link_family, link_people, settle_carried
 from catalog import is_identity, page_entries
 from forms import census_form, form_for
 
@@ -1348,8 +1349,8 @@ def carry_links(cx, old, eid, sha, by, ts):
     a person decided on its own (assertion.person_decided) keeping it. An undecided link is not a decision, so it does not
     carry. Returns how many links were carried, and the people whose evidence the accepted ones changed, {(tree id, person
     id): the decision's proposal}: each person an accepted link carried to, and everyone whose family a family link it wrote
-    reaches, as a decision's (conclude.link_people: the member and the family's partners, and everyone in a family it put
-    someone into anew), which conclude.settle_carried goes over."""
+    reaches, as a decision's (decisions.link_people: the member and the family's partners, and everyone in a family it put
+    someone into anew), which decisions.settle_carried goes over."""
     n, carried, touched = 0, [], {}
     new = page_entries(cx, sha, eid)
     one_of = lambda entries, name, role: [e for e in entries if e[2] == name and e[3] == role]
@@ -1388,7 +1389,7 @@ def read(cx, sha, by, about=None):
     about names the person the owner says the record is about. Returns (extraction id, counts, proposals written, taken)."""
     cx.execute("BEGIN"); eid, n = extract(cx, sha, by); cx.commit()
     if "failed" in n: return eid, n, [], []
-    from conclude import match_record
+    from decisions import match_record
     cx.execute("BEGIN")
     if about:                                                       # the owner's word: a fetch step on their plan, done with a found run naming the record, so every later reading finds them
         from attach import on_word

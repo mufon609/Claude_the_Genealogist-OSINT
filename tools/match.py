@@ -569,7 +569,7 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
     unlike by_name_and_year's coarser surname-only filter (deliberately wide, for compare() to judge further; wrong here,
     since a shared surname alone would fit a memorial's subject to their own listed spouse). docs/TERMS.md §0's relative that fits exactly
     one person by name and birth year is this, the caller asking for exactly one: tools/plan.py's listed-relative leads seat
-    a relative the matcher never proposes on the one person of the tree they plainly are, and conclude.link_family places
+    a relative the matcher never proposes on the one person of the tree they plainly are, and decisions.link_family places
     the membership a page anyone can edit states for such a relative, undecided, without deciding an identity.
     Implements [rule.editable.3]."""
     given, rest = split_persona_name(persona["name"])
@@ -833,7 +833,7 @@ def match(cx, eid, by, about=None):
 def on_another_copy(cx, tree_id, persona_id, ignore=()):
     """Whether a persona's entry of its record is proposed or decided on another copy of the record (same_record,
     catalog.entry_on): one record is one source wherever it is held (docs/DATA-ARCHITECTURE.md §7 decision 15), so its entry
-    is put to the owner once, and a decision on it reaches every copy (conclude.carry). ignore: proposal ids taken as not
+    is put to the owner once, and a decision on it reaches every copy (decisions.carry). ignore: proposal ids taken as not
     written.
     Implements [rule.copies.3]."""
     from catalog import copy_entry, current_reading, entry_on, record_copies

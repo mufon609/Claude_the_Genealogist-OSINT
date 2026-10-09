@@ -86,7 +86,7 @@ reach them, below, and the same of a decision on another copy of the record)
 have their plans regenerated, a question
 the regeneration closes answered by the decision carried to them, and the rule
 goes over their conflicts and their cards are matched again, as a decision does
-(`conclude.settle_carried`, below). **[rule.reconsider.1]** The matcher is versioned
+(`decisions.settle_carried`, below). **[rule.reconsider.1]** The matcher is versioned
 the same way (`rule:matcher` at the version `tools/match.py` names, raised
 with any change to what fits). A card is matched again whenever the evidence
 has passed it by (`tools/conclude.py` rematch): one an older matcher wrote; one
@@ -211,7 +211,7 @@ where neither the record nor the tree gives the sex, the record's own words
 (a wife, a daughter or a sister, "Mrs.") are what make her the woman read so.
 **[rule.match.10]** The name as written that an accepted record leaves as an alias is read the same
 way: it is a married name only where she is read so, never a man's
-(`conclude.shown_married`). **[rule.match.11]** A
+(`decisions.shown_married`). **[rule.match.11]** A
 persona of the same name as a candidate that disagrees on something else is
 proposed as that candidate when more than the name ties it to them, with the
 disagreement in its rationale, so the owner sees the likely identity and the
@@ -260,7 +260,7 @@ record is every copy the archive holds of it (`docs/DATA-ARCHITECTURE.md` §7
 decision 15, `same_record`: FamilySearch's index page, the image, a state
 index's line), so its entry is put to the owner once, on whichever copy first
 carried a card for it; a decision on any copy's entry carries to every copy's
-persona of that entry under the one decision (`conclude.carry`: the link, the
+persona of that entry under the one decision (`decisions.carry`: the link, the
 copy's facts and family links, as the decision wrote them on the copy decided),
 the reading of an image with no card of its own decided with the page, and a
 rejection or a withdrawal reaches every copy the same way. A copy decided
@@ -662,7 +662,7 @@ gives her parents); so does a rejection, a key fact or one statement decided,
 and the rule's withdrawal, for the links they turn rejected, decide or take
 back, a decision carried to a record's new reading or to another copy of it and
 the owner's word giving a copy back, for the links they write or give back
-(`conclude.link_people`), and a merge, for everyone in each family the
+(`decisions.link_people`), and a merge, for everyone in each family the
 duplicate's memberships move into or a fold empties another into (the kept
 person's spouses, children, parents and siblings there). **[rule.plans.2]** An open question of
 kind `missing_parents`, `unverified_claim` or `missing_fact` that the
@@ -692,7 +692,7 @@ the plans of the people it changes and then lets the rule go over their
 conflicts, as `reconsider` does for everyone, and then matches their undecided
 cards again (§5–7: the matcher's words as they now read, or the card superseded
 when the matcher no longer puts the persona to them), in the decision itself,
-whichever command or screen takes it (`conclude.settle_people`): a resolution of
+whichever command or screen takes it (`decisions.settle_people`): a resolution of
 the rule's resting on a statement the owner has just rejected is taken back
 there and then, never left for the next `reconsider`, while a date or place the
 owner has resolved or reopened stays theirs. **[rule.conflict.5]** The rule resolves through the same path,

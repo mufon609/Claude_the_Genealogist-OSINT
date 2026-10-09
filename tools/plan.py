@@ -187,7 +187,7 @@ def listed_relative_leads(cx, tree_id, cat, pid):
         subject_name = cat.person(subject_id)["name"]
         for pr in personas_of(cx, eid):
             if pr["role"] == "memorial" or not pr.get("memorial"): continue
-            if q.execute("SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status<>'undecided' AND o.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided some other way already: not a lead; conclude.link_family's own Undecided trace does not count
+            if q.execute("SELECT 1 FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status<>'undecided' AND o.tree_id=?", (pr["id"], tree_id)).fetchone(): continue   # decided some other way already: not a lead; decisions.link_family's own Undecided trace does not count
             fits = [c for c in fits_by_name_and_year(cat, cx, tree_id, pr) if c != subject_id]
             mid = pr["memorial"]; f = lambda v: {"value": v, "basis": "record"}
             fields = {"collection": f(FAG_COLLECTION), "name": f(pr["name"]), "url": f(f"https://www.findagrave.com/memorial/{mid}/"),

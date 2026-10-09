@@ -61,7 +61,7 @@ from treelib import DB, USER_AGENT, archive_object, connect, dumps, now, resolve
 from catalog import Catalog, collection_tier, first_value
 from log_search import hold_unread, log as log_search, latest_answer, ran_unchanged, rendered_query, restate, unread_record
 from extract import extract, RESULTS_LISTINGS
-from conclude import match_record
+from decisions import match_record
 import connectors
 
 LAST = {}                                                        # (connector, kind) -> time of the last request, for pacing

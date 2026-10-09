@@ -215,7 +215,7 @@ def split_gedcom_name(v):
 
 def classify(written, given, surname, suffix, married=False):
     """Return (kind, note) for a written name that differs from the canonical given/surname/suffix. married says the record
-    shows this person married under the written surname (match.compare's own ground, or conclude.shown_married's a wife
+    shows this person married under the written surname (match.compare's own ground, or decisions.shown_married's a wife
     under her husband's, a daughter or sister under hers, named beside a son- or brother-in-law of it, or written "Mrs."):
     classified married_name ahead of any surname heuristic below, since the difference is not an indexer's slip."""
     wg, ws, wx = split_gedcom_name(written)

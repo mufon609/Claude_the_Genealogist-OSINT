@@ -71,7 +71,7 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   pair, the latest word last. A record is every copy joined (`catalog.record_copies`); its statements
   are grouped as one on the screen, in `tools/proof.py` and in a conflict's line (`catalog.record_of`),
   a decision on any copy's entry carries to every copy's persona of it under the one decision
-  (`conclude.carry`), the matcher puts an entry to the owner once, and the rule counts the record
+  (`decisions.carry`), the matcher puts an entry to the owner once, and the rule counts the record
   once. The 0.7.9 migration (`tools/initdb.py`'s `same_records`) wrote code's joins of the copies
   already held under `migration:0.7.9`; `tools/conclude.py reconsider` carries the decisions.
 - A census household is read off its form (`docs/DATA-ARCHITECTURE.md` §7 decision 21): `household` is
@@ -169,7 +169,7 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 - Vendor IDs go in `external_id`, never in a primary key.
 - Raw place strings go in `place_string` first; `place_id` is filled by a resolver,
   or by the owner deciding the resolver's `place_resolution` proposal on the person
-  screen's fact row (`conclude.decide_place`: the chosen candidate's hierarchy, the
+  screen's fact row (`decisions.decide_place`: the chosen candidate's hierarchy, the
   resolver and status the owner's, `event.place_id` filled where every string of the
   event is resolved), and a string that is not a real place is `rejected` with its
   reason in notes. A decision on a string applies wherever the same words appear, since
@@ -261,9 +261,10 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/turns.py [--turns N]` | The loop without a hand on it: what was saved taken in first, as `turn.py --resume` does, then the queue's next person, their turn, the next, until nobody is left or N turns are done; a person who waits never stops it, and one person's failure never stops the next turn; refused on a tree with no home person. |
 | `tools/extract.py <sha256 or path>` | Personas, facts and relations from an archived page or a connector's response, one parser per page kind, each entry's place on its page (the record form's locators) in its persona's `region_json`; a page no parser claims is a failed extraction. `--stale` reads again every page an older version of its parser read. |
 | `tools/match.py <extraction id>` | Every persona compared with the persons the record was fetched for and their relatives: one `persona_match` or `new_person` proposal each, its rationale in words. |
-| `tools/conclude.py` | The decision on a document and what it writes, `reconsider` (which also matches again the cards the evidence has passed by, and decides the conflicts the evidence classes settle), and the owner's word: `decide`, `fact`, `assertion`, `place`, `resolve`, `reopen`, `link`, `divorce`, `merge`, `living`; what the standing rule takes it takes from `tools/rule.py`, and what it decides on a conflict from `tools/conflicts.py`. |
+| `tools/conclude.py` | The owner's commands on the tree: `decide`, `fact`, `assertion`, `place`, `facts`, `reconsider` (the rule's decisions examined again, the cards the evidence has passed by matched again, the conflicts the evidence classes settle decided), `link`, `divorce`, `merge`, `living`, `resolve`, `reopen`, `copies`, `apart`; the decision code is by job in `tools/rule.py`, `tools/conflicts.py` and `tools/decisions.py`, with the copies' joins, the merges and `reconsider` still here. |
 | `tools/rule.py` | Read-only. The standing rule's tests: whether a record is a person's on its points (`rule_points`), whether its identity holds (`identity_refused`), the tree's statements a point stands on (`ground`), whether the rule creates the relative a record names (`rule_creates`), the one-source test's parts, and what a withdrawal or a rejection takes back besides its own (`links_resting_on`); `rule_accepts` is its word on a card, which the decisions take. |
 | `tools/conflicts.py` | Conflicts on an event's date or place: the rule's test on one (`classes_decide`: the classes favouring one side without doubt), what a resolution writes and what taking one back restores (`write_resolution`, `take_back`), the rule over a set of people's conflicts after every decision (`rule_conflicts`), the lines a decision reports, and the comparison of a conflict's sides that the test and `proof.py` share (`sides`, `order`, `subject_statements`). |
+| `tools/decisions.py` | The decision on a document and what it writes (`decide`), the matcher and the rule on a record (`match_record`), the writers a decision and a carry share (`assert_facts`, `link_family`, `write_name_alias`, `create_person`), the owner's word (`place`, `link_on_word`, `divorce`, `living`, `decide_assertion`, `resolve`, `reopen`, `decide_place`), a decision carried to every copy of its record (`carry`), and what every decision settles once the plans are regenerated (`settle_people`: the rule over the people's conflicts, their cards matched again, `rematch`). |
 | `tools/facts.py` | A person's key facts as the screen and `conclude.py fact` decide them, and a vouch on the owner's own knowledge. |
 | `tools/cards.py "<person>" / --all` | Read-only. Every Undecided proposal as a decision card in plain words, the same card the person screen shows. |
 | `tools/proof.py "<person>" [--fact …] [--json]` | Read-only. The proof standard's written conclusion per key fact: the value, the evidence grouped by original with its class words (`data/evidence-classes.csv`) and citations, each conflict with its question id and, while open, the rule's own reading of it, the research by checklist row, who decided, and whether it meets the standard or an argument is still owed. |

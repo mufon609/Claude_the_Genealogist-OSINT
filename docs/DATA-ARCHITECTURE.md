@@ -451,7 +451,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    name, the reader's role words being their own (a page's subject is an image's
    deceased). The record is put to the owner once, and a decision on any copy's
    entry carries to every copy's persona of it under that one decision
-   (`conclude.carry`, which `tools/conclude.py reconsider` runs for every joined
+   (`decisions.carry`, which `tools/conclude.py reconsider` runs for every joined
    record). Two records the code cannot show to be copies of one document but of
    the same kind about the same person's same event (a state index's line and
    FamilySearch's index of one certificate, two papers' obituaries of one death)
@@ -702,7 +702,7 @@ reason in the string's notes.
 What is not accepted is a `place_resolution` card on the fact row of the person it concerns. Cards that offer the same set
 of places, the same of them verified on every part of their strings, are one question put in different spellings
 ("Worcester, Montgomery County, Pennsylvania, USA" and "Worcester, Montgomery, Pennsylvania, United States"): the screen shows
-them as one card naming every spelling it covers, and the owner's answer (`conclude.decide_place`) is every string's, each
+them as one card naming every spelling it covers, and the owner's answer (`decisions.decide_place`) is every string's, each
 with its own audit row; `conclude.py decide --alone` answers one string only. A geocoder that does not answer leaves its
 strings as they were, with no card, and the run says how many.
 

@@ -90,7 +90,7 @@ def unspread_links(cx: sqlite3.Connection) -> None:
     entry of the page alone, catalog.persona_key). A spread row carries the decision's proposal, belongs to the decided
     person, and its persona is another entry of the page than the decided persona: it is removed, never having been anyone's
     decision. The decided persona and the same entry on the page's other readings keep theirs, and a listed relative's
-    undecided trace (conclude.link_family), being another person's, stays. A spread row whose persona has a decision of its
+    undecided trace (decisions.link_family), being another person's, stays. A spread row whose persona has a decision of its
     own for that person (a page that named the person twice, each decided) is that decision's link and stays, as that
     decision left it: its status, proposal and decider. Refused, nothing written, when anything accepted on the row's person
     rests on a row it would remove: a statement of its persona's facts, a family link written from it or from a persona the
@@ -117,7 +117,7 @@ def unspread_links(cx: sqlite3.Connection) -> None:
                              WHERE pr.kind IN ('persona_match','new_person') AND json_extract(pr.payload_json,'$.persona_id') IN ({','.join('?' * len(entry))})
                              AND json_extract(pr.payload_json,'$.person_id') IN (SELECT ? UNION SELECT id FROM person WHERE merged_into=?)
                              AND EXISTS (SELECT 1 FROM audit_log l WHERE l.entity_kind='proposal' AND l.entity_id=pr.id AND l.action IN ('accept','reject') AND json_extract(l.diff_json,'$.persona') IS NOT NULL)
-                             ORDER BY coalesce(pr.decided_at, pr.created_at) DESC, pr.id DESC LIMIT 1""", (*entry, person, person)).fetchone()   # a decision conclude.decide made on this entry, by its own audit row
+                             ORDER BY coalesce(pr.decided_at, pr.created_at) DESC, pr.id DESC LIMIT 1""", (*entry, person, person)).fetchone()   # a decision decisions.decide made on this entry, by its own audit row
         if own: restore.append((tree, row, src, {"status": own[1], "proposal_id": own[0], "decided_by": own[2], "decided_at": own[3]}))
         else: remove.append((tree, row, src, sha))
     resting = []

@@ -365,7 +365,7 @@ def a_archive(w, x):
         from extract import extract
         eid, n = extract(w.cx, sha, BY); out.update({"extraction": eid, "n": n})
         if "match" in x:
-            from conclude import match_record
+            from decisions import match_record
             from match import match
             about = w.people(x["match"]) if x["match"] else None
             if x.get("rule"): written, taken = match_record(w.cx, eid, BY, about=about); out["taken"] = [(n, why) for _, n, why in taken]
@@ -379,7 +379,7 @@ def a_reread(w, x):
     if "match" in x:
         about = w.people(x["match"]) if x["match"] else None
         if x.get("rule"):
-            from conclude import match_record
+            from decisions import match_record
             written, taken = match_record(w.cx, eid, BY, about=about); out["taken"] = [(n, why) for _, n, why in taken]
         else:
             from match import match
@@ -394,9 +394,9 @@ def a_match(w, x):
     return {"written": [{"proposal": p, "kind": k, "name": n, "person": pid} for p, k, n, pid in written]}
 
 def a_decide(w, x):
-    """The decision on a card (conclude.decide); with `screen`, through the person screen's own route (server.decide_proposal), whose
+    """The decision on a card (decisions.decide); with `screen`, through the person screen's own route (server.decide_proposal), whose
     answer in words comes back as `summary`."""
-    from conclude import decide
+    from decisions import decide
     card = w.card(x["card"])
     if card is None: raise KeyError(f"no card {short(x['card'])}")
     if x.get("screen"):
@@ -465,7 +465,7 @@ def a_place(w, x):
     whose region marks it a value the page keeps beneath the one it shows (or, false, one that is not); the event a literal or
     bound id, or {"person": ref, "type": event_type, "index": n} the person's nth event of that type in the person
     screen's own order (Catalog.events: by date)."""
-    from conclude import place
+    from decisions import place
     sha = w.sha(x["record"]); pid = w.person(x["person"])
     alt = "" if "alternate" not in x else " AND (json_extract(coalesce(pf.region_json,'{}'),'$.alternate') IS NOT NULL) = " + ("1" if x["alternate"] else "0")
     pf = w.cx.execute("""SELECT pf.id FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id JOIN person_persona pp ON pp.persona_id=pe.id
@@ -480,12 +480,12 @@ def a_place(w, x):
     return place(w.cx, w.tid, pf[0], eid, x.get("by", BY), x.get("note", "harness"))
 
 def a_link_on_word(w, x):
-    from conclude import link_on_word
+    from decisions import link_on_word
     res = link_on_word(w.cx, w.tid, w.person(x["person"]), w.people(x["others"]), x.get("kind", "child"), w.sha(x["record"]), BY, x.get("note", "harness: the owner's word"))
     return {**res, "person": w.person(x["person"])}
 
 def a_living(w, x):
-    from conclude import living
+    from decisions import living
     return living(w.cx, w.tid, w.person(x["person"]), x["word"], BY, x.get("note", "harness"))
 
 def a_living_route(w, x):
@@ -629,7 +629,7 @@ def a_divorce(w, x):
     """The owner's word ending a marriage (tools/conclude.py divorce): a Divorce event between `a` and `b` dated `date`, each
     piece of `evidence` a record's fact named by `record`, the persona's name as written (`persona`) and the `fact_type`,
     with its `citation` words."""
-    from conclude import divorce
+    from decisions import divorce
     ev = []
     for e in x["evidence"]:
         pf = w.cx.execute("""SELECT pf.id FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pe.artifact_sha256=? AND pe.name_text=? AND pf.fact_type=?""",
@@ -653,7 +653,7 @@ def a_resolve_conflict(w, x):
     `detail_has` (with `over_rule`, the one the rule resolved instead, for the owner's own resolution over it), the
     statement kept a literal or bound assertion id, or {record, event_type} for that record's statement on the person's
     event of the type, with `note`; a refusal comes back as {"error": ...}."""
-    from conclude import resolve
+    from decisions import resolve
     pid = w.person(x["person"])
     rows = [conflict_question(w, x, closed=bool(x.get("over_rule")))]
     keep = x["keep"]
@@ -668,7 +668,7 @@ def a_resolve_conflict(w, x):
 def a_reopen_conflict(w, x):
     """A conflict the rule resolved, reopened by the owner through tools/conclude.py reopen: the person's one question the
     rule resolved whose detail has `detail_has`, with `note`; a refusal comes back as {"error": ...}."""
-    from conclude import reopen
+    from decisions import reopen
     row = conflict_question(w, x, closed=True)
     return {**reopen(w.cx, w.tid, row["id"], x.get("by", BY), x.get("note", "harness")), "question_id": row["id"]}
 
@@ -766,7 +766,7 @@ def a_older_reading(w, x):
 def a_persona_link(w, x):
     """A person's decision on a persona of a record that no card carries today (a memorial's listed relative, which an older
     matcher put up as a card): the link set to `status` for the persona of that `role` (and `persona` name, and `sequence`,
-    its row on the page) on the record's current reading, as conclude.decide writes it. With `card`, the link that card's
+    its row on the page) on the record's current reading, as decisions.decide writes it. With `card`, the link that card's
     decision wrote on every persona of the decided persona's name and role, another row among them, before a decision reached
     only its own entry of the page: the card's proposal, status and decider, the shape tools/initdb.py's 0.7.5 corrects."""
     q = """SELECT pe.id FROM persona pe JOIN extraction e ON e.id=pe.extraction_id WHERE pe.artifact_sha256=? AND e.superseded_by IS NULL AND pe.role_in_record=?"""
@@ -857,7 +857,7 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed, "copies": a_copies}
 
 def a_older_alias(w, x):
-    """The name alias a decision on a `card` wrote, as conclude.write_name_alias left it before an alias took the standing of
+    """The name alias a decision on a `card` wrote, as decisions.write_name_alias left it before an alias took the standing of
     its record: accepted, whatever its record's tier."""
     ids = [r[0] for r in w.cx.execute("SELECT id FROM alias WHERE json_valid(notes) AND json_extract(notes,'$.proposal')=?", (w.card(x["card"])["id"],))]
     if not ids: raise KeyError(f"no alias written by {short(x['card'])}")
@@ -865,7 +865,7 @@ def a_older_alias(w, x):
     return {"aliases": ids}
 
 def a_older_link(w, x):
-    """The family links a decision on a `card` wrote from relationships the record's indexer computed, as conclude.link_family
+    """The family links a decision on a `card` wrote from relationships the record's indexer computed, as decisions.link_family
     left them before it read which relationships a record states: accepted, and unmarked."""
     ids = [r[0] for r in w.cx.execute("""SELECT id FROM assertion WHERE subject_kind='family_member' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
                                          AND json_extract(notes,'$.computed') IS NOT NULL""", (w.card(x["card"])["id"],))]

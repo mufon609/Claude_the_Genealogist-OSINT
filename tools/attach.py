@@ -45,7 +45,7 @@ from catalog import collection_tier, dbid_of, first_given, first_value, holders,
 from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
-from conclude import match_record
+from decisions import match_record
 from plan import plan_person
 from households import ark_id
 

@@ -39,8 +39,8 @@ from match import (
     said,
     same_surname
 )
-from conclude import sibling_home
 from rule import rule_accepts
+from decisions import sibling_home
 from plan import row_record
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}

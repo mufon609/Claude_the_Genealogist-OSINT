@@ -349,10 +349,10 @@ def a_apply_places(w, x):
     return {"applied": apply_to_events(w.cx, w.tid, BY, w.treelib.now())}
 
 def a_decide_place(w, x):
-    """The owner's answer on a place card found by its string (`raw`), through conclude.decide: the candidate whose gazetteer id is
+    """The owner's answer on a place card found by its string (`raw`), through decisions.decide: the candidate whose gazetteer id is
     `gazetteer` (a gazetteer's own candidate, or the one attached to a geocoder candidate) or whose OpenStreetMap id is `osm`,
     or `status` rejected, a string that is not a place; `alone` answers that card's string only."""
-    from conclude import decide
+    from decisions import decide
     row = w.cx.execute("SELECT id, payload_json FROM proposal WHERE tree_id=? AND kind='place_resolution' AND status='undecided' AND json_extract(payload_json,'$.raw')=?", (w.tid, x["raw"])).fetchone()
     if not row: raise KeyError(f"no open place card for {x['raw']!r}")
     status = x.get("status", "accepted")

@@ -716,7 +716,7 @@ unnamed fetch's own naming
 citations that carried it (the New Jersey and New York marriage indexes) are
 both blocked as `scanned_index` holders; the merge's reach by name and year;
 a memorial's listed relative whose one fit moves to another person between two
-acceptances (`conclude.link_family` withdraws the earlier undecided trace); a
+acceptances (`decisions.link_family` withdraws the earlier undecided trace); a
 merge folding a family whose child the kept family already holds, and a merge
 completed (`conclude.complete_merge`) folding two same-partner families; the
 0.7.5 migration restoring a row an older decision wrote over (a page naming one
@@ -726,7 +726,7 @@ coarser fact began (the cut holds only the Ahearn couple's repeated 1901
 marriage, the couple's own first; Catharine Rittenhouse's births of 12 and
 13 January 1772 and Abraham Wiegner Heebner's two of 28 Dec 1766 lie outside
 it); a family fact equally close to two of the couple's events, raised by
-`Catalog.unplaced` and placed on a family's event by `conclude.place` (no
+`Catalog.unplaced` and placed on a family's event by `decisions.place` (no
 record of the Ahearn marriage fits both its events); an attribute's fact among
 several of the person's attributes of its value; the sibling route (a sibling
 the record itself states, of a person accepted on it, taken where the tree
@@ -930,8 +930,8 @@ choice (an undated fact among several events of its type, a dated one equally
 close to two or more, one of a type a life holds once that fits none of
 several, an attribute's fact, a family's fact) as a conflict question, and only `tools/conclude.py place` answers it. Show the question on the person screen
 with the person's events of that type to choose from, writing through
-`conclude.place` with its audit row, as the living line's control writes
-through `conclude.living`.
+`decisions.place` with its audit row, as the living line's control writes
+through `decisions.living`.
 
 ### C12. A connector for Open Archives, the Dutch records
 
@@ -1295,7 +1295,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   out the aliases of the decisions in `without`.
 - [rule.name.2] **A name a trusted record writes, held first by the backfill.** `docs/RULE.md` makes
   the name as written on a record accepted for a person an accepted alias when
-  the record is one nobody can edit at will, but `conclude.write_name_alias`
+  the record is one nobody can edit at will, but `decisions.write_name_alias`
   leaves an alias of the same words alone unless a decision on that record
   wrote it, so a row `tools/backfill_aliases.py` wrote first keeps the words
   undecided, and the rule, and the proof with it, never count them. Live:
@@ -1377,7 +1377,7 @@ route widened, the mother is taken on her son's obituary before her death is
 accepted, and the brother born seven years after it is placed as her child,
 undecided; the placement is examined only when it is made, so accepting her
 death afterwards leaves it. Examine an undecided sibling placement again when a
-parent's death is accepted (`conclude.died_before`), as a re-read does, and
+parent's death is accepted (`decisions.died_before`), as a re-read does, and
 remove the placement the limits of one life refuse, with its note.
 
 **Blocked by:** D2.
@@ -1390,7 +1390,7 @@ on its citation `1,3077::604036`), a later save of another copy of the same
 record (FamilySearch's index entry of it) finds no planned step and stays in the
 inbox, so it is never archived, read or joined (`same_record`). Archive such a
 page under the done step's citation when its identity reaches that step, read
-it, and let `conclude.join_copies` and `conclude.carry` make it a copy of the
+it, and let `conclude.join_copies` and `decisions.carry` make it a copy of the
 record the step holds; the harness scenario `99ze` archives the index entry by
 hand for this reason.
 
@@ -1448,7 +1448,7 @@ anyone can edit needs (both in `rule.rule_points`), and the trusted tiers
 Carinne, Corrine; Cassie; Ollie) and groups distinct names as one (Oliver and
 Olive, Emily and Emma, Helen and Ellen, Christian and Christopher), and
 `match.same_given`'s one-letter rule makes Harry Larry and Edwin Erwin, while
-a surname one letter apart is refused. `conclude.died_before` holds a
+a surname one letter apart is refused. `decisions.died_before` holds a
 father's margin of a year and reads unknown sex as a mother where
 `data/life-limits.csv` says ten months and `catalog.py` reads it as a father;
 `footprint.py` holds a ninety-year life, a birth twenty years before the

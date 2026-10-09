@@ -284,7 +284,7 @@ the result is the response's `code` and JSON `body`, and the `ids` the path's ro
 (`fixture` into the inbox and `tools/attach_inbox.py`, or `stand_in: "image"` under `as_file`, `about` for the
 owner's word; its `filed` the path the original is filed under, its `line` the result as the tool prints it), `archive` (a `fixture`; `source`, `collection`, `locator`, or a
 `manifest`; `extract`, `match` (people, `null` for the record's own), `rule` to run the standing rule too), `seed` (the same,
-for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `conclude.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it, recorded as the rule acting for the harness unless `by` names who),
+for a page no parser reads, which the harness reads only by a typed reading), `reread`, `match`, `decide` (`card`, `status`, `note`, `by`, `choice`; its result `decisions.decide`'s, `rematched` the cards of the people it changed matched again; `screen` through the person screen's own route, its answer in words as `summary`), `withdraw` (a `card`, or with `record` every decision the rule made on it, recorded as the rule acting for the harness unless `by` names who),
 `reconsider` (`dry`; its `rows`, and `wrote`, the audit rows the run wrote), `fact` (`tools/conclude.py fact` on `field` or `fields`), `assertion` (one statement decided through
 `tools/conclude.py assertion`: by `record` and `event_type`, or a `membership`, its first statement, the `record`'s own when one is given), `place` (a persona fact
 placed onto an event through `tools/conclude.py place`: `record`, `person`, `fact_type` find the fact, `alternate` true for
@@ -317,9 +317,9 @@ reconsider or a decision to meet), `older_reading` (a record's reading as an old
 catalog and no reader writes now: the `extractor` and each persona with its facts copied from the catalog's own rows, a date
 read from its `date_text`, a `place` as its words, and its `relations` to the reading's other personas by their `sequence`
 under `to`; it stands as the record's current reading), `older_alias` (the name alias a decision on a `card` wrote, set
-accepted as `conclude.write_name_alias` left it before an alias took the standing of its record), `older_link` (the family
+accepted as `decisions.write_name_alias` left it before an alias took the standing of its record), `older_link` (the family
 links a decision on a `card` wrote from relationships the record's indexer computed, set accepted and unmarked as
-`conclude.link_family` left them before it read which relationships a record states), `persona_link` (a person's link to a record's persona of a `role`, and
+`decisions.link_family` left them before it read which relationships a record states), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided; with `card`, the link that card's decision wrote on another row of the same name before a decision reached only its own
 entry of the page, the shape the 0.7.5 migration corrects), `merge` (a `duplicate` merged into the person it duplicates, `kept`, with a `note`; `older` for the merge as an older tool left it, every proposal it re-pointed naming the duplicate again, every membership it folded back on the duplicate's row with the statements it moved, every persona link it folded back there as it was (the kept person's own row as it was too), every name alias it moved or folded the duplicate's again and every question it closed open again, the shape the merge run again on the pair completes), `cite`, `question` (a research_question row patched by

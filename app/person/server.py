@@ -28,7 +28,8 @@ from extract import Writer
 from forms import census_form
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
-from conclude import carry, decide as decide_document, join_copies, living, match_record, record_says
+from conclude import join_copies
+from decisions import carry, decide as decide_document, living, match_record, record_says
 from conflicts import rule_conflict_decisions, rule_conflict_line
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects
 from overview import overview
@@ -272,7 +273,7 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
     """What the decision closed and what the plan does next, in words: the link made, the questions answered, the checklist rows
     this record fulfils for the person, the facts now carrying held evidence to accept, the conflicts the rule then resolved or
     took back (each with its question id, conflicts.rule_conflict_line), each card of the decision's people the matcher no longer
-    puts to them, superseded (conclude.rematch), the proposals still open on the record, the steps still planned. The last
+    puts to them, superseded (decisions.rematch), the proposals still open on the record, the steps still planned. The last
     line is the one sentence a director can say."""
     pe = cx.execute("SELECT name_text, role_in_record, artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()
     who = cx.execute("SELECT display_name FROM person WHERE id=?", (person_id,)).fetchone()["display_name"] if person_id else None
@@ -309,9 +310,9 @@ def decision_outcome(cx, tree_id, p, status, person_id, persona_id, prop_id, ans
     return {"made": made, "closed": closed, "next": nxt, "summary": summary}
 
 def decide_proposal(cx, tree_id, prop_id, status, note=None, choice=None):
-    """The person's decision on a document (conclude.decide), with the reason they give when they set one aside, answered in
+    """The person's decision on a document (decisions.decide), with the reason they give when they set one aside, answered in
     words: what it made and closed and what the plan does next (decision_outcome); or their answer on a place string
-    (conclude.decide_place: choice names the resolver's candidate, a rejection carries the reason), answered with how many
+    (decisions.decide_place: choice names the resolver's candidate, a rejection carries the reason), answered with how many
     facts carry the words and how many are placed now."""
     r = decide_document(cx, tree_id, prop_id, status, CFG["by"], note=note, choice=choice)
     if "error" in r or r.get("kind") == "place_resolution": return r

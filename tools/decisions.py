@@ -1,0 +1,2201 @@
+#!/usr/bin/env python3
+"""What a decision about a document writes on the tree, and what follows every decision: the decision on a card (decide),
+the matcher and the rule on a record (match_record), the writers a decision and a carry share (assert_facts, link_family,
+write_name_alias, create_person), the owner's word (place, link_on_word, divorce, living, decide_assertion, resolve, reopen,
+decide_place), a decision carried to every copy of its record (carry), and what every decision settles once the plans are
+regenerated (settle_people: the rule over the people's conflicts, their cards matched again, rematch). The rule's tests are
+tools/rule.py, the rule's decisions on conflicts tools/conflicts.py; tools/conclude.py is the command line.
+
+The owner decides documents, not facts: one decision per record about a person, is this them. Yes accepts everything the
+record states about the person: its facts become Accepted assertions on the person's events and attributes (created from the
+record when the tree had none), and the family links it states with people already matched on the same record are Accepted
+too, unless the record is a page anyone can edit or the link is one the record's indexer computed, where the memberships are
+created but their assertions stay Undecided, the way a sibling placement already is. Where the record disagrees with the
+tree's own value the record's statement is still accepted as what that record says, the tree's value stays, and the
+difference is a conflict question the generator raises (Catalog.disagreements). The rule acts on the owner's word, is
+recorded as such on the proposal and in the audit log, and the owner can reject what it accepted: the link and every
+assertion it wrote turn rejected, with the family links it was one of the two acceptances for (rule.links_resting_on).
+Every decision that changes a person's evidence, as it is taken and whichever command or screen takes it, regenerates the
+plans of the people it changes, lets the rule go over their conflicts and matches their cards again the same way
+(settle_people: a card, a key fact, one statement, a place's words, a resolution or a reopen, a placement, a link, a divorce,
+a merge; and settle_carried, once for them all, for decisions carried to a record's new reading or to another copy of it).
+Between the rule's decisions and the owner's, every undecided card the evidence has passed by is matched again (rematch):
+one an older matcher wrote (the matcher is versioned, match.MATCHER), one left on a reading of its record read again since,
+and one the matcher would no longer put to that person as the person's evidence now stands close as superseded, and their
+records' current readings are matched again, the matcher proposing the personas afresh as it stands; a card it still puts
+to the same person keeps its id and takes the matcher's words as they now read.
+
+- decide: a person's (or the rule's) decision on a proposal, with everything that follows from it; a command too, as is a
+  key fact's decision (tools/facts.py).
+- match_record: the matcher on an extraction, then the rule (rule.rule_accepts) on every proposal it wrote.
+- rematch, rematch_people: the undecided cards the evidence has passed by matched again, for everyone (reconsider) or for the
+  people a decision changed: closed as superseded and their records matched again, or their rationale the matcher's words as
+  they now read.
+- settle_people: what every decision that changes a person's evidence does inside the function that takes it, once the
+  plans are regenerated: the rule over those people's conflicts (conflicts.rule_conflicts), then their cards matched again
+  (rematch_people); settle_carried, the same once for every person a re-read's carried links (extract.carry_links) or a
+  decision carried to other copies (carry) changed, each person's plan regenerated with the question it closes answered by
+  the decision carried; decide_assertion, one statement decided on its own; statement_people, the people statements are about;
+  link_people, everyone whose family a decision's links reach (the member and the family's partners, everyone in a family a
+  link joined someone to anew), whose plans a decision, a rejection, a key fact, a withdrawal, a carry to another copy or a
+  new reading, the owner's word giving a copy back and a merge (merges.merge_people) regenerate.
+- carry: a decision on one copy's entry of a record carried to every other copy's persona of that entry (one record is one
+  source wherever it is held, docs/DATA-ARCHITECTURE.md §7 decision 15), asserting the copy's facts and links as the decision
+  did; the joins of copies and the owner's word on them are tools/copies.py.
+- link_on_word, divorce: the owner's word placing a person in a family on a record, or ending a marriage; living, the
+  owner's word on whether a person is alive.
+- decide_place: the owner's answer on a place string the resolver left undecided, which real place its words mean or that they are
+  not a place, applied wherever the same words appear, and to every other string whose card offers the same places (the same
+  question put another way), each its own audit row; --alone answers one string only.
+- assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link; one statement on one event.
+- a person's own decision on a statement (docs/RULE.md: a key fact or the statement decided, a vouch, the
+  owner's word on a link or a divorce, a card's rejection) sets assertion.person_decided; every writer here reads it, and
+  no acceptance of a record, re-read, carry, withdrawal or give-back changes such a statement. asserted_by names who set the
+  status a statement has.
+- place: the owner's answer to Catalog.unplaced, a record's fact written onto the event the owner means.
+- resolve, reopen: the owner's answer to a conflict question, the statement whose date or place the event keeps, with the
+  reason (written through conflicts.write_resolution, as the rule's own are), and a resolution of the rule's taken back
+  (conflicts.take_back), the owner's from then on; each then settles what follows.
+- merged_refusal: the refusal of a command that would write on a person merged into another (person.merged_into).
+"""
+import json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from treelib import dumps, now, ulid
+from catalog import (
+    Catalog,
+    ONCE,
+    RECORD_FACTS,
+    alias_key as key,
+    classify,
+    clean,
+    date_verdict,
+    key as surname_key,
+    latest_reading,
+    place_verdict,
+    relation_classes,
+    same_surname,
+    source_tier,
+    split_name,
+    split_persona_name,
+    withdrawals
+)
+from match import MARRIED_IN_LAW, MATCHER, fits_by_name_and_year, match, personas_of
+from plan import plan_person
+from log_search import release_household
+from rule import (
+    ACCEPTED_WITH_RECORD,
+    IN_LAW,
+    RULE_ACTOR,
+    TRUSTED,
+    _notes,
+    _q,
+    editable,
+    links_resting_on,
+    resolve_in_law,
+    rule_accepts,
+    same_personas,
+    trusted_evidence
+)
+from conflicts import rule_conflict_decisions, rule_conflict_line, rule_conflicts, rule_resolution, take_back, write_resolution
+
+ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
+
+def merged_refusal(cx, people):
+    """The refusal of a command that would write on a person merged into another (person.merged_into), in words, or None: a
+    merge moves everything about the duplicate onto the person it duplicates, its cards among them, so a decision lands on
+    that person; one still naming the duplicate is a merge an older version of this tool left unfinished, and the merge
+    command run again on the pair completes it (complete_merge).
+    Implements [rule.merge.3]."""
+    for pid in people:
+        r = cx.execute(
+            "SELECT d.display_name, k.id, k.display_name FROM person d JOIN person k ON k.id=d.merged_into WHERE d.id=?",
+            (pid,)
+        ).fetchone() if pid else None
+        if r:
+            dup, kept = f"{r[0]} [{pid[-6:]}]", f"{r[2]} [{r[1][-6:]}]"
+            return (
+                f"{dup} is merged into {kept}, who carries everything about them; what still names {dup} is a merge left "
+                f'unfinished: tools/conclude.py merge "{dup}" --into "{kept}" completes it'
+            )
+    return None
+
+def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
+    """A decision on one copy's entry of a record carried to every other copy's persona of that entry (docs/DATA-ARCHITECTURE.md
+    §7 decision 15): the record's copies (catalog.record_copies, every copy of a record the file or one of its rows is a copy
+    of), and on each the persona of the same entry (catalog.entry_on: its record id, else its name, a record's own person
+    being a page's subject and an image's deceased alike), every reading's persona of it taking the decision's link, under
+    the decision's own proposal, so a rejection or a withdrawal reaches it as it reaches the copy decided. An accepted one
+    asserts the copy's facts and family links onto the person as the decision did (assert_facts, write_name_alias,
+    link_family, the decision's own actor and proposal), so the reading of an image with no card of its own is decided with
+    the page. A link on a copy that carries the same decision follows its status; one a person or the rule decided otherwise
+    on that copy is never undone, and is said so, nor is a statement of the copy whose status a person decided on its own
+    (person_decided). settle: the people whose evidence changed (each person a link carried to, and everyone whose family a
+    family link the carry wrote reaches, link_people) have their plans regenerated,
+    their conflicts gone over by the rule and their cards matched again, as a decision does (settle_carried; decide does that
+    itself, and a re-read does it once for its links and the copies' together, so each carries with settle off). Returns one
+    row per link carried: tree, proposal, person, persona, copy, status, and kept for a copy decided otherwise (a row with
+    kept None is a link written).
+    Implements [rule.copies.3], [rule.copies.5], [rule.own.1], [rule.own.3]."""
+    from catalog import copy_entry, current_reading, entry_on, record_copies
+    q = _q(cx)
+    ts = now()
+    rows = []
+    touched = {}
+    trees = trees or [t for t, in q.execute("SELECT id FROM tree ORDER BY id")]
+    nodes = [(sha, "")] + [tuple(n) for n in q.execute("""SELECT a_sha256, a_entry FROM same_record WHERE a_sha256=? AND a_entry<>'' UNION
+                                                          SELECT b_sha256, b_entry FROM same_record WHERE b_sha256=? AND b_entry<>''""", (sha, sha))]
+    def on_copy(node):
+        """The personas of a copy's current reading: the whole reading, or the one row a listing's copy is."""
+        r = current_reading(cx, node[0])
+        if not r:
+            return r, []
+        ps = [p for p, in q.execute("SELECT id FROM persona WHERE extraction_id=? ORDER BY sequence, id", (r,))]
+        return r, ps if not node[1] else [p for p in ps if copy_entry(cx, p) == tuple(node)]
+    for tree_id in trees:
+        done = set()
+        for node in nodes:
+            copies = record_copies(cx, tree_id, *node)
+            if len(copies) < 2 or tuple(copies[0]) in done:
+                continue
+            done.update(tuple(c) for c in copies)
+            readings = {c: on_copy(c) for c in copies}
+            for c in copies:
+                for p in readings[c][1]:
+                    for src in q.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at FROM person_persona pp JOIN person o ON o.id=pp.person_id
+                                            WHERE pp.persona_id=? AND o.tree_id=? AND pp.status IN ('accepted','rejected') AND pp.proposal_id IS NOT NULL""", (p, tree_id)).fetchall():
+                        for d in copies:
+                            if d == c or not readings[d][0]:
+                                continue
+                            target = entry_on(cx, p, readings[d][0])
+                            if not target or target not in readings[d][1]:
+                                continue
+                            had = q.execute(
+                                "SELECT status, proposal_id FROM person_persona WHERE person_id=? AND persona_id=?",
+                                (src["person_id"], target)
+                            ).fetchone()
+                            if had and had["status"] != "undecided" and had["proposal_id"] != src["proposal_id"]:
+                                if had["status"] != src["status"]:
+                                    rows.append(
+                                        {
+                                            "tree": tree_id,
+                                            "proposal": src["proposal_id"],
+                                            "person": src["person_id"],
+                                            "persona": target,
+                                            "copy": d[0],
+                                            "status": src["status"],
+                                            "kept": had["status"]
+                                        }
+                                    )
+                                continue
+                            if had and had["status"] == src["status"] and had["proposal_id"] == src["proposal_id"]:
+                                continue
+                            rows.append(
+                                {
+                                    "tree": tree_id,
+                                    "proposal": src["proposal_id"],
+                                    "person": src["person_id"],
+                                    "persona": target,
+                                    "copy": d[0],
+                                    "status": src["status"],
+                                    "kept": None
+                                }
+                            )
+                            if dry_run:
+                                continue
+                            for pe in same_personas(cx, target):
+                                old = q.execute(
+                                    "SELECT status, proposal_id FROM person_persona WHERE person_id=? AND persona_id=?",
+                                    (src["person_id"], pe)
+                                ).fetchone()
+                                if old and old["status"] != "undecided" and old["proposal_id"] != src["proposal_id"]:
+                                    continue
+                                q.execute(
+                                    "INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)",
+                                    (
+                                        src["person_id"],
+                                        pe,
+                                        src["status"],
+                                        src["proposal_id"],
+                                        src["decided_by"],
+                                        src["decided_at"]
+                                    )
+                                )
+                            n = 0
+                            if src["status"] == "accepted":
+                                n = assert_facts(
+                                    cx, tree_id, src["person_id"], target, src["proposal_id"], src["decided_by"], ts
+                                )[0]
+                                write_name_alias(
+                                    cx,
+                                    tree_id,
+                                    src["person_id"],
+                                    target,
+                                    d[0],
+                                    src["proposal_id"],
+                                    src["decided_by"],
+                                    ts
+                                )
+                                members = link_family(
+                                    cx,
+                                    tree_id,
+                                    src["person_id"],
+                                    target,
+                                    d[0],
+                                    src["proposal_id"],
+                                    src["decided_by"],
+                                    ts
+                                )
+                                # everyone whose family a link the carry wrote reaches, as a decision's
+                                for who in link_people(
+                                    cx,
+                                    [(m["family"], m["person"], m["role"]) for m in members],
+                                    joined=[m["family"] for m in members if m["new"]]
+                                ):
+                                    touched.setdefault((tree_id, who), src["proposal_id"])
+                            q.execute(
+                                "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                                (
+                                    ulid(),
+                                    tree_id,
+                                    ts,
+                                    by,
+                                    "update",
+                                    "proposal",
+                                    src["proposal_id"],
+                                    dumps(
+                                        {
+                                            "carried": {"from": p, "to": target, "copy": d[0], "of": c[0]},
+                                            "status": src["status"],
+                                            "person": src["person_id"],
+                                            "assertions": n
+                                        }
+                                    )
+                                )
+                            )
+                            touched.setdefault((tree_id, src["person_id"]), src["proposal_id"])
+    if settle and not dry_run:
+        settle_carried(cx, by, touched)
+    return rows
+
+def settle_carried(cx, by, touched):
+    """What follows decisions carried onto a record's new reading (a re-read, extract.carry_links) or onto its other copies
+    (carry), once for them all: in each tree, the plans of the people whose evidence they changed regenerated, a question
+    the regeneration closes answered by the decision carried to that person (answer_questions), then the rule over their
+    conflicts and their cards matched again (settle_people). touched: {(tree id, person id): the proposal of the decision
+    carried}.
+    Implements [rule.copies.2]."""
+    trees = {}
+    for (tree_id, pid), prop in touched.items():
+        trees.setdefault(tree_id, {}).setdefault(pid, prop)
+    for tree_id, people in trees.items():
+        for pid, prop in people.items():
+            answer_questions(cx, tree_id, pid, prop, by)
+        settle_people(cx, tree_id, by, list(people))
+
+def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
+    """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record
+    nobody can edit at will, Undecided from a page anyone can edit (what the page says, never accepted by the decision and never
+    ground for the rule, so the person's facts come from primary documents only). Name and Sex assert the person row. One
+    statement, one event (docs/RULE.md): an event fact asserts the one event of its type that
+    Catalog.event_for chooses among the person's: the one event of a type a life holds once whatever its date or place, the
+    one event of another type for an undated fact, else the event whose own date agrees most closely with the fact's among
+    those whose places agree with it; created from the fact's date when the person has none that fits, but never beside
+    another of a type a life holds once; and left unasserted when the choice is the owner's (two or more equally close, an
+    undated fact among several, a fact of a type a life holds once fitting none of several), which Catalog.unplaced raises
+    as a conflict question naming the record and the events, for tools/conclude.py place to answer. A residence with no date
+    is its own stay, never another record's. An attribute fact (Occupation, Inscription, Religion, ...) asserts the person's
+    attribute of that type with the same value, chosen the same way among several of that value, created when there is
+    none. A fact the record already states on one of the person's events (Catalog.stated_on: an earlier reading's statement,
+    or one the owner placed) stays there, and a fact the same record already asserts on the same subject with the same type,
+    date, value and place is not asserted again, so a re-extraction adds only what is new; one the rule withdrew turns
+    Accepted again on a trusted record and stays as it is on an editable page, and one closed with its card as superseded
+    (rematch) takes this decision's status; one whose status a person decided on its own (person_decided) stays as the person
+    left it, whatever reads the record again or carries a decision to it. A value
+    the page keeps beneath the one it shows (FamilySearch's edit history, a fact whose region marks it alternate) is written
+    Undecided and marked so: what the page also says, kept and cited, never accepted with the record and never a conflict
+    with the value the record shows. Returns how many were written.
+    Implements [rule.accept.1], [rule.accept.2], [rule.accept.3], [rule.accept.4], [rule.accept.5], [rule.editable.1], [rule.editable.7], [rule.own.3], [rule.copies.1], [rule.conflict.1]."""
+    q = _q(cx)
+    cat = Catalog(cx, tree_id)
+    n = 0
+    sha = q.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()["artifact_sha256"]
+    cite, status = _citation(cx, sha)
+    def assert_(kind, sid, f):
+        nonlocal n
+        alt = "alternate" in json.loads(f["region_json"] or "{}")
+        n += _state(
+            q,
+            tree_id,
+            kind,
+            sid,
+            f,
+            sha,
+            cite,
+            "undecided" if alt else status,
+            by,
+            ts,
+            prop_id,
+            {"alternate": True} if alt else None
+        )
+    for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id, pf.region_json, et.kind
+                           FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=?""", (persona_id,)).fetchall():
+        if f["fact_type"] in ("Name", "Sex"):
+            assert_("person", person_id, f)
+            continue
+        if f["fact_type"] in RECORD_FACTS or f["kind"] not in ("event", "attribute"):
+            continue
+        eid = cat.stated_on(sha, f, person=person_id)
+        if eid is None and not (f["fact_type"] == "Residence" and not (f["date_start"] or f["date_end"])):
+            events = cat.owner_events(f["fact_type"], person=person_id)
+            if f["kind"] == "attribute":
+                events = [e for e in events if (e["value"] or "") == (f["value_text"] or "")]
+            eid, choice = cat.event_for(f, events, once=f["fact_type"] in ONCE or f["kind"] == "attribute")
+            # the owner's choice: Catalog.unplaced raises it
+            if choice:
+                continue
+        if eid is None:
+            eid = ulid()
+            q.execute(
+                """INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,description,created_at,updated_at)
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    eid,
+                    tree_id,
+                    f["fact_type"],
+                    f["date_text"],
+                    f["date_start"],
+                    f["date_end"],
+                    f["date_qualifier"],
+                    f["calendar"],
+                    f["value_text"] if f["kind"] == "attribute" else None,
+                    ts,
+                    ts
+                )
+            )
+            q.execute(
+                "INSERT INTO event_participant (id,event_id,person_id,role) VALUES (?,?,?,'primary')",
+                (ulid(), eid, person_id)
+            )
+        assert_("event", eid, f)
+    return n, sha
+
+def _citation(cx, sha):
+    """(citation words, status) a record's statements are written with: the collection's name, and Accepted from a record
+    nobody can edit at will, Undecided from a page anyone can edit.
+    Implements [rule.accept.1], [rule.editable.7]."""
+    a = cx.execute(
+        "SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?",
+        (sha,)
+    ).fetchone()
+    return (a[0] or a[1] or sha[:12]), ("undecided" if editable(cx, sha) else "accepted")
+
+def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id, extra=None):
+    """One statement of a record's fact on a subject, written once: a statement the same record already makes on the same
+    subject with the same type, date, value and place stands again when the rule had withdrawn it or its card closed
+    (undecided, on a trusted record), and otherwise stays as it is; one whose status a person decided on its own
+    (person_decided) stays as the person left it, undecided included. Returns 1 when written, else 0.
+    Implements [rule.own.3]."""
+    old = q.execute("""SELECT a.id, a.status, a.notes, a.person_decided FROM assertion a JOIN persona_fact q ON q.id=a.persona_fact_id WHERE a.subject_kind=? AND a.subject_id=? AND a.artifact_sha256=?
+                       AND q.fact_type=? AND coalesce(q.date_text,'')=coalesce(?,'') AND coalesce(q.value_text,'')=coalesce(?,'') AND coalesce(q.place_string_id,'')=coalesce(?,'')""", (kind, sid, sha, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])).fetchone()
+    if old:
+        if old["status"] == "undecided" and status == "accepted" and not old["person_decided"]:
+            q.execute(
+                "UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, notes=? WHERE id=?",
+                (status, by, ts, dumps({"proposal": prop_id, **(extra or {})}), old["id"])
+            )
+            return 1
+        return 0
+    q.execute(
+        """INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+        (ulid(), tree_id, kind, sid, f["id"], sha, cite, status, by, ts, dumps({"proposal": prop_id, **(extra or {})}))
+    )
+    return 1
+
+def assert_family_events(cx, tree_id, fid, persona_ids, sha, prop_id, by, ts, computed=False):
+    """A record's family facts (a Marriage, a Divorce: the event types of kind family_event) asserted on the family the record's
+    spouse relation joins, once both partners are accepted on the record (link_family calls this then, so a fact on the
+    first partner's persona waits for the second's acceptance): each persona's fact on the one event of the family that
+    Catalog.event_for chooses, as assert_facts chooses a person's (the event whose date agrees most closely, among those
+    whose places agree; the one event for an undated fact), the fact the record already states on one of the family's events
+    staying there, created from the fact's date when the family has none that fits, and left unasserted when the choice is
+    the owner's (Catalog.unplaced). Accepted from a record nobody can edit at will, Undecided from a page anyone can edit or
+    when the couple is one the record's indexer computed (marked so, as the link is); written once, as assert_facts writes.
+    Returns how many were written.
+    Implements [rule.accept.6]."""
+    q = _q(cx)
+    n = 0
+    cat = Catalog(cx, tree_id)
+    cite, status = _citation(cx, sha)
+    if computed:
+        status = "undecided"
+    for pe in persona_ids:
+        for f in q.execute("""SELECT pf.id, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.calendar, pf.place_string_id
+                              FROM persona_fact pf JOIN event_type et ON et.name=pf.fact_type WHERE pf.persona_id=? AND et.kind='family_event'""", (pe,)).fetchall():
+            eid = cat.stated_on(sha, f, family=fid)
+            if eid is None:
+                eid, choice = cat.event_for(f, cat.owner_events(f["fact_type"], family=fid))
+                # the owner's choice: Catalog.unplaced raises it
+                if choice:
+                    continue
+            if eid is None:
+                eid = ulid()
+                q.execute(
+                    """INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at)
+                              VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        eid,
+                        tree_id,
+                        f["fact_type"],
+                        f["date_text"],
+                        f["date_start"],
+                        f["date_end"],
+                        f["date_qualifier"],
+                        f["calendar"],
+                        ts,
+                        ts
+                    )
+                )
+                q.execute(
+                    "INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'family')",
+                    (ulid(), eid, fid)
+                )
+            n += _state(
+                q,
+                tree_id,
+                "event",
+                eid,
+                f,
+                sha,
+                cite,
+                status,
+                by,
+                ts,
+                prop_id,
+                {"computed": True} if computed else None
+            )
+    return n
+
+def place(cx, tree_id, pf_id, event_id, by, note):
+    """The owner's word on which of a person's events, or of a family's they are a partner in, a record's fact belongs to: a
+    fact accepted onto the person and left unasserted because the choice was theirs (Catalog.unplaced: an undated fact among
+    several events of its type, a dated one fitting two or more equally, one of a type a life holds once fitting none of
+    several), written onto the event the owner means, the way assert_facts writes any other statement (accepted from a
+    record nobody can edit at will, undecided from a page anyone can, under the decision that accepted the record; a value
+    the page keeps beneath the one it shows, a fact whose region marks it alternate, undecided and marked so, which
+    Catalog.unplaced never asks to be placed but the owner may name); or a fact already asserted on another of those events
+    of its type (its own statement, or the record's same statement through an earlier reading, Catalog.stated_on), moved to
+    this one, its status kept. An event a move leaves with no statement but rejected ones (an event an older reading made of a
+    misread value) leaves the person's or the family's events: its participant row goes, the event and its statements stay
+    for the audit trail. Refused when the persona fact does not exist or its persona is not accepted to a person, the event
+    is not this tree's, is of another type than the fact or belongs to another person or family, or the fact's statement is
+    already on it. One audit row per change; the plans of the person, and of the other partner on a family's event, are
+    regenerated, then the rule goes over their conflicts and their cards are matched again (settle_people). Returns what was
+    written, the rule's rows on the conflicts and the cards matched again, or an error.
+    Implements [rule.accept.3], [rule.accept.4]."""
+    q = _q(cx)
+    ts = now()
+    cat = Catalog(cx, tree_id)
+    pf = q.execute(
+        "SELECT pf.*, pe.artifact_sha256 FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pf.id=?",
+        (pf_id,)
+    ).fetchone()
+    if not pf:
+        return {"error": "no such persona fact"}
+    pp = q.execute(
+        "SELECT pp.person_id, pp.proposal_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?",
+        (pf["persona_id"], tree_id)
+    ).fetchone()
+    if not pp:
+        return {"error": "this persona is not accepted to a person"}
+    person_id = pp["person_id"]
+    ev = q.execute("SELECT id, event_type FROM event WHERE id=? AND tree_id=?", (event_id, tree_id)).fetchone()
+    if not ev:
+        return {"error": "no such event in this tree"}
+    if ev["event_type"] != pf["fact_type"]:
+        return {"error": f"the event is {ev['event_type']}, the fact is {pf['fact_type']}"}
+    mine = """SELECT ep.person_id, ep.family_id FROM event_participant ep JOIN event e ON e.id=ep.event_id WHERE e.id=? AND e.event_type=?
+              AND (ep.person_id=? OR ep.family_id IN (SELECT family_id FROM family_member WHERE person_id=? AND role='partner'))"""
+    owner = q.execute(mine, (event_id, pf["fact_type"], person_id, person_id)).fetchone()
+    if not owner:
+        return {"error": "the event belongs to another person"}
+    had = q.execute(
+        "SELECT id, subject_id, status FROM assertion WHERE persona_fact_id=? AND subject_kind='event' ORDER BY asserted_at, id",
+        (pf_id,)
+    ).fetchone()
+    if not had:  # the record's same statement, written through an earlier reading of it
+        on = (
+            cat.stated_on(pf["artifact_sha256"], pf, person=person_id)
+            if owner["person_id"]
+            else cat.stated_on(pf["artifact_sha256"], pf, family=owner["family_id"])
+        )
+        had = (
+            q.execute(
+                """SELECT a.id, a.subject_id, a.status FROM assertion a JOIN persona_fact x ON x.id=a.persona_fact_id WHERE a.subject_kind='event' AND a.subject_id=? AND a.artifact_sha256=?
+                           AND x.fact_type=? AND coalesce(x.date_text,'')=coalesce(?,'') AND coalesce(x.value_text,'')=coalesce(?,'') AND coalesce(x.place_string_id,'')=coalesce(?,'')
+                           ORDER BY a.asserted_at, a.id""",
+                (on, pf["artifact_sha256"], pf["fact_type"], pf["date_text"], pf["value_text"], pf["place_string_id"])
+            ).fetchone()
+            if on
+            else None
+        )
+    if had and had["subject_id"] == event_id:
+        return {"error": "the fact's statement is already on this event"}
+    people = [person_id] + (
+        [
+            r["person_id"]
+            for r in q.execute(
+                "SELECT person_id FROM family_member WHERE family_id=? AND role='partner' AND person_id<>?",
+                (owner["family_id"], person_id)
+            )
+        ]
+        if owner["family_id"]
+        else []
+    )
+    if had:  # on another of the person's events of its type, or the family's: moved, its status kept
+        was = q.execute(mine, (had["subject_id"], pf["fact_type"], person_id, person_id)).fetchone()
+        if not was:
+            return {"error": "the fact's statement is on an event that is not this person's of its type"}
+        q.execute(
+            "UPDATE assertion SET subject_id=?, notes=json_set(coalesce(notes,'{}'),'$.placed_by_owner',?) WHERE id=?",
+            (event_id, note, had["id"])
+        )
+        q.execute(
+            "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+            (
+                ulid(),
+                tree_id,
+                ts,
+                by,
+                "update",
+                "assertion",
+                had["id"],
+                dumps(
+                    {
+                        "persona_fact": pf_id,
+                        "from_event": had["subject_id"],
+                        "event": event_id,
+                        "person": person_id,
+                        "note": note
+                    }
+                )
+            )
+        )
+        retired = None
+        if not q.execute(
+            "SELECT 1 FROM assertion WHERE subject_kind='event' AND subject_id=? AND status<>'rejected'",
+            (had["subject_id"],)
+        ).fetchone():
+            q.execute(
+                "DELETE FROM event_participant WHERE event_id=? AND (person_id=? OR family_id=?)",
+                (had["subject_id"], was["person_id"], was["family_id"])
+            )
+            retired = had["subject_id"]
+            q.execute(
+                "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                (
+                    ulid(),
+                    tree_id,
+                    ts,
+                    by,
+                    "update",
+                    "event",
+                    retired,
+                    dumps(
+                        {
+                            "left_person": was["person_id"],
+                            "left_family": was["family_id"],
+                            "why": "no statement but rejected ones supports it once the record's own was placed elsewhere",
+                            "note": note
+                        }
+                    )
+                )
+            )
+        for p_ in people:
+            plan_person(cx, tree_id, p_, by)
+        conflicts, rematched = settle_people(cx, tree_id, by, people)
+        return {
+            "ok": True,
+            "assertion": had["id"],
+            "status": had["status"],
+            "person": person_id,
+            "event": event_id,
+            "moved_from": had["subject_id"],
+            "retired": retired,
+            "conflicts": conflicts,
+            "rematched": rematched
+        }
+    cite, status = _citation(cx, pf["artifact_sha256"])
+    # a value the page keeps beneath the one it shows: what the page also says, undecided and marked, as assert_facts writes it
+    alt = "alternate" in json.loads(pf["region_json"] or "{}")
+    if alt:
+        status = "undecided"
+    # the decision that accepted the record wrote this statement too, so a rejection or a withdrawal of it reaches it
+    notes = {
+        **({"proposal": pp["proposal_id"]} if pp["proposal_id"] else {}), "note": note, **({"alternate": True} if alt else {})
+    }
+    aid = ulid()
+    q.execute(
+        """INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                  VALUES (?,?,'event',?,?,?,?,?,?,?,?)""",
+        (aid, tree_id, event_id, pf_id, pf["artifact_sha256"], cite, status, by, ts, dumps(notes))
+    )
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            ulid(),
+            tree_id,
+            ts,
+            by,
+            "insert",
+            "assertion",
+            aid,
+            dumps({"persona_fact": pf_id, "event": event_id, "person": person_id, "status": status, "note": note})
+        )
+    )
+    for p_ in people:
+        plan_person(cx, tree_id, p_, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    return {
+        "ok": True,
+        "assertion": aid,
+        "status": status,
+        "person": person_id,
+        "event": event_id,
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
+
+def shown_married(cx, tree_id, person_id, persona_id, written, canon_surname):
+    """Whether the record shows this person married under `written`'s own surname, as match.compare reads a married surname:
+    a woman's only, never a person the record (the persona's sex) or the tree says is a man; then a wife under her husband's
+    surname (the tree's own recorded spouse, claimed or accepted), a daughter or sister under her husband's, named beside a
+    son-in-law or brother-in-law of that surname on the persona's own reading of the record (never another reading of the
+    page, a superseded one among them), or written "Mrs.".
+    Implements [rule.match.9], [rule.match.10]."""
+    q = _q(cx)
+    sexes = [r[0] for r in q.execute("SELECT sex FROM persona WHERE id=? UNION ALL SELECT sex FROM person WHERE id=?", (persona_id, person_id))]
+    if "M" in sexes:
+        return False
+    if re.match(r"^\s*mrs\.?\b", written or "", re.I):
+        return True
+    rest = split_persona_name(written)[1]
+    if not rest:
+        return False
+    ws = rest[-1]
+    if ws == surname_key(canon_surname or ""):
+        return False
+    spouses = [
+        surname_key(n.split()[-1]) for _, n in Catalog(cx, tree_id).family(person_id)["spouses"] if n and n.split()
+    ]
+    if any(same_surname(ws, s) for s in spouses):
+        return True
+    eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()
+    in_laws = [
+        name
+        for role, name in q.execute(
+            "SELECT role_in_record, name_text FROM persona WHERE extraction_id=?", (eid["extraction_id"],)
+        )
+        if MARRIED_IN_LAW.search(role or "")
+    ]
+    return any(same_surname(ws, s) for name in in_laws for s in [split_persona_name(name)[1]] if s for s in [s[-1]])
+
+def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
+    """The persona's own Name fact, when its words differ from the person's canonical name and are not already one of the
+    person's own name rows (a birth or married name create_person already split out), becomes an alias at once with the
+    standing of its record: accepted from a record nobody can edit at will (T1–T3), undecided from a page anyone can edit
+    and from a record of no known tier, so the rule, which stands on accepted aliases alone, never stands on such a page's
+    words; of the kind the difference is (catalog.classify, married_name when the record shows the person married
+    under it: shown_married), the record's words as written. The same words from the same record, made an alias by a
+    decision a withdrawal or a give-back took back (undecided), stand again with this decision, stamped with it, at the
+    record's standing; an alias of other words, another entry's of the same page among them, is never touched. Returns the
+    alias id, or None when there is nothing to write.
+    Implements [rule.name.2], [rule.match.10]."""
+    q = _q(cx)
+    # the name the page shows, never one it keeps beneath
+    fact = q.execute("""SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL
+                        AND (region_json IS NULL OR json_extract(region_json,'$.alternate') IS NULL) LIMIT 1""", (persona_id,)).fetchone()
+    if not fact or not fact["value_text"]:
+        return None
+    name = q.execute(
+        "SELECT given, surname, suffix FROM person_name WHERE person_id=? AND is_primary", (person_id,)
+    ).fetchone()
+    if not name:
+        return None
+    canon = " ".join(x for x in (name["given"], name["surname"], name["suffix"]) if x)
+    value = clean(fact["value_text"])
+    if not value or key(value) == key(canon):
+        return None
+    status = "accepted" if str(source_tier(cx, sha) or "")[:2] in TRUSTED else "undecided"
+    if any(key(value) == key(" ".join(x for x in r if x))
+           for r in q.execute("SELECT given, surname, suffix FROM person_name WHERE person_id=?", (person_id,))):
+        return None
+    had = q.execute(
+        "SELECT id, status, source_artifact_sha256, notes FROM alias WHERE entity_kind='person' AND entity_id=? AND value=?",
+        (person_id, value)
+    ).fetchone()
+    if had:
+        # these words, from this record, made an alias by a decision a withdrawal or a give-back took back: they stand again
+        # with this decision, which states them
+        if had["status"] == "undecided" and had["source_artifact_sha256"] == sha and _notes(had).get("proposal"):
+            q.execute(
+                "UPDATE alias SET status=?, notes=json_set(notes,'$.proposal',?) WHERE id=?", (status, prop_id, had["id"])
+            )
+            return had["id"]
+        return None
+    kind, note = classify(
+        fact["value_text"],
+        name["given"],
+        name["surname"],
+        name["suffix"],
+        married=shown_married(cx, tree_id, person_id, persona_id, fact["value_text"], name["surname"])
+    )
+    aid = ulid()
+    cx.execute(
+        """INSERT INTO alias (id,tree_id,entity_kind,entity_id,value,kind,status,source_persona_fact_id,source_artifact_sha256,added_by,added_at,notes)
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            aid,
+            tree_id,
+            "person",
+            person_id,
+            value,
+            kind,
+            status,
+            fact["id"],
+            sha,
+            by,
+            ts,
+            dumps({"proposal": prop_id, "note": note})
+        )
+    )
+    return aid
+
+def create_person(cx, tree_id, persona_id, ts):
+    """A person in this tree from a persona: the name as written split into given names and a surname; a maiden name the
+    record marks becomes the birth surname and the written surname a married name. Returns the person id.
+    Implements [rule.accept.10]."""
+    q = _q(cx)
+    pe = q.execute("SELECT name_text, sex, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
+    region = json.loads(pe["region_json"] or "{}")
+    # the right way round whichever way the record wrote it; a suffix is not a surname
+    given, surname, suffix = split_name(pe["name_text"])
+    text = " ".join(x for x in (given, surname, suffix) if x)
+    pid = ulid()
+    q.execute(
+        "INSERT INTO person (id,tree_id,sex,display_name,created_at,updated_at) VALUES (?,?,?,?,?,?)",
+        (pid, tree_id, pe["sex"], text, ts, ts)
+    )
+    if region.get("maiden") and surname and region["maiden"] != surname:
+        g = given.replace(region["maiden"], "").strip()
+        q.execute(
+            "INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)",
+            (ulid(), pid, g, region["maiden"], f"{region['maiden']}, {g}".lower())
+        )
+        q.execute(
+            "INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'married',?,?,0,?)",
+            (ulid(), pid, g, surname, f"{surname}, {g}".lower())
+        )
+    else:
+        q.execute(
+            "INSERT INTO person_name (id,person_id,name_type,given,surname,is_primary,sort_key) VALUES (?,?,'birth',?,?,1,?)",
+            (ulid(), pid, given, surname, f"{surname or ''}, {given}".lower())
+        )
+    return pid
+
+def new_family(cx, tree_id, partner, ts):
+    q = _q(cx)
+    fid = ulid()
+    q.execute("INSERT INTO family (id,tree_id,created_at,updated_at) VALUES (?,?,?,?)", (fid, tree_id, ts, ts))
+    q.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,'partner')", (fid, partner))
+    return fid
+
+def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=None):
+    """Family links from the record's own relations, for a matched person as for a new one: where the record says this persona
+    is the child, parent or spouse of a persona already accepted as a person in this tree, the membership exists (created when
+    the tree lacks it, in a family of the right shape) and carries an Accepted assertion on the artifact, or an Undecided one
+    when the artifact is a page anyone can edit (T4): such a page identifies a person but never builds their facts, so the
+    membership is created but not accepted by the decision, the way a sibling placement already is. A relationship the record's
+    indexer computed rather than the record stating it (catalog.relation_classes: FamilySearch's own relatives-table groupings)
+    is written the same way, Undecided and marked computed, with the reason in held_back; a stated relationship between the same
+    two on the record is read first, and the computed one adds nothing beside it. A parent-child relation is
+    evidence on the child's membership, in the family where the child already stands under that parent, else the child's
+    family of one parent (the parent its second, unless the two are partners of another family already), else a family of
+    the parent whose every other partner the record itself names as the child's parent (parents_family), else a new family
+    of the parent alone: a father's child is never placed beside a wife the record does not name. A spouse relation is
+    evidence on both partners', and the family facts the two partners' personas
+    state (a Marriage and its date) are asserted on that family's event (assert_family_events). A sibling stated on the record places the person
+    as a child of the other's accepted parents with an Undecided assertion regardless of tier (the record states the sibling,
+    not the parents), and only when the other is an accepted child of exactly one family and neither partner of it died,
+    on accepted evidence, before the person was born (died_before; the reason goes into held_back when a list is given);
+    otherwise a sibling gives no membership. An in-law's own stated tie (mother-, father-, son-, daughter-, brother- or sister-in-law), read only when the persona under decision is the in-law, is resolved through
+    the relative it names (resolve_in_law) to the child, parent or spouse link it actually gives, written and evidenced the
+    same way as a link the record states outright; a resolution that lands on a sibling goes through the sibling rule above,
+    Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. On a page
+    anyone can edit, a relative the record relates to the subject but that the matcher never proposed a persona_match for (a
+    memorial's listed relative, docs/TERMS.md §0) is still placed when their name and birth year plainly fit
+    exactly one person of the tree (match.fits_by_name_and_year): the listed persona is linked to that person Undecided (so
+    the membership traces to the persona, and their own record decides their identity later) and the membership follows the
+    same path as any other relation above. A person whose link to the listed persona is rejected is no fit; fitting nobody or
+    several writes nothing, as a sibling of no placed parents gives none. The trace link is written only where no row stands,
+    and an earlier trace of the same decision to a person the persona no longer fits alone is withdrawn. A membership
+    statement already there moves only from undecided to accepted (withdrawn, it stands again): one whose status a person
+    decided on its own (person_decided) stays as the person left it. Returns
+    the links written: person, role, the other person, the page's own word, whether the membership is new, "undecided" for
+    a sibling placement, a link from a page anyone can edit or one the indexer computed, and "computed" for the last.
+    Implements [rule.accept.6], [rule.accept.7], [rule.accept.8], [rule.editable.3], [rule.editable.7], [rule.own.3]."""
+    q = _q(cx)
+    out = []
+    identity = editable(cx, sha)  # a page anyone can edit: the memberships it states stand, but their assertions do not
+    cat = Catalog(cx, tree_id)
+    # persona id -> persona dict of this extraction (match.personas_of shape), built once, only when needed
+    listed_personas = None
+    def person_of(x):
+        r = q.execute(
+            "SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?",
+            (x, tree_id)
+        ).fetchone()
+        if r:
+            return r["person_id"]
+        # a listed relative is never proposed only on a page anyone can edit
+        if not identity:
+            return None
+        nonlocal listed_personas
+        if listed_personas is None:
+            eid = q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"]
+            listed_personas = {p["id"]: p for p in personas_of(cx, eid)}
+        pr = listed_personas.get(x)
+        if not pr:
+            return None
+        rejected = {
+            r["person_id"]
+            for r in q.execute("SELECT person_id FROM person_persona WHERE persona_id=? AND status='rejected'", (x,))
+        }
+        fits = [c for c in fits_by_name_and_year(cat, cx, tree_id, pr) if c != pid and c not in rejected]
+        if len(fits) != 1:
+            return None
+        other_pid = fits[0]
+        # this decision's earlier trace to a person the persona no longer fits alone
+        q.execute(
+            "DELETE FROM person_persona WHERE persona_id=? AND person_id<>? AND status='undecided' AND proposal_id=?",
+            (x, other_pid, prop_id)
+        )
+        q.execute(
+            "INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,'undecided',?,?,?)",
+            (other_pid, x, prop_id, by, ts)
+        )
+        return other_pid
+    def member(fid, who, role):
+        if q.execute(
+            "SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (fid, who, role)
+        ).fetchone():
+            return False
+        q.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (fid, who, role))
+        return True
+    def assert_(fid, who, role, other, as_written, new, status="accepted", placed=None, computed=False):
+        sid, cite = dumps([fid, who, role]), f"{as_written} on the record"
+        # the record states this link itself
+        if (
+            computed
+            and q.execute(
+                "SELECT 1 FROM assertion WHERE subject_kind='family_member' AND subject_id=? AND artifact_sha256=? AND status='accepted'",
+                (sid, sha)
+            ).fetchone()
+        ):
+            return
+        notes = {
+            "proposal": prop_id, **({"placed": placed} if placed else {}), **({"computed": True} if computed else {})
+        }
+        old = q.execute(
+            "SELECT id, status, notes, person_decided FROM assertion WHERE subject_kind='family_member' AND subject_id=? AND artifact_sha256=? AND citation_text=?",
+            (sid, sha, cite)
+        ).fetchone()
+        if old:
+            if old["status"] == "undecided" and status == "accepted" and not old["person_decided"]:
+                q.execute(
+                    "UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, notes=? WHERE id=?",
+                    (status, by, ts, dumps(notes), old["id"])
+                )
+            else:
+                return
+        else:
+            q.execute(
+                """INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,notes)
+                            VALUES (?,?,'family_member',?,?,?,?,?,?,?,?)""",
+                (ulid(), tree_id, sid, persona_id, sha, cite, status, by, ts, dumps(notes))
+            )
+        out.append(
+            {
+                "family": fid,
+                "person": who,
+                "role": role,
+                "of": other,
+                "as": as_written,
+                "new": new,
+                "undecided": status != "accepted",
+                "placed": placed,
+                "computed": computed
+            }
+        )
+    name = lambda i: q.execute("SELECT display_name FROM person WHERE id=?", (i,)).fetchone()["display_name"]
+    def indexer(as_written, other):
+        if held_back is not None:
+            held_back.append(
+                f"the link to {name(other)} ({as_written}) written undecided: the record's indexer, not the record, states it"
+            )
+    one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
+    def named_parents(child_persona):
+        """The people the record itself states as parents of this persona, never by a grouping its indexer computed: the
+        person each parent's persona is accepted as, or is put to by a card still undecided.
+        Implements [rule.accept.6]."""
+        out_ = set()
+        for r in q.execute("""SELECT persona_id, related_persona_id, kind, value_text FROM persona_relation
+                              WHERE (persona_id=? AND kind='child') OR (related_persona_id=? AND kind='parent')""", (child_persona, child_persona)).fetchall():
+            if relation_classes(cx, r["persona_id"], r["related_persona_id"], r["kind"], r["value_text"])["relationship"] == "computed":
+                continue
+            z = r["related_persona_id"] if r["persona_id"] == child_persona else r["persona_id"]
+            out_ |= {
+                x[0] for x in q.execute(
+                    "SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?",
+                    (z, tree_id)
+                )
+            }
+            out_ |= {
+                json.loads(x[0]).get("person_id") for x in q.execute(
+                    "SELECT payload_json FROM proposal WHERE tree_id=? AND kind='persona_match' AND status='undecided' AND json_extract(payload_json,'$.persona_id')=?",
+                    (tree_id, z)
+                )
+            }
+        return out_ - {None}
+    def parents_family(parent, child_persona):
+        """The family of this parent a child joins on the record's word: one whose every other partner is a parent the record
+        itself names for the child (named_parents), the most such partners first, then the earliest; None when each holds a
+        partner the record does not name (a father's second wife), so the child is never placed beside a parent the record
+        never gives.
+        Implements [rule.accept.6]."""
+        named = named_parents(child_persona) if child_persona else set()
+        best = None
+        for f, in q.execute(
+            "SELECT family_id FROM family_member WHERE person_id=? AND role='partner' ORDER BY family_id", (parent,)
+        ).fetchall():
+            others = {
+                x[0]
+                for x in q.execute(
+                    "SELECT person_id FROM family_member WHERE family_id=? AND role='partner' AND person_id<>?", (f, parent)
+                )
+            }
+            if others <= named and (best is None or len(others) > best[1]):
+                best = (f, len(others))
+        return best[0] if best else None
+    x_surname = q.execute("SELECT name_text FROM persona WHERE id=?", (persona_id,)).fetchone()["name_text"]
+    x_surname = (split_persona_name(x_surname)[1] or [""])[-1]
+    rows = list(q.execute("""SELECT kind, value_text, persona_id, related_persona_id FROM persona_relation
+                             WHERE (persona_id=? OR related_persona_id=?) AND kind IN ('child','parent','spouse','sibling','other')""", (persona_id, persona_id)).fetchall())
+    # the stated first
+    rows = sorted(
+        (
+            (
+                r,
+                relation_classes(
+                    cx, r["persona_id"], r["related_persona_id"], r["kind"], r["value_text"]
+                )["relationship"] == "computed"
+            )
+            for r in rows
+        ),
+        key=lambda rc: rc[1]
+    )
+    for r, computed in rows:
+        mine = r["persona_id"] == persona_id  # (X, kind, Y) reads: X is the <kind> of Y
+        y_persona = r["related_persona_id"] if mine else r["persona_id"]
+        kind, as_written = r["kind"], r["value_text"] or r["kind"]
+        other, in_law = None, False
+        if kind == "other":
+            resolved = IN_LAW.get((r["value_text"] or "").strip().lower())
+            # a half sibling, a grandchild, "other relative": not one of the six the rule resolves
+            if not resolved:
+                continue
+            # the other persona is the in-law of this one: the tie is resolved from its side, when it is accepted
+            if not mine:
+                continue
+            y_pid = person_of(y_persona)
+            if not y_pid:
+                continue
+            got = resolve_in_law(cx, tree_id, y_pid, resolved, x_surname)
+            # the relative it is in-law to does not resolve to one person: no link, the created person's card stands as is
+            if not got:
+                continue
+            # resolve_in_law always reads "X is <kind> of other", whichever side the record's own row sat on
+            kind, other = got
+            mine, in_law = True, True
+        else:
+            other = person_of(y_persona)
+        if not other or other == pid:
+            continue
+        if kind == "sibling":
+            home = sibling_home(cx, tree_id, other)
+            gone = died_before(cx, tree_id, home, pid, persona_id) if home else None
+            # a parent of that home was dead before this one was born: a half sibling, perhaps, never placed under the couple
+            if gone:
+                if held_back is not None:
+                    held_back.append(
+                        f"not placed beside {name(other)} as a child of the same parents: {gone}; a half sibling, perhaps"
+                    )
+                continue
+            if home:
+                assert_(
+                    home,
+                    pid,
+                    "child",
+                    other,
+                    f"{as_written} of {name(other)}",
+                    member(home, pid, "child"),
+                    status="undecided",
+                    placed="sibling"
+                )
+            continue
+        if kind == "spouse":
+            fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
+                         WHERE fm.person_id=? AND fm.role='partner'""", (other, pid))
+            if fid is None:
+                fid = one("""SELECT fm.family_id FROM family_member fm WHERE fm.person_id=? AND fm.role='partner'
+                                         AND (SELECT COUNT(*) FROM family_member x WHERE x.family_id=fm.family_id AND x.role='partner')=1""", (other,))
+            if fid is None:
+                fid = new_family(cx, tree_id, other, ts)
+            status = "undecided" if identity or computed else "accepted"
+            n = len(out)
+            assert_(
+                fid, pid, "partner", other, as_written, member(fid, pid, "partner"), status=status, computed=computed
+            )
+            assert_(fid, other, "partner", pid, as_written, False, status=status, computed=computed)
+            if computed and not identity and len(out) > n:
+                indexer(as_written, other)
+            # the marriage the record dates, on the couple it joins: both partners now accepted on it
+            assert_family_events(cx, tree_id, fid, [persona_id, y_persona], sha, prop_id, by, ts, computed=computed)
+            continue
+        child = pid if (kind == "child") == mine else other
+        parent = other if child == pid else pid
+        fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
+                     WHERE fm.person_id=? AND fm.role='child'""", (parent, child))
+        new = False
+        if fid is None:
+            # the child's family of one parent takes this one as its second, unless the two are partners already elsewhere
+            fid = one("""SELECT fm.family_id FROM family_member fm WHERE fm.person_id=? AND fm.role='child'
+                         AND (SELECT COUNT(*) FROM family_member x WHERE x.family_id=fm.family_id AND x.role='partner')<2
+                         AND NOT EXISTS (SELECT 1 FROM family_member lone JOIN family_member a ON a.person_id=lone.person_id AND a.role='partner' AND a.family_id<>fm.family_id
+                                         JOIN family_member b ON b.family_id=a.family_id AND b.person_id=? AND b.role='partner'
+                                         WHERE lone.family_id=fm.family_id AND lone.role='partner')""", (child, parent))
+            if fid is not None:
+                new = member(fid, parent, "partner")
+            else:
+                # an in-law's tie names the parent of a person the record gives no persona of here
+                child_persona = None if in_law else persona_id if child == pid else y_persona
+                fid = parents_family(parent, child_persona) or new_family(cx, tree_id, parent, ts)
+                new = member(fid, child, "child")
+        n = len(out)
+        assert_(
+            fid,
+            child,
+            "child",
+            parent,
+            as_written,
+            new,
+            status="undecided" if identity or computed else "accepted",
+            computed=computed
+        )
+        if computed and not identity and len(out) > n:
+            indexer(as_written, other)
+    return out
+
+def died_before(cx, tree_id, fid, pid, persona_id):
+    """Why a person cannot be placed as a child of a family's couple, or None: a partner's death, accepted on a trusted record
+    or the owner's word and stating its date, that comes before the person's earliest birth the tree or the record under
+    decision gives (a mother's before it, a father's more than a year before it: a child can be born after the father's
+    death, never after the mother's). The words name the parent, the death and the birth.
+    Implements [rule.accept.8]."""
+    q = _q(cx)
+    births = [r["date_start"] for r in q.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                                                   WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,))]
+    births += [
+        r["date_start"]
+        for r in q.execute(
+            "SELECT date_start FROM persona_fact WHERE persona_id=? AND fact_type='Birth' AND date_start IS NOT NULL",
+            (persona_id,)
+        )
+    ]
+    if not births:
+        return None
+    born = min(births)
+    for partner, name, sex in q.execute(
+        """SELECT fm.person_id, p.display_name, p.sex FROM family_member fm JOIN person p ON p.id=fm.person_id
+                                          WHERE fm.family_id=? AND fm.role='partner' AND fm.person_id<>?""", (fid, pid)
+    ).fetchall():
+        for e in q.execute(
+            """SELECT e.id, e.date_text, e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
+                              WHERE ep.person_id=? AND e.event_type='Death' AND e.date_start IS NOT NULL""", (partner,)
+        ).fetchall():
+            if not trusted_evidence(cx, tree_id, "event", [e["id"]], stating="date"):
+                continue
+            died = e["date_start"]
+            if len(died) == 10 and len(born) == 10:
+                y, rest = int(died[:4]), died[4:]
+                before = (died < born) if sex != "M" else (f"{y + 1:04d}{rest}" < born)
+            else:
+                before = int(died[:4]) < int(born[:4]) - (1 if sex == "M" else 0)
+            if before:
+                text = q.execute(
+                    "SELECT date_text FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start=? LIMIT 1",
+                    (pid, born)
+                ).fetchone()
+                return f"{name}'s accepted death ({e['date_text']}) comes before the birth ({text['date_text'] if text else born})"
+    return None
+
+def sibling_home(cx, tree_id, pid):
+    """The one family a person is an accepted child of, where a sibling stated on a record can be placed; None when the link
+    is not accepted or the person is a child in more than one family.
+    Implements [rule.accept.8]."""
+    cat = Catalog(cx, tree_id)
+    fams = [
+        f
+        for f, in _q(cx).execute("SELECT family_id FROM family_member WHERE person_id=? AND role='child'", (pid,))
+        if cat.basis("family_member", dumps([f, pid, "child"])) == "accepted"
+    ]
+    return fams[0] if len(fams) == 1 else None
+
+def record_says(cx, tree_id, pid, sha):
+    """What a held record states about a person, as the assertions it made: each with a label and, for an event, whether the
+    record's value disagrees with the event's own value (date compared as dates, place as the matcher compares it)."""
+    q = _q(cx)
+    cat = Catalog(cx, tree_id)
+    name = lambda i: q.execute("SELECT display_name FROM person WHERE id=?", (i,)).fetchone()["display_name"]
+    out = []
+    for a in q.execute("""SELECT a.id, a.status, a.subject_kind, a.subject_id, a.citation_text, pf.fact_type, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, pf.value_text, ps.raw
+                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
+                          WHERE a.tree_id=? AND a.artifact_sha256=?
+                          AND ((a.subject_kind='person' AND a.subject_id=?) OR (a.subject_kind='event' AND a.subject_id IN (SELECT event_id FROM event_participant WHERE person_id=?))
+                               OR (a.subject_kind='family_member' AND a.subject_id LIKE ?)) ORDER BY a.subject_kind, a.asserted_at""", (tree_id, sha, pid, pid, f'%"{pid}"%')):
+        item = {"id": a["id"], "status": a["status"], "disagrees": None, "link": a["subject_kind"] == "family_member"}
+        if item["link"]:
+            fid, who, role = json.loads(a["subject_id"])
+            item["fact"] = (
+                ("parents link" if role == "child" else "spouse link") if who == pid else f"{name(who)}'s spouse link"
+            ) + f" ({a['citation_text']})"
+        else:
+            item["fact"] = " ".join(
+                x for x in (a["fact_type"], a["date_text"] or a["value_text"] or "", a["raw"] or "") if x
+            ).strip()
+            if a["subject_kind"] == "event":
+                ev = q.execute(
+                    "SELECT id, date_text, date_start, date_end, date_qualifier, place_id FROM event WHERE id=?",
+                    (a["subject_id"],)
+                ).fetchone()
+                dv = date_verdict(
+                    {
+                        "start": a["date_start"],
+                        "end": a["date_end"],
+                        "text": a["date_text"],
+                        "qualifier": a["date_qualifier"]
+                    },
+                    {
+                        "start": ev["date_start"],
+                        "end": ev["date_end"],
+                        "text": ev["date_text"],
+                        "qualifier": ev["date_qualifier"]
+                    }
+                ).verdict
+                tp = cat.place(ev["id"], ev["place_id"])["text"] if ev["place_id"] else None
+                if dv == "disagrees":
+                    item["disagrees"] = f"date: the tree says {ev['date_text']}"
+                elif place_verdict(a["raw"], tp).verdict == "disagrees":
+                    item["disagrees"] = f"place: the tree says {tp}"
+        out.append(item)
+    return out
+
+def answer_questions(cx, tree_id, pid, prop_id, by):
+    """Regenerate the person's plan; a question of an answerable kind that the regeneration closes was answered by the
+    proposal: closed_reason answered, answered_by_proposal_id set. Other kinds stay as the planner closed them.
+    Implements [rule.plans.2]."""
+    q = _q(cx)
+    st = plan_person(cx, tree_id, pid, by)
+    answered = []
+    for qid in st.get("closed", []):
+        r = q.execute("SELECT kind FROM research_question WHERE id=?", (qid,)).fetchone()
+        if r and r["kind"] in ANSWERABLE:
+            q.execute(
+                "UPDATE research_question SET closed_reason='answered', answered_by_proposal_id=? WHERE id=?",
+                (prop_id, qid)
+            )
+            answered.append(qid)
+    return answered
+
+def decide_place(cx, tree_id, p, status, by, note, choice, kind=None, alone=False):
+    """The owner's answer on a place card, which is the answer on every card that asks the same (resolve_places.place_groups:
+    cards offering the same places, the same of them verified, are one question put to different spellings): each string of the
+    group is decided alike by decide_place_string, accepted to the place the choice names on its own card (found by the
+    candidate, not its number) or rejected with the same reason, each with its own audit row. kind classifies how the string
+    answered on differs from the place's own name; the others' variant_kind is left unclassified. alone decides this card's
+    string only. Then the plans of the people whose facts carry the words (both partners for a family's event) are regenerated,
+    the rule goes over their conflicts and their cards are matched again (settle_people). Returns the answer on this card
+    with `also` the answers on the others, a summary of all with the rule's decisions on conflicts told in words
+    (rule_conflict_line), `conflicts` and `rematched`, or an error, in which case the caller rolls back what was written."""
+    from resolve_places import candidate_key, place_groups
+    others = [] if alone else [g for g in place_groups(cx, tree_id).get(p["id"], []) if g["proposal"] != p["id"]]
+    first = decide_place_string(cx, tree_id, p, status, by, note, choice, kind)
+    if "error" in first:
+        return first
+    q = _q(cx)
+    key = (
+        candidate_key(json.loads(p["payload_json"])["candidates"][int(choice)])
+        if status == "accepted" and others
+        else None
+    )
+    also = []
+    for g in others:
+        sp = q.execute("SELECT * FROM proposal WHERE id=?", (g["proposal"],)).fetchone()
+        at = (
+            next(
+                (i for i, c in enumerate(json.loads(sp["payload_json"])["candidates"]) if candidate_key(c) == key), None
+            )
+            if key
+            else None
+        )
+        r = decide_place_string(cx, tree_id, sp, status, by, note, at)
+        if "error" in r:
+            return r
+        also.append(r)
+    if also:
+        first = {
+            **first,
+            "also": also,
+            "summary": "; ".join(
+                [first["summary"]] + [r["summary"] for r in also]
+            ) + f" (the same question put {len(also) + 1} ways, answered alike)"
+        }
+    events = [e for r in [first] + also for e in r["event_ids"]]
+    people = list(
+        dict.fromkeys(
+            r[0]
+            for e in events
+            for r in q.execute("""SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL
+                                  UNION SELECT fm.person_id FROM event_participant ep JOIN family_member fm ON fm.family_id=ep.family_id AND fm.role='partner'
+                                  WHERE ep.event_id=?""", (e, e))
+        )
+    )
+    for pid in people:
+        plan_person(cx, tree_id, pid, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    told = [rule_conflict_line(x) for x in rule_conflict_decisions(conflicts)]
+    return {
+        **first,
+        "summary": "; ".join([first["summary"]] + told),
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
+
+def decide_place_string(cx, tree_id, p, status, by, note, choice, kind=None):
+    """The owner's answer on a place string the resolver left undecided (a place_resolution proposal): which real place its
+    words mean (accepted, with the candidate chosen from the proposal by its index), or that they are not a place (rejected,
+    the reason kept in the string's notes). The answer is about the words, so it applies to every fact carrying the same
+    string: an accepted string takes its place_id from the candidate's hierarchy (resolve_places.Store, the candidate read
+    back from the geocoder's cached answer to the proposal's own queries; a gazetteer's own candidate with no geocoder twin,
+    a GOV or Wikidata place the geocoder does not know, becomes a place of its own name and position under the string's
+    country, carrying the gazetteer's id and dated names), its status and resolver the acting user, and the
+    resolver's apply_to_events fills every event whose strings are all resolved; a rejected string stays rejected wherever it
+    appears and no event takes it. kind classifies how an accepted string differs from the place's own name
+    (place_string.variant_kind: a typo, a jurisdiction error, …; docs/DATA-ARCHITECTURE.md §8). One audit row on the string,
+    the proposal decided. Returns what was written, or an error."""
+    from resolve_places import Store, apply_to_events, nominatim
+    q = _q(cx)
+    pay = json.loads(p["payload_json"])
+    psid, raw = pay["place_string_id"], pay["raw"]
+    ts = now()
+    if p["status"] != "undecided":
+        return {"error": "already decided"}
+    ps = q.execute("SELECT status, place_id FROM place_string WHERE id=?", (psid,)).fetchone()
+    if not ps:
+        return {"error": "the place string is gone"}
+    events = [r["id"] for r in q.execute("""SELECT DISTINCT e.id FROM event e JOIN assertion a ON a.subject_kind='event' AND a.subject_id=e.id JOIN persona_fact pf ON pf.id=a.persona_fact_id
+                                             WHERE e.tree_id=? AND pf.place_string_id=? AND a.status<>'rejected'""", (tree_id, psid))]
+    leaf = place = None
+    if status == "accepted":
+        cands = pay.get("candidates") or []
+        try:
+            cand = cands[int(choice)]
+        except (TypeError, ValueError, IndexError):
+            return {"error": "choose one of the resolver's candidates for these words, or say they are not a place"}
+        # a gazetteer's own place, no geocoder twin: its name and position under the string's country
+        if cand.get("kind") == "gazetteer":
+            from resolve_places import write_gazetteer
+            st = Store(cx)
+            country = (pay.get("parsed") or {}).get("country")
+            names = cand.get("names") or []
+            name = (
+                next((n["name"] for n in names if not n.get("valid_to")), None)
+                or (names[0]["name"] if names else cand.get("display_name", raw).split(" (")[0])
+            )
+            ptype = cand.get("type") if cand.get("type") in ("town", "village", "hamlet", "city") else "village"
+            leaf = st.place(
+                name,
+                ptype,
+                st.place(country, "country", None) if country else None,
+                cand.get("lat"),
+                cand.get("lon"),
+                cand["id"] if cand.get("source") == "wikidata" else None
+            )
+            write_gazetteer(cx, leaf, cand)
+            place = cand.get("display_name")
+        else:
+            full = next(
+                (
+                    c
+                    for qy in pay.get("queries") or []
+                    for c in nominatim(qy)
+                    if f"{c.get('osm_type')}/{c.get('osm_id')}" == cand.get("osm")
+                ),
+                None
+            )
+            if full is None:
+                return {
+                    "error": f"the geocoder's answer naming {cand.get('display_name')} is not in the cache and the geocoder did not give it again"
+                }
+            leaf = Store(cx).hierarchy(full)
+            place = cand.get("display_name")
+        if not q.execute("SELECT 1 FROM place_name WHERE place_id=? AND name=?", (leaf, raw)).fetchone():
+            q.execute(
+                "INSERT INTO place_name (id,place_id,name,is_primary) VALUES (?,?,?,?)", (ulid(), leaf, raw, False)
+            )
+        q.execute(
+            "UPDATE place_string SET place_id=?, status='accepted', resolver=?, resolved_at=?, variant_kind=?, notes=? WHERE id=?",
+            (
+                leaf,
+                by,
+                ts,
+                kind,
+                dumps(
+                    {"how": "chosen from the proposal's candidates", "match": cand, "proposal": p["id"], "note": note}
+                ),
+                psid
+            )
+        )
+    else:
+        q.execute(
+            "UPDATE place_string SET place_id=NULL, status='rejected', resolver=?, resolved_at=?, notes=? WHERE id=?",
+            (by, ts, dumps({"reason": note or "not a place", "proposal": p["id"]}), psid)
+        )
+    q.execute(
+        "UPDATE proposal SET status=?, decided_by=?, decided_at=?, decision_note=? WHERE id=?",
+        (status, by, ts, note, p["id"])
+    )
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            ulid(),
+            tree_id,
+            ts,
+            by,
+            "accept" if status == "accepted" else "reject",
+            "place_string",
+            psid,
+            dumps(
+                {
+                    "raw": raw,
+                    "from": {"status": ps["status"], "place_id": ps["place_id"]},
+                    "to": {"status": status, "place_id": leaf, "variant_kind": kind if status == "accepted" else None},
+                    "place": place,
+                    "proposal": p["id"],
+                    "events": len(events),
+                    "note": note
+                }
+            )
+        )
+    )
+    placed = 0
+    if status == "accepted":
+        apply_to_events(cx, tree_id, by, ts)
+        placed = sum(
+            1 for e in events if q.execute("SELECT place_id FROM event WHERE id=?", (e,)).fetchone()["place_id"]
+        )
+    n = f"{len(events)} fact{'s' if len(events) != 1 else ''} carr{'y' if len(events) != 1 else 'ies'} these words"
+    summary = (
+        (
+            f"\u201c{raw}\u201d means {place}: {n}, {placed} now placed"
+            + ("" if placed == len(events) else f", {len(events) - placed} waiting on another string of theirs")
+        )
+        if status == "accepted"
+        else f"\u201c{raw}\u201d is not a place: {n}, none takes it"
+    )
+    return {
+        "ok": True,
+        "kind": "place_resolution",
+        "status": status,
+        "raw": raw,
+        "place": place,
+        "place_id": leaf,
+        "events": len(events),
+        "event_ids": events,
+        "placed": placed,
+        "summary": summary
+    }
+
+def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, alone=False):
+    """A decision on a proposal: is this record's persona this person (persona_match), or a person the tree does not have
+    (new_person); or, on a place_resolution proposal, the owner's answer on a place card (decide_place, choice naming the
+    candidate, kind how the string differs from the place's name, alone for this card's string only). Accepted: the link accepted, every fact the record states accepted onto the person (assert_facts), the
+    family links it states with persons already matched on it accepted (link_family), the plans of the person, of the
+    person the record was fetched for and of everyone whose family the decision's links changed (link_people: each
+    membership the decision's statements state, on every copy of the record, its person and the family's partners, and
+    everyone in a family a link put someone into anew) regenerated and the questions that closes marked answered (the regeneration logs a
+    household record, a census page whichever way it arrived, found on the person's own step for its census year,
+    plan_person through log_search.hold_household, so their row reads held and no runner searches that census again for a
+    household the tree has read, the way the runner logs the household's other steps for a connector's answer); on a page
+    anyone can edit the
+    decision is an identity: the link accepted, the memberships it states created where the tree lacks them with an Undecided
+    assertion, and the facts written undecided. Rejected: the link rejected;
+    for a new person nothing but the proposal. A proposal accepted, by the rule, by a session or by a person, can be rejected
+    by a person afterwards, with the reason in the note: the link, every assertion and the name alias the decision wrote
+    turn rejected, and so does every family link the decision was one of the two acceptances for, written by the other's
+    decision (links_resting_on, what a withdrawal takes back: the persona is not this person, so the record states no link
+    of theirs), the questions it answered are closed as gap_gone so the plan reopens those whose gap is back, a step held
+    by the record for this person is planned again, and the plans are regenerated as an acceptance's are, of everyone whose
+    family the links turned rejected changed among them; rejecting a card whose decision the rule took back turns rejected
+    what that decision wrote and the links its withdrawal took back the same way, and either rejection is the person's own
+    decision on each of those statements (person_decided), so no later acceptance of the other card writes the link again;
+    a statement a person decided on its own since keeps the state they gave it. One the rule took back (withdraw) is
+    accepted with everything it had written standing again, its name alias included, save a statement a person has decided
+    on its own since, which keeps the person's status. Either way, once the plans are regenerated, the rule goes over the conflicts of the people whose plans the
+    decision changed (rule_conflicts): its own resolutions there examined again, every open conflict on an event's date or
+    place decided where the classes favour one side without doubt; and then the undecided cards putting a persona to one of
+    those people are matched again on their evidence as it now stands (rematch): one the matcher no longer puts to that
+    person closes as superseded and its record is matched again, one it still does takes its words as they now read. The
+    decision's audit row is written as it takes effect, before the conflicts it changes and the cards of the same record
+    the rule takes next, so audit ids run in the order decisions were taken (reconsider examines the rule's decisions in
+    that order). A card naming a person merged into another is refused (merged_refusal), and so is an accept of a card whose
+    record is withdrawn from the evidence (tools/tombstone.py), the reason naming the tombstone. Returns what was written, rematched
+    the rows of the cards matched again, or an error.
+    Implements [rule.standing.1], [rule.accept.1], [rule.accept.10], [rule.editable.7], [rule.reject.1], [rule.reject.2], [rule.reject.3], [rule.name.4], [rule.points.9], [rule.plans.1], [rule.plans.3]."""
+    q = _q(cx)
+    p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
+    if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"):
+        return decide_place(cx, tree_id, p, status, by, note, choice, kind, alone)
+    if not p or p["kind"] not in ("persona_match", "new_person") or status not in ("accepted", "rejected"):
+        return {"error": "not a persona match, new person or place resolution, or bad status"}
+    pay = json.loads(p["payload_json"])
+    persona_id, person_id = pay["persona_id"], pay.get("person_id")
+    ts = now()
+    n = 0
+    members = []
+    alias_id = None
+    identity = editable(cx, pay["artifact_sha256"])  # a page anyone can edit: the identity and its links, never a fact
+    # a card on a withdrawn file, open or closed by the withdrawal: its statements would be evidence for nothing
+    gone = withdrawals(cx, [pay["artifact_sha256"]]).get(pay["artifact_sha256"]) if status == "accepted" else None
+    if gone:
+        return {"error": f"the record was withdrawn from the evidence on {gone['at'][:10]} by {gone['by']} ({gone['reason']}): its statements are evidence for nothing, so a card on it cannot be accepted"}
+    # any acceptance, the rule's, a session's or a person's, a person may take back by rejecting the card
+    if p["status"] != "undecided" and not (p["status"] == "accepted" and status == "rejected"):
+        return {"error": "already decided"}
+    refused = merged_refusal(cx, [person_id, pay.get("subject_person_id")])
+    if refused:
+        return {"error": refused}
+    # a person's own decision on every statement the card's decision wrote, standing or taken back by the rule, and on every
+    # family link it was one of the two acceptances for: the persona is not this person, so the record states none of them;
+    # a statement a person decided on its own since keeps the state they gave it
+    links = links_resting_on(cx, tree_id, prop_id, taken_back=True) if status == "rejected" else []
+    if status == "rejected":
+        n = q.execute(
+            "UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=?, person_decided=TRUE WHERE tree_id=? AND NOT person_decided AND json_valid(notes) AND json_extract(notes,'$.proposal')=?",
+            (by, ts, tree_id, prop_id)
+        ).rowcount
+        if links:
+            n += q.execute(
+                f"UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=?, person_decided=TRUE WHERE id IN ({','.join('?' * len(links))})",
+                (by, ts, *links)
+            ).rowcount
+        # the name as the record writes it goes with the record
+        q.execute(
+            "UPDATE alias SET status='rejected' WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?",
+            (tree_id, prop_id)
+        )
+        # the questions an acceptance answered, closed as gap_gone, so the plan reopens the ones whose gap is back
+        q.execute(
+            "UPDATE research_question SET closed_reason='gap_gone', answered_by_proposal_id=NULL WHERE answered_by_proposal_id=?",
+            (prop_id,)
+        )
+    q.execute(
+        "UPDATE proposal SET status=?, decided_by=?, decided_at=?, decision_note=? WHERE id=?",
+        (status, by, ts, note, prop_id)
+    )
+    # created once; a decision the rule took back and that is taken again links the same person
+    if p["kind"] == "new_person" and status == "accepted" and not person_id:
+        person_id = create_person(cx, tree_id, persona_id, ts)
+        q.execute(
+            "UPDATE proposal SET payload_json=json_set(payload_json,'$.person_id',?) WHERE id=?", (person_id, prop_id)
+        )
+    if person_id:
+        # the decision is about this entry of the record: every reading's persona of it takes it
+        for pe_id in same_personas(cx, persona_id):
+            q.execute(
+                "INSERT OR REPLACE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)",
+                (person_id, pe_id, status, prop_id, by, ts)
+            )
+    answered = []
+    if status == "accepted":
+        # what the rule wrote and took back stands again; what it wrote undecided, and what a person set undecided on its own, stays so
+        n = q.execute(f"""UPDATE assertion SET status='accepted', asserted_by=?, asserted_at=? WHERE tree_id=? AND status='undecided' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
+                          AND {ACCEPTED_WITH_RECORD} AND NOT person_decided""", (by, ts, tree_id, prop_id)).rowcount
+        m, sha = assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts)
+        n += m
+        alias_id = write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts)
+        held_back = []
+        members = link_family(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts, held_back=held_back)
+        if held_back:  # what the record states and the decision did not write, said in the decision itself
+            note = "; ".join([note] + held_back) if note else "; ".join(held_back)
+            q.execute("UPDATE proposal SET decision_note=? WHERE id=?", (note, prop_id))
+    # the decision is the record's: every other copy's persona of this entry takes it
+    if person_id:
+        carry(cx, by, pay["artifact_sha256"], trees=[tree_id], settle=False)
+    # everyone whose family the decision changed: each membership its own statements state, on every copy (written now, set
+    # again or turned rejected), and each a rejection took back, with the family's partners; everyone in a family a link put
+    # someone into anew
+    people = [
+        pid
+        for pid in dict.fromkeys(
+            [person_id, pay.get("subject_person_id")] + link_people(
+                cx,
+                decision_memberships(cx, tree_id, prop_id) + memberships_of(cx, links),
+                joined=dict.fromkeys(m["family"] for m in members if m["new"])
+            )
+        )
+        if pid
+    ]
+    for pid in people:
+        answered += answer_questions(cx, tree_id, pid, prop_id, by)
+    # a step the record held for this person is planned again
+    released = (
+        release_household(cx, tree_id, person_id, pay["artifact_sha256"], by)
+        if status == "rejected" and person_id and not identity
+        else []
+    )
+    # the plan sees the row open again
+    if released:
+        answered += answer_questions(cx, tree_id, person_id, prop_id, by)
+    # written as the decision takes effect, ahead of what it brings on: the audit ids run in the order decisions were taken
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            ulid(),
+            tree_id,
+            ts,
+            by,
+            "accept" if status == "accepted" else "reject",
+            "proposal",
+            prop_id,
+            dumps(
+                {
+                    "kind": p["kind"],
+                    "persona": persona_id,
+                    "person": person_id,
+                    "identity": identity,
+                    "assertions": n,
+                    "alias": alias_id,
+                    "memberships": members,
+                    "links": links,
+                    "answered": answered,
+                    "released_steps": released,
+                    "note": note
+                }
+            )
+        )
+    )
+    # the conflicts the decision opened or changed, the rule's own resolutions that rest on what it changed, and the cards
+    # these people's evidence has passed by
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    # the record's other personas come up next, against this person's relatives, on the current reading of the record
+    if status == "accepted":
+        eid = latest_reading(cx, q.execute("SELECT extraction_id FROM persona WHERE id=?", (persona_id,)).fetchone()["extraction_id"])
+        match_record(cx, eid, by.split(" for ", 1)[-1] if by.startswith("rule:") else by)
+    return {
+        "ok": True,
+        "status": status,
+        "kind": p["kind"],
+        "person": person_id,
+        "persona": persona_id,
+        "identity": identity,
+        "assertions": n,
+        "alias": alias_id,
+        "memberships": members,
+        "links": links,
+        "answered": answered,
+        "released_steps": released,
+        "note": note,
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
+
+def match_record(cx, eid, by, about=None):
+    """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the
+    owner's behalf, recorded as the rule. Returns (proposals written, proposals the rule accepted with the reason).
+    Implements [rule.standing.2], [rule.standing.9]."""
+    q = _q(cx)
+    written = match(cx, eid, by, about=about)
+    taken = []
+    for prop_id, kind, name, person_id in written:
+        p = q.execute("SELECT * FROM proposal WHERE id=?", (prop_id,)).fetchone()
+        # decided or superseded already, by what an earlier decision here brought on
+        if p["status"] != "undecided":
+            continue
+        ok, why = rule_accepts(cx, p["tree_id"], p)
+        if ok:
+            decide(cx, p["tree_id"], prop_id, "accepted", f"{RULE_ACTOR[p['kind']]} for {by}", note=why)
+            taken.append((prop_id, name, why))
+    return written, taken
+
+def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
+    """The owner places a person in a family by their own word, on a record that stops short of naming both parties in full
+    (an index that gives the spouse's surname by four letters): the membership is created in a family of the right shape and
+    carries one Accepted assertion on the artifact, vouched, the owner's own decision on it (person_decided), with the owner's reason; a marriage the record dates becomes the
+    family's Marriage event with the same assertion. kind is 'spouse' (other is the spouse) or 'child' (other is one parent
+    or a list of both): the child joins the family that pairs the named parents; a parent with several families needs both
+    named; a family made here for two parents asserts their partnership on the same word. Then the plans of the family's
+    people are regenerated, the rule goes over their conflicts and their cards are matched again (settle_people). Refused for
+    a person merged into another (merged_refusal). Returns the family id, its people, the rule's rows on the conflicts and
+    the cards matched again.
+    Implements [rule.own.2]."""
+    q = _q(cx)
+    ts = now()
+    if refused := merged_refusal(cx, [pid] + (list(other) if isinstance(other, (list, tuple)) else [other])):
+        raise ValueError(refused)
+    one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
+    if kind == "spouse":
+        fid = one("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
+                     WHERE fm.person_id=? AND fm.role='partner'""", (other, pid))
+        if fid is None:
+            fid = new_family(cx, tree_id, other, ts)
+        rows = [(fid, pid, "partner"), (fid, other, "partner")]
+    else:
+        parents = list(other) if isinstance(other, (list, tuple)) else [other]
+        fids = [
+            f
+            for f, in q.execute(
+                "SELECT family_id FROM family_member WHERE person_id=? AND role='partner'", (parents[0],)
+            )
+            if all(
+                q.execute(
+                    "SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role='partner'", (f, x)
+                ).fetchone()
+                for x in parents[1:]
+            )
+        ]
+        if len(fids) > 1:
+            raise ValueError("the parent has more than one family: name both parents")
+        fid = fids[0] if fids else new_family(cx, tree_id, parents[0], ts)
+        # a family made here for two parents: each parent's partner row carries the same word, the first's included
+        rows = [(fid, pid, "child")] + ([(fid, x, "partner") for x in parents] if not fids and len(parents) > 1 else [])
+    for f, who, role in rows:
+        if not q.execute(
+            "SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role=?", (f, who, role)
+        ).fetchone():
+            q.execute("INSERT INTO family_member (family_id,person_id,role) VALUES (?,?,?)", (f, who, role))
+        q.execute(
+            """INSERT INTO assertion (id,tree_id,subject_kind,subject_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,person_decided,notes)
+                     VALUES (?,?,'family_member',?,?,?,'accepted',?,?,TRUE,?)""",
+            (
+                ulid(),
+                tree_id,
+                dumps([f, who, role]),
+                sha,
+                "the owner's word on this record",
+                by,
+                ts,
+                dumps({"vouched": True, "note": note})
+            )
+        )
+    if marriage:
+        eid = ulid()
+        q.execute(
+            "INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at) VALUES (?,?,'Marriage',?,?,?,?,?,?,?)",
+            (
+                eid,
+                tree_id,
+                marriage.get("date_text"),
+                marriage.get("date_start"),
+                marriage.get("date_end"),
+                marriage.get("qualifier"),
+                "gregorian",
+                ts,
+                ts
+            )
+        )
+        q.execute(
+            "INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'family')", (ulid(), eid, fid)
+        )
+        q.execute(
+            """INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,person_decided,notes)
+                     VALUES (?,?,'event',?,?,?,?,'accepted',?,?,TRUE,?)""",
+            (
+                ulid(),
+                tree_id,
+                eid,
+                marriage.get("persona_fact_id"),
+                sha,
+                marriage.get("citation") or "the record's marriage entry",
+                by,
+                ts,
+                dumps({"vouched": True, "note": note})
+            )
+        )
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            ulid(),
+            tree_id,
+            ts,
+            by,
+            "accept",
+            "family",
+            fid,
+            dumps(
+                {"link": kind, "person": pid, "other": other, "record": sha, "note": note, "marriage": bool(marriage)}
+            )
+        )
+    )
+    people = [r[0] for r in q.execute("SELECT DISTINCT person_id FROM family_member WHERE family_id=?", (fid,))]
+    for p_ in people:
+        plan_person(cx, tree_id, p_, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    return {"family": fid, "people": people, "conflicts": conflicts, "rematched": rematched}
+
+def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
+    """The couple's family gets a Divorce event, dated as the records allow ("BET 1950 AND 1959"), with one Accepted assertion per
+    piece of evidence the owner names: (artifact sha, persona_fact id or None, citation words), each the owner's own decision on
+    it (person_decided). A divorced couple stays a family in
+    the tree, so the children keep both parents; the event is what the screen shows between the two lines. Then the two
+    people's plans are regenerated, the rule goes over their conflicts and their cards are matched again (settle_people).
+    Refused for a person merged into another (merged_refusal). Returns the event id, the rule's rows on the conflicts and the
+    cards matched again.
+    Implements [rule.own.2]."""
+    q = _q(cx)
+    ts = now()
+    if refused := merged_refusal(cx, [a, b]):
+        raise ValueError(refused)
+    fid = next((f for f, in q.execute("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role='partner'
+                                          WHERE fm.person_id=? AND fm.role='partner'""", (b, a))), None)
+    if fid is None:
+        raise ValueError("no family joins these two")
+    from treelib import parse_gedcom_date
+    d = parse_gedcom_date(date_text) if date_text else {"date_start": None, "date_end": None, "date_qualifier": None}
+    eid = ulid()
+    q.execute(
+        "INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,created_at,updated_at) VALUES (?,?,'Divorce',?,?,?,?,?,?,?)",
+        (eid, tree_id, date_text, d["date_start"], d["date_end"], d["date_qualifier"], "gregorian", ts, ts)
+    )
+    q.execute("INSERT INTO event_participant (id,event_id,family_id,role) VALUES (?,?,?,'family')", (ulid(), eid, fid))
+    for sha, pf, cite in evidence:
+        q.execute(
+            """INSERT INTO assertion (id,tree_id,subject_kind,subject_id,persona_fact_id,artifact_sha256,citation_text,status,asserted_by,asserted_at,person_decided,notes)
+                     VALUES (?,?,'event',?,?,?,?,'accepted',?,?,TRUE,?)""",
+            (ulid(), tree_id, eid, pf, sha, cite, by, ts, dumps({"vouched": True, "note": note}))
+        )
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (ulid(), tree_id, ts, by, "accept", "event", eid, dumps({"divorce": [a, b], "date": date_text, "note": note}))
+    )
+    for p_ in (a, b):
+        plan_person(cx, tree_id, p_, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, [a, b])
+    return {"event": eid, "conflicts": conflicts, "rematched": rematched}
+
+def resolve(cx, tree_id, qid, keep, by, note):
+    """A conflict question closed with a written reason naming the value kept, by the owner or by the rule acting for them
+    (write_resolution); then the rule goes over the conflicts of the people the resolution was about and their cards are
+    matched again (settle_people), the owner's word on this date or place standing above the rule from then on
+    (owner_decided). Returns what write_resolution did with the rule's rows on the conflicts and the cards matched again,
+    or an error.
+    Implements [rule.conflict.4], [rule.conflict.7], [rule.plans.3]."""
+    out = write_resolution(cx, tree_id, qid, keep, by, note)
+    if "error" in out:
+        return out
+    conflicts, rematched = settle_people(cx, tree_id, by, out["people"])
+    return {**out, "conflicts": conflicts, "rematched": rematched}
+
+def reopen(cx, tree_id, qid, by, note):
+    """The owner reopens a conflict the rule resolved: taken back (take_back, reopened), the event's value back to what it was
+    and the question open again, the owner's from now on; the rule never resolves that event's date or place again. Refused
+    when the note is empty or the question is not one the rule resolved (the owner's own resolution stands as written).
+    Then the rule goes over the conflicts of the people the questions set back are about, which leaves this date or place
+    to the owner (owner_decided), and their cards are matched again (settle_people). Returns what was done, the rule's rows
+    on the conflicts and the cards matched again, or an error.
+    Implements [rule.conflict.7]."""
+    q = _q(cx)
+    if not (note or "").strip():
+        return {"error": "a reopen needs your written reason (--note)"}
+    rq = q.execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
+    res = rule_resolution(rq)
+    if not res:
+        return {"error": "not a conflict the rule resolved"}
+    ids = take_back(cx, tree_id, qid, by, note, now(), reopened=True)
+    people = [rq["subject_person_id"]] + ([
+        r[0]
+        for r in q.execute(
+            f"SELECT subject_person_id FROM research_question WHERE id IN ({','.join('?' * len(ids))})", ids
+        )
+    ] if ids else [])
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    st = q.execute("SELECT status FROM research_question WHERE id=?", (res.get("question") or qid,)).fetchone()
+    return {
+        "ok": True,
+        "question": res.get("question") or qid,
+        "event": res["event"],
+        "axis": res["axis"],
+        "restored": res["was"],
+        "questions": ids,
+        "open": bool(st and st["status"] == "open"),
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
+
+def living(cx, tree_id, pid, word, by, note):
+    """The owner's word on whether a person is alive, above the tier rule (docs/DATA-ARCHITECTURE.md §7 decision 3):
+    person.living_override set to living or deceased, or cleared by unknown so the rule decides again; one audit row. Refused
+    for a person merged into another (merged_refusal). Returns what was and is, with the default's reading afterwards."""
+    q = _q(cx)
+    ts = now()
+    row = q.execute("SELECT living_override FROM person WHERE id=? AND tree_id=?", (pid, tree_id)).fetchone()
+    if not row:
+        raise ValueError("no such person in this tree")
+    if refused := merged_refusal(cx, [pid]):
+        raise ValueError(refused)
+    value = None if word == "unknown" else word
+    q.execute("UPDATE person SET living_override=?, updated_at=? WHERE id=?", (value, ts, pid))
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            ulid(),
+            tree_id,
+            ts,
+            by,
+            "update",
+            "person",
+            pid,
+            dumps({"living_override": {"was": row["living_override"], "now": value}, "note": note})
+        )
+    )
+    return {"was": row["living_override"], "now": value, **Catalog(cx, tree_id).living(pid)}
+
+def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
+    """The undecided cards the evidence has passed by, matched again (docs/RULE.md): a card an older matcher
+    wrote (the matcher is versioned, match.MATCHER); a card left on a superseded reading of its record (a decision the rule
+    took on that reading and withdrew after the page was read again: a re-read closes only the cards undecided at the
+    time); and a card putting a persona to a person that the matcher, on the person's evidence as it now stands, would no
+    longer write (match.proposals, the record matched for the person the card was written for, the card taken as
+    unwritten): the persona a hint for that person now, waiting on the record's own person, or put to another person. Each
+    closes rejected with the note superseded, as a re-read closes the cards of the reading it supersedes, and its record's
+    current reading is matched again (match_record): the matcher proposes the persona afresh as it stands, the rule taking
+    what it takes, so a creation the rule took back on a reading since superseded comes back as a card for the person it
+    created, judged as that creation (made_here), and a persona that is a hint leaves the cards and stays a hint on the page. A card closed on a superseded
+    reading, a decision the rule withdrew, leaves what the withdrawal took back undecided, statements and name alias:
+    closing a card judges nothing it stated, so a family membership resting on it stays the claim it was, and the card the
+    record's current reading gets carries the record's facts again: accepting it makes them stand. A card the matcher still puts to
+    the same person keeps its id, its rationale the matcher's words as the evidence now stands; one the rule took and
+    withdrew keeps the words written before the record was taken, since its own statements now stand on the person and the
+    matcher would read the record against itself. people: only the cards putting a persona to one of them (rematch_people:
+    the people whose evidence a decision changed); every undecided card otherwise (reconsider). dry_run writes nothing and matches nothing again; withdrawn, the decisions
+    a dry run of reconsider would withdraw, are read as the cards they would be again, so a dry run names the ones it would
+    supersede on an older matcher's or a superseded reading. Returns (rows, taken): a row per card closed (kind rematch)
+    and per rationale rewritten (kind rationale), each with the proposal, the person, the persona and why; and a row per
+    card the rule took on the records matched again (kind card).
+    Implements [rule.reconsider.1], [rule.reconsider.2], [rule.reconsider.3], [rule.reconsider.8], [rule.relation.5]."""
+    from match import proposals
+    q = _q(cx)
+    out = []
+    taken_rows = []
+    if people is not None and not people:
+        return out, taken_rows
+    current = (
+        q.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=?", MATCHER).fetchone() or {"id": None}
+    )["id"]
+    name = lambda pid: (
+        q.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone() or {"display_name": "(a new person)"}
+    )["display_name"]
+    persona = lambda pid: q.execute("SELECT name_text FROM persona WHERE id=?", (pid,)).fetchone()["name_text"]
+    said = lambda text: [s.strip() for s in re.split(r"(?<=\.)\s+(?=[A-Z])", text or "") if s.strip()]
+    scope = (
+        f"AND json_extract(p.payload_json,'$.person_id') IN ({','.join('?' * len(people))})"
+        if people is not None
+        else ""
+    )
+    withdrawn = tuple(withdrawn)
+    also = f" OR p.id IN ({','.join('?' * len(withdrawn))})" if withdrawn else ""
+    cards = q.execute(
+        f"""SELECT p.*, e.superseded_by, x.version FROM proposal p JOIN extraction e ON e.id=json_extract(p.payload_json,'$.extraction_id')
+                          JOIN extractor x ON x.id=p.generated_by WHERE p.tree_id=? AND (p.status='undecided'{also}) AND p.kind IN ('persona_match','new_person') {scope}
+                          ORDER BY e.ran_at, e.id, p.created_at, p.id""", (tree_id, *withdrawn, *(people or []))
+    ).fetchall()
+    again = {}  # extraction id -> matched again once every card is examined
+    def close(p, pay, why, reading):
+        out.append(
+            {
+                "proposal": p["id"],
+                "person": name(pay.get("person_id")),
+                "persona": persona(pay["persona_id"]),
+                "kind": "rematch",
+                "taken": True,
+                "why": why
+            }
+        )
+        again[reading] = True
+        if dry_run:
+            return
+        q.execute(
+            "UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note='superseded' WHERE id=?",
+            (by, ts, p["id"])
+        )
+        q.execute(
+            "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+            (
+                ulid(),
+                tree_id,
+                ts,
+                by,
+                "reject",
+                "proposal",
+                p["id"],
+                dumps(
+                    {
+                        "closed": "superseded",
+                        "why": why,
+                        "matcher": p["version"],
+                        "now": MATCHER[2],
+                        "extraction": pay["extraction_id"],
+                        "matched_again": reading
+                    }
+                )
+            )
+        )
+    later = []
+    for p in cards:  # first what no comparison is needed for: an older matcher's card, a card on a superseded reading
+        pay = json.loads(p["payload_json"])
+        eid = pay["extraction_id"]
+        if p["superseded_by"]:
+            close(
+                p,
+                pay,
+                "written on a reading of the record that a later reading superseded: superseded, the current reading matched again",
+                latest_reading(cx, eid)
+            )
+        elif p["generated_by"] != current:
+            close(p, pay, f"the matcher at {p['version']} wrote it; superseded, proposed again at {MATCHER[2]}", eid)
+        elif p["kind"] == "persona_match" and p["status"] == "undecided":
+            later.append((p, pay))
+    views = {}  # extraction id -> {persona id: what the matcher proposes for it now}
+    # then each card against what the matcher writes now, the statements just turned counted as they stand
+    for p, pay in later:
+        eid = pay["extraction_id"]
+        if eid not in views:  # the record matched for the people its cards were written for, as when they were written
+            mine = [(c["id"], cp.get("subject_person_id")) for c, cp in later if cp["extraction_id"] == eid]
+            views[eid] = {
+                v["persona_id"]: v
+                for v in proposals(
+                    cx, eid, about=list(dict.fromkeys(s for _, s in mine if s)), ignore=[i for i, _ in mine]
+                )
+                if v["tree_id"] == tree_id
+            }
+        v = views[eid].get(pay["persona_id"])
+        if v and v["kind"] == "persona_match" and v["person_id"] == pay["person_id"]:
+            if v["rationale"] == p["rationale"]:
+                continue
+            # a decision withdrawn: its own statements stand on the person, the words written before it was taken stay
+            if q.execute(
+                "SELECT 1 FROM assertion WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=? LIMIT 1",
+                (tree_id, p["id"])
+            ).fetchone():
+                continue
+            was, now_ = said(p["rationale"]), said(v["rationale"])
+            why = "; ".join(
+                x
+                for x in (
+                    "now: " + " ".join(s for s in now_ if s not in was) if any(s not in was for s in now_) else "",
+                    "no longer: " + " ".join(s for s in was if s not in now_) if any(s not in now_ for s in was) else ""
+                )
+                if x
+            )
+            out.append(
+                {
+                    "proposal": p["id"],
+                    "person": name(pay.get("person_id")),
+                    "persona": persona(pay["persona_id"]),
+                    "kind": "rationale",
+                    "taken": True,
+                    "why": why
+                }
+            )
+            if dry_run:
+                continue
+            q.execute("UPDATE proposal SET rationale=? WHERE id=?", (v["rationale"], p["id"]))
+            q.execute(
+                "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+                (
+                    ulid(),
+                    tree_id,
+                    ts,
+                    by,
+                    "update",
+                    "proposal",
+                    p["id"],
+                    dumps({"rationale": {"was": p["rationale"], "now": v["rationale"]}})
+                )
+            )
+            continue
+        why = (
+            f"the matcher now puts {persona(pay['persona_id'])} to {name(v['person_id'])}"
+            if v and v["person_id"]
+            else f"the matcher now finds nobody in the tree fitting {persona(pay['persona_id'])}"
+            if v
+            else f"no longer a card for {name(pay.get('person_id'))} as the evidence stands: a hint on the page, or waiting on the record's own person"
+        ) + ": superseded, the record matched again"
+        close(p, pay, why, eid)
+    if dry_run:
+        return out, taken_rows
+    for eid in again:
+        for prop_id, pname, why in match_record(cx, eid, by)[1]:
+            pay = json.loads(
+                q.execute("SELECT payload_json FROM proposal WHERE id=?", (prop_id,)).fetchone()["payload_json"]
+            )
+            taken_rows.append(
+                {
+                    "proposal": prop_id,
+                    "person": name(pay.get("person_id")),
+                    "persona": pname,
+                    "kind": "card",
+                    "taken": True,
+                    "why": why
+                }
+            )
+    return out, taken_rows
+
+def rematch_people(cx, tree_id, by, people):
+    """The undecided cards of these people matched again (rematch) once a decision has changed their evidence, the owner's or
+    the rule's (acting for the owner, who is then the one recorded): a card, a key fact, one statement, a place's words, a
+    conflict resolved or reopened, a statement placed, a family link or a divorce on the owner's word, a merge. Returns the
+    rows of the cards superseded and rewritten.
+    Implements [rule.reconsider.4]."""
+    owner = by.split(" for ", 1)[-1] if by.startswith("rule:") else by
+    return rematch(cx, tree_id, owner, now(), people=[p for p in dict.fromkeys(people) if p])[0]
+
+def settle_people(cx, tree_id, by, people):
+    """What follows every decision that changes these people's evidence once their plans are regenerated
+    (docs/RULE.md), whichever command or screen took it: the rule goes over their conflicts
+    (rule_conflicts: its own resolutions there examined again, each open conflict on an event's date or place decided where
+    the classes favour one side without doubt, a date or place the owner has resolved, dismissed or reopened left to them),
+    then their undecided cards are matched again (rematch_people). Returns (the rule's rows on the conflicts, the rows of
+    the cards matched again).
+    Implements [rule.plans.3], [rule.reconsider.4]."""
+    people = [p for p in dict.fromkeys(people) if p]
+    if not people:
+        return [], []
+    conflicts = rule_conflicts(cx, tree_id, by, people=people)
+    return conflicts, rematch_people(cx, tree_id, by, people)
+
+def link_people(cx, links, joined=()):
+    """Everyone whose family a change to these memberships reaches, each once: for each membership (family id, person id,
+    role) a decision wrote, decided or took back, its person and every partner of its family (a child's membership is each
+    parent's child, a partner's the other partner's spouse); and everyone in each family of joined, one the decision put
+    someone into anew (a partner joining a family that holds children, a child joining a couple), the family's shape changed
+    for each of them.
+    Implements [rule.plans.1]."""
+    q = _q(cx)
+    out = []
+    for fid, who, role in links:
+        out += [who] + [r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='partner'", (fid,))]
+    for fid in joined:
+        out += [r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=?", (fid,))]
+    return list(dict.fromkeys(out))
+
+def memberships_of(cx, ids):
+    """The memberships (family id, person id, role) the family_member statements among these assertion ids state."""
+    return [
+        tuple(json.loads(r[0]))
+        for r in _q(cx).execute(
+            f"SELECT subject_id FROM assertion WHERE subject_kind='family_member' AND id IN ({','.join('?' * len(ids))})",
+            list(ids)
+        )
+    ] if ids else []
+
+def decision_memberships(cx, tree_id, prop_id):
+    """The memberships (family id, person id, role) a decision's own statements state, on every copy of its record it was
+    carried to.
+    Implements [rule.plans.1]."""
+    return [
+        tuple(json.loads(r[0]))
+        for r in _q(cx).execute(
+            """SELECT DISTINCT subject_id FROM assertion WHERE tree_id=? AND subject_kind='family_member' AND json_valid(notes)
+               AND json_extract(notes,'$.proposal')=?""",
+            (tree_id, prop_id)
+        )
+    ]
+
+def statement_people(cx, ids):
+    """The people statements are about, each once: the participants of a statement's event (both partners of a family's
+    event), the person it asserts, and for a family membership the member and the family's partners (link_people).
+    Implements [rule.plans.1]."""
+    q = _q(cx)
+    out = []
+    for kind, sid in q.execute(
+        f"SELECT subject_kind, subject_id FROM assertion WHERE id IN ({','.join('?' * len(ids))})", list(ids)
+    ).fetchall() if ids else []:
+        if kind == "event":
+            out += [r[0] for r in q.execute("""SELECT person_id FROM event_participant WHERE event_id=? AND person_id IS NOT NULL
+                                               UNION SELECT fm.person_id FROM event_participant ep JOIN family_member fm ON fm.family_id=ep.family_id AND fm.role='partner'
+                                               WHERE ep.event_id=?""", (sid, sid))]
+        elif kind == "person":
+            out.append(sid)
+        elif kind == "family_member":
+            out += link_people(cx, [tuple(json.loads(sid))])
+    return list(dict.fromkeys(out))
+
+def decide_assertion(cx, tree_id, aid, status, by, note):
+    """One statement of one record decided on its own (tools/conclude.py assertion): its status set, the person's own decision
+    on it (person_decided), one audit row; the plans of the people it is about regenerated, then the rule goes over their
+    conflicts and their cards are matched again (settle_people). Returns what was done, the rule's rows on the conflicts and the
+    cards matched again, or an error.
+    Implements [rule.own.2], [rule.own.3], [rule.plans.3]."""
+    q = _q(cx)
+    row = q.execute(
+        "SELECT id, subject_kind, subject_id, status, citation_text FROM assertion WHERE id=? AND tree_id=?",
+        (aid, tree_id)
+    ).fetchone()
+    if not row:
+        return {"error": "no such assertion in this tree"}
+    if status not in ("accepted", "rejected", "undecided"):
+        return {"error": "bad status"}
+    ts = now()
+    q.execute(
+        "UPDATE assertion SET status=?, asserted_by=?, asserted_at=?, person_decided=TRUE WHERE id=?",
+        (status, by, ts, row["id"])
+    )
+    q.execute(
+        "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+        (
+            ulid(),
+            tree_id,
+            ts,
+            by,
+            {"accepted": "accept", "rejected": "reject", "undecided": "update"}[status],
+            "assertion",
+            row["id"],
+            dumps({"was": row["status"], "now": status, "subject": [row["subject_kind"], row["subject_id"]], "note": note})
+        )
+    )
+    people = statement_people(cx, [row["id"]])
+    for pid in people:
+        plan_person(cx, tree_id, pid, by)
+    conflicts, rematched = settle_people(cx, tree_id, by, people)
+    return {
+        "ok": True,
+        "assertion": row["id"],
+        "subject_kind": row["subject_kind"],
+        "citation": row["citation_text"],
+        "was": row["status"],
+        "status": status,
+        "people": people,
+        "conflicts": conflicts,
+        "rematched": rematched
+    }
