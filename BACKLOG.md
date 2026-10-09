@@ -175,20 +175,47 @@ writes it. If decision 8 says a run written to reach a path is the harness's
 bookkeeping and no answer: the scenarios stay and the docs say so. Unlocks
 C26.
 
-### D11. The second family
-
-The harness runs on a cut of the owner's export, with no invented people or
-records, so nothing proves the tools on another family. The owner names a
-real second tree: another family's export they hold, or a published
-public-domain one. Its scenario is what most harness gaps wait on. Unlocks
-C20.
-
 ### D12. A family-held photograph as a fixture
 
 The two family-held photographs a scenario drops into the inbox are a
 stand-in file; the photographs the archive holds are marked private. Hard
 rule 7 lets any archived document the owner chooses sit in `tests/`. The
 owner names one, and the stand-in goes. Unlocks C25.
+
+### D13. How many branches the loop works at once
+
+The queue names one person, the next at the edge of the confirmed tree from
+the home person, and the runner takes one turn at a time. A tree with several
+roots (the file's people not reached from the home person; forty-five
+presidents in one tree) on a machine with cores to spare could work several
+branches at once. Asked: whether the number of branches worked at once is a
+setting of the tree (one, as now, the default; N, each branch a turn of its
+own on a connection of its own), and what a branch is (a root's confirmed
+line; the home person's line and each of the file's others; a generation).
+What each answer changes: with one, nothing; with N, two turns must never
+write one person (a decision, the rule's re-examination, the plans
+regenerated), so the queue would claim a person for a turn and a turn's
+transaction would hold its writes, and SQLite serialises writers, so the gain
+is in the fetches and the reads until Postgres. The analysis first, before the
+setting is designed: a turn's time by phase (fetch, read, match, rule, settle)
+measured on the live tree and on the second family, and where parallel turns
+would gain.
+
+### D14. DNA as an evidence class
+
+Six DNA sources are registered (`data/data-sources.csv` P01–P06) and no
+evidence class reads a DNA result, so a claim that rests on one (a maternal
+line's haplogroup settling which of two women was a person's mother; a
+shared segment between two testers) is a hint and never evidence, and the
+conflict it would settle stays the owner's. Asked: whether a DNA result is an
+evidence class at all, and of what (a relationship point between the two
+people tested, or a line's descent; never a name or a date); what document
+the archive holds for it (the raw file the owner downloads, a match page, a
+published study); and its standing as the field reads it (original, primary,
+indirect). What each answer changes: with no class, nothing, and the proof
+says of such a conflict that no held record decides it; with a class,
+`data/evidence-classes.csv` takes the rows, the proof reads them, and the
+rule's conflict test says whether it may weigh one.
 
 ---
 
@@ -455,6 +482,33 @@ Beside it: the transcription form (`app/person/read_record.md`, the screen)
 does not ask for the sheet, dwelling or family the reader now keeps; the
 Ancestry index reader, which no real page reaches, still drops its locator
 labels; and FamilySearch's search rows carry no locator at all.
+
+### A4. Two people's relationship, through accepted links alone
+
+"Are these two people related?" is the second family's first question, and
+nothing answers it: the proof reads one person's key facts, the overview one
+line. `tools/kin.py "<person>" "<person>"`, read-only, in layer 4 beside the
+proof: the path between the two through the family links the tree has
+accepted (the accepted memberships, as the queue reads the confirmed tree's
+links through `Catalog.family`; never a claim, a sibling placement, an
+editable page's link or a link a withdrawn decision left), printed one link
+per line with the two people, the relation, the record the link rests on and
+the proof's reading of that record (its classes, and whether the source is
+one the rule trusts), the relationship named in words at the end (second
+cousins; first cousins once removed; related by marriage through a named
+couple), and the chain's own standing, which is its least-proven link's. When
+no accepted path exists the answer is never "no": the nearest path the file
+claims is printed with each link not yet accepted and what would prove it
+(the records the checklist names for that link), so the owner reads what is
+owed. Several paths: the shortest by links, among those the one whose weakest
+link is strongest; `--all` prints the rest; `--json` the chain. A
+relationship by marriage is a path through a spouse link and is said so.
+Scenarios on the harness family: a pair joined by accepted links alone, a
+pair joined through a claim, a pair with no path, a pair joined by marriage,
+two paths of unequal standing. The docs: `docs/RULE.md`'s proof section gets
+the paragraph with its own identifier, `schema/README.md`'s table the row,
+`CLAUDE.md`'s command block the line. **Blocks:** the second family's
+question (C20's family, and the presidents' chains after it).
 
 ---
 
@@ -926,18 +980,22 @@ each to its holder.
 
 The harness runs on a cut of the owner's export, by the owner's ruling (no
 invented people or records), so nothing proves the tools on a family with
-other places, other denominations and another export's citations. With the
-real second tree the owner names (D11), add a scenario that ingests it beside the
-harness tree, builds its checklists and plans, and shows nothing of the first
-family reaching the second (the tree-isolation entry above). The harness is
-narrower than `tools/check.py` and `tests/checks/scenario.py` say ("another
-family's export runs unchanged"): the walker names people under the
-`ancestry_gedcom_xref` id system alone, `a_file_family` writes that system and
-"Ancestry member tree (no citation)" by hand, and `check.py` names its fixtures
-and source ids; a second family's export from another program needs those
-read from the import first.
-
-**Blocked by:** D11.
+other places, other denominations and another export's citations. The second
+family is the Lincoln tree: a claim file written from three published charts
+(UsefulCharts' Abraham Lincoln, Roosevelt and "Are all the US Presidents
+related?" videos), its people public figures, so the file may sit in `tests/`
+(the charts' own text stays out of git), worked in a data root of its own
+(`DATA_ROOT=/home/neural/Desktop/lincoln`, a live catalog of that tree's own),
+never a tree in the family catalog while D9 is open. Add a scenario that
+ingests the claim file beside the harness tree, builds its checklists and
+plans, and shows nothing of the first family reaching the second (the
+tree-isolation entry above). The harness is narrower than `tools/check.py`
+and `tests/checks/scenario.py` say ("another family's export runs
+unchanged"): the walker names people under the `ancestry_gedcom_xref` id
+system alone, `a_file_family` writes that system and "Ancestry member tree
+(no citation)" by hand, and `check.py` names its fixtures and source ids; a
+second family's file from another origin needs those read from the import
+first.
 
 ### C21. A conflict one side of which rests only on claims and editable pages
 
