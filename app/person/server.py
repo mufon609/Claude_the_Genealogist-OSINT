@@ -24,7 +24,7 @@ from catalog import Catalog, fetch_target, held_for, holdings, holds, not_withdr
 from checklist import build
 from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
-from extract import Writer
+from readers import Writer
 from forms import census_form
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for

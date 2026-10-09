@@ -362,11 +362,11 @@ def a_archive(w, x):
                               retrieved_by=BY, terms=src[1], cost=cost, trust_tier=src[0], original_filename=x.get("fixture") or x.get("file"), notes=notes)
     out = {"sha": sha, "new": new}
     if x.get("extract"):
-        from extract import extract
+        from readers import extract
         eid, n = extract(w.cx, sha, BY); out.update({"extraction": eid, "n": n})
         if "match" in x:
             from decisions import match_record
-            from match import match
+            from matcher import match
             about = w.people(x["match"]) if x["match"] else None
             if x.get("rule"): written, taken = match_record(w.cx, eid, BY, about=about); out["taken"] = [(n, why) for _, n, why in taken]
             else: written = match(w.cx, eid, BY, about=about)
@@ -374,7 +374,7 @@ def a_archive(w, x):
     return out
 
 def a_reread(w, x):
-    from extract import extract
+    from readers import extract
     eid, n = extract(w.cx, w.sha(x["record"]), BY); out = {"extraction": eid, "n": n, "sha": w.sha(x["record"])}
     if "match" in x:
         about = w.people(x["match"]) if x["match"] else None
@@ -382,13 +382,13 @@ def a_reread(w, x):
             from decisions import match_record
             written, taken = match_record(w.cx, eid, BY, about=about); out["taken"] = [(n, why) for _, n, why in taken]
         else:
-            from match import match
+            from matcher import match
             written = match(w.cx, eid, BY, about=about)
         out["written"] = [{"proposal": p, "kind": k, "name": n, "person": pid} for p, k, n, pid in written]
     return out
 
 def a_match(w, x):
-    from match import match
+    from matcher import match
     eid = w.value(x["extraction"]) if "extraction" in x else w.cx.execute("SELECT id FROM extraction WHERE artifact_sha256=? AND superseded_by IS NULL ORDER BY ran_at DESC", (w.sha(x["record"]),)).fetchone()[0]
     written = match(w.cx, eid, BY, about=w.people(x["about"]) if x.get("about") else None)
     return {"written": [{"proposal": p, "kind": k, "name": n, "person": pid} for p, k, n, pid in written]}
@@ -711,7 +711,7 @@ def a_place_card(w, x):
 
 def a_older_matcher(w, x):
     """The cards on a record marked as an older matcher's, so reconsider must propose them again."""
-    from match import MATCHER
+    from matcher import MATCHER
     older = w.treelib.ulid(); w.cx.execute("INSERT INTO extractor (id,kind,name,version,created_at) VALUES (?,?,?,?,?)", (older, MATCHER[0], MATCHER[1], x.get("version", "0.0.1"), w.treelib.now()))
     ids = [r["id"] for r in w.cards_on(x["record"], status="undecided")]
     w.cx.execute(f"UPDATE proposal SET generated_by=? WHERE id IN ({','.join('?' * len(ids))})", (older, *ids))
@@ -721,7 +721,7 @@ def a_legacy_card(w, x):
     """A card an older matcher wrote for a row of a results page, planted as it left it, undecided, for reconsider to meet: the
     persona at sequence `row` on the record's current reading, put to `person`, written by the matcher at `version`. The
     matcher proposes no such card now (tools/match.py), so only an older one can stand."""
-    from match import MATCHER
+    from matcher import MATCHER
     sha = w.sha(x["record"]); pid = w.person(x["person"]); t = w.treelib
     pe = w.cx.execute("""SELECT pe.id, pe.extraction_id, pe.name_text, pe.role_in_record FROM persona pe JOIN extraction e ON e.id=pe.extraction_id
                          WHERE pe.artifact_sha256=? AND e.superseded_by IS NULL AND pe.sequence=?""", (sha, x["row"])).fetchone()
@@ -740,7 +740,7 @@ def a_older_reading(w, x):
     from its date_text by treelib.parse_gedcom_date, as the reader wrote it, its `place` the words as written) and its
     `relations` (each `kind`, `value`, `region` and `to`, the sequence of the persona it relates to on the same reading). The
     reading stands as the record's current one."""
-    from extract import Writer
+    from readers import Writer
     t = w.treelib; sha = w.sha(x["record"]); ex = x["extractor"]
     xid = w.cx.execute("SELECT id FROM extractor WHERE kind=? AND name=? AND version=? AND prompt_sha256 IS NULL", (ex["kind"], ex["name"], ex["version"])).fetchone()
     xid = xid[0] if xid else t.ulid()
@@ -925,14 +925,14 @@ def e_rule(w, x, want):
     return has(got, w.value(pattern)), got
 
 def e_compare(w, x, want):
-    """A card's persona against its person as the matcher compares them (match.compare): what agrees, disagrees and is
+    """A card's persona against its person as the matcher compares them (matcher.compare): what agrees, disagrees and is
     absent, the disagreements the rule reads as vetoes (rule.split_disagree), and the card's own fields with their
     verdicts (cards.card), {field: verdict}, and as `rows`, each field in the card's order with what the record says
     ({field, record, verdict}), a field the card lists twice listed twice."""
     from cards import card as card_view
     from catalog import Catalog
     from rule import split_disagree
-    from match import candidate, compare, personas_of, said
+    from matcher import candidate, compare, personas_of, said
     card = w.card(x["card"]); pay = json.loads(card["payload_json"]); cat = Catalog(w.cx, w.tid)
     persona = next(p for p in personas_of(w.cx, pay["extraction_id"]) if p["id"] == pay["persona_id"])
     cand = candidate(cat, pay["person_id"])
@@ -955,10 +955,10 @@ def e_alias(w, x, want):
 
 def e_names(w, x, want):
     """The names a person is compared by, as (first given, surname) keys written "given surname" in sorted order
-    (match.name_keys): `rule`, the name rows and the accepted aliases the standing rule stands on, and `matcher`, those and
+    (matcher.name_keys): `rule`, the name rows and the accepted aliases the standing rule stands on, and `matcher`, those and
     every alias not rejected, which the matcher reads to find and propose."""
     from catalog import Catalog
-    from match import name_keys
+    from matcher import name_keys
     cat, pid = Catalog(w.cx, w.tid), w.person(x["person"])
     got = {side: sorted(f"{g} {s}" for g, s in name_keys(cat, pid, accepted=side == "rule")) for side in ("rule", "matcher")}
     return has(got, w.value({k: v for k, v in x.items() if k != "person"})), got
@@ -970,7 +970,7 @@ def e_parents(w, x, want):
     return has(got, w.value(x["is"])), got
 
 def e_linked(w, x, want):
-    from match import linked
+    from matcher import linked
     v = bool(linked(w.catalog(), w.person(x["a"]), w.person(x["b"]))); return v == x.get("is", True), v
 
 def e_memberships(w, x, want):
@@ -1107,7 +1107,7 @@ def e_search_log(w, x, want):
     return has(rows, w.value(x["is"])), [{k: r[k] for k in ("source_id", "outcome", "notes", "artifacts", "superseded")} for r in rows]
 
 def e_named_for(w, x, want):
-    from match import persons_for
+    from matcher import persons_for
     got = sorted(w.name_of(p) for p, _, _ in persons_for(w.cx, w.sha(x["record"])))
     return has(got, x["is"]), got
 
@@ -1256,7 +1256,7 @@ def e_person_persona(w, x, want):
     return (got is None) if x.get("exists") is False else got == x["status"], got
 
 def e_reach(w, x, want):
-    from match import by_name_and_year
+    from matcher import by_name_and_year
     reach = by_name_and_year(w.catalog(), w.cx, w.tid, {"name": x["name"], "birth": x.get("birth")})
     got = sorted(w.name_of(p) for p in reach)
     return all(w.person(p) in reach for p in x.get("has", [])) and all(w.person(p) not in reach for p in x.get("lacks", [])), got

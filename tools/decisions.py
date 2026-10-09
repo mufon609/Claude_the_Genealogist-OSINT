@@ -20,7 +20,7 @@ plans of the people it changes, lets the rule go over their conflicts and matche
 (settle_people: a card, a key fact, one statement, a place's words, a resolution or a reopen, a placement, a link, a divorce,
 a merge; and settle_carried, once for them all, for decisions carried to a record's new reading or to another copy of it).
 Between the rule's decisions and the owner's, every undecided card the evidence has passed by is matched again (rematch):
-one an older matcher wrote (the matcher is versioned, match.MATCHER), one left on a reading of its record read again since,
+one an older matcher wrote (the matcher is versioned, matcher.MATCHER), one left on a reading of its record read again since,
 and one the matcher would no longer put to that person as the person's evidence now stands close as superseded, and their
 records' current readings are matched again, the matcher proposing the personas afresh as it stands; a card it still puts
 to the same person keeps its id and takes the matcher's words as they now read.
@@ -33,7 +33,7 @@ to the same person keeps its id and takes the matcher's words as they now read.
   they now read.
 - settle_people: what every decision that changes a person's evidence does inside the function that takes it, once the
   plans are regenerated: the rule over those people's conflicts (conflicts.rule_conflicts), then their cards matched again
-  (rematch_people); settle_carried, the same once for every person a re-read's carried links (extract.carry_links) or a
+  (rematch_people); settle_carried, the same once for every person a re-read's carried links (readers.carry_links) or a
   decision carried to other copies (carry) changed, each person's plan regenerated with the question it closes answered by
   the decision carried; decide_assertion, one statement decided on its own; statement_people, the people statements are about;
   link_people, everyone whose family a decision's links reach (the member and the family's partners, everyone in a family a
@@ -79,7 +79,7 @@ from catalog import (
     split_persona_name,
     withdrawals
 )
-from match import MARRIED_IN_LAW, MATCHER, fits_by_name_and_year, match, personas_of
+from matcher import MARRIED_IN_LAW, MATCHER, fits_by_name_and_year, match, personas_of
 from plan import plan_person
 from log_search import release_household
 from rule import (
@@ -278,7 +278,7 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
     return rows
 
 def settle_carried(cx, by, touched):
-    """What follows decisions carried onto a record's new reading (a re-read, extract.carry_links) or onto its other copies
+    """What follows decisions carried onto a record's new reading (a re-read, readers.carry_links) or onto its other copies
     (carry), once for them all: in each tree, the plans of the people whose evidence they changed regenerated, a question
     the regeneration closes answered by the decision carried to that person (answer_questions), then the rule over their
     conflicts and their cards matched again (settle_people). touched: {(tree id, person id): the proposal of the decision
@@ -667,7 +667,7 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     }
 
 def shown_married(cx, tree_id, person_id, persona_id, written, canon_surname):
-    """Whether the record shows this person married under `written`'s own surname, as match.compare reads a married surname:
+    """Whether the record shows this person married under `written`'s own surname, as matcher.compare reads a married surname:
     a woman's only, never a person the record (the persona's sex) or the tree says is a man; then a wife under her husband's
     surname (the tree's own recorded spouse, claimed or accepted), a daughter or sister under her husband's, named beside a
     son-in-law or brother-in-law of that surname on the persona's own reading of the record (never another reading of the
@@ -834,7 +834,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. On a page
     anyone can edit, a relative the record relates to the subject but that the matcher never proposed a persona_match for (a
     memorial's listed relative, docs/TERMS.md §0) is still placed when their name and birth year plainly fit
-    exactly one person of the tree (match.fits_by_name_and_year): the listed persona is linked to that person Undecided (so
+    exactly one person of the tree (matcher.fits_by_name_and_year): the listed persona is linked to that person Undecided (so
     the membership traces to the persona, and their own record decides their identity later) and the membership follows the
     same path as any other relation above. A person whose link to the listed persona is rejected is no fit; fitting nobody or
     several writes nothing, as a sibling of no placed parents gives none. The trace link is written only where no row stands,
@@ -848,7 +848,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     out = []
     identity = editable(cx, sha)  # a page anyone can edit: the memberships it states stand, but their assertions do not
     cat = Catalog(cx, tree_id)
-    # persona id -> persona dict of this extraction (match.personas_of shape), built once, only when needed
+    # persona id -> persona dict of this extraction (matcher.personas_of shape), built once, only when needed
     listed_personas = None
     def person_of(x):
         r = q.execute(
@@ -1882,10 +1882,10 @@ def living(cx, tree_id, pid, word, by, note):
 
 def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
     """The undecided cards the evidence has passed by, matched again (docs/RULE.md): a card an older matcher
-    wrote (the matcher is versioned, match.MATCHER); a card left on a superseded reading of its record (a decision the rule
+    wrote (the matcher is versioned, matcher.MATCHER); a card left on a superseded reading of its record (a decision the rule
     took on that reading and withdrew after the page was read again: a re-read closes only the cards undecided at the
     time); and a card putting a persona to a person that the matcher, on the person's evidence as it now stands, would no
-    longer write (match.proposals, the record matched for the person the card was written for, the card taken as
+    longer write (matcher.proposals, the record matched for the person the card was written for, the card taken as
     unwritten): the persona a hint for that person now, waiting on the record's own person, or put to another person. Each
     closes rejected with the note superseded, as a re-read closes the cards of the reading it supersedes, and its record's
     current reading is matched again (match_record): the matcher proposes the persona afresh as it stands, the rule taking
@@ -1903,7 +1903,7 @@ def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
     and per rationale rewritten (kind rationale), each with the proposal, the person, the persona and why; and a row per
     card the rule took on the records matched again (kind card).
     Implements [rule.reconsider.1], [rule.reconsider.2], [rule.reconsider.3], [rule.reconsider.8], [rule.relation.5]."""
-    from match import proposals
+    from matcher import proposals
     q = _q(cx)
     out = []
     taken_rows = []

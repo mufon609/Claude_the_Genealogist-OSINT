@@ -29,7 +29,7 @@ lists (the matcher writes no card for one, tools/match.py): the relative's own
 memorial, under the tree person their name and birth year fit when exactly one
 does, else on the memorial's own person as a lead, row_key "listed relative:
 <memorial id>" (tools/plan.py's listed_relative_leads). A row of a results page (FamilySearch, Find a Grave, AAD) that fits the person
-the page was fetched for (match.fitting_rows) is a lead the same way: a fetch step for the row's own record, row "search result:",
+the page was fetched for (matcher.fitting_rows) is a lead the same way: a fetch step for the row's own record, row "search result:",
 the results page's holder as the locator source, the row's words as its fields (tools/plan.py's result_row_leads); the matcher
 proposes no row. A census household not wholly held (tools/households.py, grouped again here before it is read) is a lead
 on each person the tree ties to one of its members, under a row of its own (household_row): FamilySearch's search of its
@@ -170,14 +170,14 @@ def listed_relative_leads(cx, tree_id, cat, pid):
     """Fetch steps for the relatives a memorial merely lists, once the memorial is accepted as somebody's own: the owner's
     word is that a memorial's family connections are leads to look over, not facts (docs/TERMS.md §0), so the
     matcher writes no card for one (tools/match.py). A relative whose given name, surname and birth year plainly fit
-    exactly one person of the tree (match.fits_by_name_and_year: a listed relative may already be someone fully placed
+    exactly one person of the tree (matcher.fits_by_name_and_year: a listed relative may already be someone fully placed
     in the family, so this is not the fitting check's unlinked-only candidate list) gets a fetch step for their own
     memorial under that person's cemetery row; one fitting nobody, or more than one, stays a lead on the memorial's own
     person, row_key "listed relative:<memorial id>", with the relationship the page states in its rationale. Nothing
     here decides who the relative is or creates anyone: the fit is by name and year alone, so a wrong fit costs a
     wasted fetch, never a wrong identity. Dropped, like any generated step, once the memorial's acceptance is
     withdrawn: the query that finds it no longer does."""
-    from match import fits_by_name_and_year, personas_of
+    from matcher import fits_by_name_and_year, personas_of
     out = []; q = cx.cursor(); q.row_factory = sqlite3.Row
     for sub in q.execute("""SELECT pp.person_id AS subject_id, pe.extraction_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                              JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id JOIN person p ON p.id=pp.person_id
@@ -233,15 +233,15 @@ def row_words(pr):
 def result_row_leads(cx, tree_id, cat, pid):
     """Fetch steps for the rows of a results page that fit this person (docs/TERMS.md §0): a row is never a card (the
     matcher proposes none, tools/match.py), but one that fits the person a page was fetched for, by the matcher's own definition
-    (match.fitting_rows: more than a name and a year), and carries its own record's identity (an ark, a memorial id, an
+    (matcher.fitting_rows: more than a name and a year), and carries its own record's identity (an ark, a memorial id, an
     enlistment record's URL) is a lead on that person: a fetch step for the row's own record, key "fetch:row:<record id>", under
     row "search result:", with the holder of the results page as the locator source (so tools/fetches.py lists it for the browser
     when the holder has no connector), the row's words as its fields (basis record), the results page it was found on, and what
     agrees with the person in its rationale. A row a person rejected as this person, or accepted as somebody else, is no lead
     for them (a person's decision stands); one accepted as them still is, its record not yet fetched; a row that does not fit
     stays a hint on the page. Dropped, like any generated step, once the row no longer fits."""
-    from extract import POINTING_LISTINGS
-    from match import fitting_rows, said
+    from readers import POINTING_LISTINGS
+    from matcher import fitting_rows, said
     out = []; seen = set(); known = {}; q = cx.cursor(); q.row_factory = sqlite3.Row; f = lambda v: {"value": v, "basis": "record"}
     for page in q.execute(f"""SELECT DISTINCT e.id AS eid, x.name AS parser, ar.source_id, ar.locator_value AS url, e.ran_at FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id,
                                json_each(l.artifacts_json) j JOIN extraction e ON e.artifact_sha256=j.value JOIN extractor x ON x.id=e.extractor_id JOIN artifact ar ON ar.sha256=e.artifact_sha256

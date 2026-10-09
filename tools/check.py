@@ -253,7 +253,7 @@ def connectors_offline():
     say(nj.hits(nj.CSV_URL, whole, {"surname": DF["absent_surname"], "archived_sha": rq0["archived_sha"]}) == [], "a surname the file carries no row under gives no hit")
     d, db = scratch(False)
     from treelib import archive_object as ao
-    from extract import extract as ext_fn
+    from readers import extract as ext_fn
     cx2 = connect(db)
     parent_sha, _ = ao(cx2, whole, mime="text/csv", source_id="C09", collection_id=None, locator_kind="url", locator_value=nj.CSV_URL, retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", original_filename="nj-death-index-whole.csv")
     _, n_whole = ext_fn(cx2, parent_sha, BY)
@@ -399,7 +399,7 @@ def insert_only():
     out, or a connection opened without the pragma, turns this red; a write-once column is refused set from empty to empty, allowed from empty to a value once, then refused to
     another value and back to empty. The rows are all still there afterwards."""
     from treelib import archive_object, now, ulid
-    from extract import extract
+    from readers import extract
     from households import regroup
     from log_search import log
     from tombstone import tombstone

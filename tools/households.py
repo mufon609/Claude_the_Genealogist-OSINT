@@ -426,7 +426,7 @@ def fs_holder(fs_key):
 def search_link(h, page=1, per=None):
     """The household's own search as FamilySearch's link takes it (catalog.holder_search on the surname, the place and the year,
     never a given name), or None: the first page of its answer as the link itself, a later page with the site's own count of rows
-    to a page and the offset of its first row, the parameters extract.parse_fs_search reads a saved page's place in the answer by.
+    to a page and the offset of its first row, the parameters readers.parse_fs_search reads a saved page's place in the answer by.
     Implements [rule.household.12]."""
     holder = fs_holder(h.get("fs_collection"))
     if not holder: return None
@@ -493,8 +493,8 @@ def _year(text):
 
 def _members(cx, h):
     """The household's members as the candidates read them: each {"name", "persona", "id" (the record id the entry is under),
-    "kind" (the kind of its relationship to the head, extract.household_kind), "relationship", "sex", "born" (the birth as written)}."""
-    from extract import household_kind
+    "kind" (the kind of its relationship to the head, readers.household_kind), "relationship", "sex", "born" (the birth as written)}."""
+    from readers import household_kind
     out = []
     for m in h["members"]:
         facts = {t: v for t, v in cx.execute("""SELECT fact_type, coalesce(date_text, value_text) FROM persona_fact WHERE persona_id=? AND fact_type IN ('Birth','Sex')

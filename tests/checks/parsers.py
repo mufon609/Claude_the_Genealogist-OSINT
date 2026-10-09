@@ -115,7 +115,7 @@ def fixtures():
 def check(keep, show):
     """Every fixture read on one scratch; the number of failures, one line per fixture printed."""
     from treelib import archive_object
-    from extract import extract
+    from readers import extract
     d, db = scratch(keep); cx = connect(db); bad = 0
     for name, want in fixtures():
         path = os.path.join(FIXTURES, name)

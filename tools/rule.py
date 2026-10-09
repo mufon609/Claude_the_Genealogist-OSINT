@@ -70,7 +70,7 @@ from catalog import (
     tier_sql,
     withdrawals
 )
-from match import MATCHER, REL_OF, candidate, compare, personas_of, said
+from matcher import MATCHER, REL_OF, candidate, compare, personas_of, said
 from forms import census_form
 
 # the kind (data/evidence-classes.csv) that identifies a person only through who it names (docs/TERMS.md §0: "then the named survivors decide"): the rule's ground there is a stated relative, never a date or a place alone
@@ -561,7 +561,7 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
     stands, and the page's value, written undecided, is a contradiction of it, a conflict question once the page's identity
     is taken (the owner, 3 Oct 2026: a page anyone can edit is not trusted; use the primary document and tag the page as a
     contradiction). without: proposal ids whose statements do not count (reconsider). Returns (vetoes, claims, conflicts),
-    each a list of findings (catalog.Finding, in words by match.said), a contradiction among the conflicts.
+    each a list of findings (catalog.Finding, in words by matcher.said), a contradiction among the conflicts.
     Implements [rule.points.2], [rule.value.7], [rule.value.9], [rule.editable.11]."""
     state = persona.get("record_state")
     def accepted_against(field, primary=False):
@@ -1372,13 +1372,13 @@ def record_span(cx, persona_id, etype):
 
 def fits_as_well(cat, persona, cand_id, chosen, exclude):
     """The persons of the tree (never one merged into another, none in exclude) other than the candidate who fit the persona
-    on as much as the candidate does or more (match.compare: given names and surnames with their spelling variants and short
+    on as much as the candidate does or more (matcher.compare: given names and surnames with their spelling variants and short
     forms, dates, places, the relationships the record states to personas already accepted on it), or, with no candidate,
     who fit it at all: [(person id, name, what agrees)]. compare's fit needs the given name to agree, or the same memorial
     accepted as them, so only those persons are compared. Names are read as the matcher reads them, every alias not rejected:
     a wider name here only refuses more.
     Implements [rule.identity.1], [rule.name.3]."""
-    from match import by_memorial, name_keys
+    from matcher import by_memorial, name_keys
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
     givens = [g for g, _ in names if g]
     mine = len(compare(cat, persona, candidate(cat, cand_id), chosen)[1]) if cand_id else 0
@@ -1474,7 +1474,7 @@ def identity_refused(cx, tree_id, prop, without=()):
     """Why the rule may not take a record it would take on its points, or None: identity tested, not assumed
     (docs/DATA-ARCHITECTURE.md §7 decision 12, docs/RULE.md). Three tests, each a refusal naming what it
     found: another person of the tree fits the persona as well as the candidate or better (fits_as_well; for a person the
-    rule would create, anyone who fits, or whom the fitting check reaches, match.by_name_and_year); the person already holds
+    rule would create, anyone who fits, or whom the fitting check reaches, matcher.by_name_and_year); the person already holds
     another persona on this reading of the record (two rows of one page are two people); something the record would add
     falls outside the person's life as accepted (outside_life). The persona tested is the one of the same entry on the
     record's current reading (catalog.current_entry), with the facts and relationships that reading gives, as rule_points
@@ -1482,7 +1482,7 @@ def identity_refused(cx, tree_id, prop, without=()):
     one accepted as another persona on this reading. without: proposal ids whose assertions and links do not count
     (reconsider).
     Implements [rule.identity.1], [rule.identity.2], [rule.identity.3], [rule.relation.6]."""
-    from match import by_name_and_year
+    from matcher import by_name_and_year
     q = _q(cx)
     pay = json.loads(prop["payload_json"])
     cat = Catalog(cx, tree_id)

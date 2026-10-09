@@ -484,15 +484,15 @@ the parent did not):
 2. **Done (10 Oct 2026).** The research log's note prefixes (`REOPENED`,
    `HOUSEHOLD`, `ON_WORD`) live in `catalog`, which reads the log for every
    layer; the log, the matcher, the attach and the overview import them there.
-3. `extract.extract` carries a page's decisions to its new reading
-   (`join_copies`, `carry`, `settle_carried`) and `extract.carry_links`
+3. `readers.extract` carries a page's decisions to its new reading
+   (`join_copies`, `carry`, `settle_carried`) and `readers.carry_links`
    writes them (`assert_facts`, `link_family`, `link_people`): the carry moves
-   to the copies module, which reads through `extract.extract` and then
+   to the copies module, which reads through `readers.extract` and then
    carries, and every caller that reads a page for a tree calls it there.
-4. `extract.read` (the rule, the owner's word) and `match.main` (the owner's
-   word, `attach.on_word`) are command lines in a reader's file: each command
-   keeps its file and name, as `conclude.py` does, and the reader's functions
-   move to a module of their own that takes its row in the table.
+4. **Done (10 Oct 2026).** The readers are `tools/readers.py` and the
+   matcher `tools/matcher.py`, each in layer 2 where its command file was;
+   `tools/extract.py` (`read`, `--stale`) and `tools/match.py` keep their
+   names as commands in layer 5, and every importer imports from the module.
 5. `attach.attach` runs `match_record`: the arrival (`attach.attach`,
    `attach_each`, `attach_inbox`, and `fetches.collect`, which runs it) moves
    to layer 4 beside `match_record`; `attach` keeps what places a file.
@@ -649,12 +649,12 @@ still has and nothing now tests: an in-law resolving to a real link
 through the relative it names; the spouse fit where the other party
 carries another name; the fitting check on garbled initials and on a
 short-form given name; the matcher's window on a birth year
-(`match.WINDOW`: a persona born more than three years from a candidate of
+(`matcher.WINDOW`: a persona born more than three years from a candidate of
 the same name is never a near match, which only a results page's rows
 carried, and no row is a card now: the 1900 Lukens household, Annie against
 her mother, needs the parents in the harness cut); a namesake's kin shown as a
 hint; the New Jersey death index's birth or death with no
-month or day (`extract.nj_date` keeps the year alone), which no row of the
+month or day (`readers.nj_date` keeps the year alone), which no row of the
 2006-2017 file has, every one of its 837,351 rows carrying both dates whole; the
 unnamed fetch's own naming
 (`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
@@ -708,7 +708,7 @@ relation the record states from the other side (the head of a household created
 through his daughter accepted on it, as the live 1950 Evers schedule did), whose
 reason names the record's word for the daughter (`rule.rule_creates`); and a relative's
 persona whose birth place differs from a finer one another decision gave the
-tree's person, which the rule reads as fitting all the same (`match.compare`
+tree's person, which the rule reads as fitting all the same (`matcher.compare`
 with `birth_place=False`): the harness's places for Robert Edgar Davidson's
 birth stay unresolved strings, so no scenario reaches the Auburn the live
 catalog holds against his obituary's Woodburn. No scenario reaches a statement carrying a mark on a birth, a death, a burial
@@ -767,7 +767,7 @@ title); it has reset connections before, so a refusal makes the step assisted.
 Every scenario builds one tree, so nothing shows a second tree over the same
 archive ignoring the first one's decisions (`CLAUDE.md` hard rule 4).
 `catalog.page_groups` reads `assertion` over every tree's citations, and
-`extraction` and `persona` carry no tree: `extract.extract` supersedes the
+`extraction` and `persona` carry no tree: `readers.extract` supersedes the
 current extraction of a page and rejects its undecided proposals whichever
 tree they belong to, so a second tree reading a page the first holds would
 reset the first tree's cards. Read a page held by two trees as D9 settles,
@@ -1182,7 +1182,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   the value the event shows. A place's point (`rule_points`, `ground`) needs
   an accepted statement that gives the shown place whole, so a record
   agreeing with an accepted place earns nothing where the event shows another
-  on a claim. The matcher compares with the shown values (`match.candidate`,
+  on a claim. The matcher compares with the shown values (`matcher.candidate`,
   `compare`), so a reading that differs from the claims on both dates is a
   hint, never a card, though it agrees with the accepted statements.
   `facts.decide_fact` accepts the file's claim citing a held record with the
@@ -1226,7 +1226,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   "not a gate".
 - [rule.reconsider.5], [rule.name.1] **An alias in its own re-examination.** `reconsider` examines a decision
   without its own assertions and those of the decisions after it (`without`),
-  but the name test (`match.compare`'s `accepted_names`, `match.name_keys`)
+  but the name test (`matcher.compare`'s `accepted_names`, `matcher.name_keys`)
   reads every accepted alias, the decision's own and those of the decisions
   after it among them, and in a dry run those of the decisions it would
   withdraw and those it would set undecided. Live: the rule's decision taking
@@ -1385,7 +1385,7 @@ a step, and read held bytes again only when a reader is newer.
 Decision 7 (no code names a family's people, places or denominations) and
 decision 12 (the limits of one life are data). The rule's thresholds are
 data, as the life limits are: the matcher's three-year window
-(`match.WINDOW`), the two points a record needs and the three of four a page
+(`matcher.WINDOW`), the two points a record needs and the three of four a page
 anyone can edit needs (both in `rule.rule_points`), and the trusted tiers
 (`rule.TRUSTED`, written again as literals elsewhere in `rule.py`, in
 `catalog.py` and in `facts.py`, and the rule's creation reading T1 and T2).

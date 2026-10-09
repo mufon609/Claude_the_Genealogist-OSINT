@@ -42,7 +42,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
 from catalog import Catalog, date_verdict, first_given, key, name_words, note, place_verdict, record_of, same_given, same_surname, split_name, split_persona_name
 from facts import KEY_FACTS, fact_subjects
-from match import name_keys
+from matcher import name_keys
 from conflicts import CONFLICT_AXIS, classes_decide, conflict_lines, order, record_info, subject_statements, words
 
 
@@ -103,7 +103,7 @@ def tree_value(cat, pid, field, ev, fam):
 
 def written_name(keys, given, later):
     """How a name as written (split_persona_name: its first given name's key and the keys of the words after it) stands to
-    (first given, surname) keys, as match.compare reads it for the matcher and the rule alike: whether the first given name
+    (first given, surname) keys, as matcher.compare reads it for the matcher and the rule alike: whether the first given name
     is one of theirs (catalog.same_given: a nickname, an initial, a slip) and how a word after it is one of their surnames
     (catalog.same_surname: "agrees", else "variant" or "one letter apart", else "" for none).
     Implements [rule.name.1]."""

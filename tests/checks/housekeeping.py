@@ -237,7 +237,7 @@ def backup_bag():
     run on the same catalog as the tool is)."""
     import re, backup
     from treelib import archive_dir, archive_object, object_path
-    from extract import extract
+    from readers import extract
     d, db = scratch(False); bad = []
     try:
         def archive(name):

@@ -89,10 +89,10 @@ def ran_unchanged(cx, step, rendered, source_id=None):
 def holds_record(cx, sha):
     """Whether an archived file is a record a fetch step's found run may close the step with: a file never parsed (an image, a
     photograph of the stone) is what was fetched; a page is one when its current reading (the latest not superseded) is
-    complete and not a pointing listing (extract.POINTING_LISTINGS). A listing that points at records is not one, a page no
+    complete and not a pointing listing (readers.POINTING_LISTINGS). A listing that points at records is not one, a page no
     parser read holds nothing, and a withdrawn file (tools/tombstone.py) holds no record, so none of them closes the step it was
     logged on: the plan opens a step such a file alone closed again (closed_by_pointers)."""
-    from extract import POINTING_LISTINGS
+    from readers import POINTING_LISTINGS
     if withdrawals(cx, [sha]): return False
     e = cx.execute("""SELECT e.status, x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.artifact_sha256=? AND e.superseded_by IS NULL
                       ORDER BY e.ran_at DESC, e.id DESC LIMIT 1""", (sha,)).fetchone()
@@ -155,10 +155,10 @@ def closed_by_pointers(cx, step_id):
 def hold_household(cx, tree_id, person_id, sha, by):
     """A household record (a census page, whichever way it arrived: a connector's answer, a page saved by hand, a search's
     result) accepted onto a person holds that person's own checklist row for its census year: every planned step of theirs
-    on that row (extract.household_row) is logged found with the record, the way tools/run_step.py logs the household's other
+    on that row (readers.household_row) is logged found with the record, the way tools/run_step.py logs the household's other
     steps for a connector's answer, so catalog.fetched_rows reads the row held and no runner searches that census again for a
     household the tree has read. Returns the step ids logged; a step already logged with this record is left as it is."""
-    from extract import household_row
+    from readers import household_row
     e = cx.execute("SELECT structured_json FROM extraction WHERE artifact_sha256=? AND status<>'failed' AND superseded_by IS NULL ORDER BY ran_at DESC LIMIT 1", (sha,)).fetchone()
     row = household_row(json.loads(e[0] or "{}")) if e else None
     if not row: return []
@@ -184,7 +184,7 @@ def release_household(cx, tree_id, person_id, sha, by):
 def reopen(cx, tree_id, by, step_id, note):
     """A step marked done by a run that did not hold its record after all is planned again; the run's log row stays as what
     happened and a new row, its note under REOPENED, says why the step reopened. From that row on, the earlier found run no
-    longer names the person as one the record was fetched for (match.persons_for reads the reopen). The reopen row carries
+    longer names the person as one the record was fetched for (matcher.persons_for reads the reopen). The reopen row carries
     the source of the run it reopens, the step's latest run that is not itself a reopen; a step with no run takes log()'s
     own fallback, the step's holder or first source."""
     st = cx.execute("SELECT id, status FROM search_plan WHERE id=?", (step_id,)).fetchone()

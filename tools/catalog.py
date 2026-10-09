@@ -263,7 +263,7 @@ def split_gedcom_name(v):
 
 def classify(written, given, surname, suffix, married=False):
     """Return (kind, note) for a written name that differs from the canonical given/surname/suffix. married says the record
-    shows this person married under the written surname (match.compare's own ground, or decisions.shown_married's a wife
+    shows this person married under the written surname (matcher.compare's own ground, or decisions.shown_married's a wife
     under her husband's, a daughter or sister under hers, named beside a son- or brother-in-law of it, or written "Mrs."):
     classified married_name ahead of any surname heuristic below, since the difference is not an indexer's slip."""
     wg, ws, wx = split_gedcom_name(written)
@@ -536,8 +536,8 @@ def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 class Finding:
     """One comparison of a record's value with the tree's, as data (docs/RULE.md): the verdict (agrees,
     disagrees, within: a date inside a bound, neither agreeing nor disagreeing; absent), what qualifies it, and, as the matcher
-    compares a persona with a person (match.compare), the field and both values. Every reader reads these; the words are made
-    from them (note, match.said) and never read back. date_verdict and place_verdict fill the date's and the place's parts."""
+    compares a persona with a person (matcher.compare), the field and both values. Every reader reads these; the words are made
+    from them (note, matcher.said) and never read back. date_verdict and place_verdict fill the date's and the place's parts."""
     verdict: str
     field: str = None             # what was compared: given name, surname, middle name, sex, birth date, burial place, residence place, memorial, relationship
     record: str = None            # the record's value, as the words write it

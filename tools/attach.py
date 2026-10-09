@@ -23,7 +23,7 @@ citation's collection has the page's collection as a holder (data/holders.csv) a
 name searched; a FamilySearch results page fulfils too the household leads whose own search it is a page of (tools/plan.py
 household_leads: the collection, the surname, the place and the year, no given name, whatever page of the answer), and the
 plan is written again for their people, so the search's next page and the next candidate for the household's missing entries
-are listed at once. Such a page is the run's own artifact: a found run when a row fits someone (match.fitting_rows), a none run when
+are listed at once. Such a page is the run's own artifact: a found run when a row fits someone (matcher.fitting_rows), a none run when
 none does, the query as run on the log. A fetch step is done by a found run only when the page is the record it cites
 (log_search.holds_record): a listing points at a record and is not one, so the step stays planned while the run on its fields
 answers the search for the fetch list. A page no parser reads (log_search.unread_record) is held and holds nothing a program
@@ -43,8 +43,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, move_free, now, object_path, ulid
 from catalog import ON_WORD, collection_tier, dbid_of, first_given, first_value, holders, holds, person_named, split_name, split_persona_name, withdrawals
 from log_search import hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
-from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
-from match import fitting_rows, key as name_key
+from readers import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
+from matcher import fitting_rows, key as name_key
 from decisions import match_record
 from plan import plan_person
 from households import ark_id
@@ -348,7 +348,7 @@ def _steps_by_collection(cx, tree_id, parsed):
 
 def steps_pointed(cx, tree_id, ark, parsed):
     """The planned fetch steps a record page reaches through the listing that pointed at it: a pointing listing
-    (extract.POINTING_LISTINGS, its current complete reading) whose row carries this ark was logged found on the step, and the
+    (readers.POINTING_LISTINGS, its current complete reading) whose row carries this ark was logged found on the step, and the
     step's person has a lead for the row (tools/plan.py's result_row_leads, step key fetch:row:<ark>: the row fits them) or the
     row is accepted as them, and the row is not rejected for them; the step's row year, where it has one, within two of the
     record's own (_row_of), as the collection fallback reads it. The citation on the person themselves first. A household's
@@ -417,7 +417,7 @@ def _row_of(parsed):
 
 def on_word(cx, tree_id, pid, sha, by, note=None, parsed=None):
     """A record the owner says is about a person, with no step citing it: a fetch step on the person's plan, done with a found
-    run naming the record, so the record is fetched for them from then on (match.persons_for reads the log) and every re-read
+    run naming the record, so the record is fetched for them from then on (matcher.persons_for reads the log) and every re-read
     and matcher run finds them. The step's locator is the record's own identity (its ark, its memorial id, else the artifact's
     locator), its row the checklist row the record's own event or collection is about — the person's own row of that kind
     within two years of the record's year, else the row at the record's year — and its fields the record's collection and
@@ -459,7 +459,7 @@ def cite_on_word(cx, tree_id, pid, row_key, holder, fields, by, note=None, query
     fetch step on the person's plan carrying the citation's own details as the owner gives them (each field basis 'owner';
     for a census household the surname, the census place, the enumeration district and the sheet as 'page'), the holder as
     its locator source and its one source, so the runner asks the holder's connector for it like any cited fetch, and the
-    record it brings back is fetched for this person (match.persons_for reads the log). The step carries no record locator
+    record it brings back is fetched for this person (matcher.persons_for reads the log). The step carries no record locator
     until the run archives one. A step of the same key already on the plan is returned, not written again; the planner never
     drops a step the owner's word wrote (plan.plan_person). Returns the step id."""
     ts = now(); q = cx.cursor(); q.row_factory = sqlite3.Row
@@ -556,7 +556,7 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query={**fields, **(query or {})}, done=False)))
     out = {"sha256": sha, "new": new, "mime": mime, "logs": logs, "extraction": None, "proposals": [], "unparsed": None}
     if new and mime.startswith("text/html"):                     # a page is parsed and matched on arrival; an image waits for a transcription
-        from extract import extract as extract_html, RESULTS_LISTINGS
+        from readers import extract as extract_html, RESULTS_LISTINGS
         eid, n = extract_html(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
         else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)

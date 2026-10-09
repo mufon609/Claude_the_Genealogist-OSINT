@@ -27,7 +27,7 @@ import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, DB, connect, object_path, resolve_tree
 from catalog import COUNTRY, Catalog, fetch_target, note as _note, tier_sql, year, held_for, holds, withdrawals
-from match import (
+from matcher import (
     candidate as match_candidate,
     compare,
     date_verdict,
@@ -45,11 +45,11 @@ from plan import row_record
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
 # a year or a place agreeing beyond the name: what makes a row a hint (hints_on)
 BEYOND_NAME = ("birth date", "death date", "birth place", "burial place", "death place", "residence place")
-# the fields of match.compare that are the name: the card's Name row reads these and no other
+# the fields of matcher.compare that are the name: the card's Name row reads these and no other
 NAME_FIELDS = ("given name", "surname", "middle name")
 
 def name_verdict(agree, disagree, absent):
-    """The card's Name row from match.compare's findings: disagrees when a name field disagrees (a date, a place or the sex
+    """The card's Name row from matcher.compare's findings: disagrees when a name field disagrees (a date, a place or the sex
     that differs is a row of its own), agrees when the given name and the surname agree (a married surname absent counts as
     agreeing, the record writing her under her husband's), else absent."""
     if any(d.field in NAME_FIELDS for d in disagree):
@@ -66,7 +66,7 @@ def _fmt(date_text, place):
 
 def persona_facts(cx, persona_id):
     """The facts the record states of a persona, as the matcher compares them: a value the page keeps beneath the one it shows
-    (a fact whose region marks it alternate) is none of them (match.personas_of), so the card lists no field for it."""
+    (a fact whose region marks it alternate) is none of them (matcher.personas_of), so the card lists no field for it."""
     return [dict(r) for r in cx.execute("""SELECT pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw AS place, pf.region_json
                                            FROM persona_fact pf LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE pf.persona_id=?
                                            AND NOT (json_valid(pf.region_json) AND json_extract(pf.region_json,'$.alternate') IS NOT NULL) ORDER BY pf.id""", (persona_id,))]
@@ -867,7 +867,7 @@ def hints_on(cx, tree_id, sha, person_id):
     on view and stored nowhere, as its agreements, disagreements and absences. A row is a hint only when the surname agrees
     (or is the person's married name) and a place or a year agrees beyond the name, and only on a person whose baseline is
     reviewed; a name agreeing alone (a newspaper hit, a namesake on a results page) is not. A persona the matcher holds
-    back (match.proposals' held: a namesake a name search alone reached, or nobody to create) is a hint on a reviewed person
+    back (matcher.proposals' held: a namesake a name search alone reached, or nobody to create) is a hint on a reviewed person
     whatever agrees, with the matcher's reason as why. {persona id: {"hint": bool, "why": words or None, "agrees": [...],
     "disagrees": [...], "absent": [...]}}."""
     cx.row_factory = sqlite3.Row

@@ -23,10 +23,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 LAYERS = {
     0: ["treelib", "forms"],
     1: ["catalog"],
-    2: ["extract", "match", "households", "resolve_places", "footprint", "checklist", "connectors"],
+    2: ["readers", "matcher", "households", "resolve_places", "footprint", "checklist", "connectors"],
     3: ["log_search", "plan", "attach", "fetches"],
     4: ["rule", "decisions", "copies", "merges", "reconsider", "conflicts", "facts", "proof", "cards", "overview"],
-    5: ["conclude", "turn", "turns", "queue", "run_step", "run_task", "tree", "ingest_gedcom", "initdb", "backup", "tombstone",
+    5: ["conclude", "extract", "match", "turn", "turns", "queue", "run_step", "run_task", "tree", "ingest_gedcom", "initdb", "backup", "tombstone",
         "cite", "backfill_aliases", "attach_inbox", "check", "server"],
 }
 LAYER = {m: n for n, ms in LAYERS.items() for m in ms}

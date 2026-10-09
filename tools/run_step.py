@@ -27,7 +27,7 @@ reading wrote is rolled back, the run's rows and the responses it archived are k
 with the exception in its note; when the connector raises before the run is logged (it cannot build its requests), what it
 wrote is rolled back and an error run is logged in its place. Either way the step stays runnable at that source and --all
 goes on to the next step. A run whose records
-are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
+are results listings (readers.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
 index's rows under a surname) is found only when a row fits a person, as docs/PLAN-AND-SEARCH.md §4 has it for a
 results page saved by hand: when no row of any listing fits anyone, the run is read again as none with the reason in its note
 (log_search.restate: a new row superseding the found one, search_log being insert-only), the rows stay on the artifact as
@@ -60,7 +60,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, collection_tier, first_value
 from log_search import hold_unread, log as log_search, latest_answer, ran_unchanged, rendered_query, restate, unread_record
-from extract import extract, RESULTS_LISTINGS
+from readers import extract, RESULTS_LISTINGS
 from decisions import match_record
 import connectors
 
@@ -160,7 +160,7 @@ def unreadable(url, e):
     return f"an answer no reader parses ({type(e).__name__}: {e}) at {url}"
 
 def listing(cx, eid):
-    """Whether an extraction read a results listing (extract.RESULTS_LISTINGS), one persona per row."""
+    """Whether an extraction read a results listing (readers.RESULTS_LISTINGS), one persona per row."""
     return bool(cx.execute(f"SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=? AND x.name IN ({','.join('?' * len(RESULTS_LISTINGS))})", (eid, *RESULTS_LISTINGS)).fetchone())
 
 def fits(cx, tree_id, eid, written):
