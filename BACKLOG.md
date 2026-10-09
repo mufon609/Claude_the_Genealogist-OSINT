@@ -1275,6 +1275,20 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   both would be withdrawn too (a dry run on a copy of the live catalog of 9
   Oct 2026, the name test leaving out those aliases). Have the name test leave
   out the aliases of the decisions in `without`.
+- **A name a trusted record writes, held first by the backfill.** §5–7 makes
+  the name as written on a record accepted for a person an accepted alias when
+  the record is one nobody can edit at will, but `conclude.write_name_alias`
+  leaves an alias of the same words alone unless a decision on that record
+  wrote it, so a row `tools/backfill_aliases.py` wrote first keeps the words
+  undecided, and the rule, and the proof with it, never count them. Live:
+  Helen Sara Brant's married surname stands on no accepted alias: Helen Ahern
+  from the 1940 census (a session's decision), Helen B Ahearn from her 1986
+  obituary index entry and the 1950 census (the rule's) and Helen Brant Ahearn
+  from her gravestone's photograph (the rule's) are the backfill's rows,
+  undecided, so her proof says the two censuses and the obituary index name
+  her otherwise. Have `write_name_alias` give such a row, one no decision
+  wrote, the standing and the stamp of the record a decision accepts, and
+  `reconsider` bring the rows already there.
 
 ### C32. Circumstances under which a record misstates a date on purpose
 
