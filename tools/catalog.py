@@ -203,6 +203,40 @@ def same_surname(a, b):
     if len(a) >= 5 and len(b) >= 5 and a[0] == b[0] and edits(a, b) == 1: return "one letter apart"
     return ""
 
+# ---------------------------------------------------------------- the alias rule: a name as a record writes it, against the person's own
+# the words of a name cleaned, and its key (letters, digits and spaces): the alias rule's, where key above is the surname's
+def clean(s): return re.sub(r"\s+", " ", re.sub(r"[^\w\s'-]", " ", (s or "").replace("/", " "))).strip()
+def alias_key(s): return re.sub(r"[^a-z0-9 ]", "", clean(s).lower())
+
+def split_gedcom_name(v):
+    """(given, surname, suffix) of a name as written, cleaned: a GEDCOM NAME by its slashed surname (catalog.gedcom_name), any
+    other by catalog.split_name; "" for a part that is not there."""
+    g, s, suf = gedcom_name(v) or split_name(clean(v)); return clean(g), clean(s), clean(suf)
+
+def classify(written, given, surname, suffix, married=False):
+    """Return (kind, note) for a written name that differs from the canonical given/surname/suffix. married says the record
+    shows this person married under the written surname (match.compare's own ground, or conclude.shown_married's a wife
+    under her husband's, a daughter or sister under hers, named beside a son- or brother-in-law of it, or written "Mrs."):
+    classified married_name ahead of any surname heuristic below, since the difference is not an indexer's slip."""
+    wg, ws, wx = split_gedcom_name(written)
+    g, s, x = clean(given), clean(surname), clean(suffix)
+    if alias_key(wg) == alias_key(g) and alias_key(ws) == alias_key(s):
+        if wx and re.search(r"\d|^[A-Z]{2,}\d*$", wx): return "context_glue", f"trailing token '{wx}' looks like a code, not a suffix"
+        return "detail", f"suffix differs: '{wx}' vs '{x}'"
+    if alias_key(ws) != alias_key(s) and ws and s:
+        if married: return "married_name", f"surname {ws} vs {s}: the record shows her married"
+        if soundex(ws) == soundex(s) and edits(alias_key(ws), alias_key(s)) > 2: return "phonetic", f"surname {ws} ~ {s} (same Soundex)"
+        if edits(alias_key(ws), alias_key(s)) <= 2: return "typo", f"surname {ws} vs {s}"
+        if alias_key(s) in alias_key(ws) or alias_key(ws) in alias_key(s): return "detail", f"surname {ws} contains/contained in {s}"
+        return "unclassified", f"surname {ws} vs {s}"
+    a, b = alias_key(wg).split(), alias_key(g).split()
+    if a and b and all(len(t) == 1 for t in a) and all(t[0] == u[0] for t, u in zip(a, b)): return "abbreviation", "initials"
+    if a and b and a[0] != b[0] and short_form(a[0], b[0]): return "nickname", f"{a[0]} ~ {b[0]}"
+    if edits(alias_key(wg), alias_key(g)) <= 2: return "typo", f"given {wg} vs {g}"
+    if a and b and a[0] != b[0] and edits(a[0], b[0]) <= 2: return "typo", f"first given {a[0]} vs {b[0]} (other tokens differ too: '{wg}' vs '{g}')"
+    if a and b and (a[0] == b[0] or set(a) & set(b)): return "detail", f"given names differ in count/order: '{wg}' vs '{g}'"
+    return "unclassified", f"given {wg} vs {g}"
+
 def person_named(cx, person_id, people):
     """Whether a record that names these people names this person. Each is a name as written or (name, birth year): one of them
     (split_persona_name) carries the person's first given name and a surname the tree holds for them, as written or as a spelling variant, or a wife's

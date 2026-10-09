@@ -112,7 +112,7 @@ from catalog import (
 from match import MARRIED_IN_LAW, MATCHER, fits_by_name_and_year, match, personas_of
 from plan import plan_person
 from log_search import release_household, restate
-from backfill_aliases import classify, clean, key
+from catalog import alias_key as key, classify, clean
 from rule import (
     ACCEPTED_WITH_RECORD,
     IN_LAW,
@@ -860,7 +860,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     person's own name rows (a birth or married name create_person already split out), becomes an alias at once with the
     standing of its record: accepted from a record nobody can edit at will (T1–T3), undecided from a page anyone can edit
     and from a record of no known tier, so the rule, which stands on accepted aliases alone, never stands on such a page's
-    words; of the kind the difference is (backfill_aliases.classify, married_name when the record shows the person married
+    words; of the kind the difference is (catalog.classify, married_name when the record shows the person married
     under it: shown_married), the record's words as written. The same words from the same record, made an alias by a
     decision a withdrawal or a give-back took back (undecided), stand again with this decision, stamped with it, at the
     record's standing; an alias of other words, another entry's of the same page among them, is never touched. Returns the

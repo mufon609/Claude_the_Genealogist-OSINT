@@ -40,10 +40,10 @@ def rules():
     for c in R["same_given"]:
         got = same_given(c["a"], c["b"])
         if got != c["same"]: bad.append(f"match.same_given({c['a']!r}, {c['b']!r}) gave {got!r}, expected {c['same']!r}")
-    from backfill_aliases import classify
+    from catalog import classify
     for c in R["alias_kind"]:
         got = classify(c["written"], c["given"], c["surname"], c.get("suffix"))[0]
-        if got != c["kind"]: bad.append(f"backfill_aliases.classify({c['written']!r}, {c['given']!r}, {c['surname']!r}, {c.get('suffix')!r}) gave {got!r}, expected {c['kind']!r}")
+        if got != c["kind"]: bad.append(f"catalog.classify({c['written']!r}, {c['given']!r}, {c['surname']!r}, {c.get('suffix')!r}) gave {got!r}, expected {c['kind']!r}")
     from catalog import gedcom_name, name_words, split_name, split_persona_name
     for c in R["name_reading"]:
         got = {"split_name": list(split_name(c["name"])), "persona": list(split_persona_name(c["name"])), "words": name_words(c["name"])}

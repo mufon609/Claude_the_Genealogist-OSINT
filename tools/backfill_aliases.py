@@ -10,39 +10,7 @@ alias rows are left alone (UNIQUE on entity/value).
 import argparse, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid
-from catalog import edits, gedcom_name, short_form, soundex, split_name
-
-def clean(s): return re.sub(r"\s+", " ", re.sub(r"[^\w\s'-]", " ", (s or "").replace("/", " "))).strip()
-def key(s): return re.sub(r"[^a-z0-9 ]", "", clean(s).lower())
-
-def split_gedcom_name(v):
-    """(given, surname, suffix) of a name as written, cleaned: a GEDCOM NAME by its slashed surname (catalog.gedcom_name), any
-    other by catalog.split_name; "" for a part that is not there."""
-    g, s, suf = gedcom_name(v) or split_name(clean(v)); return clean(g), clean(s), clean(suf)
-
-def classify(written, given, surname, suffix, married=False):
-    """Return (kind, note) for a written name that differs from the canonical given/surname/suffix. married says the record
-    shows this person married under the written surname (match.compare's own ground, or conclude.shown_married's a wife
-    under her husband's, a daughter or sister under hers, named beside a son- or brother-in-law of it, or written "Mrs."):
-    classified married_name ahead of any surname heuristic below, since the difference is not an indexer's slip."""
-    wg, ws, wx = split_gedcom_name(written)
-    g, s, x = clean(given), clean(surname), clean(suffix)
-    if key(wg) == key(g) and key(ws) == key(s):
-        if wx and re.search(r"\d|^[A-Z]{2,}\d*$", wx): return "context_glue", f"trailing token '{wx}' looks like a code, not a suffix"
-        return "detail", f"suffix differs: '{wx}' vs '{x}'"
-    if key(ws) != key(s) and ws and s:
-        if married: return "married_name", f"surname {ws} vs {s}: the record shows her married"
-        if soundex(ws) == soundex(s) and edits(key(ws), key(s)) > 2: return "phonetic", f"surname {ws} ~ {s} (same Soundex)"
-        if edits(key(ws), key(s)) <= 2: return "typo", f"surname {ws} vs {s}"
-        if key(s) in key(ws) or key(ws) in key(s): return "detail", f"surname {ws} contains/contained in {s}"
-        return "unclassified", f"surname {ws} vs {s}"
-    a, b = key(wg).split(), key(g).split()
-    if a and b and all(len(t) == 1 for t in a) and all(t[0] == u[0] for t, u in zip(a, b)): return "abbreviation", "initials"
-    if a and b and a[0] != b[0] and short_form(a[0], b[0]): return "nickname", f"{a[0]} ~ {b[0]}"
-    if edits(key(wg), key(g)) <= 2: return "typo", f"given {wg} vs {g}"
-    if a and b and a[0] != b[0] and edits(a[0], b[0]) <= 2: return "typo", f"first given {a[0]} vs {b[0]} (other tokens differ too: '{wg}' vs '{g}')"
-    if a and b and (a[0] == b[0] or set(a) & set(b)): return "detail", f"given names differ in count/order: '{wg}' vs '{g}'"
-    return "unclassified", f"given {wg} vs {g}"
+from catalog import alias_key as key, classify, clean, edits
 
 def backfill_persons(cx, tree_id, by, ts, stats, report):
     rows = cx.execute("""SELECT pp.person_id, pf.id, pf.value_text, pn.given, pn.surname, pn.suffix, pe.artifact_sha256
