@@ -33,7 +33,7 @@ to the same person keeps its id and takes the matcher's words as they now read.
   they now read.
 - settle_people: what every decision that changes a person's evidence does inside the function that takes it, once the
   plans are regenerated: the rule over those people's conflicts (conflicts.rule_conflicts), then their cards matched again
-  (rematch_people); settle_carried, the same once for every person a re-read's carried links (readers.carry_links) or a
+  (rematch_people); settle_carried, the same once for every person a re-read's carried links (copies.carry_links) or a
   decision carried to other copies (carry) changed, each person's plan regenerated with the question it closes answered by
   the decision carried; decide_assertion, one statement decided on its own; statement_people, the people statements are about;
   link_people, everyone whose family a decision's links reach (the member and the family's partners, everyone in a family a
@@ -278,7 +278,7 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
     return rows
 
 def settle_carried(cx, by, touched):
-    """What follows decisions carried onto a record's new reading (a re-read, readers.carry_links) or onto its other copies
+    """What follows decisions carried onto a record's new reading (a re-read, copies.carry_links) or onto its other copies
     (carry), once for them all: in each tree, the plans of the people whose evidence they changed regenerated, a question
     the regeneration closes answered by the decision carried to that person (answer_questions), then the rule over their
     conflicts and their cards matched again (settle_people). touched: {(tree id, person id): the proposal of the decision

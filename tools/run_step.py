@@ -60,7 +60,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, USER_AGENT, archive_object, connect, dumps, now, resolve_tree, ulid
 from catalog import Catalog, collection_tier, first_value
 from log_search import hold_unread, log as log_search, latest_answer, ran_unchanged, rendered_query, restate, unread_record
-from readers import extract, RESULTS_LISTINGS
+from readers import RESULTS_LISTINGS
+from copies import read_page
 from decisions import match_record
 import connectors
 
@@ -286,7 +287,7 @@ def read(cx, tree_id, step, r, records, by):
     record read gave, the run's outcome, its rows)."""
     extracted, readings = [], []                                 # readings: (a results listing, fits someone) per record read
     for sha in records:                                          # a hit's own record; the search response is the query's evidence, not a record
-        eid, n = extract(cx, sha, by)
+        eid, n = read_page(cx, sha, by)
         if "failed" in n: extracted.append({"sha256": sha, "unparsed": n["failed"]}); continue
         props, taken = match_record(cx, eid, by)
         extracted.append({"sha256": sha, "extraction": eid, **{k: v for k, v in n.items() if k != "place_strings"}, "proposals": len(props), "accepted_by_rule": len(taken)})

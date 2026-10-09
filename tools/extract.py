@@ -14,7 +14,8 @@ on the owner's word, when no step or link names them: a fetch step on their plan
 import argparse, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, sha256_file
-from readers import EXTRACTORS, extract
+from readers import EXTRACTORS
+from copies import read_page
 
 def stale(cx):
     """The archived pages whose current reading a parser of this file made at a version older than its own now: (sha256,
@@ -25,9 +26,9 @@ def stale(cx):
             if name in now_at and ver != now_at[name]]
 
 def read(cx, sha, by, about=None):
-    """One page read and decided: the extraction (superseding the page's earlier reading), then the matcher and the rule;
+    """One page read and decided: the reading with the decisions carried to it (copies.read_page), then the matcher and the rule;
     about names the person the owner says the record is about. Returns (extraction id, counts, proposals written, taken)."""
-    cx.execute("BEGIN"); eid, n = extract(cx, sha, by); cx.commit()
+    cx.execute("BEGIN"); eid, n = read_page(cx, sha, by); cx.commit()
     if "failed" in n: return eid, n, [], []
     from decisions import match_record
     cx.execute("BEGIN")

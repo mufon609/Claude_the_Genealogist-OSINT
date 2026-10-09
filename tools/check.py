@@ -253,7 +253,7 @@ def connectors_offline():
     say(nj.hits(nj.CSV_URL, whole, {"surname": DF["absent_surname"], "archived_sha": rq0["archived_sha"]}) == [], "a surname the file carries no row under gives no hit")
     d, db = scratch(False)
     from treelib import archive_object as ao
-    from readers import extract as ext_fn
+    from copies import read_page as ext_fn
     cx2 = connect(db)
     parent_sha, _ = ao(cx2, whole, mime="text/csv", source_id="C09", collection_id=None, locator_kind="url", locator_value=nj.CSV_URL, retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", original_filename="nj-death-index-whole.csv")
     _, n_whole = ext_fn(cx2, parent_sha, BY)
@@ -399,7 +399,7 @@ def insert_only():
     out, or a connection opened without the pragma, turns this red; a write-once column is refused set from empty to empty, allowed from empty to a value once, then refused to
     another value and back to empty. The rows are all still there afterwards."""
     from treelib import archive_object, now, ulid
-    from readers import extract
+    from copies import read_page
     from households import regroup
     from log_search import log
     from tombstone import tombstone
@@ -410,11 +410,11 @@ def insert_only():
         for name in ("va-gravesite-search-davidson-raymond-2007", "va-gravesite-search-davidson-noi", "va-gravesite-search-davidson-raymond-e"):
             with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
             sha, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=None, locator_kind="file", locator_value=name + ".html", retrieved_by=BY, terms=None, cost="free", trust_tier=None)
-            extract(cx, sha, BY); shas.append(sha)
+            read_page(cx, sha, BY); shas.append(sha)
         for name in ("familysearch-census-1925-KS4R-RTQ", "familysearch-census-1925-KS4R-RTM", "familysearch-census-1900-M3QL-XYW", "familysearch-census-1900-M9HX-SWP"):   # three households: the 1925 pages of one run, and two 1900 record pages
             with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
             sha, _ = archive_object(cx, data, mime="text/html", source_id="D03", collection_id=None, locator_kind="file", locator_value=name + ".html", retrieved_by=BY, terms=None, cost="free", trust_tier=None)
-            extract(cx, sha, BY)
+            read_page(cx, sha, BY)
         regroup(cx, BY)
         ts = now(); tid = ulid()
         cx.execute("INSERT INTO artifact_locator (artifact_sha256,kind,value) VALUES (?,?,?)", (shas[0], "url", "https://gravelocator.cem.va.gov/ngl/#lastName=Davidson&firstName=Raymond&deathYear=2007"))

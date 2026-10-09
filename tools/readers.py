@@ -179,10 +179,8 @@ import csv, html, io, json, os, re, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from html.parser import HTMLParser
 from treelib import dumps, now, object_path, parse_gedcom_date, ulid
-from catalog import is_identity, jurisdictions, page_entries
+from catalog import jurisdictions
 from forms import census_form, form_for
-from decisions import assert_facts, carry, link_family, link_people, settle_carried
-from copies import join_copies
 
 EXTRACTORS = {"ancestry": ("rule", "ancestry-index", "0.1.0"), "findagrave": ("rule", "findagrave-memorial", "0.4.0"), "findagrave_search": ("rule", "findagrave-search", "0.1.0"),
               "familysearch": ("rule", "familysearch-record", "0.8.1"), "familysearch_search": ("rule", "familysearch-search", "0.1.0"), "nara1950": ("rule", "nara-1950-schedule", "0.2.0"),
@@ -1295,6 +1293,12 @@ def write_ocr(w, parsed):
         if page.get("connector") == "ia_directories" and (page.get("date") or place): w.fact(pid, "Residence", None, page.get("date"), place, ["directory date", "directory place"])
 
 def extract(cx, sha, by):
+    """One archived page read: parsed by the parser its kind names (parse, parse_json, parse_csv), its extraction written
+    superseding the page's earlier readings by the same parser (their undecided proposals closed as superseded), the ark it
+    carries written to artifact_locator, and its personas, facts and relations written (Writer). Returns (extraction id, the
+    Writer's counts, the superseded extractions' ids, the extractor (kind, name, version), the moment), which copies.read_page,
+    the one caller, carries the decisions to and records; a page no parser claims is a failed extraction, its audit row written
+    here, the counts naming failed."""
     art = cx.execute("SELECT sha256, mime FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if not art: raise SystemExit(f"not in the archive: {sha[:12]}")
     mime = art[1] or ""
@@ -1312,7 +1316,7 @@ def extract(cx, sha, by):
         cx.execute("INSERT INTO extraction (id,artifact_sha256,extractor_id,ran_at,status,structured_json) VALUES (?,?,?,?,'failed',?)", (eid, sha, ext_id, ts, dumps(parsed)))
         cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
                    (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": "rule:extract@0.1.0", "status": "failed", **parsed})))
-        return eid, {"failed": parsed["reason"]}
+        return eid, {"failed": parsed["reason"]}, [], extractor, ts
     full_text = "\n".join(f"{l}: {v}" for l, v in parsed.get("fields") or [])
     if kind == "ancestry": full_text += "".join("\n" + " | ".join(r) for t in parsed["household"] for r in t["rows"])
     elif kind == "familysearch": full_text += "".join(f"\n{m['role']}: {m['name']} {m['sex']} {m['age']} {m['birthplace']}" for m in parsed["members"])
@@ -1343,50 +1347,4 @@ def extract(cx, sha, by):
     {"findagrave": write_memorial, "findagrave_search": write_search, "familysearch": write_record, "familysearch_search": write_fs_search, "nara1950": write_schedule, "locgov": write_ocr, "ia_inside": write_ocr,
      "aad_search": write_aad_search, "aad_record": write_aad_record, "wikitree": write_wikitree, "va_graves": write_va, "nj_death_index": write_nj_death,
      "ky_death_index": write_ky_index, "ky_birth_index": write_ky_index}.get(kind, write_personas)(w, parsed)
-    w.n["links_carried"], touched = carry_links(cx, old, eid, sha, by, ts)
-    w.n["copies_joined"] = len(join_copies(cx, sha, by, ts))      # the other copies of this record the archive holds (same_record), and the decisions on them
-    copies = carry(cx, by, sha, settle=False)
-    w.n["decisions_carried"] = len(copies)
-    for c in copies:
-        if c["kept"] is None: touched.setdefault((c["tree"], c["person"]), c["proposal"])
-    settle_carried(cx, by, touched)                              # once for the reading: plans, the rule over conflicts, cards matched again
-    cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
-               (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **w.n})))
-    return eid, w.n
-
-def carry_links(cx, old, eid, sha, by, ts):
-    """A decided person-persona link on a superseded extraction moves to the new reading's persona of the same entry of the
-    page (catalog.persona_key: its record id, else its role, row and name). An old persona whose entry no new persona carries
-    (an older parser that wrote no identity, or wrote it otherwise) moves to the one new persona of its name and role only
-    when it is also the one persona of that name and role on its own reading, and never from one record id to another;
-    otherwise the link stays behind and the matcher proposes the persona again: a card coming back is safe, a link on another
-    row is not. An accepted link asserts the new facts and links onto the person as the decision did, a statement whose status
-    a person decided on its own (assertion.person_decided) keeping it. An undecided link is not a decision, so it does not
-    carry. Returns how many links were carried, and the people whose evidence the accepted ones changed, {(tree id, person
-    id): the decision's proposal}: each person an accepted link carried to, and everyone whose family a family link it wrote
-    reaches, as a decision's (decisions.link_people: the member and the family's partners, and everyone in a family it put
-    someone into anew), which decisions.settle_carried goes over."""
-    n, carried, touched = 0, [], {}
-    new = page_entries(cx, sha, eid)
-    one_of = lambda entries, name, role: [e for e in entries if e[2] == name and e[3] == role]
-    for o in old:
-        was = page_entries(cx, sha, o)
-        key_of = {pid: key for pid, _, _, _, key in was}
-        for pp in cx.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at, pe.name_text, pe.role_in_record, p.tree_id, pe.id
-                                FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
-                                WHERE pe.extraction_id=? AND pp.status IN ('accepted','rejected')""", (o,)).fetchall():
-            k = key_of[pp[8]]
-            to = [pid for pid, _, _, _, key in new if key == k]
-            if not to:
-                before, after = one_of(was, pp[5], pp[6]), one_of(new, pp[5], pp[6])
-                if len(before) == 1 and len(after) == 1 and not (is_identity(k) and is_identity(after[0][4])): to = [after[0][0]]
-            for pid in to:
-                cx.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (pp[0], pid, pp[1], pp[2], pp[3], pp[4])); n += 1
-                if pp[1] == "accepted": carried.append((pp[7], pp[0], pid, pp[2]))
-    for tree_id, person_id, pid, prop_id in carried:            # links first, so the family relations see every accepted persona
-        assert_facts(cx, tree_id, person_id, pid, prop_id, by, ts)
-        touched[(tree_id, person_id)] = prop_id                  # a person's own decision over another's that linked them
-        members = link_family(cx, tree_id, person_id, pid, sha, prop_id, by, ts)
-        for who in link_people(cx, [(m["family"], m["person"], m["role"]) for m in members], joined=[m["family"] for m in members if m["new"]]):
-            touched.setdefault((tree_id, who), prop_id)
-    return n, touched
+    return eid, w.n, old, extractor, ts

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """One record is one source wherever it is held (docs/DATA-ARCHITECTURE.md §7 decision 15): code's joins of one archived
 file to the other copies of its record (join_copies, same_record), the owner's word joining two copies or keeping two apart
-(copies_on_word), and a copy as the owner names it (copy_named). A decision on one copy's entry is carried to every other
-copy's persona of that entry by decisions.carry, which a decision runs itself and copies_on_word runs for the pair; the
-record under decision as the rule counts it, once, and as every copy holds it, is tools/rule.py (record_self, copy_cards);
-tools/conclude.py is the command line (copies, apart).
+(copies_on_word), a copy as the owner names it (copy_named), and a page read for every tree with the decisions carried to
+its reading (read_page: the extraction, the decided links of the readings it supersedes moved to it, carry_links, its joins
+written and the decisions on its other copies carried to it, then settled once), which every caller that reads a page runs. A
+decision on one copy's entry is carried to every other copy's persona of that entry by decisions.carry, which a decision runs
+itself and read_page and copies_on_word run for the page and the pair; the record under decision as the rule counts it, once,
+and as every copy holds it, is tools/rule.py (record_self, copy_cards); tools/conclude.py is the command line (copies, apart).
 
 - join_copies: each join written once and shared by every tree: one record id (an Ancestry apid or a FamilySearch ark), one
   FamilySearch entry id on both readings, or one certificate number of one year on two numbered entries agreeing by name
@@ -18,9 +20,10 @@ tools/conclude.py is the command line (copies, apart).
 import os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import dumps, now, ulid
-from catalog import persona_key, record_kinds
+from catalog import is_identity, page_entries, persona_key, record_kinds
+from readers import extract
 from rule import _q, editable
-from decisions import answer_questions, carry, link_people, match_record, memberships_of, settle_people
+from decisions import answer_questions, assert_facts, carry, link_family, link_people, match_record, memberships_of, settle_carried, settle_people
 
 # ---------------------------------------------------------------- one record, wherever it is held
 def _number(cx, persona_id, region_key, reading):
@@ -145,6 +148,65 @@ def join_copies(cx, sha, by, ts=None):
                     ):
                         write(copy_entry(cx, p["id"]), copy_entry(cx, r["id"]), "number", f"number {digits} of {yr}")
     return out
+
+def carry_links(cx, old, eid, sha, by, ts):
+    """A decided person-persona link on a superseded extraction moves to the new reading's persona of the same entry of the
+    page (catalog.persona_key: its record id, else its role, row and name). An old persona whose entry no new persona carries
+    (an older parser that wrote no identity, or wrote it otherwise) moves to the one new persona of its name and role only
+    when it is also the one persona of that name and role on its own reading, and never from one record id to another;
+    otherwise the link stays behind and the matcher proposes the persona again: a card coming back is safe, a link on another
+    row is not. An accepted link asserts the new facts and links onto the person as the decision did, a statement whose status
+    a person decided on its own (assertion.person_decided) keeping it. An undecided link is not a decision, so it does not
+    carry. Returns how many links were carried, and the people whose evidence the accepted ones changed, {(tree id, person
+    id): the decision's proposal}: each person an accepted link carried to, and everyone whose family a family link it wrote
+    reaches, as a decision's (decisions.link_people: the member and the family's partners, and everyone in a family it put
+    someone into anew), which decisions.settle_carried goes over."""
+    n, carried, touched = 0, [], {}
+    new = page_entries(cx, sha, eid)
+    one_of = lambda entries, name, role: [e for e in entries if e[2] == name and e[3] == role]
+    for o in old:
+        was = page_entries(cx, sha, o)
+        key_of = {pid: key for pid, _, _, _, key in was}
+        for pp in cx.execute("""SELECT pp.person_id, pp.status, pp.proposal_id, pp.decided_by, pp.decided_at, pe.name_text, pe.role_in_record, p.tree_id, pe.id
+                                FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
+                                WHERE pe.extraction_id=? AND pp.status IN ('accepted','rejected')""", (o,)).fetchall():
+            k = key_of[pp[8]]
+            to = [pid for pid, _, _, _, key in new if key == k]
+            if not to:
+                before, after = one_of(was, pp[5], pp[6]), one_of(new, pp[5], pp[6])
+                if len(before) == 1 and len(after) == 1 and not (is_identity(k) and is_identity(after[0][4])): to = [after[0][0]]
+            for pid in to:
+                cx.execute("INSERT OR IGNORE INTO person_persona (person_id,persona_id,status,proposal_id,decided_by,decided_at) VALUES (?,?,?,?,?,?)", (pp[0], pid, pp[1], pp[2], pp[3], pp[4])); n += 1
+                if pp[1] == "accepted": carried.append((pp[7], pp[0], pid, pp[2]))
+    for tree_id, person_id, pid, prop_id in carried:            # links first, so the family relations see every accepted persona
+        assert_facts(cx, tree_id, person_id, pid, prop_id, by, ts)
+        touched[(tree_id, person_id)] = prop_id                  # a person's own decision over another's that linked them
+        members = link_family(cx, tree_id, person_id, pid, sha, prop_id, by, ts)
+        for who in link_people(cx, [(m["family"], m["person"], m["role"]) for m in members], joined=[m["family"] for m in members if m["new"]]):
+            touched.setdefault((tree_id, who), prop_id)
+    return n, touched
+
+def read_page(cx, sha, by):
+    """One archived page read for every tree, and the decisions carried to the reading: the extraction (readers.extract, which
+    supersedes the page's earlier readings), the decided links of the superseded readings moved to the new reading's personas
+    (carry_links), the page's joins to the other copies of its record written (join_copies) and the decisions on those copies
+    carried to it (decisions.carry), then, once for the reading, the plans of the people whose evidence changed regenerated,
+    the rule over their conflicts and their cards matched again (decisions.settle_carried); one audit row for the reading with
+    its counts. Every caller that reads a page for a tree (the runner, the attach, the person screen, the harness, the
+    extract command) reads it here. Returns (extraction id, counts), the counts naming failed for a page no parser claims.
+    Implements [rule.copies.2], [rule.copies.3]."""
+    eid, n, old, extractor, ts = extract(cx, sha, by)
+    if "failed" in n: return eid, n
+    n["links_carried"], touched = carry_links(cx, old, eid, sha, by, ts)
+    n["copies_joined"] = len(join_copies(cx, sha, by, ts))      # the other copies of this record the archive holds (same_record), and the decisions on them
+    copies = carry(cx, by, sha, settle=False)
+    n["decisions_carried"] = len(copies)
+    for c in copies:
+        if c["kept"] is None: touched.setdefault((c["tree"], c["person"]), c["proposal"])
+    settle_carried(cx, by, touched)                              # once for the reading: plans, the rule over conflicts, cards matched again
+    cx.execute("INSERT INTO audit_log (id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?)",
+               (ulid(), ts, by, "insert", "extraction", eid, dumps({"extractor": ":".join(extractor[:2]) + "@" + extractor[2], **n})))
+    return eid, n
 
 def copy_named(cx, text):
     """A copy of a record as the owner names it: an archived file by its sha256 (or the first twelve or more of its characters)

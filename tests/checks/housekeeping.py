@@ -237,14 +237,14 @@ def backup_bag():
     run on the same catalog as the tool is)."""
     import re, backup
     from treelib import archive_dir, archive_object, object_path
-    from readers import extract
+    from copies import read_page
     d, db = scratch(False); bad = []
     try:
         def archive(name):
             cx = connect(db)
             with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
             sha, _ = archive_object(cx, data, mime="text/html", source_id="E03", collection_id=None, locator_kind="file", locator_value=name + ".html", retrieved_by=BY, terms=None, cost="free", trust_tier=None)
-            extract(cx, sha, BY); cx.commit(); cx.close()
+            read_page(cx, sha, BY); cx.commit(); cx.close()
             return sha
         held = [archive(n) for n in PAGES[:2]]
         cx = connect(db); drive = os.path.join(d, "drive"); os.makedirs(drive)

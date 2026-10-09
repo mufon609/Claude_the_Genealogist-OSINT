@@ -362,8 +362,8 @@ def a_archive(w, x):
                               retrieved_by=BY, terms=src[1], cost=cost, trust_tier=src[0], original_filename=x.get("fixture") or x.get("file"), notes=notes)
     out = {"sha": sha, "new": new}
     if x.get("extract"):
-        from readers import extract
-        eid, n = extract(w.cx, sha, BY); out.update({"extraction": eid, "n": n})
+        from copies import read_page
+        eid, n = read_page(w.cx, sha, BY); out.update({"extraction": eid, "n": n})
         if "match" in x:
             from decisions import match_record
             from matcher import match
@@ -374,8 +374,8 @@ def a_archive(w, x):
     return out
 
 def a_reread(w, x):
-    from readers import extract
-    eid, n = extract(w.cx, w.sha(x["record"]), BY); out = {"extraction": eid, "n": n, "sha": w.sha(x["record"])}
+    from copies import read_page
+    eid, n = read_page(w.cx, w.sha(x["record"]), BY); out = {"extraction": eid, "n": n, "sha": w.sha(x["record"])}
     if "match" in x:
         about = w.people(x["match"]) if x["match"] else None
         if x.get("rule"):

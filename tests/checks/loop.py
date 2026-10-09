@@ -63,13 +63,13 @@ def raiser(said):
 @contextlib.contextmanager
 def failing(x):
     """The harness's stand-ins for the runner's or the turn's own work failing, as the step's data says under `fails`: a
-    code path that raises, never a page or a record. `reading`: every record's reading raises (run_step's extract);
+    code path that raises, never a page or a record. `reading`: every record's reading raises (run_step's read_page);
     `requests`: the connector named cannot build its requests from the step's fields; `reconsider`: the tail's reconsider
     raises."""
     import run_step, turn
     from connectors import load
     f = x.get("fails") or {}
-    stand_ins = {"reading": (run_step, "extract", "a reader that fails"),
+    stand_ins = {"reading": (run_step, "read_page", "a reader that fails"),
                  "requests": (load(f["requests"]) if f.get("requests") else None, "requests", "a connector that cannot build its requests"),
                  "reconsider": (turn, "reconsider", "a reconsider that fails")}
     with contextlib.ExitStack() as stack:

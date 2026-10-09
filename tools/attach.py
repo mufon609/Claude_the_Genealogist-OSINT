@@ -556,8 +556,9 @@ def attach(cx, tree_id, slug, name, steps, by, note=None, query=None, kind=None,
         logs.append((s["id"], log_search(cx, tree_id, by, step_id=s["id"], outcome="found", artifacts=[sha], note="; ".join(x for x in (note, s.get("reason") if isinstance(s, dict) else None) if x), query={**fields, **(query or {})}, done=False)))
     out = {"sha256": sha, "new": new, "mime": mime, "logs": logs, "extraction": None, "proposals": [], "unparsed": None}
     if new and mime.startswith("text/html"):                     # a page is parsed and matched on arrival; an image waits for a transcription
-        from readers import extract as extract_html, RESULTS_LISTINGS
-        eid, n = extract_html(cx, sha, by); out["extraction"] = eid
+        from readers import RESULTS_LISTINGS
+        from copies import read_page
+        eid, n = read_page(cx, sha, by); out["extraction"] = eid
         if "failed" in n: out["unparsed"] = n["failed"]
         else: out["proposals"], out["accepted_by_rule"] = match_record(cx, eid, by, about=[about] if about else None)
         is_results_page = cx.execute(f"""SELECT 1 FROM extraction e JOIN extractor x ON x.id=e.extractor_id

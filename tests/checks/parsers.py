@@ -115,7 +115,7 @@ def fixtures():
 def check(keep, show):
     """Every fixture read on one scratch; the number of failures, one line per fixture printed."""
     from treelib import archive_object
-    from readers import extract
+    from copies import read_page
     d, db = scratch(keep); cx = connect(db); bad = 0
     for name, want in fixtures():
         path = os.path.join(FIXTURES, name)
@@ -133,7 +133,7 @@ def check(keep, show):
         cx.execute("BEGIN")
         sha, _ = archive_object(cx, data, mime=mime, source_id=source, collection_id=None, locator_kind=lkind, locator_value=lvalue, retrieved_by=BY,
                                 terms=src[1], cost=cost, trust_tier=src[0], original_filename=name, notes=notes)
-        eid, n = extract(cx, sha, BY); cx.commit()
+        eid, n = read_page(cx, sha, BY); cx.commit()
         fails = Fails()
         ext = cx.execute("SELECT x.name, x.version, e.status, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?", (eid,)).fetchone()
         fails(ext[2] == "complete", f"extraction {ext[2]}: {n.get('failed', '')}")

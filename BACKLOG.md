@@ -484,11 +484,12 @@ the parent did not):
 2. **Done (10 Oct 2026).** The research log's note prefixes (`REOPENED`,
    `HOUSEHOLD`, `ON_WORD`) live in `catalog`, which reads the log for every
    layer; the log, the matcher, the attach and the overview import them there.
-3. `readers.extract` carries a page's decisions to its new reading
-   (`join_copies`, `carry`, `settle_carried`) and `readers.carry_links`
-   writes them (`assert_facts`, `link_family`, `link_people`): the carry moves
-   to the copies module, which reads through `readers.extract` and then
-   carries, and every caller that reads a page for a tree calls it there.
+3. **Done (10 Oct 2026).** `copies.read_page` reads a page through
+   `readers.extract` and carries the decisions to the reading (`carry_links`,
+   moved there, `join_copies`, `decisions.carry`, `decisions.settle_carried`),
+   and every caller that reads a page for a tree (the runner, the attach, the
+   screen, the harness, the extract command) reads it there; the readers
+   write no decision.
 4. **Done (10 Oct 2026).** The readers are `tools/readers.py` and the
    matcher `tools/matcher.py`, each in layer 2 where its command file was;
    `tools/extract.py` (`read`, `--stale`) and `tools/match.py` keep their
