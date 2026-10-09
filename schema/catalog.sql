@@ -1,6 +1,6 @@
 -- =============================================================================
 -- tree catalog schema  v0.8.8
--- Portable SQL: runs on SQLite 3.35+ and PostgreSQL 13+ without edits.
+-- Runs on SQLite 3.35+; no engine-specific types or clauses, but the PostgreSQL port needs more (schema/README.md, "Migrating to Postgres").
 -- Conventions
 --   * ids are ULIDs stored as 26-char TEXT; artifacts are keyed by sha256 hex.
 --   * timestamps are ISO-8601 UTC TEXT ("2026-09-05T18:02:11Z").

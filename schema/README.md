@@ -2,7 +2,7 @@
 
 | File | Purpose |
 |---|---|
-| `catalog.sql` | Portable DDL (SQLite 3.35+ and PostgreSQL 13+). 39 tables, 6 views. Schema 0.8.8. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
+| `catalog.sql` | DDL without engine-specific types or clauses, run on SQLite 3.35+; the move to PostgreSQL 13+ is not yet a dump and load ("Migrating to Postgres"). 39 tables, 6 views. Schema 0.8.8. The live catalog holds the owner's decisions, so a schema change migrates them rather than rebuilding. |
 | `seed_event_type.sql` | Event/attribute taxonomy borrowed from Gramps with GEDCOM 7 tags. |
 | `sqlite_extras.sql` | SQLite-only: the insert-only triggers on the archive's rows, the evidence, the research log and the audit trail. |
 | `manifest.schema.json` | JSON Schema for the provenance sidecar written next to every archived object. |
@@ -212,10 +212,22 @@ Pre-1752 English-colony dates are `dual`.
 
 ## Migrating to Postgres
 
-Dump with `sqlite3 tree.db .dump` and load. The DDL uses no engine-specific types or clauses. The
-tools do not yet: most of them and the screen use SQLite's `json_valid` /
-`json_extract`, `tools/backfill_aliases.py` uses `GLOB`, and `tools/log_search.py`
-uses `GROUP_CONCAT`. Those calls are the porting work.
+The DDL uses no engine-specific types or clauses, but the move is not yet a
+dump and load; the work to port is:
+
+- `catalog.sql` creates `same_record` before the `tree` it references; the
+  order must put `tree` first.
+- The insert-only triggers in `sqlite_extras.sql` are SQLite syntax; they must
+  be written again for PostgreSQL and carried over, or the archive, the
+  evidence and the audit trail stand unprotected after the move.
+- The SQL the tools and the screen send: `INSERT OR IGNORE` and `INSERT OR
+  REPLACE`, `IS ?`, `json_valid`, `json_extract`, `json_set`, `json_each`,
+  `GLOB`, `GROUP_CONCAT`, `LIKE` as a case-insensitive match (the person lookup
+  relies on it) and `ORDER BY rowid` (a person's facts in the order they were
+  inserted).
+- `sqlite3 tree.db .dump` is not a load script as it stands: it writes
+  `search_plan` before the `research_question` it references and writes
+  booleans as 0 and 1.
 
 ## Tools
 

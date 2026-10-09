@@ -333,7 +333,7 @@ combination only once those are not getting hits.
 
 | Mode | Sources | Behaviour |
 |---|---|---|
-| auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text and title search, WikiTree, the VA gravesite locator, the New Jersey death index, the Kentucky death and birth indexes; FamilySearch after Innovator approval, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
+| auto | Chronicling America (loc.gov), the 1950 census site, the Internet Archive's full-text and title search, WikiTree, the VA gravesite locator, the New Jersey death index, the Kentucky death and birth indexes, NARA catalog, Open Archives, Wikidata, the held archive when their connectors exist | the system runs the query, archives raw responses, extracts personas |
 | assisted | Find a Grave, the WWII Army enlistment file at the National Archives (AAD), FamilySearch record search (free account), the SAR Patriot Research System, Newspapers.com, Fold3, Archion | the system builds the exact search URL and tells the user what to look for; the user saves the result to `inbox/`, or a session drives the owner's own logged-in browser to save one cited record at a time by the page-saves-itself method below; the system takes it from there |
 
 **Adjusting a prefilled search.** A person at the keyboard may change the
