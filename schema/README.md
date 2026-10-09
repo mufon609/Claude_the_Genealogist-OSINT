@@ -36,7 +36,9 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   `persona_fact`, `persona_relation`, `same_record`, `household`, `household_member`, `search_log`,
   `task_run` and `audit_log` are
   insert-only: triggers abort every UPDATE and DELETE but the write-once `superseded_by`
-  on `extraction`, `household` and `search_log`, set from empty to the row that restates the old one.
+  on `extraction`, `household` and `search_log`, set from empty to the row that restates the old one, and
+  an `INSERT OR REPLACE` over a row, whose delete fires the trigger because every connection is opened
+  with recursive triggers on (`treelib.open_db`).
   Corrections are new rows; removals are `tombstone` rows, written by `tools/tombstone.py` alone and held by no
   reader (`catalog.not_withdrawn`, `docs/DATA-ARCHITECTURE.md` §2). A run read again (its records
   fit no one, or no parser reads them) or carried onto the kept person's step by a merge
@@ -219,7 +221,9 @@ dump and load; the work to port is:
   order must put `tree` first.
 - The insert-only triggers in `sqlite_extras.sql` are SQLite syntax; they must
   be written again for PostgreSQL and carried over, or the archive, the
-  evidence and the audit trail stand unprotected after the move.
+  evidence and the audit trail stand unprotected after the move. They refuse
+  a replace only under `PRAGMA recursive_triggers`, which `treelib.open_db`
+  sets on every connection.
 - The SQL the tools and the screen send: `INSERT OR IGNORE` and `INSERT OR
   REPLACE`, `IS ?`, `json_valid`, `json_extract`, `json_set`, `json_each`,
   `GLOB`, `GROUP_CONCAT`, `LIKE` as a case-insensitive match (the person lookup

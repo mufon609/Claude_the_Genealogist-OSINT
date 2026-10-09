@@ -314,13 +314,21 @@ def in_data_root(db: str) -> str:
         raise SystemExit(f"{db} is outside the data root {DATA_ROOT}: run with DATA_ROOT set to the folder whose catalog/ holds it (DATA_ROOT=<dir> python3 tools/<tool>.py)")
     return db
 
+def open_db(db: str) -> sqlite3.Connection:
+    """A connection to the SQLite file at db, as every tool and check opens one: foreign keys on, and recursive triggers on, so
+    the row an INSERT OR REPLACE deletes to make room for its own fires that table's delete trigger and the insert-only tables
+    refuse a replace as they refuse a DELETE (schema/sqlite_extras.sql). connect opens the catalog through it; a tool that
+    opens a catalog before its schema is current (tools/initdb.py), or another SQLite file, calls it directly."""
+    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.execute("PRAGMA recursive_triggers=ON")
+    return cx
+
 def connect(db: str, rows: bool = False) -> sqlite3.Connection:
     """The catalog a tool works on, foreign keys on, sqlite3.Row rows when asked. Refused when it lies outside the data root
     (in_data_root), when no catalog is there or when it is behind the code's schema, so no tool reads or writes a catalog its
     migrations have not reached, or archives its records into another data root."""
     in_data_root(db)
     if not os.path.exists(db): raise SystemExit(f"no catalog at {db}: create one with python3 tools/initdb.py --db {db}")
-    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON")
+    cx = open_db(db)
     try: have = {v for v, in cx.execute("SELECT version FROM schema_migration")}
     except sqlite3.OperationalError: raise SystemExit(f"{db} is not a catalog (no schema_migration table)")
     if SCHEMA_VERSION not in have:

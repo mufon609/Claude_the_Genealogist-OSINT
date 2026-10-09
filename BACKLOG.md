@@ -1602,23 +1602,17 @@ Print every open question on the fact, the agreement on a family link and
 the linkage reason, so the written conclusion is the reasoning and not only
 the verdict.
 
-### C51. Insert-only against REPLACE, and the archive's files against a rewrite
+### C51. The archive's files against a rewrite
 
-`INSERT OR REPLACE` rewrites a row of a protected table under the live
-triggers (shown on a scratch copy on `audit_log` and `artifact`); with
-`PRAGMA recursive_triggers=ON` it is refused, no connection sets it (ten
-places open one), and `tools/check.py`'s insert-only check tries UPDATE and
-DELETE alone. No tool replaces into a protected table today. Beside C28:
-`treelib.archive_object` writes the object and its sidecar again whenever its
-catalog lacks the row, before the commit, and removes nothing when the
-transaction fails: 10 sidecars disagree with their row's `manifest_json` (7
+Beside C28: `treelib.archive_object` writes the object and its sidecar again
+whenever its catalog lacks the row, before the commit, and removes nothing when
+the transaction fails: 10 sidecars disagree with their row's `manifest_json` (7
 on the trust tier, 2 on `redistributable`) and 7 objects on disk have no row,
 2 of them the runner's. Nothing compares a sidecar with its row, no code
 reads `schema/manifest.schema.json`, and 20 sidecars carry `T1/T2`, outside
-its list. Refuse REPLACE whatever the connection (a trigger, or the pragma
-set where every connection is opened) and check it; write an object and its
-sidecar once, never over one that exists; compare sidecars with rows in
-`tools/backup.py verify`; hold the manifests to their schema.
+its list. Write an object and its sidecar once, never over one that exists;
+compare sidecars with rows in `tools/backup.py verify`; hold the manifests to
+their schema.
 
 ### C52. The screen shows the record it asks about
 

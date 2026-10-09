@@ -3,7 +3,9 @@
 -- Insert-only tables (CLAUDE.md hard rule 2; docs/DATA-ARCHITECTURE.md §1): the archive's rows, the evidence, the research
 -- log and the audit trail. A correction is a new row; the one UPDATE allowed is a write-once column, superseded_by on
 -- extraction, household and search_log, set once from empty to the row that takes the old one's place. Every other UPDATE
--- and every DELETE is refused. tools/check.py tries each column of each table.
+-- and every DELETE is refused, and so is an INSERT OR REPLACE over a row: every connection is opened with recursive triggers
+-- on (tools/treelib.py open_db), under which the row a replace deletes fires its table's delete trigger. tools/check.py tries
+-- each column of each table, and a replace of each.
 CREATE TRIGGER trg_artifact_no_update BEFORE UPDATE ON artifact BEGIN
   SELECT RAISE(ABORT, 'artifact rows are immutable; insert a derived artifact or a tombstone');
 END;

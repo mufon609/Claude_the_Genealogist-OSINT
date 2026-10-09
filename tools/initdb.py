@@ -18,7 +18,7 @@ version this catalog lacks runs once and is recorded in schema_migration. Stdlib
 """
 import argparse, csv, json, os, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from treelib import DB, ROOT, SCHEMA_VERSION, archive_dir, in_data_root, now, ulid, ulid_time
+from treelib import DB, ROOT, SCHEMA_VERSION, archive_dir, in_data_root, now, open_db, ulid, ulid_time
 
 def requery_questions(cx: sqlite3.Connection) -> None:
     """Every research_question row's key recomputed from its own detail_json with plan.q_key, open and closed alike: the
@@ -436,16 +436,16 @@ def main() -> int:
     in_data_root(a.db)
 
     if a.sync_sources:
-        cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+        cx = open_db(a.db)
         n = seed_sources(cx); t = sync_collection_tiers(cx); cx.commit()
         print(f"{a.db}: {n} source rows in step with data/data-sources.csv; {t} collection tier(s) changed"); return 0
     if a.sync_event_types:
-        cx = sqlite3.connect(a.db)
+        cx = open_db(a.db)
         before = cx.execute("SELECT COUNT(*) FROM event_type").fetchone()[0]
         cx.executescript(read("schema/seed_event_type.sql").replace("INSERT INTO event_type", "INSERT OR IGNORE INTO event_type")); cx.commit()
         print(f"{a.db}: {cx.execute('SELECT COUNT(*) FROM event_type').fetchone()[0] - before} event type(s) added"); return 0
     if a.migrate:
-        cx = sqlite3.connect(a.db); cx.execute("PRAGMA foreign_keys=ON")
+        cx = open_db(a.db)
         applied = migrate(cx); cx.commit()
         print(f"{a.db}: schema {', '.join(applied) if applied else 'already current'}"); return 0
     if os.path.exists(a.db):
@@ -454,9 +454,8 @@ def main() -> int:
         os.remove(a.db)
     os.makedirs(os.path.dirname(a.db), exist_ok=True)
 
-    cx = sqlite3.connect(a.db)
+    cx = open_db(a.db)
     cx.execute("PRAGMA journal_mode=WAL")
-    cx.execute("PRAGMA foreign_keys=ON")
     cx.executescript(read("schema/catalog.sql"))
     cx.executescript(read("schema/seed_event_type.sql"))
     cx.executescript(read("schema/sqlite_extras.sql"))

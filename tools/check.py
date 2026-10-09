@@ -24,7 +24,7 @@ import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys, tem
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
-from common import BY, FIXTURES, scratch, tool
+from common import BY, FIXTURES, connect, scratch, tool
 import housekeeping, imports, loop, offline, parsers, scenario, unresolved_names
 
 def rules():
@@ -253,7 +253,7 @@ def connectors_offline():
     d, db = scratch(False)
     from treelib import archive_object as ao
     from extract import extract as ext_fn
-    cx2 = sqlite3.connect(db); cx2.execute("PRAGMA foreign_keys=ON"); cx2.row_factory = sqlite3.Row
+    cx2 = connect(db)
     parent_sha, _ = ao(cx2, whole, mime="text/csv", source_id="C09", collection_id=None, locator_kind="url", locator_value=nj.CSV_URL, retrieved_by=BY, terms="public-domain", cost="free", trust_tier="T2", original_filename="nj-death-index-whole.csv")
     _, n_whole = ext_fn(cx2, parent_sha, BY)
     say(n_whole.get("failed") and "whole file" in n_whole["failed"], f"the whole file, read on its own, is refused: more than one surname: {n_whole}")
@@ -320,7 +320,7 @@ def connectors_offline():
     hb = ky.hits(rb0["url"], bbody, rb0)
     say(hb and [r["given"] for r in ky.rows(hb[0]["fetch"][0]["bytes"])] == KB["kept"] and ky.hits(rb0["url"], dbody, rb0) == [], "the birth file's rows read by the birth layout; a death file gives a birth search nothing")
     d, db = scratch(False)
-    cx2 = sqlite3.connect(db); cx2.execute("PRAGMA foreign_keys=ON"); cx2.row_factory = sqlite3.Row
+    cx2 = connect(db)
     with open(os.path.join(FIXTURES, K["death_page_fixture"]), "rb") as fh: whole = fh.read()
     w_sha, _ = ao(cx2, whole, mime="text/plain", source_id="C06", collection_id=None, locator_kind="url", locator_value=KD["url"], retrieved_by=BY, terms="Public Domain Mark 1.0", cost="free", trust_tier="T2")
     _, nw = ext_fn(cx2, w_sha, BY)
@@ -392,9 +392,10 @@ def insert_only():
     """The evidence, the research log and the audit trail are insert-only (CLAUDE.md hard rule 2, schema/sqlite_extras.sql): on a
     scratch catalog holding three real records read into personas, facts and a relation, three census households the household
     script grouped from four real census pages, a run logged on each record with its audit row, a
-    locator, a tombstone, the owner's word keeping two apart and a task run that got no answer, an UPDATE of each column of every table in INSERT_ONLY and a
-    DELETE of its row are each refused with the trigger's own words, so a dropped trigger, or a column a trigger leaves out,
-    turns this red; a write-once column is refused set from empty to empty, allowed from empty to a value once, then refused to
+    locator, a tombstone, the owner's word keeping two apart and a task run that got no answer, an UPDATE of each column of every table in INSERT_ONLY, a
+    DELETE of its row and an INSERT OR REPLACE of it over itself are each refused with the trigger's own words, the replace by the
+    delete trigger the connection's recursive triggers fire (treelib.open_db), so a dropped trigger, a column a trigger leaves
+    out, or a connection opened without the pragma, turns this red; a write-once column is refused set from empty to empty, allowed from empty to a value once, then refused to
     another value and back to empty. The rows are all still there afterwards."""
     from treelib import archive_object, now, ulid
     from extract import extract
@@ -403,7 +404,7 @@ def insert_only():
     from tombstone import tombstone
     d, db = scratch(False); bad = []
     try:
-        cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+        cx = connect(db)
         shas = []
         for name in ("va-gravesite-search-davidson-raymond-2007", "va-gravesite-search-davidson-noi", "va-gravesite-search-davidson-raymond-e"):
             with open(os.path.join(FIXTURES, name + ".html"), "rb") as fh: data = fh.read()
@@ -430,6 +431,8 @@ def insert_only():
             for col in [r[1] for r in cx.execute(f"PRAGMA table_info({table})") if r[1] != once]:
                 bad += _refused(cx, f"UPDATE {table} SET {col}={col} WHERE rowid=?", (rows[0],), "immutable")
             bad += _refused(cx, f"DELETE FROM {table} WHERE rowid=?", (rows[0],), "never deleted")
+            cols = ", ".join(r[1] for r in cx.execute(f"PRAGMA table_info({table})"))
+            bad += _refused(cx, f"INSERT OR REPLACE INTO {table} (rowid, {cols}) SELECT rowid, {cols} FROM {table} WHERE rowid=?", (rows[0],), "never deleted")
             if not once: continue
             ids = [r[0] for r in cx.execute(f"SELECT id FROM {table} ORDER BY rowid")]
             if len(ids) < 3: bad.append(f"{table} holds {len(ids)} row(s), three wanted to try its write-once {once}"); continue
@@ -606,7 +609,7 @@ def every_check(a):
     bad_kinds = save_page_kinds() + save_page_key(); bad += bool(bad_kinds)
     print("ok   tools/save_page.js recognises every saved fixture page as the kind its parser family reads: a FamilySearch results page (rows or no results) or record, a Find a Grave memorial or search, an AAD page; the key comment it writes under the saved-from line is the one the attach reads, and the fetch list's call carries its arguments in order" if not bad_kinds else "FAIL save_page.js: " + "; ".join(bad_kinds))
     bad_ev = insert_only(); bad += bool(bad_ev)
-    print("ok   the evidence, the research log, the record of task runs and the audit trail are insert-only: an UPDATE of every column and a DELETE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on " + ", ".join(t for t, once in INSERT_ONLY.items() if once) + " is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
+    print("ok   the evidence, the research log, the record of task runs and the audit trail are insert-only: an UPDATE of every column, a DELETE and an INSERT OR REPLACE are refused by their trigger on " + ", ".join(INSERT_ONLY) + "; superseded_by on " + ", ".join(t for t, once in INSERT_ONLY.items() if once) + " is written once, from empty" if not bad_ev else "FAIL insert-only: " + "; ".join(bad_ev))
     bad_db = data_root(); bad += bool(bad_db)
     print("ok   the data root: a tool run with DATA_ROOT set and no --db opens the catalog under DATA_ROOT, a --db outside it is refused, and collect takes saved pages from <DATA_ROOT>/downloads/, never the home's download folder" if not bad_db else "FAIL data root: " + "; ".join(bad_db))
     bad_reg = registry_connectors(); bad += bool(bad_reg)

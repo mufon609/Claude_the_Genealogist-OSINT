@@ -24,7 +24,9 @@ def scratch(keep=False):
     return d, db
 
 def connect(db):
-    cx = sqlite3.connect(db); cx.execute("PRAGMA foreign_keys=ON"); cx.row_factory = sqlite3.Row
+    """A scratch catalog opened as every tool opens one (treelib.open_db), its rows sqlite3.Row."""
+    from treelib import open_db
+    cx = open_db(db); cx.row_factory = sqlite3.Row
     return cx
 
 def run(*args):
