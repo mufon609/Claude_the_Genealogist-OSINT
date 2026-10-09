@@ -16,8 +16,10 @@ For each key fact:
               wherever it is held), named by the original its classes give (data/evidence-classes.csv), each with its class
               words (source: original, derivative or authored; information: primary, secondary or indeterminable; evidence:
               direct or indirect; a family link's relationship: stated or computed), its status and whether it agrees with
-              the tree's value (a name is read as the matcher reads one, tools/match.py: a nickname, an initial, a spelling
-              variant of the surname or a name the person is known by agrees, and the line says which); a record withdrawn
+              the tree's value (a name is read as the standing rule's name test reads one: the person's name rows and the
+              aliases accepted for them, never an undecided one, compared as tools/match.py compares, so a nickname, an
+              initial, a spelling variant of the surname or a name the person is known by on an accepted alias agrees, and
+              the line says which); a record withdrawn
               from the evidence (tools/tombstone.py) is listed as withdrawn, its statements as written and evidence for nothing
   conflicts   each conflict question on the fact, with its question id (tools/conclude.py resolve and reopen take it): open, with
               the rule's own reading of it (tools/conclude.py classes_decide, over every statement on that event's date or
@@ -168,7 +170,7 @@ def tree_value(cat, pid, field, ev, fam):
     """(the value the tree holds in words, what statements are compared against)."""
     if field == "name":
         p = cat.person(pid); rows = {(first_given(g), key(s)) for g, s, *_ in p["names"]}
-        return p["name"], {"name": p["name"], "rows": rows, "keys": name_keys(cat, pid)}
+        return p["name"], {"name": p["name"], "rows": rows, "keys": name_keys(cat, pid, accepted=True)}
     if field == "sex": s = cat.person(pid)["sex"]; return s, s
     if field in ("birth", "death"):
         e = cat.canonical_event(ev, field.title())
@@ -181,18 +183,19 @@ def tree_value(cat, pid, field, ev, fam):
 
 def written_name(keys, given, later):
     """How a name as written (split_persona_name: its first given name's key and the keys of the words after it) stands to
-    (first given, surname) keys, as the matcher reads it (match.compare): whether the first given name is one of theirs
-    (match.same_given: a nickname, an initial, a slip) and how a word after it is one of their surnames (catalog.same_surname:
-    "agrees", else "variant" or "one letter apart", else "" for none)."""
+    (first given, surname) keys, as match.compare reads it for the matcher and the rule alike: whether the first given name
+    is one of theirs (match.same_given: a nickname, an initial, a slip) and how a word after it is one of their surnames
+    (catalog.same_surname: "agrees", else "variant" or "one letter apart", else "" for none)."""
     hows = [same_surname(t, s) for t in later for _, s in keys]
     return any(same_given(given, k) for k, _ in keys), "agrees" if "agrees" in hows else next((h for h in hows if h), "")
 
 def agreement(field, st, tree):
     """Whether a statement agrees with the tree's value, in words: agrees (with a note: the month only, the year only, the
     months not compared beside a date marked about, estimated or calculated, a coarser place, a spelling variant), the date within a bound (catalog.date_verdict: neither agrees nor disagrees), or what it says instead.
-    None where there is nothing to compare. A name is read as the matcher reads one (tree: the person's name, the keys of
-    their name rows and name_keys, which adds every alias): it agrees when its first given name and a surname after it are
-    the person's by written_name, and says so in a note when only an alias holds them."""
+    None where there is nothing to compare. A name is read as the standing rule's name test reads one (tree: the person's
+    name, the keys of their name rows and name_keys with accepted, which adds the accepted aliases and never an undecided
+    one, docs/RESEARCH-WORKFLOW.md §5–7, which variants the rule counts as the name): it agrees when its first given name
+    and a surname after it are the person's by written_name, and says so in a note when only an accepted alias holds them."""
     if tree is None: return None
     if field == "name" and st["value"]:
         given, later = split_persona_name(st["value"])

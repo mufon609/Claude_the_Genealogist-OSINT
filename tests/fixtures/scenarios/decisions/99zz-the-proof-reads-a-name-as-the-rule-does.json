@@ -1,6 +1,6 @@
 {
- "title": "the proof reads a written name as the matcher does",
- "line": "a name an accepted record writes with a nickname, a spelling variant of the surname or a name the person is known by (an alias an accepted record gave) agrees in the written proof, in the matcher's own words; a name of another given name still says what it says",
+ "title": "the proof reads a written name as the rule does",
+ "line": "a name an accepted record writes with a nickname, a spelling variant of the surname or a name the person is known by agrees in the written proof, compared as the matcher compares; the names it is compared with are the ones the standing rule stands on, the name rows and the accepted aliases: Helen B Ahearn on the 1950 census agrees through the alias the rule's decision on it wrote, and once the rule takes that decision back the alias is undecided and the census says another name, though the matcher still reads it; a name of another given name still says what it says",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -90,19 +90,30 @@
    ]
   },
   {
-   "say": "his mother accepted on the record, written Helen B Ahearn: the surname she married into, which no name of hers carries",
+   "say": "his mother taken by the rule on the record, written Helen B Ahearn: the surname she married into, which no name of hers carries",
    "decide": {
     "card": {
      "record": "c50",
      "person": "I332737037573"
     },
-    "status": "accepted"
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:check"
    },
    "expect": [
     {
      "last": {
       "ok": true
      }
+    },
+    {
+     "names": {
+      "person": "I332737037573",
+      "rule": [
+       "helen ahearn",
+       "helen brant"
+      ]
+     },
+     "why": "the name as a record nobody can edit at will writes it is an accepted alias, which the rule counts as her name"
     }
    ]
   },
@@ -130,7 +141,7 @@
        }
       }
      },
-     "why": "the matcher reads the aliases a person holds as their names, so a name of her married life agrees; the note says it is an alias that holds it"
+     "why": "the rule counts an accepted alias as her name, so the proof does: a name of her married life agrees, and the note says it is an alias that holds it"
     },
     {
      "last": {
@@ -151,6 +162,58 @@
       }
      },
      "why": "no accepted statement of her name says another name than hers"
+    }
+   ]
+  },
+  {
+   "say": "the rule takes its decision on the census back: the name the record writes is an undecided alias again",
+   "withdraw": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037573"
+    }
+   },
+   "expect": [
+    {
+     "names": {
+      "person": "I332737037573",
+      "rule": [
+       "helen brant"
+      ],
+      "matcher": [
+       "helen ahearn",
+       "helen brant"
+      ]
+     },
+     "why": "the rule stands on accepted aliases alone; the matcher still reads every alias not rejected"
+    }
+   ]
+  },
+  {
+   "say": "her name's written conclusion again",
+   "proof": {
+    "person": "I332737037573",
+    "fact": "name"
+   },
+   "expect": [
+    {
+     "last": {
+      "fact": {
+       "name": {
+        "evidence": {
+         "some": {
+          "statements": {
+           "some": {
+            "value": "Helen B Ahearn",
+            "agrees": "says Helen B Ahearn"
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "why": "the proof reads her name as the rule does: no name the rule stands on carries Ahearn now, so the census says another name, where the matcher's reading would still find an alias that holds it"
     }
    ]
   }
