@@ -456,75 +456,6 @@ does not ask for the sheet, dwelling or family the reader now keeps; the
 Ancestry index reader, which no real page reaches, still drops its locator
 labels; and FamilySearch's search rows carry no locator at all.
 
-### A4. The decision code split by job
-
-`tools/conclude.py` (6,123 lines on 9 Oct 2026) does six jobs: the standing
-rule's tests (points, identity, the evidence classes), the writers of
-decisions (`decide`, `link_family`, `assert_facts`, aliases, `place`, the
-commands that act on the owner's word), copies (`carry`, `join_copies`,
-`copies_on_word`), merges, reconsider and withdrawal, and conflicts
-(`rule_conflicts`, `resolve`, `reopen`, `classes_decide`), with its command
-line on top; thirteen files import from it, and it imports `facts.py` and
-`proof.py` as they import it. Every worker that changes a decision reads all
-of it, and batches that touch it queue behind one another. The rule's words
-are stated by part, each clause the code implements under an identifier the
-implementing function's docstring cites (part 2, done); where code and words
-part is C31, bullet by bullet. The target layering
-the split serves is `REFACTOR-PROMPT.md`'s ("The target: the tools in
-layers"): layer 4 holds the split's modules beside `facts`, `proof`, `cards`
-and `overview`, and the command line is layer 5. The work, behaviour
-unchanged, nothing else in flight while it runs:
-
-1. **The modules.** `conclude.py` split into the rule, decisions, copies,
-   merges, reconsider, conflicts and the command line (`tools/conclude.py`
-   stays the command every doc names), one module a commit. Two cycles are
-   broken: `conclude`/`facts` (only the command line imports `facts`), and
-   `conclude`/`proof`, which the split makes conflicts and `proof` importing
-   each other: the helpers `classes_decide` and `kept_agrees` read from
-   `proof` (`axis_value`, `order`, `record_info`, `same_value`, `sides`,
-   `specificity`, `subject_statements`, `words`) move to the conflicts module.
-   Proven unchanged: old and new code run side by side on two identical
-   scratch copies of the live catalog, `tools/cards.py --all`, the whole
-   `reconsider --dry-run`, `tools/queue.py --all` and the proofs of several
-   people compared byte for byte, the checks green, and
-   `tests/checks/import_cycles.py` naming no cycle or upward import its
-   parent did not; each report prints that script's output.
-2. **The rule's text by part, with stable identifiers: done (9 Oct 2026).**
-   `docs/RESEARCH-WORKFLOW.md` is the index of five files, one per part:
-   `docs/TERMS.md` (§0 to §2), `docs/PLAN-AND-SEARCH.md` (§3, §4),
-   `docs/RULE.md` (§5–7), `docs/HOUSEHOLDS.md` and `docs/LOOP.md` (§8 on),
-   each named in `CLAUDE.md`'s table. Every clause of the rule that code
-   implements opens with its identifier in bold brackets,
-   `**[rule.points.2]**`: `rule.`, its part and a serial within the part,
-   never renumbered (a removed clause leaves its number unused, a clause
-   added takes the next). The parts: terms, standing, own, editable, merge (`docs/TERMS.md`); extract, copies,
-   reconsider, match, accept, conflict, value, fold, points, name, relation,
-   identity, life, reject, plans, proof (`docs/RULE.md`); household
-   (`docs/HOUSEHOLDS.md`). A function that implements a
-   clause cites it on the last line of its docstring, `Implements
-   [rule.points.2], [rule.points.3].`, as every function of `conclude.py`,
-   `match.py`, `households.py`, `facts.py` and `proof.py` that implements one
-   does; part 1 moves a function with its docstring, the citation with it.
-   `tests/checks/rule_ids.py`, run by `tools/check.py`, fails where a
-   docstring cites an identifier no doc under `docs/` holds or a doc writes
-   one twice, and lists under `--verbose` the identifiers no docstring cites:
-   on 9 Oct 2026, 19 of 161, each implemented in a module outside those five
-   (`catalog`, `checklist`, `plan`, `extract`, `cards`, `log_search`, the
-   screen's server), whose docstrings cite nothing yet. Each bullet of C31
-   names the clauses it concerns.
-
-The check that every name a tool reads resolves runs (`tests/checks/unresolved_names.py`): a function
-moved without its imports fails it wherever it is used, run or not. Of
-`conclude.py`'s functions only `dated_with_parents` and `kept_agrees` are
-entered by no check (C41), so the side-by-side proof alone covers them.
-
-Every piece it waited on is done (5 Oct 2026): the safety net, the re-read's
-and the merge's leftovers, one home for each shared rule, the dead schema and
-the claim label. It waits only on a session with room to finish it, started from
-`REFACTOR-PROMPT.md`.
-
-**Blocks:** A5.
-
 ### A5. The tool layer in layers
 
 `tests/checks/import_cycles.py` measures the tools' import graph against the
@@ -533,10 +464,18 @@ table is data at the top of the script). On 9 Oct 2026: 409 elementary
 cycles, every one through an import deferred inside a function, in one
 strongly connected set of fifteen modules, and ten pairs of modules that
 import a layer above their own; with those ten imports gone no cycle is
-left. A4's split closes four of them (`facts`, `cards`, `overview` and
-`proof` importing `conclude`). Every other cycle is closed here by moving the
-shared helper to the layer the table puts it in, one module a commit, with
-A4's side-by-side proof:
+left. The decision code's split by job (done 10 Oct 2026: `tools/rule.py`,
+`conflicts.py`, `decisions.py`, `copies.py`, `merges.py` and `reconsider.py`
+beside the command line `tools/conclude.py`) closed four of them (`facts`,
+`cards`, `overview` and `proof` importing `conclude`); with the split's
+modules read as the parts of `conclude` they were, every cycle and upward
+import that remains is one the 9 Oct graph had. Every other cycle is closed
+here by moving the shared helper to the layer the table puts it in, one
+module a commit, with the split's proof (every moved definition's `ast.dump`
+equal to the parent's, `tools/check.py` green, old and new code side by side
+on two identical scratch copies of the live catalog byte for byte, and
+`tests/checks/import_cycles.py` naming no dependency, cycle or upward import
+the parent did not):
 
 1. `Catalog.disagreements` imports `match.middle_differs`: the middle-name
    rule moves to `catalog`.
@@ -554,15 +493,18 @@ A4's side-by-side proof:
 5. `attach.attach` runs `match_record`: the arrival (`attach.attach`,
    `attach_each`, `attach_inbox`, and `fetches.collect`, which runs it) moves
    to layer 4 beside `match_record`; `attach` keeps what places a file.
-6. The decisions read `backfill_aliases`'s `classify`, `clean` and `key`: the
-   alias rule moves to `catalog`, and `backfill_aliases` imports it there.
+6. **Done (10 Oct 2026).** The alias rule (`classify`, `clean`,
+   `split_gedcom_name` and the key, `alias_key` in `catalog`, since
+   `catalog.key` is the surname's) lives in `catalog` with the name rules;
+   `backfill_aliases`, the decisions' `write_name_alias` and the check import
+   it there. Made before the decisions left `conclude.py`, so that no commit
+   added an upward import (the decisions in layer 4 importing
+   `backfill_aliases` in layer 5).
 
 The cycle check joins `tools/check.py` with this entry's closing commit, not
 before: until the cycles are gone a failing check cannot be wired in, and a
 check with an allowlist is a bandaid. The closing commit deletes this entry
 and `REFACTOR-PROMPT.md`.
-
-**Blocked by:** A4.
 
 ---
 

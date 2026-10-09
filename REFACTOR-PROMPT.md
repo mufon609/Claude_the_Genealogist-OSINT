@@ -142,7 +142,11 @@ A move moves a function's text unchanged; where a move changes a call site
 
 ## The work, in A4's order, then A5
 
-1. **The decision code by job.** Read `tools/conclude.py` and group its
+1. **The decision code by job: done (10 Oct 2026)**, six modules beside the
+   command line (`tools/rule.py`, `conflicts.py`, `decisions.py`,
+   `copies.py`, `merges.py`, `reconsider.py`), the two cycles broken, and
+   A5's sixth move made first so that no commit added an upward import. What
+   follows is how it was asked. Read `tools/conclude.py` and group its
    functions by the job each does (A4 names the jobs). Measure the groups
    with `ast` rather than by eye, including which group calls which. Then
    move one group into its own module under `tools/` per commit. Every file
