@@ -45,7 +45,7 @@ def people(cx, tree_id, q=""):
     cat = Catalog(cx, tree_id)
     return [person_card(cx, cat, pid) for pid, in cx.execute("SELECT id FROM person WHERE tree_id=? AND merged_into IS NULL AND display_name LIKE ? ORDER BY display_name", (tree_id, f"%{q}%"))]
 
-from conclude import trusted_evidence
+from rule import trusted_evidence
 
 def link_trusted(cx, tree_id, pid):
     """Whether the person's parents link rests on a trusted record (T1–T3) or on the owner's own word, rather than on a page

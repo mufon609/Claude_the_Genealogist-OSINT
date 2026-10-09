@@ -4,7 +4,7 @@ behind it, the evidence rows a person can see, a vouch on the owner's own knowle
 A fact's status comes from the documents accepted about the person: it is the decision on the fact, and a birth or a death
 accepted on a record is not thereby accepted in all its event shows, the parts of its date or place no accepted statement
 gives being a claim (claimed_parts, docs/RULE.md). Accept touches only assertions whose evidence is visible
-(the file's uncited claim, a held record, never a statement resting on a withdrawn file) and that state the fact: one carrying a mark (conclude.MARKS: a sibling placement, a
+(the file's uncited claim, a held record, never a statement resting on a withdrawn file) and that state the fact: one carrying a mark (catalog.MARKS: a sibling placement, a
 value the page keeps beneath the one it shows, a link the record's indexer computed) stays as it is. When no such assertion is
 there, the accept is the person's own knowledge, recorded as a vouch on the tree file's persona. Reject and Undecided apply to
 every assertion behind the fact. Each statement the decision acts on records it as the person's own decision on that
@@ -15,8 +15,8 @@ plans of the people its statements are about, and then lets the rule go over the
 """
 import json, re
 from treelib import dumps, now, ulid
-from catalog import fetch_target, held_for, holdings, not_withdrawn, record_of, tier_sql
-from conclude import MARKS, answer_questions, settle_people, statement_people
+from catalog import MARKS, fetch_target, held_for, holdings, not_withdrawn, record_of, tier_sql
+from conclude import answer_questions, settle_people, statement_people
 from plan import plan_person
 
 KEY_FACTS = ("name", "sex", "birth", "death", "parents", "spouses", "children")
@@ -60,7 +60,7 @@ def claimed_parts(cat, pid, field):
 def evidence_rows(cx, pid, field, hs=None):
     """The statements behind one key fact as the person screen shows them, each with the record it is a statement of: record,
     the key of that record (catalog.record_of: one record is one source wherever it is held, so the screen cites it once
-    with its copies beneath), the same for every copy of it; marked, whether it carries one of conclude.MARKS; held, whether
+    with its copies beneath), the same for every copy of it; marked, whether it carries one of catalog.MARKS; held, whether
     its evidence is visible: the file's uncited claim, a vouch, a citation whose record the archive holds, or a record nobody
     can edit at will, never one withdrawn from the evidence (catalog.not_withdrawn: its statement stays as written, evidence
     for nothing). hs is the archive's holdings (catalog.holdings) when the caller reads many facts of a view, built once for
@@ -111,7 +111,7 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     """Accept touches only assertions whose evidence is visible (the tree owner's uncited claim, records that are held, never
     one withdrawn from the evidence) and
     that state the fact; a citation to a record not yet fetched stays Undecided, and so does a statement carrying one of
-    conclude.MARKS (a sibling placement, a value the page keeps beneath, a link the indexer computed), which the decision leaves
+    catalog.MARKS (a sibling placement, a value the page keeps beneath, a link the indexer computed), which the decision leaves
     as it is. When no such assertion is behind the fact, the accept is the person's own knowledge: a vouch (see vouch). Reject
     and Undecided apply to every assertion behind the fact. Every statement the decision acts on is recorded as the person's
     own decision on it (person_decided, asserted_by and asserted_at the person's and now), whether its status changes or not;

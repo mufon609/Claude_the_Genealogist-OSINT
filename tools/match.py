@@ -379,7 +379,7 @@ def compare(cat, persona, cand, chosen, birth_place=True, accepted_names=False):
     return fits, agree, disagree, absent, near
 
 def said(f):
-    """A finding of compare's, or a disagreement conclude.split_disagree finds with an accepted statement, in words: the
+    """A finding of compare's, or a disagreement rule.split_disagree finds with an accepted statement, in words: the
     sentence a rationale, a card and the rule's reasons carry. Nothing reads these words back.
     Implements [rule.match.15]."""
     if f.accepted:

@@ -408,7 +408,8 @@ def a_decide(w, x):
 def a_withdraw(w, x):
     """The rule's decision on a `card` taken back, or with `record` every decision the rule made on that record, recorded as
     reconsider records it, the rule acting for the harness, unless `by` names who."""
-    from conclude import RULE_ACTOR, withdraw
+    from conclude import withdraw
+    from rule import RULE_ACTOR
     if "record" in x:
         ids = [r[0] for r in w.cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' AND kind IN ('persona_match','new_person')
                                              AND json_extract(payload_json,'$.artifact_sha256')=? ORDER BY decided_at, id""", (w.tid, w.sha(x["record"])))]
@@ -915,7 +916,7 @@ def e_card(w, x, want):
     return x.get("exists", True) and has(got, w.value(pattern)), got
 
 def e_rule(w, x, want):
-    from conclude import rule_accepts
+    from rule import rule_accepts
     card = w.card(x)
     if card is None: return False, "no card"
     ok, why = rule_accepts(w.cx, w.tid, card)
@@ -925,12 +926,12 @@ def e_rule(w, x, want):
 
 def e_compare(w, x, want):
     """A card's persona against its person as the matcher compares them (match.compare): what agrees, disagrees and is
-    absent, the disagreements the rule reads as vetoes (conclude.split_disagree), and the card's own fields with their
+    absent, the disagreements the rule reads as vetoes (rule.split_disagree), and the card's own fields with their
     verdicts (cards.card), {field: verdict}, and as `rows`, each field in the card's order with what the record says
     ({field, record, verdict}), a field the card lists twice listed twice."""
     from cards import card as card_view
     from catalog import Catalog
-    from conclude import split_disagree
+    from rule import split_disagree
     from match import candidate, compare, personas_of, said
     card = w.card(x["card"]); pay = json.loads(card["payload_json"]); cat = Catalog(w.cx, w.tid)
     persona = next(p for p in personas_of(w.cx, pay["extraction_id"]) if p["id"] == pay["persona_id"])
@@ -1263,7 +1264,7 @@ def e_reach(w, x, want):
 def e_trusted(w, x, want):
     """Whether a membership, or a person's events of a type ({"person", "type"}), rest on trusted ground for the rule, stating
     a date or a place when `stating` says so."""
-    from conclude import trusted_evidence
+    from rule import trusted_evidence
     if "event" in x:
         ev = x["event"]; kind = "event"
         ids = [r[0] for r in w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=?", (w.person(ev["person"]), ev["type"]))]

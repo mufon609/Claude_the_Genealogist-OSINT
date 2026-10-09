@@ -649,7 +649,7 @@ steps assisted with the page's own link and say so in
 
 ### C4. A relationship point stands on either membership of the family
 
-`conclude.rule_points` grounds a stated relationship on the accepted statements
+`rule.rule_points` grounds a stated relationship on the accepted statements
 of either membership joining the two people (`ground` over both rows), so one
 person's link stands in for the other's: a parent's accepted marriage grounds a
 child's claimed parentage. `docs/RULE.md` ("What the rule counts")
@@ -738,7 +738,7 @@ says is of an index read derivative where neither its collection nor its
 registry row says so (the tree's one index image is filed under the New York
 marriage index, whose own row says derivative); and a death or burial place
 point standing on a statement at the tree's own level, the harness's places
-being unresolved strings; the rule's identity tests (`conclude.identity_refused`)
+being unresolved strings; the rule's identity tests (`rule.identity_refused`)
 refusing a record it would take on its points: another person of the tree who
 fits the persona as well as the candidate (the file's two Thomas Ahearns would
 fit any record of his own equally, and the harness holds none: his 1902
@@ -761,7 +761,7 @@ are searches' own answers and items' metadata, never read as records, so the pat
 has no real response to run against); and a person the rule creates through a
 relation the record states from the other side (the head of a household created
 through his daughter accepted on it, as the live 1950 Evers schedule did), whose
-reason names the record's word for the daughter (`conclude.rule_creates`); and a relative's
+reason names the record's word for the daughter (`rule.rule_creates`); and a relative's
 persona whose birth place differs from a finer one another decision gave the
 tree's person, which the rule reads as fitting all the same (`match.compare`
 with `birth_place=False`): the harness's places for Robert Edgar Davidson's
@@ -770,8 +770,8 @@ catalog holds against his obituary's Woodburn. No scenario reaches a statement c
 or a death place: every value FamilySearch keeps beneath a shown birth or death
 date in the fixtures says the same as the shown one and is no fact of its own,
 so neither the date and place veto skipping an accepted value a page keeps
-beneath (`conclude.against`) nor the identity naming one it left out
-(`conclude.event_claimed_or_accepted`) has a record to run on; nor does the
+beneath (`rule.against`) nor the identity naming one it left out
+(`rule.event_claimed_or_accepted`) has a record to run on; nor does the
 identity's naming of an undecided fact another page anyone can edit types (the
 harness holds one page anyone can edit per person) or of a later decision of
 the rule during reconsider. No scenario reaches the rule's own wording for a page's date kept as a
@@ -1207,7 +1207,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
 `reconsider` on a copy of the live catalog.
 
 - [rule.relation.1] **The route's reason.** The claimed-relationship route
-  (`conclude.rule_points`) gives the reason "the name and birth year agree"
+  (`rule.rule_points`) gives the reason "the name and birth year agree"
   whatever the record gives, where `docs/RULE.md` says a birth year agrees "where both
   have one". Live: the gravesite locator's row for Noi Davidson names the
   veteran she is buried with by name alone, and the reason the rule takes him
@@ -1242,7 +1242,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   hint, never a card, though it agrees with the accepted statements.
   `facts.decide_fact` accepts the file's claim citing a held record with the
   file's own value, so accepting a birth whose held census gives a calculated
-  year makes the file's day read accepted. The veto (`conclude.against`) never
+  year makes the file's day read accepted. The veto (`rule.against`) never
   reads a place the owner's own word gives, where `ground` and
   `trusted_evidence` do. `Catalog.disagreements` never compares two places
   both finer than the event's own. Beside them: `checklist.build` gives the
@@ -1267,7 +1267,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   and marked values, as what makes a relative's persona stand for the
   relative.
 - [rule.relation.4], [rule.match.3] **What the rule creates.** It creates a grandchild or a half sibling and
-  writes no family link; and `conclude.rule_creates` still words refusals for
+  writes no family link; and `rule.rule_creates` still words refusals for
   a persona with no full name or no word of kinship, which the matcher no
   longer proposes.
 - [rule.value.4], [rule.reconsider.1], [rule.own.2], [rule.match.15] **Cards.**
@@ -1310,7 +1310,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
 - [rule.value.2], [rule.editable.9], [rule.points.13] **The owner's word gives
   no place.** `docs/RULE.md` has the owner's own word on a fact give the
   event's value whole, and a page's identity count a date or a place on any
-  statement that gives it, but `conclude.gives` reads a statement with no
+  statement that gives it, but `rule.gives` reads a statement with no
   record fact of its own as giving the event's own date and no place, so a
   burial place the owner vouched for counts nothing toward a memorial's
   identity (`event_claimed_or_accepted`), nor toward a relative standing for
@@ -1318,7 +1318,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   (`rests_elsewhere`), where `ground` stands a vouch for the event's own date
   and place. No live case is known. Have `gives` read the owner's word as
   giving the event's own place too.
-- [rule.accept.6] **An in-law's tie.** `conclude.resolve_in_law` resolves a
+- [rule.accept.6] **An in-law's tie.** `rule.resolve_in_law` resolves a
   mother-, father-, son-, daughter-, brother- or sister-in-law's stated tie
   through the relative it names to the child, parent or spouse link it gives,
   and `link_family` writes that link as one the record states; no clause of
@@ -1366,7 +1366,7 @@ In scenario `60-confirmed-on-a-record` the rule takes Robert Davidson on the
 1940 census through the relationship it states to his son, accepted on it,
 while his own name is not yet held on trusted ground. Once the owner accepts
 him on the Ohio death index (step 9), a dry-run `reconsider` would withdraw
-that census decision: with his name now held, `conclude.rule_points` judges the
+that census decision: with his name now held, `rule.rule_points` judges the
 record by two points, not by the claimed-relationship route, and the son's
 link is a claim (one point). More accepted ground refuses what less allowed.
 If D2 lets the route stand when the points fall short (the change is one fallback before "two
@@ -1441,8 +1441,8 @@ Decision 7 (no code names a family's people, places or denominations) and
 decision 12 (the limits of one life are data). The rule's thresholds are
 data, as the life limits are: the matcher's three-year window
 (`match.WINDOW`), the two points a record needs and the three of four a page
-anyone can edit needs (both in `conclude.rule_points`), and the trusted tiers
-(`conclude.TRUSTED`, written again as literals elsewhere in `conclude.py`, in
+anyone can edit needs (both in `rule.rule_points`), and the trusted tiers
+(`rule.TRUSTED`, written again as literals elsewhere in `rule.py`, in
 `catalog.py` and in `facts.py`, and the rule's creation reading T1 and T2).
 `catalog.NICKNAMES` carries this tree's members (Lura, Lou, Laura; Corinne,
 Carinne, Corrine; Cassie; Ollie) and groups distinct names as one (Oliver and
@@ -1529,7 +1529,7 @@ neither: of its functions, measured on 5 Oct 2026, `render_cli`,
 `render_compact`, `render_search_compact`, `cards_for`, `grouped`,
 `rule_verdict`, `row_line`, `relation_lines`, `main` and their helpers never
 run (what the owner reads with `tools/cards.py "<person>"`), nor
-`conclude.dated_with_parents` and `kept_agrees`, `facts.claimed_parts`,
+`rule.dated_with_parents` and `kept_agrees`, `facts.claimed_parts`,
 `catalog.place_beyond` and `Catalog.same_page`. No scenario reaches
 `proof.py`'s "the rule would keep assertion" line, nor a turn that names a
 conflict the rule decided inside it: with real fixtures the turn's place

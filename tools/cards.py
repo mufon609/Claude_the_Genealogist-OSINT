@@ -20,7 +20,7 @@ The command line prints what the next decision needs: a row of a results page is
 page writes it, the collection, the year, the record's own id, what agrees and disagrees in the matcher's words); a record's
 card states the comparison once (the fields both sides speak to, agreeing or not, and what only the matcher compares), leaves
 the absent fields out, names the archived copy by its short hash, and ends with the standing rule's verdict and reason
-(conclude.rule_accepts, read-only); the record, its holder and its hash are said once for the cards of one record. --full
+(rule.rule_accepts, read-only); the record, its holder and its hash are said once for the cards of one record. --full
 prints every card whole, as render() and render_search() write it for the person screen.
 """
 import argparse, json, os, re, sqlite3, sys
@@ -39,7 +39,8 @@ from match import (
     said,
     same_surname
 )
-from conclude import rule_accepts, sibling_home
+from conclude import sibling_home
+from rule import rule_accepts
 from plan import row_record
 
 REL_WORD = {"parent": "parent", "child": "child", "spouse": "spouse", "sibling": "sibling"}
@@ -660,7 +661,7 @@ def _when(c):
     return None
 
 def rule_verdict(cx, tree_id, c):
-    """The standing rule's word on a card, read-only: "takes: <why>" or "does not take: <why>" (conclude.rule_accepts)."""
+    """The standing rule's word on a card, read-only: "takes: <why>" or "does not take: <why>" (rule.rule_accepts)."""
     prop = cx.execute("SELECT * FROM proposal WHERE id=?", (c["id"],)).fetchone()
     taken, why = rule_accepts(cx, tree_id, prop)
     return ("takes: " if taken else "does not take: ") + why

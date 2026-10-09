@@ -1825,7 +1825,7 @@ class Catalog:
     def linked_on_word(self, pid, other, group):
         """Whether the tree links a person to another by a relation group (parents, children, spouses, siblings) claimed or
         accepted: in a family joining the two, the membership of each stands so (on_word). The rule reads a link the same way
-        for a record under decision, that record's own statements left out (conclude.claimed_or_accepted)."""
+        for a record under decision, that record's own statements left out (rule.claimed_or_accepted)."""
         mine, theirs = MEMBERSHIPS[group]
         return any(self.on_word(fid, pid, mine) and self.on_word(fid, other, theirs)
                    for fid, in self.q("""SELECT fm.family_id FROM family_member fm JOIN family_member x ON x.family_id=fm.family_id AND x.person_id=? AND x.role=?

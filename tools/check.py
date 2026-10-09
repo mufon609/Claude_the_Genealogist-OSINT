@@ -573,7 +573,7 @@ def rule_kinds():
     that names every member, the register entry dated with the parents, the obituary that identifies through its survivors): a name no
     kind of the file carries is named, since the rule's test on it would never meet a record."""
     from catalog import evidence_table
-    from conclude import CENSUS, DATED_WITH_PARENTS, NAMED_SURVIVORS
+    from rule import CENSUS, DATED_WITH_PARENTS, NAMED_SURVIVORS
     named = {"CENSUS": CENSUS, "DATED_WITH_PARENTS": DATED_WITH_PARENTS, "NAMED_SURVIVORS": NAMED_SURVIVORS}
     return [f"conclude.{n} names {k!r}, no kind of data/evidence-classes.csv" for n, k in named.items() if k not in evidence_table()]
 
