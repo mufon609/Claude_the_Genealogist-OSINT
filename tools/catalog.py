@@ -1148,6 +1148,13 @@ def record_owners(cx, tree_id, sha):
                                         WHERE pe.extraction_id=? AND pp.status='accepted' AND p.tree_id=?
                                         AND NOT EXISTS (SELECT 1 FROM persona_relation r WHERE r.persona_id=pe.id)""", (e, tree_id))} if e else set()
 
+# ---------------------------------------------------------------- the research log's note prefixes, read by every layer
+REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
+
+HOUSEHOLD = "the household's record, accepted onto "     # the note prefix of a run written when a household record's persona is accepted onto a person
+
+ON_WORD = "on the owner's word about "                 # the note prefix of the run attach.on_word writes: the owner's word that a record is a person's, never reopened by the plan
+
 # ---------------------------------------------------------------- the proof standard's classes, in words
 EVIDENCE = None                                  # data/evidence-classes.csv, read once per process by evidence_table
 INDIRECT_DATES = ("calculated", "estimated", "before", "after")   # a date the reading worked out or bounded from another field: the record does not state it

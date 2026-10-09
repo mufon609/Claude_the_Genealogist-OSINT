@@ -41,8 +41,8 @@ chose. Archived bytes are linked, not copied, and a step already logged with the
 import hashlib, json, mimetypes, os, re, sqlite3, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import archive_object, dumps, imports_dir, inbox_dir, move_free, now, object_path, ulid
-from catalog import collection_tier, dbid_of, first_given, first_value, holders, holds, person_named, split_name, split_persona_name, withdrawals
-from log_search import ON_WORD, hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
+from catalog import ON_WORD, collection_tier, dbid_of, first_given, first_value, holders, holds, person_named, split_name, split_persona_name, withdrawals
+from log_search import hold_unread, holds_record, log as log_search, rendered_query, ran_unchanged, restate, step_source, unread_record
 from extract import FS_MARK, FS_SEARCH_MARK, FS_SEARCH_URL, POINTING_LISTINGS, parse_memorial, parse_record, parse_search, parse_fs_search, AAD_MARK, parse_aad_search, parse_aad_record
 from match import fitting_rows, key as name_key
 from decisions import match_record

@@ -18,7 +18,7 @@ A dismissed question stays closed when the plan is regenerated.
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, resolve_tree, ulid, year_field, year_in
-from catalog import Catalog, withdrawals
+from catalog import HOUSEHOLD, ON_WORD, REOPENED, Catalog, withdrawals
 
 def rendered_query(query_json, revisions_json):
     """The step's fields ({value, basis} each) after the person's include/revise: an excluded field is dropped,
@@ -36,8 +36,6 @@ def rendered_query(query_json, revisions_json):
             f = {"value": value, "basis": "claim", "revised_from": f["value"]}
         out[k] = f
     return out
-
-REOPENED = "reopened: "                                   # the note prefix of a reopen's log row: what a later reader of the log looks for
 
 def same_fields(rendered, ran, outcome=None):
     """Whether a run's fields as logged are the step's rendered fields now, value for value: the same query again. What the run
@@ -87,9 +85,6 @@ def ran_unchanged(cx, step, rendered, source_id=None):
     connector's none run on the step's fields does not close the step at another source, which is asked until it answers."""
     a = latest_answer(cx, step, source_id)
     return a is not None and same_fields(rendered, a[2], a[0])
-
-HOUSEHOLD = "the household's record, accepted onto "     # the note prefix of a run written when a household record's persona is accepted onto a person
-ON_WORD = "on the owner's word about "                 # the note prefix of the run attach.on_word writes: the owner's word that a record is a person's, never reopened by the plan
 
 def holds_record(cx, sha):
     """Whether an archived file is a record a fetch step's found run may close the step with: a file never parsed (an image, a

@@ -94,6 +94,7 @@ from treelib import DB, connect, dumps, now, ulid
 from catalog import (
     Catalog,
     Finding,
+    REOPENED,
     cited_persons,
     collection_state,
     date_verdict,
@@ -108,7 +109,6 @@ from catalog import (
     split_persona_name,
     year
 )
-from log_search import REOPENED
 
 # raised with any change to what fits: reconsider then proposes every older version's undecided cards again
 MATCHER = ("rule", "matcher", "0.10.0")

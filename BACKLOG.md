@@ -481,8 +481,9 @@ the parent did not):
    `same_middle`) lives in `catalog` with the name rules, and `same_given`,
    which it is built on, with it; the matcher, the proof, the households, the
    rule and the check import them there.
-2. `match.persons_for` imports `log_search.REOPENED`: the log's note prefixes
-   (`REOPENED`, `HOUSEHOLD`, `ON_WORD`) move to `catalog`.
+2. **Done (10 Oct 2026).** The research log's note prefixes (`REOPENED`,
+   `HOUSEHOLD`, `ON_WORD`) live in `catalog`, which reads the log for every
+   layer; the log, the matcher, the attach and the overview import them there.
 3. `extract.extract` carries a page's decisions to its new reading
    (`join_copies`, `carry`, `settle_carried`) and `extract.carry_links`
    writes them (`assert_facts`, `link_family`, `link_people`): the carry moves

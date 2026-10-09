@@ -10,7 +10,7 @@ accepted documents by what fetched them, so the owner sees whether the file or t
 """
 import json
 from treelib import dumps
-from catalog import Catalog
+from catalog import HOUSEHOLD, ON_WORD, REOPENED, Catalog
 from facts import KEY_FACTS, fact_status
 
 NEAR = 1                                                     # the most links a person the file names may be from the confirmed tree and still wait at its edge
@@ -62,7 +62,6 @@ def origins(cx, tree_id):
     owner's word, a step the owner wrote, basis owner, or no run at all), else a fetch step on the file's citation (basis
     citation), else a fetch step on a lead a held record made (basis record: a memorial a page lists, a results row's own
     record, a photograph), else a search step. One page reaching several steps at once is counted by the first of those."""
-    from log_search import HOUSEHOLD, ON_WORD, REOPENED
     people = {"file": 0, "record": 0}
     for xref, in cx.execute("""SELECT EXISTS (SELECT 1 FROM external_id x WHERE x.entity_kind='person' AND x.entity_id=p.id AND x.system LIKE '%gedcom_xref')
                                FROM person p WHERE p.tree_id=? AND p.merged_into IS NULL""", (tree_id,)):
