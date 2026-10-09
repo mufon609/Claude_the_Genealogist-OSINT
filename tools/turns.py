@@ -3,7 +3,7 @@
 
 usage: tools/turns.py [--turns N] [--detail] [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
 
-docs/RESEARCH-WORKFLOW.md §8: tools/queue.py names the next person at the edge of the confirmed tree and tools/turn.py runs
+docs/LOOP.md §8: tools/queue.py names the next person at the edge of the confirmed tree and tools/turn.py runs
 one person's plan end to end; this runner first does what tools/turn.py --resume does (whatever has been saved in the
 browser is taken in, each file credited to the people whose steps it reached, the turns of the people who wait that it
 reached are finished, and the place strings an earlier call left unanswered are asked of the geocoder again, tree-wide,

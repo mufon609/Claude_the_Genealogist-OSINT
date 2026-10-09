@@ -83,7 +83,7 @@ points, and a reconsider withdraws what the route took (scenario 60: Robert
 Davidson's 1940 census, after the Ohio death index is accepted). If the
 route stands whenever the points fall short, as the 15 Sept ruling's "a
 person the file claims" reads: more ground never takes back what less
-allowed, and §5–7 says so. If not: the docs stand as written, and such
+allowed, and `docs/RULE.md` says so. If not: the docs stand as written, and such
 decisions are withdrawn as the name becomes held. Unlocks C33.
 
 ### D3. A conflict one side of which rests only on claims and editable pages
@@ -360,7 +360,7 @@ one village the gazetteer knows): the cards were written by the resolver's
 first version, and nothing re-reads a string an older version left open, as
 `tools/extract.py --stale` re-reads a page.
 
-The work, a class at a time, the docs first (§0, §5–7,
+The work, a class at a time, the docs first (`docs/TERMS.md` §0, `docs/RULE.md`,
 `docs/RESEARCH-CHECKLIST.md` §6b), each ground written as a test the rule
 makes and shown on a copy of the live catalog before the live run: the
 grounds above for a relative named in part and for a woman's two surnames; a
@@ -633,14 +633,14 @@ save one archive.org page the fetch list names (`[any page: save_page.js with
 true]`) and check its one line and the saved file's text. If the line still
 says `EMPTY` (closed shadow roots, or content drawn in a canvas), make those
 steps assisted with the page's own link and say so in
-`docs/RESEARCH-WORKFLOW.md` §4.
+`docs/PLAN-AND-SEARCH.md` §4.
 
 ### C4. A relationship point stands on either membership of the family
 
 `conclude.rule_points` grounds a stated relationship on the accepted statements
 of either membership joining the two people (`ground` over both rows), so one
 person's link stands in for the other's: a parent's accepted marriage grounds a
-child's claimed parentage. `docs/RESEARCH-WORKFLOW.md` ("What the rule counts")
+child's claimed parentage. `docs/RULE.md` ("What the rule counts")
 says a point rests on the tree's statement of that very link. Requiring both
 rows withdraws decisions that are sound, because the tree states a couple's
 parentage partly on partner rows: Francis Thomas Ahearn's 1904 birth record
@@ -778,11 +778,11 @@ page-saves-itself method or a connector's answer), add it under
 A run that found pages naming the person on the name alone (a directory
 line, a book mention, a newspaper hit) leaves them held under the step, and
 the personas it read stay on the page with no proposal, as
-`docs/RESEARCH-WORKFLOW.md` §0 defines a hint. The record view marks each
+`docs/TERMS.md` §0 defines a hint. The record view marks each
 such persona that is a hint for a reviewed person with what agrees and what
 is missing (`cards.hints_on`), but only once that record is opened from the
 step's log: the person page has no place where a reviewed person's hints
-across all their held records are kept, as §0 says they are. Add one, each
+across all their held records are kept, as `docs/TERMS.md` §0 says they are. Add one, each
 hint with what agrees, what is missing and the page, for research when the
 leads run dry, never as a feed.
 
@@ -1194,7 +1194,7 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
 
 - **The route's reason.** The claimed-relationship route
   (`conclude.rule_points`) gives the reason "the name and birth year agree"
-  whatever the record gives, where §5–7 says a birth year agrees "where both
+  whatever the record gives, where `docs/RULE.md` says a birth year agrees "where both
   have one". Live: the gravesite locator's row for Noi Davidson names the
   veteran she is buried with by name alone, and the reason the rule takes him
   as Raymond Earl Davidson says the birth year agrees. Say the birth year only
@@ -1215,9 +1215,9 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   gives none. Hold such a census back until its year is read from the record
   or its citation, never from a name's digits.
 - **The name variants.** `match.same_given` reads a bare initial as agreeing
-  with a given name, where §5–7 lets an initial agree only for a middle name,
+  with a given name, where `docs/RULE.md` lets an initial agree only for a middle name,
   and with a day counting double a name and one date then take a record.
-- **What of an event's value is accepted.** §5–7 reads a date per part
+- **What of an event's value is accepted.** `docs/RULE.md` reads a date per part
   everywhere and a place per part where it is shown; five places still read
   the value the event shows. A place's point (`rule_points`, `ground`) needs
   an accepted statement that gives the shown place whole, so a record
@@ -1275,7 +1275,7 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   both would be withdrawn too (a dry run on a copy of the live catalog of 9
   Oct 2026, the name test leaving out those aliases). Have the name test leave
   out the aliases of the decisions in `without`.
-- **A name a trusted record writes, held first by the backfill.** §5–7 makes
+- **A name a trusted record writes, held first by the backfill.** `docs/RULE.md` makes
   the name as written on a record accepted for a person an accepted alias when
   the record is one nobody can edit at will, but `conclude.write_name_alias`
   leaves an alias of the same words alone unless a decision on that record
@@ -1332,7 +1332,7 @@ that census decision: with his name now held, `conclude.rule_points` judges the
 record by two points, not by the claimed-relationship route, and the son's
 link is a claim (one point). More accepted ground refuses what less allowed.
 If D2 lets the route stand when the points fall short (the change is one fallback before "two
-are needed"), state it in `docs/RESEARCH-WORKFLOW.md` §5–7, and show on scenario
+are needed"), state it in `docs/RULE.md`, and show on scenario
 60 that a reconsider after step 9 keeps every decision. Before that, close the
 gap it exposes in scenario `99c-a-sibling-born-after-a-parent-died`: with the
 route widened, the mother is taken on her son's obituary before her death is
@@ -1551,17 +1551,17 @@ the 131 assisted searches planned on 4 Oct 2026 none is ever a turn's work:
 41 have a link only the screen builds, 66 name a holder, 24 name no source.
 The tree grows past the file only where a connector answers. Put a search
 whose holder takes a link on the fetch list, its results page the save, as
-§8 already reads; with A1 a model runs it.
+`docs/LOOP.md` §8 already reads; with A1 a model runs it.
 
 ### C46. The search ladder as built
 
-`docs/RESEARCH-WORKFLOW.md` §3 has six layers and §2 a ranking. Layer 0 is
+`docs/PLAN-AND-SEARCH.md` §3 has six layers and `docs/TERMS.md` §2 a ranking. Layer 0 is
 planned (twelve records at most), layer 3 as United States census rows, layer
 2 only as each person's own rows; layer 1 is printed by the checklist and
 never planned; layers 4 and 5 and the `surname_locality` query are in the doc
 alone; no search step carries a question (0 of 180 on 9 Oct 2026), and the
-ranking is not implemented. Build each layer, or make §2 and §3 say what is
-built.
+ranking is not implemented. Build each layer, or make `docs/TERMS.md` §2 and `docs/PLAN-AND-SEARCH.md`
+§3 say what is built.
 
 ### C47. Names and records beyond English and the United States
 

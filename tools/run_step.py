@@ -20,15 +20,15 @@ metadata leading nowhere, is a request the source did not answer, and a run whos
 step asked again), how many results the source said it had, and every artifact hash; found marks the step done. An answer no reader of the connector parses (any exception from its total, narrow, hits, next_page or follow: a
 challenge or maintenance page a holder serves with status 200 in place of its answer) is archived as it came and counts as
 no answer: the note gives the exception's type and message, and a run none of whose requests was answered is logged error,
-so the step stays runnable and the turn goes on (docs/RESEARCH-WORKFLOW.md §8). Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
+so the step stays runnable and the turn goes on (docs/LOOP.md §8). Then the extractor runs on each hit's own transcription or text (the search response is the query's evidence, not
 a record) and the matcher on each extraction; a record no extractor claims is reported as unparsed. A run that fails is an
-error run, never a stop (docs/RESEARCH-WORKFLOW.md §4): when the reading or the matching of its records raises, what the
+error run, never a stop (docs/PLAN-AND-SEARCH.md §4): when the reading or the matching of its records raises, what the
 reading wrote is rolled back, the run's rows and the responses it archived are kept, and each row is restated as error
 with the exception in its note; when the connector raises before the run is logged (it cannot build its requests), what it
 wrote is rolled back and an error run is logged in its place. Either way the step stays runnable at that source and --all
 goes on to the next step. A run whose records
 are results listings (extract.RESULTS_LISTINGS: one persona per row, the gravesite locator's results page, the death
-index's rows under a surname) is found only when a row fits a person, as docs/RESEARCH-WORKFLOW.md §4 has it for a
+index's rows under a surname) is found only when a row fits a person, as docs/PLAN-AND-SEARCH.md §4 has it for a
 results page saved by hand: when no row of any listing fits anyone, the run is read again as none with the reason in its note
 (log_search.restate: a new row superseding the found one, search_log being insert-only), the rows stay on the artifact as
 candidates, and the step stands as it stood before the run. A run whose records are all
@@ -432,7 +432,7 @@ def main():
     cx = connect(a.db, rows=True)
     tree_id, slug = resolve_tree(cx, a.tree); cat = Catalog(cx, tree_id)
     if a.all:
-        ran = set()                                          # a rule accept during one step regenerates the plan (docs/RESEARCH-WORKFLOW.md §5-7)
+        ran = set()                                          # a rule accept during one step regenerates the plan (docs/RULE.md)
         while True:                                           # and can drop a step still to run, or open a new one; read fresh before each run, as tools/turn.py does
             todo = [st for st in runnable(cx, cat, tree_id) if st["id"] not in ran]
             if not todo: break

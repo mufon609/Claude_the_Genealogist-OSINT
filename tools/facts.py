@@ -3,12 +3,12 @@ behind it, the evidence rows a person can see, a vouch on the owner's own knowle
 
 A fact's status comes from the documents accepted about the person: it is the decision on the fact, and a birth or a death
 accepted on a record is not thereby accepted in all its event shows, the parts of its date or place no accepted statement
-gives being a claim (claimed_parts, docs/RESEARCH-WORKFLOW.md §5–7). Accept touches only assertions whose evidence is visible
+gives being a claim (claimed_parts, docs/RULE.md). Accept touches only assertions whose evidence is visible
 (the file's uncited claim, a held record, never a statement resting on a withdrawn file) and that state the fact: one carrying a mark (conclude.MARKS: a sibling placement, a
 value the page keeps beneath the one it shows, a link the record's indexer computed) stays as it is. When no such assertion is
 there, the accept is the person's own knowledge, recorded as a vouch on the tree file's persona. Reject and Undecided apply to
 every assertion behind the fact. Each statement the decision acts on records it as the person's own decision on that
-statement (assertion.person_decided, docs/RESEARCH-WORKFLOW.md §5–7), its status unchanged or not, so no re-read, carry,
+statement (assertion.person_decided, docs/RULE.md), its status unchanged or not, so no re-read, carry,
 acceptance of its record or withdrawal by the rule changes it afterwards. Every decision writes an audit row, regenerates the
 plans of the people its statements are about, and then lets the rule go over their conflicts and matches their cards again
 (conclude.settle_people), whichever caller took it, the command line or the person screen.

@@ -6,7 +6,7 @@ usage: tools/fetches.py next [K] [--tree slug] [--db catalog/tree.db]
        tools/fetches.py collect [--folder DIR] [--by user:<you>] [--tree slug] [--db catalog/tree.db]
 
 Find a Grave forbids automation and FamilySearch answers a browser only, so a cited record at such a holder is saved one page
-at a time in the owner's own browser by the page-saves-itself method (docs/RESEARCH-WORKFLOW.md §4, tools/save_page.js),
+at a time in the owner's own browser by the page-saves-itself method (docs/PLAN-AND-SEARCH.md §4, tools/save_page.js),
 one tab per page; a gravestone photograph the same way in the image's own tab (tools/save_image.js), under the name the list
 prints. `list` prints the planned fetch steps whose holder has no connector at all (a holder whose connector merely has
 nothing to ask yet, a book cited with no title, runs through tools/run_step.py instead: a `none` run naming the field

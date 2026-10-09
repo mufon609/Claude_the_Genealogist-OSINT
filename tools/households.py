@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Households read off a census form (docs/DATA-ARCHITECTURE.md §7 decision 21; the rules in words: docs/RESEARCH-WORKFLOW.md
-§5–7, "Households").
+"""Households read off a census form (docs/DATA-ARCHITECTURE.md §7 decision 21; the rules in words: docs/HOUSEHOLDS.md).
 
 usage: tools/households.py show [--json] [--db catalog/tree.db]           the households as the script groups them now
        tools/households.py write [--by user:<you>] [--db catalog/tree.db]  grouped again, and stored where they changed
@@ -40,7 +39,7 @@ row it replaces names it in superseded_by, written once; a household whose entri
 replaced by a row of no members. Households are evidence shared by every tree (CLAUDE.md hard rule 4): nothing a tree
 decided is read in grouping them. tools/plan.py groups them again before it reads them, so a page read since is in them.
 
-A household not wholly held leads to its missing entries (docs/RESEARCH-WORKFLOW.md §5–7, "Households", the order in words):
+A household not wholly held leads to its missing entries (docs/HOUSEHOLDS.md, the order in words):
 its own search, FamilySearch's collection searched by the surname, the place and the year and never a given name
 (search_link), is held page by page, the first page of its answer not held being the next to save (answer); and every row of
 a results page the archive holds of that collection for that surname at that place (the household's own search's, and an
@@ -406,7 +405,7 @@ def waiting_for(cx, tree_id, pid):
     return out
 
 PAGING = ("offset", "count")                  # the parameters of a search's link that say which page of its answer, not what was searched
-OPEN_AT_ONCE = 1                              # a household's candidates that are leads at a time (docs/RESEARCH-WORKFLOW.md §5–7, "Households": why one)
+OPEN_AT_ONCE = 1                              # a household's candidates that are leads at a time (docs/HOUSEHOLDS.md: why one)
 HEAD = "the head"
 
 def fs_holder(fs_key):
@@ -538,7 +537,7 @@ def _where(cx, ark):
                      ([f"line {loc['line']}"] if loc.get("line") else []) + ([r[1]] if r[1] else [])) or "no place on a page read"
 
 def candidates(cx, tree_id, h):
-    """The rows that could be the household's missing entries (docs/RESEARCH-WORKFLOW.md §5–7, "Households"): {"answer"
+    """The rows that could be the household's missing entries (docs/HOUSEHOLDS.md): {"answer"
     (answer), "order" (the candidates in order, each {"ark", "name", "born", "year", "place", "url", "found_on", "row", "for" (the
     missing entries it could be), "why" (what orders it, in words)}), "open" (the first OPEN_AT_ONCE), "left_out" ({"ark", "name",
     "why"}), "tried" ({"ark", "name", "where"}: a candidate whose record page is held and is no member, where that page places

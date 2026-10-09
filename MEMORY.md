@@ -27,7 +27,8 @@ specific home when one emerges.
 - What the project is and where things are → `README.md`.
 - Project-specific operating rules for an AI contributor → `CLAUDE.md`.
 - Accepted design decisions and their rationale → `docs/DATA-ARCHITECTURE.md`,
-  `docs/RESEARCH-WORKFLOW.md`, `docs/RESEARCH-CHECKLIST.md`.
+  `docs/TERMS.md`, `docs/PLAN-AND-SEARCH.md`, `docs/RULE.md`, `docs/HOUSEHOLDS.md`,
+  `docs/LOOP.md` (indexed by `docs/RESEARCH-WORKFLOW.md`), `docs/RESEARCH-CHECKLIST.md`.
 - Schema-level field semantics → comments in `schema/catalog.sql`.
 - Per-tool behavior → that tool's docstring.
 - Deferred work → `BACKLOG.md`.

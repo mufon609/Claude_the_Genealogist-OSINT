@@ -4,7 +4,7 @@
 usage: tools/queue.py [--tree slug] [--db catalog/tree.db] [--json]
        tools/queue.py --all [--tree slug] [--db catalog/tree.db] [--json]
 
-Read-only (docs/RESEARCH-WORKFLOW.md §8; CLAUDE.md "Working the repo" > "Working a person" §1). The edge is the
+Read-only (docs/LOOP.md §8; CLAUDE.md "Working the repo" > "Working a person" §1). The edge is the
 confirmed tree's, and the confirmed tree starts at the tree's home person: a tree with none set is refused, saying so
 (tools/tree.py home "<person>"), rather than walking the file's people in no order that means anything. Walks
 tools/tree.py overview's own order, the home person's line first, generation by generation (a card's parents

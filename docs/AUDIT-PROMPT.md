@@ -13,8 +13,9 @@ report. The repository's own rules apply to you: `CLAUDE.md`, then `MEMORY.md`.
 The project, its goal in the owner's own words and where everything lives:
 `README.md`. The operating rules, the hard rules and the command list:
 `CLAUDE.md`. The accepted decisions: `docs/DATA-ARCHITECTURE.md` (layers,
-archive, trees, trust boundaries), `docs/RESEARCH-WORKFLOW.md` (the decision
-model and the standing rule in §0 and §5–7, the search ladder, the loop in §8),
+archive, trees, trust boundaries), `docs/TERMS.md` and `docs/RULE.md` (the decision
+model and the standing rule), `docs/HOUSEHOLDS.md`, `docs/PLAN-AND-SEARCH.md` (the search
+ladder), `docs/LOOP.md` (the loop), indexed by `docs/RESEARCH-WORKFLOW.md`,
 `docs/RESEARCH-CHECKLIST.md` (the checklist and the screen). Tables, invariants
 and one line per tool: `schema/README.md`; each tool's docstring has the rest.
 The source registry and its trust tiers (which classify source kinds and are

@@ -599,7 +599,7 @@ def a_step(w, x):
 
 def a_event(w, x):
     """A second event of a type a person already carries, written by the harness itself for a path only a planted event
-    exercises (docs/RESEARCH-WORKFLOW.md's harness-is-data rule keeps the file itself free of invented people and records;
+    exercises (docs/DATA-ARCHITECTURE.md §7 decision 8 keeps the file itself free of invented people and records;
     a bare event with no record behind it is not one of those)."""
     eid = w.treelib.ulid()
     w.cx.execute("""INSERT INTO event (id,tree_id,event_type,date_text,date_start,date_end,date_qualifier,calendar,description,created_at,updated_at)

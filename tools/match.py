@@ -39,7 +39,7 @@ disagrees, and either the surname and at least one of the dates or places
 agree, or a stated relationship agrees; a persona whose own memorial link is a
 memorial already accepted as a person fits that person outright, and that
 person joins the candidates whether or not they are a relative in the tree.
-Nobody fitting outright, the fitting check (docs/RESEARCH-WORKFLOW.md §5-7)
+Nobody fitting outright, the fitting check (docs/RULE.md)
 still proposes an existing person before a new one, looking across the whole
 tree (by_name_and_year): a candidate whose surname or birth surname agrees, as
 written or as a spelling variant, and whose birth year agrees within the window
@@ -83,7 +83,7 @@ skipped too; an undecided link is no decision (a decision the rule took back), s
 it keeps no persona from its card. A relative a memorial merely lists (every persona on a
 findagrave-memorial extraction but its own subject) gets no proposal at all,
 fit or not: the owner's word is that a memorial's family connections are leads
-to look over, not facts (docs/RESEARCH-WORKFLOW.md §0), so tools/plan.py writes
+to look over, not facts (docs/TERMS.md §0), so tools/plan.py writes
 a fetch step for the relative's own memorial instead, and the persona stays a
 hint on the page. The matcher is versioned like an extractor (MATCHER); every
 proposal carries the version that wrote it in generated_by.
@@ -152,7 +152,7 @@ def same_given(a, b):
 def name_keys(cat, pid, accepted=False):
     """(first given, surname) keys for a person: every name row and every alias not rejected, the matcher's reading for finding
     and proposing; accepted: the name rows and the accepted aliases alone, the names the standing rule stands on
-    (docs/RESEARCH-WORKFLOW.md §5–7, which variants the rule counts as the name)."""
+    (docs/RULE.md, which variants the rule counts as the name)."""
     keys = set()
     p = cat.person(pid)
     for given, surname, *_ in p["names"]:
@@ -195,7 +195,7 @@ def middle_differs(written, names, surnames):
 def compare(cat, persona, cand, chosen, birth_place=True, accepted_names=False):
     """Agreements, disagreements and absences between a persona and a candidate person, as findings (catalog.Finding, in
     words by said). birth_place False: a birth place that differs keeps the persona from fitting no more than it vetoes
-    the standing rule (docs/RESEARCH-WORKFLOW.md §5–7), as the rule reads a relative's persona on a record; the matcher's
+    the standing rule (docs/RULE.md), as the rule reads a relative's persona on a record; the matcher's
     own proposals read it as written. accepted_names: the person's names read as the rule stands on them, the name rows
     and the accepted aliases alone (name_keys); the matcher reads every alias not rejected."""
     agree, disagree, absent = [], [], []
@@ -361,7 +361,7 @@ def compare(cat, persona, cand, chosen, birth_place=True, accepted_names=False):
     has_relation = any(chosen.get(o) for _, o, _, _ in persona["relations"])
     # a person of the tree with no family link yet
     unlinked = not any(cat.family(cand["id"])[g] for g in ("parents", "spouses", "children", "siblings"))
-    # the fitting check (docs/RESEARCH-WORKFLOW.md §5-7): the same stated relationship to the same accepted person, or the surname on a person with no family link yet; a given name disagreeing does not refuse it
+    # the fitting check (docs/RULE.md): the same stated relationship to the same accepted person, or the surname on a person with no family link yet; a given name disagreeing does not refuse it
     fitting = clean and (surname_ok or married) and has_relation and (rel_ok or unlinked)
     # the same name, something else disagrees, or the fitting check's relationship route: a card, never a rule decision
     near = (
@@ -427,7 +427,7 @@ def personas_of(cx, eid):
     """The personas of an extraction as the matcher compares them, in the record's order: each one's name, every other name
     the record gives them, sex, role, birth and death, the birth, burial, death and residence places, the relations it
     states and the memorial it links. A value the page keeps beneath the one it shows (a fact whose region marks it
-    alternate, FamilySearch's edit history) is no value the record states (docs/RESEARCH-WORKFLOW.md, the proof standard):
+    alternate, FamilySearch's edit history) is no value the record states (docs/RULE.md, the proof standard):
     no name, date or place of a persona is read from one."""
     out = []
     coll = cx.execute(
@@ -515,7 +515,7 @@ def memorials_of(cx, pid):
 def by_name_and_year(cat, cx, tree_id, persona):
     """Persons of the whole tree (never one merged into another) whose surname or birth surname agrees with the persona's, as
     written or as a spelling variant (catalog.same_surname), and whose birth year lies within the matcher's window of the
-    persona's where both give one (the fitting check, docs/RESEARCH-WORKFLOW.md §5-7): a household or obituary record names
+    persona's where both give one (the fitting check, docs/RULE.md): a household or obituary record names
     people the tree may already hold, a sibling added from a memorial with no family link yet, or a grandson the obituary
     writes Ahern whom the tree holds as Ahearn in another branch of the family. A person with no family link yet is reached
     on the surname and the year alone, the record's other signals carrying the actual decision; a person already placed in
@@ -555,10 +555,10 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
     agrees within the matcher's window where both give one, with no middle name or initial both carry differing: the given
     name as same_given reads it, any later word of the persona's name as one of the surnames the tree holds for the person
     (every name and alias) written the same or a spelling variant of it (same_surname: Detwiler for Detweiler), as the
-    matcher's comparison agrees a surname everywhere (docs/RESEARCH-WORKFLOW.md §5–7), never one letter apart, an indexer's
+    matcher's comparison agrees a surname everywhere (docs/RULE.md), never one letter apart, an indexer's
     slip a person reads, since nobody reads this fit before it is used. A plain name-and-year fit on a specific candidate,
     unlike by_name_and_year's coarser surname-only filter (deliberately wide, for compare() to judge further; wrong here,
-    since a shared surname alone would fit a memorial's subject to their own listed spouse). §0's relative that fits exactly
+    since a shared surname alone would fit a memorial's subject to their own listed spouse). docs/TERMS.md §0's relative that fits exactly
     one person by name and birth year is this, the caller asking for exactly one: tools/plan.py's listed-relative leads seat
     a relative the matcher never proposes on the one person of the tree they plainly are, and conclude.link_family places
     the membership a page anyone can edit states for such a relative, undecided, without deciding an identity."""
@@ -722,7 +722,7 @@ def fitting_rows(cx, eid, person_id=None, known=None):
     return out
 
 def found_by_name(cx, sha):
-    """Whether a record was reached by a name search alone (docs/RESEARCH-WORKFLOW.md §5–7, a namesake): every plan step that
+    """Whether a record was reached by a name search alone (docs/RULE.md, a namesake): every plan step that
     logged it or points at it is a search step, the record its own result, or the fetch of the record behind a row of a
     results page (step key fetch:row:), and the file cites it for nobody. A record the file cites, one a held record links (a
     memorial a page names, an ark) and one attached on the owner's word are each reached by more than a name."""
@@ -743,7 +743,7 @@ def found_by_name(cx, sha):
 def namesake(agree, disagree):
     """Whether a comparison (compare) agrees on the name, the sex and at most a year of birth the record gives bare, and on
     nothing else, and disagrees on something: a persona a name search alone reached that does so, tied to the person by
-    nothing more, is a namesake, a hint and never a card (docs/RESEARCH-WORKFLOW.md §5–7)."""
+    nothing more, is a namesake, a hint and never a card (docs/RULE.md)."""
     return (
         bool(disagree)
         and all(a.field in NAME_ONLY or (a.field == "birth date" and a.only == "record" and not a.month) for a in agree)
@@ -752,7 +752,7 @@ def namesake(agree, disagree):
 def matchable(cx, eid):
     """The sha256 of the record an extraction is, when the matcher proposes from it; None for a superseded reading, whose
     personas are history (only the current reading is proposed), and for a results page that points at records, whose rows
-    are never cards whatever they agree on: its own record is the document (docs/RESEARCH-WORKFLOW.md §0); fitting_rows
+    are never cards whatever they agree on: its own record is the document (docs/TERMS.md §0); fitting_rows
     names the rows that fit, tools/plan.py writes a fetch step for each."""
     from extract import POINTING_LISTINGS
     ext = cx.execute(
@@ -845,7 +845,7 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
     ones about names besides them. A persona already proposed or already decided gets none; ignore: proposal ids taken as
     not written, so a card that stands is matched again as the matcher would write it now (tools/conclude.py rematch).
     held: a dict filled with {persona id: why, in words} for each persona it would otherwise propose and holds back as a
-    hint (docs/RESEARCH-WORKFLOW.md §5–7): a namesake a name search alone reached (found_by_name, namesake), tied to the
+    hint (docs/RULE.md): a namesake a name search alone reached (found_by_name, namesake), tied to the
     candidate by no relationship to a persona accepted on the record, fitting a person or carrying a card; and nobody to
     create, a persona with no full name, or one the record relates to the persons accepted on it by no word of kinship
     (KIN_WORD), only "other" with no word, or nothing (cards.hints_on shows the words)."""
@@ -972,7 +972,7 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
             # its entry on another copy of the record is proposed or decided there: one record, one decision
             if on_another_copy(cx, tree_id, pr["id"], ignore):
                 continue
-            # a relative such a page merely lists is a lead, never a card (docs/RESEARCH-WORKFLOW.md §0): tools/plan.py writes the fetch step instead
+            # a relative such a page merely lists is a lead, never a card (docs/TERMS.md §0): tools/plan.py writes the fetch step instead
             if subject_role and pr["role"] != subject_role:
                 continue
             if (

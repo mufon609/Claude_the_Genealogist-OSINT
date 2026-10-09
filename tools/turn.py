@@ -4,7 +4,7 @@
 usage: tools/turn.py "<person>" [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
        tools/turn.py --resume [--tree slug] [--db catalog/tree.db] [--by agent:<you> for user:<you>]
 
-docs/RESEARCH-WORKFLOW.md §8: a turn is one person's plan run end to end. `tools/plan.py` first (self-recording,
+docs/LOOP.md §8: a turn is one person's plan run end to end. `tools/plan.py` first (self-recording,
 `rule:plan@0.1.0`), then every step a connector can run that has no run since the plan last wrote its fields
 (`tools/run_step.py`'s own runnable steps narrowed to this person, self-recording as `agent:run_step`, one commit per
 step as the runner does). A run that fails is an error run and the turn goes on: run_step.run logs the connector that
@@ -42,7 +42,7 @@ The turn writes nothing of its own: every catalog write happens inside `plan_per
 `fetches.collect`, `attach_inbox`, `resolve_places.resolve_strings` or `reconsider`, each under its own name in `--by` as it always is; the turn
 only calls them in order and reports what came back, in words, never a score. What a turn leaves for the owner
 are the conflict questions it raised, the cards the rule did not take and the pages to save in the browser
-(docs/RESEARCH-WORKFLOW.md §8). Its report names each conflict the rule resolved or took back while it ran, one line
+(docs/LOOP.md §8). Its report names each conflict the rule resolved or took back while it ran, one line
 each (the person, the date or place kept, the rule's reason and the question id `tools/conclude.py reopen` gives it back
 by; conclude.rule_conflict_changes reads them from the audit log after the last row there when the turn began), every
 source that did not answer once, with what it was asked and what it said (a connector step logged error stays runnable,
@@ -222,7 +222,7 @@ def connector_steps(cx, cat, tree_id, pid):
 def run_connectors(cx, cat, tree_id, pid):
     """Every step this person's own plan can run at a connector, one commit per step, as tools/run_step.py --all does. A run
     that fails is an error run in the result (run_step.run), never an exception. An earlier step's own accept regenerates
-    the plan in the same request (docs/RESEARCH-WORKFLOW.md §5-7) and can drop a later step already queued here, or add
+    the plan in the same request (docs/RULE.md) and can drop a later step already queued here, or add
     one; steps are read fresh before each run rather than as one snapshot, so a step gone by the time its turn comes is
     skipped, never run against a row that no longer exists, and a step the regeneration newly opens still gets its turn."""
     out = []; ran = set()

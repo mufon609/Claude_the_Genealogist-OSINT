@@ -1,4 +1,4 @@
-// The page saves itself (docs/RESEARCH-WORKFLOW.md §4). Run in the page's own tab with the call tools/fetches.py printed for the
+// The page saves itself (docs/PLAN-AND-SEARCH.md §4). Run in the page's own tab with the call tools/fetches.py printed for the
 // page in place of ("FILENAME.html"): the file name, true to save a page of no known kind anyway, and the key, the plan steps the
 // page was saved for, written as a second comment under the saved-from line (a page saved by hand gives no key and carries none).
 // It waits up to 15 s for the page's own markup; on a FamilySearch record it presses the page's own controls for what the page

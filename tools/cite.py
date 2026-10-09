@@ -8,7 +8,7 @@ usage: tools/cite.py "<person>" --row "census household:1950" --holder D05 --fie
 The file cites nothing for the person and nothing is archived yet, but the owner knows the record exists at a holder (a
 census schedule they have seen: the place, the enumeration district, the sheet). The step carries those details as the
 owner gives them, each field basis 'owner', and the holder as its locator source, so `tools/run_step.py <step id>` asks the
-holder's connector for it exactly as it asks for a record the file cites (docs/RESEARCH-WORKFLOW.md §4: the lookup at the
+holder's connector for it exactly as it asks for a record the file cites (docs/PLAN-AND-SEARCH.md §4: the lookup at the
 holder uses the citation's own details only), and what comes back is fetched for this person and read by the extractor,
 the matcher and the standing rule like any other record. The planner never drops the step. Prints the step id.
 """

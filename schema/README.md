@@ -46,7 +46,7 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   `superseded_by` is empty. `tools/check.py` tries each column of each table. The 0.8.1
   migration (`tools/initdb.py`'s `insert_only`) added the column and the triggers.
 - A model launched on a step is one `task_run` row (`tools/run_task.py`; `docs/DATA-ARCHITECTURE.md` §7 decisions 16 and 19,
-  `docs/RESEARCH-WORKFLOW.md` §4), insert-only, a task run again being a new row. `launcher` says what started the task
+  `docs/PLAN-AND-SEARCH.md` §4), insert-only, a task run again being a new row. `launcher` says what started the task
   and returned its measures, `headless` (a `claude -p` prompt) or `session` (a subagent of a session the owner is at). `task_kind` (`fetch`), `holder_id` and
   `plan_step_ids_json` say what was asked and where; `task_json` is the task as code rendered it and `task_text_sha256` the
   kind's one text, so two runs are of one task form only when both agree; `model` and `effort` are what the launcher was
@@ -94,7 +94,7 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
 - An `assertion` records who set the status it has (`asserted_by`, `asserted_at`) and whether
   that was a person's own decision on the statement (`person_decided`: a key fact or the
   statement decided, a vouch, the owner's word on a link or a divorce, a card's rejection;
-  RESEARCH-WORKFLOW §5–7). No acceptance of its record, re-read, carry to another copy,
+  docs/RULE.md). No acceptance of its record, re-read, carry to another copy,
   withdrawal by the rule or give-back of a carry changes a statement that carries it; the
   rule's withdrawal is recorded under the rule, acting for whoever ran it. The 0.8.0
   migration (`tools/initdb.py`'s `person_decided`) marked the statements the audit log shows
@@ -129,7 +129,7 @@ VIEWS          v_person_vitals, v_unsupported_person, v_unsupported_event,
   declared: `tree` and `person` refer to each other, which portable DDL cannot declare,
   and `tools/tree.py home` sets only one of the tree's own people.
 - A `person.merged_into` (`tools/conclude.py merge`) marks a duplicate found and merged
-  (RESEARCH-WORKFLOW §2's `duplicate_person`): its persona links (one whose persona the kept person
+  (docs/TERMS.md §2's `duplicate_person`): its persona links (one whose persona the kept person
   already links folded onto theirs, the kept person's row taking the duplicate's decision only where
   its own is undecided), assertions, family memberships (one the kept person already holds folded onto
   theirs), name aliases (one of words the kept person already holds folded onto theirs), plan steps
@@ -271,7 +271,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. Every write carries an audit row under `--by`. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen; the one home of the name rules every tool reads a name by (its parts, short forms, titles and suffixes, Soundex and edit distance). |
 | `tools/forms.py` | Read-only. The record forms (`data/record-forms.csv`, `data/DATA-SOURCES.md` §5c): the form a census of a collection and year was made on, who it names, what it states, its locators, how it bounds a household and the locator a run of lines is read by, read by the checklist, the footprint, the readers, which keep each entry's locators in its persona's `region_json`, and the household script. |
-| `tools/households.py show / write` | The households read off a census form: every current census reading's entries grouped by the form's own rule (one entry one member across its copies, a FamilySearch record one household, a run of lines on one page under its head), each member's relationship to the head as stated, what is missing named; `show` prints them as grouped now and the entries in none, `write` stores them insert-only where they changed (`docs/RESEARCH-WORKFLOW.md` §5–7, households). |
+| `tools/households.py show / write` | The households read off a census form: every current census reading's entries grouped by the form's own rule (one entry one member across its copies, a FamilySearch record one household, a run of lines on one page under its head), each member's relationship to the head as stated, what is missing named; `show` prints them as grouped now and the entries in none, `write` stores them insert-only where they changed (`docs/HOUSEHOLDS.md`). |
 | `tools/treelib.py` | Shared helpers: ULIDs, GEDCOM parsing (its encoding from the byte order mark and the header's `CHAR`), data paths, a file written whole, and `connect`. |
 
 ### How the GEDCOM ingest maps records

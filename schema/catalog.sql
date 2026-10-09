@@ -456,7 +456,7 @@ CREATE TABLE assertion (
   status          TEXT NOT NULL DEFAULT 'undecided' CHECK (status IN ('undecided','accepted','rejected')),
   asserted_by     TEXT NOT NULL,        -- who set the status it now has: user:<name>, agent:<session> for user:<name>, rule:<name> for <whoever ran it>, or the import's extractor
   asserted_at     TEXT NOT NULL,        -- when that status was set
-  person_decided  BOOLEAN NOT NULL DEFAULT FALSE,   -- the status is a person's own decision on this statement (a key fact or this statement decided, a vouch, a card's rejection: docs/RESEARCH-WORKFLOW.md §5–7); a record's acceptance, a re-read, a carry, a withdrawal or the import never sets it, and none of them changes a statement that carries it
+  person_decided  BOOLEAN NOT NULL DEFAULT FALSE,   -- the status is a person's own decision on this statement (a key fact or this statement decided, a vouch, a card's rejection: docs/RULE.md); a record's acceptance, a re-read, a carry, a withdrawal or the import never sets it, and none of them changes a statement that carries it
   notes           TEXT,
   CHECK (persona_fact_id IS NOT NULL OR persona_id IS NOT NULL OR artifact_sha256 IS NOT NULL)
 );
@@ -464,7 +464,7 @@ CREATE INDEX ix_assertion_tree     ON assertion(tree_id);
 CREATE INDEX ix_assertion_subject  ON assertion(subject_kind, subject_id);
 CREATE INDEX ix_assertion_artifact ON assertion(artifact_sha256);
 
--- A fact-level question about a person, generated from gaps in the baseline (RESEARCH-WORKFLOW §2).
+-- A fact-level question about a person, generated from gaps in the baseline (docs/TERMS.md §2).
 -- open until answered, dismissed or, a conflict, resolved by the owner with a written reason naming the
 -- value kept (tools/conclude.py resolve; the resolution is in detail_json); a dismissal keeps its reason, who
 -- gave it and when in detail_json's dismissal, and a conflict is dismissed only with one; the decision that
@@ -488,7 +488,7 @@ CREATE TABLE research_question (
 CREATE INDEX ix_question_person ON research_question(subject_person_id, status);
 
 -- One executable step for a person: a fetch of a record the tree already cites, or a typed search
--- for a missing checklist row (RESEARCH-WORKFLOW §3). It belongs to the person and a checklist row;
+-- for a missing checklist row (docs/PLAN-AND-SEARCH.md §3). It belongs to the person and a checklist row;
 -- it carries a question only when it answers a fact-level question (a footprint record for missing parents).
 CREATE TABLE search_plan (
   id                TEXT PRIMARY KEY,

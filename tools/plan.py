@@ -121,7 +121,7 @@ REL_TO = {"parent": "child", "child": "parent", "spouse": "spouse", "sibling": "
 def linked_records(cx, tree_id, cat, pid, me):
     """Fetch steps for the records a held record links from a persona accepted as this person: a Find a Grave memorial lists its
     family members with each one's own memorial, so once the owner has said the listed parent is John Y Davidson, John's own
-    memorial is a lead on John (docs/RESEARCH-WORKFLOW.md §0), under his cemetery row, with the linked record's own identity as
+    memorial is a lead on John (docs/TERMS.md §0), under his cemetery row, with the linked record's own identity as
     the locator and the page's words as its fields (basis record); the record is John's own, so the step sits on him and the
     "linked from" field says where it came from. Nothing is generated for a persona only proposed."""
     out = []; q = cx.cursor(); q.row_factory = sqlite3.Row
@@ -168,7 +168,7 @@ FAG_COLLECTION = "U.S., Find a Grave Index, 1600s-Current"
 
 def listed_relative_leads(cx, tree_id, cat, pid):
     """Fetch steps for the relatives a memorial merely lists, once the memorial is accepted as somebody's own: the owner's
-    word is that a memorial's family connections are leads to look over, not facts (docs/RESEARCH-WORKFLOW.md §0), so the
+    word is that a memorial's family connections are leads to look over, not facts (docs/TERMS.md §0), so the
     matcher writes no card for one (tools/match.py). A relative whose given name, surname and birth year plainly fit
     exactly one person of the tree (match.fits_by_name_and_year: a listed relative may already be someone fully placed
     in the family, so this is not the fitting check's unlinked-only candidate list) gets a fetch step for their own
@@ -231,7 +231,7 @@ def row_words(pr):
     return "; ".join(parts)
 
 def result_row_leads(cx, tree_id, cat, pid):
-    """Fetch steps for the rows of a results page that fit this person (docs/RESEARCH-WORKFLOW.md §0): a row is never a card (the
+    """Fetch steps for the rows of a results page that fit this person (docs/TERMS.md §0): a row is never a card (the
     matcher proposes none, tools/match.py), but one that fits the person a page was fetched for, by the matcher's own definition
     (match.fitting_rows: more than a name and a year), and carries its own record's identity (an ark, a memorial id, an
     enlistment record's URL) is a lead on that person: a fetch step for the row's own record, key "fetch:row:<record id>", under
@@ -270,7 +270,7 @@ def household_row(h):
 
 def household_leads(cx, tree_id, cat, pid):
     """Fetch steps for what a census household holding this person lacks (docs/DATA-ARCHITECTURE.md §7 decision 21,
-    docs/RESEARCH-WORKFLOW.md §0 and §5–7, "Households"): a current household not wholly held (tools/households.py waiting_for: a
+    docs/TERMS.md §0 and docs/HOUSEHOLDS.md): a current household not wholly held (tools/households.py waiting_for: a
     member of it the tree ties to this person by a link or a card, neither rejected) gives, under its own row (household_row):
     its search, FamilySearch's search of the collection the household's copies are in (its key from data/holders.csv), by the
     surname most of the members are written under, the place their census residence gives and the year, never by a given name,

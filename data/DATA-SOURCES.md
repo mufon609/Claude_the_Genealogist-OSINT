@@ -107,7 +107,7 @@ arrives, named so that its first words open the name its header gives.
 ### Evidence classes (`evidence-classes.csv`)
 
 A tier classifies the source; a class classifies each piece of information a record gives. The Genealogical Proof
-Standard reads every statement by three classes (`docs/RESEARCH-WORKFLOW.md` §5–7, "The proof standard"), all words,
+Standard reads every statement by three classes (`docs/RULE.md`, "The proof standard"), all words,
 never numbers: the **source** (original: the record made at the event, or its image; derivative: an index, abstract or
 transcript; authored: a compiled genealogy, a memorial page, a family tree), the **information** of that one field
 (primary: from someone with first-hand knowledge, the record's own event; secondary: the rest; indeterminable), and the
@@ -139,7 +139,7 @@ stated and direct (the record names the relationship itself). Both come from the
 current reading: a statement written from an earlier reading is read through the same person on the page in the current
 one (`catalog.statement_of`), so a page read again by a better parser reads by what that parser found.
 
-**Standing.** A kind's `*` row may carry the standing the rule gives a record of that kind (`docs/RESEARCH-WORKFLOW.md`
+**Standing.** A kind's `*` row may carry the standing the rule gives a record of that kind (`docs/TERMS.md`
 §0's table): `automated`, the rule may take it; `identity`, a page anyone can edit that identifies a person, the rule
 taking the identity and never a fact; `hint`, the owner decides. A record takes the standing of the most specific of its
 kinds that gives one (`catalog.record_standing`), so a parser that serves many collections (`familysearch-record`, a
@@ -356,7 +356,7 @@ site's schedule id, a reading's line counted from the top of its image, `image_l
 person, so it is never a `persona_fact`, and the region is written once with the persona, as the evidence is insert-only:
 a better reading writes new personas with their own regions. Whether a copy's line or household identifier is the form's
 own is what a form's calibration finds (decision 21), never assumed here. The household script groups an entry by its form's
-`page`, `household` and `lines` (`docs/RESEARCH-WORKFLOW.md` §5–7, households): a page is the form's page locators all held
+`page`, `household` and `lines` (`docs/HOUSEHOLDS.md`): a page is the form's page locators all held
 alike, the county a copy's locators lack read off the entry's census residence (the 1925 New York index writes the county
 only in its event place).
 

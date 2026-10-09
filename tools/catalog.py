@@ -50,7 +50,7 @@ def year(s): return int(s[:4]) if s and s[:4].isdigit() else None
 SUFFIX = {"jr", "sr", "ii", "iii", "iv", "esq"}          # written after a surname, never the surname
 PREFIX = {"dr", "mr", "mrs", "ms", "miss", "rev", "fr", "sr", "hon", "prof", "judge", "maj", "capt", "cpt", "col", "gen", "lt", "sgt", "pvt",
           "cpl", "pfc", "cmdr", "adm"}                    # a title written ahead of a name, never a given name
-NICKNAMES = [                                             # a given name's common short forms, each group one name (docs/RESEARCH-WORKFLOW.md \u00a75\u20137)
+NICKNAMES = [                                             # a given name's common short forms, each group one name (docs/RULE.md)
     {"william", "willie", "will", "bill", "billy"}, {"charles", "charley", "charlie", "chas"}, {"robert", "bob", "bobby", "rob"},
     {"john", "johnny", "jno", "jack"}, {"james", "jim", "jimmy", "jas"}, {"joseph", "joe", "jos"}, {"thomas", "tom", "thos"},
     {"richard", "dick"}, {"edward", "ed", "eddie", "ned", "ted"}, {"frederick", "fredrick", "fred", "freddie"}, {"raymond", "ray"},
@@ -452,7 +452,7 @@ def key(s): return re.sub(r"[^a-z]", "", (s or "").lower())
 
 @dataclasses.dataclass(frozen=True)
 class Finding:
-    """One comparison of a record's value with the tree's, as data (docs/RESEARCH-WORKFLOW.md §5–7): the verdict (agrees,
+    """One comparison of a record's value with the tree's, as data (docs/RULE.md): the verdict (agrees,
     disagrees, within: a date inside a bound, neither agreeing nor disagreeing; absent), what qualifies it, and, as the matcher
     compares a persona with a person (match.compare), the field and both values. Every reader reads these; the words are made
     from them (note, match.said) and never read back. date_verdict and place_verdict fill the date's and the place's parts."""
@@ -533,7 +533,7 @@ BOUNDS = ("before", "after", "between")          # a date bounded, not stated: i
 
 def date_closeness(a, b):
     """How closely two dates agree, each {"start", "end", "qualifier"}, for choosing the one event a record's statement
-    belongs to (docs/RESEARCH-WORKFLOW.md §5–7): 0 the same day, 1 the same month where one side gives no day, 2 the same
+    belongs to (docs/RULE.md): 0 the same day, 1 the same month where one side gives no day, 2 the same
     year where one side gives only the year, 3 the same year with another month or day, then 3 and the years apart within
     the two a date marked about, estimated or calculated on either side allows (4, 5); None when either has no date or
     they lie further apart."""
@@ -571,7 +571,7 @@ def places_one(a, b):
     return not a or not b or place_verdict(a, b).verdict == "agrees" or place_verdict(b, a).verdict == "agrees"
 
 def same_event(etype, kind, a, b):
-    """Whether two events of one person, or of one family, of one type are one event (docs/RESEARCH-WORKFLOW.md §5–7, the
+    """Whether two events of one person, or of one family, of one type are one event (docs/RULE.md, the
     fold): their places are one (places_one), an attribute's values are the same, and the type is one a life holds once
     (ONCE) or their dates are one (dates_one). Each event is {"start", "end", "qualifier", "place", "value"}."""
     if not places_one(a.get("place"), b.get("place")): return False
@@ -581,7 +581,7 @@ def same_event(etype, kind, a, b):
 # A statement's marks in assertion.notes: a sibling placement, a value the page keeps beneath the one it shows, a link the
 # record's indexer computed. The record does not state what such a statement says: no acceptance of the record or of a key
 # fact accepts it, it gives nothing of an event's value, and it is never the rule's ground, whatever its status
-# (docs/RESEARCH-WORKFLOW.md, the proof standard).
+# (docs/RULE.md, the proof standard).
 MARKS = ("placed", "alternate", "computed")
 
 def marked(a="a"):
@@ -598,7 +598,7 @@ def notes_of(text):
 MEMBERSHIPS = {"parents": ("child", "partner"), "children": ("partner", "child"), "spouses": ("partner", "partner"), "siblings": ("child", "child")}
 
 def files_word(status, notes, imported, claim_only=False, withdrawn=False):
-    """What keeps a statement on the tree from standing claimed or accepted (docs/RESEARCH-WORKFLOW.md §0 and §5–7), or None
+    """What keeps a statement on the tree from standing claimed or accepted (docs/TERMS.md §0 and docs/RULE.md), or None
     when it stands: the file's claim, the import's own statement (imported: on a file this tree imported, tree_import), stands;
     with claim_only nothing else does, otherwise an accepted statement does too. Never one resting on a withdrawn file
     (withdrawn: its record has a tombstone, not_withdrawn), "withdrawn", nor one carrying one of the MARKS (the mark's own name:
@@ -616,7 +616,7 @@ DATE_LEVELS = ("whole", "month", "year")                 # how much of an event'
 
 def date_given(said, own):
     """How much of an event's own date (own) a statement's date (said) gives, each {"start", "end", "qualifier"}
-    (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted): "whole" when said lies wholly inside own as own
+    (docs/RULE.md, what of an event's value is accepted): "whole" when said lies wholly inside own as own
     states it (6 April 1880 inside 1880, 1880 inside about 1880 or inside a bound around it); else "month" or "year" when it
     lies inside that part of a day or month own names, the rest beyond it (1880 against 6 April 1880: the year); else None:
     a range around own (CAL 1879 against 6 April 1880) or another date. Each is read as date_span reads it."""
@@ -633,7 +633,7 @@ def date_given(said, own):
 
 def place_given(said, own, record_state=None, dated_names=None):
     """How much of an event's own place (own: its resolved chain, or its words) a statement's place (said) gives
-    (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), as place_verdict reads the two: 0 when it gives it
+    (docs/RULE.md, what of an event's value is accepted), as place_verdict reads the two: 0 when it gives it
     whole (the place itself, a place inside it, a name it held, the same place at another granularity); n when it names it
     only from its nth part below the country up, the n parts ahead of that beyond it (Kentucky against Logan County < Kentucky
     < United States: 1); None when the two do not agree."""
@@ -1129,7 +1129,7 @@ def record_kinds(cx, sha, extraction_id=None):
 
 def record_standing(kinds):
     """(standing, kind): how the standing rule may treat a record of these kinds (record_kinds' order), from
-    data/evidence-classes.csv's standing on each kind's `*` row (docs/RESEARCH-WORKFLOW.md §0's table): automated (the rule
+    data/evidence-classes.csv's standing on each kind's `*` row (docs/TERMS.md §0's table): automated (the rule
     may take it), identity (a page anyone can edit that identifies a person: the rule may take the identity, never a fact)
     or hint (the owner decides). The most specific kind that gives one decides; a record no kind gives one is a hint, and
     kind is None."""
@@ -1197,7 +1197,7 @@ def statement_of(cx, assertion_id):
     return out
 
 def evidence_classes(cx, assertion_id):
-    """The classes of one assertion's statement, in words, from data/evidence-classes.csv (docs/RESEARCH-WORKFLOW.md §5-7,
+    """The classes of one assertion's statement, in words, from data/evidence-classes.csv (docs/RULE.md,
     "The proof standard"): {source: original | derivative | authored, information: primary | secondary | indeterminable,
     evidence: direct | indirect, relationship: stated | computed for a family link's statement (else None), original: the
     original record a derivative was copied from (else None), kinds: what the record reads as, notes: the table's notes on
@@ -1278,7 +1278,7 @@ class Catalog:
         gives the person with a middle name or initial that differs from the one the tree's own name carries (match.
         middle_differs: John A. against John D) is a line too, one per record. A statement carrying one of the MARKS (a
         value the page keeps beneath the one it shows, a sibling placement, a grouping the indexer computed) is none of
-        these, whatever its status: the record does not state it (docs/RESEARCH-WORKFLOW.md, the proof standard), so it
+        these, whatever its status: the record does not state it (docs/RULE.md, the proof standard), so it
         neither raises a difference nor joins its record's own date or place; nor is a statement resting on a withdrawn file
         (not_withdrawn), which stays as written and is evidence for nothing."""
         out = []
@@ -1391,7 +1391,7 @@ class Catalog:
         return self._place_chain(r[0][1])["text"] if r[0][1] and r[0][2] == "accepted" else r[0][0]
     def event_for(self, f, events, once=False):
         """The one event among a person's events of the fact's type, or a family's (events, Catalog.owner_events), that a
-        record's fact belongs to (docs/RESEARCH-WORKFLOW.md §5–7, one statement, one event): (event id, []) when there is
+        record's fact belongs to (docs/RULE.md, one statement, one event): (event id, []) when there is
         one; (None, []) when there is none and the fact makes an event of its own; (None, [event ids]) when the choice
         among those is the owner's (Catalog.unplaced). once: the type is one a life holds once (ONCE), or the events are an
         attribute's of the fact's own value: a person with one such event has the fact on it whatever its date or place,
@@ -1431,7 +1431,7 @@ class Catalog:
         tools/conclude.py place. A fact the record already states on one of the person's events, or their family's, is
         placed (Catalog.stated_on). A value the page keeps beneath the one it shows (a fact whose region marks it alternate)
         is never asked: it is never accepted with its record, never ground for the rule and never a conflict, so where it
-        stands decides nothing the owner should be asked about (docs/RESEARCH-WORKFLOW.md §5–7); it stays with its record,
+        stands decides nothing the owner should be asked about (docs/RULE.md); it stays with its record,
         and tools/conclude.py place given one writes it undecided and marked. A record withdrawn from the evidence
         (not_withdrawn) asks nothing either: its facts are evidence for nothing."""
         out, seen = [], set()
@@ -1507,7 +1507,7 @@ class Catalog:
         return self._labels(agree or every) or "no statement"
     MARK_WORDS = {"alternate": "a value a page keeps beneath the one it shows", "placed": "a sibling placement", "computed": "a grouping the indexer computed"}
     def value_basis(self, eid):
-        """What of an event's own value is accepted (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), its
+        """What of an event's own value is accepted (docs/RULE.md, what of an event's value is accepted), its
         date and its place each: {shown, level, given, claim, on, beside}, or None for an axis the event shows nothing on.
         level is how much of the value accepted statements give: for a date "whole", "month", "year" (date_given) or None, for
         a place 0 for the whole, n for all but its first n parts (place_given) or None. An accepted statement gives its own
@@ -1695,7 +1695,7 @@ class Catalog:
         if not place_id: return []
         return self.q("SELECT name, valid_from, valid_to FROM place_name WHERE place_id=? AND (valid_from IS NOT NULL OR valid_to IS NOT NULL)", place_id)
     def place_search_names(self, place_id, year=None, person_id=None):
-        """Every accurate name for place_id, ordered for a search (docs/RESEARCH-WORKFLOW.md §3): the one valid at year
+        """Every accurate name for place_id, ordered for a search (docs/PLAN-AND-SEARCH.md §3): the one valid at year
         first (a dated name, dated_names, whose range covers it), then the as-written strings the person's own accepted
         records use for this place, then its current name, then every other dated name. A collection is found under the
         place's modern name and the record inside it under the name its own day used, so the modern name is never

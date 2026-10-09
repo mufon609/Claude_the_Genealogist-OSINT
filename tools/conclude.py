@@ -13,7 +13,7 @@ to a person accepted on that record and nobody in the tree fits after the fittin
 on its record's current reading by those same terms, and a card putting the entry it made a person from to that person
 is judged as that creation (made_here). Anything less certain than the rule below is a card for the owner.
 
-The standing rule (docs/RESEARCH-WORKFLOW.md §0 and §5–7, rule_accepts): a record of a kind data/evidence-classes.csv gives
+The standing rule (docs/TERMS.md §0 and docs/RULE.md, rule_accepts): a record of a kind data/evidence-classes.csv gives
 the automated standing, from a source nobody can edit at will (T1–T3), is accepted as the person's when the name agrees with
 the accepted name, the facts that agree make two points on the tree's own statements (ground: a date to the day or a
 relationship counting double whatever its information class, a statement of any copy of the record, or of the same person's record of the same event from the same original, no ground) and nothing compared disagrees against an accepted value. A page anyone can edit (T4: a Find a Grave
@@ -41,7 +41,7 @@ a card, a key fact, one statement, a place's words, a resolution or a reopen, a 
 settle_carried, once for them all, for decisions carried to a record's new reading or to another copy of it).
 
 The rule decides a conflict on an event's date or place when the classes favour one side without doubt (classes_decide,
-docs/RESEARCH-WORKFLOW.md, the proof standard): one side holds the event first-hand, primary information from the record of
+docs/RULE.md, the proof standard): one side holds the event first-hand, primary information from the record of
 the event itself, and every other rests only on secondary or indeterminable information, a page anyone can edit or the
 file's claim. It resolves such a conflict through the owner's own resolve, its reason in words as the note, after every
 decision that changes a person's evidence and in reconsider, which also examines its earlier resolutions again and takes
@@ -93,7 +93,7 @@ usage: tools/conclude.py decide <proposal id> accept|reject [--note "…"]      
   not a place, applied wherever the same words appear, and to every other string whose card offers the same places (the same
   question put another way), each its own audit row; --alone answers one string only.
 - assert_facts, link_family, create_person: the writes themselves, shared with the extractor when a re-run carries a link; one statement on one event.
-- a person's own decision on a statement (docs/RESEARCH-WORKFLOW.md §5–7: a key fact or the statement decided, a vouch, the
+- a person's own decision on a statement (docs/RULE.md: a key fact or the statement decided, a vouch, the
   owner's word on a link or a divorce, a card's rejection) sets assertion.person_decided; every writer here reads it, and
   no acceptance of a record, re-read, carry, withdrawal or give-back changes such a statement. asserted_by names who set the
   status a statement has.
@@ -150,11 +150,11 @@ from forms import census_form
 from log_search import release_household, restate
 from backfill_aliases import classify, clean, key
 
-# the kind (data/evidence-classes.csv) that identifies a person only through who it names (docs/RESEARCH-WORKFLOW.md §0: "then the named survivors decide"): the rule's ground there is a stated relative, never a date or a place alone
+# the kind (data/evidence-classes.csv) that identifies a person only through who it names (docs/TERMS.md §0: "then the named survivors decide"): the rule's ground there is a stated relative, never a date or a place alone
 NAMED_SURVIVORS = "obituary"
-# a census before this year names the head and counts the rest: a hint (docs/RESEARCH-WORKFLOW.md §0)
+# a census before this year names the head and counts the rest: a hint (docs/TERMS.md §0)
 CENSUS = "census household"   # a census is ground only on a form data/record-forms.csv says names every member (forms.census_form)
-# a register entry identifies a person only when it is dated and names their parents (docs/RESEARCH-WORKFLOW.md §0)
+# a register entry identifies a person only when it is dated and names their parents (docs/TERMS.md §0)
 DATED_WITH_PARENTS = "church register (baptisms, marriages, burials)"
 TRUSTED = ("T1", "T2", "T3")  # a record the rule may act on or count: not one anyone can edit (T4)
 # a stated family relationship the record files under 'other': a half sibling, a grandchild, an in-law; never "other relative" or a blank
@@ -254,7 +254,7 @@ def rests_elsewhere(cx, eid, sha, axis, value, keys=None, copies=()):
     """Whether the event's value that a related persona's value agrees with stands on some statement other than the record
     under decision, so that the persona stands for the tree's relative on more than the relationship the record states
     (rule_points, grounded): a statement on the event that is not rejected, not the record's own (on any of its copies), not
-    a claim whose own citation is that record (docs/RESEARCH-WORKFLOW.md, the proof standard: such a claim never counts) and
+    a claim whose own citation is that record (docs/RULE.md, the proof standard: such a claim never counts) and
     resting on no withdrawn file, giving a date or a place that agrees with value (gives)."""
     q = _q(cx)
     keys = keys or record_keys(cx, sha)
@@ -329,7 +329,7 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
     where both give one, of the same year, which the code cannot show to be another copy of it and still counts once with it
     (two indexes of one certificate, two papers' obituaries of one death), never by the kind alone, which two people's
     records share. With axis, the statement must give a date or a place that agrees with value, a date whatever the event
-    itself shows (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), a place at the level of the tree's
+    itself shows (docs/RULE.md, what of an event's value is accepted), a place at the level of the tree's
     own (tree), so the place the event shows is given whole by the statement; never one a standing resolution set aside
     (catalog.set_aside); a vouch standing for the event's own date and place. without: proposal ids whose assertions do
     not count, and statements that do not (reconsider, unless). Returns (statements, shared): each statement {day: it gives
@@ -482,7 +482,7 @@ def join_copies(cx, sha, by, ts=None):
     certificate number of one year (a state index's line and the certificate's image whose reading gives the number), the
     two numbered entries agreeing by name. A join by record id stands only where an entry of each current reading agrees with
     one of the other's by name (catalog.entry_on), and code never joins a page anyone can edit to a record nobody can, nor a
-    row of a search's results, whose own record is the document (docs/RESEARCH-WORKFLOW.md §0). Returns the rows written:
+    row of a search's results, whose own record is the document (docs/TERMS.md §0). Returns the rows written:
     (other sha256, basis, shared)."""
     from catalog import NUMBERS, copy_entry, current_reading, entry_on, names_agree
     q = _q(cx)
@@ -762,7 +762,7 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     """Assertions from a persona's facts to the person, the document having been accepted as theirs: Accepted from a record
     nobody can edit at will, Undecided from a page anyone can edit (what the page says, never accepted by the decision and never
     ground for the rule, so the person's facts come from primary documents only). Name and Sex assert the person row. One
-    statement, one event (docs/RESEARCH-WORKFLOW.md §5–7): an event fact asserts the one event of its type that
+    statement, one event (docs/RULE.md): an event fact asserts the one event of its type that
     Catalog.event_for chooses among the person's: the one event of a type a life holds once whatever its date or place, the
     one event of another type for an undated fact, else the event whose own date agrees most closely with the fact's among
     those whose places agree with it; created from the fact's date when the person has none that fits, but never beside
@@ -1332,7 +1332,7 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     same way as a link the record states outright; a resolution that lands on a sibling goes through the sibling rule above,
     Undecided like any other. Unresolved, it writes nothing and the created person's card stands with no link. On a page
     anyone can edit, a relative the record relates to the subject but that the matcher never proposed a persona_match for (a
-    memorial's listed relative, docs/RESEARCH-WORKFLOW.md §0) is still placed when their name and birth year plainly fit
+    memorial's listed relative, docs/TERMS.md §0) is still placed when their name and birth year plainly fit
     exactly one person of the tree (match.fits_by_name_and_year): the listed persona is linked to that person Undecided (so
     the membership traces to the persona, and their own record decides their identity later) and the membership follows the
     same path as any other relation above. A person whose link to the listed persona is rejected is no fit; fitting nobody or
@@ -2143,7 +2143,7 @@ FIELD_EVENT = {
 
 def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_state=None):
     """The accepted statements on this event whose date or place disagrees with value, a record's (a date, {start, end, text,
-    qualifier}; a place, its words): what the standing rule refuses a record on (docs/RESEARCH-WORKFLOW.md §5–7, what of an
+    qualifier}; a place, its words): what the standing rule refuses a record on (docs/RULE.md, what of an
     event's value is accepted), whatever the event itself shows, so a claim the event shows never vetoes, and a record that
     agrees with that claim is still refused where an accepted statement gives another value. A statement counts when it is
     accepted, of the event's own type, carries no mark (MARKS), rests on no withdrawn file (catalog.not_withdrawn) and is not
@@ -2237,7 +2237,7 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
     """Partition the record's disagreements into those against an accepted value (a veto), those against a bare claim (named
     in the decision note instead, never a veto) and a birth place that differs from an accepted one. A birth or death date, a
     birth, death or burial place is read against the accepted statements on the event (against), never against the value
-    the event shows, which may itself be a claim (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted):
+    the event shows, which may itself be a claim (docs/RULE.md, what of an event's value is accepted):
     compare()'s difference with the shown value is a veto only where an accepted statement disagrees too, and a value
     compare() finds no difference in is still met with the accepted statements, a disagreement with one written as its own
     line. A stated relationship is read against what the tree holds of it on accepted evidence (held_against), so a family
@@ -2302,7 +2302,7 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
 
 def claimed_or_accepted(cx, tree_id, pid, other, group, rec, keys, without=(), claim_only=False):
     """Whether the tree links a person to another by a relation group (parents, children, spouses, siblings), claimed or
-    accepted (docs/RESEARCH-WORKFLOW.md §5–7), as Catalog.linked_on_word reads a link, for the record under decision: in a
+    accepted (docs/RULE.md), as Catalog.linked_on_word reads a link, for the record under decision: in a
     family joining the two, the membership of each carries an accepted statement or the file's claim of it, the import's own
     statement (on a file this tree imported, tree_import), not rejected; with claim_only, the file's claim alone. Nothing
     else is the file's word: an undecided statement from a page anyone can edit or a link a withdrawn decision left claims
@@ -2336,7 +2336,7 @@ LEFT_OUT = {
 
 def event_claimed_or_accepted(cx, tree_id, eid, axis, value, rec, keys, without=(), day=False):
     """Whether the tree holds the date or the place of an event that a page anyone can edit agrees with, claimed or accepted
-    (docs/RESEARCH-WORKFLOW.md §5–7, the identity), as claimed_or_accepted reads a link: a statement on the event that
+    (docs/RULE.md, the identity), as claimed_or_accepted reads a link: a statement on the event that
     stands (not_the_files_word) and gives value (gives; to the day, with day), whatever the event itself shows, never one a
     standing resolution set aside (catalog.set_aside). Returns (True, []), or (False, what the statements not rejected that
     give value but do not stand are, in words: LEFT_OUT)."""
@@ -2363,7 +2363,7 @@ def event_claimed_or_accepted(cx, tree_id, eid, axis, value, rec, keys, without=
 
 def claimed_relation_match(relations, accepted_on_record, linked):
     """Whether the persona's stated relationship names a persona already accepted on this very record as a person the tree
-    links to the candidate by that relation, claimed or accepted (docs/RESEARCH-WORKFLOW.md §5-7): (group, other candidate,
+    links to the candidate by that relation, claimed or accepted (docs/RULE.md): (group, other candidate,
     other name) when so, else None. relations: (kind, other persona, computed, other name), a relationship the record's
     indexer computed being no statement of the record's. accepted_on_record: persona id -> candidate, from person_persona
     rows already decided accepted on this extraction — not the fitting check's own guesses. linked(group, other person id):
@@ -2546,7 +2546,7 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
 
 def rule_accepts(cx, tree_id, prop, without=()):
     """Whether the standing rule takes a proposal, and why, in words: (True, reason) or (False, why not), as
-    docs/RESEARCH-WORKFLOW.md §5–7 states the rule ("The standing rule", and "What the rule counts" in the proof standard):
+    docs/RULE.md states the rule ("The standing rule", and "What the rule counts" in the proof standard):
     the record taken on its points (rule_points), and then identity tested, not assumed (identity_refused): nobody else of
     the tree fits the persona as well, the person holds no other persona on this reading of the record, and nothing the
     record would add falls outside the person's life as accepted. A test that fails is a refusal with its reason, and the
@@ -2589,7 +2589,7 @@ def rule_accepts(cx, tree_id, prop, without=()):
     return True, seen[taken][1] + on(taken)
 
 def made_here(cx, tree_id, prop):
-    """The creation a card stands for (docs/RESEARCH-WORKFLOW.md §5–7, the creation route): when a persona_match card puts an
+    """The creation a card stands for (docs/RULE.md, the creation route): when a persona_match card puts an
     entry of a record to the person a creation made from that very entry (a new_person proposal of that person on any
     reading's persona of the entry, on any copy of the record, that no person rejected: standing, taken back, or closed with
     its reading as superseded), the card as that creation, a new_person proposal of the person on the card's own persona and
@@ -2618,7 +2618,7 @@ def rule_points(cx, tree_id, prop, without=()):
     an automated kind is taken on the accepted name (the name rows and the accepted aliases, never an undecided one: compare's
     accepted_names, here and for the relatives the record names) and two points, nothing disagreeing against an accepted value
     (split_disagree); each point stands on the tree's own statements as ground() finds them, whatever value the event shows
-    beside them (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), and a date to the day or a
+    beside them (docs/RULE.md, what of an event's value is accepted), and a date to the day or a
     relationship counts double where the tree holds it on such ground, whatever its information class (the classes decide
     conflicts, not whether two records that agree are about one person); a link no such statement grounds counts once where
     the file itself claims it, and nothing else stands in for the file (claimed_or_accepted). A persona whose
@@ -2724,7 +2724,7 @@ def rule_points(cx, tree_id, prop, without=()):
     for other in others.values():
         if other["id"] == persona["id"] or other["id"] in chosen:
             continue
-        # its relation to the persona under decision, stated from either side, is one of the things it fits on (docs/RESEARCH-WORKFLOW.md §5-7)
+        # its relation to the persona under decision, stated from either side, is one of the things it fits on (docs/RULE.md)
         as_related = {**other, "relations": both_ways(other)}
         for c in relatives:
             # a birth place, never a veto, never unfits a relative either: the rule's decisions do not turn on a finer place another decision brought
@@ -2739,7 +2739,7 @@ def rule_points(cx, tree_id, prop, without=()):
     def grounded(other_pid):
         """Whether the persona a stated relationship names earns the relationship its point: accepted on this record already,
         or standing for the tree's relative on something besides that relationship, a date or a place (an age is a birth
-        year) that rests on more than a claim citing this very record (docs/RESEARCH-WORKFLOW.md, the proof standard). A
+        year) that rests on more than a claim citing this very record (docs/RULE.md, the proof standard). A
         persona that fits only through its relation to the one under decision, a name and the relationship, earns nothing:
         the relationship would be its own proof."""
         if other_pid in accepted_on_record:
@@ -3036,7 +3036,7 @@ def rule_points(cx, tree_id, prop, without=()):
     ) + " from trusted sources; nothing disagrees against an accepted value" + claim_note + left_note, []
 
 def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_record):
-    """Whether the rule creates the person a new_person card proposes, and why, in words (docs/RESEARCH-WORKFLOW.md §5–7): a
+    """Whether the rule creates the person a new_person card proposes, and why, in words (docs/RULE.md): a
     trusted record (T1–T2, or an obituary once read) names them, with a name, in a stated family relationship (child, parent,
     spouse, sibling, half sibling, grandchild, in-law; never "other relative" or a blank; one the record's indexer computed is
     no statement of the record's, catalog.relation_classes) to a person accepted on the same record, and nobody in the tree
@@ -3261,7 +3261,7 @@ def outside_life(cx, tree_id, persona, pid, accepted_on_record, without=()):
 
 def identity_refused(cx, tree_id, prop, without=()):
     """Why the rule may not take a record it would take on its points, or None: identity tested, not assumed
-    (docs/DATA-ARCHITECTURE.md §7 decision 12, docs/RESEARCH-WORKFLOW.md §5–7). Three tests, each a refusal naming what it
+    (docs/DATA-ARCHITECTURE.md §7 decision 12, docs/RULE.md). Three tests, each a refusal naming what it
     found: another person of the tree fits the persona as well as the candidate or better (fits_as_well; for a person the
     rule would create, anyone who fits, or whom the fitting check reaches, match.by_name_and_year); the person already holds
     another persona on this reading of the record (two rows of one page are two people); something the record would add
@@ -3660,7 +3660,7 @@ def _take_lacking(q, kept, other, ts, held=()):
     return {c: {"was": k[c], "now": v} for c, v in sets.items()}
 
 def fold(cx, tree_id, owner, actor=None, retire=None, moved=None):
-    """A person's events, or a family's, of one type that are one event folded into one (docs/RESEARCH-WORKFLOW.md §5–7, one
+    """A person's events, or a family's, of one type that are one event folded into one (docs/RULE.md, one
     statement, one event; the groups and the kept event as fold_plan gives them), the same fold a merge makes of a
     duplicate's events: each folded event's statements and notes move onto the kept event as they are (_fold_event), the
     kept event takes what it lacks from it (_take_lacking), and the folded event leaves the owner's events (retire(event id),
@@ -3984,7 +3984,7 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
     }
 
 def merge(cx, tree_id, dup_id, kept_id, by, note):
-    """Close a duplicate_person question (RESEARCH-WORKFLOW §2; the worked example's "merging the two Thomas entries closes
+    """Close a duplicate_person question (docs/TERMS.md §2; docs/LOOP.md's worked example, "merging the two Thomas entries closes
     the question"): the duplicate's persona links, assertions, event and family memberships, name aliases, plan steps, search
     log rows and questions move onto the person it duplicates; a persona link whose persona the kept person already links is
     folded onto theirs, the kept person's row taking the duplicate's decision only where its own is undecided (_move_links),
@@ -4002,7 +4002,7 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     its key, row and rationale, and why it was dropped, the way plan.py's own audit row names what it drops).
 
     The duplicate's events join the kept person's, and the kept person's events of one type that are then one event are
-    folded (fold, docs/RESEARCH-WORKFLOW.md §5–7: places agreeing or one absent, and the type held once in a life or the
+    folded (fold, docs/RULE.md: places agreeing or one absent, and the type held once in a life or the
     dates one): the statements move onto the kept event, and each folded event and its participant are left on the
     duplicate's row (_back_to), so the kept person never carries two Birth or two Death events; a date the two give apart is
     the conflict question the catalog raises. A duplicate's own family, once its membership has moved, whose partners are
@@ -4202,7 +4202,7 @@ def resolve(cx, tree_id, qid, keep, by, note):
     return {**out, "conflicts": conflicts, "rematched": rematched}
 
 def write_resolution(cx, tree_id, qid, keep, by, note):
-    """A conflict question closed with a written reason naming the value kept (docs/RESEARCH-WORKFLOW.md, the proof
+    """A conflict question closed with a written reason naming the value kept (docs/RULE.md, the proof
     standard), by the owner, or by the rule acting for them (rule_conflicts, the reason its own words): the kept statement's
     date, or its place, becomes the event's own value (the event row's date fields, or its place_id), the question closes
     'resolved' with the resolution in its detail, who resolved it included (by), and one audit row names the value kept, the
@@ -4452,7 +4452,7 @@ def owner_decided(cx, tree_id, ev, axis):
     return None
 
 def classes_decide(cx, tree_id, eid, axis):
-    """The rule's test on a conflict about one event's date or place (docs/RESEARCH-WORKFLOW.md §5–7, the proof standard:
+    """The rule's test on a conflict about one event's date or place (docs/RULE.md, the proof standard:
     conflicts kept, cited, pointed out, then decided): (the assertion id of the statement it keeps, or None; why, a sentence
     in words from the classes). The statements on the event of its own type, rejected ones, the owner's own word and those
     resting on a withdrawn file (evidence for nothing) aside, are read by their classes (data/evidence-classes.csv,
@@ -4987,7 +4987,7 @@ def living(cx, tree_id, pid, word, by, note):
 
 def links_resting_on(cx, tree_id, prop_id, gone=(), taken_back=False):
     """The statements a withdrawal or a person's rejection of this decision takes back besides its own
-    (docs/RESEARCH-WORKFLOW.md §5–7): a family link the record states stands on both people it relates being accepted on the
+    (docs/RULE.md): a family link the record states stands on both people it relates being accepted on the
     record, and is written by the second of the two acceptances (link_family), so it is the other decision's statement.
     Taken back: each accepted statement of a membership joining this decision's person to a person accepted on another
     persona of the record, written from a relationship the record states between that persona and this decision's entry (on
@@ -5159,7 +5159,7 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
     return n
 
 def written_otherwise(cx, tree_id, prop):
-    """What a decision wrote that decide would write otherwise now (docs/RESEARCH-WORKFLOW.md §5–7, reconsider): each name
+    """What a decision wrote that decide would write otherwise now (docs/RULE.md, reconsider): each name
     alias it wrote whose status is not the standing its record gives now (write_name_alias: accepted from a record nobody
     can edit at will, T1–T3, undecided from a page anyone can edit or a record of no known tier), and each family-link
     statement it wrote accepted whose relationship the record's current reading gives as its indexer's (link_family's
@@ -5260,7 +5260,7 @@ def bring_to_now(cx, tree_id, prop_id, rows, by, ts):
         plan_person(cx, tree_id, pid, by)
 
 def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
-    """The undecided cards the evidence has passed by, matched again (docs/RESEARCH-WORKFLOW.md §5–7): a card an older matcher
+    """The undecided cards the evidence has passed by, matched again (docs/RULE.md): a card an older matcher
     wrote (the matcher is versioned, match.MATCHER); a card left on a superseded reading of its record (a decision the rule
     took on that reading and withdrew after the page was read again: a re-read closes only the cards undecided at the
     time); and a card putting a persona to a person that the matcher, on the person's evidence as it now stands, would no
@@ -5459,7 +5459,7 @@ def rematch_people(cx, tree_id, by, people):
 
 def settle_people(cx, tree_id, by, people):
     """What follows every decision that changes these people's evidence once their plans are regenerated
-    (docs/RESEARCH-WORKFLOW.md §5–7), whichever command or screen took it: the rule goes over their conflicts
+    (docs/RULE.md), whichever command or screen took it: the rule goes over their conflicts
     (rule_conflicts: its own resolutions there examined again, each open conflict on an event's date or place decided where
     the classes favour one side without doubt, a date or place the owner has resolved, dismissed or reopened left to them),
     then their undecided cards are matched again (rematch_people). Returns (the rule's rows on the conflicts, the rows of

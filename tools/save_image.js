@@ -1,4 +1,4 @@
-// The image saves itself (docs/RESEARCH-WORKFLOW.md §4). Open the photograph's own URL in a new tab and run this in it with the file
+// The image saves itself (docs/PLAN-AND-SEARCH.md §4). Open the photograph's own URL in a new tab and run this in it with the file
 // name filled in (the name tools/fetches.py printed): the tab fetches its own bytes and hands them to the browser as a download, and
 // the call returns one line: ok image <type> <bytes>B, or BLOCKED <why> (nothing saved: a challenge or a sign-in comes back as HTML).
 // The call is awaited: the browser tool that runs the script returns an awaited value and gives {} for a promise still pending, so

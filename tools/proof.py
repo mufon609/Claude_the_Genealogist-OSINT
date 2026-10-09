@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The written conclusion of the Genealogical Proof Standard for a person's key facts (docs/RESEARCH-WORKFLOW.md §5-7,
+"""The written conclusion of the Genealogical Proof Standard for a person's key facts (docs/RULE.md,
 "The proof standard"), written by code from the catalog: read-only, no model.
 
 usage: tools/proof.py "<person>" [--fact name|sex|birth|death|parents|spouses|children] [--json] [--tree slug] [--db catalog/tree.db]
@@ -11,7 +11,7 @@ For each key fact:
               owner; the tree file's own claim and how
               many of its citations are held; for a birth or a death accepted only in part, each part that is a claim beyond
               what the accepted statements give, what it rests on and what they give instead (Catalog.value_basis,
-              docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted)
+              docs/RULE.md, what of an event's value is accepted)
   evidence    the records behind it, each record once with its copies beneath it (same_record: one record is one source
               wherever it is held), named by the original its classes give (data/evidence-classes.csv), each with its class
               words (source: original, derivative or authored; information: primary, secondary or indeterminable; evidence:
@@ -194,7 +194,7 @@ def agreement(field, st, tree):
     months not compared beside a date marked about, estimated or calculated, a coarser place, a spelling variant), the date within a bound (catalog.date_verdict: neither agrees nor disagrees), or what it says instead.
     None where there is nothing to compare. A name is read as the standing rule's name test reads one (tree: the person's
     name, the keys of their name rows and name_keys with accepted, which adds the accepted aliases and never an undecided
-    one, docs/RESEARCH-WORKFLOW.md §5–7, which variants the rule counts as the name): it agrees when its first given name
+    one, docs/RULE.md, which variants the rule counts as the name): it agrees when its first given name
     and a surname after it are the person's by written_name, and says so in a note when only an accepted alias holds them."""
     if tree is None: return None
     if field == "name" and st["value"]:

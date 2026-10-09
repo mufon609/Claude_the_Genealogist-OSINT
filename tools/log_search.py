@@ -221,7 +221,7 @@ def log(cx, tree_id, by, step_id=None, question_id=None, source_id=None, outcome
 
 def dismiss(cx, tree_id, by, question_id, note=None):
     """Close a question as dismissed by a person; the planner never reopens it. A conflict is never dismissed without a
-    written reason (docs/RESEARCH-WORKFLOW.md §5–7): note is required for one and refused when it is empty. The reason, who
+    written reason (docs/RULE.md): note is required for one and refused when it is empty. The reason, who
     gave it and when are kept on the closed question (its detail's dismissal) and on the audit row. A dismissal keeps neither
     side of a conflict and changes no event: keeping a statement is tools/conclude.py resolve."""
     ts = now()

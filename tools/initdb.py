@@ -170,8 +170,8 @@ def same_records(cx: sqlite3.Connection) -> None:
         join_copies(cx, sha, "migration:0.7.9")
 
 def fold_events(cx: sqlite3.Connection) -> None:
-    """The catalog's one-time fold of the events an older import and older decisions wrote apart (docs/RESEARCH-WORKFLOW.md
-    §5–7, one statement, one event): every listed person's events of one type, and every family's, that are one event
+    """The catalog's one-time fold of the events an older import and older decisions wrote apart (docs/RULE.md,
+    one statement, one event): every listed person's events of one type, and every family's, that are one event
     (catalog.same_event: places agreeing or one absent, and the type held once in a life or the dates one) folded into one by
     conclude.fold, as a merge folds them and the import and every decision now keep them: the statements and notes moved onto
     the kept event as they are, a record fact's second statement left where it was, the folded event out of the owner's
@@ -190,7 +190,7 @@ def fold_events(cx: sqlite3.Connection) -> None:
         if groups: fold(cx, tree, owner, actor=actor)
 
 def person_decisions(cx: sqlite3.Connection) -> list:
-    """A person's own decisions on statements (docs/RESEARCH-WORKFLOW.md §5–7) as the audit log records them, the latest on
+    """A person's own decisions on statements (docs/RULE.md) as the audit log records them, the latest on
     each statement last: (assertion id, status, actor, at, kind). A key fact decided (tools/conclude.py fact): the statements
     it vouched; otherwise the ones it stamped, every one behind the fact that already held an accept it repeats, and for a
     reject or an undecided every one behind the fact that existed then. One statement decided (tools/conclude.py assertion).

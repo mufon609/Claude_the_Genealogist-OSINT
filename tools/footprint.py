@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Family footprint: the records already attached to a person's relatives, ranked
-(docs/RESEARCH-WORKFLOW.md §3, Layer 0), with the duplicate check run first.
+(docs/PLAN-AND-SEARCH.md §3, Layer 0), with the duplicate check run first.
 
 usage: tools/footprint.py "<person name or id>" [--tree slug] [--json]
 
@@ -26,7 +26,7 @@ def _first_birth_year(cat, pid):
     return next((e["year"] for e in cat.events(pid) if e["type"] == "Birth" and e["year"]), None)
 
 def duplicates(cat: Catalog, pid: str):
-    """Persons of the tree that are probably the same individual as this one (docs/RESEARCH-WORKFLOW.md §2, duplicate_person):
+    """Persons of the tree that are probably the same individual as this one (docs/TERMS.md §2, duplicate_person):
     the surname's Soundex code and the first given name the same, and a birth year within one year, or the same spouse or
     parents by name. A person merged into another (person.merged_into) is never counted: the merge already said who they
     are. [{id, name, why}]. Run for every person, reviewed or not: a duplicate is resolved before anything is built on

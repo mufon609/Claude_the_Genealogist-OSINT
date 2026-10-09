@@ -8,7 +8,7 @@ usage: tools/run_task.py show [K] [--tree slug] [--db catalog/tree.db]
        tools/run_task.py capture --model MODEL --effort EFFORT --out FILE [--budget USD] [--timeout SECONDS] [--tree slug] [--db catalog/tree.db]
        tools/run_task.py write
 
-docs/RESEARCH-WORKFLOW.md §4 (a model saves the page) and docs/DATA-ARCHITECTURE.md §7 decisions 16 and 19. One kind of task
+docs/PLAN-AND-SEARCH.md §4 (a model saves the page) and docs/DATA-ARCHITECTURE.md §7 decisions 16 and 19. One kind of task
 exists, `fetch`: a page on the fetch list (tools/fetches.py next) saved in the owner's browser by the page-saves-itself
 method. The task is the list's entry rendered by code (fetch_task, render): the link, the file name and tools/save_page.js
 with the entry's call in place of the ("FILENAME.html") that ends it. The words a model needs beyond the entry are one

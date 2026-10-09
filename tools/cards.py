@@ -6,7 +6,7 @@ usage: tools/cards.py "<person>" [--tree slug] [--db catalog/tree.db] [--full | 
 
 One card per proposal, in the shape the owner approved (docs/RESEARCH-CHECKLIST.md §6b, the decision card): a one-line
 highlight of what the record is and the links it makes; the person and the fact or link with the tree's value, each date or
-place that is a claim beyond what an accepted statement gives said to be one (docs/RESEARCH-WORKFLOW.md §5–7); the record
+place that is a claim beyond what an accepted statement gives said to be one (docs/RULE.md); the record
 with its holder, collection, own identity and trust tier; the primary document as the archived path and the holder's page;
 what the record says field by field against the tree's value, as agrees, disagrees or absent, a value the page keeps
 beneath the one it shows no field of its own (the matcher compares none); the relationships the record
@@ -157,7 +157,7 @@ def card(cx, tree_id, prop_id, cat=None):
     if person_id:
         pr = cat.person(person_id)
         ev = cat.events(person_id)
-        # the tree's value, each event as the tree shows it (Catalog.canonical_event) with what of it is accepted (docs/RESEARCH-WORKFLOW.md §5–7)
+        # the tree's value, each event as the tree shows it (Catalog.canonical_event) with what of it is accepted (docs/RULE.md)
         claim = {"name": pr["name"], "sex": pr["sex"]}
         for t in ("Birth", "Death", "Burial"):
             e = cat.canonical_event(ev, t)
@@ -708,8 +708,8 @@ def relation_lines(relationships):
     ]
 
 def claim_text(p):
-    """The tree's value of a person, in words: born, died, buried, each with what of it is a claim (docs/RESEARCH-WORKFLOW.md
-    §5–7, what of an event's value is accepted): nothing added where all of it is accepted, the parts accepted only in part
+    """The tree's value of a person, in words: born, died, buried, each with what of it is a claim (docs/RULE.md,
+    what of an event's value is accepted): nothing added where all of it is accepted, the parts accepted only in part
     ("the date a claim; the place accepted to Kentucky"), "a claim" where no accepted statement stands behind it."""
     cl = p["claim"]
     def said(word, e):
@@ -861,7 +861,7 @@ def render_cli(cx, tree_id, cards, pid=None):
     return "\n\n".join(blocks)
 
 def hints_on(cx, tree_id, sha, person_id):
-    """The hints a held record carries for a person (docs/RESEARCH-WORKFLOW.md §0): on every persona of a current extraction
+    """The hints a held record carries for a person (docs/TERMS.md §0): on every persona of a current extraction
     of the record that has no proposal in this tree (one a newer matcher closed as superseded is none) and no link to anyone, as
     every row of a results page that points at records has, the matcher's comparison with the person, run once
     on view and stored nowhere, as its agreements, disagreements and absences. A row is a hint only when the surname agrees

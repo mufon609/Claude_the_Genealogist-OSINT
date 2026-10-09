@@ -227,14 +227,14 @@ Layout rules that keep it clean:
   and every field is one click to exclude on that step.
 - Anything the AI produced arrives Undecided and lives under the gap it answers;
   the standing rule may then take it on the owner's written rules
-  (`docs/RESEARCH-WORKFLOW.md` §0, §5–7), and everything else waits for the owner.
+  (`docs/TERMS.md` §0, `docs/RULE.md`), and everything else waits for the owner.
 
 ## 6a. The generator
 
 `tools/checklist.py "<person>"` produces everything above for one person from
 the catalog, read-only: the foundation with each field marked `accepted` or
 `claim` (a date or a place `accepted` only as far as an accepted statement
-gives it, `docs/RESEARCH-WORKFLOW.md` §5–7; a birth or death whose event shows
+gives it, `docs/RULE.md`; a birth or death whose event shows
 more than its accepted statements give marked `accepted in part`, saying in
 words what of its value is a claim), the generated questions, the Group A and Group B rows with
 held / cited / missing / n/a, the relative a citation sits on when it is not on
@@ -253,7 +253,7 @@ falls outside of. Every query field is `{value, basis}`: basis `accepted` or
 step's fields); a Rejected fact is left out. Before the baseline is reviewed
 the generator emits only fetch steps for cited records: no search steps, no
 footprint, no unlinked persons; the duplicate check and the limits of one life
-(an `identity` question, `docs/RESEARCH-WORKFLOW.md` §5–7) run for every person.
+(an `identity` question, `docs/RULE.md`) run for every person.
 
 ## 6b. The screen as built
 
@@ -283,7 +283,7 @@ conflicts, and "rests on sources anyone can edit" when every accepted fact of
 the person comes from a T4 source; a person with every key fact accepted and
 nothing waiting says so. A card's years, and a marriage's, are the events' own;
 a year no accepted statement gives is said to be a claim
-(`docs/RESEARCH-WORKFLOW.md` §5–7, what of an event's value is accepted).
+(`docs/RULE.md`, what of an event's value is accepted).
 The
 person page puts the documents first: every record waiting for a decision
 about this person as its card (the highlight, the record with holder,
@@ -344,7 +344,7 @@ or ark read from the file), then parses and matches the page; the same path
 `tools/attach_inbox.py` runs over the whole inbox. No assertion is written by
 the attach; that comes from extraction and review. A fact-level question has one Dismiss control, and a dismissed
 question stays closed when the plan is refreshed; on a conflict Dismiss asks for the reason first and keeps no side
-(`docs/RESEARCH-WORKFLOW.md` §5–7: a conflict is never dismissed without a written reason, and keeping a statement is
+(`docs/RULE.md`: a conflict is never dismissed without a written reason, and keeping a statement is
 `tools/conclude.py resolve`). Name and sex share the
 person-level citations from the import, so deciding one decides the other,
 and accepting a person's children accepts the same link seen from the child's
@@ -362,17 +362,17 @@ a form to transcribe one person at a time (name, role, sex, age, birth, death,
 residence, the line on the image, what the image is, a relation to a persona
 already on the record); the model reads an image the same way, as extractor
 `llm:<model id>` by `app/person/read_record.md`
-(`docs/RESEARCH-WORKFLOW.md` §5–7). A persona on the record
+(`docs/RULE.md`). A persona on the record
 with no proposal and no link is compared with the person on view (nothing is
 stored): on a person whose baseline is reviewed, when the surname and a place
 or a year agree beyond the name, the persona row carries a "hint" pill and one
-line of what agrees and what is missing, the hint of `docs/RESEARCH-WORKFLOW.md`
+line of what agrees and what is missing, the hint of `docs/TERMS.md`
 §0, for when the leads run dry; a row agreeing on the name alone (a newspaper
 hit, a namesake on a results page) carries nothing. A persona the matcher holds
 back as a namesake a name search reached, or as nobody to create (no full name,
 no word of kinship to a person accepted on the record), carries the pill on a
 reviewed person with the matcher's reason in words ahead of that line
-(`docs/RESEARCH-WORKFLOW.md` §5–7). Under each
+(`docs/RULE.md`). Under each
 persona sit the matcher's proposals on the record (a record cited on several
 relatives is fetched for all of them, and each proposal names the person it
 concerns), each as the decision card, with Add / Ignore on a persona match or a
@@ -386,7 +386,7 @@ still open on the record, the steps still planned). A held row
 opens its record through the citation's archived artifact as well as through
 a step. Accepting a persona
 on a held record as this person accepts everything the record states about
-them (`docs/RESEARCH-WORKFLOW.md` §5–7); the decision's answer lists what came
+them (`docs/RULE.md`); the decision's answer lists what came
 in and any conflict it raised. A proposal the standing rule accepted shows
 "accepted by rule" with the reason and a Reject control; one the rule took
 back (`tools/conclude.py reconsider`) is a card again with the rule's reason. An assisted search step whose source's search the tool can build
@@ -394,7 +394,7 @@ back (`tools/conclude.py reconsider`) is a card again with the rule's reason. An
 step with a year) shows that link, built from the foundation fields; the results
 page saved into `inbox/` comes back as the candidate card on the step's
 record, every row with its fields as agrees, disagrees or absent and, for a
-row that fits, the lead it made for its own record (`docs/RESEARCH-WORKFLOW.md` §4). An auto step runs through its connector
+row that fits, the lead it made for its own record (`docs/PLAN-AND-SEARCH.md` §4). An auto step runs through its connector
 from `tools/run_step.py`; the screen has no run control. Assisted sources are
 worked by opening the link, searching with the step's fields, and logging the
 result.

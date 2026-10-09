@@ -19,7 +19,7 @@ def person_card(cx, cat, pid):
     """One person as the overview shows them: name, years, how many key facts are accepted, the spouses the owner accepted
     with the marriage and divorce dates on the family that an accepted statement stands behind, the spouses the file claims
     (Catalog.family's word: the file's claim or an accepted statement on each one's membership) as claims, and what waits. A
-    year, or a marriage's or a divorce's date, shown though no accepted statement gives it is said to be a claim (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted): claimed_years, and ", a claim" on
+    year, or a marriage's or a divorce's date, shown though no accepted statement gives it is said to be a claim (docs/RULE.md, what of an event's value is accepted): claimed_years, and ", a claim" on
     the marriage's or divorce's own date."""
     name, sex = cx.execute("SELECT display_name, sex FROM person WHERE id=?", (pid,)).fetchone()
     ev = cat.events(pid)

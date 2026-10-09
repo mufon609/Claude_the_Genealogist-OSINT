@@ -35,7 +35,7 @@ from resolve_places import place_groups
 
 LOCK = threading.Lock()
 CFG = {"db": None, "by": "user:unknown"}
-# What a reader of a record image is told to write (docs/RESEARCH-WORKFLOW.md §5–7): its sha256 at the time of a reading is that
+# What a reader of a record image is told to write (docs/RULE.md): its sha256 at the time of a reading is that
 # reading's prompt hash on its extractor row (docs/DATA-ARCHITECTURE.md §1).
 READ_RECORD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "read_record.md")
 IMAGE_IS = {"record": "a record", "index": "an index"}   # what a reading may say the image is, as it reads in a refusal

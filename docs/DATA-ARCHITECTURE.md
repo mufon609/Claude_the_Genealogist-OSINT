@@ -35,7 +35,7 @@ Rules that keep the layers honest:
   and `audit_log` take no UPDATE and no DELETE, but for `superseded_by` on
   `extraction`, `household` and `search_log`, written once, from empty, to the row that
   restates the old one (a re-read extraction; a household grouped again; a run read again or carried by a
-  merge, `docs/RESEARCH-WORKFLOW.md`'s schema). A reset or a correction is a
+  merge, `docs/LOOP.md`'s schema). A reset or a correction is a
   row of its own: nothing is removed from the audit trail.
 - AI output enters layer 3 as an *extraction* and layer 4 as a *proposal*. A
   human accepts a proposal to make it a conclusion, or the human's standing
@@ -71,7 +71,7 @@ accepted as theirs brings every fact it states, a value that differs from the
 tree's becomes a conflict question, and a standing rule may say yes for them
 to a record that agrees with facts they already accepted, recorded as acting
 on their word and reversible, and taken back by the rule itself when it would
-no longer make it (`docs/RESEARCH-WORKFLOW.md` §5–7). A person may accept a fact on their own knowledge: the
+no longer make it (`docs/RULE.md`). A person may accept a fact on their own knowledge: the
 acceptance is recorded as their own Accepted assertion on the tree file's
 persona (the archived claim), marked vouched, and the fact's citations stay
 Undecided until their records are fetched. One link is definitional rather than decided: the persona an
@@ -134,7 +134,7 @@ outside the vendor.
    URL and time. Cheap, and it makes every AI step reproducible.
 4. Web pages that cannot be fetched programmatically (Find a Grave): one
    page at a time in the owner's own browser, the page saving its own markup
-   as a file that goes to `inbox/` (`docs/RESEARCH-WORKFLOW.md` §4), with the
+   as a file that goes to `inbox/` (`docs/PLAN-AND-SEARCH.md` §4), with the
    citation's locator and the memorial URL in the manifest.
 5. Family-held material: scans at 400–600 dpi TIFF as master, JPEG derivative.
 
@@ -163,7 +163,7 @@ outside the vendor.
   what of an event's value is accepted takes nothing from them, the proof counts none of them and
   names the record withdrawn, the cards still open on the file are closed by the withdrawal
   (rejected under who withdrew it, the note `withdrawn`) and none can be accepted, and a key
-  fact's accept acts on none of them (`docs/RESEARCH-WORKFLOW.md` §5–7).
+  fact's accept acts on none of them (`docs/RULE.md`).
 
 ## 3. Catalog (the database)
 
@@ -184,12 +184,12 @@ Core tables (the full map by layer is in `schema/README.md`):
 | `same_record` | Two archived copies of one record joined (decision 15), insert-only: on what they share of the record itself, by code for every tree, or on the owner's word in one tree. |
 | `tree`, `tree_import` | A workspace of conclusions; which artifact was imported into which tree. |
 | `person`, `person_name`, `family`, `family_member`, `event`, `event_participant` | Layer-4 conclusions. |
-| `assertion` | The evidence link from a conclusion to a persona fact, persona or artifact, with the three-state status, who set it, and whether that was a person's own decision on it (`docs/RESEARCH-WORKFLOW.md` §5–7). |
+| `assertion` | The evidence link from a conclusion to a persona fact, persona or artifact, with the three-state status, who set it, and whether that was a person's own decision on it (`docs/RULE.md`). |
 | `person_persona` | Person-to-persona link with the three-state status and who decided it. |
 | `proposal` | AI output awaiting a decision; answers a question about a person. |
 | `alias` | Variant and erroneous forms kept as search keys (§8). |
-| `research_question`, `search_plan`, `search_log` | A fact-level question about a person; an executable step on a checklist row of a person (a fetch with its locator, or a typed search with per-field basis); every run of a step including negatives (`docs/RESEARCH-WORKFLOW.md`). |
-| `task_run` | One row per model launched on a step no connector can take (decision 16), insert-only: the launcher (decision 19), the kind of task, the holder, the task as rendered and its text's hash, the model and effort, what the launcher measured, the outcome as code judged it and the `search_log` row the run produced (`docs/RESEARCH-WORKFLOW.md` §4). |
+| `research_question`, `search_plan`, `search_log` | A fact-level question about a person; an executable step on a checklist row of a person (a fetch with its locator, or a typed search with per-field basis); every run of a step including negatives (`docs/LOOP.md`, the schema). |
+| `task_run` | One row per model launched on a step no connector can take (decision 16), insert-only: the launcher (decision 19), the kind of task, the holder, the task as rendered and its text's hash, the model and effort, what the launcher measured, the outcome as code judged it and the `search_log` row the run produced (`docs/PLAN-AND-SEARCH.md` §4). |
 | `external_id` | Any vendor ID for any entity (APID, FamilySearch ARK, WikiTree ID, Find a Grave memorial). Never the primary key. |
 | `place`, `place_name`, `place_string` | Normalized place hierarchy with dated names; every raw string ever seen and what it resolved to. |
 
@@ -346,14 +346,14 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
 4. **FamilySearch: the owner's browser, never its API.** Its record and search
    pages are saved one at a time by the page-saves-itself method and every
    decision on them is automated from the saved page
-   (`docs/RESEARCH-WORKFLOW.md` §4, §5–7).
+   (`docs/PLAN-AND-SEARCH.md` §4, `docs/RULE.md`).
 5. **The Genealogical Proof Standard, in code.** Conclusions meet the GPS and
    the standing rule's linkage rests on the same analysis: source,
    information and evidence classified in words from a data table, a proof
    summary per key fact written by code, and every conflict kept, cited,
    pointed out and decided with a written reason: by the rule when the
    classes favour one side without doubt, by the owner otherwise
-   (`docs/RESEARCH-WORKFLOW.md` §5–7, "The proof standard"). No class becomes
+   (`docs/RULE.md`, "The proof standard"). No class becomes
    a number.
 6. **Tokens are a cost the design answers to.** A session pays for every byte
    a tool prints and every browser round trip: a tool prints what the next
@@ -471,12 +471,12 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    worse. "Trust should be eliminated by code" at every point possible: a
    model's answer is checked by code and never believed, a model writes
    nothing to the catalog, and what it finds is decided as any record is
-   (decision 13; `docs/RESEARCH-WORKFLOW.md` §5–7). No task is a prompt
+   (decision 13; `docs/RULE.md`). No task is a prompt
    written by hand, by a person or a session. The standing rules on sources
    hold inside every task (decision 4; a challenge or a sign-in is the owner's
    to pass; Find a Grave and Ancestry are never scraped). One kind of task is
    launched by code today, the fetch of a page on the fetch list
-   (`tools/run_task.py`, `docs/RESEARCH-WORKFLOW.md` §4), each launch a row of
+   (`tools/run_task.py`, `docs/PLAN-AND-SEARCH.md` §4), each launch a row of
    `task_run`; the model is the caller's to name. The other kinds
    of task, the calibration and the choice of model from the record of runs
    are deferred work in `BACKLOG.md`.
@@ -539,7 +539,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    (`tools/run_task.py`: `fetch` the headless prompt; `next` and `done` the
    session's, with the agent and skill `tree-fetch` under `.claude/`, written
    by `tools/run_task.py write` and held to it by `tools/check.py`;
-   `docs/RESEARCH-WORKFLOW.md` §4). A subagent's model is set per spawn and
+   `docs/PLAN-AND-SEARCH.md` §4). A subagent's model is set per spawn and
    its effort only by its agent file.
 
 20. **A document that came through the browser is provisional, and listed.**
@@ -593,7 +593,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    is put down to the model, and the row records the runs that calibrated
    it. In use the script reads; a model reads only a record no script can.
    The script is built (`tools/households.py`; its rules in words,
-   `docs/RESEARCH-WORKFLOW.md` §5–7, "Households"). Its households are stored,
+   `docs/HOUSEHOLDS.md`). Its households are stored,
    insert-only, each row recording the script's version (`household`,
    `household_member`), and are not derived on read: what was read off a
    household must not change beneath it. Hard rule 2 keeps evidence as it was
@@ -608,7 +608,7 @@ manifest. Storage engines are swappable if paths are hashes and IDs are ULIDs.
    first (`tools/plan.py`): its search's answer saved page by page, and the rows
    of it, and of the archive's other pages of that search with a given name,
    that could be the missing entries, their record pages one at a time in an
-   order code works out (`docs/RESEARCH-WORKFLOW.md` §5–7, "Households"), until
+   order code works out (`docs/HOUSEHOLDS.md`), until
    the household is complete or the candidates run out. The calibration and the rule's reading of
    households are the work in `BACKLOG.md`; until then nothing the rule
    decides reads a household.
@@ -789,7 +789,7 @@ edits the canonical value.
   evidence for the same person; the matcher treats recurring errors as
   fingerprints when it proposes a match, reading every alias not rejected. The
   standing rule stands on the canonical names and the `accepted` aliases alone
-  (`docs/RESEARCH-WORKFLOW.md` §5–7, which variants the rule counts as the
+  (`docs/RULE.md`, which variants the rule counts as the
   name): an alias written from a record accepted for the person takes that
   record's standing, `accepted` from a record nobody can edit at will,
   `undecided` from a page anyone can edit.

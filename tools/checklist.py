@@ -20,9 +20,9 @@ Read-only. For one person it reports:
               whose schedules are lost is n/a), each saying what its form settles
   search      for every gap, the pre-built step: typed query, sources, mode;
               every query field is {value, basis accepted|claim|row|citation|record}, an undecided
-              fact a claim (docs/RESEARCH-WORKFLOW.md §0), rejected facts omitted. Before the baseline
+              fact a claim (docs/TERMS.md §0), rejected facts omitted. Before the baseline
               is reviewed only fetch steps for cited records exist: no search steps, no footprint,
-              no unlinked persons (docs/RESEARCH-WORKFLOW.md §2); the duplicate
+              no unlinked persons (docs/TERMS.md §2); the duplicate
               check and the limits of one life (an identity question) run for
               every person, reviewed or not.
 """
@@ -81,7 +81,7 @@ def build(cat: Catalog, pid: str):
     foreign_born = bool(birth and birth["place"] and birth["place"]["country"] and birth["place"]["country"] != "united states")
     sex = p["sex"]
 
-    # ---- what of each event's value is accepted (docs/RESEARCH-WORKFLOW.md §5–7): a date or a place is accepted only as far as an accepted statement gives it
+    # ---- what of each event's value is accepted (docs/RULE.md): a date or a place is accepted only as far as an accepted statement gives it
     readings = {}
     def reading(e):
         """Catalog.value_basis of an event some accepted statement stands behind, read once; None for any other."""
@@ -128,7 +128,7 @@ def build(cat: Catalog, pid: str):
     def F(value, basis):
         return None if basis == "rejected" or value in (None, "", []) else {"value": value, "basis": "claim" if basis in (None, "undecided") else basis}
     def PLACES(place, basis, year=None):
-        """A search step's place field, every accurate name in order (docs/RESEARCH-WORKFLOW.md §3, Catalog.place_search_names):
+        """A search step's place field, every accurate name in order (docs/PLAN-AND-SEARCH.md §3, Catalog.place_search_names):
         the name valid at year first, then the person's own as-written strings for it, then its current name, then every other
         dated name; a place with no place_id (never resolved) gives its bare text alone. None for a rejected or absent place."""
         if not place or basis == "rejected": return None

@@ -26,7 +26,12 @@ on to the next.
 | Question | Read |
 |---|---|
 | Layers, archive, trees, trust boundaries, aliases, decision model | `docs/DATA-ARCHITECTURE.md` |
-| Baseline → questions → search ladder → review | `docs/RESEARCH-WORKFLOW.md` |
+| Baseline → questions → search ladder → review, and where each part is stated | `docs/RESEARCH-WORKFLOW.md` |
+| The terms (claim, lead, hint), which documents the rule may accept, the baseline, the questions | `docs/TERMS.md` |
+| The search ladder, the plan's steps, the search, the fetch list and the research log | `docs/PLAN-AND-SEARCH.md` |
+| The rule: extraction, matching, what an accept writes, the standing rule, identity, conflicts, reconsider, the proof standard | `docs/RULE.md` |
+| Census households read off their form, their missing entries fetched | `docs/HOUSEHOLDS.md` |
+| The loop (a turn, the queue, the runner), the schema of questions, steps and the log, the rules that hold throughout | `docs/LOOP.md` |
 | Per-person checklist, gaps, search foundation, the screen | `docs/RESEARCH-CHECKLIST.md` |
 | What the imported tree holds; how the work splits across the tools | `docs/SOURCE-PROFILE.md` |
 | Source registry, free holders of cited collections, where records exist, countries, evidence classes, the reasoning | `data/data-sources.csv`, `data/holders.csv`, `data/jurisdictions.csv`, `data/countries.csv`, `data/evidence-classes.csv`, `data/DATA-SOURCES.md` |
@@ -60,7 +65,7 @@ around it.
    their facts. A memorial's gravestone photographs are primary sources.
    Anything less certain is a card for the owner. The full statement (the
    rule's points, the relatives it takes or creates, editable pages and the
-   leads they make) is `docs/RESEARCH-WORKFLOW.md` §0 and §5–7.
+   leads they make) is `docs/TERMS.md` §0 and `docs/RULE.md`.
 4. **Trees are isolated.** No automatic reuse of evidence across trees:
    every import gets its own extraction and personas, even for identical
    bytes (`docs/DATA-ARCHITECTURE.md`, trust boundaries).
@@ -71,7 +76,7 @@ around it.
    only as a question about the person. No hints on a person whose baseline
    is not reviewed. Leads (follow-up work the evidence produced) and hints
    (documents that overlap the person but do not identify them) are defined
-   in `docs/RESEARCH-WORKFLOW.md` §0 and live on the person. Define the
+   in `docs/TERMS.md` §0 and live on the person. Define the
    screen's goal in one sentence and confirm it before building: a screen
    that mirrors internal queues makes sense to the pipeline and to nobody
    else.
@@ -116,7 +121,7 @@ DATA_ROOT=<scratch> python3 tools/<tool>.py   # a scratch run, for testing code:
 
 ## Working a person
 
-The loop (`docs/RESEARCH-WORKFLOW.md` §8) does a person's work end to end;
+The loop (`docs/LOOP.md` §8) does a person's work end to end;
 by hand it is the same steps. Research decisions are made on the live
 catalog; a scratch copy is for testing code, never for decisions.
 
@@ -130,7 +135,7 @@ catalog; a scratch copy is for testing code, never for decisions.
 2. A turn that leaves pages a connector cannot fetch lists them, and its
    person waits on them while the loop goes on: save the ones
    `tools/fetches.py next` names in the owner's browser by the
-   page-saves-itself method (§4), or have a model save them one at a time
+   page-saves-itself method (`docs/PLAN-AND-SEARCH.md` §4), or have a model save them one at a time
    with the `tree-fetch` skill (`tools/run_task.py`, the owner present to
    approve the browser); the next `tools/turns.py` (or
    `tools/turn.py --resume`) takes them in and finishes the turns of the
@@ -144,8 +149,8 @@ catalog; a scratch copy is for testing code, never for decisions.
    `tools/conclude.py fact`; one the file makes no claim about counts as
    decided; searches open only when every key fact is decided), and the
    conflicts the rule leaves (`tools/conclude.py resolve`; the rule decides
-   one only when the evidence classes favour a side without doubt). What an accept writes is §0 and
-   §5–7. A family link the record states is asserted when both people it
+   one only when the evidence classes favour a side without doubt). What an accept writes is `docs/TERMS.md` §0 and
+   `docs/RULE.md`. A family link the record states is asserted when both people it
    relates are accepted on it, so a child's parents fact is decided by the
    parents' own cards on the same record, each their own turn: a turn that
    ends six of seven is not a failure.
