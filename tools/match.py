@@ -149,12 +149,15 @@ def same_given(a, b):
         return any(l[:i] + l[i + 1:] == s for i in range(len(l)))
     return False
 
-def name_keys(cat, pid):
-    """(first given, surname) keys for a person: every name row and every non-rejected alias."""
+def name_keys(cat, pid, accepted=False):
+    """(first given, surname) keys for a person: every name row and every alias not rejected, the matcher's reading for finding
+    and proposing; accepted: the name rows and the accepted aliases alone, the names the standing rule stands on
+    (docs/RESEARCH-WORKFLOW.md §5–7, which variants the rule counts as the name)."""
     keys = set()
-    for given, surname, *_ in cat.person(pid)["names"]:
+    p = cat.person(pid)
+    for given, surname, *_ in p["names"]:
         keys.add((first_given(given), key(surname)))
-    for alias in cat.person(pid)["aliases"]:
+    for alias in p["accepted_aliases" if accepted else "aliases"]:
         parts = alias.split()
         if len(parts) >= 2:
             keys.add((first_given(parts[0]), key(parts[-1])))
@@ -189,13 +192,14 @@ def middle_differs(written, names, surnames):
         return None
     return mine[0], theirs[0][0]
 
-def compare(cat, persona, cand, chosen, birth_place=True):
+def compare(cat, persona, cand, chosen, birth_place=True, accepted_names=False):
     """Agreements, disagreements and absences between a persona and a candidate person, as findings (catalog.Finding, in
     words by said). birth_place False: a birth place that differs keeps the persona from fitting no more than it vetoes
     the standing rule (docs/RESEARCH-WORKFLOW.md §5–7), as the rule reads a relative's persona on a record; the matcher's
-    own proposals read it as written."""
+    own proposals read it as written. accepted_names: the person's names read as the rule stands on them, the name rows
+    and the accepted aliases alone (name_keys); the matcher reads every alias not rejected."""
     agree, disagree, absent = [], [], []
-    keys = name_keys(cat, cand["id"])
+    keys = name_keys(cat, cand["id"], accepted=accepted_names)
     # every name the record gives: at birth, current, as written elsewhere on it
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
     pg, rest = next(

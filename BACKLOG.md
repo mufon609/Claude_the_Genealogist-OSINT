@@ -1234,11 +1234,7 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   or its citation, never from a name's digits.
 - **The name variants.** `match.same_given` reads a bare initial as agreeing
   with a given name, where §5–7 lets an initial agree only for a middle name,
-  and with a day counting double a name and one date then take a record; and
-  §5–7 does not say which variants count as the name, while the rule reads
-  every alias not rejected as one (`Catalog.person`, `match.name_keys`: 60
-  undecided aliases counted on 4 Oct 2026). Say in §5–7 which variants the
-  rule counts.
+  and with a day counting double a name and one date then take a record.
 - **What of an event's value is accepted.** §5–7 reads a date per part
   everywhere and a place per part where it is shown; five places still read
   the value the event shows. A place's point (`rule_points`, `ground`) needs
@@ -1568,17 +1564,6 @@ Silesia is named in `tools/resolve_places.py` and `Catalog.place`. A tree
 whose people lived in Ireland, Germany or the Netherlands gets blocked
 fetches and assisted rows with no link. Show each on the second family's
 export when the harness has one.
-
-### C48. The name variants the rule stands on
-
-`conclude.write_name_alias` writes an alias accepted whatever the tier of the
-record it came from, and the rule reads every alias not rejected as the
-person's name (`Catalog.person`, `match.name_keys`): on 4 Oct 2026, 3
-accepted aliases come from pages anyone can edit and 60 undecided ones count
-as names. A withdrawal leaves its alias undecided, so a decision taken back
-still shapes later ones. Write an alias with the standing of its record, and
-take a withdrawn decision's alias with it. Which variants the rule counts as
-the name is a clause of the entry where the rule and its words part (C31).
 
 ### C49. A card a person or a session accepted can be taken back
 

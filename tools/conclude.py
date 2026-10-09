@@ -1161,12 +1161,14 @@ def shown_married(cx, tree_id, person_id, persona_id, written, canon_surname):
 
 def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     """The persona's own Name fact, when its words differ from the person's canonical name and are not already one of the
-    person's own name rows (a birth or married name create_person already split out), becomes an alias at once: accepted,
-    of the kind the difference is (backfill_aliases.classify, married_name when the record shows the person married under
-    it: shown_married), the record's words as written. The same words from the same record, made an alias by a decision a
-    withdrawal or a give-back took back (undecided), stand again with this decision, stamped with it; an alias of other
-    words, another entry's of the same page among them, is never touched. Returns the alias id, or None when there is
-    nothing to write."""
+    person's own name rows (a birth or married name create_person already split out), becomes an alias at once with the
+    standing of its record: accepted from a record nobody can edit at will (T1–T3), undecided from a page anyone can edit
+    and from a record of no known tier, so the rule, which stands on accepted aliases alone, never stands on such a page's
+    words; of the kind the difference is (backfill_aliases.classify, married_name when the record shows the person married
+    under it: shown_married), the record's words as written. The same words from the same record, made an alias by a
+    decision a withdrawal or a give-back took back (undecided), stand again with this decision, stamped with it, at the
+    record's standing; an alias of other words, another entry's of the same page among them, is never touched. Returns the
+    alias id, or None when there is nothing to write."""
     q = _q(cx)
     # the name the page shows, never one it keeps beneath
     fact = q.execute("""SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL
@@ -1182,6 +1184,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     value = clean(fact["value_text"])
     if not value or key(value) == key(canon):
         return None
+    status = "accepted" if str(source_tier(cx, sha) or "")[:2] in TRUSTED else "undecided"
     if any(key(value) == key(" ".join(x for x in r if x))
            for r in q.execute("SELECT given, surname, suffix FROM person_name WHERE person_id=?", (person_id,))):
         return None
@@ -1194,7 +1197,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
         # with this decision, which states them
         if had["status"] == "undecided" and had["source_artifact_sha256"] == sha and _notes(had).get("proposal"):
             q.execute(
-                "UPDATE alias SET status='accepted', notes=json_set(notes,'$.proposal',?) WHERE id=?", (prop_id, had["id"])
+                "UPDATE alias SET status=?, notes=json_set(notes,'$.proposal',?) WHERE id=?", (status, prop_id, had["id"])
             )
             return had["id"]
         return None
@@ -1208,7 +1211,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     aid = ulid()
     cx.execute(
         """INSERT INTO alias (id,tree_id,entity_kind,entity_id,value,kind,status,source_persona_fact_id,source_artifact_sha256,added_by,added_at,notes)
-                  VALUES (?,?,?,?,?,?,'accepted',?,?,?,?,?)""",
+                  VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             aid,
             tree_id,
@@ -1216,6 +1219,7 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
             person_id,
             value,
             kind,
+            status,
             fact["id"],
             sha,
             by,
@@ -2109,8 +2113,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
 def _stands_for(cat, persona, cand, chosen):
     """Whether a persona on a page anyone can edit stands for a person of the tree as the relative the identity rule may count:
     it fits the person, or the given name and the surname agree and nothing compared disagrees (a memorial lists a relative by
-    name and years alone)."""
-    fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
+    name and years alone), its name read as the rule stands on one (the name rows and the accepted aliases)."""
+    fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen, accepted_names=True)
     if fits:
         return True
     given = any(a.field == "given name" for a in agree)
@@ -2599,7 +2603,8 @@ def rule_points(cx, tree_id, prop, without=()):
     reading too, the persona of the same entry there (catalog.current_entry) with its facts and the relationships and personas
     beside it, so a decision written on an earlier reading is examined on what the record now reads as, and one whose entry
     that reading no longer has is refused as no longer read (NO_LONGER_READ), never judged on the superseded persona. A trusted record (T1–T3) of
-    an automated kind is taken on the accepted name and two points, nothing disagreeing against an accepted value
+    an automated kind is taken on the accepted name (the name rows and the accepted aliases, never an undecided one: compare's
+    accepted_names, here and for the relatives the record names) and two points, nothing disagreeing against an accepted value
     (split_disagree); each point stands on the tree's own statements as ground() finds them, whatever value the event shows
     beside them (docs/RESEARCH-WORKFLOW.md §5–7, what of an event's value is accepted), and a date to the day or a
     relationship counts double where the tree holds it on such ground, whatever its information class (the classes decide
@@ -2711,7 +2716,7 @@ def rule_points(cx, tree_id, prop, without=()):
         as_related = {**other, "relations": both_ways(other)}
         for c in relatives:
             # a birth place, never a veto, never unfits a relative either: the rule's decisions do not turn on a finer place another decision brought
-            fits, agree, disagree, absent, near = compare(cat, as_related, c, {persona["id"]: cand}, birth_place=False)
+            fits, agree, disagree, absent, near = compare(cat, as_related, c, {persona["id"]: cand}, birth_place=False, accepted_names=True)
             if fits or (identity and _stands_for(cat, as_related, c, {persona["id"]: cand})):
                 chosen[other["id"]] = c
                 fitted[other["id"]] = (agree, disagree)
@@ -2752,7 +2757,7 @@ def rule_points(cx, tree_id, prop, without=()):
             elif a.field == "memorial":
                 return True
         return False
-    fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen)
+    fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen, accepted_names=True)
     vetoes, claims, conflicts = split_disagree(
         cx, tree_id, cand, persona, disagree, chosen, without, editable_page=identity
     )
@@ -3149,7 +3154,8 @@ def fits_as_well(cat, persona, cand_id, chosen, exclude):
     on as much as the candidate does or more (match.compare: given names and surnames with their spelling variants and short
     forms, dates, places, the relationships the record states to personas already accepted on it), or, with no candidate,
     who fit it at all: [(person id, name, what agrees)]. compare's fit needs the given name to agree, or the same memorial
-    accepted as them, so only those persons are compared."""
+    accepted as them, so only those persons are compared. Names are read as the matcher reads them, every alias not rejected:
+    a wider name here only refuses more."""
     from match import by_memorial, name_keys, same_given
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
     givens = [g for g, _ in names if g]

@@ -933,6 +933,16 @@ def e_alias(w, x, want):
     rows = [list(a) for a in w.cx.execute("SELECT value, kind, status FROM alias WHERE entity_kind='person' AND entity_id=?", (w.person(x["person"]),))]
     return has(rows, w.value(x["is"])), rows
 
+def e_names(w, x, want):
+    """The names a person is compared by, as (first given, surname) keys written "given surname" in sorted order
+    (match.name_keys): `rule`, the name rows and the accepted aliases the standing rule stands on, and `matcher`, those and
+    every alias not rejected, which the matcher reads to find and propose."""
+    from catalog import Catalog
+    from match import name_keys
+    cat, pid = Catalog(w.cx, w.tid), w.person(x["person"])
+    got = {side: sorted(f"{g} {s}" for g, s in name_keys(cat, pid, accepted=side == "rule")) for side in ("rule", "matcher")}
+    return has(got, w.value({k: v for k, v in x.items() if k != "person"})), got
+
 def e_parents(w, x, want):
     """A person's parents as the tree holds them (Catalog.family: the partners of every family the person is a child of, a
     membership whose statements are all rejected left out), by display name, in name order."""
@@ -1357,7 +1367,7 @@ EXPECTS = {"last": e_last, "bound": e_bound, "cards": e_cards, "card": e_card, "
            "audit": e_audit, "hints": e_hints, "living": e_living, "mode": e_mode, "foundation": e_foundation, "results_page": e_results_page, "place_string": e_place_string, "artifact": e_artifact,
            "artifact_where": e_artifact_where, "classes": e_classes, "statement": e_statement, "states": e_states, "conflict_rule": e_conflict_rule, "extractor": e_extractor, "person_persona": e_person_persona, "reach": e_reach, "trusted": e_trusted, "plan_idempotent": e_plan_idempotent,
            "no_repeats": e_no_repeats, "one_event": e_one_event, "whole": e_whole, "file": e_file, "count": e_count, "proposal_status": e_proposal_status, "proposals_of": e_proposals_of, "person_merged": e_person_merged,
-           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "overview": e_overview, "compare": e_compare,
+           "find_person": e_find_person, "listed": e_listed, "assertion_subject": e_assertion_subject, "origins": e_origins, "overview": e_overview, "compare": e_compare, "names": e_names,
            "parents": e_parents, "households": e_households, "household_leads": e_household_leads, "unsupported": e_unsupported}
 
 def load(folder):

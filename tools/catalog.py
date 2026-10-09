@@ -1734,8 +1734,9 @@ class Catalog:
     def person(self, pid):
         r = self.q("SELECT id, display_name, sex FROM person WHERE id=?", pid)[0]
         names = self.q("SELECT given, surname, suffix, is_primary, name_type FROM person_name WHERE person_id=? ORDER BY is_primary DESC", pid)
-        aliases = [a[0] for a in self.q("SELECT value FROM alias WHERE entity_kind='person' AND entity_id=? AND status<>'rejected'", pid)]
-        return {"id": r[0], "name": r[1], "sex": r[2], "names": names, "aliases": aliases}
+        aliases = self.q("SELECT value, status FROM alias WHERE entity_kind='person' AND entity_id=? AND status<>'rejected'", pid)
+        return {"id": r[0], "name": r[1], "sex": r[2], "names": names, "aliases": [a[0] for a in aliases],
+                "accepted_aliases": [a[0] for a in aliases if a[1] == "accepted"]}
     def events(self, pid):
         out = []
         for eid, et, dt, ds, de, place_id in self.q("""SELECT e.id, e.event_type, e.date_text, e.date_start, e.date_end, e.place_id FROM event e

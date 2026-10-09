@@ -1330,6 +1330,23 @@ points must be a relative it states who is that relative in the tree on trusted
 evidence — no number of agreeing dates or places substitutes, because the named
 survivors are what identifies the person here (§0).
 
+**Which variants the rule counts as the name.** The name the rule compares a
+persona with, on every route and for every relative it reads a persona as, is
+the person's own name rows (the name, and a birth or married name split out of
+it) and the aliases accepted for them, and nothing else. An alias takes the
+standing of the record it came from: the name as written on a record accepted
+for the person is an accepted alias when the record is one nobody can edit at
+will (T1–T3), and an undecided one from a page anyone can edit; an undecided
+alias, such a page's, one `tools/backfill_aliases.py` wrote, or one a withdrawal
+or a give-back of copies took back with its decision, is no name the rule
+stands on. The matcher reads every alias not rejected where a wider name only
+widens the search or the caution: when it looks for the people a record may be
+about, when it compares a persona to propose a card, and in the rule's own test
+that nobody else fits as well (Identity is tested, below); the search reads
+them all as well (`docs/DATA-ARCHITECTURE.md` §8). A withdrawal returns the
+alias its decision wrote to undecided with the statements, so a decision taken
+back no longer shapes later ones; a rejection turns it rejected.
+
 A persona whose name the tree does not yet hold on such ground is taken through
 a relationship the record states (child, parent, spouse, sibling; never one its
 indexer computed) to a persona accepted on the same record as a person the tree

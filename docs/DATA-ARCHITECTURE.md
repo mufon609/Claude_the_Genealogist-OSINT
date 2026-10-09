@@ -768,8 +768,10 @@ person when a canonical name itself contains a code (e.g. suffix "CFT19"); it ne
 edits the canonical value.
 
 - `undecided` = appears in at least one record linked to this entity (created
-  automatically when a persona is accepted onto a person).
-- `accepted` = a human agreed this variant means this entity.
+  automatically when a persona is accepted onto a person from a page anyone can
+  edit, or by the backfill).
+- `accepted` = a human agreed this variant means this entity, or a record
+  nobody can edit at will that carries it was accepted for the entity.
 - `rejected` = a look-alike that has been checked and rejected; search stops
   proposing it. Rejection is recorded, not deleted.
 
@@ -784,7 +786,12 @@ edits the canonical value.
   as the tree owner once typed them.
 - **Matching:** two personas sharing a rare alias (the same misspelling) are
   evidence for the same person; the matcher treats recurring errors as
-  fingerprints when it proposes a match.
+  fingerprints when it proposes a match, reading every alias not rejected. The
+  standing rule stands on the canonical names and the `accepted` aliases alone
+  (`docs/RESEARCH-WORKFLOW.md` §5–7, which variants the rule counts as the
+  name): an alias written from a record accepted for the person takes that
+  record's standing, `accepted` from a record nobody can edit at will,
+  `undecided` from a page anyone can edit.
 - **Conflicts are not aliases.** A different birth date is a competing
   assertion, kept with its own three-state status and shown as disputed; it is never
   merged into an alias list.

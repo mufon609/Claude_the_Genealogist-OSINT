@@ -1,0 +1,53 @@
+{
+ "title": "an alias takes the standing of its record",
+ "line": "the name as written on a record accepted for a person is an alias with that record's standing, and the rule stands on the accepted ones alone: Helen Sara Brant's memorial, whose identity the rule takes, leaves its words for her, Helen Sara Brant Ahearn, an undecided alias the matcher reads and the rule does not; her christening, taken by the rule, leaves Helen Sarah Brandt an accepted alias the rule counts; the rule's decision withdrawn, that alias is undecided again and counts no more",
+ "tree": {"file": "harness.ged", "home": "I332737035562", "plan": true},
+ "steps": [
+  {
+   "say": "her names before any record: the name the file gives, nothing more",
+   "expect": [
+    {"names": {"person": "I332737037573", "rule": ["helen brant"], "matcher": ["helen brant"]}}
+   ]
+  },
+  {
+   "say": "her memorial arrives, the page the owner saved, and the rule takes her identity on it",
+   "attach": {"fixture": "findagrave-memorial-142698059.html"},
+   "as": "mem",
+   "expect": [
+    {"last": {"identity": "memorial 142698059"}},
+    {"card": {"record": "mem", "person": "I332737037573", "status": "accepted", "decided_by": {"starts": "rule:"}}}
+   ]
+  },
+  {
+   "say": "the memorial's words for her are an alias of a page anyone can edit: undecided, read by the matcher, never by the rule",
+   "expect": [
+    {"alias": {"person": "I332737037573", "is": [["Helen Sara Brant Ahearn", {"any": true}, "undecided"]]}, "why": "a page anyone can edit identifies a person and builds none of their facts, the name it writes among them"},
+    {"names": {"person": "I332737037573", "rule": ["helen brant"], "matcher": ["helen ahearn", "helen brant"]}, "why": "the rule stands on the accepted name and accepted aliases alone; the matcher's search still reads the page's words"}
+   ]
+  },
+  {
+   "say": "her own christening, a record nobody can edit at will, taken by the rule",
+   "archive": {"fixture": "familysearch-pennsylvania-and-new-jersey-church-and-t-1909-HHGB-BQ3Z.html", "source": "D03", "locator": {"kind": "apid", "value": "1,2451::22699845"}, "extract": true, "match": ["I332737037573"]},
+   "as": "bap"
+  },
+  {
+   "decide": {"card": {"record": "bap", "person": "I332737037573"}, "status": "accepted", "by": "rule:agrees-with-accepted for agent:harness-session for user:owner"},
+   "expect": [
+    {"alias": {"person": "I332737037573", "is": {"some": ["Helen Sarah Brandt", {"any": true}, "accepted"]}}, "why": "the christening's words for her take its standing: accepted"},
+    {"names": {"person": "I332737037573", "rule": ["helen brandt", "helen brant"], "matcher": ["helen ahearn", "helen brandt", "helen brant"]}, "why": "the rule counts an accepted alias as her name"}
+   ]
+  },
+  {
+   "say": "the rule takes its decision on the christening back",
+   "withdraw": {"card": {"record": "bap", "person": "I332737037573"}},
+   "expect": [
+    {"alias": {"person": "I332737037573", "is": {"some": ["Helen Sarah Brandt", {"any": true}, "undecided"]}}, "why": "the alias goes back to undecided with the statements the decision wrote"},
+    {"names": {"person": "I332737037573", "rule": ["helen brant"], "matcher": ["helen ahearn", "helen brandt", "helen brant"]}, "why": "a decision taken back no longer shapes the rule's later ones"}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}, {"no_repeats": true}]
+  }
+ ]
+}
