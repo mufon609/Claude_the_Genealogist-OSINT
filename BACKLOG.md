@@ -483,33 +483,6 @@ does not ask for the sheet, dwelling or family the reader now keeps; the
 Ancestry index reader, which no real page reaches, still drops its locator
 labels; and FamilySearch's search rows carry no locator at all.
 
-### A4. Two people's relationship, through accepted links alone
-
-"Are these two people related?" is the second family's first question, and
-nothing answers it: the proof reads one person's key facts, the overview one
-line. `tools/kin.py "<person>" "<person>"`, read-only, in layer 4 beside the
-proof: the path between the two through the family links the tree has
-accepted (the accepted memberships, as the queue reads the confirmed tree's
-links through `Catalog.family`; never a claim, a sibling placement, an
-editable page's link or a link a withdrawn decision left), printed one link
-per line with the two people, the relation, the record the link rests on and
-the proof's reading of that record (its classes, and whether the source is
-one the rule trusts), the relationship named in words at the end (second
-cousins; first cousins once removed; related by marriage through a named
-couple), and the chain's own standing, which is its least-proven link's. When
-no accepted path exists the answer is never "no": the nearest path the file
-claims is printed with each link not yet accepted and what would prove it
-(the records the checklist names for that link), so the owner reads what is
-owed. Several paths: the shortest by links, among those the one whose weakest
-link is strongest; `--all` prints the rest; `--json` the chain. A
-relationship by marriage is a path through a spouse link and is said so.
-Scenarios on the harness family: a pair joined by accepted links alone, a
-pair joined through a claim, a pair with no path, a pair joined by marriage,
-two paths of unequal standing. The docs: `docs/RULE.md`'s proof section gets
-the paragraph with its own identifier, `schema/README.md`'s table the row,
-`CLAUDE.md`'s command block the line. **Blocks:** the second family's
-question (C20's family, and the presidents' chains after it).
-
 ---
 
 ## B. Parallel batch
