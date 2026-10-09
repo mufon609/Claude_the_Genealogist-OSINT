@@ -1318,6 +1318,15 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   (`rests_elsewhere`), where `ground` stands a vouch for the event's own date
   and place. No live case is known. Have `gives` read the owner's word as
   giving the event's own place too.
+- [rule.accept.6] **An in-law's tie.** `conclude.resolve_in_law` resolves a
+  mother-, father-, son-, daughter-, brother- or sister-in-law's stated tie
+  through the relative it names to the child, parent or spouse link it gives,
+  and `link_family` writes that link as one the record states; no clause of
+  `docs/RULE.md` says so (accept.6 names the child, parent or spouse the
+  record states), and the function's docstring cites a hard rule on in-laws
+  that `CLAUDE.md` does not hold. Find the owner's ruling the resolution rests
+  on and write it as a clause of the accept part, or bring the code to
+  accept.6 as it stands.
 
 ### C32. Circumstances under which a record misstates a date on purpose
 
