@@ -370,7 +370,7 @@ def a_fetch_list(w, x):
     """tools/fetches.py list's own entries, read-only: every save-as name it prints (or, with `search_links`, only the
     FamilySearch fielded searches: a D03 entry whose link is the collection's own record search, not a catalog browse),
     for a check that a search link's name is built whole from the search's own fields, no placeholder left in it."""
-    from fetches import waiting
+    from fetch_list import waiting
     rows = waiting(w.cx, w.tid)
     if x.get("search_links"): rows = [e for e in rows if e["holder_id"] == "D03" and "/search/record/results" in (e.get("url") or "")]
     return {"names": [e["save_as"] for e in rows]}
@@ -383,9 +383,9 @@ def a_browser_script(w, x):
     return {"awaited": code.startswith("await (async function"), "call": code[code.rindex("})(") + 2:] if "})(" in code else None}
 
 def a_save_names(w, x):
-    """fetches.distinct_names on the entries the data gives, each a link (`url`) and the name save_as built for it (`save_as`),
+    """fetch_list.distinct_names on the entries the data gives, each a link (`url`) and the name save_as built for it (`save_as`),
     as the fetch list holds them: the names the list then prints, in order."""
-    from fetches import distinct_names
+    from fetch_list import distinct_names
     return {"names": [e["save_as"] for e in distinct_names([{"url": e["url"], "save_as": e["save_as"]} for e in x["entries"]])]}
 
 def a_task(w, x):
@@ -403,7 +403,7 @@ def a_task(w, x):
     was handed, `state` the task as written beside the database, `out_twice` the refusal of a second task while one is out, and
     `done_twice` the refusal of a second report."""
     import subprocess, run_task
-    from fetches import openable
+    from fetch_list import openable
     sid = w.step(x["step"])["id"]
     e = next(e for e in openable(w.cx, w.tid) if sid in e["step_ids"])
     seen = {}
@@ -601,9 +601,9 @@ def e_file_exists(w, x, want):
     return v == x.get("is", True), v
 
 def e_fetch_call(w, x, want):
-    """The call the fetch list gives the save script for the page that serves a step (fetches.page_call): its text, and `serves`, the
+    """The call the fetch list gives the save script for the page that serves a step (fetch_list.page_call): its text, and `serves`, the
     steps its key names, checked as the steps given (plan step references), in order."""
-    from fetches import page_call, waiting
+    from fetch_list import page_call, waiting
     sid = w.step(x["step"])["id"]
     e = next((e for e in waiting(w.cx, w.tid) if sid in e["step_ids"]), None)
     if not e: return x.get("exists") is False, None

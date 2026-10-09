@@ -357,12 +357,12 @@ def save_page_kinds():
 def save_page_key():
     """The browser script writes the key the attach reads: the saved-from line and the key comment, built from the literals of
     tools/save_page.js's own `head` with a key and without one over a real saved page's own URL and document, are read back by the
-    readers (fetches.saved_from, attach.saved_steps);
+    readers (fetch_list.saved_from, attach.saved_steps);
     the script takes the call's arguments in the order tools/fetches.py prints them (page_call), and ends in the call that the
     list's call replaces."""
     import tempfile
     from attach import saved_steps
-    from fetches import page_call, saved_from
+    from fetch_list import page_call, saved_from
     with open(os.path.join(ROOT, "tools", "save_page.js"), encoding="utf-8") as fh: js = fh.read()
     m = re.search(r'const head = \(\) => "(.*?)" \+ location\.href \+ "(.*?)" \+ \(key \? "(.*?)" \+ key \+ "(.*?)" : ""\);', js)
     if not m: return ["the script's head() is not the saved-from line and the key comment this check reads"]

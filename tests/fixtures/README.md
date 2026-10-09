@@ -399,7 +399,7 @@ runner sends, and a name that makes a request already made on the run sends none
 `decide_place` (the owner's choice on a place card found by its `raw` string: the candidate carrying the `gazetteer` id, or the geocoder's own answer `osm`, type/id), `resolve` (`tools/resolve_places.py --only` each string named, the geocoder's real answers under `geocoder`, Wikidata's items under `wikidata`
 and the gazetteers' answers under `gazetteer` planted: each `gazetteer` fixture a list of the resolver's own cache records,
 written where the resolver reads them; with `geocoder_silent`, run in the harness's process under the stand-in for a geocoder
-that does not answer, named in "What is simulated"), `place_string`, `apply_places`, `step_query`, `save_names` (`fetches.distinct_names` on the `entries` given, each a `url` and the
+that does not answer, named in "What is simulated"), `place_string`, `apply_places`, `step_query`, `save_names` (`fetch_list.distinct_names` on the `entries` given, each a `url` and the
 `save_as` built for it: the `names` the fetch list then prints), `browser_script` (a script the owner's browser runs, `file`
 under `tools/`: `awaited`, whether its code is one awaited call of an async function, and the placeholder `call` it ends in);
 and the expectations `queue` (`first`, `named`,

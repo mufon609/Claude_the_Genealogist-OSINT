@@ -48,14 +48,14 @@ from catalog import Catalog
 from checklist import names_parents
 from overview import overview
 from turn import waits
-import run_step, fetches
+import run_step, fetch_list
 
 def advanceable(cx, cat, tree_id):
     """The steps a turn can advance, by id: one the runner takes now (run_step.runnable: a connector can run it and it has no
-    run since the plan last wrote its fields), or one on the fetch list a turn can open (fetches.openable: a link to open, and
+    run since the plan last wrote its fields), or one on the fetch list a turn can open (fetch_list.openable: a link to open, and
     this person's own step in the entry with no run on unchanged fields either); and the fetch list's entries, read once."""
     steps = {r["id"] for r in run_step.runnable(cx, cat, tree_id)}
-    entries = fetches.openable(cx, tree_id)
+    entries = fetch_list.openable(cx, tree_id)
     for e in entries: steps.update(e["open_step_ids"])
     return steps, entries
 

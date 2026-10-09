@@ -26,7 +26,8 @@ from plan import RegistryOutOfStep, plan_person
 from log_search import dismiss as dismiss_question, log as log_search, rendered_query
 from readers import Writer
 from forms import census_form
-from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
+from attach import identity as attach_identity, steps_for as attach_steps_for
+from arrival import attach as attach_file
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
 from copies import join_copies
 from decisions import carry, decide as decide_document, living, match_record, record_says

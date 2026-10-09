@@ -64,7 +64,8 @@ import argparse, calendar, hashlib, json, os, shutil, subprocess, sys, tempfile,
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, downloads_dir, dumps, now, resolve_tree, ulid, write_json_whole
 from attach import line
-import fetches
+import fetch_list
+from arrival import collect
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNNER = "agent:run_task"
@@ -94,11 +95,11 @@ def script(call):
     return js[:-len(SCRIPT_CALL)] + call, hashlib.sha256(data).hexdigest()
 
 def fetch_task(e):
-    """A fetch task from one entry of the fetch list (fetches.openable): the holder, the link, the file name, the save script's
+    """A fetch task from one entry of the fetch list (fetch_list.openable): the holder, the link, the file name, the save script's
     call with the entry's key, and the steps the page serves. An image, or an entry with no link, is no task."""
     if e["how"] != "page" or not e["url"]:
         raise ValueError(f"no fetch task for {e['save_as']}: {'an image' if e['how'] != 'page' else 'no link to open'}")
-    return {"kind": "fetch", "holder_id": e["holder_id"], "holder": e["holder"], "link": e["url"], "file": e["save_as"], "call": fetches.page_call(e), "steps": list(e["serves"])}
+    return {"kind": "fetch", "holder_id": e["holder_id"], "holder": e["holder"], "link": e["url"], "file": e["save_as"], "call": fetch_list.page_call(e), "steps": list(e["serves"])}
 
 def render(task):
     """The task as the model is given it: the entry's link and file name and the script to run, nothing else."""
@@ -269,11 +270,11 @@ def opened(entry):
 
 def finish(cx, tree_id, slug, by, o, launcher, model, effort, m):
     """A task a launcher has returned from, whichever launcher: the folder collected whatever it returned (one file per
-    transaction, as fetches.collect keeps them), the outcome judged, the launch recorded in a transaction of its own. Returns
+    transaction, as arrival.collect keeps them), the outcome judged, the launch recorded in a transaction of its own. Returns
     the row as a dict with the collect's results."""
     task = o["task"]
     new = sorted(set(os.listdir(downloads_dir())) - set(o["before"]))
-    _, results = fetches.collect(cx, tree_id, slug, by)
+    _, results = collect(cx, tree_id, slug, by)
     outcome, log_id, note = judge(task, m, new, results)
     differs = difference(m, outcome)
     cx.execute("BEGIN")
@@ -419,7 +420,7 @@ def main():
             sys.exit("give --model: which model a task is spawned on is the caller's to say")
         if a.effort:
             sys.exit(f"a subagent's effort is the agent file's ({SESSION_EFFORT['fetch']}), not the spawn's: leave --effort out")
-        entries = [e for e in fetches.openable(cx, tree_id) if e["how"] == "page"]
+        entries = [e for e in fetch_list.openable(cx, tree_id) if e["how"] == "page"]
         if not entries:
             sys.exit("no page waiting that a task can open")
         print(handout(hand_out(tree_id, a.db, entries[0], a.model)), end="")
@@ -427,7 +428,7 @@ def main():
     if a.cmd == "done":
         print(run_line(report_done(cx, tree_id, slug, a.db, a.by, a.answer, a.tokens, a.tool_uses, a.duration_ms, a.out)))
         return
-    entries = [e for e in fetches.openable(cx, tree_id) if e["how"] == "page"]
+    entries = [e for e in fetch_list.openable(cx, tree_id) if e["how"] == "page"]
     if a.cmd == "show":
         text, sha = task_text("fetch")
         print(f"task text tools/tasks/fetch.md sha256 {sha}; tools: {', '.join(TOOLS['fetch'])}")
@@ -451,7 +452,7 @@ def main():
         return
     tried = set()
     for _ in range(a.count):                                     # one page at a time, the list read again after each: a page taken is no longer open, and one tried is not launched twice in a call
-        entries = [e for e in fetches.openable(cx, tree_id) if e["how"] == "page" and (e["url"], e["save_as"]) not in tried]
+        entries = [e for e in fetch_list.openable(cx, tree_id) if e["how"] == "page" and (e["url"], e["save_as"]) not in tried]
         if not entries:
             break
         tried.add((entries[0]["url"], entries[0]["save_as"]))

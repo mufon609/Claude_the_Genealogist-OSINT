@@ -328,7 +328,8 @@ def a_post(w, x):
 def a_attach(w, x):
     """A fixture dropped into the inbox as a save would leave it and attached: the record's sha, the attach's report and its
     line as the tool prints it."""
-    from attach import attach_inbox, line
+    from arrival import attach_inbox
+    from attach import line
     name = x.get("as_file") or x["fixture"]
     with open(os.path.join(w.treelib.inbox_dir(), name), "wb") as fh: fh.write(w.fixture_bytes(x))
     kw = {"about": w.person(x["about"])} if x.get("about") else {}
@@ -339,9 +340,10 @@ def a_attach(w, x):
             "taken": [(n, why) for _, n, why in (r.get("accepted_by_rule") or [])], "step_people": [n for _, n, _, _ in (r.get("steps") or [])]}
 
 def a_attach_inbox(w, x):
-    """tools/attach_inbox.py over every file in the inbox, one file per transaction (attach.attach_each, as a turn's tail takes
+    """tools/attach_inbox.py over every file in the inbox, one file per transaction (arrival.attach_each, as a turn's tail takes
     what collect left): each file's result and its line as the tool prints it."""
-    from attach import attach_each, inbox_files, line
+    from arrival import attach_each
+    from attach import inbox_files, line
     res = attach_each(w.cx, w.tid, w.slug, BY, inbox_files())
     return {"results": res, "lines": [line(r) for r in res]}
 
@@ -522,7 +524,7 @@ def a_save(w, x):
     browser actually produced, to prove collect takes a page by its saved-from identity whatever it is named). `key` writes the
     key into the page the way tools/save_page.js does when the fetch list's call gave it one: a second comment under the page's own
     saved-from line, naming the entry's own steps (true) or the steps given (plan step references, or an id that names no step)."""
-    from fetches import waiting
+    from fetch_list import waiting
     pid = w.person(x["person"]) if x.get("person") else None
     entries = [e for e in waiting(w.cx, w.tid) if (not x.get("holder") or e["holder_id"] == x["holder"]) and (not x.get("url_has") or x["url_has"] in (e.get("url") or ""))
                and (pid is None or any(s in e["step_ids"] for s in [s[0] for s in w.cx.execute("SELECT id FROM search_plan WHERE person_id=?", (pid,))]))]
@@ -545,25 +547,25 @@ def a_save(w, x):
 
 def a_collect(w, x):
     from attach import line
-    from fetches import collect
+    from arrival import collect
     names, res = collect(w.cx, w.tid, w.slug, BY, folder=w.value(x["folder"]))
     return {"names": names, "results": res, "files": {r["file"]: r for r in res}, "lines": [line(r) for r in res],   # each result as the tool prints it
             "sha": res[0].get("sha256") if len(res) == 1 else None}                                        # the record, when one page came in
 
 def a_block_filing(w, x):
     """The harness's stand-in for a file whose attach fails after it has written its rows: the move that files the original of
-    the file named under the tree (tools/attach.py's last write, treelib.move_free into trees/<slug>/imports/records) refused,
+    the file named under the tree (tools/arrival.py's last write, treelib.move_free into trees/<slug>/imports/records) refused,
     as a full disk or a refused write refuses it, until a step with `clear` lifts it, and lifted when the scenario ends. A
     filing refused, not a holder's answer: no page or record is invented."""
-    import attach
+    import arrival
     blocked = w.env.setdefault("filing_blocked", set())
     if not w.env.get("filing_stand_in"):
-        real = attach.move_free
+        real = arrival.move_free
         def refusing(src, folder, name=None):
             if os.path.basename(src) in blocked and os.path.basename(folder) == "records": raise OSError(f"the harness's stand-in for a filing refused: {os.path.basename(src)} is not filed")
             return real(src, folder, name)
-        attach.move_free = refusing
-        w.undo.append(lambda: setattr(attach, "move_free", real))
+        arrival.move_free = refusing
+        w.undo.append(lambda: setattr(arrival, "move_free", real))
         w.env["filing_stand_in"] = True
     (blocked.discard if x.get("clear") else blocked.add)(x["file"])
     return {"file": x["file"], "blocked": not x.get("clear")}
@@ -1089,7 +1091,7 @@ def e_step_count(w, x, want):
 
 def e_fetch_entries(w, x, want):
     """The fetch list's entries at a holder for the people named: their names, how each is saved, and its link."""
-    from fetches import openable
+    from fetch_list import openable
     entries = openable(w.cx, w.tid)
     if "holder" in x: entries = [e for e in entries if e["holder_id"] == x["holder"]]
     if "person" in x: names = [w.name_of(p) for p in w.people(x["person"])]; entries = [e for e in entries if any(n in e["people"] for n in names)]

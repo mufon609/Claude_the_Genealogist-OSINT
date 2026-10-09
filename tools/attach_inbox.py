@@ -6,7 +6,7 @@ usage: tools/attach_inbox.py [--tree slug] [--db catalog/tree.db] [--by user:<yo
 For each file (all inbox files when none are named): the record's identity is read from the file (a Find a Grave memorial
 id, a FamilySearch ark), every fetch step whose citation carries it is found, the file is archived once and a found run is
 logged on each of those steps, then the extractor and the matcher run once. A file whose identity matches no step stays in
-the inbox and is reported. Each file is its own transaction (attach.attach_each): one that fails is rolled back alone,
+the inbox and is reported. Each file is its own transaction (arrival.attach_each): one that fails is rolled back alone,
 stays in the inbox untouched for the next try and is named with the exception, the others attached. Prints one line per file: identity, steps fulfilled with their people, artifact hash,
 extraction id, proposals written. Re-running changes nothing: attached files have left the inbox, and a copy of an archived
 file logs no step twice. See tools/attach.py, which the person screen shares.
@@ -14,7 +14,8 @@ file logs no step twice. See tools/attach.py, which the person screen shares.
 import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
-from attach import attach_each, inbox_files, line
+from attach import inbox_files, line
+from arrival import attach_each
 from catalog import Catalog
 
 def main():

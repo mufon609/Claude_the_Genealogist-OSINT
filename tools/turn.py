@@ -39,7 +39,7 @@ pages) is read as that person waiting on the pages the fetch list holds for them
 above.
 
 The turn writes nothing of its own: every catalog write happens inside `plan_person`, `run_step.run`,
-`fetches.collect`, `attach_inbox`, `resolve_places.resolve_strings` or `reconsider`, each under its own name in `--by` as it always is; the turn
+`arrival.collect`, `attach_inbox`, `resolve_places.resolve_strings` or `reconsider`, each under its own name in `--by` as it always is; the turn
 only calls them in order and reports what came back, in words, never a score. What a turn leaves for the owner
 are the conflict questions it raised, the cards the rule did not take and the pages to save in the browser
 (docs/LOOP.md §8). Its report names each conflict the rule resolved or took back while it ran, one line
@@ -60,8 +60,9 @@ from treelib import DB, connect, dumps, now, resolve_tree, write_json_whole
 from catalog import Catalog
 from plan import plan_person
 import run_step
-import fetches
-from attach import attach_each, inbox_files, line
+import fetch_list
+from arrival import attach_each, collect
+from attach import inbox_files, line
 from reconsider import reconsider
 from conflicts import rule_conflict_changes, rule_conflict_line
 from resolve_places import resolve_strings
@@ -127,16 +128,16 @@ def waiting_for(cx, tree_id, pid, entries=None):
     unrun (a shared census page naming relatives is still this person's page). An entry with no link, or already saved or
     logged on this person's step with unchanged fields, is not one they wait on, whatever other people's steps on the same
     page still wait."""
-    entries = fetches.openable(cx, tree_id) if entries is None else entries
+    entries = fetch_list.openable(cx, tree_id) if entries is None else entries
     mine = own_steps(cx, pid)
     return [e for e in entries if mine & set(e["open_step_ids"])]
 
 def waiting(cx, db_path, tree_id, entries=None):
     """The people of this tree who wait: {person id: {person, since, steps, pages}}, steps the ones of theirs their entry
-    names (every one of their own when it names none) that are still open on the fetch list (fetches.openable, read when not
+    names (every one of their own when it names none) that are still open on the fetch list (fetch_list.openable, read when not
     given), pages the list's entries holding one of them. A person none of whose steps is still open waits no more: a page
     of theirs has been saved, or their plan has changed."""
-    entries = fetches.openable(cx, tree_id) if entries is None else entries
+    entries = fetch_list.openable(cx, tree_id) if entries is None else entries
     out = {}
     for w in read_state(db_path):
         if w["tree_id"] != tree_id: continue
@@ -156,7 +157,7 @@ def set_waiting(cx, db_path, tree_id, people):
     other entry of this tree is read again (waiting), so one none of whose pages is still open is dropped, and the other
     trees' entries are kept as they are. A person already waiting keeps the moment they began. Returns (the pages each of
     these people waits on, the people who waited before and wait no more, as {person, since})."""
-    entries = fetches.openable(cx, tree_id)
+    entries = fetch_list.openable(cx, tree_id)
     state = read_state(db_path)
     before = [w for w in state if w["tree_id"] == tree_id]
     others = [w for w in state if w["tree_id"] != tree_id]
@@ -286,7 +287,7 @@ def finish(cx, tree_id, slug, by, db, pid=None, since=None):
         mine = own_steps(cx, w["person_id"])
         closed = (mine if w.get("steps") is None else mine & set(w["steps"])) - waiting_now.get(w["person_id"], {}).get("steps", set())
         if closed and came_in_lines(cx, w["person_id"], w.get("since"), closed): out["ended"][w["person_id"]] = {**w, "closed": closed}
-    took = guarded(cx, out["failures"], "the collect", lambda: fetches.collect(cx, tree_id, slug, by), transaction=False)
+    took = guarded(cx, out["failures"], "the collect", lambda: collect(cx, tree_id, slug, by), transaction=False)
     names, collected = took or ([], [])
     inbox = lambda: attach_each(cx, tree_id, slug, by, [f for f in inbox_files() if f not in names])
     left = guarded(cx, out["failures"], "the inbox's attach", inbox, transaction=False)
@@ -420,7 +421,7 @@ def pages_lines(pages):
     if not pages: return []
     head = f"waits on {len(pages)} page(s) to save in the browser, one tab each; "
     head += "the next tools/turns.py, or tools/turn.py --resume, takes what is saved:"
-    return ["", head] + ["  " + fetches.page_line(e) for e in pages]
+    return ["", head] + ["  " + fetch_list.page_line(e) for e in pages]
 
 def gone_lines(gone):
     """The people who waited and wait no more, none of their pages open on the fetch list now."""

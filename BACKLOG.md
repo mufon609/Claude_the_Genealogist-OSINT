@@ -494,9 +494,14 @@ the parent did not):
    matcher `tools/matcher.py`, each in layer 2 where its command file was;
    `tools/extract.py` (`read`, `--stale`) and `tools/match.py` keep their
    names as commands in layer 5, and every importer imports from the module.
-5. `attach.attach` runs `match_record`: the arrival (`attach.attach`,
-   `attach_each`, `attach_inbox`, and `fetches.collect`, which runs it) moves
-   to layer 4 beside `match_record`; `attach` keeps what places a file.
+5. **Done (10 Oct 2026).** The arrival is `tools/arrival.py` in layer 4
+   (`attach`, `attach_held`, `attach_each`, `attach_inbox`, and `collect`,
+   which runs it for a browser session's saves); `attach` keeps what places
+   a file. `tools/fetches.py` kept its name as the command (`next`, `list`,
+   `collect`), so the fetch list's functions are `tools/fetch_list.py` in
+   layer 3, as the readers and the matcher left their commands, which the
+   table had not foreseen: a command that runs the arrival cannot sit in
+   layer 3.
 6. **Done (10 Oct 2026).** The alias rule (`classify`, `clean`,
    `split_gedcom_name` and the key, `alias_key` in `catalog`, since
    `catalog.key` is the surname's) lives in `catalog` with the name rules;
@@ -658,7 +663,7 @@ hint; the New Jersey death index's birth or death with no
 month or day (`readers.nj_date` keeps the year alone), which no row of the
 2006-2017 file has, every one of its 837,351 rows carrying both dates whole; the
 unnamed fetch's own naming
-(`fetches.save_as`'s holder-and-piece-and-six branch), now that the two
+(`fetch_list.save_as`'s holder-and-piece-and-six branch), now that the two
 citations that carried it (the New Jersey and New York marriage indexes) are
 both blocked as `scanned_index` holders; the merge's reach by name and year;
 a memorial's listed relative whose one fit moves to another person between two
