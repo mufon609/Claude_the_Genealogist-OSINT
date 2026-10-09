@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Green in one command: every tool compiles and every name it reads resolves (tests/checks/unresolved_names.py), the pure rules hold, the record forms (data/record-forms.csv) hold to their columns and their sources, the connectors read their saved answers,the evidence layer,
-the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, the small guards of tests/checks/housekeeping.py hold (the person screen's links, the commit hook, the migrations of an older catalog, the backup's bag, the active tree's file), every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
+the research log and the audit trail are insert-only, the agent and skill files under .claude/ are the ones code writes, every rule identifier a docstring cites is held by a doc and each is written once (tests/checks/rule_ids.py), the small guards of tests/checks/housekeeping.py hold (the person screen's links, the commit hook, the migrations of an older catalog, the backup's bag, the active tree's file), every parser reads its saved real page as its sidecar says, and the matcher, the standing rule, the writers and the loop's tools do on
 the harness tree what the scenarios say.
 
 usage: tools/check.py [--verbose] [--show] [--keep] [--scenario NAME]
@@ -13,7 +13,7 @@ tests/fixtures/harness.ged, the owner's own export cut down. A failing check pri
 the run ends with one line, `green: N checks` or the failure count; exit status 1 on any failure. A scenario that reads a
 capture not yet made (its `awaits`: a launcher's output only the owner's browser can produce) prints a `wait` line naming the
 file, is counted neither ok nor failed, and the last line says how many wait. --verbose prints the
-ok line of every check too; --show prints what each reading and each scenario step did, for writing a sidecar (and the ok
+ok line of every check too, and the rule identifiers no docstring cites; --show prints what each reading and each scenario step did, for writing a sidecar (and the ok
 lines); --keep leaves the scratch directories in place and prints their paths; --scenario NAME runs only the scenarios whose file name
 has NAME in it (`104`, `a-constituent-country`), none of the other checks, and fails when none is named so. No check sends a request:
 every process a check starts refuses a connection to any host but this machine, and a refusal fails the check it happened in
@@ -25,7 +25,7 @@ import argparse, contextlib, json, os, re, shutil, sqlite3, subprocess, sys, tem
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests", "checks")); sys.path.insert(0, os.path.join(ROOT, "tools"))
 from common import BY, FIXTURES, connect, scratch, tool
-import housekeeping, imports, loop, offline, parsers, scenario, unresolved_names
+import housekeeping, imports, loop, offline, parsers, rule_ids, scenario, unresolved_names
 
 def rules():
     """The name, place and date rules as the docs state them, and the version a reader's model id carries, on their own, against
@@ -623,6 +623,10 @@ def every_check(a):
     print("ok   every kind the standing rule names in code (the census read by its form, the register entry dated with the parents, the obituary) is a kind of data/evidence-classes.csv" if not bad_kinds else "FAIL rule kinds: " + "; ".join(bad_kinds))
     bad_claude = claude_files(); bad += bool(bad_claude)
     print("ok   the agent and skill files under .claude/ are the ones code writes from the task kind's text, its answer schema and its tool list" if not bad_claude else "FAIL claude files: " + "; ".join(bad_claude))
+    bad_ids, uncited = rule_ids.check(); bad += bool(bad_ids)
+    print("ok   every rule identifier a docstring cites is held by a doc under docs/, and no doc writes one twice (tests/checks/rule_ids.py)" if not bad_ids else "FAIL rule identifiers: " + "; ".join(bad_ids))
+    if a.verbose:
+        for line in uncited: print("     no docstring cites " + line)
     bad += housekeeping.check(a.keep, a.show)
     bad += parsers.check(a.keep, a.show)
     bad += scenario.check(os.path.join(scenario.SCENARIOS, "decisions"), a.keep, a.show)

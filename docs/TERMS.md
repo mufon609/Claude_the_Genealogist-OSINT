@@ -2,14 +2,14 @@
 
 ## 0. Terms
 
-**Claim.** What the imported file or a searcher says without a record behind it.
+**[rule.terms.1]** **Claim.** What the imported file or a searcher says without a record behind it.
 An Undecided fact in a query carries basis `claim`; an Accepted one carries
 `accepted`, a date or a place only as far as an accepted statement gives it
 (`docs/RULE.md`, what of an event's value is accepted: a birth year the accepted census
 gives is accepted, a day only the file gives is a claim); a citation's own detail carries `citation`, a checklist row's value
 `row`, what a held record itself says (the name as written, the record it
 links) `record`, and the search as it was run on a saved results page `run`.
-Nothing is searched on claims alone. Outside a query a statement that is not
+Nothing is searched on claims alone. **[rule.terms.2]** Outside a query a statement that is not
 accepted is undecided, whatever it rests on (`Catalog.basis`, a key fact's
 basis); the file's word is the import's own statement, not rejected, and a
 test that reads a link or a value "claimed or accepted" counts that statement
@@ -17,11 +17,11 @@ and accepted ones alone, never a sibling placement, an indexer's grouping, a
 page anyone can edit or a link a withdrawn decision left: the route through a
 stated relationship and a page's identity (`docs/RULE.md`), the queue's edge and the
 overview's claimed parents and spouses (`docs/LOOP.md` §8, `docs/RESEARCH-CHECKLIST.md` §6b).
-The limits of one life (`docs/RULE.md`) and the living default's tiers
+**[rule.terms.3]** The limits of one life (`docs/RULE.md`) and the living default's tiers
 (`docs/DATA-ARCHITECTURE.md` §7 decision 3) count every family link the tree
 holds that is not rejected.
 
-**Lead.** A piece of follow-up work about one person that the evidence produced
+**[rule.terms.4]** **Lead.** A piece of follow-up work about one person that the evidence produced
 and the loop can act on: a record to fetch because a held record names it
 (the parent's memorial linked from Raymond Earl Davidson's), a search to run
 because an accepted fact makes it possible (the 1950 household at the address
@@ -37,7 +37,7 @@ lead closes when it is run, found or none, or when its gap has gone. Accepting
 a document produces leads; running them consumes leads. The file's citations
 are leads whose origin is the file.
 
-**Hint.** A document, or a row on a search page, that overlaps the person on
+**[rule.terms.5]** **Hint.** A document, or a row on a search page, that overlaps the person on
 some of what identifies them but not on enough for the matcher to propose it or
 the rule to accept it: the surname, the place and the period agree, but there
 is no age, no full name, no stated relationship. A census whose form names
@@ -59,46 +59,46 @@ whose baseline is reviewed, never as a feed.
 
 **Which documents the rule may accept on its own.** This paragraph and `docs/RULE.md`
 are the one full statement of the decision model and the standing rule.
-Imports and AI output arrive Undecided, and a conclusion needs an Accepted
+**[rule.standing.1]** Imports and AI output arrive Undecided, and a conclusion needs an Accepted
 assertion. A person accepts documents: the one decision is whether a record
-is about this person, and yes accepts everything the record states. The
+is about this person, and yes accepts everything the record states. **[rule.standing.2]** The
 standing rule (`docs/RULE.md`) takes that decision on the owner's behalf, recorded as
 acting on their word and reversible, when the document agrees with what the
 person already accepted, and everything the document states comes with it; a
 disagreement with a value that rests on no accepted assertion is not a veto —
 the record is still taken on its points, and the difference becomes a
-conflict question, never a silent overwrite or a silent drop. It may do so
+conflict question, never a silent overwrite or a silent drop. **[rule.standing.3]** It may do so
 only for document kinds that identify a person fully (the table below, kept as
 each kind's standing in `data/evidence-classes.csv`), from sources nobody can
 edit at will (registry tiers T1–T3: certificates, census, obituaries,
 published works), and only counting accepted facts that themselves rest on
 such a source or on the owner's own word, each a statement of the very date
-or place it counts for (`docs/RULE.md`, "What the rule counts"). A person's own decision
+or place it counts for (`docs/RULE.md`, "What the rule counts"). **[rule.own.1]** A person's own decision
 on a statement (`docs/RULE.md`) is never undone by the rule, by a record read again or by
 a decision carried from another copy of the record: the statement keeps the
-state the person gave it. A page anyone can edit (T4: Find a
+state the person gave it. **[rule.editable.1]** A page anyone can edit (T4: Find a
 Grave, member trees) identifies a person but never builds their facts:
 accepting it, by the owner or by the rule, writes the persona link, and every
 fact the page types is written as an undecided assertion, what the page says,
 never accepted and never a ground the rule stands on, one that differs from a primary record the tree
-holds a contradiction of it and never a veto; the rule takes such an identity when the name agrees and
+holds a contradiction of it and never a veto; **[rule.editable.2]** the rule takes such an identity when the name agrees and
 at least three of birth date to the day, death date to the day, burial place,
 and a stated parent or spouse who is that relative in the tree agree with the
-tree, claimed or accepted. A family membership such a page states is created
+tree, claimed or accepted. **[rule.editable.3]** A family membership such a page states is created
 where the tree lacks it, with an undecided assertion, the way a sibling
 placement already is, for a relative accepted on the same page or one whose
 given name, surname and birth year fit exactly one person of the tree (the
 names as the matcher agrees them, a surname written the same or a spelling
 variant of it, never one letter apart; `docs/RULE.md`); that
 relative's persona is then traced to that person with an undecided link, and
-a person who rejected that persona is no fit. The relatives a memorial lists
+a person who rejected that persona is no fit. **[rule.editable.4]** The relatives a memorial lists
 are leads, never cards: the matcher proposes none of them, and each is a fetch
-step for their own memorial (`docs/PLAN-AND-SEARCH.md` §3). A person whose accepted facts rest on T4
+step for their own memorial (`docs/PLAN-AND-SEARCH.md` §3). **[rule.editable.5]** A person whose accepted facts rest on T4
 alone is marked so on their card until a trusted record about them is
-accepted. A memorial's gravestone photographs are primary sources (T1): each
+accepted. **[rule.editable.6]** A memorial's gravestone photographs are primary sources (T1): each
 is a fetch step, saved in the owner's browser one at a time, archived under
 the registry's gravestone-photograph row and read by the transcription path
-into a card like any other image. Every other kind is a hint until a person
+into a card like any other image. **[rule.standing.4]** Every other kind is a hint until a person
 reads it, and anything less certain than the rule is a card for the owner.
 The starting list, to be refined as records are met:
 
@@ -125,15 +125,15 @@ the live checklist says where the review stands now.
 
 - A person accepts documents, not facts: the decision on a held record is
   whether it is about this person, and every fact the record states comes with
-  it (`docs/RULE.md`). Key facts: name, sex, birth, death, parents, spouses, children;
+  it (`docs/RULE.md`). **[rule.terms.6]** Key facts: name, sex, birth, death, parents, spouses, children;
   each is **Accepted**, **Rejected** or **Undecided** according to the documents
-  behind it. A person is *baseline-complete* when no key fact is Undecided. A
+  behind it. A person is *baseline-complete* when no key fact is Undecided. **[rule.terms.7]** A
   person may accept a fact on their own knowledge (a vouch): the fact then
   traces to the tree file as the archived claim, the acceptance is the
   person's, it is Accepted like any other, and the record fetch still runs. The
   standing rule (§0, `docs/RULE.md`) accepts on the person's behalf a document that
   agrees with what they already accepted.
-- Only Accepted facts feed searches. An Undecided fact is a claim and is
+- **[rule.terms.8]** Only Accepted facts feed searches. An Undecided fact is a claim and is
   labelled as such in every query: every query field is `{value, basis}` with
   basis `accepted` or `claim`, a date or a place `accepted` only as far as an
   accepted statement gives the value the field carries (`docs/RULE.md`). A Rejected fact is left out, and a relative
@@ -144,7 +144,7 @@ the live checklist says where the review stands now.
 
 ## 2. Questions: generated from gaps in the baseline
 
-Questions are always about a person. They are generated, not typed:
+**[rule.terms.9]** Questions are always about a person. They are generated, not typed:
 
 | Kind | Trigger | Example from this tree |
 |---|---|---|
@@ -160,24 +160,24 @@ Questions are always about a person. They are generated, not typed:
 
 42 of the 117 people in the file as imported are dead ends. Ranking: home person's direct line
 first, then tractability (era and place with good record coverage in the
-registry), then how many other questions an answer would unlock. Until its subject is
+registry), then how many other questions an answer would unlock. **[rule.terms.10]** Until its subject is
 baseline-complete (no key fact Undecided) a question gets no search steps and
 no footprint or unlinked persons; only fetch steps for records the
-tree already cites exist, because the review needs those records. The duplicate
+tree already cites exist, because the review needs those records. **[rule.terms.11]** The duplicate
 check and the limits of one life run for every person, reviewed or not: a
 second entry or an impossible link is settled before anything is built on it.
 
-A duplicate is settled by merging it into the person it duplicates
+**[rule.merge.1]** A duplicate is settled by merging it into the person it duplicates
 (`tools/conclude.py merge`), which answers the `duplicate_person` question on
 both sides. Everything the duplicate holds moves to the kept person: its
 persona links, statements, event and family memberships, name aliases, plan
-steps, runs and questions. Where the kept person already holds the same thing,
+steps, runs and questions. **[rule.merge.2]** Where the kept person already holds the same thing,
 the duplicate's is folded onto theirs: a membership of the same family and role
 gives its statements to the kept person's; a link to the same persona leaves
 the kept person's decision standing, and gives its own only where the kept
 person's link is undecided, which is no decision; an alias of the same words
 leaves the kept person's; a question of the same key, in any status, is the
 kept person's question asked twice, and the duplicate's closes, where open, as
-answered by the merge. The duplicate's row stays for the audit trail, out of
+answered by the merge. **[rule.merge.3]** The duplicate's row stays for the audit trail, out of
 every listing, holding nothing open and no decision. The merge run again on a
 merged pair completes what an older merge left on the duplicate.

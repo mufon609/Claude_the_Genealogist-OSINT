@@ -36,3 +36,10 @@ The workflow is stated in five parts, one file each.
 - [The loop](LOOP.md) (§8 onward): a turn, the queue, the resume and the
   runner; the worked example; the schema of questions, steps and the log; and
   the rules that hold throughout.
+
+Each clause of the rule that code implements, in the terms, the rule and the
+households, opens with a stable identifier in bold brackets,
+`**[rule.<part>.<n>]**`: `rule.`, the part and a serial within it, never
+renumbered. The function that implements a clause cites its identifier on the
+last line of its docstring, and `tests/checks/rule_ids.py` holds the two
+together.

@@ -105,7 +105,8 @@ def place_parts(raw):
 def _entries(cx):
     """Every persona of a current reading a census form places: a dict of its id, the file and reading, the copy it is
     (familysearch, reading or listing), whether it is the page's own person on a FamilySearch record page, its name, role,
-    sequence, region, form and locators."""
+    sequence, region, form and locators.
+    Implements [rule.household.1]."""
     byid = census_forms(); out = []
     for pid, sha, eid, name, role, seq, region, xkind, xname in cx.execute(
             """SELECT p.id, p.artifact_sha256, p.extraction_id, p.name_text, p.role_in_record, p.sequence, p.region_json, x.kind, x.name
@@ -135,7 +136,8 @@ def _facts(cx, ids):
 
 def _stated(cx, ids):
     """{persona id: [(the persona it is toward, value as written)]}: the relations a reading wrote as the record's own
-    statement (persona_relation whose region does not mark it computed, the site's inference)."""
+    statement (persona_relation whose region does not mark it computed, the site's inference).
+    Implements [rule.household.8]."""
     out = collections.defaultdict(list)
     for part in _chunks(ids):
         for pid, to, value, region in cx.execute(f"SELECT persona_id, related_persona_id, value_text, region_json FROM persona_relation WHERE persona_id IN ({','.join('?' * len(part))}) ORDER BY rowid", part):
@@ -145,7 +147,8 @@ def _stated(cx, ids):
 def relationship(e, facts, stated, reading):
     """The persona's relationship to the head as its copy states it, as written, or None: its Relationship to Head of
     Household field, else a stated relation toward another persona of its reading, else a reading's own role word, the
-    relationship column as the reader read it."""
+    relationship column as the reader read it.
+    Implements [rule.household.8]."""
     for ftype, value, _, _, alt in facts.get(e["id"], []):
         if ftype == "Relationship" and value and not alt: return value
     for to, value in stated.get(e["id"], []):
@@ -154,7 +157,8 @@ def relationship(e, facts, stated, reading):
 
 def _line(e):
     """The entry's line on the form as the form's `lines` column reads it, or None; a member's line on a FamilySearch record
-    page is never read, since it repeats the page's own person's."""
+    page is never read, since it repeats the page's own person's.
+    Implements [rule.household.3], [rule.household.4]."""
     if e["copy"] == "familysearch" and not e["own"]: return None
     for k in e["form"]["lines"]:
         v = e["loc"].get(k)
@@ -167,7 +171,8 @@ def _residence(pid, facts):
 
 def _page_locators(e, own, facts):
     """The form's page locators the entry is placed by: its own, or a FamilySearch member's with none of its own the page's own
-    person's, and a state or county the locators lack read off the census residence."""
+    person's, and a state or county the locators lack read off the census residence.
+    Implements [rule.household.4]."""
     src = own if own and not e["loc"] else e
     page = {k: src["loc"][k] for k in e["form"]["page"] if k in src["loc"]}
     _, county, state = place_parts(_residence(src["id"], facts) or (_residence(own["id"], facts) if own else None))
@@ -176,7 +181,8 @@ def _page_locators(e, own, facts):
     return {k: page[k] for k in e["form"]["page"] if k in page}
 
 def span(lines):
-    """Lines not held, in words, in order: "line 24", "lines 5 to 6"."""
+    """Lines not held, in words, in order: "line 24", "lines 5 to 6".
+    Implements [rule.household.9]."""
     out, run = [], []
     for n in sorted(lines):
         if run and n == run[-1] + 1: run.append(n); continue
@@ -189,7 +195,8 @@ def group(cx):
     """The households as the script groups them now: ([household], [entry in no household]). A household is a dict of its
     form id, page (the form's page locators its entries hold), complete, missing (in words, the head first), ground (what groups
     its entries, in words) and members, one dict per persona in line order: persona id, name as written, the member's entry
-    (the same for every copy of it), relationship as stated, head, line read, the file it is on."""
+    (the same for every copy of it), relationship as stated, head, line read, the file it is on.
+    Implements [rule.household.2], [rule.household.3], [rule.household.4], [rule.household.5], [rule.household.6], [rule.household.7], [rule.household.9]."""
     es = _entries(cx)
     if not es: return [], []
     ids = {e["id"] for e in es}; by_id = {e["id"]: e for e in es}
@@ -306,7 +313,8 @@ def _ground(mem, roots, m_of, reading, across, form):
 
 def stored(cx):
     """The current stored households (superseded_by empty), each with its members in line order, its id and when and by what it
-    was grouped; a row of no members, the one that replaced a household whose entries are read no longer, left out."""
+    was grouped; a row of no members, the one that replaced a household whose entries are read no longer, left out.
+    Implements [rule.household.1]."""
     out = {}; fs = census_forms()
     for hid, form, page, complete, missing, ground, by, at in cx.execute(
             "SELECT id, form, page_json, complete, missing_json, ground, grouped_by, grouped_at FROM household WHERE superseded_by IS NULL ORDER BY id"):
@@ -327,7 +335,8 @@ def _sig(h, by=GROUPED_BY):
             tuple(sorted((m["persona"], m["entry"], m["relationship"] or "", bool(m["head"]), -1 if m["line"] is None else m["line"]) for m in h["members"])))
 
 def _insert(cx, h, ts, by, supersedes=()):
-    """One household row, its member rows and the audit row naming the rows it replaces: its id."""
+    """One household row, its member rows and the audit row naming the rows it replaces: its id.
+    Implements [rule.household.1]."""
     hid = ulid()
     cx.execute("INSERT INTO household (id,form,page_json,complete,missing_json,ground,grouped_by,grouped_at) VALUES (?,?,?,?,?,?,?,?)",
                (hid, h["form"], dumps(h["page"]), bool(h["complete"]), dumps(h["missing"]), h["ground"], GROUPED_BY, ts))
@@ -343,7 +352,8 @@ def regroup(cx, by, ts=None):
     """The households grouped again (group) and stored where they changed: one the store holds as it is grouped now is kept,
     any other is a new row; each current row not kept is superseded by a new household holding one of its entries, or, none
     holding any, by a row of no members saying its entries are on no current reading. Returns {kept, written, superseded,
-    ungrouped}, the last the entries in no household."""
+    ungrouped}, the last the entries in no household.
+    Implements [rule.household.1], [rule.household.10]."""
     ts = ts or now(); new, loose = group(cx); cur = {h["id"]: h for h in stored(cx)}
     have = {_sig(h, h["grouped_by"]): hid for hid, h in cur.items()}
     for n in new: n["id"] = have.get(_sig(n))
@@ -374,7 +384,8 @@ def waiting_for(cx, tree_id, pid):
     what a lead for it needs: `key` (its form and page), `collection` and `collection_id` (the collection its copies are in, at
     FamilySearch where one is), `fs_collection` (FamilySearch's own key for it, data/holders.csv), `year`, `jurisdiction`,
     `surname` (the one most of its members are written under) and `place` (the minor division and county its census residence
-    gives, each also as `minor` and `county`)."""
+    gives, each also as `minor` and `county`).
+    Implements [rule.household.11]."""
     hids = [r[0] for r in cx.execute(
         """SELECT DISTINCT h.id FROM household h JOIN household_member m ON m.household_id=h.id WHERE h.superseded_by IS NULL AND NOT h.complete
            AND (EXISTS (SELECT 1 FROM person_persona pp WHERE pp.person_id=? AND pp.persona_id=m.persona_id AND pp.status IN ('accepted','undecided'))
@@ -415,7 +426,8 @@ def fs_holder(fs_key):
 def search_link(h, page=1, per=None):
     """The household's own search as FamilySearch's link takes it (catalog.holder_search on the surname, the place and the year,
     never a given name), or None: the first page of its answer as the link itself, a later page with the site's own count of rows
-    to a page and the offset of its first row, the parameters extract.parse_fs_search reads a saved page's place in the answer by."""
+    to a page and the offset of its first row, the parameters extract.parse_fs_search reads a saved page's place in the answer by.
+    Implements [rule.household.12]."""
     holder = fs_holder(h.get("fs_collection"))
     if not holder: return None
     f = lambda v: {"value": v, "basis": "record"}
@@ -438,7 +450,8 @@ def _place_words(raw):
 def _pages(cx, h):
     """The FamilySearch results pages the archive holds of a search of the household's collection for its surname at its place
     in its year, in the order they were read: each {"sha", "query", "url", "count", "rows", "own"}, `own` when the page is of
-    the household's own search (search_link, its page aside); an earlier search with a given name is not its own and counts too."""
+    the household's own search (search_link, its page aside); an earlier search with a given name is not its own and counts too.
+    Implements [rule.household.12]."""
     if not (h.get("fs_collection") and h.get("surname") and h.get("place")): return []
     own, out = _params(search_link(h)), []
     for sha, sj in cx.execute("""SELECT e.artifact_sha256, e.structured_json FROM extraction e JOIN extractor x ON x.id=e.extractor_id JOIN artifact a ON a.sha256=e.artifact_sha256
@@ -455,7 +468,8 @@ def answer(cx, h, pages=None):
     """What of the household's own search the archive holds: {"url" (its first page), "held" (the pages held, by number), "count"
     (the records the answer states), "per" (rows to a page), "total" (its pages), "next" (the first page not held, None when every
     page is), "next_url"}. A page's number is the offset of its first row over the rows a page holds; with nothing held the next
-    page is the first."""
+    page is the first.
+    Implements [rule.household.12]."""
     pages = _pages(cx, h) if pages is None else pages
     mine = [p for p in pages if p["own"]]
     per = max((len(p["rows"]) for p in mine), default=0) or None
@@ -494,7 +508,8 @@ def _relatives_in_head_place(cx, tree_id, members):
     """The people the tree names for the household's members in the head's place: a member stated the head's wife or husband
     gives the people the tree names as their spouse, a son or daughter their parents, a father or mother their children (as
     Catalog.family reads the tree, a claim or an acceptance alike); the people every member that gives any names, less the
-    people tied to a member. [(person id, given, surname, birth year)]."""
+    people tied to a member. [(person id, given, surname, birth year)].
+    Implements [rule.household.14]."""
     from catalog import Catalog
     cat = Catalog(cx, tree_id); role = {"spouse": "spouses", "child": "parents", "parent": "children"}; sets, tied = [], set()
     for m in members:
@@ -513,7 +528,8 @@ def _relatives_in_head_place(cx, tree_id, members):
 
 def _fits(row, rel):
     """Whether a row's name fits a relative's by the matcher's own agreement of given names (match.same_given) and the surname
-    as written, with no birth year of the two more than a calculated year's span apart."""
+    as written, with no birth year of the two more than a calculated year's span apart.
+    Implements [rule.household.14]."""
     from match import same_given
     _, given, surname, born = rel
     if not same_given(first_given(row["given"]), first_given(given)) or key(row["surname"]) != key(surname): return False
@@ -527,7 +543,8 @@ def _row_name(name):
 
 def _where(cx, ark):
     """Where a tried candidate's own record page places it, in words: its page locators, line and relationship as its current
-    reading keeps them."""
+    reading keeps them.
+    Implements [rule.household.16]."""
     r = cx.execute("""SELECT pe.region_json, (SELECT pf.value_text FROM persona_fact pf WHERE pf.persona_id=pe.id AND pf.fact_type='Relationship' ORDER BY pf.rowid LIMIT 1)
                       FROM persona pe JOIN extraction e ON e.id=pe.extraction_id JOIN extractor x ON x.id=e.extractor_id WHERE e.superseded_by IS NULL AND x.name=?
                       AND json_extract(pe.region_json,'$.ark')=? ORDER BY e.ran_at DESC""", (FAMILYSEARCH, ark)).fetchone()
@@ -541,7 +558,8 @@ def candidates(cx, tree_id, h):
     (answer), "order" (the candidates in order, each {"ark", "name", "born", "year", "place", "url", "found_on", "row", "for" (the
     missing entries it could be), "why" (what orders it, in words)}), "open" (the first OPEN_AT_ONCE), "left_out" ({"ark", "name",
     "why"}), "tried" ({"ark", "name", "where"}: a candidate whose record page is held and is no member, where that page places
-    it)}. A row is one when it carries the household's surname as written and its place, and its own record page is not held."""
+    it)}. A row is one when it carries the household's surname as written and its place, and its own record page is not held.
+    Implements [rule.household.12], [rule.household.13], [rule.household.14], [rule.household.15], [rule.household.16], [rule.household.17]."""
     pages = _pages(cx, h); ans = answer(cx, h, pages)
     members = _members(cx, h); entries = {m["id"] for m in members if m["id"]}
     blocks = {m["id"][:-1]: m for m in members if m["id"]}

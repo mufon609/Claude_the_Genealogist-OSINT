@@ -36,6 +36,9 @@ def fact_subjects(cx, pid, field):
     return [("family_member", dumps([r[0], pid, role])) for r in cx.execute("SELECT family_id FROM family_member WHERE person_id=? AND role=?", (pid, role))]
 
 def fact_status(cx, pid, field):
+    """A key fact's status from the statements behind it (fact_subjects): accepted when any is accepted, rejected when every
+    one is rejected, else undecided; None when nothing states it.
+    Implements [rule.terms.6]."""
     subs = fact_subjects(cx, pid, field)
     if not subs: return None
     sts = set()
@@ -48,7 +51,8 @@ def fact_status(cx, pid, field):
 def claimed_parts(cat, pid, field):
     """The parts of a birth's or a death's value that are a claim though its key fact is accepted (Catalog.value_basis on the
     event the tree shows, Catalog.claim_words), in words: [] for any other fact, for one whose status is not accepted (all of
-    it is then a claim, and its status says so) and for one all of whose value an accepted statement gives."""
+    it is then a claim, and its status says so) and for one all of whose value an accepted statement gives.
+    Implements [rule.value.4], [rule.value.5]."""
     if field not in ("birth", "death") or fact_status(cat.cx, pid, field) != "accepted": return []
     e = cat.canonical_event(cat.events(pid), field.title())
     return cat.claim_words(cat.value_basis(e["id"])) if e and e["basis"] == "accepted" else []
@@ -60,7 +64,8 @@ def evidence_rows(cx, pid, field, hs=None):
     its evidence is visible: the file's uncited claim, a vouch, a citation whose record the archive holds, or a record nobody
     can edit at will, never one withdrawn from the evidence (catalog.not_withdrawn: its statement stays as written, evidence
     for nothing). hs is the archive's holdings (catalog.holdings) when the caller reads many facts of a view, built once for
-    all; built here when not given."""
+    all; built here when not given.
+    Implements [rule.points.9]."""
     if hs is None: hs = holdings(cx)
     out = []
     tree_id = cx.execute("SELECT tree_id FROM person WHERE id=?", (pid,)).fetchone()[0]
@@ -87,7 +92,8 @@ def vouch(cx, tree_id, pid, field, ts, by):
     """The person accepts a key fact on their own knowledge: one Accepted assertion per subject of the fact, by the person acting,
     on the tree file's persona for this person and the file itself, so the fact traces to the file as the archived claim and the
     acceptance to the person, the person's own decision on it (person_decided). Returns the assertion ids written (none when
-    the person has no file persona)."""
+    the person has no file persona).
+    Implements [rule.terms.7], [rule.own.2]."""
     pe = cx.execute("""SELECT pe.id, pe.artifact_sha256 FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN artifact a ON a.sha256=pe.artifact_sha256
                        WHERE pp.person_id=? AND pp.status='accepted' AND a.mime='text/x-gedcom' ORDER BY pe.sequence LIMIT 1""", (pid,)).fetchone()
     if not pe: return []
@@ -115,7 +121,8 @@ def decide_fact(cx, tree_id, pid, field, status, note, by):
     and the other) are regenerated, an accept marking the questions it closes answered by the proposal that brought
     the evidence; then the rule goes over their conflicts (its own resolutions resting on a statement the decision changed
     examined again, an open conflict the classes decide resolved) and their undecided cards are matched again on the
-    evidence as it now stands (conclude.settle_people): conflicts the rule's rows, rematched the cards' rows."""
+    evidence as it now stands (conclude.settle_people): conflicts the rule's rows, rematched the cards' rows.
+    Implements [rule.terms.7], [rule.value.5], [rule.accept.9], [rule.own.2], [rule.points.8], [rule.points.9]."""
     if (field not in KEY_FACTS and not (field.startswith("event:") and fact_subjects(cx, pid, field))) or status not in ("accepted", "rejected", "undecided"): return {"error": "bad field or status"}
     ts = now(); n = 0; vouched = []
     ids = [e["id"] for e in evidence_rows(cx, pid, field) if status != "accepted" or (e["held"] and not e["marked"])]

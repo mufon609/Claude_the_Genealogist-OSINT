@@ -63,14 +63,16 @@ FACT_ROWS = {                                                      # the checkli
 def order(c):
     """The classes' own order for favouring a side: the record of the event itself (primary information) first, then the
     source (original over derivative over authored), then the evidence (direct over indirect). A sort key of words, never
-    shown and never a score."""
+    shown and never a score.
+    Implements [rule.proof.1]."""
     c = c or {}
     return (INFORMATION.index(c.get("information")) if c.get("information") in INFORMATION else 3,
             SOURCE.index(c.get("source")) if c.get("source") in SOURCE else 3,
             EVIDENCE.index(c.get("evidence")) if c.get("evidence") in EVIDENCE else 2)
 
 def words(c):
-    """A statement's classes as the words a line prints: source, information, evidence, and a family link's relationship."""
+    """A statement's classes as the words a line prints: source, information, evidence, and a family link's relationship.
+    Implements [rule.proof.1]."""
     if not c: return ""
     if c.get("vouched"): return "your own word"
     return ", ".join(x for x in (c.get("source"), c.get("information"), c.get("evidence"), c.get("relationship")) if x)
@@ -79,7 +81,8 @@ def decider(by, notes, person_decided):
     """Who made a decision, in words, from the assertion's own record of it: the owner, a session acting for them or their own
     word (a vouch) where a person's own decision on this statement set its status (assertion.person_decided); otherwise what
     set it, which is no person's decision on the statement: the rule, the acceptance of its record (the notes name the proposal
-    that wrote it), or a re-read or a carry."""
+    that wrote it), or a re-read or a carry.
+    Implements [rule.proof.3], [rule.own.2]."""
     by = by or ""
     if (notes or {}).get("vouched"): return "your own word"
     if person_decided:
@@ -96,7 +99,8 @@ def _q(cx):
 def record_info(cx, sha, cache, entry=None):
     """What a line says about an archived record: its short name, its locator as a reader opens it, the locator as the
     catalog holds it (locator_value, the record's identity in a conflict line) and its citation (Evidence Explained style),
-    the citation naming entry, the person as the record writes them, where the record's own citation does not."""
+    the citation naming entry, the person as the record writes them, where the record's own citation does not.
+    Implements [rule.proof.3]."""
     if (sha, entry) in cache: return cache[(sha, entry)]
     q = _q(cx)
     a = q.execute("""SELECT ar.sha256, ar.mime, ar.locator_kind, ar.locator_value, ar.retrieved_at, ar.original_filename, c.name AS collection, s.name AS source, s.id AS source_id
@@ -128,7 +132,8 @@ def statements(cat, pid, field):
     """Every assertion behind one key fact: what it says (a date and a place, a name, a sex, the link's own words and the
     relative it names), its status, who decided it, its classes (catalog.evidence_classes) and whether its record is
     withdrawn from the evidence (catalog.not_withdrawn: the statement stays as written, evidence for nothing). The tree
-    file's own claims and their citations are kept apart as kind file; the owner's own word as kind vouch."""
+    file's own claims and their citations are kept apart as kind file; the owner's own word as kind vouch.
+    Implements [rule.proof.1], [rule.proof.3]."""
     cx, q = cat.cx, _q(cat.cx)
     want = {"name": "Name", "sex": "Sex"}.get(field)
     out = []
@@ -144,7 +149,8 @@ def statements(cat, pid, field):
 
 def subject_statements(cat, kind, sid, want=None, relative=None):
     """The assertions on one subject (a person, an event, a family link), each as statements() describes it; a statement of
-    another fact type than want is left out, the owner's own word (no record fact of its own) never."""
+    another fact type than want is left out, the owner's own word (no record fact of its own) never.
+    Implements [rule.proof.3]."""
     cx, q = cat.cx, _q(cat.cx)
     out = []
     for r in q.execute(f"""SELECT a.id, a.status, a.asserted_by, a.person_decided, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end,
@@ -167,7 +173,8 @@ def subject_statements(cat, kind, sid, want=None, relative=None):
 
 # ---------------------------------------------------------------- the tree's value and agreement
 def tree_value(cat, pid, field, ev, fam):
-    """(the value the tree holds in words, what statements are compared against)."""
+    """(the value the tree holds in words, what statements are compared against).
+    Implements [rule.proof.3]."""
     if field == "name":
         p = cat.person(pid); rows = {(first_given(g), key(s)) for g, s, *_ in p["names"]}
         return p["name"], {"name": p["name"], "rows": rows, "keys": name_keys(cat, pid, accepted=True)}
@@ -185,7 +192,8 @@ def written_name(keys, given, later):
     """How a name as written (split_persona_name: its first given name's key and the keys of the words after it) stands to
     (first given, surname) keys, as match.compare reads it for the matcher and the rule alike: whether the first given name
     is one of theirs (match.same_given: a nickname, an initial, a slip) and how a word after it is one of their surnames
-    (catalog.same_surname: "agrees", else "variant" or "one letter apart", else "" for none)."""
+    (catalog.same_surname: "agrees", else "variant" or "one letter apart", else "" for none).
+    Implements [rule.name.1]."""
     hows = [same_surname(t, s) for t in later for _, s in keys]
     return any(same_given(given, k) for k, _ in keys), "agrees" if "agrees" in hows else next((h for h in hows if h), "")
 
@@ -195,7 +203,8 @@ def agreement(field, st, tree):
     None where there is nothing to compare. A name is read as the standing rule's name test reads one (tree: the person's
     name, the keys of their name rows and name_keys with accepted, which adds the accepted aliases and never an undecided
     one, docs/RULE.md, which variants the rule counts as the name): it agrees when its first given name
-    and a surname after it are the person's by written_name, and says so in a note when only an accepted alias holds them."""
+    and a surname after it are the person's by written_name, and says so in a note when only an accepted alias holds them.
+    Implements [rule.name.1], [rule.points.6]."""
     if tree is None: return None
     if field == "name" and st["value"]:
         given, later = split_persona_name(st["value"])
@@ -244,7 +253,8 @@ def groups(cx, tree_id, field, sts, tree, cache):
     death certificates, are two), named by the original its classes give, best first: accepted before undecided before
     rejected, then by the classes' own order. Each group carries its copies, its best statement's classes, its status, what
     it says against the tree, who decided, and whether its every statement rests on a withdrawn file (withdrawn: the record
-    is evidence for nothing, its statements kept as written)."""
+    is evidence for nothing, its statements kept as written).
+    Implements [rule.proof.3], [rule.points.9], [rule.points.12]."""
     by = {}
     for st in sts:
         if st["kind"] != "record": continue
@@ -284,7 +294,8 @@ def fact_of(detail):
 def resolution(cat, qid, detail_json):
     """The written reason on a closed conflict, the owner's or the rule's: kept on the question itself, in a note on it, or on
     the audit row that closed it (tools/log_search.py --dismiss --note, tools/conclude.py resolve); None when no reason was
-    written."""
+    written.
+    Implements [rule.conflict.9]."""
     try: d = json.loads(detail_json or "{}")
     except ValueError: d = {}
     for k in ("resolution", "reason", "note", "kept"):
@@ -311,7 +322,8 @@ def specificity(axis, v):
 def same_value(axis, a, b):
     """Whether two values stand on one side: dates that agree by catalog.date_verdict, or one within the other's bound (a
     bound differs from no date inside it), places by catalog.place_verdict read either way (a coarser place agrees with a
-    finer one inside it)."""
+    finer one inside it).
+    Implements [rule.conflict.5]."""
     return date_verdict(a, b).verdict in ("agrees", "within") if axis == "date" else (place_verdict(a, b).verdict == "agrees" or place_verdict(b, a).verdict == "agrees")
 
 def sides(axis, sts):
@@ -319,7 +331,8 @@ def sides(axis, sts):
     aside), the most specific first and a bounded date last, grouped where they agree (same_value); a value that agrees with
     more than one side (a year against two days of it, a state against two towns in it, a bound holding two dates) takes no
     side. Each side is {value, statements, best}, best
-    its best statement in the classes' own order, and the sides come in that order."""
+    its best statement in the classes' own order, and the sides come in that order.
+    Implements [rule.conflict.5]."""
     out = []
     for st in sorted((s for s in sts if s["status"] != "rejected" and s["kind"] != "vouch" and axis_value(axis, s)), key=lambda s: -specificity(axis, axis_value(axis, s))):
         fits = [s for s in out if same_value(axis, axis_value(axis, st), s["value"])]
@@ -336,7 +349,8 @@ def rule_reading(cat, detail, spots):
     sentence}. The test is per event and axis, over every statement on it, so two conflicts on one event's date or place
     share one reading. None for a conflict that is not about an event's date or place (a duplicate event, a name); a
     difference the catalog no longer finds on any event says so (spots: the catalog's lines now, each with its event and
-    axis, conclude.conflict_lines)."""
+    axis, conclude.conflict_lines).
+    Implements [rule.proof.4]."""
     from conclude import CONFLICT_AXIS, classes_decide
     m = CONFLICT_AXIS.match(detail)
     if not m: return None
@@ -348,14 +362,16 @@ def rule_reading(cat, detail, spots):
 
 def locators(cx, text):
     """The locators of archived records that a line names in parentheses, as Catalog.disagreements writes a record
-    (its collection names and its locator), the catalog's own locator_value of each."""
+    (its collection names and its locator), the catalog's own locator_value of each.
+    Implements [rule.proof.5]."""
     return [loc for loc, in cx.execute("SELECT DISTINCT locator_value FROM artifact WHERE locator_value IS NOT NULL AND instr(?, '(' || locator_value || ')') > 0", (text,))]
 
 def conflicts(cat, pid, field, spots):
     """The conflict questions on this fact: every research_question of kind conflict on the person that names it, open or
     closed with a reason (resolved by the owner or the rule, or dismissed), and any difference the catalog finds now that no question
     carries yet (Catalog.disagreements, Catalog.unplaced). Each is {question: its id, None where no question carries it yet,
-    detail, status, reason, locators: the records its detail names, verdict: an open conflict's (rule_reading)}."""
+    detail, status, reason, locators: the records its detail names, verdict: an open conflict's (rule_reading)}.
+    Implements [rule.proof.3], [rule.proof.4]."""
     out, seen = [], set()
     for qid, status, reason, detail_json in cat.q("SELECT id, status, closed_reason, detail_json FROM research_question WHERE subject_person_id=? AND kind='conflict'", pid):
         try: detail = json.loads(detail_json or "{}").get("detail") or ""
@@ -375,7 +391,8 @@ def conflicts(cat, pid, field, spots):
 def research(cat, pid, field, rows):
     """The fact's checklist rows (FACT_ROWS), each with its state: held; searched, nothing found (every step on the row has
     a none run at each of its sources); blocked (a step blocked, or a run that was); cited, not fetched; not yet searched.
-    A row the era rules out (n/a) is left out."""
+    A row the era rules out (n/a) is left out.
+    Implements [rule.proof.2]."""
     out = []
     for r in rows:
         if r["record"] not in FACT_ROWS[field] or r["status"] == "n/a": continue
@@ -404,7 +421,8 @@ def conclusion(basis, accepted, vouched, open_conflicts, rows, claimed=(), *, fi
     resting on a withdrawn file). claimed: the parts of the value that rest on a claim (Catalog.claim_reasons), each owing an
     argument. files: whether the file's own claim of the fact is among its statements not rejected; a fact no record, no word
     of the owner's and no claim of the file's stands behind rests on records nobody has accepted. withdrawn: an accepted
-    statement of the fact rests on a withdrawn file, which counts for nothing and is said so."""
+    statement of the fact rests on a withdrawn file, which counts for nothing and is said so.
+    Implements [rule.proof.3], [rule.points.9]."""
     if basis is None: return "no claim", []
     if basis == "rejected": return "rejected", []
     if not accepted:
@@ -429,7 +447,8 @@ def build(cat, pid, only=None):
     """The proof summary of a person's key facts (one when only names it), as a dict: the person, then per fact its value,
     basis, deciders, the file's claim, the evidence groups, the conflicts, the research and the conclusion. A birth or death
     whose key fact is accepted carries what of its event's value is accepted (Catalog.value_basis, as reading) and the parts
-    that are a claim in words (claimed); with any, its basis reads "accepted in part" and each part owes an argument."""
+    that are a claim in words (claimed); with any, its basis reads "accepted in part" and each part owes an argument.
+    Implements [rule.proof.3], [rule.value.4]."""
     from checklist import build as checklist
     from conclude import conflict_lines
     ev, fam = cat.events(pid), cat.family(pid)
@@ -469,12 +488,14 @@ class Marks:
     full ("#3 <locator>"), and is "#3" at every mention after."""
     def __init__(self): self.numbers = {}
     def first(self, locator):
-        """The number of a locator, and whether this is its first mention."""
+        """The number of a locator, and whether this is its first mention.
+        Implements [rule.proof.5]."""
         new = locator not in self.numbers
         if new: self.numbers[locator] = len(self.numbers) + 1
         return self.numbers[locator], new
     def line(self, text, locators):
-        """A line with each of its records' locators (written in parentheses, as Catalog.disagreements writes them) marked."""
+        """A line with each of its records' locators (written in parentheses, as Catalog.disagreements writes them) marked.
+        Implements [rule.proof.5]."""
         for loc in sorted(locators, key=lambda loc: text.find(f"({loc})")):
             n, new = self.first(loc)
             if new: text = text.replace(f"({loc})", f"(#{n} {loc})", 1)
@@ -488,7 +509,8 @@ class Marks:
 def reading_line(v, read):
     """An open conflict's rule_reading as one line: the rule would keep a statement (its assertion id, which tools/conclude.py
     resolve takes), or would not decide, with the reason in the rule's words; a reading already printed for the same event
-    and axis (read) is pointed to. A difference the catalog no longer finds is told as it is."""
+    and axis (read) is pointed to. A difference the catalog no longer finds is told as it is.
+    Implements [rule.proof.4]."""
     if v["event"] is None: return v["why"]
     spot = (v["event"], v["axis"])
     if spot in read: return f"the rule's reading of this {v['about']} is the one above"
@@ -496,7 +518,8 @@ def reading_line(v, read):
     return f"the rule would keep assertion {v['keep']}: {v['why']}" if v["keep"] else f"the rule would not decide it: {v['why']}"
 
 def render(r, full=False):
-    """The summary as text: a few lines per fact by default, every record with its citation when full."""
+    """The summary as text: a few lines per fact by default, every record with its citation when full.
+    Implements [rule.proof.3], [rule.proof.5]."""
     out, marks, read = [f"{r['person']['name']} [{r['person']['id'][-6:]}]"], Marks(), set()
     for f in r["facts"]:
         head = f"{f['fact']}: {f['value'] or '(none)'}  {f['basis'] or 'no claim'}"

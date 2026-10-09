@@ -181,7 +181,8 @@ RULE_ACTOR = {
 def unless(without):
     """The SQL leaving out of a reading of assertion a the statements reconsider does not count, and its arguments: every
     statement a decision in without wrote, and every statement whose own id is in without (a family link a withdrawal earlier
-    in the same pass takes back: links_resting_on)."""
+    in the same pass takes back: links_resting_on).
+    Implements [rule.reconsider.5]."""
     if not without:
         return "", ()
     marks = ",".join("?" * len(without))
@@ -196,7 +197,8 @@ def trusted_evidence(cx, tree_id, kind, ids, day=False, stating=None, without=()
     source gave that event. day: the assertion must itself state a full date. A statement carrying one of the MARKS (a sibling
     placement, a value the page keeps beneath, a link the indexer computed) never counts, whatever its status, nor does one
     resting on a withdrawn file (catalog.not_withdrawn: evidence for nothing). without: proposal ids whose assertions do not
-    count (a rule decision under reconsideration and every rule decision after it), and statements that do not (unless)."""
+    count (a rule decision under reconsideration and every rule decision after it), and statements that do not (unless).
+    Implements [rule.standing.3], [rule.points.4], [rule.points.8], [rule.points.9]."""
     q = _q(cx)
     skip, skipped = unless(without)
     full = "AND length(coalesce(pf.date_start, CASE WHEN pf.id IS NULL THEN ev.date_start END)) = 10" if day else ""
@@ -215,7 +217,8 @@ ANSWERABLE = ("missing_parents", "unverified_claim", "missing_fact")
 
 def record_keys(cx, sha, copies=()):
     """What identifies a record for a citation to name it: the record ids it holds (catalog.holds, its own apid first), its
-    memorial ids and its URL, and the same of every other copy of the record given (same_record)."""
+    memorial ids and its URL, and the same of every other copy of the record given (same_record).
+    Implements [rule.points.14]."""
     apids, memorials, urls = set(), set(), set()
     for s in dict.fromkeys([sha, *copies]):
         a = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (s,)).fetchone()
@@ -234,7 +237,8 @@ def record_self(cx, tree_id, sha, persona_id, pid):
     a copy of it (same_record, the file itself among them); original, the words of the original its classes name
     (catalog.record_original); year, its own year; and owners, the people it is the record of: the person under decision
     when the persona is the record's own (no relation of its own to another persona on it), else the people accepted on its
-    own persons, on any copy."""
+    own persons, on any copy.
+    Implements [rule.points.12], [rule.points.14]."""
     from catalog import copy_entry, record_copies, record_owners
     shas = {c[0] for c in record_copies(cx, tree_id, *copy_entry(cx, persona_id))} | {sha}
     own = not cx.execute("SELECT 1 FROM persona_relation WHERE persona_id=?", (persona_id,)).fetchone()
@@ -242,7 +246,8 @@ def record_self(cx, tree_id, sha, persona_id, pid):
     return {"copies": shas, "original": record_original(cx, sha), "year": record_kinds(cx, sha)[1], "owners": owners}
 
 def cites_record(notes, keys):
-    """Whether a statement's own citation (an imported claim's notes: its record id and URL) is the record these keys name."""
+    """Whether a statement's own citation (an imported claim's notes: its record id and URL) is the record these keys name.
+    Implements [rule.points.14]."""
     apids, memorials, urls = keys
     url = notes.get("url") or ""
     m = re.search(r"/memorial/(\d+)(?:/|$)", url)
@@ -255,7 +260,8 @@ def rests_elsewhere(cx, eid, sha, axis, value, keys=None, copies=()):
     under decision, so that the persona stands for the tree's relative on more than the relationship the record states
     (rule_points, grounded): a statement on the event that is not rejected, not the record's own (on any of its copies), not
     a claim whose own citation is that record (docs/RULE.md, the proof standard: such a claim never counts) and
-    resting on no withdrawn file, giving a date or a place that agrees with value (gives)."""
+    resting on no withdrawn file, giving a date or a place that agrees with value (gives).
+    Implements [rule.points.13], [rule.points.14]."""
     q = _q(cx)
     keys = keys or record_keys(cx, sha)
     ev = q.execute("SELECT date_text, date_start, date_end, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
@@ -283,7 +289,8 @@ def _notes(r):
 def gives(ev, r, axis, value, day=False):
     """Whether a statement on an event (r: STATEMENT_COLUMNS; ev: the event's own date fields) gives a date that agrees with
     value (to the day, with day) or a place that does. A statement with no record fact of its own (the owner's word) stands
-    for the event's own date and gives no place."""
+    for the event's own date and gives no place.
+    Implements [rule.value.6]."""
     if axis == "date":
         src = ev if r["persona_fact_id"] is None else r
         d = {
@@ -305,7 +312,8 @@ def not_the_files_word(r, rec, keys, without=(), claim_only=False):
     one of the MARKS, nor one resting on a withdrawn file, "withdrawn"), and never one from the record under decision on any
     of its copies (rec: record_self, "self"), one a
     decision in without wrote or one in without itself (reconsider, unless: "without"), or a claim whose own citation is
-    that record (keys: record_keys, "cites")."""
+    that record (keys: record_keys, "cites").
+    Implements [rule.terms.2], [rule.relation.2], [rule.points.14]."""
     notes = _notes(r)
     if r["artifact_sha256"] in rec["copies"]:
         return "self"
@@ -334,7 +342,8 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
     (catalog.set_aside); a vouch standing for the event's own date and place. without: proposal ids whose assertions do
     not count, and statements that do not (reconsider, unless). Returns (statements, shared): each statement {day: it gives
     value's very day, information: its information class in words, or the owner's own word}, and in words what was left out
-    as one source with the record."""
+    as one source with the record.
+    Implements [rule.standing.3], [rule.value.3], [rule.value.6], [rule.points.4], [rule.points.8], [rule.points.9], [rule.points.12], [rule.points.14]."""
     from catalog import record_owners, set_aside
     q = _q(cx)
     keys = record_keys(cx, sha, rec["copies"])
@@ -342,7 +351,8 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
     out, shared = [], []
     seen, aside = {}, {}
     def same_original(s, c):
-        """Whether a statement's record (s), whose classes are c, is the same person's record of the same event as the one under decision."""
+        """Whether a statement's record (s), whose classes are c, is the same person's record of the same event as the one under decision.
+        Implements [rule.points.12]."""
         if not (rec["original"] and c and c.get("original") == rec["original"]):
             return False
         if s not in seen:
@@ -418,7 +428,8 @@ def ground(cx, tree_id, kind, ids, sha, rec, axis=None, value=None, tree=None, w
 
 def editable(cx, sha):
     """Whether an artifact is a page anyone can edit (T4 by its own identity or its row): a decision on it is an identity, the
-    persona link and the family links it states; its facts are written Undecided, never accepted by the decision."""
+    persona link and the family links it states; its facts are written Undecided, never accepted by the decision.
+    Implements [rule.editable.1], [rule.editable.7]."""
     return str(source_tier(cx, sha) or "")[:2] == "T4"
 
 # in an UPDATE on assertion: the statement's record is one nobody can edit at will
@@ -440,7 +451,8 @@ def merged_refusal(cx, people):
     """The refusal of a command that would write on a person merged into another (person.merged_into), in words, or None: a
     merge moves everything about the duplicate onto the person it duplicates, its cards among them, so a decision lands on
     that person; one still naming the duplicate is a merge an older version of this tool left unfinished, and the merge
-    command run again on the pair completes it (complete_merge)."""
+    command run again on the pair completes it (complete_merge).
+    Implements [rule.merge.3]."""
     for pid in people:
         r = cx.execute(
             "SELECT d.display_name, k.id, k.display_name FROM person d JOIN person k ON k.id=d.merged_into WHERE d.id=?",
@@ -459,7 +471,8 @@ def same_personas(cx, persona_id):
     name), across every extraction of the record, itself included: a decision is about one entry of the record, whose bytes do
     not change between readings, so it applies to each reading's persona of that entry, and a withdrawal or a rejection resets
     them all. Another row of the same name is another entry and never takes it. The earlier readings' links are history;
-    readers of accepted links join on current extractions only."""
+    readers of accepted links join on current extractions only.
+    Implements [rule.copies.1]."""
     sha = cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()[0]
     entries = page_entries(cx, sha)
     k = next(key for pid, _, _, _, key in entries if pid == persona_id)
@@ -468,7 +481,8 @@ def same_personas(cx, persona_id):
 # ---------------------------------------------------------------- one record, wherever it is held
 def _number(cx, persona_id, region_key, reading):
     """(the number's digits, its year) a numbered entry gives its record (catalog.NUMBERS): the year the index files it under
-    ("14205 /1946"), else the year of the entry's own dated event, else the reading's record year."""
+    ("14205 /1946"), else the year of the entry's own dated event, else the reading's record year.
+    Implements [rule.extract.4]."""
     digits, _, filed = region_key[1].partition("/")
     yr = filed.strip() or next((d[:4] for d, in cx.execute("""SELECT date_start FROM persona_fact WHERE persona_id=? AND fact_type IN ('Death','Birth','Marriage')
                                                                AND length(date_start)>=4 AND coalesce(date_qualifier,'') NOT IN ('calculated','estimated') ORDER BY rowid""", (persona_id,))), None) or record_kinds(cx, cx.execute("SELECT artifact_sha256 FROM persona WHERE id=?", (persona_id,)).fetchone()[0], reading)[1]
@@ -483,7 +497,8 @@ def join_copies(cx, sha, by, ts=None):
     two numbered entries agreeing by name. A join by record id stands only where an entry of each current reading agrees with
     one of the other's by name (catalog.entry_on), and code never joins a page anyone can edit to a record nobody can, nor a
     row of a search's results, whose own record is the document (docs/TERMS.md §0). Returns the rows written:
-    (other sha256, basis, shared)."""
+    (other sha256, basis, shared).
+    Implements [rule.copies.3], [rule.copies.5], [rule.extract.4]."""
     from catalog import NUMBERS, copy_entry, current_reading, entry_on, names_agree
     q = _q(cx)
     ts = ts or now()
@@ -602,7 +617,8 @@ def carry(cx, by, sha, trees=None, dry_run=False, settle=True):
     their conflicts gone over by the rule and their cards matched again, as a decision does (settle_carried; decide does that
     itself, and a re-read does it once for its links and the copies' together, so each carries with settle off). Returns one
     row per link carried: tree, proposal, person, persona, copy, status, and kept for a copy decided otherwise (a row with
-    kept None is a link written)."""
+    kept None is a link written).
+    Implements [rule.copies.3], [rule.copies.5], [rule.own.1], [rule.own.3]."""
     from catalog import copy_entry, current_reading, entry_on, record_copies
     q = _q(cx)
     ts = now()
@@ -749,7 +765,8 @@ def settle_carried(cx, by, touched):
     (carry), once for them all: in each tree, the plans of the people whose evidence they changed regenerated, a question
     the regeneration closes answered by the decision carried to that person (answer_questions), then the rule over their
     conflicts and their cards matched again (settle_people). touched: {(tree id, person id): the proposal of the decision
-    carried}."""
+    carried}.
+    Implements [rule.copies.2]."""
     trees = {}
     for (tree_id, pid), prop in touched.items():
         trees.setdefault(tree_id, {}).setdefault(pid, prop)
@@ -779,7 +796,8 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
     left it, whatever reads the record again or carries a decision to it. A value
     the page keeps beneath the one it shows (FamilySearch's edit history, a fact whose region marks it alternate) is written
     Undecided and marked so: what the page also says, kept and cited, never accepted with the record and never a conflict
-    with the value the record shows. Returns how many were written."""
+    with the value the record shows. Returns how many were written.
+    Implements [rule.accept.1], [rule.accept.2], [rule.accept.3], [rule.accept.4], [rule.accept.5], [rule.editable.1], [rule.editable.7], [rule.own.3], [rule.copies.1], [rule.conflict.1]."""
     q = _q(cx)
     cat = Catalog(cx, tree_id)
     n = 0
@@ -846,7 +864,8 @@ def assert_facts(cx, tree_id, person_id, persona_id, prop_id, by, ts):
 
 def _citation(cx, sha):
     """(citation words, status) a record's statements are written with: the collection's name, and Accepted from a record
-    nobody can edit at will, Undecided from a page anyone can edit."""
+    nobody can edit at will, Undecided from a page anyone can edit.
+    Implements [rule.accept.1], [rule.editable.7]."""
     a = cx.execute(
         "SELECT c.name, ar.original_filename FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id WHERE ar.sha256=?",
         (sha,)
@@ -857,7 +876,8 @@ def _state(q, tree_id, kind, sid, f, sha, cite, status, by, ts, prop_id, extra=N
     """One statement of a record's fact on a subject, written once: a statement the same record already makes on the same
     subject with the same type, date, value and place stands again when the rule had withdrawn it or its card closed
     (undecided, on a trusted record), and otherwise stays as it is; one whose status a person decided on its own
-    (person_decided) stays as the person left it, undecided included. Returns 1 when written, else 0."""
+    (person_decided) stays as the person left it, undecided included. Returns 1 when written, else 0.
+    Implements [rule.own.3]."""
     old = q.execute("""SELECT a.id, a.status, a.notes, a.person_decided FROM assertion a JOIN persona_fact q ON q.id=a.persona_fact_id WHERE a.subject_kind=? AND a.subject_id=? AND a.artifact_sha256=?
                        AND q.fact_type=? AND coalesce(q.date_text,'')=coalesce(?,'') AND coalesce(q.value_text,'')=coalesce(?,'') AND coalesce(q.place_string_id,'')=coalesce(?,'')""", (kind, sid, sha, f["fact_type"], f["date_text"], f["value_text"], f["place_string_id"])).fetchone()
     if old:
@@ -884,7 +904,8 @@ def assert_family_events(cx, tree_id, fid, persona_ids, sha, prop_id, by, ts, co
     staying there, created from the fact's date when the family has none that fits, and left unasserted when the choice is
     the owner's (Catalog.unplaced). Accepted from a record nobody can edit at will, Undecided from a page anyone can edit or
     when the couple is one the record's indexer computed (marked so, as the link is); written once, as assert_facts writes.
-    Returns how many were written."""
+    Returns how many were written.
+    Implements [rule.accept.6]."""
     q = _q(cx)
     n = 0
     cat = Catalog(cx, tree_id)
@@ -953,7 +974,8 @@ def place(cx, tree_id, pf_id, event_id, by, note):
     is not this tree's, is of another type than the fact or belongs to another person or family, or the fact's statement is
     already on it. One audit row per change; the plans of the person, and of the other partner on a family's event, are
     regenerated, then the rule goes over their conflicts and their cards are matched again (settle_people). Returns what was
-    written, the rule's rows on the conflicts and the cards matched again, or an error."""
+    written, the rule's rows on the conflicts and the cards matched again, or an error.
+    Implements [rule.accept.3], [rule.accept.4]."""
     q = _q(cx)
     ts = now()
     cat = Catalog(cx, tree_id)
@@ -1132,7 +1154,8 @@ def shown_married(cx, tree_id, person_id, persona_id, written, canon_surname):
     a woman's only, never a person the record (the persona's sex) or the tree says is a man; then a wife under her husband's
     surname (the tree's own recorded spouse, claimed or accepted), a daughter or sister under her husband's, named beside a
     son-in-law or brother-in-law of that surname on the persona's own reading of the record (never another reading of the
-    page, a superseded one among them), or written "Mrs."."""
+    page, a superseded one among them), or written "Mrs.".
+    Implements [rule.match.9], [rule.match.10]."""
     q = _q(cx)
     sexes = [r[0] for r in q.execute("SELECT sex FROM persona WHERE id=? UNION ALL SELECT sex FROM person WHERE id=?", (persona_id, person_id))]
     if "M" in sexes:
@@ -1169,7 +1192,8 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
     under it: shown_married), the record's words as written. The same words from the same record, made an alias by a
     decision a withdrawal or a give-back took back (undecided), stand again with this decision, stamped with it, at the
     record's standing; an alias of other words, another entry's of the same page among them, is never touched. Returns the
-    alias id, or None when there is nothing to write."""
+    alias id, or None when there is nothing to write.
+    Implements [rule.name.2], [rule.match.10]."""
     q = _q(cx)
     # the name the page shows, never one it keeps beneath
     fact = q.execute("""SELECT id, value_text FROM persona_fact WHERE persona_id=? AND fact_type='Name' AND value_text IS NOT NULL
@@ -1232,7 +1256,8 @@ def write_name_alias(cx, tree_id, person_id, persona_id, sha, prop_id, by, ts):
 
 def create_person(cx, tree_id, persona_id, ts):
     """A person in this tree from a persona: the name as written split into given names and a surname; a maiden name the
-    record marks becomes the birth surname and the written surname a married name. Returns the person id."""
+    record marks becomes the birth surname and the written surname a married name. Returns the person id.
+    Implements [rule.accept.10]."""
     q = _q(cx)
     pe = q.execute("SELECT name_text, sex, region_json FROM persona WHERE id=?", (persona_id,)).fetchone()
     region = json.loads(pe["region_json"] or "{}")
@@ -1341,7 +1366,8 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     statement already there moves only from undecided to accepted (withdrawn, it stands again): one whose status a person
     decided on its own (person_decided) stays as the person left it. Returns
     the links written: person, role, the other person, the page's own word, whether the membership is new, "undecided" for
-    a sibling placement, a link from a page anyone can edit or one the indexer computed, and "computed" for the last."""
+    a sibling placement, a link from a page anyone can edit or one the indexer computed, and "computed" for the last.
+    Implements [rule.accept.6], [rule.accept.7], [rule.accept.8], [rule.editable.3], [rule.editable.7], [rule.own.3]."""
     q = _q(cx)
     out = []
     identity = editable(cx, sha)  # a page anyone can edit: the memberships it states stand, but their assertions do not
@@ -1444,7 +1470,8 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
     one = lambda sql, args: next((f for f, in q.execute(sql, args)), None)
     def named_parents(child_persona):
         """The people the record itself states as parents of this persona, never by a grouping its indexer computed: the
-        person each parent's persona is accepted as, or is put to by a card still undecided."""
+        person each parent's persona is accepted as, or is put to by a card still undecided.
+        Implements [rule.accept.6]."""
         out_ = set()
         for r in q.execute("""SELECT persona_id, related_persona_id, kind, value_text FROM persona_relation
                               WHERE (persona_id=? AND kind='child') OR (related_persona_id=? AND kind='parent')""", (child_persona, child_persona)).fetchall():
@@ -1468,7 +1495,8 @@ def link_family(cx, tree_id, pid, persona_id, sha, prop_id, by, ts, held_back=No
         """The family of this parent a child joins on the record's word: one whose every other partner is a parent the record
         itself names for the child (named_parents), the most such partners first, then the earliest; None when each holds a
         partner the record does not name (a father's second wife), so the child is never placed beside a parent the record
-        never gives."""
+        never gives.
+        Implements [rule.accept.6]."""
         named = named_parents(child_persona) if child_persona else set()
         best = None
         for f, in q.execute(
@@ -1606,7 +1634,8 @@ def died_before(cx, tree_id, fid, pid, persona_id):
     """Why a person cannot be placed as a child of a family's couple, or None: a partner's death, accepted on a trusted record
     or the owner's word and stating its date, that comes before the person's earliest birth the tree or the record under
     decision gives (a mother's before it, a father's more than a year before it: a child can be born after the father's
-    death, never after the mother's). The words name the parent, the death and the birth."""
+    death, never after the mother's). The words name the parent, the death and the birth.
+    Implements [rule.accept.8]."""
     q = _q(cx)
     births = [r["date_start"] for r in q.execute("""SELECT e.date_start FROM event e JOIN event_participant ep ON ep.event_id=e.id
                                                    WHERE ep.person_id=? AND e.event_type='Birth' AND e.date_start IS NOT NULL""", (pid,))]
@@ -1646,7 +1675,8 @@ def died_before(cx, tree_id, fid, pid, persona_id):
 
 def sibling_home(cx, tree_id, pid):
     """The one family a person is an accepted child of, where a sibling stated on a record can be placed; None when the link
-    is not accepted or the person is a child in more than one family."""
+    is not accepted or the person is a child in more than one family.
+    Implements [rule.accept.8]."""
     cat = Catalog(cx, tree_id)
     fams = [
         f
@@ -1706,7 +1736,8 @@ def record_says(cx, tree_id, pid, sha):
 
 def answer_questions(cx, tree_id, pid, prop_id, by):
     """Regenerate the person's plan; a question of an answerable kind that the regeneration closes was answered by the
-    proposal: closed_reason answered, answered_by_proposal_id set. Other kinds stay as the planner closed them."""
+    proposal: closed_reason answered, answered_by_proposal_id set. Other kinds stay as the planner closed them.
+    Implements [rule.plans.2]."""
     q = _q(cx)
     st = plan_person(cx, tree_id, pid, by)
     answered = []
@@ -1963,7 +1994,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     the rule takes next, so audit ids run in the order decisions were taken (reconsider examines the rule's decisions in
     that order). A card naming a person merged into another is refused (merged_refusal), and so is an accept of a card whose
     record is withdrawn from the evidence (tools/tombstone.py), the reason naming the tombstone. Returns what was written, rematched
-    the rows of the cards matched again, or an error."""
+    the rows of the cards matched again, or an error.
+    Implements [rule.standing.1], [rule.accept.1], [rule.accept.10], [rule.editable.7], [rule.reject.1], [rule.reject.2], [rule.reject.3], [rule.name.4], [rule.points.9], [rule.plans.1], [rule.plans.3]."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
     if p and p["kind"] == "place_resolution" and status in ("accepted", "rejected"):
@@ -2125,7 +2157,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
 def _stands_for(cat, persona, cand, chosen):
     """Whether a persona on a page anyone can edit stands for a person of the tree as the relative the identity rule may count:
     it fits the person, or the given name and the surname agree and nothing compared disagrees (a memorial lists a relative by
-    name and years alone), its name read as the rule stands on one (the name rows and the accepted aliases)."""
+    name and years alone), its name read as the rule stands on one (the name rows and the accepted aliases).
+    Implements [rule.editable.10]."""
     fits, agree, disagree, absent, near = compare(cat, persona, cand, chosen, accepted_names=True)
     if fits:
         return True
@@ -2154,7 +2187,8 @@ def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_sta
     as Catalog.disagreements reads two such statements (a death index's state and an obituary's town written without it are
     parts of one place). primary: only a statement holding primary information
     (catalog.evidence_classes), the owner's word not among them. without: proposal ids whose statements do not count, and
-    statements that do not (reconsider, unless). Returns [(assertion id, the value it gives in words, its record in words)]."""
+    statements that do not (reconsider, unless). Returns [(assertion id, the value it gives in words, its record in words)].
+    Implements [rule.value.3], [rule.value.7], [rule.value.8], [rule.points.8], [rule.points.9]."""
     from catalog import set_aside
     q = _q(cx)
     cat = Catalog(cx, tree_id)
@@ -2169,7 +2203,8 @@ def against(cx, tree_id, eid, axis, value, without=(), primary=False, record_sta
                          ORDER BY a.asserted_at, a.id""", (eid, *skipped)).fetchall()
     shown = (cat.place(eid, ev["place_id"]) or {}).get("text") if axis == "place" else None
     def part(p, state=None):
-        """Whether a place names a part of the event's own place, not a place inside it."""
+        """Whether a place names a part of the event's own place, not a place inside it.
+        Implements [rule.value.8]."""
         f = (
             place_verdict(p, shown, record_state=state, dated_names=cat.dated_names(ev["place_id"]))
             if shown
@@ -2216,7 +2251,8 @@ def held_against(cx, tree_id, cand_id, other_id, kind, without=()):
     """Whether the tree holds, on an accepted statement resting on a trusted record or the owner's word (trusted_evidence),
     the state a stated relationship of the candidate to other contradicts: for a child, the candidate's own parents; for a
     parent, the other's parents; for a spouse, a spouse of the candidate's; for a sibling, both the candidate's parents and
-    the other's. A link the file only claims, or no link at all, holds nothing against the record."""
+    the other's. A link the file only claims, or no link at all, holds nothing against the record.
+    Implements [rule.points.2]."""
     q = _q(cx)
     rows = lambda pid, role: [
         dumps([f, pid, role])
@@ -2248,7 +2284,8 @@ def split_disagree(cx, tree_id, cand, persona, disagree, chosen, without=(), edi
     stands, and the page's value, written undecided, is a contradiction of it, a conflict question once the page's identity
     is taken (the owner, 3 Oct 2026: a page anyone can edit is not trusted; use the primary document and tag the page as a
     contradiction). without: proposal ids whose statements do not count (reconsider). Returns (vetoes, claims, conflicts),
-    each a list of findings (catalog.Finding, in words by match.said), a contradiction among the conflicts."""
+    each a list of findings (catalog.Finding, in words by match.said), a contradiction among the conflicts.
+    Implements [rule.points.2], [rule.value.7], [rule.value.9], [rule.editable.11]."""
     state = persona.get("record_state")
     def accepted_against(field, primary=False):
         et, axis, at = FIELD_EVENT[field]
@@ -2310,7 +2347,8 @@ def claimed_or_accepted(cx, tree_id, pid, other, group, rec, keys, without=(), c
     whatever its status. A statement from the
     record under decision on any of its copies (rec: record_self), a claim whose own citation is that record (keys:
     record_keys), one a decision in without wrote and one in without itself (reconsider, unless) never count
-    (not_the_files_word)."""
+    (not_the_files_word).
+    Implements [rule.terms.2], [rule.relation.2]."""
     q = _q(cx)
     mine, theirs = MEMBERSHIPS[group]
     def stands(fid, who, role):
@@ -2339,7 +2377,8 @@ def event_claimed_or_accepted(cx, tree_id, eid, axis, value, rec, keys, without=
     (docs/RULE.md, the identity), as claimed_or_accepted reads a link: a statement on the event that
     stands (not_the_files_word) and gives value (gives; to the day, with day), whatever the event itself shows, never one a
     standing resolution set aside (catalog.set_aside). Returns (True, []), or (False, what the statements not rejected that
-    give value but do not stand are, in words: LEFT_OUT)."""
+    give value but do not stand are, in words: LEFT_OUT).
+    Implements [rule.editable.9]."""
     from catalog import set_aside
     q = _q(cx)
     left = []
@@ -2367,7 +2406,8 @@ def claimed_relation_match(relations, accepted_on_record, linked):
     other name) when so, else None. relations: (kind, other persona, computed, other name), a relationship the record's
     indexer computed being no statement of the record's. accepted_on_record: persona id -> candidate, from person_persona
     rows already decided accepted on this extraction — not the fitting check's own guesses. linked(group, other person id):
-    whether the tree links the two so (claimed_or_accepted)."""
+    whether the tree links the two so (claimed_or_accepted).
+    Implements [rule.relation.1]."""
     for kind, other_pid, computed, other_name in relations:
         other_cand = accepted_on_record.get(other_pid)
         if computed or not other_cand:
@@ -2379,7 +2419,8 @@ def claimed_relation_match(relations, accepted_on_record, linked):
 
 def dated_with_parents(cx, extraction_id):
     """Whether a reading of a register entry dates it and names a person's parents: a persona's fact carries a date, and a
-    child-parent relationship between two of its personas is one the record states (catalog.relation_classes)."""
+    child-parent relationship between two of its personas is one the record states (catalog.relation_classes).
+    Implements [rule.standing.6]."""
     q = _q(cx)
     if not q.execute("""SELECT 1 FROM persona_fact pf JOIN persona pe ON pe.id=pf.persona_id WHERE pe.extraction_id=? AND pf.fact_type NOT IN ('Name','Sex')
                         AND (pf.date_start IS NOT NULL OR pf.date_end IS NOT NULL)""", (extraction_id,)).fetchone():
@@ -2406,7 +2447,8 @@ def _on(statements):
 def copy_cards(cx, tree_id, prop):
     """A proposal as each copy of its record holds it (docs/DATA-ARCHITECTURE.md §7 decision 15): itself, then, for every
     other copy (same_record), the same proposal with the persona of the same entry on that copy's current reading in its place
-    (catalog.entry_on), each with the file it stands on."""
+    (catalog.entry_on), each with the file it stands on.
+    Implements [rule.copies.4]."""
     from catalog import copy_entry, current_reading, entry_on, record_copies
     pay = json.loads(prop["payload_json"])
     out = [(prop, pay["artifact_sha256"])]
@@ -2468,7 +2510,8 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
     the name alias the carry wrote from its words undecided again (a statement whose status a person decided on its own,
     person_decided, keeping it), the plans, conflicts and cards gone over again of each person given back and of everyone
     whose family a family link given back with them reaches (link_people), and the copy matched again, its entry a card
-    for the owner or the rule's. a, b: (sha256, entry). Returns the rows carried, or the links given back."""
+    for the owner or the rule's. a, b: (sha256, entry). Returns the rows carried, or the links given back.
+    Implements [rule.copies.3], [rule.plans.1]."""
     from catalog import current_reading, record_copies
     q = _q(cx)
     ts = now()
@@ -2554,7 +2597,8 @@ def rule_accepts(cx, tree_id, prop, without=()):
     them, and refused when any copy's persona of the entry disagrees against an accepted value or fails the identity
     tests, the reason naming that copy. A card putting an entry to the person a creation made from that very entry, which
     no route above takes and nothing vetoes, is judged as that creation (made_here): on the creation's own terms and its
-    identity test, the person it made not counted."""
+    identity test, the person it made not counted.
+    Implements [rule.standing.2], [rule.identity.1], [rule.copies.4], [rule.relation.5]."""
     cards = copy_cards(cx, tree_id, prop)
     seen = [rule_points(cx, tree_id, p, without) for p, _ in cards]
     on = (
@@ -2593,7 +2637,8 @@ def made_here(cx, tree_id, prop):
     entry of a record to the person a creation made from that very entry (a new_person proposal of that person on any
     reading's persona of the entry, on any copy of the record, that no person rejected: standing, taken back, or closed with
     its reading as superseded), the card as that creation, a new_person proposal of the person on the card's own persona and
-    reading, the creation's id as payload made; else None."""
+    reading, the creation's id as payload made; else None.
+    Implements [rule.relation.5]."""
     if prop["kind"] != "persona_match":
         return None
     pay = json.loads(prop["payload_json"])
@@ -2630,7 +2675,8 @@ def rule_points(cx, tree_id, prop, without=()):
     a sibling is none of the four. A record withdrawn from the evidence (tools/tombstone.py) is refused whatever it states:
     its statements are evidence for nothing, so the owner decides it. without: proposal ids whose
     assertions and persona links are not ground (reconsider); a name accepted on nothing outside them is judged by the
-    relationship route, as it was taken."""
+    relationship route, as it was taken.
+    Implements [rule.standing.3], [rule.standing.4], [rule.standing.5], [rule.standing.6], [rule.standing.7], [rule.standing.8], [rule.points.1], [rule.points.2], [rule.points.3], [rule.points.4], [rule.points.5], [rule.points.7], [rule.points.9], [rule.points.11], [rule.points.13], [rule.name.1], [rule.value.6], [rule.relation.1], [rule.relation.3], [rule.editable.2], [rule.editable.8], [rule.editable.10]."""
     q = _q(cx)
     pay = json.loads(prop["payload_json"])
     pid, sha = pay.get("person_id"), pay["artifact_sha256"]
@@ -2741,7 +2787,8 @@ def rule_points(cx, tree_id, prop, without=()):
         or standing for the tree's relative on something besides that relationship, a date or a place (an age is a birth
         year) that rests on more than a claim citing this very record (docs/RULE.md, the proof standard). A
         persona that fits only through its relation to the one under decision, a name and the relationship, earns nothing:
-        the relationship would be its own proof."""
+        the relationship would be its own proof.
+        Implements [rule.points.13]."""
         if other_pid in accepted_on_record:
             return True
         if other_pid not in fitted:
@@ -2816,7 +2863,8 @@ def rule_points(cx, tree_id, prop, without=()):
         points, own = [], {}
         def held(w, eid, axis, value, full=False, shown=False):
             """A point when a statement claimed or accepted gives the page's value (event_claimed_or_accepted), a date whatever
-            the event shows; otherwise what was left out, said when something gave the value or the event shows it (shown)."""
+            the event shows; otherwise what was left out, said when something gave the value or the event shows it (shown).
+            Implements [rule.editable.9]."""
             ok, left = (
                 event_claimed_or_accepted(cx, tree_id, eid, axis, value, rec, keys, without, day=full)
                 if eid
@@ -3044,7 +3092,8 @@ def rule_creates(cx, prop, persona, x, identity, survivors_kind, accepted_on_rec
     again (rematch), and the check run once more across the whole tree as it stands when the rule decides (identity_refused). A page
     anyone can edit names a person but never creates one: the owner does. A creation is judged on the persona its record's
     current reading gives the entry (rule_points), and a card the creation stands for (made_here) on the same terms: the
-    matcher has put that persona to the person, so its word is not asked again, and the creation stands on the entry."""
+    matcher has put that persona to the person, so its word is not asked again, and the creation stands on the entry.
+    Implements [rule.relation.4], [rule.relation.5]."""
     q = _q(cx)
     made = json.loads(prop["payload_json"]).get("made")
     if identity:
@@ -3128,7 +3177,8 @@ def accepted_span(cx, tree_id, pid, etype, without=()):
     the earliest day any of them can stand for and the latest (catalog.date_span; None on a side one of them leaves open),
     and the dates as written; None when none is accepted or none gives a date. A statement with no record fact of its own
     (the owner's word) stands for the event's own date; one resting on a withdrawn file (catalog.not_withdrawn) says nothing.
-    without: proposal ids whose statements do not count, and statements that do not (reconsider, unless)."""
+    without: proposal ids whose statements do not count, and statements that do not (reconsider, unless).
+    Implements [rule.identity.3], [rule.points.9]."""
     skip, skipped = unless(without)
     spans, words = [], []
     for r in _q(cx).execute(f"""SELECT a.persona_fact_id, pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, e.date_text AS ev_text, e.date_start AS ev_start, e.date_end AS ev_end, e.date_qualifier AS ev_q
@@ -3153,7 +3203,8 @@ def accepted_span(cx, tree_id, pid, etype, without=()):
     )
 
 def record_span(cx, persona_id, etype):
-    """What a persona's own record says of an event type's date: (earliest, latest, words), or None."""
+    """What a persona's own record says of an event type's date: (earliest, latest, words), or None.
+    Implements [rule.identity.3]."""
     r = _q(cx).execute(
         "SELECT date_text, date_start, date_end, date_qualifier FROM persona_fact WHERE persona_id=? AND fact_type=? AND coalesce(date_start, date_end) IS NOT NULL ORDER BY rowid",
         (persona_id, etype)
@@ -3167,7 +3218,8 @@ def fits_as_well(cat, persona, cand_id, chosen, exclude):
     forms, dates, places, the relationships the record states to personas already accepted on it), or, with no candidate,
     who fit it at all: [(person id, name, what agrees)]. compare's fit needs the given name to agree, or the same memorial
     accepted as them, so only those persons are compared. Names are read as the matcher reads them, every alias not rejected:
-    a wider name here only refuses more."""
+    a wider name here only refuses more.
+    Implements [rule.identity.1], [rule.name.3]."""
     from match import by_memorial, name_keys, same_given
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
     givens = [g for g, _ in names if g]
@@ -3193,7 +3245,8 @@ def outside_life(cx, tree_id, persona, pid, accepted_on_record, without=()):
     after_death_types) or before the accepted birth (a birth fact excepted), or a parent-child relationship the record states
     to a persona accepted on it that breaks the limits of one life (catalog.parent_limit), each side's dates the person's
     accepted ones, else what the record itself says of them. pid None: a person the record would create, whose life is the
-    record's alone."""
+    record's alone.
+    Implements [rule.identity.3]."""
     L = life_limits()
     q = _q(cx)
     birth = accepted_span(cx, tree_id, pid, "Birth", without) if pid else None
@@ -3269,7 +3322,8 @@ def identity_refused(cx, tree_id, prop, without=()):
     record's current reading (catalog.current_entry), with the facts and relationships that reading gives, as rule_points
     judges it; an entry that reading no longer has is refused as no longer read (NO_LONGER_READ). A person created by a decision under reconsideration (without) or by this one is no other person, nor is
     one accepted as another persona on this reading. without: proposal ids whose assertions and links do not count
-    (reconsider)."""
+    (reconsider).
+    Implements [rule.identity.1], [rule.identity.2], [rule.identity.3], [rule.relation.6]."""
     from match import by_name_and_year
     q = _q(cx)
     pay = json.loads(prop["payload_json"])
@@ -3337,7 +3391,8 @@ def identity_refused(cx, tree_id, prop, without=()):
 
 def match_record(cx, eid, by, about=None):
     """The matcher on an extraction, then the standing rule on every proposal it wrote: those it takes are accepted on the
-    owner's behalf, recorded as the rule. Returns (proposals written, proposals the rule accepted with the reason)."""
+    owner's behalf, recorded as the rule. Returns (proposals written, proposals the rule accepted with the reason).
+    Implements [rule.standing.2], [rule.standing.9]."""
     q = _q(cx)
     written = match(cx, eid, by, about=about)
     taken = []
@@ -3361,7 +3416,8 @@ def link_on_word(cx, tree_id, pid, other, kind, sha, by, note, marriage=None):
     named; a family made here for two parents asserts their partnership on the same word. Then the plans of the family's
     people are regenerated, the rule goes over their conflicts and their cards are matched again (settle_people). Refused for
     a person merged into another (merged_refusal). Returns the family id, its people, the rule's rows on the conflicts and
-    the cards matched again."""
+    the cards matched again.
+    Implements [rule.own.2]."""
     q = _q(cx)
     ts = now()
     if refused := merged_refusal(cx, [pid] + (list(other) if isinstance(other, (list, tuple)) else [other])):
@@ -3473,7 +3529,8 @@ def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
     the tree, so the children keep both parents; the event is what the screen shows between the two lines. Then the two
     people's plans are regenerated, the rule goes over their conflicts and their cards are matched again (settle_people).
     Refused for a person merged into another (merged_refusal). Returns the event id, the rule's rows on the conflicts and the
-    cards matched again."""
+    cards matched again.
+    Implements [rule.own.2]."""
     q = _q(cx)
     ts = now()
     if refused := merged_refusal(cx, [a, b]):
@@ -3508,7 +3565,8 @@ def divorce(cx, tree_id, a, b, date_text, evidence, by, note):
 def _fold_event(q, eid, into, moved):
     """An event's statements and notes moved onto another of the same owner and type, their statuses unchanged; a statement
     of a record fact the other already carries, or a second vouch, stays where it is, so nothing is stated twice on one
-    event. The event itself is left as it is. Returns (the statements moved, the statements left)."""
+    event. The event itself is left as it is. Returns (the statements moved, the statements left).
+    Implements [rule.fold.3]."""
     ev = q.execute("SELECT event_type, date_start FROM event WHERE id=?", (eid,)).fetchone()
     vouch = lambda notes: bool(notes and notes.startswith("{") and json.loads(notes).get("vouched"))
     there = q.execute(
@@ -3543,7 +3601,8 @@ def _fold_event(q, eid, into, moved):
 
 def owner_on_event(cx, tree_id, eid, axis):
     """How the owner has spoken on this event's own date or place, by the event itself: 'resolved' (a conflict on it the
-    owner resolved), 'reopened' (a resolution of the rule's on it the owner took back), else None."""
+    owner resolved), 'reopened' (a resolution of the rule's on it the owner took back), else None.
+    Implements [rule.fold.2]."""
     q = _q(cx)
     for r in q.execute("""SELECT json_extract(detail_json,'$.resolution.by') AS by FROM research_question WHERE tree_id=? AND kind='conflict' AND closed_reason='resolved'
                           AND json_valid(detail_json) AND json_extract(detail_json,'$.resolution.event')=? AND json_extract(detail_json,'$.resolution.axis')=?""", (tree_id, eid, axis)):
@@ -3563,7 +3622,8 @@ def fold_plan(cx, tree_id, owner):
     or more: {"type", "kept": event, "folded": [events], "refused": words when more than one event of the group carries the
     owner's word, so that a fold would set one value the owner resolved aside, else None}; each event is
     Catalog.owner_events' with its place_id, its statements counted, and the axes the owner ("owner") and the rule ("rule")
-    have decided on it."""
+    have decided on it.
+    Implements [rule.fold.1], [rule.fold.2], [rule.fold.5]."""
     q = _q(cx)
     cat = Catalog(cx, tree_id)
     col = "person_id" if owner[0] == "person" else "family_id"
@@ -3610,7 +3670,8 @@ def fold_plan(cx, tree_id, owner):
 
 def accepted_dates(q, eid):
     """The dates the accepted statements on an event give, each {"start", "qualifier"}: a record fact's own date, and for the
-    owner's word with no fact of its own (a vouch) the event's own date, which is what the vouch accepted."""
+    owner's word with no fact of its own (a vouch) the event's own date, which is what the vouch accepted.
+    Implements [rule.fold.3]."""
     ev = q.execute("SELECT date_start, date_end, date_qualifier FROM event WHERE id=?", (eid,)).fetchone()
     out = []
     for r in q.execute("""SELECT a.persona_fact_id, pf.date_start, pf.date_end, pf.date_qualifier FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id
@@ -3632,7 +3693,8 @@ def _take_lacking(q, kept, other, ts, held=()):
     none, never on an axis the owner or the rule has decided on it, and never a date that a date in held disagrees with (the
     accepted statements on both events before the fold, accepted_dates: a fold never sets an accepted record's date aside
     for a claim); a date that disagrees stays the kept event's own. Returns what changed, each with its value before; kept is
-    brought up to date."""
+    brought up to date.
+    Implements [rule.fold.3]."""
     k = q.execute(
         "SELECT date_text, date_start, date_end, date_qualifier, calendar, place_id FROM event WHERE id=?",
         (kept["id"],)
@@ -3669,7 +3731,8 @@ def fold(cx, tree_id, owner, actor=None, retire=None, moved=None):
     other, so the difference is the conflict question Catalog.disagreements raises. A group fold_plan refuses is left as it
     is and named in moved's folds_refused. actor: one audit row per event folded, naming what moved, under that actor.
     Returns one entry per event folded: the owner, the type, the kept and folded events' ids and values, the statements
-    moved and left, and what the kept event took."""
+    moved and left, and what the kept event took.
+    Implements [rule.fold.1], [rule.fold.3], [rule.fold.4]."""
     q = _q(cx)
     ts = now()
     moved = moved if moved is not None else {"events_folded": 0, "event_assertions_folded": 0, "folded_events": []}
@@ -3710,7 +3773,8 @@ def _fold_family(q, fid, other, moved):
     """A family whose partners are exactly another's, folded into that one: each child's membership moves there, or, the
     child already being the other family's, joins it, the statements moving with it either way; the family's own events
     move; the partner memberships' statements fold onto the other family's own and the partner rows go, so the family row
-    is left emptied for the audit trail."""
+    is left emptied for the audit trail.
+    Implements [rule.fold.1], [rule.merge.2]."""
     for cid, in q.execute("SELECT person_id FROM family_member WHERE family_id=? AND role='child'", (fid,)).fetchall():
         if q.execute(
             "SELECT 1 FROM family_member WHERE family_id=? AND person_id=? AND role='child'", (other, cid)
@@ -3769,7 +3833,8 @@ def _move_memberships(q, dup_id, kept_id, moved):
     """A merge's family memberships: each of the duplicate's rows moves to the kept person with its statements; a row the kept
     person already holds in the same family and role (one child entered twice under the same parents) is folded as
     _fold_family folds a child of both, its statements onto the kept person's row and the duplicate's row gone, each named
-    in folded_memberships with the statements it moved. Returns the families whose partner row moved."""
+    in folded_memberships with the statements it moved. Returns the families whose partner row moved.
+    Implements [rule.merge.2]."""
     partner_fams = set()
     for fid, role in q.execute("SELECT family_id, role FROM family_member WHERE person_id=?", (dup_id,)).fetchall():
         was, into = dumps([fid, dup_id, role]), dumps([fid, kept_id, role])
@@ -3803,7 +3868,8 @@ def _repoint_proposals(q, tree_id, dup_id, kept_id, moved):
     subject_person_id the record was fetched for, whatever key holds the id) names the kept person instead, each listed in
     proposals_repointed with the keys it rewrote (rewritten), so a decision, a withdrawal, reconsider and the matcher read
     the kept person wherever the duplicate stood. A duplicate_person proposal is a merge's own record of who was merged into
-    whom and keeps its words."""
+    whom and keeps its words.
+    Implements [rule.merge.1]."""
     keys = {}
     for r in q.execute(
         """SELECT p.id, j.key FROM proposal p, json_each(p.payload_json) j
@@ -3823,7 +3889,8 @@ def _move_links(q, dup_id, kept_id, moved):
     kept person already links is folded onto theirs, as a membership the kept person holds is folded: the kept person's row
     stands, taking the duplicate's decision (its status, proposal, decider and moment) only where its own is undecided,
     which is no decision, and the duplicate's row goes, so no decision on that persona stays with the merged person. Each
-    fold is named in folded_links with both rows as they were and whether the decision moved."""
+    fold is named in folded_links with both rows as they were and whether the decision moved.
+    Implements [rule.merge.2]."""
     cols = "status, proposal_id, decided_by, decided_at"
     for r in q.execute(f"SELECT persona_id, {cols} FROM person_persona WHERE person_id=? ORDER BY persona_id", (dup_id,)).fetchall():
         held = q.execute(f"SELECT {cols} FROM person_persona WHERE person_id=? AND persona_id=?", (kept_id, r["persona_id"])).fetchone()
@@ -3853,7 +3920,8 @@ def _move_aliases(q, dup_id, kept_id, moved):
     """A merge's name aliases: each of the duplicate's moves to the kept person, named in aliases_moved; one whose words the
     kept person already holds as an alias is folded onto theirs, the kept person's row standing as it is (a person holds a
     name as written once, and write_name_alias never writes words the person already holds) and the duplicate's row gone,
-    named whole in folded_aliases, the only trace of it afterwards."""
+    named whole in folded_aliases, the only trace of it afterwards.
+    Implements [rule.merge.2]."""
     for a in q.execute("SELECT * FROM alias WHERE entity_kind='person' AND entity_id=? ORDER BY value, id", (dup_id,)).fetchall():
         if q.execute(
             "SELECT 1 FROM alias WHERE entity_kind='person' AND entity_id=? AND value=?", (kept_id, a["value"])
@@ -3868,7 +3936,8 @@ def _move_questions(q, dup_id, kept_id, prop_id, ts, moved):
     """A merge's research questions: each of the duplicate's moves to the kept person, save the duplicate_person question
     between the two (the merge's own to answer) and one whose key the kept person already holds, in any status: the kept
     person's question asked twice, which an open one on the duplicate closes as answered by the merge (answered_by_proposal_id
-    the merge's duplicate_person proposal), each named in closed_questions by its id, key and kind."""
+    the merge's duplicate_person proposal), each named in closed_questions by its id, key and kind.
+    Implements [rule.merge.2]."""
     for question in q.execute("SELECT * FROM research_question WHERE subject_person_id=? ORDER BY id", (dup_id,)).fetchall():
         if question["kind"] == "duplicate_person" and question["q_key"] == f"duplicate_person:{kept_id}":
             continue
@@ -3895,7 +3964,8 @@ def _move_questions(q, dup_id, kept_id, prop_id, ts, moved):
 def merge_people(cx, kept_id, dup_fams, moved):
     """Everyone whose family a merge changed, the kept person first: everyone in each family the duplicate's memberships moved
     into (dup_fams, read before they moved) and in each family a fold emptied another into (folded_families), the family's
-    shape changed for each of them (link_people's joined: the kept person's spouses, children, parents and siblings there)."""
+    shape changed for each of them (link_people's joined: the kept person's spouses, children, parents and siblings there).
+    Implements [rule.plans.1]."""
     joined = dict.fromkeys(list(dup_fams) + [f["into_family_id"] for f in moved["folded_families"]])
     return list(dict.fromkeys([kept_id] + link_people(cx, [], joined=joined)))
 
@@ -3910,7 +3980,8 @@ def complete_merge(cx, tree_id, dup_id, kept_id, by, note):
     Nothing else moves, and a merge already complete changes nothing. One audit row; then the plans of everyone whose family
     it changed are regenerated (merge_people: the kept person and everyone in a family a membership moved into or a fold
     emptied another into), the rule goes over their conflicts and their cards are matched again (settle_people). Returns
-    what moved and folded, the rule's rows on the conflicts and the cards matched again."""
+    what moved and folded, the rule's rows on the conflicts and the cards matched again.
+    Implements [rule.merge.3]."""
     q = _q(cx)
     ts = now()
     moved = {
@@ -4013,7 +4084,8 @@ def merge(cx, tree_id, dup_id, kept_id, by, note):
     changed are regenerated (merge_people: the kept person and everyone in a family a membership moved into or a fold
     emptied another into, so the duplicate's spouse, children and parents see the kept person in its place), the rule goes
     over their conflicts and their cards are matched again (settle_people). A pair already merged is completed instead
-    (complete_merge). Returns what moved, the rule's rows on the conflicts and the cards matched again."""
+    (complete_merge). Returns what moved, the rule's rows on the conflicts and the cards matched again.
+    Implements [rule.merge.1], [rule.merge.2], [rule.fold.1]."""
     q = _q(cx)
     dup = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (dup_id,)).fetchone()
     kept = q.execute("SELECT tree_id, merged_into, display_name FROM person WHERE id=?", (kept_id,)).fetchone()
@@ -4194,7 +4266,8 @@ def resolve(cx, tree_id, qid, keep, by, note):
     (write_resolution); then the rule goes over the conflicts of the people the resolution was about and their cards are
     matched again (settle_people), the owner's word on this date or place standing above the rule from then on
     (owner_decided). Returns what write_resolution did with the rule's rows on the conflicts and the cards matched again,
-    or an error."""
+    or an error.
+    Implements [rule.conflict.4], [rule.conflict.7], [rule.plans.3]."""
     out = write_resolution(cx, tree_id, qid, keep, by, note)
     if "error" in out:
         return out
@@ -4215,7 +4288,8 @@ def write_resolution(cx, tree_id, qid, keep, by, note):
     (take_back), and nothing changes should the owner's be refused. Refused when the note is empty, the question is not an
     open conflict about an event's date or place, the statement is rejected, is not on the event the question is about, or
     gives no value on that axis, or the place it gives is not yet resolved to a place. Returns what was done, the people it
-    was about among it, or an error."""
+    was about among it, or an error.
+    Implements [rule.conflict.4], [rule.conflict.7], [rule.conflict.9]."""
     from plan import q_key
     q = _q(cx)
     ts = now()
@@ -4429,7 +4503,8 @@ def owner_decided(cx, tree_id, ev, axis):
     """Words when the owner has spoken on this event's date or place: resolved a conflict on it, reopened one the rule had
     resolved (take_back's audit row, reopened), or dismissed one on it (a dismissal's line names the type and the axis, not
     the event, so a dismissal on any of the person's events of the type counts). The rule then leaves every conflict on it
-    to the owner. None when the owner has not."""
+    to the owner. None when the owner has not.
+    Implements [rule.conflict.6]."""
     q = _q(cx)
     what = f"{ev['event_type'].lower()} {axis}"
     spoke = owner_on_event(cx, tree_id, ev["id"], axis)
@@ -4472,7 +4547,8 @@ def classes_decide(cx, tree_id, eid, axis):
     (proof.sides). No first-hand statement, primary information against it, the owner's word against it, a difference left
     beside it, or an owner who has spoken on this event's date or place before (owner_decided): no decision, the conflict is
     the owner's, and the reason says which. A place is kept only once its words are resolved to a place, as resolve needs,
-    the rule otherwise waiting on the owner's answer to the words."""
+    the rule otherwise waiting on the owner's answer to the words.
+    Implements [rule.conflict.5], [rule.conflict.6], [rule.conflict.9], [rule.editable.11], [rule.points.9]."""
     from catalog import evidence_table
     from proof import axis_value, order, record_info, same_value, sides, specificity, subject_statements, words
     q = _q(cx)
@@ -4561,7 +4637,8 @@ def classes_decide(cx, tree_id, eid, axis):
             out.append(f"the tree's own {tree['text'] if axis == 'date' else tree} rests {only}on no statement")
         return "; ".join(out)
     def not_first(s):
-        """Why a primary statement does not hold the event first-hand, or None when it does."""
+        """Why a primary statement does not hold the event first-hand, or None when it does.
+        Implements [rule.conflict.5]."""
         c = s["classes"] or {}
         if s["status"] != "accepted":
             return "it is not accepted as this person's"
@@ -4630,7 +4707,8 @@ def take_back(cx, tree_id, qid, by, why, ts, reopened=False):
     resolution (the resolution's own record of it, was), every question the resolution closed is set back to gap_gone so the
     plan reopens those whose difference is back, and one audit row says why and what was restored; reopened marks it the
     owner's reopen, after which the conflict on that date or place is the owner's (owner_decided). Evidence is untouched.
-    Returns the question ids set back."""
+    Returns the question ids set back.
+    Implements [rule.conflict.2], [rule.conflict.7]."""
     q = _q(cx)
     rq = q.execute("SELECT * FROM research_question WHERE id=? AND tree_id=?", (qid, tree_id)).fetchone()
     res = rule_resolution(rq)
@@ -4686,7 +4764,8 @@ def reopen(cx, tree_id, qid, by, note):
     when the note is empty or the question is not one the rule resolved (the owner's own resolution stands as written).
     Then the rule goes over the conflicts of the people the questions set back are about, which leaves this date or place
     to the owner (owner_decided), and their cards are matched again (settle_people). Returns what was done, the rule's rows
-    on the conflicts and the cards matched again, or an error."""
+    on the conflicts and the cards matched again, or an error.
+    Implements [rule.conflict.7]."""
     q = _q(cx)
     if not (note or "").strip():
         return {"error": "a reopen needs your written reason (--note)"}
@@ -4724,7 +4803,8 @@ def rule_conflict_decisions(rows):
 
 def rule_conflict_line(row):
     """One decision of the rule on a conflict, in words, as the decision's printout, the person screen and the turn's report
-    tell it: the person, the date or place kept, the rule's reason, and how to give it back (reopen takes the question's id)."""
+    tell it: the person, the date or place kept, the rule's reason, and how to give it back (reopen takes the question's id).
+    Implements [rule.conflict.8]."""
     what = row["detail"].split(":", 1)[0]
     if row["kind"] == "conflict":
         return f"the rule resolved {row['person']}'s {what}" + (
@@ -4737,7 +4817,8 @@ def rule_conflict_line(row):
 def rule_conflict_changes(cx, tree_id, after):
     """The rule's decisions on conflicts written to the audit log after the row `after` (an audit row id, the last one when a
     turn began), whichever tool wrote them: each resolution (kind conflict, taken) and each resolution it took back (kind
-    resolution, not kept), in the order they were written, as the rows rule_conflicts returns, the reason in the rule's own words."""
+    resolution, not kept), in the order they were written, as the rows rule_conflicts returns, the reason in the rule's own words.
+    Implements [rule.conflict.8]."""
     q = _q(cx)
     out = []
     for r in q.execute("""SELECT a.entity_id, a.diff_json, rq.subject_person_id, rq.detail_json FROM audit_log a JOIN research_question rq ON rq.id=a.entity_id
@@ -4784,7 +4865,8 @@ def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
     resolution examined (kind resolution: kept, why) and per conflict decided or left (kind conflict: taken, why), each
     with the person, the question, its line and the date or place kept (value; none for a conflict left, or one a dry run
     would resolve); known, the questions the rule had resolved before a run that decides cards first (reconsider), makes a
-    resolution written since, inside one of those decisions, a row of kind conflict taken, as one this pass wrote."""
+    resolution written since, inside one of those decisions, a row of kind conflict taken, as one this pass wrote.
+    Implements [rule.conflict.2], [rule.conflict.5], [rule.conflict.6]."""
     from plan import q_key
     q = _q(cx)
     ts = now()
@@ -4926,7 +5008,8 @@ def rule_conflicts(cx, tree_id, by, people=None, dry_run=False, known=None):
 
 def kept_agrees(cx, keep, res):
     """Whether the statement the rule would keep now gives the same value its resolution kept (another first-hand record of
-    the same date or place, on the same side)."""
+    the same date or place, on the same side).
+    Implements [rule.conflict.2]."""
     from proof import same_value
     r = _q(cx).execute("""SELECT pf.date_text, pf.date_start, pf.date_end, pf.date_qualifier, ps.raw FROM assertion a JOIN persona_fact pf ON pf.id=a.persona_fact_id
                           LEFT JOIN place_string ps ON ps.id=pf.place_string_id WHERE a.id=?""", (keep,)).fetchone()
@@ -4997,7 +5080,8 @@ def links_resting_on(cx, tree_id, prop_id, gone=(), taken_back=False):
     (assert_family_events). A statement whose status a person decided on its own (person_decided), one written undecided
     (ACCEPTED_WITH_RECORD) and this decision's own are never among them. gone: decisions already withdrawn in this pass
     (reconsider), read as not accepted. taken_back: the undecided statements a withdrawal of this decision left are among
-    them too, for a person's rejection of a card whose decision the rule took back. Returns the assertion ids."""
+    them too, for a person's rejection of a card whose decision the rule took back. Returns the assertion ids.
+    Implements [rule.reject.1], [rule.reconsider.7]."""
     q = _q(cx)
     statuses = ("accepted", "undecided") if taken_back else ("accepted",)
     held = f"status IN ({','.join('?' * len(statuses))})"
@@ -5093,7 +5177,8 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
     writes it again); the questions the decision answered are closed as gap_gone so the plan reopens the ones whose gap is
     back, the plans of the person, of the person the record was fetched for and of everyone whose family the links taken
     back reach (link_people) are regenerated, and the audit row says why. The record is a card for
-    the owner again. Returns how many assertions were taken back."""
+    the owner again. Returns how many assertions were taken back.
+    Implements [rule.reconsider.5], [rule.reconsider.7], [rule.name.4], [rule.own.3]."""
     q = _q(cx)
     p = q.execute(
         "SELECT * FROM proposal WHERE id=? AND tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%'",
@@ -5168,7 +5253,8 @@ def written_otherwise(cx, tree_id, prop):
     never stated), which decide writes undecided as the indexer's. A statement a person decided on its own
     (person_decided) is theirs and never among them. Returns one row each: kind (alias or link), the row's id, the person
     it is about, the record, what it is in words, the status it holds and the one it would hold, why, and the note its audit
-    row carries (a link's the note decide writes for an indexer's grouping)."""
+    row carries (a link's the note decide writes for an indexer's grouping).
+    Implements [rule.reconsider.6]."""
     q = _q(cx)
     pay = json.loads(prop["payload_json"])
     me = pay.get("person_id")
@@ -5233,7 +5319,8 @@ def bring_to_now(cx, tree_id, prop_id, rows, by, ts):
     """What a kept decision wrote brought to what decide writes now (written_otherwise's rows): each alias to the standing of
     its record, each family link the record's indexer computed undecided and marked so (link_family's mark, so a later
     acceptance of the card writes it undecided as well), under by, the rule acting for whoever ran it; one audit row each,
-    and the plans of everyone whose family a link reaches regenerated (link_people)."""
+    and the plans of everyone whose family a link reaches regenerated (link_people).
+    Implements [rule.reconsider.6]."""
     q = _q(cx)
     for r in rows:
         if r["kind"] == "alias":
@@ -5280,7 +5367,8 @@ def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
     a dry run of reconsider would withdraw, are read as the cards they would be again, so a dry run names the ones it would
     supersede on an older matcher's or a superseded reading. Returns (rows, taken): a row per card closed (kind rematch)
     and per rationale rewritten (kind rationale), each with the proposal, the person, the persona and why; and a row per
-    card the rule took on the records matched again (kind card)."""
+    card the rule took on the records matched again (kind card).
+    Implements [rule.reconsider.1], [rule.reconsider.2], [rule.reconsider.3], [rule.reconsider.8], [rule.relation.5]."""
     from match import proposals
     q = _q(cx)
     out = []
@@ -5453,7 +5541,8 @@ def rematch_people(cx, tree_id, by, people):
     """The undecided cards of these people matched again (rematch) once a decision has changed their evidence, the owner's or
     the rule's (acting for the owner, who is then the one recorded): a card, a key fact, one statement, a place's words, a
     conflict resolved or reopened, a statement placed, a family link or a divorce on the owner's word, a merge. Returns the
-    rows of the cards superseded and rewritten."""
+    rows of the cards superseded and rewritten.
+    Implements [rule.reconsider.4]."""
     owner = by.split(" for ", 1)[-1] if by.startswith("rule:") else by
     return rematch(cx, tree_id, owner, now(), people=[p for p in dict.fromkeys(people) if p])[0]
 
@@ -5463,7 +5552,8 @@ def settle_people(cx, tree_id, by, people):
     (rule_conflicts: its own resolutions there examined again, each open conflict on an event's date or place decided where
     the classes favour one side without doubt, a date or place the owner has resolved, dismissed or reopened left to them),
     then their undecided cards are matched again (rematch_people). Returns (the rule's rows on the conflicts, the rows of
-    the cards matched again)."""
+    the cards matched again).
+    Implements [rule.plans.3], [rule.reconsider.4]."""
     people = [p for p in dict.fromkeys(people) if p]
     if not people:
         return [], []
@@ -5475,7 +5565,8 @@ def link_people(cx, links, joined=()):
     role) a decision wrote, decided or took back, its person and every partner of its family (a child's membership is each
     parent's child, a partner's the other partner's spouse); and everyone in each family of joined, one the decision put
     someone into anew (a partner joining a family that holds children, a child joining a couple), the family's shape changed
-    for each of them."""
+    for each of them.
+    Implements [rule.plans.1]."""
     q = _q(cx)
     out = []
     for fid, who, role in links:
@@ -5496,7 +5587,8 @@ def memberships_of(cx, ids):
 
 def decision_memberships(cx, tree_id, prop_id):
     """The memberships (family id, person id, role) a decision's own statements state, on every copy of its record it was
-    carried to."""
+    carried to.
+    Implements [rule.plans.1]."""
     return [
         tuple(json.loads(r[0]))
         for r in _q(cx).execute(
@@ -5508,7 +5600,8 @@ def decision_memberships(cx, tree_id, prop_id):
 
 def statement_people(cx, ids):
     """The people statements are about, each once: the participants of a statement's event (both partners of a family's
-    event), the person it asserts, and for a family membership the member and the family's partners (link_people)."""
+    event), the person it asserts, and for a family membership the member and the family's partners (link_people).
+    Implements [rule.plans.1]."""
     q = _q(cx)
     out = []
     for kind, sid in q.execute(
@@ -5528,7 +5621,8 @@ def decide_assertion(cx, tree_id, aid, status, by, note):
     """One statement of one record decided on its own (tools/conclude.py assertion): its status set, the person's own decision
     on it (person_decided), one audit row; the plans of the people it is about regenerated, then the rule goes over their
     conflicts and their cards are matched again (settle_people). Returns what was done, the rule's rows on the conflicts and the
-    cards matched again, or an error."""
+    cards matched again, or an error.
+    Implements [rule.own.2], [rule.own.3], [rule.plans.3]."""
     q = _q(cx)
     row = q.execute(
         "SELECT id, subject_kind, subject_id, status, citation_text FROM assertion WHERE id=? AND tree_id=?",
@@ -5574,7 +5668,8 @@ def decide_assertion(cx, tree_id, aid, status, by, note):
 
 def settled_lines(res):
     """What followed a decision, one line each, as the command line tells it: each decision of the rule on a conflict
-    (rule_conflict_line), then each card it superseded (superseded_lines)."""
+    (rule_conflict_line), then each card it superseded (superseded_lines).
+    Implements [rule.conflict.8]."""
     return [rule_conflict_line(x) for x in rule_conflict_decisions(res.get("conflicts") or [])] + superseded_lines(
         res.get("rematched") or []
     )
@@ -5615,7 +5710,8 @@ def reconsider(cx, tree_id, by, dry_run=False):
     carried, standing or theirs), the person, kept or taken, why; a card's rows the proposal and the persona, a conflict's
     the question and its line, a standing or theirs row the decision's person and persona, the record, what it is, the
     status it holds and the one a decision writes now. A dry run examines the cards a run would leave, a decision it would withdraw among them, on the ground a run
-    would leave (without the decisions it would withdraw and the links they take back): not the ones it would supersede."""
+    would leave (without the decisions it would withdraw and the links they take back): not the ones it would supersede.
+    Implements [rule.reconsider.5], [rule.reconsider.6], [rule.reconsider.7], [rule.reconsider.8], [rule.copies.5], [rule.conflict.2]."""
     q = _q(cx)
     ts = now()
     out = []

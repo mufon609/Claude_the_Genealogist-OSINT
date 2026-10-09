@@ -151,17 +151,19 @@ A move moves a function's text unchanged; where a move changes a call site
    command every doc names. Break the import cycles between `conclude.py` and
    `facts.py` and between `conclude.py` and `proof.py`, as the target above
    says. Keep each function's text as it is: a move, not a rewrite.
-2. **The rule's text by part, with stable identifiers**, as A4 says:
-   `docs/RESEARCH-WORKFLOW.md` split into one file per part, `CLAUDE.md`'s
-   table naming each, every link to a moved section updated (grep the
-   repository). Every clause of the rule that code implements opens with a
-   stable identifier in bold brackets, `**[rule.points.2]**`: a dotted name of
-   the part and a serial within it, never renumbered (a clause removed leaves
-   its number unused; a clause added takes the next). A function that
-   implements a clause cites its identifier in its docstring. The check
-   `tests/checks/rule_ids.py`, written with this part and run by
-   `tools/check.py`, fails where a docstring cites an identifier no doc holds,
-   and lists under `--verbose` the identifiers no docstring cites.
+2. **The rule's text by part, with stable identifiers: done**, as A4 says.
+   The rule's words are in `docs/TERMS.md`, `docs/RULE.md` and
+   `docs/HOUSEHOLDS.md` (indexed with the plan and the loop by
+   `docs/RESEARCH-WORKFLOW.md`), every clause the code implements opening
+   with its identifier in bold brackets, `**[rule.points.2]**`: `rule.`, its
+   part and a serial within it, never renumbered (a clause removed leaves its
+   number unused; a clause added takes the next). A function that implements
+   a clause cites it on the last line of its docstring, `Implements
+   [rule.points.2], [rule.points.3].`: a function you move keeps that line
+   with its text, and a function you split or write cites the clauses it
+   implements. `tests/checks/rule_ids.py`, run by `tools/check.py`, fails
+   where a docstring cites an identifier no doc holds or a doc writes one
+   twice, and `--verbose` lists the identifiers no docstring cites.
 3. **The tools in layers**, as A5 says: each move above, one module a commit,
    with the same proof. The cycle check (`tests/checks/import_cycles.py`)
    joins `tools/check.py` in A5's closing commit, once it passes: never

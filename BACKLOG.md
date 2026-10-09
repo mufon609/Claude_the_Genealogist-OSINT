@@ -456,7 +456,7 @@ does not ask for the sheet, dwelling or family the reader now keeps; the
 Ancestry index reader, which no real page reaches, still drops its locator
 labels; and FamilySearch's search rows carry no locator at all.
 
-### A4. The decision code split by job, the rule's text split by part
+### A4. The decision code split by job
 
 `tools/conclude.py` (6,123 lines on 9 Oct 2026) does six jobs: the standing
 rule's tests (points, identity, the evidence classes), the writers of
@@ -466,9 +466,10 @@ commands that act on the owner's word), copies (`carry`, `join_copies`,
 (`rule_conflicts`, `resolve`, `reopen`, `classes_decide`), with its command
 line on top; thirteen files import from it, and it imports `facts.py` and
 `proof.py` as they import it. Every worker that changes a decision reads all
-of it, and batches that touch it queue behind one another.
-`docs/RESEARCH-WORKFLOW.md` (2,043 lines) states the same rule in words, and
-where the two part is where audits find defects (C31). The target layering
+of it, and batches that touch it queue behind one another. The rule's words
+are stated by part, each clause the code implements under an identifier the
+implementing function's docstring cites (part 2, done); where code and words
+part is C31, bullet by bullet. The target layering
 the split serves is `REFACTOR-PROMPT.md`'s ("The target: the tools in
 layers"): layer 4 holds the split's modules beside `facts`, `proof`, `cards`
 and `overview`, and the command line is layer 5. The work, behaviour
@@ -488,18 +489,29 @@ unchanged, nothing else in flight while it runs:
    people compared byte for byte, the checks green, and
    `tests/checks/import_cycles.py` naming no cycle or upward import its
    parent did not; each report prints that script's output.
-2. **The rule's text by part, with stable identifiers.**
-   `docs/RESEARCH-WORKFLOW.md` split into one file per part (terms, the fetch
-   list, the rule, households, the loop), `CLAUDE.md`'s table naming each.
-   Every clause of the rule that code implements opens with a stable
-   identifier in bold brackets, `**[rule.points.2]**`: a dotted name of the
-   part and a serial within it, never renumbered (a removed clause leaves its
-   number unused). A function's docstring cites the identifier of the clause
-   it implements. The check `tests/checks/rule_ids.py`, written with this
-   part and run by `tools/check.py`, fails where a docstring cites an
-   identifier no doc holds, and lists under `--verbose` the identifiers no
-   docstring cites. Closing it closes, clause by clause, the entry where the
-   rule and its words part (C31).
+2. **The rule's text by part, with stable identifiers: done (9 Oct 2026).**
+   `docs/RESEARCH-WORKFLOW.md` is the index of five files, one per part:
+   `docs/TERMS.md` (§0 to §2), `docs/PLAN-AND-SEARCH.md` (§3, §4),
+   `docs/RULE.md` (§5–7), `docs/HOUSEHOLDS.md` and `docs/LOOP.md` (§8 on),
+   each named in `CLAUDE.md`'s table. Every clause of the rule that code
+   implements opens with its identifier in bold brackets,
+   `**[rule.points.2]**`: `rule.`, its part and a serial within the part,
+   never renumbered (a removed clause leaves its number unused, a clause
+   added takes the next). The parts: terms, standing, own, editable, merge (`docs/TERMS.md`); extract, copies,
+   reconsider, match, accept, conflict, value, fold, points, name, relation,
+   identity, life, reject, plans, proof (`docs/RULE.md`); household
+   (`docs/HOUSEHOLDS.md`). A function that implements a
+   clause cites it on the last line of its docstring, `Implements
+   [rule.points.2], [rule.points.3].`, as every function of `conclude.py`,
+   `match.py`, `households.py`, `facts.py` and `proof.py` that implements one
+   does; part 1 moves a function with its docstring, the citation with it.
+   `tests/checks/rule_ids.py`, run by `tools/check.py`, fails where a
+   docstring cites an identifier no doc under `docs/` holds or a doc writes
+   one twice, and lists under `--verbose` the identifiers no docstring cites:
+   on 9 Oct 2026, 19 of 161, each implemented in a module outside those five
+   (`catalog`, `checklist`, `plan`, `extract`, `cards`, `log_search`, the
+   screen's server), whose docstrings cite nothing yet. Each bullet of C31
+   names the clauses it concerns.
 
 The check that every name a tool reads resolves runs (`tests/checks/unresolved_names.py`): a function
 moved without its imports fails it wherever it is used, run or not. Of
@@ -1186,20 +1198,22 @@ does not make, then save the archived census pages again by the same method.
 ### C31. Where the rule and its words part
 
 Each bullet is a place where the code and the rule's text say different
-things, with its live case where one is known. A4 part 2 closes them clause
-by clause: as each clause of the rule gets its identifier, the code that
-implements it is brought to the words or the words to the code, and the
-bullet goes. A bullet that changes what the rule decides ends with a dry-run
+things, with its live case where one is known, and opens with the identifier
+of each clause it concerns (`docs/TERMS.md`, `docs/RULE.md`; the docstring of
+the function that implements a clause cites the same identifier). No accepted
+decision of `docs/DATA-ARCHITECTURE.md` §7 makes the code right against the
+words in any of them, so each is closed by code brought to the words, and the
+bullet goes; a bullet that changes what the rule decides ends with a dry-run
 `reconsider` on a copy of the live catalog.
 
-- **The route's reason.** The claimed-relationship route
+- [rule.relation.1] **The route's reason.** The claimed-relationship route
   (`conclude.rule_points`) gives the reason "the name and birth year agree"
   whatever the record gives, where `docs/RULE.md` says a birth year agrees "where both
   have one". Live: the gravesite locator's row for Noi Davidson names the
   veteran she is buried with by name alone, and the reason the rule takes him
   as Raymond Earl Davidson says the birth year agrees. Say the birth year only
   when both sides give one.
-- **A refusal that says "the indexer's".** When the route finds nothing,
+- [rule.relation.1] **A refusal that says "the indexer's".** When the route finds nothing,
   `rule_points` says the relationship is "its indexer's, not the record's own
   statement" whenever any computed relationship ties the persona to a person
   accepted on the record, even beside one the record states. Live: Dennis
@@ -1208,16 +1222,17 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   grouping. Say the indexer's only when no stated relationship to a person
   accepted on the record is there, and otherwise name the stated one and why
   it does not count.
-- **The census before 1850.** The rule's census test reads the form
+- [rule.standing.6] **The census before 1850.** The rule's census test reads the form
   (`forms.census_form`, `data/record-forms.csv`) and holds back a head-only
   form and a year with no form, but passes a census whose year is unknown,
   and takes the year from the collection's name by pattern when the record
   gives none. Hold such a census back until its year is read from the record
   or its citation, never from a name's digits.
-- **The name variants.** `match.same_given` reads a bare initial as agreeing
+- [rule.match.7], [rule.match.8] **The name variants.** `match.same_given` reads a bare initial as agreeing
   with a given name, where `docs/RULE.md` lets an initial agree only for a middle name,
   and with a day counting double a name and one date then take a record.
-- **What of an event's value is accepted.** `docs/RULE.md` reads a date per part
+- [rule.value.2], [rule.value.5], [rule.value.6], [rule.value.7], [rule.value.8],
+  [rule.match.4], [rule.terms.8] **What of an event's value is accepted.** `docs/RULE.md` reads a date per part
   everywhere and a place per part where it is shown; five places still read
   the value the event shows. A place's point (`rule_points`, `ground`) needs
   an accepted statement that gives the shown place whole, so a record
@@ -1232,7 +1247,8 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   `trusted_evidence` do. `Catalog.disagreements` never compares two places
   both finer than the event's own. Beside them: `checklist.build` gives the
   field for a country abroad the year's basis.
-- **The comparison as data.** The comparison returns findings and the rule
+- [rule.match.6], [rule.match.15], [rule.conflict.1], [rule.points.13] **The
+  comparison as data.** The comparison returns findings and the rule
   reads them, but four places in `tools/cards.py` still read words (the stored
   rationale of a card an older matcher wrote, a results row served as words,
   the card's own name note, an "accepted as" status), and `tools/conclude.py`
@@ -1243,25 +1259,27 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   tree's place and says the two do not agree (Manhattan, New York, New York
   against Brooklyn, New York): one of the two is wrong. No scenario reaches
   the residence-place test of a relative's grounding.
-- **A page anyone can edit.** Its identity counts a burial place at any
+- [rule.editable.1], [rule.editable.8], [rule.points.8], [rule.points.11],
+  [rule.points.13], [rule.points.14] **A page anyone can edit.** Its identity counts a burial place at any
   granularity, where the trusted route leaves out one coarser than the
   tree's; it is tier T4 in one place and anything outside T1 to T3 in
   another; and `rests_elsewhere` takes undecided statements of such a page,
   and marked values, as what makes a relative's persona stand for the
   relative.
-- **What the rule creates.** It creates a grandchild or a half sibling and
+- [rule.relation.4], [rule.match.3] **What the rule creates.** It creates a grandchild or a half sibling and
   writes no family link; and `conclude.rule_creates` still words refusals for
   a persona with no full name or no word of kinship, which the matcher no
   longer proposes.
-- **Cards.** `cards.card` works out its verdicts without the record's state
+- [rule.value.4], [rule.reconsider.1], [rule.own.2], [rule.match.15] **Cards.**
+  `cards.card` works out its verdicts without the record's state
   or the dated names, so a card can show "disagrees" where the rule read
   "agrees"; a card code closed is stored `rejected` under the session's or the
   owner's name, told from a person's rejection only by the note `superseded`
   (1,334 of the 1,339 rejected cards live on 4 Oct 2026); and the matcher
   never proposes a persona that carries any rejected link, to anyone.
-- **The proof.** It makes "meets the standard" wait on research the docs call
+- [rule.proof.2] **The proof.** It makes "meets the standard" wait on research the docs call
   "not a gate".
-- **An alias in its own re-examination.** `reconsider` examines a decision
+- [rule.reconsider.5], [rule.name.1] **An alias in its own re-examination.** `reconsider` examines a decision
   without its own assertions and those of the decisions after it (`without`),
   but the name test (`match.compare`'s `accepted_names`, `match.name_keys`)
   reads every accepted alias, the decision's own and those of the decisions
@@ -1275,7 +1293,7 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   both would be withdrawn too (a dry run on a copy of the live catalog of 9
   Oct 2026, the name test leaving out those aliases). Have the name test leave
   out the aliases of the decisions in `without`.
-- **A name a trusted record writes, held first by the backfill.** `docs/RULE.md` makes
+- [rule.name.2] **A name a trusted record writes, held first by the backfill.** `docs/RULE.md` makes
   the name as written on a record accepted for a person an accepted alias when
   the record is one nobody can edit at will, but `conclude.write_name_alias`
   leaves an alias of the same words alone unless a decision on that record
@@ -1289,6 +1307,17 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   her otherwise. Have `write_name_alias` give such a row, one no decision
   wrote, the standing and the stamp of the record a decision accepts, and
   `reconsider` bring the rows already there.
+- [rule.value.2], [rule.editable.9], [rule.points.13] **The owner's word gives
+  no place.** `docs/RULE.md` has the owner's own word on a fact give the
+  event's value whole, and a page's identity count a date or a place on any
+  statement that gives it, but `conclude.gives` reads a statement with no
+  record fact of its own as giving the event's own date and no place, so a
+  burial place the owner vouched for counts nothing toward a memorial's
+  identity (`event_claimed_or_accepted`), nor toward a relative standing for
+  the tree's on more than the relationship the record states
+  (`rests_elsewhere`), where `ground` stands a vouch for the event's own date
+  and place. No live case is known. Have `gives` read the owner's word as
+  giving the event's own place too.
 
 ### C32. Circumstances under which a record misstates a date on purpose
 

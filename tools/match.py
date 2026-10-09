@@ -135,7 +135,8 @@ STRONG = ("death date", "birth place", "burial place", "death place", "residence
 
 def same_given(a, b):
     """Two given-name keys are the same name: equal, one an initial of the other, a short form of the other (catalog.short_form),
-    or one letter apart when both are five letters or longer (a transcriber's slip)."""
+    or one letter apart when both are five letters or longer (a transcriber's slip).
+    Implements [rule.match.7]."""
     if not a or not b:
         return False
     if a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b)):
@@ -152,7 +153,8 @@ def same_given(a, b):
 def name_keys(cat, pid, accepted=False):
     """(first given, surname) keys for a person: every name row and every alias not rejected, the matcher's reading for finding
     and proposing; accepted: the name rows and the accepted aliases alone, the names the standing rule stands on
-    (docs/RULE.md, which variants the rule counts as the name)."""
+    (docs/RULE.md, which variants the rule counts as the name).
+    Implements [rule.name.1], [rule.name.3]."""
     keys = set()
     p = cat.person(pid)
     for given, surname, *_ in p["names"]:
@@ -165,7 +167,8 @@ def name_keys(cat, pid, accepted=False):
 
 def same_middle(a, b):
     """Two middle-name keys are one name: one an initial of the other, the same name or a short form (same_given), or a
-    spelling variant, the same Soundex code within two edits (Sara and Sarah, Micheal and Michael)."""
+    spelling variant, the same Soundex code within two edits (Sara and Sarah, Micheal and Michael).
+    Implements [rule.match.8]."""
     return same_given(a, b) or (len(a) > 1 and len(b) > 1 and soundex(a) == soundex(b) and edits(a, b) <= 2)
 
 def middle_differs(written, names, surnames):
@@ -173,7 +176,8 @@ def middle_differs(written, names, surnames):
     surname) rows) both carry a middle name or initial and none of the record's agrees with any of the tree's (same_middle:
     John Georgi Young agrees with John Y), else None. A word that is a surname the person holds (a married woman's birth
     surname written inside her name, Lena Bell Davidson) is no middle name, and an initial standing for one agrees (Helen
-    B. Ahearn for a Brant born); a name with no middle on either side disagrees with nothing."""
+    B. Ahearn for a Brant born); a name with no middle on either side disagrees with nothing.
+    Implements [rule.match.8], [rule.points.14]."""
     keys = [key(s) for s in surnames if key(s)]
     own = lambda w: len(w) > 1 and any(same_surname(w, s) for s in keys)
     words = name_words(written)
@@ -197,7 +201,8 @@ def compare(cat, persona, cand, chosen, birth_place=True, accepted_names=False):
     words by said). birth_place False: a birth place that differs keeps the persona from fitting no more than it vetoes
     the standing rule (docs/RULE.md), as the rule reads a relative's persona on a record; the matcher's
     own proposals read it as written. accepted_names: the person's names read as the rule stands on them, the name rows
-    and the accepted aliases alone (name_keys); the matcher reads every alias not rejected."""
+    and the accepted aliases alone (name_keys); the matcher reads every alias not rejected.
+    Implements [rule.match.4], [rule.match.5], [rule.match.6], [rule.match.7], [rule.match.9], [rule.name.1], [rule.name.3], [rule.points.6]."""
     agree, disagree, absent = [], [], []
     keys = name_keys(cat, cand["id"], accepted=accepted_names)
     # every name the record gives: at birth, current, as written elsewhere on it
@@ -375,7 +380,8 @@ def compare(cat, persona, cand, chosen, birth_place=True, accepted_names=False):
 
 def said(f):
     """A finding of compare's, or a disagreement conclude.split_disagree finds with an accepted statement, in words: the
-    sentence a rationale, a card and the rule's reasons carry. Nothing reads these words back."""
+    sentence a rationale, a card and the rule's reasons carry. Nothing reads these words back.
+    Implements [rule.match.15]."""
     if f.accepted:
         return (
             f"{f.field} disagrees with an accepted statement "
@@ -428,7 +434,8 @@ def personas_of(cx, eid):
     the record gives them, sex, role, birth and death, the birth, burial, death and residence places, the relations it
     states and the memorial it links. A value the page keeps beneath the one it shows (a fact whose region marks it
     alternate, FamilySearch's edit history) is no value the record states (docs/RULE.md, the proof standard):
-    no name, date or place of a persona is read from one."""
+    no name, date or place of a persona is read from one.
+    Implements [rule.points.10]."""
     out = []
     coll = cx.execute(
         "SELECT c.name FROM extraction e JOIN artifact ar ON ar.sha256=e.artifact_sha256 LEFT JOIN collection c ON c.id=ar.collection_id WHERE e.id=?",
@@ -495,7 +502,8 @@ def personas_of(cx, eid):
 def memorials_of(cx, pid):
     """The Find a Grave memorial ids already accepted as this person: the id of a memorial page accepted as theirs, and the id a
     held record links beside a persona accepted as them. A record's link to the same memorial is the same identity. Only the
-    personas of current extractions count: a superseded reading's links are history."""
+    personas of current extractions count: a superseded reading's links are history.
+    Implements [rule.match.1]."""
     ids = set()
     for region, sha, role in cx.execute("""SELECT pe.region_json, pe.artifact_sha256, pe.role_in_record FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id
                                             JOIN extraction e ON e.id=pe.extraction_id WHERE pp.person_id=? AND pp.status='accepted' AND e.superseded_by IS NULL""", (pid,)):
@@ -521,7 +529,8 @@ def by_name_and_year(cat, cx, tree_id, persona):
     on the surname and the year alone, the record's other signals carrying the actual decision; a person already placed in
     a family only when a given name of the persona's agrees with one of theirs too (same_given), so the household's
     unknown members are not put to every relative of the surname the tree holds. Without a birth year on either side the
-    names are the whole of it."""
+    names are the whole of it.
+    Implements [rule.relation.6], [rule.match.2]."""
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
     givens, rest = [g for g, _ in names if g], [t for _, r in names for t in r]
     if not rest:
@@ -561,7 +570,8 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
     since a shared surname alone would fit a memorial's subject to their own listed spouse). docs/TERMS.md §0's relative that fits exactly
     one person by name and birth year is this, the caller asking for exactly one: tools/plan.py's listed-relative leads seat
     a relative the matcher never proposes on the one person of the tree they plainly are, and conclude.link_family places
-    the membership a page anyone can edit states for such a relative, undecided, without deciding an identity."""
+    the membership a page anyone can edit states for such a relative, undecided, without deciding an identity.
+    Implements [rule.editable.3]."""
     given, rest = split_persona_name(persona["name"])
     if not given or not rest:
         return []
@@ -591,7 +601,8 @@ def fits_by_name_and_year(cat, cx, tree_id, persona):
     return out
 
 def by_memorial(cx, tree_id, mid):
-    """Persons of the tree already accepted under this memorial id, by memorials_of, on current extractions only."""
+    """Persons of the tree already accepted under this memorial id, by memorials_of, on current extractions only.
+    Implements [rule.match.1]."""
     return [pid for pid, in cx.execute("""SELECT DISTINCT pp.person_id FROM person_persona pp JOIN persona pe ON pe.id=pp.persona_id JOIN person p ON p.id=pp.person_id
                                           JOIN extraction e ON e.id=pe.extraction_id
                                           WHERE p.tree_id=? AND pp.status='accepted' AND e.superseded_by IS NULL AND (json_extract(pe.region_json,'$.memorial_id')=? OR json_extract(pe.region_json,'$.url') LIKE ?
@@ -601,7 +612,8 @@ def candidate(cat, pid):
     """A person as the matcher compares them: their names, sex, and the birth, death and burial the tree shows (Catalog.
     canonical_event: the event of the type with the strongest ground, never one whose every statement is rejected), each
     event's date and place and its id for the rule's ground, every place the tree knows them at, their spouses' surnames
-    and the memorials accepted as them."""
+    and the memorials accepted as them.
+    Implements [rule.match.4]."""
     p = cat.person(pid)
     ev = cat.events(pid)
     def shown(t):
@@ -651,7 +663,8 @@ def persons_for(cx, sha):
     the file's claim that it is theirs is the question put to them), a fetch step pointing at its locator, or an accepted
     persona link on it (question and step None; a superseded reading's links are history, so only a persona of a current
     extraction counts). A step's log row no longer counts once a later run reopened the step
-    (log_search.reopen): the row stays as what happened, and the step's most recent word on the record governs."""
+    (log_search.reopen): the row stays as what happened, and the step's most recent word on the record governs.
+    Implements [rule.match.1]."""
     rows = cx.execute("""SELECT DISTINCT sp.person_id, sp.question_id, sp.id, sp.on_json='[]' AS own, l.executed_at, sp.seq, sp.locator_kind, sp.locator_value
                           FROM search_log l JOIN search_plan sp ON sp.id=l.plan_step_id WHERE l.artifacts_json LIKE ? AND l.superseded_by IS NULL
                           AND NOT EXISTS (SELECT 1 FROM search_log r WHERE r.plan_step_id=l.plan_step_id AND r.notes LIKE ? AND r.id > l.id AND r.superseded_by IS NULL)
@@ -682,7 +695,8 @@ def persons_for(cx, sha):
 def linked(cat, a, b):
     """Whether two persons stand in one family on a record: both memberships carry an accepted assertion resting on an archived
     record, not on the tree file's claim and not on the owner's word alone. A vouch is a claim the owner stands behind, not a
-    document, so a vouched relative waits like any other until the record's own person is decided."""
+    document, so a vouched relative waits like any other until the record's own person is decided.
+    Implements [rule.match.1]."""
     on_record = lambda fid, who, role: bool(cat.q("""SELECT 1 FROM assertion a WHERE a.subject_kind='family_member' AND a.subject_id=? AND a.status='accepted'
                                                       AND a.artifact_sha256 IS NOT NULL AND a.artifact_sha256 NOT IN (SELECT artifact_sha256 FROM tree_import)
                                                       AND NOT (json_valid(a.notes) AND (coalesce(json_extract(a.notes,'$.vouched'),0)=1 OR coalesce(json_extract(a.notes,'$.uncited'),0)=1))""", dumps([fid, who, role])))
@@ -699,7 +713,8 @@ def fitting_rows(cx, eid, person_id=None, known=None):
     persona as personas_of reads it, what agrees as findings)], one entry for each person a row fits, in the page's order. Nothing is
     written: the matcher proposes no row of such a page (match), so this is the one answer to which rows are worth their own
     record, read by tools/plan.py for the leads and by tools/attach.py for whether the run found anyone. Empty for any other
-    extraction. known: {person id: (Catalog, candidate)} a caller asking about several pages keeps, so each person is read once."""
+    extraction. known: {person id: (Catalog, candidate)} a caller asking about several pages keeps, so each person is read once.
+    Implements [rule.match.14]."""
     from extract import POINTING_LISTINGS
     ext = cx.execute("""SELECT e.artifact_sha256 FROM extraction e JOIN extractor x ON x.id=e.extractor_id
                          WHERE e.id=? AND e.superseded_by IS NULL AND e.status='complete' AND x.name IN (%s)""" % ",".join("?" * len(POINTING_LISTINGS)), (eid, *POINTING_LISTINGS)).fetchone()
@@ -725,7 +740,8 @@ def found_by_name(cx, sha):
     """Whether a record was reached by a name search alone (docs/RULE.md, a namesake): every plan step that
     logged it or points at it is a search step, the record its own result, or the fetch of the record behind a row of a
     results page (step key fetch:row:), and the file cites it for nobody. A record the file cites, one a held record links (a
-    memorial a page names, an ark) and one attached on the owner's word are each reached by more than a name."""
+    memorial a page names, an ark) and one attached on the owner's word are each reached by more than a name.
+    Implements [rule.match.12]."""
     loc = cx.execute("SELECT locator_kind, locator_value FROM artifact WHERE sha256=?", (sha,)).fetchone()
     if loc and loc[0] == "apid" and loc[1] and cited_persons(cx, loc[1]):
         return False
@@ -743,7 +759,8 @@ def found_by_name(cx, sha):
 def namesake(agree, disagree):
     """Whether a comparison (compare) agrees on the name, the sex and at most a year of birth the record gives bare, and on
     nothing else, and disagrees on something: a persona a name search alone reached that does so, tied to the person by
-    nothing more, is a namesake, a hint and never a card (docs/RULE.md)."""
+    nothing more, is a namesake, a hint and never a card (docs/RULE.md).
+    Implements [rule.match.12]."""
     return (
         bool(disagree)
         and all(a.field in NAME_ONLY or (a.field == "birth date" and a.only == "record" and not a.month) for a in agree)
@@ -753,7 +770,8 @@ def matchable(cx, eid):
     """The sha256 of the record an extraction is, when the matcher proposes from it; None for a superseded reading, whose
     personas are history (only the current reading is proposed), and for a results page that points at records, whose rows
     are never cards whatever they agree on: its own record is the document (docs/TERMS.md §0); fitting_rows
-    names the rows that fit, tools/plan.py writes a fetch step for each."""
+    names the rows that fit, tools/plan.py writes a fetch step for each.
+    Implements [rule.match.14]."""
     from extract import POINTING_LISTINGS
     ext = cx.execute(
         "SELECT e.artifact_sha256, e.superseded_by, x.name FROM extraction e JOIN extractor x ON x.id=e.extractor_id WHERE e.id=?",
@@ -772,7 +790,8 @@ def match(cx, eid, by, about=None):
     (and, for a person already placed in a family, the same given name), or the same stated relationship to the same
     accepted person; a persona the record relates to an accepted person and that fits nobody, by the fitting check either,
     is proposed as a new person. about: person ids the owner says the record concerns, when no step or link names them (a
-    family-held file). What it proposes is proposals' answer, written: [(proposal id, kind, persona name, person id)]."""
+    family-held file). What it proposes is proposals' answer, written: [(proposal id, kind, persona name, person id)].
+    Implements [rule.match.1], [rule.match.2]."""
     sha = matchable(cx, eid)
     if not sha:
         return []
@@ -815,7 +834,8 @@ def on_another_copy(cx, tree_id, persona_id, ignore=()):
     """Whether a persona's entry of its record is proposed or decided on another copy of the record (same_record,
     catalog.entry_on): one record is one source wherever it is held (docs/DATA-ARCHITECTURE.md §7 decision 15), so its entry
     is put to the owner once, and a decision on it reaches every copy (conclude.carry). ignore: proposal ids taken as not
-    written."""
+    written.
+    Implements [rule.copies.3]."""
     from catalog import copy_entry, current_reading, entry_on, record_copies
     copies = record_copies(cx, tree_id, *copy_entry(cx, persona_id))
     unless = f" AND p.id NOT IN ({','.join('?' * len(ignore))})" if ignore else ""
@@ -848,7 +868,8 @@ def proposals(cx, eid, about=None, ignore=(), held=None):
     hint (docs/RULE.md): a namesake a name search alone reached (found_by_name, namesake), tied to the
     candidate by no relationship to a persona accepted on the record, fitting a person or carrying a card; and nobody to
     create, a persona with no full name, or one the record relates to the persons accepted on it by no word of kinship
-    (KIN_WORD), only "other" with no word, or nothing (cards.hints_on shows the words)."""
+    (KIN_WORD), only "other" with no word, or nothing (cards.hints_on shows the words).
+    Implements [rule.match.1], [rule.match.2], [rule.match.3], [rule.match.11], [rule.match.12], [rule.match.13], [rule.match.14], [rule.match.15], [rule.editable.4], [rule.editable.12], [rule.relation.6]."""
     sha = matchable(cx, eid)
     if not sha:
         return []
