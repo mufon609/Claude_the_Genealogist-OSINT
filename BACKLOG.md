@@ -1565,14 +1565,6 @@ whose people lived in Ireland, Germany or the Netherlands gets blocked
 fetches and assisted rows with no link. Show each on the second family's
 export when the harness has one.
 
-### C49. A card a person or a session accepted can be taken back
-
-`conclude.decide` rejects only an acceptance the rule made: a card accepted
-by the owner or by a session answers "already decided", no tool turns that
-persona link back, and `reconsider` never examines it (8 cards on 4 Oct 2026
-were accepted by sessions). Give `tools/conclude.py decide` the taking back
-of any acceptance, by a person, with its reason and audit row.
-
 ### C50. The proof shows every conflict and argues the family links
 
 `proof.fact_of` shows only the conflicts on a birth, a death and a marriage,

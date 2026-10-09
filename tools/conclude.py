@@ -1942,14 +1942,16 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     anyone can edit the
     decision is an identity: the link accepted, the memberships it states created where the tree lacks them with an Undecided
     assertion, and the facts written undecided. Rejected: the link rejected;
-    for a new person nothing but the proposal. A proposal the rule accepted can be rejected by a person afterwards: the link,
-    every assertion and the name alias the rule wrote turn rejected, and so does every family link the decision was one of
-    the two acceptances for, written by the other's decision (links_resting_on, what a withdrawal takes back: the persona is
-    not this person, so the record states no link of theirs), a step held by the record for this person is planned
-    again, and the plans are regenerated as an acceptance's are, of everyone whose family the links turned rejected changed
-    among them; rejecting a card whose decision the rule took back turns rejected what that decision wrote and the links its
-    withdrawal took back the same way, and either rejection is the person's own decision on each of those statements
-    (person_decided), so no later acceptance of the other card writes the link again. One the rule took back (withdraw) is
+    for a new person nothing but the proposal. A proposal accepted, by the rule, by a session or by a person, can be rejected
+    by a person afterwards, with the reason in the note: the link, every assertion and the name alias the decision wrote
+    turn rejected, and so does every family link the decision was one of the two acceptances for, written by the other's
+    decision (links_resting_on, what a withdrawal takes back: the persona is not this person, so the record states no link
+    of theirs), the questions it answered are closed as gap_gone so the plan reopens those whose gap is back, a step held
+    by the record for this person is planned again, and the plans are regenerated as an acceptance's are, of everyone whose
+    family the links turned rejected changed among them; rejecting a card whose decision the rule took back turns rejected
+    what that decision wrote and the links its withdrawal took back the same way, and either rejection is the person's own
+    decision on each of those statements (person_decided), so no later acceptance of the other card writes the link again;
+    a statement a person decided on its own since keeps the state they gave it. One the rule took back (withdraw) is
     accepted with everything it had written standing again, its name alias included, save a statement a person has decided
     on its own since, which keeps the person's status. Either way, once the plans are regenerated, the rule goes over the conflicts of the people whose plans the
     decision changed (rule_conflicts): its own resolutions there examined again, every open conflict on an event's date or
@@ -1973,20 +1975,19 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     members = []
     alias_id = None
     identity = editable(cx, pay["artifact_sha256"])  # a page anyone can edit: the identity and its links, never a fact
-    if (
-        p["status"] != "undecided"
-        and not (p["status"] == "accepted" and status == "rejected" and (p["decided_by"] or "").startswith("rule:"))
-    ):
+    # any acceptance, the rule's, a session's or a person's, a person may take back by rejecting the card
+    if p["status"] != "undecided" and not (p["status"] == "accepted" and status == "rejected"):
         return {"error": "already decided"}
     refused = merged_refusal(cx, [person_id, pay.get("subject_person_id")])
     if refused:
         return {"error": refused}
     # a person's own decision on every statement the card's decision wrote, standing or taken back by the rule, and on every
-    # family link it was one of the two acceptances for: the persona is not this person, so the record states none of them
+    # family link it was one of the two acceptances for: the persona is not this person, so the record states none of them;
+    # a statement a person decided on its own since keeps the state they gave it
     links = links_resting_on(cx, tree_id, prop_id, taken_back=True) if status == "rejected" else []
     if status == "rejected":
         n = q.execute(
-            "UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=?, person_decided=TRUE WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?",
+            "UPDATE assertion SET status='rejected', asserted_by=?, asserted_at=?, person_decided=TRUE WHERE tree_id=? AND NOT person_decided AND json_valid(notes) AND json_extract(notes,'$.proposal')=?",
             (by, ts, tree_id, prop_id)
         ).rowcount
         if links:
@@ -1998,6 +1999,11 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
         q.execute(
             "UPDATE alias SET status='rejected' WHERE tree_id=? AND json_valid(notes) AND json_extract(notes,'$.proposal')=?",
             (tree_id, prop_id)
+        )
+        # the questions an acceptance answered, closed as gap_gone, so the plan reopens the ones whose gap is back
+        q.execute(
+            "UPDATE research_question SET closed_reason='gap_gone', answered_by_proposal_id=NULL WHERE answered_by_proposal_id=?",
+            (prop_id,)
         )
     q.execute(
         "UPDATE proposal SET status=?, decided_by=?, decided_at=?, decision_note=? WHERE id=?",

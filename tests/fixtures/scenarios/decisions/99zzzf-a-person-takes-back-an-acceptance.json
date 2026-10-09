@@ -1,0 +1,60 @@
+{
+ "title": "a person takes back an acceptance",
+ "line": "a card the owner accepted is taken back by the owner's rejection, with the reason, the way the rule's withdrawal takes back its own: his death certificate accepted for John Y Davidson and for his wife, her acceptance writing the marriage the certificate states, the owner rejects his card; his link, his statements and the marriage both partners' statements carry turn rejected as the owner's own decision, the death statement the owner had decided on its own keeps the state the owner gave it, her decision and what it wrote of her stand, and a card already rejected is refused",
+ "tree": {"file": "harness.ged", "home": "I332737035562", "plan": true},
+ "steps": [
+  {
+   "say": "FamilySearch's page of his death certificate, matched for the four people it names: him, his wife and his parents",
+   "archive": {"fixture": "familysearch-kentucky-deaths-1946-N983-M2R.html", "source": "D03", "collection": "Kentucky, Deaths, 1911-1967", "locator": {"kind": "apid", "value": "1,3077::604036"}, "extract": true,
+               "match": ["I332737204849", "I332737204852", "I332737209655", "I332737209721"]},
+   "as": "page"
+  },
+  {
+   "say": "the owner accepts the certificate as his: the first of the two acceptances, which writes no link yet",
+   "decide": {"card": {"record": "page", "person": "I332737204849"}, "status": "accepted", "by": "user:owner"},
+   "expect": [
+    {"card": {"record": "page", "person": "I332737204849", "status": "accepted", "decided_by": "user:owner"}}
+   ]
+  },
+  {
+   "say": "and as his wife's: the second acceptance writes the marriage the certificate states, both partners' statements under her decision",
+   "decide": {"card": {"record": "page", "person": "I332737204852"}, "status": "accepted", "by": "user:owner"},
+   "expect": [
+    {"states": {"record": "page", "person": "I332737204849", "kind": "family_member", "is": [{"status": "accepted", "person_decided": false}]}}
+   ]
+  },
+  {
+   "say": "the owner decides his death statement from the certificate on its own",
+   "assertion": {"record": "page", "person": "I332737204849", "event_type": "Death", "verdict": "accept", "note": "harness: the death as the certificate gives it"},
+   "expect": [
+    {"states": {"record": "page", "person": "I332737204849", "event_type": "Death", "is": [{"status": "accepted", "person_decided": true}]}}
+   ]
+  },
+  {
+   "say": "the owner takes back the acceptance of his card, with the reason",
+   "decide": {"card": {"record": "page", "person": "I332737204849"}, "status": "rejected", "by": "user:owner", "note": "harness: the certificate is another John Davidson's"},
+   "expect": [
+    {"last": {"ok": true, "status": "rejected", "links": {"len": 2}}, "why": "his statement of the marriage and hers, both written by her acceptance, rested on his"},
+    {"card": {"record": "page", "person": "I332737204849", "status": "rejected", "decided_by": "user:owner", "note": "harness: the certificate is another John Davidson's"}, "why": "recorded as the owner's own decision, with the reason"},
+    {"links": {"person": "I332737204849", "record": "page", "persona": "John Young Davidson", "role": "subject", "is": ["rejected"]}, "why": "the persona is not him"},
+    {"states": {"record": "page", "person": "I332737204849", "kind": "family_member", "is": [{"status": "rejected", "by": "user:owner", "person_decided": true}]}, "why": "the certificate states no marriage of his: rejected as the owner's own decision"},
+    {"states": {"record": "page", "person": "I332737204852", "kind": "family_member", "is": [{"status": "rejected", "by": "user:owner", "person_decided": true}]}, "why": "her side of the same link goes with it"},
+    {"states": {"record": "page", "person": "I332737204849", "kind": "person", "is": {"every": {"status": "rejected", "person_decided": true}}}, "why": "what the decision wrote of him goes"},
+    {"states": {"record": "page", "person": "I332737204849", "event_type": "Death", "is": [{"status": "accepted", "by": "agent:check", "person_decided": true}]}, "why": "a statement a person decided on its own since keeps the state they gave it"},
+    {"states": {"record": "page", "person": "I332737204852", "kind": "person", "is": {"every": {"status": "accepted"}}}, "why": "only the link rested on him: what her decision wrote of her stands"},
+    {"card": {"record": "page", "person": "I332737204852", "status": "accepted", "decided_by": "user:owner"}, "why": "her decision stands"}
+   ]
+  },
+  {
+   "say": "a rejected card is decided: neither accepted again nor rejected twice",
+   "decide": {"card": {"record": "page", "person": "I332737204849"}, "status": "accepted", "by": "user:owner"},
+   "expect": [
+    {"last": {"error": "already decided"}}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}, {"no_repeats": true}]
+  }
+ ]
+}
