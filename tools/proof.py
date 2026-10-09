@@ -22,7 +22,7 @@ For each key fact:
               the line says which); a record withdrawn
               from the evidence (tools/tombstone.py) is listed as withdrawn, its statements as written and evidence for nothing
   conflicts   each conflict question on the fact, with its question id (tools/conclude.py resolve and reopen take it): open, with
-              the rule's own reading of it (tools/conclude.py classes_decide, over every statement on that event's date or
+              the rule's own reading of it (tools/conflicts.py classes_decide, over every statement on that event's date or
               place): the side it would keep, the record of the event itself against sides resting only on secondary or
               indeterminable information, or why it would not decide; or closed with its reason, the owner's or the rule's
   research    the fact's checklist rows: held, searched with nothing found, cited and not fetched, blocked, or not yet
@@ -40,16 +40,18 @@ are ordered by their class words, never scored.
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, resolve_tree
-from catalog import BOUNDS, Catalog, date_verdict, evidence_classes, first_given, key, name_words, not_withdrawn, note, place_verdict, record_of, same_surname, split_name, split_persona_name
+from catalog import Catalog, date_verdict, first_given, key, name_words, note, place_verdict, record_of, same_surname, split_name, split_persona_name
 from facts import KEY_FACTS, fact_subjects
 from match import name_keys, same_given
+from conflicts import CONFLICT_AXIS, classes_decide, conflict_lines, order, record_info, subject_statements, words
 
-INFORMATION = ("primary", "secondary", "indeterminable", None)    # the order the classes favour a side in, best first
-SOURCE = ("original", "derivative", "authored", None)
-EVIDENCE = ("direct", "indirect", None)
+
 STATUS = ("accepted", "undecided", "rejected")
+
 SHOWN = 3                                                          # records a fact's default lines name before "and more"
+
 ROW_STATES = ("held", "searched, nothing found", "cited, not fetched", "blocked", "not yet searched")
+
 FACT_ROWS = {                                                      # the checklist rows whose records state each key fact (docs/RESEARCH-CHECKLIST.md)
     "name": ("birth record", "death record"),
     "sex": ("birth record",),
@@ -60,73 +62,8 @@ FACT_ROWS = {                                                      # the checkli
     "children": ("census household", "obituary", "will / probate"),
 }
 
-def order(c):
-    """The classes' own order for favouring a side: the record of the event itself (primary information) first, then the
-    source (original over derivative over authored), then the evidence (direct over indirect). A sort key of words, never
-    shown and never a score.
-    Implements [rule.proof.1]."""
-    c = c or {}
-    return (INFORMATION.index(c.get("information")) if c.get("information") in INFORMATION else 3,
-            SOURCE.index(c.get("source")) if c.get("source") in SOURCE else 3,
-            EVIDENCE.index(c.get("evidence")) if c.get("evidence") in EVIDENCE else 2)
-
-def words(c):
-    """A statement's classes as the words a line prints: source, information, evidence, and a family link's relationship.
-    Implements [rule.proof.1]."""
-    if not c: return ""
-    if c.get("vouched"): return "your own word"
-    return ", ".join(x for x in (c.get("source"), c.get("information"), c.get("evidence"), c.get("relationship")) if x)
-
-def decider(by, notes, person_decided):
-    """Who made a decision, in words, from the assertion's own record of it: the owner, a session acting for them or their own
-    word (a vouch) where a person's own decision on this statement set its status (assertion.person_decided); otherwise what
-    set it, which is no person's decision on the statement: the rule, the acceptance of its record (the notes name the proposal
-    that wrote it), or a re-read or a carry.
-    Implements [rule.proof.3], [rule.own.2]."""
-    by = by or ""
-    if (notes or {}).get("vouched"): return "your own word"
-    if person_decided:
-        if by.startswith("user:"): return "the owner"
-        if by.startswith("agent:") and " for user:" in by: return "a session for the owner"
-        return by or "unknown"
-    if by.startswith("rule:"): return "the rule"
-    return "the record's acceptance" if (notes or {}).get("proposal") else "a re-read or a carry"
-
 def _q(cx):
     q = cx.cursor(); q.row_factory = sqlite3.Row; return q
-
-# ---------------------------------------------------------------- the records
-def record_info(cx, sha, cache, entry=None):
-    """What a line says about an archived record: its short name, its locator as a reader opens it, the locator as the
-    catalog holds it (locator_value, the record's identity in a conflict line) and its citation (Evidence Explained style),
-    the citation naming entry, the person as the record writes them, where the record's own citation does not.
-    Implements [rule.proof.3]."""
-    if (sha, entry) in cache: return cache[(sha, entry)]
-    q = _q(cx)
-    a = q.execute("""SELECT ar.sha256, ar.mime, ar.locator_kind, ar.locator_value, ar.retrieved_at, ar.original_filename, c.name AS collection, s.name AS source, s.id AS source_id
-                     FROM artifact ar LEFT JOIN collection c ON c.id=ar.collection_id LEFT JOIN source s ON s.id=ar.source_id WHERE ar.sha256=?""", (sha,)).fetchone()
-    e = q.execute("""SELECT e.structured_json, x.name, x.kind FROM extraction e JOIN extractor x ON x.id=e.extractor_id
-                     WHERE e.artifact_sha256=? AND e.superseded_by IS NULL AND e.status<>'failed' ORDER BY e.ran_at DESC LIMIT 1""", (sha,)).fetchone()
-    try: parsed = json.loads(e["structured_json"]) if e and e["structured_json"] else {}
-    except ValueError: parsed = {}
-    parsed = parsed if isinstance(parsed, dict) else {}
-    locs = {r["kind"]: r["value"] for r in q.execute("SELECT kind, value FROM artifact_locator WHERE artifact_sha256=?", (sha,))}
-    own = re.sub(r"^[^•]*•\s*", "", parsed.get("collection") or "").strip() if e and e["name"] == "familysearch-record" else ""
-    name = own or (a["collection"] if a else None) or (a["source"] if a else None) or sha[:12]
-    if "memorial_id" in locs: name = f"Find a Grave memorial {locs['memorial_id']}"
-    url = (f"https://www.familysearch.org/{locs['ark']}" if "ark" in locs else f"https://www.findagrave.com/memorial/{locs['memorial_id']}/" if "memorial_id" in locs
-           else a["locator_value"] if a and a["locator_kind"] == "url" else f"Ancestry record {a['locator_value']}" if a and a["locator_kind"] == "apid" else (a["original_filename"] if a else None))
-    retrieved = (a["retrieved_at"] or "")[:10] if a else ""
-    if e and e["name"] == "familysearch-record" and parsed.get("citation"):
-        doc = {str(k).lower(): v for k, v in parsed.get("document") or []}
-        film = ", ".join(f"{label} {doc[k]}" for k, label in (("microfilm number", "microfilm"), ("digital folder number", "digital folder"), ("image number", "image")) if doc.get(k))
-        cite = parsed["citation"].strip() + (f" Citing {film}." if film else "")
-    else:
-        reader = f"; read by {e['name']}" if e and e["kind"] in ("llm", "human") else ""
-        cite = f"\"{name}\", {a['source'] if a else 'unknown holder'} ({url or 'no locator'}" + (f" : accessed {retrieved}" if retrieved else "") + ")" + \
-               (f", entry for {entry}" if entry else "") + reader + "."
-    cache[(sha, entry)] = {"sha256": sha, "name": name, "locator": url, "locator_value": a["locator_value"] if a else None, "citation": cite}
-    return cache[(sha, entry)]
 
 def statements(cat, pid, field):
     """Every assertion behind one key fact: what it says (a date and a place, a name, a sex, the link's own words and the
@@ -145,30 +82,6 @@ def statements(cat, pid, field):
             elif field == "spouses": relative = next((n for n, in q.execute("SELECT p.display_name FROM family_member fm JOIN person p ON p.id=fm.person_id WHERE fm.family_id=? AND fm.role='partner' AND fm.person_id<>?", (fid, pid))), None)
             else: relative = next((n for n, in q.execute("SELECT display_name FROM person WHERE id=?", (who,))), None)
         out += subject_statements(cat, kind, sid, want, relative)
-    return out
-
-def subject_statements(cat, kind, sid, want=None, relative=None):
-    """The assertions on one subject (a person, an event, a family link), each as statements() describes it; a statement of
-    another fact type than want is left out, the owner's own word (no record fact of its own) never.
-    Implements [rule.proof.3]."""
-    cx, q = cat.cx, _q(cat.cx)
-    out = []
-    for r in q.execute(f"""SELECT a.id, a.status, a.asserted_by, a.person_decided, a.notes, a.artifact_sha256, a.citation_text, pf.fact_type, pf.value_text, pf.date_text, pf.date_start, pf.date_end,
-                                 pf.date_qualifier, ps.raw AS place, ar.mime, pe.name_text AS persona, pe.id AS persona_id, NOT {not_withdrawn('a.artifact_sha256')} AS withdrawn
-                          FROM assertion a LEFT JOIN persona_fact pf ON pf.id=a.persona_fact_id LEFT JOIN place_string ps ON ps.id=pf.place_string_id
-                          LEFT JOIN persona pe ON pe.id=coalesce(pf.persona_id, a.persona_id)
-                          LEFT JOIN artifact ar ON ar.sha256=a.artifact_sha256 WHERE a.subject_kind=? AND a.subject_id=? ORDER BY a.asserted_at, a.id""", (kind, sid)):
-        if want and r["fact_type"] and r["fact_type"] != want: continue
-        try: notes = json.loads(r["notes"]) if r["notes"] and r["notes"].startswith("{") else {}
-        except ValueError: notes = {}
-        st = {"id": r["id"], "status": r["status"], "by": decider(r["asserted_by"], notes, r["person_decided"]), "sha256": r["artifact_sha256"], "subject": [kind, sid], "relative": relative, "persona": r["persona"], "persona_id": r["persona_id"],
-              "said": re.sub(r"\s+on the record$", "", r["citation_text"] or "") if kind == "family_member" else None,
-              "value": r["value_text"], "date": {"start": r["date_start"], "end": r["date_end"], "text": r["date_text"], "qualifier": r["date_qualifier"]} if r["date_start"] or r["date_end"] or r["date_text"] else None,
-              "place": r["place"], "apid": notes.get("apid"), "withdrawn": bool(r["withdrawn"])}
-        if notes.get("vouched"): st.update({"kind": "vouch", "classes": {"vouched": True}})
-        elif r["mime"] == "text/x-gedcom": st.update({"kind": "file", "classes": evidence_classes(cx, r["id"])})
-        else: st.update({"kind": "record", "classes": evidence_classes(cx, r["id"])})
-        out.append(st)
     return out
 
 # ---------------------------------------------------------------- the tree's value and agreement
@@ -309,49 +222,14 @@ def resolution(cat, qid, detail_json):
             if isinstance(d.get(k), str) and d[k].strip(): return d[k].strip()
     return None
 
-def axis_value(axis, st):
-    """What a statement gives on one axis of a conflict: its date ({start, text, qualifier}) or its place as written."""
-    return st["date"] if axis == "date" else st["place"]
-
-def specificity(axis, v):
-    """How specific a value is, for the order sides are formed in: a date's length, a bounded date (before, after, between)
-    least of all, a place's named parts."""
-    if axis == "date": return 0 if v.get("qualifier") in BOUNDS else len(v.get("start") or "")
-    return len([p for p in re.split(r"<|,", v) if p.strip()])
-
-def same_value(axis, a, b):
-    """Whether two values stand on one side: dates that agree by catalog.date_verdict, or one within the other's bound (a
-    bound differs from no date inside it), places by catalog.place_verdict read either way (a coarser place agrees with a
-    finer one inside it).
-    Implements [rule.conflict.5]."""
-    return date_verdict(a, b).verdict in ("agrees", "within") if axis == "date" else (place_verdict(a, b).verdict == "agrees" or place_verdict(b, a).verdict == "agrees")
-
-def sides(axis, sts):
-    """The sides of a date or place conflict: the values the statements give (rejected ones and the owner's own word
-    aside), the most specific first and a bounded date last, grouped where they agree (same_value); a value that agrees with
-    more than one side (a year against two days of it, a state against two towns in it, a bound holding two dates) takes no
-    side. Each side is {value, statements, best}, best
-    its best statement in the classes' own order, and the sides come in that order.
-    Implements [rule.conflict.5]."""
-    out = []
-    for st in sorted((s for s in sts if s["status"] != "rejected" and s["kind"] != "vouch" and axis_value(axis, s)), key=lambda s: -specificity(axis, axis_value(axis, s))):
-        fits = [s for s in out if same_value(axis, axis_value(axis, st), s["value"])]
-        if len(fits) > 1: continue
-        if not fits: fits = [{"value": axis_value(axis, st), "statements": []}]; out.append(fits[0])
-        fits[0]["statements"].append(st)
-    for s in out: s["best"] = min(s["statements"], key=lambda x: order(x["classes"]))
-    out.sort(key=lambda s: order(s["best"]["classes"]))
-    return out
-
 def rule_reading(cat, detail, spots):
-    """The rule's own reading of one open conflict (tools/conclude.py classes_decide, which writes nothing): {about: the
+    """The rule's own reading of one open conflict (tools/conflicts.py classes_decide, which writes nothing): {about: the
     event type and axis, event, axis, keep: the assertion id of the statement the rule would keep or None, why: its
     sentence}. The test is per event and axis, over every statement on it, so two conflicts on one event's date or place
     share one reading. None for a conflict that is not about an event's date or place (a duplicate event, a name); a
     difference the catalog no longer finds on any event says so (spots: the catalog's lines now, each with its event and
-    axis, conclude.conflict_lines).
+    axis, conflicts.conflict_lines).
     Implements [rule.proof.4]."""
-    from conclude import CONFLICT_AXIS, classes_decide
     m = CONFLICT_AXIS.match(detail)
     if not m: return None
     about = f"{m.group(1)} {m.group(2)}"
@@ -450,7 +328,6 @@ def build(cat, pid, only=None):
     that are a claim in words (claimed); with any, its basis reads "accepted in part" and each part owes an argument.
     Implements [rule.proof.3], [rule.value.4]."""
     from checklist import build as checklist
-    from conclude import conflict_lines
     ev, fam = cat.events(pid), cat.family(pid)
     spots = {line: (eid, axis) for line, eid, axis in conflict_lines(cat, pid)}
     basis = cat.key_fact_basis(pid, ev)

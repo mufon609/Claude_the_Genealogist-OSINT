@@ -1188,9 +1188,9 @@ def e_artifact_where(w, x, want):
     return row is not None and has(got, x["is"]), got
 
 def e_conflict_rule(w, x, want):
-    """The rule's test on a conflict (conclude.classes_decide) about a person's event of a `type`, on its `axis` (date or
+    """The rule's test on a conflict (conflicts.classes_decide) about a person's event of a `type`, on its `axis` (date or
     place): whether it keeps a statement (`taken`) and the reason in words (`why`)."""
-    from conclude import classes_decide
+    from conflicts import classes_decide
     row = w.cx.execute("SELECT e.id FROM event e JOIN event_participant ep ON ep.event_id=e.id WHERE ep.person_id=? AND e.event_type=? ORDER BY e.date_start",
                        (w.person(x["person"]), x["type"])).fetchone()
     if not row: return False, "no such event"

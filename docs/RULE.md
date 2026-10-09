@@ -697,7 +697,7 @@ the rule's resting on a statement the owner has just rejected is taken back
 there and then, never left for the next `reconsider`, while a date or place the
 owner has resolved or reopened stays theirs. **[rule.conflict.5]** The rule resolves through the same path,
 recorded as `rule:classes-favour-one-side for <owner>`, when the classes favour
-one side without doubt (`conclude.classes_decide`): the statement it keeps
+one side without doubt (`conflicts.classes_decide`): the statement it keeps
 holds the event first-hand (primary information, accepted, from a record whose
 source class is original or derivative and nobody can edit at will, direct, and
 the event the record was made for: an event the classes table names primary

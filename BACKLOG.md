@@ -1050,7 +1050,7 @@ read from the import first.
 ### C21. A conflict one side of which rests only on claims and editable pages
 
 The rule resolves a conflict only when the side it keeps holds primary
-information (`conclude.classes_decide`), so John Y Davidson's birth date stays
+information (`conflicts.classes_decide`), so John Y Davidson's birth date stays
 the owner's although 24 April 1876 rests only on the file's claim and three
 Find a Grave memorials while Apr 1875 rests on the 1900 census and his 1946
 death certificate, records nobody can edit. Write D3's answer into the docs

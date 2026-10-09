@@ -344,7 +344,7 @@ record's statements on a person's events of an `event_type`, or on a family `lin
 `statement` (which reading a record's statements on a person's events of an `event_type` are read through,
 `catalog.statement_of`: `current` or `earlier` each), `states` (a record's statements on a `person`, on their events of an
 `event_type`, on the person themselves with `kind` person, or on their own family links with `kind` family_member, in the
-order written: each one's `status`, who set it, `by`, and `person_decided`, whether that was a person's own decision on it), `conflict_rule` (the rule's test on a conflict, `conclude.classes_decide`, on a person's event of a `type` and its `axis`,
+order written: each one's `status`, who set it, `by`, and `person_decided`, whether that was a person's own decision on it), `conflict_rule` (the rule's test on a conflict, `conflicts.classes_decide`, on a person's event of a `type` and its `axis`,
 date or place: `taken` and the reason, `why`), `extractor` (a reading's extractor row, `kind`, `name`, `model_id`, `version`,
 `prompt_is_instruction` for the sha256 of `app/person/read_record.md`, and what the extraction kept: `image_is`, `year`,
 `regions` of its personas), `person_persona`, `reach`, `trusted` (a `membership`, or a person's `event` of a type, on

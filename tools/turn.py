@@ -44,7 +44,7 @@ only calls them in order and reports what came back, in words, never a score. Wh
 are the conflict questions it raised, the cards the rule did not take and the pages to save in the browser
 (docs/LOOP.md §8). Its report names each conflict the rule resolved or took back while it ran, one line
 each (the person, the date or place kept, the rule's reason and the question id `tools/conclude.py reopen` gives it back
-by; conclude.rule_conflict_changes reads them from the audit log after the last row there when the turn began), every
+by; conflicts.rule_conflict_changes reads them from the audit log after the last row there when the turn began), every
 source that did not answer once, with what it was asked and what it said (a connector step logged error stays runnable,
 so the next turn asks that source again; a place string the geocoder did not answer stays unresolved and is kept beside
 the database, whoever's it is, and the resolver of every later turn's tail and of `--resume`, the runner's opening pass,
@@ -62,7 +62,8 @@ from plan import plan_person
 import run_step
 import fetches
 from attach import attach_each, inbox_files, line
-from conclude import reconsider, rule_conflict_changes, rule_conflict_line
+from conclude import reconsider
+from conflicts import rule_conflict_changes, rule_conflict_line
 from resolve_places import resolve_strings
 
 RUNNER, PLANNER = "agent:run_step", "rule:plan@0.1.0"
