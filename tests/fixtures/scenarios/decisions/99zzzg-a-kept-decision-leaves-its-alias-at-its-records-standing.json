@@ -1,0 +1,75 @@
+{
+ "title": "a kept decision leaves its alias at its record's standing",
+ "line": "an alias an older decision wrote accepted from a page anyone can edit is brought to its record's standing when reconsider keeps the decision, and left to the person when the decision is theirs: Helen Sara Brant's memorial, whose identity the rule takes, carries her name as the page writes it, Helen Sara Brant Ahearn, accepted as the older code wrote it; reconsider keeps the rule's decision and sets the alias undecided, one audit row as the rule acting for whoever ran it, and the rule no longer counts it as her name; John Y Davidson's memorial, whose identity the owner's session accepted, carries John Georgi Young Davidson accepted the same way, and reconsider leaves it as it is and lists it as theirs to answer; a second pass sets nothing",
+ "tree": {"file": "harness.ged", "home": "I332737035562", "plan": true},
+ "steps": [
+  {
+   "say": "her memorial arrives, the page the owner saved, and the rule takes her identity on it",
+   "attach": {"fixture": "findagrave-memorial-142698059.html"},
+   "as": "mem",
+   "expect": [
+    {"card": {"record": "mem", "person": "I332737037573", "status": "accepted", "decided_by": {"starts": "rule:"}}},
+    {"alias": {"person": "I332737037573", "is": [["Helen Sara Brant Ahearn", {"any": true}, "undecided"]]}}
+   ]
+  },
+  {
+   "say": "the memorial's words for her as a decision before an alias took its record's standing left them: accepted",
+   "older_alias": {"card": {"record": "mem", "person": "I332737037573"}},
+   "as": "helen",
+   "expect": [
+    {"names": {"person": "I332737037573", "rule": ["helen ahearn", "helen brant"]}, "why": "accepted as the older code wrote it, the page's words count as her name for the rule"}
+   ]
+  },
+  {
+   "say": "John Y Davidson's memorial, John Georgi Young Davidson where the file writes John Y, accepted by the owner's session",
+   "attach": {"fixture": "findagrave-memorial-130509402.html"},
+   "as": "jmem"
+  },
+  {
+   "decide": {"card": {"record": "jmem", "person": "I332737204849"}, "status": "accepted"},
+   "expect": [
+    {"card": {"record": "jmem", "person": "I332737204849", "status": "accepted", "decided_by": "agent:check"}},
+    {"alias": {"person": "I332737204849", "is": {"some": ["John Georgi Young Davidson", {"any": true}, "undecided"]}}}
+   ]
+  },
+  {
+   "say": "his memorial's words for him as the older code wrote them: accepted",
+   "older_alias": {"card": {"record": "jmem", "person": "I332737204849"}},
+   "as": "john"
+  },
+  {
+   "say": "a dry run says what it would set, and sets nothing",
+   "reconsider": {"dry": true},
+   "expect": [
+    {"last": {"rows": {"some": {"kind": "standing", "person": "Helen Sara Brant", "what": {"has": "Helen Sara Brant Ahearn"}, "was": "accepted", "now": "undecided", "why": {"has": "a page anyone can edit"}}}, "wrote": 0}},
+    {"last": {"rows": {"some": {"kind": "theirs", "person": "John Y Davidson", "what": {"has": "John Georgi Young Davidson"}, "was": "accepted", "now": "undecided"}}}},
+    {"alias": {"person": "I332737037573", "is": [["Helen Sara Brant Ahearn", {"any": true}, "accepted"]]}}
+   ]
+  },
+  {
+   "say": "reconsider keeps the rule's decision and brings what it wrote to what a decision writes now",
+   "reconsider": {},
+   "expect": [
+    {"last": {"rows": {"some": {"kind": "decision", "kept": true, "person": "Helen Sara Brant"}}}},
+    {"card": {"record": "mem", "person": "I332737037573", "status": "accepted", "decided_by": {"starts": "rule:"}}},
+    {"alias": {"person": "I332737037573", "is": [["Helen Sara Brant Ahearn", {"any": true}, "undecided"]]}, "why": "a page anyone can edit identifies a person and builds none of their facts, the name it writes among them"},
+    {"names": {"person": "I332737037573", "rule": ["helen brant"], "matcher": ["helen ahearn", "helen brant"]}, "why": "the rule stands on accepted aliases alone; the matcher still reads the page's words"},
+    {"audit": {"entity": "alias", "id": "$helen.aliases.0", "is": [{"actor": "rule:agrees-with-accepted for agent:check", "action": "update", "diff": {"was": "accepted", "now": "undecided", "note": {"has": "a page anyone can edit"}}}]}, "why": "one audit row, the rule acting for whoever ran it"},
+    {"alias": {"person": "I332737204849", "is": {"some": ["John Georgi Young Davidson", {"any": true}, "accepted"]}}, "why": "a person's own decision is never undone by the rule: theirs to answer"},
+    {"last": {"rows": {"some": {"kind": "theirs", "person": "John Y Davidson", "record": "findagrave-memorial-130509402.html"}}}}
+   ]
+  },
+  {
+   "say": "a second pass sets nothing; the owner's alias is still theirs to answer",
+   "reconsider": {"dry": true},
+   "expect": [
+    {"last": {"rows": {"none": {"kind": "standing"}}, "wrote": 0}},
+    {"last": {"rows": {"some": {"kind": "theirs", "person": "John Y Davidson"}}}}
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [{"whole": true}, {"no_repeats": true}]
+  }
+ ]
+}

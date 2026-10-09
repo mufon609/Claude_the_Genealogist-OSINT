@@ -1,0 +1,728 @@
+{
+ "title": "a kept decision leaves the indexer's grouping undecided",
+ "line": "a family link an older decision wrote accepted from a grouping FamilySearch computed is set undecided when reconsider keeps the decision, and left to the person when the decision is theirs: the 1950 household page focused on Frederick Micheal Ahearn Jr, read as the record parser's first version read it in the owner's catalog, its relationships only FamilySearch's own Parents and Siblings table; the owner's session accepts the son and the mother on it, the rule takes the father, and each decision's links stand accepted as the older code wrote them; read again by the parser as it now stands, the page states the son the head's son and marks the table's Father, Mother and Parents computed; reconsider keeps the rule's decision on the father and sets his Father link undecided, noted as the indexer's, one audit row as the rule acting for whoever ran it, the son's parents still accepted on the census's own statement; the mother's Mother and Parents links, the session's own decision, it leaves accepted and lists as theirs to answer; a second pass sets nothing",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "the 1950 household's page, as the owner's archive holds it, not read",
+   "archive": {
+    "fixture": "familysearch-census-1950-6XYS-NQ16.html",
+    "source": "D03",
+    "collection": "United States, Census, 1950",
+    "locator": {
+     "kind": "file",
+     "value": "familysearch-census-1950-6XYS-NQ16.html"
+    }
+   },
+   "as": "c50"
+  },
+  {
+   "say": "the reading the record parser's first version left in the owner's catalog: the household's relationships only as FamilySearch's Parents and Siblings table groups them",
+   "older_reading": {
+    "record": "c50",
+    "extractor": {
+     "kind": "rule",
+     "name": "familysearch-record",
+     "version": "0.1.0"
+    },
+    "personas": [
+     {
+      "sequence": 1,
+      "name": "Fred M Ahearn",
+      "role": "son",
+      "sex": "M",
+      "region": {
+       "ark": "ark:/61903/1:1:6XYS-NQ16",
+       "label": "record"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Fred M Ahearn",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Male",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "17 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "CAL 1933",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Birth Year (Estimated)",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Single",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "W",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Son",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       },
+       {
+        "type": "Residence",
+        "date_text": "10 April 1950",
+        "place": "Suffolk, New York, United States",
+        "region": {
+         "labels": [
+          "Residence Date",
+          "Residence Place"
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 2,
+      "name": "Fred M Ahern",
+      "role": "father",
+      "sex": "M",
+      "region": {
+       "label": "Fred M Ahearn's Parents and Siblings",
+       "url": "/ark:/61903/1:1:6XYS-NQ1D?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Fred M Ahern",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "Male",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "42 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "CAL 1908",
+        "place": "Massachusetts",
+        "region": {
+         "labels": [
+          "Birth Year (Estimated)",
+          "Birthplace"
+         ]
+        }
+       },
+       {
+        "type": "Marital Status",
+        "value": "Married",
+        "region": {
+         "labels": [
+          "Marital Status"
+         ]
+        }
+       },
+       {
+        "type": "Occupation",
+        "value": "Purchasing Agent",
+        "region": {
+         "labels": [
+          "Occupation"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Industry: V. A. Hospital Mental",
+        "region": {
+         "labels": [
+          "Industry"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Date: 10 April 1950",
+        "region": {
+         "labels": [
+          "Event Date"
+         ]
+        }
+       },
+       {
+        "type": "Unknown",
+        "value": "Event Place: Suffolk, New York, United States",
+        "region": {
+         "labels": [
+          "Event Place"
+         ]
+        }
+       },
+       {
+        "type": "Race",
+        "value": "W",
+        "region": {
+         "labels": [
+          "Race"
+         ]
+        }
+       },
+       {
+        "type": "Relationship",
+        "value": "Head",
+        "region": {
+         "labels": [
+          "Relationship to Head of Household"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "to": 1,
+        "value": "Father",
+        "region": {
+         "label": "Fred M Ahearn's Parents and Siblings"
+        }
+       },
+       {
+        "kind": "spouse",
+        "to": 3,
+        "value": "Parents",
+        "region": {
+         "label": "Fred M Ahearn's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 3,
+      "name": "Helen B Ahearn",
+      "role": "mother",
+      "sex": "F",
+      "region": {
+       "label": "Fred M Ahearn's Parents and Siblings",
+       "url": "/ark:/61903/1:1:6XYS-NQ1Z?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Helen B Ahearn",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "F",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "40 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "CAL 1910",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Age",
+          "Birthplace"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "parent",
+        "to": 1,
+        "value": "Mother",
+        "region": {
+         "label": "Fred M Ahearn's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 4,
+      "name": "Alice M Ahearn",
+      "role": "sister",
+      "sex": "F",
+      "region": {
+       "label": "Fred M Ahearn's Parents and Siblings",
+       "url": "/ark:/61903/1:1:6XYS-NQ18?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "Alice M Ahearn",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "F",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "15 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "CAL 1935",
+        "place": "Pennsylvania",
+        "region": {
+         "labels": [
+          "Age",
+          "Birthplace"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Sister",
+        "region": {
+         "label": "Fred M Ahearn's Parents and Siblings"
+        }
+       }
+      ]
+     },
+     {
+      "sequence": 5,
+      "name": "John D Ahearn",
+      "role": "brother",
+      "sex": "M",
+      "region": {
+       "label": "Fred M Ahearn's Parents and Siblings",
+       "url": "/ark:/61903/1:1:6XYS-NQ1X?lang=en"
+      },
+      "facts": [
+       {
+        "type": "Name",
+        "value": "John D Ahearn",
+        "region": {
+         "labels": [
+          "Name"
+         ]
+        }
+       },
+       {
+        "type": "Sex",
+        "value": "M",
+        "region": {
+         "labels": [
+          "Sex"
+         ]
+        }
+       },
+       {
+        "type": "Age",
+        "value": "6 years",
+        "region": {
+         "labels": [
+          "Age"
+         ]
+        }
+       },
+       {
+        "type": "Birth",
+        "date_text": "CAL 1944",
+        "place": "Maryland",
+        "region": {
+         "labels": [
+          "Age",
+          "Birthplace"
+         ]
+        }
+       }
+      ],
+      "relations": [
+       {
+        "kind": "sibling",
+        "to": 1,
+        "value": "Brother",
+        "region": {
+         "label": "Fred M Ahearn's Parents and Siblings"
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "as": "old"
+  },
+  {
+   "say": "matched for the son",
+   "match": {
+    "record": "c50",
+    "about": [
+     "I332737036054"
+    ]
+   }
+  },
+  {
+   "say": "the owner's session accepts the son",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737036054"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "the rule took the father on this reading before it read which relationships a record states",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037257"
+    },
+    "status": "accepted",
+    "by": "rule:agrees-with-accepted for agent:check"
+   }
+  },
+  {
+   "say": "the owner's session accepts the mother",
+   "decide": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037573"
+    },
+    "status": "accepted"
+   }
+  },
+  {
+   "say": "his link to the son as that decision wrote it, before a decision read which relationships a record states: accepted",
+   "older_link": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037257"
+    }
+   },
+   "as": "father"
+  },
+  {
+   "say": "her links to the son and to his father as that decision wrote them: accepted",
+   "older_link": {
+    "card": {
+     "record": "c50",
+     "person": "I332737037573"
+    }
+   },
+   "as": "mother",
+   "expect": [
+    {
+     "states": {
+      "person": "I332737036054",
+      "record": "c50",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted",
+        "by": "rule:agrees-with-accepted for agent:check"
+       },
+       {
+        "status": "accepted",
+        "by": "agent:check"
+       }
+      ]
+     },
+     "why": "the son's Father and Mother links, accepted as the older code wrote them"
+    }
+   ]
+  },
+  {
+   "say": "the page read again by the parser as it now stands: the son's own row states his relationship to the head, the table's rows are marked computed",
+   "reread": {
+    "record": "c50"
+   },
+   "expect": [
+    {
+     "states": {
+      "person": "I332737036054",
+      "record": "c50",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "accepted"
+       },
+       {
+        "status": "accepted"
+       },
+       {
+        "status": "accepted"
+       }
+      ]
+     },
+     "why": "the carried decision writes the census's own Son beside the two older links"
+    }
+   ]
+  },
+  {
+   "say": "a dry run says what it would set, and sets nothing",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "standing",
+        "person": "Frederick Michael Ahearn",
+        "what": {
+         "has": "Father on the record"
+        },
+        "was": "accepted",
+        "now": "undecided",
+        "why": {
+         "has": "the record's indexer, not the record, states it"
+        }
+       }
+      },
+      "wrote": 0
+     }
+    },
+    {
+     "states": {
+      "person": "I332737036054",
+      "record": "c50",
+      "kind": "family_member",
+      "is": {
+       "every": {
+        "status": "accepted"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "reconsider keeps the rule's decision on the father and sets the grouping it wrote undecided",
+   "reconsider": {},
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "decision",
+        "kept": true,
+        "person": "Frederick Michael Ahearn"
+       }
+      }
+     }
+    },
+    {
+     "card": {
+      "record": "c50",
+      "person": "I332737037257",
+      "status": "accepted",
+      "decided_by": {
+       "starts": "rule:"
+      }
+     }
+    },
+    {
+     "audit": {
+      "entity": "assertion",
+      "id": "$father.links.0",
+      "is": [
+       {
+        "actor": "rule:agrees-with-accepted for agent:check",
+        "action": "update",
+        "diff": {
+         "was": "accepted",
+         "now": "undecided",
+         "note": {
+          "has": "(Father) written undecided: the record's indexer, not the record, states it"
+         }
+        }
+       }
+      ]
+     },
+     "why": "one audit row, the rule acting for whoever ran it, with the note a decision writes for an indexer's grouping"
+    },
+    {
+     "states": {
+      "person": "I332737036054",
+      "record": "c50",
+      "kind": "family_member",
+      "is": [
+       {
+        "status": "undecided",
+        "by": "rule:agrees-with-accepted for agent:check",
+        "person_decided": false
+       },
+       {
+        "status": "accepted",
+        "by": "agent:check"
+       },
+       {
+        "status": "accepted"
+       }
+      ]
+     },
+     "why": "the father's Father link undecided; the mother's Mother link, the session's own decision, stays accepted; the census's own Son, carried to the new reading, stands"
+    },
+    {
+     "facts": {
+      "person": "I332737036054",
+      "parents": "accepted"
+     },
+     "why": "his parents link stands on the census's own statement of his relationship to the head"
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "theirs",
+        "person": "Helen Sara Brant",
+        "what": {
+         "has": "Mother on the record"
+        },
+        "record": "familysearch-census-1950-6XYS-NQ16.html",
+        "was": "accepted",
+        "now": "undecided"
+       }
+      }
+     },
+     "why": "a person's own decision is never undone by the rule: theirs to answer"
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "theirs",
+        "person": "Helen Sara Brant",
+        "what": {
+         "has": "Parents on the record"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "a second pass sets nothing; the session's links are still theirs to answer",
+   "reconsider": {
+    "dry": true
+   },
+   "expect": [
+    {
+     "last": {
+      "rows": {
+       "none": {
+        "kind": "standing"
+       }
+      },
+      "wrote": 0
+     }
+    },
+    {
+     "last": {
+      "rows": {
+       "some": {
+        "kind": "theirs",
+        "person": "Helen Sara Brant"
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    }
+   ]
+  }
+ ]
+}

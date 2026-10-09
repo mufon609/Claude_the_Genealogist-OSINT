@@ -1469,7 +1469,12 @@ would no longer take, its assertions and the name alias it wrote back to
 undecided, recorded as the rule's (a statement a person has decided on its own
 since keeps the state they gave it), and the record is a card for the owner again
 with the reason; accepting that card makes everything the decision had written
-stand again. A withdrawal also takes back the family links its decision was one
+stand again. One it keeps it brings to what a decision writes now, recorded as the
+rule's, one audit row each: the name alias it wrote takes the standing of its
+record, and a family link it wrote accepted that the record's current reading
+gives as its indexer's grouping goes undecided, noted as the indexer's (a
+statement a person has decided on its own keeps its state); the same under a
+person's own decision it never changes, and lists as theirs to answer. A withdrawal also takes back the family links its decision was one
 of the two acceptances for (a link another decision on the record wrote between
 the two people, with the family facts written with a spouse link), unless another
 pair accepted on the record still states it or a person decided its status on

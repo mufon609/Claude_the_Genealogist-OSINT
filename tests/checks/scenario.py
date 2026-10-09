@@ -855,8 +855,27 @@ ACTIONS = {"plan": a_plan, "migrate": a_migrate, "sync_sources": a_sync_sources,
            "question": a_question, "post": a_post,
            "log": a_log, "reopen": a_reopen, "step": a_step, "event": a_event, "place_card": a_place_card, "file_family": a_file_family, "divorce": a_divorce, "resolve_conflict": a_resolve_conflict, "reopen_conflict": a_reopen_conflict, "older_matcher": a_older_matcher, "persona_link": a_persona_link, "merge": a_merge, "cite": a_cite, "seed": a_seed, "copies": a_copies}
 
+def a_older_alias(w, x):
+    """The name alias a decision on a `card` wrote, as conclude.write_name_alias left it before an alias took the standing of
+    its record: accepted, whatever its record's tier."""
+    ids = [r[0] for r in w.cx.execute("SELECT id FROM alias WHERE json_valid(notes) AND json_extract(notes,'$.proposal')=?", (w.card(x["card"])["id"],))]
+    if not ids: raise KeyError(f"no alias written by {short(x['card'])}")
+    w.cx.execute(f"UPDATE alias SET status='accepted' WHERE id IN ({','.join('?' * len(ids))})", ids); w.cx.commit()
+    return {"aliases": ids}
+
+def a_older_link(w, x):
+    """The family links a decision on a `card` wrote from relationships the record's indexer computed, as conclude.link_family
+    left them before it read which relationships a record states: accepted, and unmarked."""
+    ids = [r[0] for r in w.cx.execute("""SELECT id FROM assertion WHERE subject_kind='family_member' AND json_valid(notes) AND json_extract(notes,'$.proposal')=?
+                                         AND json_extract(notes,'$.computed') IS NOT NULL""", (w.card(x["card"])["id"],))]
+    if not ids: raise KeyError(f"no computed link written by {short(x['card'])}")
+    w.cx.execute(f"UPDATE assertion SET status='accepted', notes=json_remove(notes,'$.computed') WHERE id IN ({','.join('?' * len(ids))})", ids); w.cx.commit()
+    return {"links": ids}
+
 ACTIONS["legacy_card"] = a_legacy_card
 ACTIONS["older_reading"] = a_older_reading
+ACTIONS["older_alias"] = a_older_alias
+ACTIONS["older_link"] = a_older_link
 ACTIONS["households"] = a_households
 
 def a_tombstone(w, x):

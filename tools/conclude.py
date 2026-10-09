@@ -28,7 +28,8 @@ persona on that reading of the record, and nothing the record would add falls ou
 such on the proposal and in the audit log, and the owner can reject what it accepted: the link and every assertion it wrote turn rejected, with the family links it was one of the two acceptances for (links_resting_on). The rule can also take a decision back (reconsider): every
 decision it made is examined again as the rule stands now, in the order it took them, on the ground that stood before it, and one it would
 no longer take is withdrawn, the record a card for the owner again, with the family links it was one of the two acceptances for
-(links_resting_on), which no later decision stands on; then every card still undecided is examined the same
+(links_resting_on), which no later decision stands on, and one it keeps is brought to what a decision writes now (its name
+alias at the standing of its record, a link the record's indexer computed undecided); then every card still undecided is examined the same
 way, and one the rule would now take is taken. Between the two, every undecided card the evidence has passed by is matched
 again (rematch): one an older matcher wrote (the matcher is versioned, match.MATCHER), one left on a reading of its record
 read again since, and one the matcher would no longer put to that person as the person's evidence now stands close as
@@ -5157,6 +5158,107 @@ def withdraw(cx, tree_id, prop_id, by, why, ts):
     )
     return n
 
+def written_otherwise(cx, tree_id, prop):
+    """What a decision wrote that decide would write otherwise now (docs/RESEARCH-WORKFLOW.md §5–7, reconsider): each name
+    alias it wrote whose status is not the standing its record gives now (write_name_alias: accepted from a record nobody
+    can edit at will, T1–T3, undecided from a page anyone can edit or a record of no known tier), and each family-link
+    statement it wrote accepted whose relationship the record's current reading gives as its indexer's (link_family's
+    reading, catalog.relation_classes: the relationship in the statement's own words between the decision's entry on that
+    reading and the person the other entry is accepted as, an in-law's tie to the relative it resolves to, computed and
+    never stated), which decide writes undecided as the indexer's. A statement a person decided on its own
+    (person_decided) is theirs and never among them. Returns one row each: kind (alias or link), the row's id, the person
+    it is about, the record, what it is in words, the status it holds and the one it would hold, why, and the note its audit
+    row carries (a link's the note decide writes for an indexer's grouping)."""
+    q = _q(cx)
+    pay = json.loads(prop["payload_json"])
+    me = pay.get("person_id")
+    name = lambda pid: (q.execute("SELECT display_name FROM person WHERE id=?", (pid,)).fetchone() or {"display_name": "?"})["display_name"]
+    out = []
+    for a in q.execute("""SELECT id, entity_id, value, status, source_artifact_sha256 FROM alias WHERE tree_id=? AND entity_kind='person'
+                          AND status IN ('accepted','undecided') AND json_valid(notes) AND json_extract(notes,'$.proposal')=? ORDER BY id""", (tree_id, prop["id"])).fetchall():
+        trusted = str(source_tier(cx, a["source_artifact_sha256"]) or "")[:2] in TRUSTED
+        if a["status"] != ("accepted" if trusted else "undecided"):
+            out.append(
+                {
+                    "kind": "alias",
+                    "id": a["id"],
+                    "person": a["entity_id"],
+                    "record": a["source_artifact_sha256"],
+                    "what": f"the name as the record writes it, {a['value']}",
+                    "was": a["status"],
+                    "now": "accepted" if trusted else "undecided",
+                    "why": "an alias takes the standing of its record, "
+                    + ("one nobody can edit at will" if trusted else "a page anyone can edit")
+                }
+            )
+    if not me:
+        return out
+    accepted_as = lambda z: next((r[0] for r in q.execute("""SELECT pp.person_id FROM person_persona pp JOIN person o ON o.id=pp.person_id
+                                                              WHERE pp.persona_id=? AND pp.status='accepted' AND o.tree_id=?""", (z, tree_id))), None)
+    for s in q.execute(f"""SELECT a.id, a.subject_id, a.persona_id, a.artifact_sha256, a.citation_text FROM assertion a WHERE a.tree_id=? AND a.subject_kind='family_member'
+                           AND a.status='accepted' AND NOT a.person_decided AND NOT {marked('a')} AND json_valid(a.notes) AND json_extract(a.notes,'$.proposal')=? ORDER BY a.id""", (tree_id, prop["id"])).fetchall():
+        cur = current_entry(cx, s["persona_id"]) if s["persona_id"] else None
+        if not cur:
+            continue
+        word = re.sub(r"\s+on the record$", "", s["citation_text"] or "")
+        fid, who, role = json.loads(s["subject_id"])
+        fam = {r[0] for r in q.execute("SELECT person_id FROM family_member WHERE family_id=?", (fid,))}
+        rows = []
+        for r in q.execute("""SELECT persona_id, related_persona_id, kind, value_text FROM persona_relation
+                              WHERE (persona_id=? OR related_persona_id=?) AND coalesce(nullif(value_text,''), kind)=?""", (cur, cur, word)).fetchall():
+            them = accepted_as(r["related_persona_id"] if r["persona_id"] == cur else r["persona_id"])
+            # an in-law's tie is the decision's person's link to the relative it resolves to (resolve_in_law)
+            if them and (me in fam and who in fam if r["kind"] == "other" else who in (me, them) and me in fam and them in fam):
+                rows.append((r, them))
+        if rows and all(
+            relation_classes(cx, r["persona_id"], r["related_persona_id"], r["kind"], r["value_text"])["relationship"] == "computed"
+            for r, _ in rows
+        ):
+            out.append(
+                {
+                    "kind": "link",
+                    "id": s["id"],
+                    "person": who,
+                    "record": s["artifact_sha256"],
+                    "what": f"{name(who)}'s {'parents' if role == 'child' else 'spouse'} link ({s['citation_text']})",
+                    "was": "accepted",
+                    "now": "undecided",
+                    "why": "the record's indexer, not the record, states it",
+                    "note": f"the link to {name(rows[0][1])} ({word}) written undecided: the record's indexer, not the record, states it"
+                }
+            )
+    return out
+
+def bring_to_now(cx, tree_id, prop_id, rows, by, ts):
+    """What a kept decision wrote brought to what decide writes now (written_otherwise's rows): each alias to the standing of
+    its record, each family link the record's indexer computed undecided and marked so (link_family's mark, so a later
+    acceptance of the card writes it undecided as well), under by, the rule acting for whoever ran it; one audit row each,
+    and the plans of everyone whose family a link reaches regenerated (link_people)."""
+    q = _q(cx)
+    for r in rows:
+        if r["kind"] == "alias":
+            q.execute("UPDATE alias SET status=? WHERE id=?", (r["now"], r["id"]))
+        else:
+            q.execute(
+                "UPDATE assertion SET status='undecided', asserted_by=?, asserted_at=?, notes=json_set(notes,'$.computed',json('true')) WHERE id=?",
+                (by, ts, r["id"])
+            )
+        q.execute(
+            "INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
+            (
+                ulid(),
+                tree_id,
+                ts,
+                by,
+                "update",
+                "alias" if r["kind"] == "alias" else "assertion",
+                r["id"],
+                dumps({"was": r["was"], "now": r["now"], "proposal": prop_id, "note": r.get("note") or f"{r['what']} written {r['now']}: {r['why']}"})
+            )
+        )
+    for pid in link_people(cx, memberships_of(cx, [r["id"] for r in rows if r["kind"] == "link"])):
+        plan_person(cx, tree_id, pid, by)
+
 def rematch(cx, tree_id, by, ts, people=None, dry_run=False, withdrawn=()):
     """The undecided cards the evidence has passed by, matched again (docs/RESEARCH-WORKFLOW.md §5–7): a card an older matcher
     wrote (the matcher is versioned, match.MATCHER); a card left on a superseded reading of its record (a decision the rule
@@ -5493,7 +5595,11 @@ def reconsider(cx, tree_id, by, dry_run=False):
     decision was taken, then its accept row in the audit log (a ULID, minted in order to the millisecond, written as the decision
     takes effect: decide), the card's own id where no such row exists; within one second a card the rule took after one it
     rests on is examined after it. One the rule would no longer take is withdrawn, and with it the family links it was one
-    of the two acceptances for (links_resting_on), which no decision examined after it stands on either. Then every
+    of the two acceptances for (links_resting_on), which no decision examined after it stands on either. One it keeps is
+    brought to what decide writes now (written_otherwise, bring_to_now): the name alias it wrote to the standing of its
+    record, and a family link it wrote accepted that the record's current reading gives as its indexer's grouping
+    undecided, each with an audit row as the rule acting for by; the same under a person's own decision are never changed,
+    returned last as theirs to answer. Then every
     undecided card is matched again (rematch): one an older matcher wrote, one left on a superseded reading of its record,
     and one the matcher would no longer put to that person as the evidence now stands close as superseded and their
     records' current readings are matched again, the matcher proposing the personas afresh; one it still puts to the same
@@ -5504,9 +5610,11 @@ def reconsider(cx, tree_id, by, dry_run=False):
     taken back with the event's value restored, and every open conflict on an event's date or place resolved where the
     classes favour one side without doubt (classes_decide), the rest left to the owner with the reason; the cards of the
     people whose date or place that changed are matched again last (rematch_people). Returns one row per decision, per
-    card superseded or rewritten, per card and per conflict, and per decision carried to a copy: kind (decision, rematch,
-    rationale, card, resolution, conflict or carried), the person, kept or taken, why; a card's rows the proposal and the persona, a conflict's the question and
-    its line. A dry run examines the cards a run would leave, a decision it would withdraw among them, on the ground a run
+    card superseded or rewritten, per card and per conflict, per decision carried to a copy, and per alias or link brought
+    to what decide writes now or left to the person: kind (decision, rematch, rationale, card, resolution, conflict,
+    carried, standing or theirs), the person, kept or taken, why; a card's rows the proposal and the persona, a conflict's
+    the question and its line, a standing or theirs row the decision's person and persona, the record, what it is, the
+    status it holds and the one a decision writes now. A dry run examines the cards a run would leave, a decision it would withdraw among them, on the ground a run
     would leave (without the decisions it would withdraw and the links they take back): not the ones it would supersede."""
     q = _q(cx)
     ts = now()
@@ -5562,6 +5670,20 @@ def reconsider(cx, tree_id, by, dry_run=False):
     persona = lambda pay: q.execute(
         "SELECT name_text FROM persona WHERE id=?", (pay["persona_id"],)
     ).fetchone()["name_text"]
+    def otherwise_row(p, w, kind):
+        """A row of written_otherwise as reconsider returns it: under a decision of the rule's it keeps (standing), or under a
+        person's own (theirs)."""
+        return {
+            "proposal": p["id"],
+            "person": name(json.loads(p["payload_json"])),
+            "persona": persona(json.loads(p["payload_json"])),
+            "kind": kind,
+            "taken": kind == "standing",
+            "record": q.execute(
+                "SELECT coalesce(original_filename, substr(sha256,1,12)) FROM artifact WHERE sha256=?", (w["record"],)
+            ).fetchone()[0],
+            **{k: w[k] for k in ("what", "was", "now", "why")}
+        }
     def link_words(links):
         """The family links a withdrawal takes back, in words: whose membership, and the record's word for it."""
         rows_ = [
@@ -5599,6 +5721,12 @@ def reconsider(cx, tree_id, by, dry_run=False):
                 "why": why
             }
         )
+        if ok:
+            # what the kept decision wrote, brought to what decide writes now; a link a withdrawal in this pass took back is gone
+            otherwise = [w for w in written_otherwise(cx, tree_id, p) if w["id"] not in unlinked]
+            if otherwise and not dry_run:
+                bring_to_now(cx, tree_id, p["id"], otherwise, f"{RULE_ACTOR[p['kind']]} for {by}", ts)
+            out += [otherwise_row(p, w, "standing") for w in otherwise]
     rematched, retaken = rematch(cx, tree_id, by, ts, dry_run=dry_run, withdrawn=gone if dry_run else ())
     out += rematched
     superseded = {r["proposal"] for r in rematched if r["kind"] == "rematch"}
@@ -5654,7 +5782,12 @@ def reconsider(cx, tree_id, by, dry_run=False):
         ]
     )
     # a date or place the pass kept or gave back moves the cards compared with it
-    return out + [r for r in cards.values() if still(r)] + conflicts + rematch_people(cx, tree_id, by, moved)
+    out += [r for r in cards.values() if still(r)] + conflicts + rematch_people(cx, tree_id, by, moved)
+    # the same under a person's own decisions: theirs to answer, never the rule's to change
+    for p in q.execute("""SELECT * FROM proposal WHERE tree_id=? AND status='accepted' AND kind IN ('persona_match','new_person')
+                          AND coalesce(decided_by,'') NOT LIKE 'rule:%' ORDER BY decided_at, id""", (tree_id,)).fetchall():
+        out += [otherwise_row(p, w, "theirs") for w in written_otherwise(cx, tree_id, p)]
+    return out
 
 def main():
     ap = argparse.ArgumentParser(
@@ -5998,6 +6131,14 @@ def main():
                         f"{verdict:19} {x['person']} [{x['question'][-6:] if x['question'] else 'no question yet'}] {x['detail']}: {x['why']}"
                     )
                     continue
+                if x["kind"] in ("standing", "theirs"):
+                    print(
+                        f"{('would set' if a.dry_run else 'set') if x['kind'] == 'standing' else 'yours to answer':19} {x['person']} <- {x['persona']} [{x['proposal'][-6:]}]: "
+                        f"{x['what']}, on {x['record']}, {x['was']}"
+                        + (f", now {x['now']}" if x["kind"] == "standing" and not a.dry_run else f"; decided now it is {x['now']}")
+                        + f": {x['why']}"
+                    )
+                    continue
                 verdict = (
                     ("would carry" if a.dry_run else "carried")
                     if x["kind"] == "carried" and x["taken"]
@@ -6023,7 +6164,9 @@ def main():
                     f"{sum(1 for x in rows if x['kind'] == 'card' and not x['taken'])} refused, "
                     f"{sum(1 for x in rows if x['kind'] == 'resolution' and not x['kept'])} of {sum(1 for x in rows if x['kind'] == 'resolution')} resolution(s) {'it would take back' if a.dry_run else 'taken back'}, "
                     f"{sum(1 for x in rows if x['kind'] == 'conflict' and x['taken'])} conflict(s) {'it would resolve' if a.dry_run else 'resolved'}, "
-                    f"{sum(1 for x in rows if x['kind'] == 'conflict' and not x['taken'])} left to you"
+                    f"{sum(1 for x in rows if x['kind'] == 'conflict' and not x['taken'])} left to you, "
+                    f"{sum(1 for x in rows if x['kind'] == 'standing')} alias(es) and link(s) of kept decisions {'it would set' if a.dry_run else 'set'} as a decision writes them now, "
+                    f"{sum(1 for x in rows if x['kind'] == 'theirs')} under your own decisions yours to answer"
                 )
         elif a.cmd == "link":
             pid = cat.find_person(a.person)

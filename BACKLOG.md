@@ -1169,21 +1169,6 @@ another retriever, cited by search-log rows, and 5 have no row. A tool refuses a
 outside its data root (`treelib.in_data_root`) and every check runs under a
 scratch `DATA_ROOT`, so this entry is the cleanup alone.
 
-### C29. Family links accepted on a grouping the record does not state
-
-An accept writes a family link the record's indexer computed undecided, but
-decisions made before the FamilySearch reader marked its relations, the
-owner's and the rule's alike, wrote FamilySearch's groupings as accepted
-links: a census page's "Father", "Mother" and "Parents" couple around the
-page's own person, a marriage page's in-law. A rule
-decision `reconsider` keeps keeps them accepted, so a person's parents or
-spouses can read accepted on a grouping alone. Have `reconsider`, when it
-keeps a decision, turn each of that decision's accepted family-link statements
-whose record's current reading marks the relationship computed to undecided,
-noted as the indexer's, one audit row each; the same statements under the
-owner's own decisions are the owner's to answer, listed for them, since a
-person's decision is never undone by the rule.
-
 ### C30. A FamilySearch household page saved with every member's details open
 
 A census states every member's relationship to the head, but a FamilySearch
@@ -1276,6 +1261,20 @@ bullet goes. A bullet that changes what the rule decides ends with a dry-run
   never proposes a persona that carries any rejected link, to anyone.
 - **The proof.** It makes "meets the standard" wait on research the docs call
   "not a gate".
+- **An alias in its own re-examination.** `reconsider` examines a decision
+  without its own assertions and those of the decisions after it (`without`),
+  but the name test (`match.compare`'s `accepted_names`, `match.name_keys`)
+  reads every accepted alias, the decision's own and those of the decisions
+  after it among them, and in a dry run those of the decisions it would
+  withdraw and those it would set undecided. Live: the rule's decision taking
+  Reiko Diane Davidson on the 2015 obituary
+  (`h05-obituary-collection-current-2015-ZW0KTA.html`) agrees on the name only
+  through the alias Diane Ahearn it wrote itself; without it the given name
+  disagrees, and its withdrawal takes back the family links Patrick Michael
+  Ahearn's and Matthew Alan Ahearn's decisions on the same obituary count, so
+  both would be withdrawn too (a dry run on a copy of the live catalog of 9
+  Oct 2026, the name test leaving out those aliases). Have the name test leave
+  out the aliases of the decisions in `without`.
 
 ### C32. Circumstances under which a record misstates a date on purpose
 

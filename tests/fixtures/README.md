@@ -316,7 +316,10 @@ to a person the current matcher would not put it to; the matcher writes none of 
 reconsider or a decision to meet), `older_reading` (a record's reading as an older reader left it in the owner's
 catalog and no reader writes now: the `extractor` and each persona with its facts copied from the catalog's own rows, a date
 read from its `date_text`, a `place` as its words, and its `relations` to the reading's other personas by their `sequence`
-under `to`; it stands as the record's current reading), `persona_link` (a person's link to a record's persona of a `role`, and
+under `to`; it stands as the record's current reading), `older_alias` (the name alias a decision on a `card` wrote, set
+accepted as `conclude.write_name_alias` left it before an alias took the standing of its record), `older_link` (the family
+links a decision on a `card` wrote from relationships the record's indexer computed, set accepted and unmarked as
+`conclude.link_family` left them before it read which relationships a record states), `persona_link` (a person's link to a record's persona of a `role`, and
 `persona` name and `sequence` row, set to `status`, the state a card an older matcher put up for a memorial's listed relative leaves once
 decided; with `card`, the link that card's decision wrote on another row of the same name before a decision reached only its own
 entry of the page, the shape the 0.7.5 migration corrects), `merge` (a `duplicate` merged into the person it duplicates, `kept`, with a `note`; `older` for the merge as an older tool left it, every proposal it re-pointed naming the duplicate again, every membership it folded back on the duplicate's row with the statements it moved, every persona link it folded back there as it was (the kept person's own row as it was too), every name alias it moved or folded the duplicate's again and every question it closed open again, the shape the merge run again on the pair completes), `cite`, `question` (a research_question row patched by
@@ -525,12 +528,19 @@ The owner's own hand, and the model's, are played by the harness on real pages:
   the Lena Howard Bell search page's document.
 - `block_filing`: the move that files a saved page's original under the tree refused, so the attach fails after its rows are
   written, the stand-in for a file whose transaction fails (loop `107`); no page or record is touched.
-- Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan
-  steps (`step`, `step_query`, and with `revisions` a revision the screen stored before it refused a year that is no year, loop `116`), events (`event`), a research question's shape (`question`), cards and links an older matcher
-  left (`legacy_card`, `older_matcher`, `persona_link`), a reading an older reader left (`older_reading`, its rows copied from
-  the owner's catalog), a merge an older tool left unfinished (`merge` with `older`), a place card on the geocoder's real answers (`place_card`) and place
-  strings of the owner's records (`place_string`). None of them is a page or a response, and none is a record of anyone but
-  as the owner's catalog already holds it.
+- Catalog state a path needs and no record or run would leave in a short scenario is written by hand: plan steps (`step`,
+  `step_query`, and with `revisions` a revision the screen stored before it refused a year that is no year, loop `116`),
+  events (`event`), a research question's shape (`question`), cards and links an older matcher left (`legacy_card`,
+  `older_matcher`, `persona_link`), a reading an older reader left (`older_reading`, its rows copied from the owner's
+  catalog), what an older decision wrote (`older_alias`, decisions `99zzzg`: the words two memorials give for Helen Sara
+  Brant and John Y Davidson, accepted as the owner's catalog holds such a page's words under the rule's decisions, John Y
+  Davidson's memorial taken by the harness's session to stand for a person's own; `older_link`, decisions `99zzzh`: the 1950
+  household's Father, Mother and Parents groupings accepted, as the owner's catalog holds such groupings under the rule's
+  decisions and a session's, the father's decision played as the rule's on the parser's first reading of the page, where the
+  owner's catalog has the rule's decisions on both parents, and the mother's taken by the harness's session to stand for a
+  person's own), a merge an older tool left unfinished (`merge` with `older`), a place card on the geocoder's real answers
+  (`place_card`) and place strings of the owner's records (`place_string`). None of them is a page or a response, and none
+  is a record of anyone but as the owner's catalog already holds it.
 
 One stand-in is not real, and no connector, parser or reading looks inside it; it carries no fact of anyone. The smallest of
 JPEG files, written by `scenario.py`, stands for the two family-held photographs the owner drops into the inbox
