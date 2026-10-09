@@ -1511,7 +1511,7 @@ for every person on each load, `Catalog.tiers` walks the tree once per
 instance and instances are made per call, and `assertion` has no index on
 `persona_fact_id` or `persona_id`; `ANALYZE` has never run on the live
 catalog. `cards.hints_on` runs the matcher each time a reviewed person's
-record is viewed, unmeasured on a record of many names. Every turn's tail runs `conclude.reconsider` over the whole tree,
+record is viewed, unmeasured on a record of many names. Every turn's tail runs `reconsider.reconsider` over the whole tree,
 two to three minutes a turn at 145 people: a turn re-examines what its own
 records and decisions touch.
 

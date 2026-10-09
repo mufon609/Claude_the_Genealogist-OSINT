@@ -408,7 +408,7 @@ def a_decide(w, x):
 def a_withdraw(w, x):
     """The rule's decision on a `card` taken back, or with `record` every decision the rule made on that record, recorded as
     reconsider records it, the rule acting for the harness, unless `by` names who."""
-    from conclude import withdraw
+    from reconsider import withdraw
     from rule import RULE_ACTOR
     if "record" in x:
         ids = [r[0] for r in w.cx.execute("""SELECT id FROM proposal WHERE tree_id=? AND status='accepted' AND decided_by LIKE 'rule:%' AND kind IN ('persona_match','new_person')
@@ -430,7 +430,7 @@ def a_copies(w, x):
 
 def a_reconsider(w, x):
     """reconsider on the tree: its rows, and how many audit rows it wrote (none for a run that changes nothing)."""
-    from conclude import reconsider
+    from reconsider import reconsider
     before = w.cx.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
     rows = reconsider(w.cx, w.tid, BY, dry_run=bool(x.get("dry")))
     return {"rows": rows, "wrote": w.cx.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] - before}

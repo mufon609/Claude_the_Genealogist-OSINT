@@ -62,7 +62,7 @@ from plan import plan_person
 import run_step
 import fetches
 from attach import attach_each, inbox_files, line
-from conclude import reconsider
+from reconsider import reconsider
 from conflicts import rule_conflict_changes, rule_conflict_line
 from resolve_places import resolve_strings
 
