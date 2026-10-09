@@ -1390,7 +1390,7 @@ on its citation `1,3077::604036`), a later save of another copy of the same
 record (FamilySearch's index entry of it) finds no planned step and stays in the
 inbox, so it is never archived, read or joined (`same_record`). Archive such a
 page under the done step's citation when its identity reaches that step, read
-it, and let `conclude.join_copies` and `decisions.carry` make it a copy of the
+it, and let `copies.join_copies` and `decisions.carry` make it a copy of the
 record the step holds; the harness scenario `99ze` archives the index entry by
 hand for this reason.
 

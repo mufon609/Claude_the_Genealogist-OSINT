@@ -28,7 +28,7 @@ from extract import Writer
 from forms import census_form
 from attach import attach as attach_file, identity as attach_identity, steps_for as attach_steps_for
 from cards import card as decision_card, hints_on, render as render_card, render_search, search_card, search_cards_for
-from conclude import join_copies
+from copies import join_copies
 from decisions import carry, decide as decide_document, living, match_record, record_says
 from conflicts import rule_conflict_decisions, rule_conflict_line
 from facts import KEY_FACTS, decide_fact as decide_fact_by, evidence_rows, fact_status, fact_subjects

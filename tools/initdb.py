@@ -158,9 +158,9 @@ def triggers(table: str) -> list:
 
 def same_records(cx: sqlite3.Connection) -> None:
     """The same_record table, insert-only like the rest of the evidence layer, and code's joins of the copies the archive
-    already holds written once (conclude.join_copies, the joins every reading writes from now on), under the migration's own
+    already holds written once (copies.join_copies, the joins every reading writes from now on), under the migration's own
     actor. Nothing decided changes: a decision on one copy reaches the others when tools/conclude.py reconsider carries it."""
-    from conclude import join_copies
+    from copies import join_copies
     ddl = read("schema/catalog.sql")
     script = ddl[ddl.index("CREATE TABLE same_record"):ddl.index("CREATE INDEX ix_same_record_b")] + "CREATE INDEX ix_same_record_b ON same_record(b_sha256, b_entry);\n" + \
              "\n".join(triggers("same_record"))

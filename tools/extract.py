@@ -179,7 +179,7 @@ import argparse, csv, html, io, json, os, re, sys, urllib.parse
 from html.parser import HTMLParser
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, object_path, parse_gedcom_date, sha256_file, ulid
-from conclude import join_copies
+from copies import join_copies
 from decisions import assert_facts, carry, link_family, link_people, settle_carried
 from catalog import is_identity, page_entries
 from forms import census_form, form_for

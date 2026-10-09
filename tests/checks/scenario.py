@@ -423,7 +423,7 @@ def a_copies(w, x):
     """The owner's word on two archived copies through tools/conclude.py's copies_on_word: `a` and `b` bound records (a
     listing's row as {record, number}), `same` true for one record and false for two, `note`; the rows it carried or gave
     back."""
-    from conclude import copies_on_word, copy_named
+    from copies import copies_on_word, copy_named
     node = lambda v: copy_named(w.cx, f"{w.sha(v['record'])}@{v['number']}") if isinstance(v, dict) else (w.sha(v), "")
     rows = copies_on_word(w.cx, w.tid, node(x["a"]), node(x["b"]), x.get("same", True), BY, x["note"]); w.cx.commit()
     return {"rows": rows}
