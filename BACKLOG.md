@@ -823,18 +823,20 @@ US state anywhere in it is read as American even when its last part names
 another country ("Washington, Tyne and Wear, England": `Catalog.place`): read
 the country the string ends with first.
 
-### C29. What a withdrawal and the state names still leave
+### C29. A key fact resting on a withdrawn record asks nothing of the person
 
-A file is withdrawn by `tools/tombstone.py` and the holdings pass it by, but
-some readers still count it: `plan.py` (an artifact at a locator that is no
-record id counts held whether withdrawn or not), and `cards.py`, the rule's
-trust test (`conclude.TRUSTED_ARTIFACT`) and `facts.py`'s visible evidence read
-statements on a withdrawn record as evidence. And two state readers are
-wrong: `extract.write_va` spells a state by title-casing `nara_1950.ABBR`
-("District Of Columbia"; use `catalog.us_state`), and both the 1950 census
-and loc.gov connectors take the first state-like part of a place, so
-"Washington, District of Columbia, United States" (Robert McCreery's 1850
-census row) is asked as Washington state.
+A file withdrawn by `tools/tombstone.py` is evidence for nothing, and the proof
+says so, but `Catalog.basis` still reads a key fact accepted when its only
+accepted statements rest on that file, so the overview, the queue, the
+checklist and the person screen show it accepted and no question reaches the
+person; the owner learns it only from the withdrawal's printout or the proof.
+Raise a question on each person whose decided key fact or accepted record
+rests on a withdrawn file, asking the owner to take the decision again
+(`docs/DATA-ARCHITECTURE.md` §2: a decision on it stands until a person takes
+it again). And the owner's own word (`facts.vouch`) is written on the tree
+file's persona, so withdrawing an imported file would make every vouch on it
+count for nothing: have the tombstone refuse a file a tree imported, or keep a
+vouch standing whatever its carrier.
 
 ### C33. A family-held photograph in the harness
 
@@ -1367,16 +1369,8 @@ who runs no terminal cannot finish a person's work on the screen
 composite keys JSON; a card's person, persona and artifact are in
 `proposal.payload_json`; a citation's identity is in `assertion.notes`, found
 by pattern. `foreign_key_check` sees none of them (none dangles on 4 Oct
-2026), and 93 `json_extract` calls across 11 files read them. Beside C29 and
-C45: give each link the column it is, with its foreign key, a link at a time.
-
-### C65. An approximate pair of months is noted as a year
-
-`catalog.date_verdict` notes ABT Jun 1901 against Jul 1901 as "the record gives
-only a year": where both sides give a month and either is about, estimated or
-calculated, mark that side and say the months were not compared. No real record
-carries such a pair yet, and `tools/check.py`'s `date_verdict` cases compare the
-verdict and not its note: have the cases compare a note where they give one.
+2026), and 93 `json_extract` calls across 11 files read them. Beside C45:
+give each link the column it is, with its foreign key, a link at a time.
 
 ### C66. What the reading of an event's value per part leaves
 
@@ -1462,18 +1456,6 @@ Ask such a string again for forty before its card is written; the harness
 holds no real forty-candidate answer, so capture one in a browser-free run of
 the resolver first and plant it (the gravesite and Archive answers show how a
 real answer becomes a fixture).
-
-### C69. Other paths that regenerate too few plans
-
-`conclude.link_people` names everyone a membership change reaches, and
-`decide`, `withdraw` and `statement_people` use it; the rest do not:
-`extract.carry_links` regenerates each link's two ends alone, `conclude.carry`
-ignores what `link_family` returns, `copies_on_word` regenerates only the
-decided persons, and a merge (`merge`, `complete_merge`) only the kept person,
-so a partner the record does not name and the members of a family a link
-joined keep stale plans. And `conclude.shown_married` reads in-laws from any
-extraction of the file (`LIMIT 1`), a superseded reading among them, where it
-should read the persona's own.
 
 ### C70. The fetch list prints one page twice
 
