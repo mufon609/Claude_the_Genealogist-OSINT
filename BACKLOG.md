@@ -1092,10 +1092,7 @@ rests on a withdrawn file, asking the owner to take the decision again
 it again). And the owner's own word (`facts.vouch`) is written on the tree
 file's persona, so withdrawing an imported file would make every vouch on it
 count for nothing: have the tombstone refuse a file a tree imported, or keep a
-vouch standing whatever its carrier. And `conclude.decide` still accepts a
-card whose file is withdrawn, writing accepted statements that count for
-nothing: the accept should be refused with the reason, and a withdrawal
-should close the file's open cards.
+vouch standing whatever its carrier.
 
 ### C25. A family-held photograph in the harness
 

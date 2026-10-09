@@ -161,8 +161,9 @@ outside the vendor.
   the standing rule stands on none of them and takes no card on the file (`reconsider` withdraws a
   decision the rule took there), no conflict, unplaced fact or limit of one life is read from them,
   what of an event's value is accepted takes nothing from them, the proof counts none of them and
-  names the record withdrawn, a card on the file closes nothing, and a key fact's accept acts on
-  none of them (`docs/RESEARCH-WORKFLOW.md` §5–7).
+  names the record withdrawn, the cards still open on the file are closed by the withdrawal
+  (rejected under who withdrew it, the note `withdrawn`) and none can be accepted, and a key
+  fact's accept acts on none of them (`docs/RESEARCH-WORKFLOW.md` §5–7).
 
 ## 3. Catalog (the database)
 

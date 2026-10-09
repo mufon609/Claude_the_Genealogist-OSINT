@@ -1,6 +1,6 @@
 {
  "title": "a withdrawn record is evidence for nothing",
- "line": "a file withdrawn through tools/tombstone.py leaves the statements resting on it as written and makes them evidence for nothing: Helen Brant's gravestone photograph, saved for its step and read for her and for Frederick M Ahearn, her reading accepted by the owner, is withdrawn; her statements from it stay accepted and her death fact stays decided, but the rule stands on none of them, the proof counts none and names the record withdrawn, the part of her death's value the stone gave is a claim again, Frederick's card on it is one the rule refuses and that closes nothing, an accept of her death fact acts on none of it, and the plan opens the photograph's step again; her memorial withdrawn as well, reconsider takes back the identity the rule took on it",
+ "line": "a file withdrawn through tools/tombstone.py leaves the statements resting on it as written and makes them evidence for nothing: Helen Brant's gravestone photograph, saved for its step and read for her and for Frederick M Ahearn, her reading accepted by the owner, is withdrawn; her statements from it stay accepted and her death fact stays decided, but the rule stands on none of them, the proof counts none and names the record withdrawn, the part of her death's value the stone gave is a claim again, Frederick's card on it, open when it was withdrawn, is closed by the withdrawal, one the rule refuses and an accept of which is refused naming the tombstone, an accept of her death fact acts on none of it, and the plan opens the photograph's step again; her memorial withdrawn as well, reconsider takes back the identity the rule took on it",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -64,7 +64,9 @@
    "say": "the owner withdraws the photograph from the evidence, with the reason",
    "tombstone": {"record": "stone", "reason": "harness: the photograph withdrawn, to walk what a withdrawal does to the statements resting on it"},
    "expect": [
-    {"last": {"resting": {"harness": {"links": {"has": "Helen Sara Brant"}, "statements": {">=": 3}, "cards": 1}}}, "why": "what rests on it is named for the owner to decide again"}
+    {"last": {"resting": {"harness": {"links": {"has": "Helen Sara Brant"}, "statements": {">=": 3}, "cards": 1}}}, "why": "what rests on it is named for the owner to decide again"},
+    {"last": {"closed": 1}, "why": "the card still open on it is closed by the withdrawal"},
+    {"card": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}, "status": "rejected", "note": "withdrawn", "decided_by": "agent:check"}, "why": "closed as a re-read closes the cards of the reading it supersedes, under who withdrew the file"}
    ]
   },
   {
@@ -92,19 +94,19 @@
    ]
   },
   {
-   "say": "Frederick's card on the withdrawn record: the rule refuses it, and accepting it closes nothing",
-   "person_view": {"person": {"name": "Frederick Michael Ahearn"}},
-   "as": "view",
+   "say": "Frederick's card on the withdrawn record: the rule refuses it, and an accept of it is refused, the reason naming the tombstone",
+   "decide": {"card": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}}, "status": "accepted"},
    "expect": [
     {"rule": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}, "taken": false, "why": {"has": ["withdrawn from the evidence", "harness: the photograph withdrawn"]}}},
-    {"bound": {"value": "$view.documents", "is": {"some": {"closes": [{"starts": "nothing: the record was withdrawn from the evidence"}]}}}}
+    {"last": {"error": {"has": ["withdrawn from the evidence", "by agent:check", "harness: the photograph withdrawn", "cannot be accepted"]}}},
+    {"links": {"person": {"name": "Frederick Michael Ahearn"}, "record": "stone", "is": []}, "why": "nothing written"}
    ]
   },
   {
    "say": "reconsider takes nothing on it",
    "reconsider": {},
    "expect": [
-    {"card": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}, "status": "undecided"}}
+    {"card": {"record": "stone", "person": {"name": "Frederick Michael Ahearn"}, "status": "rejected", "note": "withdrawn"}}
    ]
   },
   {
@@ -124,6 +126,20 @@
    "expect": [
     {"last": {"rows": {"some": {"kind": "decision", "kept": false, "person": "Helen Sara Brant", "why": {"has": "withdrawn from the evidence"}}}}},
     {"card": {"record": "dmem", "person": "I332737037573", "status": "undecided"}, "why": "the rule would no longer take it: the record is evidence for nothing, so the owner decides it"}
+   ]
+  },
+  {
+   "say": "that card, open again on the withdrawn page, cannot be accepted, and the owner can still reject it",
+   "decide": {"card": {"record": "dmem", "person": "I332737037573"}, "status": "accepted"},
+   "expect": [
+    {"last": {"error": {"has": ["withdrawn from the evidence", "harness: the memorial withdrawn", "cannot be accepted"]}}},
+    {"card": {"record": "dmem", "person": "I332737037573", "status": "undecided"}}
+   ]
+  },
+  {
+   "decide": {"card": {"record": "dmem", "person": "I332737037573"}, "status": "rejected", "note": "harness: the withdrawn memorial is not hers to keep"},
+   "expect": [
+    {"card": {"record": "dmem", "person": "I332737037573", "status": "rejected"}}
    ]
   },
   {

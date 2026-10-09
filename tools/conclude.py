@@ -1960,7 +1960,8 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     person closes as superseded and its record is matched again, one it still does takes its words as they now read. The
     decision's audit row is written as it takes effect, before the conflicts it changes and the cards of the same record
     the rule takes next, so audit ids run in the order decisions were taken (reconsider examines the rule's decisions in
-    that order). A card naming a person merged into another is refused (merged_refusal). Returns what was written, rematched
+    that order). A card naming a person merged into another is refused (merged_refusal), and so is an accept of a card whose
+    record is withdrawn from the evidence (tools/tombstone.py), the reason naming the tombstone. Returns what was written, rematched
     the rows of the cards matched again, or an error."""
     q = _q(cx)
     p = q.execute("SELECT * FROM proposal WHERE id=? AND tree_id=?", (prop_id, tree_id)).fetchone()
@@ -1975,6 +1976,10 @@ def decide(cx, tree_id, prop_id, status, by, note=None, choice=None, kind=None, 
     members = []
     alias_id = None
     identity = editable(cx, pay["artifact_sha256"])  # a page anyone can edit: the identity and its links, never a fact
+    # a card on a withdrawn file, open or closed by the withdrawal: its statements would be evidence for nothing
+    gone = withdrawals(cx, [pay["artifact_sha256"]]).get(pay["artifact_sha256"]) if status == "accepted" else None
+    if gone:
+        return {"error": f"the record was withdrawn from the evidence on {gone['at'][:10]} by {gone['by']} ({gone['reason']}): its statements are evidence for nothing, so a card on it cannot be accepted"}
     # any acceptance, the rule's, a session's or a person's, a person may take back by rejecting the card
     if p["status"] != "undecided" and not (p["status"] == "accepted" and status == "rejected"):
         return {"error": "already decided"}

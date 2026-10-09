@@ -1756,8 +1756,10 @@ is words, never numbers (`CLAUDE.md` hard rule 1).
   statement resting on a file withdrawn from the evidence (`tools/tombstone.py`), whatever its
   status: it stays as written and is evidence for nothing, no side of a conflict, no date the
   limits of one life test, and no record the written conclusion counts (it names the record
-  withdrawn); the rule takes no card on such a file, a card on it closes nothing, and a key fact's
-  accept acts on none of its statements. For the
+  withdrawn); the rule takes no card on such a file, the withdrawal closes the cards still open
+  on it (rejected under who withdrew it, the note `withdrawn`, as a re-read closes the cards of the
+  reading it supersedes), a card on it cannot be accepted, the refusal naming the tombstone, and a
+  key fact's accept acts on none of its statements. For the
   same reason a value the page keeps beneath the one it shows is no name, date or place of the
   record's when the record is compared with the tree: the given name and surname the rule tests
   are the ones the page shows (a shown Fred M Ahern with Fred M. Ahearn beneath agrees as a

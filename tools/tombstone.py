@@ -10,9 +10,11 @@ file as held (catalog.not_withdrawn: the holdings, a citation's held record, a d
 steps), the attach refuses its bytes, and the backup's fixity run skips it. Quarantined, the default, keeps its bytes in the
 archive, where the backup's bag still copies them; --destroy, for a takedown, removes the object's bytes, the manifest kept to
 say what was held. The sha256 may be given as its first twelve characters or more, as the tools print it, when one artifact
-alone begins so. A file already withdrawn is refused, its tombstone named. What rests on the file in each tree (persona links
-accepted on its personas, statements not rejected that cite it, cards still undecided on it) is printed: a decision on a
-withdrawn record is the owner's to take again with tools/conclude.py, never undone here.
+alone begins so. A file already withdrawn is refused, its tombstone named. The cards still undecided on the file, in every
+tree, are closed as the cards of a superseded reading are: rejected under who withdrew it, the note `withdrawn` (a card on a
+withdrawn file can no longer be accepted, tools/conclude.py decide). What rests on the file in each tree (persona links
+accepted on its personas, statements not rejected that cite it, the cards closed) is printed: a decision on a withdrawn
+record is the owner's to take again with tools/conclude.py, never undone here.
 """
 import argparse, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -46,8 +48,10 @@ def resting(cx, sha):
 
 def tombstone(cx, sha, reason, by, destroy=False):
     """The file withdrawn: its tombstone row and one audit row under `by`, the archive being every tree's (no tree on the row);
-    destroyed, its object's bytes removed after the rows are written. SystemExit, nothing written, for no reason given or a file already withdrawn. Returns {sha256, disposition, resting, filename, source_id, object
-    (where its bytes are, or were)}."""
+    the cards undecided on it, in every tree, closed (status rejected under `by`, the note `withdrawn`); destroyed, its
+    object's bytes removed after the rows are written. SystemExit, nothing written, for no reason given or a file already
+    withdrawn. Returns {sha256, disposition, resting (what rested on it as it was withdrawn, the cards undecided then among
+    it), closed (how many cards it closed), filename, source_id, object (where its bytes are, or were)}."""
     reason = (reason or "").strip()
     if not reason: raise SystemExit("a file is withdrawn with its reason (--reason)")
     a = artifact(cx, sha)
@@ -56,11 +60,14 @@ def tombstone(cx, sha, reason, by, destroy=False):
     ts, disposition = now(), "destroyed" if destroy else "quarantined"
     rest = resting(cx, a[0])
     cx.execute("INSERT INTO tombstone (artifact_sha256,reason,disposition,tombstoned_at,tombstoned_by) VALUES (?,?,?,?,?)", (a[0], reason, disposition, ts, by))
+    # the file's open cards closed, as a re-read closes the cards of the reading it supersedes
+    closed = cx.execute("""UPDATE proposal SET status='rejected', decided_by=?, decided_at=?, decision_note='withdrawn'
+                           WHERE status='undecided' AND json_extract(payload_json,'$.artifact_sha256')=?""", (by, ts, a[0])).rowcount
     cx.execute("INSERT INTO audit_log (id,tree_id,at,actor,action,entity_kind,entity_id,diff_json) VALUES (?,?,?,?,?,?,?,?)",
                (ulid(), None, ts, by, "insert", "tombstone", a[0], dumps({"reason": reason, "disposition": disposition, "source_id": a[1],
-                                                                           "locator": {"kind": a[2], "value": a[3]}, "original_filename": a[4], "resting": rest})))
+                                                                           "locator": {"kind": a[2], "value": a[3]}, "original_filename": a[4], "resting": rest, "cards_closed": closed})))
     if destroy and os.path.exists(object_path(a[0])): os.remove(object_path(a[0]))
-    return {"sha256": a[0], "disposition": disposition, "resting": rest, "filename": a[4], "source_id": a[1], "object": object_path(a[0])}
+    return {"sha256": a[0], "disposition": disposition, "resting": rest, "closed": closed, "filename": a[4], "source_id": a[1], "object": object_path(a[0])}
 
 def main():
     ap = argparse.ArgumentParser(description="An archived file withdrawn from the evidence: its tombstone, its reason and an audit row.")
@@ -76,7 +83,10 @@ def main():
     print(f"{r['sha256'][:12]} ({r['filename'] or 'no file name'}, {r['source_id'] or 'no source'}) withdrawn, {r['disposition']}: "
           + ("its bytes removed, its manifest kept" if r["disposition"] == "destroyed" else "its bytes stay in the archive, held by no reader"))
     for slug, x in r["resting"].items():
-        print(f"  still resting on it in {slug}: " + "; ".join(s for s in (f"accepted on {', '.join(x['links'])}" if x["links"] else "", f"{x['statements']} statement(s) not rejected" if x["statements"] else "",
-                                                                         f"{x['cards']} card(s) undecided" if x["cards"] else "") if s) + " (decide them again with tools/conclude.py)")
+        if x["links"] or x["statements"]:
+            print(f"  still resting on it in {slug}: " + "; ".join(s for s in (f"accepted on {', '.join(x['links'])}" if x["links"] else "", f"{x['statements']} statement(s) not rejected" if x["statements"] else "") if s)
+                  + " (decide them again with tools/conclude.py)")
+        if x["cards"]:
+            print(f"  {x['cards']} card(s) undecided on it in {slug} closed as withdrawn: a card on a withdrawn file cannot be accepted")
 
 if __name__ == "__main__": main()
