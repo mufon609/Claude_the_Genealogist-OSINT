@@ -782,14 +782,14 @@ def a_persona_link(w, x):
     return {"persona": rows[0][0]}
 
 def a_merge(w, x):
-    """The owner's merge of a `duplicate` into the person it duplicates (`kept`), through conclude.merge. With `older`, the
+    """The owner's merge of a `duplicate` into the person it duplicates (`kept`), through merges.merge. With `older`, the
     merge as an older tools/conclude.py left it, which re-pointed no proposal, moved no name alias and left on the duplicate's
     row a membership or a persona link the kept person already held and, open, a question whose key the kept person held:
     each proposal the merge re-pointed put back to name the duplicate, each membership it folded put back on the
     duplicate's row with the statements it moved, each persona link it folded put back there as it was (the kept person's
     own row as it was too), each alias it moved or folded put back on the duplicate, each question it closed open again, the
     shape the merge run again on the pair completes."""
-    from conclude import merge
+    from merges import merge
     dup, kept = w.person(x["duplicate"]), w.person(x["kept"])
     res = merge(w.cx, w.tid, dup, kept, BY, x.get("note", "harness: same identity"))
     if x.get("older"):

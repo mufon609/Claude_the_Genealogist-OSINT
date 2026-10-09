@@ -426,7 +426,7 @@ file's repeated facts that way, one event carrying each fact's citations as
 statements; a merge folds the kept person's events and a folded family's the
 same way; and `tools/initdb.py --migrate` folds once what an older import or
 older decisions wrote apart, one audit row per event folded under the
-migration's own actor (`conclude.fold`). **[rule.fold.2]** The kept event is the one whose date
+migration's own actor (`merges.fold`). **[rule.fold.2]** The kept event is the one whose date
 or place the owner has spoken on (a resolution of theirs, or a reopen), else
 one a resolution of the rule's names, else the one carrying the most accepted
 statements, then the most statements, then the earliest. **[rule.fold.3]** The other event's

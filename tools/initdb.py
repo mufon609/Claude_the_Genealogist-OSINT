@@ -173,12 +173,12 @@ def fold_events(cx: sqlite3.Connection) -> None:
     """The catalog's one-time fold of the events an older import and older decisions wrote apart (docs/RULE.md,
     one statement, one event): every listed person's events of one type, and every family's, that are one event
     (catalog.same_event: places agreeing or one absent, and the type held once in a life or the dates one) folded into one by
-    conclude.fold, as a merge folds them and the import and every decision now keep them: the statements and notes moved onto
+    merges.fold, as a merge folds them and the import and every decision now keep them: the statements and notes moved onto
     the kept event as they are, a record fact's second statement left where it was, the folded event out of the owner's
     events with its row kept. One audit row per event folded, under the migration's own actor, naming the owner, the type,
     both events with their values, what moved, what stayed and what the kept event took. Refused, nothing written, when a
-    fold would set aside a value the owner resolved: two events of one group each carrying the owner's word (conclude.fold_plan)."""
-    from conclude import fold, fold_plan
+    fold would set aside a value the owner resolved: two events of one group each carrying the owner's word (merges.fold_plan)."""
+    from merges import fold, fold_plan
     actor = "migration:0.7.6"
     owners = [(tree, ("person", p)) for tree, p in cx.execute("SELECT tree_id, id FROM person WHERE merged_into IS NULL ORDER BY id").fetchall()] + \
              [(tree, ("family", f)) for tree, f in cx.execute("""SELECT DISTINCT e.tree_id, ep.family_id FROM event_participant ep JOIN event e ON e.id=ep.event_id
