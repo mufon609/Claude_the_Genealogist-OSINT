@@ -92,22 +92,19 @@ import argparse, dataclasses, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, connect, dumps, now, ulid
 from catalog import (
-    COUNTRY,
     Catalog,
     Finding,
     cited_persons,
     collection_state,
     date_verdict,
-    edits,
     first_given,
     holds,
     key,
-    name_words,
+    middle_differs,
     note,
     place_verdict,
+    same_given,
     same_surname,
-    short_form,
-    soundex,
     split_persona_name,
     year
 )
@@ -133,23 +130,6 @@ UNFITTING = ("sex", "middle name", "birth date", "death date", "burial place", "
 # an agreement on one of these is more than a name and a year
 STRONG = ("death date", "birth place", "burial place", "death place", "residence place")
 
-def same_given(a, b):
-    """Two given-name keys are the same name: equal, one an initial of the other, a short form of the other (catalog.short_form),
-    or one letter apart when both are five letters or longer (a transcriber's slip).
-    Implements [rule.match.7]."""
-    if not a or not b:
-        return False
-    if a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b)):
-        return True
-    if short_form(a, b):
-        return True
-    if min(len(a), len(b)) >= 5 and abs(len(a) - len(b)) <= 1:
-        if len(a) == len(b):
-            return sum(x != y for x, y in zip(a, b)) == 1
-        s, l = (a, b) if len(a) < len(b) else (b, a)
-        return any(l[:i] + l[i + 1:] == s for i in range(len(l)))
-    return False
-
 def name_keys(cat, pid, accepted=False):
     """(first given, surname) keys for a person: every name row and every alias not rejected, the matcher's reading for finding
     and proposing; accepted: the name rows and the accepted aliases alone, the names the standing rule stands on
@@ -164,37 +144,6 @@ def name_keys(cat, pid, accepted=False):
         if len(parts) >= 2:
             keys.add((first_given(parts[0]), key(parts[-1])))
     return keys
-
-def same_middle(a, b):
-    """Two middle-name keys are one name: one an initial of the other, the same name or a short form (same_given), or a
-    spelling variant, the same Soundex code within two edits (Sara and Sarah, Micheal and Michael).
-    Implements [rule.match.8]."""
-    return same_given(a, b) or (len(a) > 1 and len(b) > 1 and soundex(a) == soundex(b) and edits(a, b) <= 2)
-
-def middle_differs(written, names, surnames):
-    """(the record's middle name, the tree's) when a name as written and the person's own names in the tree (names: (given,
-    surname) rows) both carry a middle name or initial and none of the record's agrees with any of the tree's (same_middle:
-    John Georgi Young agrees with John Y), else None. A word that is a surname the person holds (a married woman's birth
-    surname written inside her name, Lena Bell Davidson) is no middle name, and an initial standing for one agrees (Helen
-    B. Ahearn for a Brant born); a name with no middle on either side disagrees with nothing.
-    Implements [rule.match.8], [rule.points.14]."""
-    keys = [key(s) for s in surnames if key(s)]
-    own = lambda w: len(w) > 1 and any(same_surname(w, s) for s in keys)
-    words = name_words(written)
-    mine = [w for w in words[1:-1] if not own(w)]
-    if not mine:
-        return None
-    theirs = [[w for w in name_words(g)[1:] if not own(w)] for g, s in names]
-    theirs = [m for m in theirs if m]
-    if not theirs:
-        return None
-    # the initial of another surname the person holds than the one the record writes
-    if any(len(m) == 1 and s.startswith(m) and not same_surname(s, words[-1]) for m in mine for s in keys):
-        return None
-    # one of the record's middle names is one of the tree's: John Georgi Young for John Y
-    if any(same_middle(m, x) for m in mine for t in theirs for x in t):
-        return None
-    return mine[0], theirs[0][0]
 
 def compare(cat, persona, cand, chosen, birth_place=True, accepted_names=False):
     """Agreements, disagreements and absences between a persona and a candidate person, as findings (catalog.Finding, in

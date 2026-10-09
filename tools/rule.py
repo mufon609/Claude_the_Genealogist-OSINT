@@ -64,6 +64,7 @@ from catalog import (
     record_original,
     record_standing,
     relation_classes,
+    same_given,
     source_tier,
     split_persona_name,
     tier_sql,
@@ -1377,7 +1378,7 @@ def fits_as_well(cat, persona, cand_id, chosen, exclude):
     accepted as them, so only those persons are compared. Names are read as the matcher reads them, every alias not rejected:
     a wider name here only refuses more.
     Implements [rule.identity.1], [rule.name.3]."""
-    from match import by_memorial, name_keys, same_given
+    from match import by_memorial, name_keys
     names = [split_persona_name(n) for n in (persona.get("names") or [persona["name"]])]
     givens = [g for g, _ in names if g]
     mine = len(compare(cat, persona, candidate(cat, cand_id), chosen)[1]) if cand_id else 0

@@ -63,7 +63,7 @@ a candidate whose record page is held has been tried, whatever it showed, and th
 import argparse, collections, csv, json, os, re, sys, urllib.parse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DB, ROOT, connect, dumps, now, parse_gedcom_date, ulid
-from catalog import US_NAMES, date_span, entry_on, first_given, holder_search, holders, is_identity, key, parent_limit, persona_key, record_copies, split_name, us_state
+from catalog import US_NAMES, date_span, entry_on, first_given, holder_search, holders, is_identity, key, parent_limit, persona_key, record_copies, split_name, us_state, same_given
 from forms import forms
 
 VERSION = "0.1.0"
@@ -527,10 +527,9 @@ def _relatives_in_head_place(cx, tree_id, members):
     return out
 
 def _fits(row, rel):
-    """Whether a row's name fits a relative's by the matcher's own agreement of given names (match.same_given) and the surname
+    """Whether a row's name fits a relative's by the matcher's own agreement of given names (catalog.same_given) and the surname
     as written, with no birth year of the two more than a calculated year's span apart.
     Implements [rule.household.14]."""
-    from match import same_given
     _, given, surname, born = rel
     if not same_given(first_given(row["given"]), first_given(given)) or key(row["surname"]) != key(surname): return False
     return not (row["year"] and born and abs(row["year"] - born) > 2)

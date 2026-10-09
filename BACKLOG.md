@@ -434,7 +434,7 @@ before the next:
    household completed is shown nowhere; once the head's page is held it is
    matched against the household's members only, never against the person the
    tree claims in the head's place (Fredrick C Peters), which waits on point 3;
-   `match.same_given` does not agree "Fred" with "Fredrick" (the nickname table
+   `catalog.same_given` does not agree "Fred" with "Fredrick" (the nickname table
    is not read through spellings), so the claimed relative never orders a
    candidate live; FamilySearch's image index has no reader; and
    `checklist.names_parents` reads no state census row.
@@ -477,8 +477,10 @@ on two identical scratch copies of the live catalog byte for byte, and
 `tests/checks/import_cycles.py` naming no dependency, cycle or upward import
 the parent did not):
 
-1. `Catalog.disagreements` imports `match.middle_differs`: the middle-name
-   rule moves to `catalog`.
+1. **Done (10 Oct 2026).** The middle-name rule (`middle_differs`,
+   `same_middle`) lives in `catalog` with the name rules, and `same_given`,
+   which it is built on, with it; the matcher, the proof, the households, the
+   rule and the check import them there.
 2. `match.persons_for` imports `log_search.REOPENED`: the log's note prefixes
    (`REOPENED`, `HOUSEHOLD`, `ON_WORD`) move to `catalog`.
 3. `extract.extract` carries a page's decisions to its new reading
@@ -633,7 +635,7 @@ work follows its answer, on a copy of the live catalog first.
 **Harness gap**, one of seven (C5, C8, C20, C25, C26, C41, C43); the second family in the harness (C20) is the scenario they share. This one waits on real records, which a second family's export would bring.
 
 The pure name rules need no record: `tests/fixtures/rules.json` holds
-examples of `match.same_given`'s nicknames and initials, `name_words` and
+examples of `catalog.same_given`'s nicknames and initials, `name_words` and
 `split_persona_name`; `same_given`'s one-letter slip, `same_middle` and
 `middle_differs` take theirs there too, which covers the name side of the
 garbled-initials and short-form paths below; the rest of this entry waits on
@@ -1170,7 +1172,7 @@ bullet goes; a bullet that changes what the rule decides ends with a dry-run
   and takes the year from the collection's name by pattern when the record
   gives none. Hold such a census back until its year is read from the record
   or its citation, never from a name's digits.
-- [rule.match.7], [rule.match.8] **The name variants.** `match.same_given` reads a bare initial as agreeing
+- [rule.match.7], [rule.match.8] **The name variants.** `catalog.same_given` reads a bare initial as agreeing
   with a given name, where `docs/RULE.md` lets an initial agree only for a middle name,
   and with a day counting double a name and one date then take a record.
 - [rule.value.2], [rule.value.5], [rule.value.6], [rule.value.7], [rule.value.8],
@@ -1389,7 +1391,7 @@ anyone can edit needs (both in `rule.rule_points`), and the trusted tiers
 `catalog.NICKNAMES` carries this tree's members (Lura, Lou, Laura; Corinne,
 Carinne, Corrine; Cassie; Ollie) and groups distinct names as one (Oliver and
 Olive, Emily and Emma, Helen and Ellen, Christian and Christopher), and
-`match.same_given`'s one-letter rule makes Harry Larry and Edwin Erwin, while
+`catalog.same_given`'s one-letter rule makes Harry Larry and Edwin Erwin, while
 a surname one letter apart is refused. `decisions.died_before` holds a
 father's margin of a year and reads unknown sex as a mother where
 `data/life-limits.csv` says ten months and `catalog.py` reads it as a father;

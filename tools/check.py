@@ -36,10 +36,10 @@ def rules():
     for c in R["same_surname"]:
         got = same_surname(c["record"], c["tree"])
         if got != c["verdict"]: bad.append(f"same_surname({c['record']!r}, {c['tree']!r}) gave {got!r}, expected {c['verdict']!r}")
-    from match import same_given
+    from catalog import same_given
     for c in R["same_given"]:
         got = same_given(c["a"], c["b"])
-        if got != c["same"]: bad.append(f"match.same_given({c['a']!r}, {c['b']!r}) gave {got!r}, expected {c['same']!r}")
+        if got != c["same"]: bad.append(f"catalog.same_given({c['a']!r}, {c['b']!r}) gave {got!r}, expected {c['same']!r}")
     from catalog import classify
     for c in R["alias_kind"]:
         got = classify(c["written"], c["given"], c["surname"], c.get("suffix"))[0]

@@ -26,9 +26,8 @@ prints every card whole, as render() and render_search() write it for the person
 import argparse, json, os, re, sqlite3, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from treelib import DATA_ROOT, DB, connect, object_path, resolve_tree
-from catalog import Catalog, fetch_target, note as _note, tier_sql, year, held_for, holds, withdrawals
+from catalog import COUNTRY, Catalog, fetch_target, note as _note, tier_sql, year, held_for, holds, withdrawals
 from match import (
-    COUNTRY,
     candidate as match_candidate,
     compare,
     date_verdict,

@@ -203,6 +203,54 @@ def same_surname(a, b):
     if len(a) >= 5 and len(b) >= 5 and a[0] == b[0] and edits(a, b) == 1: return "one letter apart"
     return ""
 
+def same_given(a, b):
+    """Two given-name keys are the same name: equal, one an initial of the other, a short form of the other (catalog.short_form),
+    or one letter apart when both are five letters or longer (a transcriber's slip).
+    Implements [rule.match.7]."""
+    if not a or not b:
+        return False
+    if a == b or (len(a) == 1 and b.startswith(a)) or (len(b) == 1 and a.startswith(b)):
+        return True
+    if short_form(a, b):
+        return True
+    if min(len(a), len(b)) >= 5 and abs(len(a) - len(b)) <= 1:
+        if len(a) == len(b):
+            return sum(x != y for x, y in zip(a, b)) == 1
+        s, l = (a, b) if len(a) < len(b) else (b, a)
+        return any(l[:i] + l[i + 1:] == s for i in range(len(l)))
+    return False
+
+def same_middle(a, b):
+    """Two middle-name keys are one name: one an initial of the other, the same name or a short form (same_given), or a
+    spelling variant, the same Soundex code within two edits (Sara and Sarah, Micheal and Michael).
+    Implements [rule.match.8]."""
+    return same_given(a, b) or (len(a) > 1 and len(b) > 1 and soundex(a) == soundex(b) and edits(a, b) <= 2)
+
+def middle_differs(written, names, surnames):
+    """(the record's middle name, the tree's) when a name as written and the person's own names in the tree (names: (given,
+    surname) rows) both carry a middle name or initial and none of the record's agrees with any of the tree's (same_middle:
+    John Georgi Young agrees with John Y), else None. A word that is a surname the person holds (a married woman's birth
+    surname written inside her name, Lena Bell Davidson) is no middle name, and an initial standing for one agrees (Helen
+    B. Ahearn for a Brant born); a name with no middle on either side disagrees with nothing.
+    Implements [rule.match.8], [rule.points.14]."""
+    keys = [key(s) for s in surnames if key(s)]
+    own = lambda w: len(w) > 1 and any(same_surname(w, s) for s in keys)
+    words = name_words(written)
+    mine = [w for w in words[1:-1] if not own(w)]
+    if not mine:
+        return None
+    theirs = [[w for w in name_words(g)[1:] if not own(w)] for g, s in names]
+    theirs = [m for m in theirs if m]
+    if not theirs:
+        return None
+    # the initial of another surname the person holds than the one the record writes
+    if any(len(m) == 1 and s.startswith(m) and not same_surname(s, words[-1]) for m in mine for s in keys):
+        return None
+    # one of the record's middle names is one of the tree's: John Georgi Young for John Y
+    if any(same_middle(m, x) for m in mine for t in theirs for x in t):
+        return None
+    return mine[0], theirs[0][0]
+
 # ---------------------------------------------------------------- the alias rule: a name as a record writes it, against the person's own
 # the words of a name cleaned, and its key (letters, digits and spaces): the alias rule's, where key above is the surname's
 def clean(s): return re.sub(r"\s+", " ", re.sub(r"[^\w\s'-]", " ", (s or "").replace("/", " "))).strip()
@@ -1309,14 +1357,13 @@ class Catalog:
         that all turn on the same 11th-against-10th read as one question, not six, while a coarse statement agreeing with two
         that differ (a county holding two towns) joins neither to the other. The tree's value is never changed by a record; the
         difference is a conflict question, and the shown value stays what Catalog.place chooses. A name an accepted record
-        gives the person with a middle name or initial that differs from the one the tree's own name carries (match.
-        middle_differs: John A. against John D) is a line too, one per record. A statement carrying one of the MARKS (a
+        gives the person with a middle name or initial that differs from the one the tree's own name carries (middle_differs:
+        John A. against John D) is a line too, one per record. A statement carrying one of the MARKS (a
         value the page keeps beneath the one it shows, a sibling placement, a grouping the indexer computed) is none of
         these, whatever its status: the record does not state it (docs/RULE.md, the proof standard), so it
         neither raises a difference nor joins its record's own date or place; nor is a statement resting on a withdrawn file
         (not_withdrawn), which stays as written and is evidence for nothing."""
         out = []
-        from match import middle_differs                      # the matcher's own rule for a middle name, so a conflict is raised on exactly what made the card
         rows = [(g or "", s or "") for g, s in self.q("SELECT given, surname FROM person_name WHERE person_id=?", pid)]
         shown = (self.q("SELECT display_name FROM person WHERE id=?", pid) or [[None]])[0][0]
         for written, coll, loc in ([] if event else self.q(f"""SELECT pf.value_text, coalesce(c.name, ar.original_filename, substr(ar.sha256,1,12)), ar.locator_value FROM assertion a
