@@ -2506,8 +2506,8 @@ def copies_on_word(cx, tree_id, a, b, same, by, note):
                 (pp["person_id"], pp["persona_id"])
             )
             given = [
-                a
-                for a, in q.execute(
+                aid
+                for aid, in q.execute(
                     """SELECT id FROM assertion WHERE tree_id=? AND artifact_sha256=? AND status<>'undecided' AND NOT person_decided
                        AND json_valid(notes) AND json_extract(notes,'$.proposal')=?""",
                     (tree_id, x[0], pp["proposal_id"])

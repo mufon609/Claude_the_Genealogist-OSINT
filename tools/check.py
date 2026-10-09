@@ -202,9 +202,10 @@ def connectors_offline():
     Y = O["in_year"]
     say([h["notes"]["item"] for h in ia_newspapers.hits(ian[0]["url"], fts, {**ian[0], "years": Y["years"]})] == Y["items"], "the same answer asked for a year it holds issues of gives those issues, the one the search dated by its title among them")
     from connectors import nara_1950
-    DC = C["district"]; dq = {"surname": {"value": DC["surname"], "basis": "row"}, "given": {"value": DC["given"], "basis": "row"}, "place": {"value": DC["place"], "basis": "row"}}
-    say(nara_1950.place_parts(DC["place"])[1] == DC["nara_state"] and DC["nara_has"] in nara_1950.requests(dq)[0]["url"] and loc_gov.state_of(DC["place"]) == DC["loc_gov_state"] and DC["loc_gov_has"] in loc_gov.requests(dq)[0]["url"],
-        f"a place in the District of Columbia is asked in it, the state names and codes the catalog's own: {nara_1950.place_parts(DC['place'])}, {loc_gov.state_of(DC['place'])}")
+    for DC in C["district"]:
+        dq = {"surname": {"value": DC["surname"], "basis": "row"}, "given": {"value": DC["given"], "basis": "row"}, "place": {"value": DC["place"], "basis": "row"}}
+        say(nara_1950.place_parts(DC["place"])[1] == DC["nara_state"] and DC["nara_has"] in nara_1950.requests(dq)[0]["url"] and loc_gov.state_of(DC["place"]) == DC["loc_gov_state"] and DC["loc_gov_has"] in loc_gov.requests(dq)[0]["url"],
+            f"a place in the District of Columbia is asked in it, the state names and codes the catalog's own: {DC['place']}: {nara_1950.place_parts(DC['place'])}, {loc_gov.state_of(DC['place'])}")
     from run_step import spelling_variants
     SP = C["spellings"]
     say(spelling_variants(SP["surname"], SP["aliases"]) == SP["found"], f"the surname's spellings among the aliases: a slip and a variant once each, never a married name or another surname: {spelling_variants(SP['surname'], SP['aliases'])}")
