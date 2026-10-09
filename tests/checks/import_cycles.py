@@ -7,14 +7,13 @@ usage: tests/checks/import_cycles.py [--verbose]
 The graph is read with ast from tools/*.py, the package tools/connectors/ as one module (`connectors`) and
 app/person/server.py (`server`), nothing run: an edge is any `import m` or `from m import ...` of another module of that
 set, at the top level or inside a function or class alike, since a deferred import is still a dependency, only one Python
-resolves late. Imports of the standard library are not edges. LAYERS below is the target layering (REFACTOR-PROMPT.md):
+resolves late. Imports of the standard library are not edges. LAYERS below is the layering the tools keep (schema/README.md, Layers):
 a module imports from its own layer or the layers below it, never from one above, and no import closes a cycle.
 
 Prints each elementary cycle once, starting from its first module by name, with the lines of each import that makes it
 (and the def holding a deferred one); each pair of modules whose import reaches a layer above the importer's; each module
 of the set the table does not place; then the number of imports deferred inside functions, per module. Exits nonzero
-when any cycle, upward import or unplaced module exists. --verbose also prints every edge. Not yet run by tools/check.py:
-it joins the checks with the commit that closes the last cycle.
+when any cycle, upward import or unplaced module exists. --verbose also prints every edge. Run by tools/check.py.
 """
 import argparse, ast, os, sys
 

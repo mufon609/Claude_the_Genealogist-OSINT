@@ -239,6 +239,21 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 `backup.py` opens the catalog through `treelib.connect`, which refuses one whose
 `schema_migration` lacks the code's version.
 
+**Layers.** The modules are in six layers, and each imports from its own layer or
+the layers below it, never from one above, no import closing a cycle, a deferred
+import counting as one; `tests/checks/import_cycles.py` holds the table and
+`tools/check.py` fails on any cycle, upward import or unplaced module. Layer 0
+`treelib`, `forms`; 1 `catalog` (the reads, the name rules, the alias rule, the
+log's note prefixes); 2 the readers and comparers (`readers`, `matcher`,
+`households`, `resolve_places`, `footprint`, `checklist`, `connectors`); 3
+`log_search`, `plan`, `attach`, `fetch_list`; 4 the decision code by job (`rule`,
+`conflicts`, `decisions`, `copies`, `merges`, `reconsider`, `arrival`) with
+`facts`, `proof`, `cards`, `overview`; 5 the commands (`conclude`, `extract`,
+`match`, `fetches`, `turn`, `turns`, `queue`, `run_step`, `run_task`, `tree`,
+`ingest_gedcom`, `initdb`, `backup`, `tombstone`, `cite`, `backfill_aliases`,
+`attach_inbox`, `check`) and the person screen's server. A module added takes its
+row in the table in the commit that adds it.
+
 | Tool | Purpose |
 |---|---|
 | `tools/initdb.py` | Create the catalog and seed reference tables; `--sync-sources` and `--sync-event-types` bring an existing catalog up to the files; `--migrate` applies the schema versions it lacks, never touching decisions. |
@@ -276,7 +291,7 @@ One line each; the tool's docstring has the rest. Every tool but `initdb.py` and
 | `tools/cards.py "<person>" / --all` | Read-only. Every Undecided proposal as a decision card in plain words, the same card the person screen shows. |
 | `tools/proof.py "<person>" [--fact …] [--json]` | Read-only. The proof standard's written conclusion per key fact: the value, the evidence grouped by original with its class words (`data/evidence-classes.csv`) and citations, each conflict with its question id and, while open, the rule's own reading of it, the research by checklist row, who decided, and whether it meets the standard or an argument is still owed. |
 | `tools/overview.py` | The tree as confirmed from the home person upward, shared by `tree.py overview` and the screen, and where the tree comes from (`origins`). |
-| `tools/check.py` | Green in one command: every tool compiles, every global name a tool reads resolves (a name another module of the repository gives is one it defines), the pure rules, every parser on its saved page and every scenario on a scratch catalog, none of them sending a request, `--scenario NAME` for one (`tests/fixtures/README.md`). |
+| `tools/check.py` | Green in one command: every tool compiles, every global name a tool reads resolves (a name another module of the repository gives is one it defines), the tools' imports are in layers with no cycle, the pure rules, every parser on its saved page and every scenario on a scratch catalog, none of them sending a request, `--scenario NAME` for one (`tests/fixtures/README.md`). |
 | `tools/tombstone.py <sha256> --reason … [--destroy]` | An archived file withdrawn from the evidence: its tombstone and one audit row under `--by`; quarantined, its bytes kept, or with `--destroy`, a takedown, its bytes removed and its manifest kept; refused for a file already withdrawn; what still rests on it in each tree printed for the owner to decide again. No reader counts it held from then on. |
 | `tools/backup.py verify / bag <dir> / check <bag>` | Fixity of every archived object, and a BagIt bag of the archive with the catalog dumped to SQL; a bag never enters git. Every write carries an audit row under `--by`. |
 | `tools/catalog.py` | Read-only access to a tree's people, events, places, citations and families, shared by the tools and the screen; the one home of the name rules every tool reads a name by (its parts, short forms, titles and suffixes, Soundex and edit distance; `same_given`, whether two given names are one; `middle_differs`, the middle-name rule), the alias rule among them, and the research log's note prefixes every layer reads the log by (`classify`: the kind of a name as a record writes it against the person's own, and `alias_key`, its key). |
