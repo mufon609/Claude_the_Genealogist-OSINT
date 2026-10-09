@@ -1558,6 +1558,30 @@ whose people lived in Ireland, Germany or the Netherlands gets blocked
 fetches and assisted rows with no link. Show each on the second family's
 export when the harness has one.
 
+### C48. A household's missing entries: the file's names first, the search's pages before its rows
+
+The households rule finds a missing entry of a census household (the head, a
+line) by the household's own search, surname, place and year, never a given
+name, and then fetches the search's rows one record page at a time as
+candidates, in an order of its own, each a browser save, until one falls on
+the household's page and lines. Live: Mary and Ruth Peters's 1925 household,
+Nassau county, page 19, missing the head and line 24; the search holds 120
+records on 6 pages; six candidates were fetched in one session, none the
+household's, 114 to go, while the file names the head (Fredrick C Peters,
+cited as Mary's spouse and Ruth's parent on the 1930 and 1940 censuses) and
+the likely line 24 (Dorothy Peters, their other child). Two changes, both
+within the rule's words (the search stays by surname, place and year): rank
+the candidates by agreement with the household's claimed members, the file's
+word and any accepted record's, a row whose given name agrees with a claimed
+member first (`catalog.same_given`), then by the household's own test (age,
+relationship, the row's residence), so a stranger's entry is fetched only
+after every row that could be a named member; and take the search's
+remaining pages before any row that fits no claimed member, since a results
+page gives twenty candidates for one save and a record page one. The step's
+rationale says which of the two put the row first. Scenarios on the harness
+family: a search whose first page holds no claimed name and whose second
+does; a claimed name on the first page at a late row.
+
 ### C50. The proof shows every conflict and argues the family links
 
 `proof.fact_of` shows only the conflicts on a birth, a death and a marriage,
