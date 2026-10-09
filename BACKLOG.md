@@ -317,30 +317,47 @@ labels; and FamilySearch's search rows carry no locator at all.
 
 ### A4. The decision code split by job, the rule's text split by part
 
-`tools/conclude.py` (5,966 lines on 5 Oct 2026) does six jobs: the standing
+`tools/conclude.py` (6,123 lines on 9 Oct 2026) does six jobs: the standing
 rule's tests (points, identity, the evidence classes), the writers of
 decisions (`decide`, `link_family`, `assert_facts`, aliases, `place`, the
 commands that act on the owner's word), copies (`carry`, `join_copies`,
 `copies_on_word`), merges, reconsider and withdrawal, and conflicts
-(`rule_conflicts`, `resolve`, `reopen`), with a 473-line command line on top;
-thirteen files import from it and it and `tools/facts.py` import each other.
-Every worker that changes a decision reads all of it, and batches that touch
-it queue behind one another. `docs/RESEARCH-WORKFLOW.md` (1,977 lines) states
-the same rule in words, and where the two part is where audits find defects
-(C60). The work, behaviour unchanged, nothing else in flight while it runs:
+(`rule_conflicts`, `resolve`, `reopen`, `classes_decide`), with its command
+line on top; thirteen files import from it, and it imports `facts.py` and
+`proof.py` as they import it. Every worker that changes a decision reads all
+of it, and batches that touch it queue behind one another.
+`docs/RESEARCH-WORKFLOW.md` (2,043 lines) states the same rule in words, and
+where the two part is where audits find defects (C60). The target layering
+the split serves is `REFACTOR-PROMPT.md`'s ("The target: the tools in
+layers"): layer 4 holds the split's modules beside `facts`, `proof`, `cards`
+and `overview`, and the command line is layer 5. The work, behaviour
+unchanged, nothing else in flight while it runs:
 
 1. **The modules.** `conclude.py` split into the rule, decisions, copies,
    merges, reconsider, conflicts and the command line (`tools/conclude.py`
-   stays the command every doc names), one module a commit; the
-   `conclude`/`facts` cycle broken. Proven unchanged: old and new code run
-   side by side on two identical scratch copies of the live catalog,
-   `tools/cards.py --all`, the whole `reconsider --dry-run` and the proofs of
-   several people compared byte for byte, and the checks green.
-2. **The rule's text by part.** `docs/RESEARCH-WORKFLOW.md` split into one
-   file per part (terms, the fetch list, the rule, households, the loop),
-   `CLAUDE.md`'s table naming each; each of the rule's functions names in its
-   docstring the paragraph it implements, and a check fails where a named
-   paragraph is gone.
+   stays the command every doc names), one module a commit. Two cycles are
+   broken: `conclude`/`facts` (only the command line imports `facts`), and
+   `conclude`/`proof`, which the split makes conflicts and `proof` importing
+   each other: the helpers `classes_decide` and `kept_agrees` read from
+   `proof` (`axis_value`, `order`, `record_info`, `same_value`, `sides`,
+   `specificity`, `subject_statements`, `words`) move to the conflicts module.
+   Proven unchanged: old and new code run side by side on two identical
+   scratch copies of the live catalog, `tools/cards.py --all`, the whole
+   `reconsider --dry-run`, `tools/queue.py --all` and the proofs of several
+   people compared byte for byte, the checks green, and
+   `tests/checks/import_cycles.py` naming no cycle or upward import its
+   parent did not; each report prints that script's output.
+2. **The rule's text by part, with stable identifiers.**
+   `docs/RESEARCH-WORKFLOW.md` split into one file per part (terms, the fetch
+   list, the rule, households, the loop), `CLAUDE.md`'s table naming each.
+   Every clause of the rule that code implements opens with a stable
+   identifier in bold brackets, `**[rule.points.2]**`: a dotted name of the
+   part and a serial within it, never renumbered (a removed clause leaves its
+   number unused). A function's docstring cites the identifier of the clause
+   it implements. The check `tests/checks/rule_ids.py`, written with this
+   part and run by `tools/check.py`, fails where a docstring cites an
+   identifier no doc holds, and lists under `--verbose` the identifiers no
+   docstring cites.
 3. **The backlog triaged.** Overlapping entries merged, so a worker reads
    fewer and sharper ones.
 
@@ -353,6 +370,47 @@ Every piece it waited on is done (5 Oct 2026): the safety net, the re-read's
 and the merge's leftovers, one home for each shared rule, the dead schema and
 the claim label. It waits only on a session with room to finish it, started from
 `REFACTOR-PROMPT.md`.
+
+**Blocks:** A5.
+
+### A5. The tool layer in layers
+
+`tests/checks/import_cycles.py` measures the tools' import graph against the
+target layering (`REFACTOR-PROMPT.md`, "The target: the tools in layers"; the
+table is data at the top of the script). On 9 Oct 2026: 409 elementary
+cycles, every one through an import deferred inside a function, in one
+strongly connected set of fifteen modules, and ten pairs of modules that
+import a layer above their own; with those ten imports gone no cycle is
+left. A4's split closes four of them (`facts`, `cards`, `overview` and
+`proof` importing `conclude`). Every other cycle is closed here by moving the
+shared helper to the layer the table puts it in, one module a commit, with
+A4's side-by-side proof:
+
+1. `Catalog.disagreements` imports `match.middle_differs`: the middle-name
+   rule moves to `catalog`.
+2. `match.persons_for` imports `log_search.REOPENED`: the log's note prefixes
+   (`REOPENED`, `HOUSEHOLD`, `ON_WORD`) move to `catalog`.
+3. `extract.extract` carries a page's decisions to its new reading
+   (`join_copies`, `carry`, `settle_carried`) and `extract.carry_links`
+   writes them (`assert_facts`, `link_family`, `link_people`): the carry moves
+   to the copies module, which reads through `extract.extract` and then
+   carries, and every caller that reads a page for a tree calls it there.
+4. `extract.read` (the rule, the owner's word) and `match.main` (the owner's
+   word, `attach.on_word`) are command lines in a reader's file: each command
+   keeps its file and name, as `conclude.py` does, and the reader's functions
+   move to a module of their own that takes its row in the table.
+5. `attach.attach` runs `match_record`: the arrival (`attach.attach`,
+   `attach_each`, `attach_inbox`, and `fetches.collect`, which runs it) moves
+   to layer 4 beside `match_record`; `attach` keeps what places a file.
+6. The decisions read `backfill_aliases`'s `classify`, `clean` and `key`: the
+   alias rule moves to `catalog`, and `backfill_aliases` imports it there.
+
+The cycle check joins `tools/check.py` with this entry's closing commit, not
+before: until the cycles are gone a failing check cannot be wired in, and a
+check with an allowlist is a bandaid. The closing commit deletes this entry
+and `REFACTOR-PROMPT.md`.
+
+**Blocked by:** A4.
 
 ---
 
