@@ -1566,6 +1566,21 @@ whose people lived in Ireland, Germany or the Netherlands gets blocked
 fetches and assisted rows with no link. Show each on the second family's
 export when the harness has one.
 
+### C48. A household's line is named by nobody born after its census
+
+`households._named` names for a missing line every spouse, parent and child the
+tree gives a member's person, whatever their birth year: on the live catalog
+Ruth M Peters's children, born in 1939 and 1944, are names for line 24 of the
+1925 Peters household. A row whose name fits a name for a line is opened before
+the answer's remaining pages (`docs/HOUSEHOLDS.md`, the order and the pages
+before the rows), so a person of the household's surname born after the census
+year, a son's child named after a member, would put a stranger's row first.
+Here the children's surname is not the household's and no row fits them. Leave
+out of a line's names a person the tree has born after the census year (the
+birth's span as `catalog.date_span` reads it), in the order's clause and in the
+code, with a scenario on the harness once a record of the harness carries the
+case.
+
 ### C50. The proof shows every conflict and argues the family links
 
 `proof.fact_of` shows only the conflicts on a birth, a death and a marriage,
