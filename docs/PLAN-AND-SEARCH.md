@@ -112,12 +112,19 @@ holds of the same collection for the same surname at the same place, are the
 candidates for the household's missing entries, and the record page of the one
 the order puts first is a step of its own (key `fetch:row:<ark>`, locator its
 ark, under the same row), one at a time (`docs/HOUSEHOLDS.md`: which rows, in what
-order, and why one). The fields of both are the held records' (basis `record`),
+order, and why one). The order puts first a row whose name fits a person the tree
+names in a missing entry's place (the head's, or a line's through a member's
+family) or whose record id is a member's but for its last character, whatever its
+birth year; and while a page of the answer is not held only such a row is opened:
+a row that fits nobody waits until every page is held, the search's next page the
+household's one open lead, since a results page gives twenty candidates for one
+save and a record page one. The fields of both are the held records' (basis `record`),
 never the person's claims, so they open before the baseline is reviewed, as a
 cited record's fetch does: they find the rest of a page already held. The
 Peters household gives Ruth M Peters and Mary Peters each the search,
 FamilySearch's New York 1925 collection (1937489) searched for Peters at
-Hempstead, Nassau, in 1925, and each its first candidate. Running a step (Go, Search, the log buttons) is the approval;
+Hempstead, Nassau, in 1925, and each its first candidate, Fred Peters, whose name
+fits the file's Fredrick C Peters. Running a step (Go, Search, the log buttons) is the approval;
 there is no approval state. Fetches are cheap and decisive, and open before the
 baseline is reviewed because the review needs them.
 

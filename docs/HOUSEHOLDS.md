@@ -99,23 +99,28 @@ county), and its own record page is not held.
   page alone, missing its head, the rows of the answer's first page born about
   1914 to 1920 are left out; once Mary's page is held and line 24 is missing
   beside the head, they are candidates for line 24.
-- **[rule.household.14]** **The order.** The head's candidates first (`docs/DATA-ARCHITECTURE.md` §7 decision 21: the head's entry
-  first), then those for the lines alone, each in the order the household
-  itself makes likelier: a record id that differs from a member's in its last
-  character alone, since FamilySearch gives the entries of one household ids
-  that differ only there (44 of the 46 members of the twelve held census record
-  pages that list a household, measured against the page's own person, and
-  Mary's and Ruth's 1925 entries on lines 23 and 25, KS4R-RTM and KS4R-RTQ);
-  for the head, a name that fits a relative the tree names for the members in
-  the head's place (the person it names as the daughter's parent and the wife's
-  husband: the file's Fredrick C Peters for the Peters household), the names
-  agreed as the matcher agrees them and a birth year within two, which orders
-  the candidates and never decides one, and is never a field of the search; for
-  the head, a birth year nearer that of the member stated the head's wife or
-  husband; a row that gives a birth year before one that gives none; then the
-  answer's own order, the household's own search's pages first.
-- **[rule.household.15]** **One at a time.** The record page of the first candidate is the one lead
-  open (`OPEN_AT_ONCE` is one). The loop never waits on a person who waits on
+- **[rule.household.14]** **The order.** First the rows the household itself points at, whatever their
+  birth year: a record id that differs from a member's in its last character alone, since FamilySearch gives
+  the entries of one household ids that differ only there (44 of the 46 members of the twelve held census
+  record pages that list a household, measured against the page's own person, and Mary's and Ruth's 1925
+  entries on lines 23 and 25, KS4R-RTM and KS4R-RTQ); and a name that fits a person the tree names in a
+  missing entry's place. For the head, the people it names for the members in the head's place (the person it
+  names as the daughter's parent and the wife's husband: the file's Fredrick C Peters for the Peters
+  household); for a line not held, the people it names in a member's family, the spouses, parents and
+  children of the person a member is, less the head's (the file's Dorothy Peters, Mary's and Fredrick's other
+  child, for line 24); either way a claim or an acceptance alike, and never a member: a person tied to a
+  member's entry, or whose name and birth year fit a member's entry, is held already. The names agree as the
+  matcher agrees them (`catalog.same_given` on the first given name, the surname as written); the fit orders
+  the candidates and never decides one, and is never a field of the search. Among these rows the head's
+  candidates first (`docs/DATA-ARCHITECTURE.md` §7 decision 21: the head's entry first), then a line's; the
+  record id before the name; and among those that fit, a birth year nearer the named person's first, which
+  orders a row among the rows that fit and no further: Fred Peters, born about 1875 by the 1925 index, fits
+  Fredrick C Peters, whom the file has born about 1883, and comes before every row that fits nobody. Then the
+  rest, the head's candidates first, then those for the lines alone: for the head a birth year nearer that of
+  the member stated the head's wife or husband; a row that gives a birth year before one that gives none;
+  then the answer's own order, the household's own search's pages first.
+- **[rule.household.15]** **One at a time.** The record page of the first candidate the answer's pages
+  let open ([rule.household.18]) is the one lead open (`OPEN_AT_ONCE` is one). The loop never waits on a person who waits on
   pages (`docs/LOOP.md` §8), so a household's next candidate costs that household one more
   round of saving in the browser, and the loop goes on. Every page opened
   beyond the one that holds the missing entry is a page saved for nothing, and
@@ -141,3 +146,13 @@ county), and its own record page is not held.
   have run out, the household stays as stored, incomplete, naming what it
   misses, and leads nowhere more. No page of the Peters household's head is held
   yet, so it has been seen complete nowhere.
+- **[rule.household.18]** **The pages before the rows.** While a page of the household's own answer is not
+  held, the only candidates opened are the rows the household points at: a row whose name fits a person the
+  tree names in a missing entry's place, or whose record id differs from a member's in its last character
+  alone. A row that fits nobody is opened only once every page of the answer is held, and until then the
+  answer's next page is the household's one open lead. A results page gives twenty candidates for one save
+  and a record page one, and a row fitting nobody the tree names is a stranger's entry more often than the
+  household's: the Peters household's six candidates saved one page each, all of them other households'
+  entries, were rows that fit nobody the file names, while the answer held one page of six. The candidate's
+  step says which put it first: its name's fit, its record id, or, with every page held, the household's own
+  order.

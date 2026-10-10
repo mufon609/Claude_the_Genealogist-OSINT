@@ -1,6 +1,6 @@
 {
  "title": "a household's search answer leads to its missing entries one at a time",
- "line": "Ruth Peters's 1925 page alone is a household missing its head; FamilySearch's 1925 collection searched for Peters at Hempstead, Nassau, saved by hand, reaches her household's search by its own identity: it is page 1 of 6, so page 2 is the search's next save, and its rows are the candidates for the head, the five born too late to be her parent left out, the rest in the answer's order, one opened at a time; an earlier search of the same collection, surname and place, with the given name Mary, puts Mary Peters's row first, her record id differing from Ruth's in its last character alone; Mary's page saved for that candidate lands on page 19, line 23, the wife: the household regrouped holds her and Ruth and is still missing the head and line 24, so the five too young for the head are candidates for line 24 now, after the head's, and the next candidate opened is the row born in 1887, the wife's year. No head's page is held, so the household is complete nowhere here",
+ "line": "Ruth Peters's 1925 page alone is a household missing its head; FamilySearch's 1925 collection searched for Peters at Hempstead, Nassau, saved by hand, reaches her household's search by its own identity: it is page 1 of 6, so page 2 is the search's next save, and its rows are the candidates for the head, the five born too late to be her parent left out; Mary A Peters, whose name fits Mary Peters, whom the file names as Ruth's parent and so in the head's place, comes first whatever her birth year and is the one opened, and every row that fits nobody waits on the answer's pages; an earlier search of the same collection, surname and place, with the given name Mary, puts Mary Peters's row first, her record id differing from Ruth's in its last character alone; Mary's page saved for that candidate lands on page 19, line 23, the wife: the household regrouped holds her and Ruth and is still missing the head and line 24, the file's Mary is the wife held and no longer a name for the head, no row fits the file's Fredrick C Peters, and so no row is opened: the row born in 1887, the wife's year, stands first among the rows that fit nobody, and the answer's page 2 is the household's one open lead. No head's page is held, so the household is complete nowhere here",
  "tree": {
   "file": "harness.ged",
   "home": "I332737035562",
@@ -117,11 +117,15 @@
         }
        },
        "rationale": {
-        "has": "120 matching records on 6 pages, page 1 held: page 2 next"
+        "has": [
+         "120 matching records on 6 pages, page 1 held: page 2 next",
+         "13 candidates wait on its pages",
+         "so the pages come before the rows"
+        ]
        }
       }
      },
-     "why": "the answer is cut: its next page, twenty rows on, is the search's next save, and a listing closes no step"
+     "why": "the answer is cut: its next page, twenty rows on, is the search's next save, a listing closes no step, and the rows that fit nobody wait on it"
     },
     {
      "fetch_entries": {
@@ -179,11 +183,33 @@
         "order": {
          "len": 14,
          "first": {
-          "name": "Lillian Peters",
-          "ark": "ark:/61903/1:1:KSHM-GFJ",
+          "name": "Mary A Peters",
+          "ark": "ark:/61903/1:1:KSHM-92W",
           "for": [
            "the head"
-          ]
+          ],
+          "why": {
+           "has": [
+            {
+             "has": "its name fits Mary Peters, whom the tree names in the head's place"
+            },
+            {
+             "has": "born CAL 1881, 6 years from the tree's 1887"
+            }
+           ]
+          },
+          "by": {
+           "has": "its name, which fits Mary Peters"
+          }
+         },
+         "some": {
+          "name": "Lillian Peters",
+          "by": null,
+          "why": {
+           "some": {
+            "has": "not opened while page 2 of the answer is not held"
+           }
+          }
          },
          "none": {
           "name": "Ruth Peters"
@@ -196,23 +222,23 @@
         },
         "open": [
          {
-          "name": "Lillian Peters"
+          "name": "Mary A Peters"
          }
         ]
        }
       ]
      },
-     "why": "the head alone is missing: a row born too late to be the daughter's parent by the life limits is left out; Ruth's own row is held; nothing in the household orders the other fourteen, so they stand in the answer's order, the one with no birth year last, and the first is opened"
+     "why": "the head alone is missing: a row born too late to be the daughter's parent by the life limits is left out; Ruth's own row is held; the file names Fredrick C Peters and Mary Peters as her parents, so in the head's place, and Mary A Peters's name fits Mary's: she comes first whatever her birth year and is opened; the other thirteen fit nobody and wait on the answer's remaining pages"
     },
     {
      "step": {
       "person": "I332737100400",
-      "step_key": "fetch:row:ark:/61903/1:1:KSHM-GFJ",
+      "step_key": "fetch:row:ark:/61903/1:1:KSHM-92W",
       "fields": {
        "status": "planned",
        "row_key": "household:1925",
        "locator_kind": "ark",
-       "locator_value": "ark:/61903/1:1:KSHM-GFJ",
+       "locator_value": "ark:/61903/1:1:KSHM-92W",
        "query": {
         "candidate for": {
          "value": "the head"
@@ -221,13 +247,14 @@
        "rationale": {
         "has": [
          "candidate 1 of 14 for the head",
+         "put first by its name, which fits Mary Peters",
          "5 rows left out",
          "1 candidate at a time"
         ]
        }
       }
      },
-     "why": "the first candidate is a lead for its own record page"
+     "why": "the first candidate is a lead for its own record page, and its rationale says what put it first"
     },
     {
      "step_count": {
@@ -242,11 +269,11 @@
      "fetch_entries": {
       "holder": "D03",
       "person": "I332737100400",
-      "url_has": "KSHM-GFJ",
+      "url_has": "KSHM-92W",
       "is": [
        {
-        "save_as": "familysearch-census-1925-KSHM-GFJ.html",
-        "url": "https://www.familysearch.org/ark:/61903/1:1:KSHM-GFJ?lang=en"
+        "save_as": "familysearch-census-1925-KSHM-92W.html",
+        "url": "https://www.familysearch.org/ark:/61903/1:1:KSHM-92W?lang=en"
        }
       ]
      },
@@ -287,6 +314,9 @@
            "some": {
             "has": "its record id differs from Ruth Peters's (KS4R-RTQ) in its last character alone"
            }
+          },
+          "by": {
+           "has": "its record id, one character from Ruth Peters's"
           }
          },
          "none": {
@@ -321,7 +351,7 @@
     {
      "step": {
       "person": "I332737100400",
-      "step_key": "fetch:row:ark:/61903/1:1:KSHM-GFJ",
+      "step_key": "fetch:row:ark:/61903/1:1:KSHM-92W",
       "exists": false
      },
      "why": "the candidate opened before, never fetched, is no longer first and leaves the plan"
@@ -429,8 +459,12 @@
           "why": {
            "some": {
             "has": "0 years from Mary Peters, the head's wife (born CAL 1887)"
+           },
+           "none": {
+            "starts": "its name fits"
            }
-          }
+          },
+          "by": null
          },
          "some": {
           "name": "Winnie Peters",
@@ -439,33 +473,49 @@
           ]
          },
          "none": {
-          "name": "Mary Peters"
+          "name": {
+           "in": [
+            "Mary Peters"
+           ]
+          }
+         },
+         "every": {
+          "by": null
          }
         },
         "answer": {
          "next": 2
-        }
+        },
+        "open": []
        }
       ]
      },
-     "why": "with a line missing beside the head, no row is ruled out: those too young for the head are candidates for line 24, after the head's; the head's are ordered by the wife's birth year, and the row born in 1887 comes first"
+     "why": "with a line missing beside the head, no row is ruled out: those too young for the head are candidates for line 24, after the head's; the file's Mary is the wife held, her name and year Mary's entry's, so no longer a name for the head or the line; no row fits Fredrick C Peters, so none is opened while the answer's page 2 is not held; the head's are ordered by the wife's birth year, and the row born in 1887 stands first"
+    },
+    {
+     "step_count": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:row:%",
+      "status": "planned",
+      "is": 0
+     },
+     "why": "no row is opened: the one tried is done, and every row left fits nobody the tree names in a missing entry's place"
     },
     {
      "step": {
       "person": "I332737100400",
-      "step_key": "fetch:row:ark:/61903/1:1:KS4B-K6V",
+      "step_key_like": "fetch:household:%",
       "fields": {
        "status": "planned",
        "rationale": {
         "has": [
-         "candidate 1 of",
-         "for the head; line 24",
-         "0 years from Mary Peters, the head's wife"
+         "page 2 next",
+         "so the pages come before the rows"
         ]
        }
       }
      },
-     "why": "the next candidate is opened once the one before it has been tried"
+     "why": "the answer's next page is the household's one open lead"
     },
     {
      "fetch_entries": {
@@ -476,7 +526,7 @@
        "len": 1
       }
      },
-     "why": "page 2 of the answer is still the search's next save"
+     "why": "page 2 of the answer is still the search's next save, and the only page of the household on the list"
     }
    ]
   },

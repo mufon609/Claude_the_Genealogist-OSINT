@@ -34,8 +34,9 @@ the results page's holder as the locator source, the row's words as its fields (
 proposes no row. A census household not wholly held (tools/households.py, grouped again here before it is read) is a lead
 on each person the tree ties to one of its members, under a row of its own (household_row): FamilySearch's search of its
 collection by the surname, the place and the year, never a given name, its next page while its answer is not held in full, and
-the record page of the candidate for its missing entries households.candidates opens, the head's first, one at a time
-(household_leads). Idempotent: questions and steps are keyed, so re-running updates what
+the record page of the candidate for its missing entries households.candidates opens, the head's first, one at a time, and
+while its answer is not held in full only a row whose name fits a person the tree names or whose record id is a member's but
+for its last character (household_leads). Idempotent: questions and steps are keyed, so re-running updates what
 changed, adds what is new, drops steps no longer generated (one that was run but
 is not done is kept for its log as skipped, planned again if generated again;
 one dropped is named in the run's audit row by its key, row and rationale, the
@@ -276,16 +277,19 @@ def household_leads(cx, tree_id, cat, pid):
     surname most of the members are written under, the place their census residence gives and the year, never by a given name,
     which the head's own entry need not share, while a page of its answer is not held, its link the first such page
     (households.answer: a cut answer's next page is the step's next save), key "fetch:household:<form and page>:<surname>", its
-    locator the same household and surname (kind household); and the record page of each candidate households.candidates opens
-    (OPEN_AT_ONCE at a time, in its order), key "fetch:row:<ark>" as the record behind any row of a results page, its locator the
+    locator the same household and surname (kind household), its rationale saying so when candidates wait on the answer's pages;
+    and the record page of each candidate households.candidates opens (OPEN_AT_ONCE at a time, in its order, and while a page of
+    the answer is not held only a row whose name fits a person the tree names in a missing entry's place or whose record id is
+    one character from a member's), key "fetch:row:<ark>" as the record behind any row of a results page, its locator the
     row's ark, its fields the row's words and the household's (basis record), its rationale why it stands where it does in the
-    order and what the candidates tried before it showed. FamilySearch has no connector, so tools/fetches.py lists both for the
+    order, what put it first and what the candidates tried before it showed. FamilySearch has no connector, so tools/fetches.py lists both for the
     browser; a saved page carrying the list's key reaches them, and its own identity does too (tools/attach.py). The fields are
     the held records' (basis record), never the person's claims, so the steps open before the baseline is reviewed, as a cited
     record's fetch does: they find the rest of a page already held. A household with no surname, place, year or FamilySearch
     collection to search by gives no step. A candidate whose record page is held has been tried and the next is opened in its
     place; a step dropped, like any generated step, once the household is wholly held, its answer held in full (the search), its
-    candidates have run out, or nobody ties the person to it: the household then stays as stored, incomplete, naming what it misses."""
+    candidates have run out, or nobody ties the person to it: the household then stays as stored, incomplete, naming what it misses.
+    Implements [rule.household.18]."""
     out = []; f = lambda v: {"value": v, "basis": "record"}
     for h in waiting_for(cx, tree_id, pid):
         if not (h["year"] and h["surname"] and h["place"] and h["fs_collection"]): continue
@@ -294,6 +298,7 @@ def household_leads(cx, tree_id, cat, pid):
         held = ((f"{a['count']} matching records on {a['total']} page{'s' if a['total'] != 1 else ''}, " if a["count"] is not None else "")
                 + f"page{'s' if len(a['held']) != 1 else ''} {', '.join(map(str, a['held']))} held") if a["held"] else "no page of its answer held yet"
         tried = "; ".join(f"{t['name']} ({ark_id(t['ark'])}): {t['where']}" for t in c["tried"])
+        wait = sum(not r["by"] for r in c["order"])
         if a["next"]:
             out.append({"step_key": f"fetch:household:{stem}", "row_key": row, "question_key": None, "kind": "fetch", "query_type": "household",
                         "query_json": dumps({"collection": f(h["collection"]), "surname": f(h["surname"]), "residence place": f(h["place"]), "year": f(str(h["year"])), "url": f(a["next_url"]),
@@ -301,7 +306,9 @@ def household_leads(cx, tree_id, cat, pid):
                         "locator_source_id": FAMILYSEARCH, "locator_kind": "household", "locator_value": stem, "collection_id": h["collection_id"], "on_json": "[]",
                         "sources_json": dumps([FAMILYSEARCH]), "mode": "fetch", "expected": "a page of the search's answer: each row that carries the household's surname and place is a candidate for its missing entries",
                         "rationale": f"the {h['year']} household of {who}" + (f", {where}," if where else "") + f" is not wholly held: missing {lacks}; FamilySearch's {h['collection']} "
-                                     f"searched by the surname, the place and the year the page gives, never by a given name, which the head's own entry need not share; {held}: page {a['next']} next"})
+                                     f"searched by the surname, the place and the year the page gives, never by a given name, which the head's own entry need not share; {held}: page {a['next']} next"
+                                     + (f"; {wait} candidate{'s' if wait != 1 else ''} wait on its pages, fitting nobody the tree names in a missing entry's place and sharing no member's record id: "
+                                        f"a results page gives {a['per'] or 'a page of'} candidates for one save where a record page gives one, so the pages come before the rows" if wait else "")})
         for n, cand in enumerate(c["open"], 1):
             fields = {"collection": f(h["collection"]), "name": f(cand["name"]), "year": f(str(h["year"])), "url": f(cand["url"]), "listed": f(", ".join(x for x in (f"born {cand['born']}" if cand["born"] else None, cand["place"]) if x)),
                       "found on": f(f"FamilySearch results page {cand['found_on']}, row {cand['row']}"), "household": f(f"{where}: {who}"), "candidate for": f("; ".join(cand["for"]))}
@@ -310,7 +317,7 @@ def household_leads(cx, tree_id, cat, pid):
                         "collection_id": h["collection_id"], "on_json": "[]", "sources_json": dumps([FAMILYSEARCH]), "mode": "fetch",
                         "expected": "the row's own record page: its page, line and districts say whether it is on the household's page and in its run, its relationship whether it is the head",
                         "rationale": f"candidate {n} of {len(c['order'])} for {'; '.join(cand['for'])} of the {h['year']} household of {who}" + (f", {where}" if where else "")
-                                     + f": {cand['name']}, row {cand['row']} of a FamilySearch results page" + (f"; {'; '.join(cand['why'])}" if cand["why"] else "")
+                                     + f": {cand['name']}, row {cand['row']} of a FamilySearch results page, put first by {cand['by']}" + (f"; {'; '.join(cand['why'])}" if cand["why"] else "")
                                      + (f"; {len(c['left_out'])} row{'s' if len(c['left_out']) != 1 else ''} left out, born where the head cannot be" if c["left_out"] else "")
                                      + (f"; tried before it: {tried}" if tried else "") + f". {OPEN_AT_ONCE} candidate{'s' if OPEN_AT_ONCE > 1 else ''} at a time: the next is opened once this page is held"})
     return out

@@ -45,12 +45,16 @@ its own search, FamilySearch's collection searched by the surname, the place and
 a results page the archive holds of that collection for that surname at that place (the household's own search's, and an
 earlier search's with a given name) is a candidate for the missing entries when it carries the surname and the place and its
 own record page is not held (candidates). A row the form's household rule and data/life-limits.csv rule out for the head
-is left out where the head alone is missing, and a candidate for a line not held where a line is missing too. The head's
-candidates come first, each kind in the order the household itself makes likelier: a record id that differs from a member's
-in its last character alone (the ids FamilySearch gives the entries of one household), a name that fits a relative the tree
-names for a member in the head's place (it orders, never decides, and is never a field of the search), a birth year nearer
-the head's spouse's on the page, a birth year given, then the answer's own order. OPEN_AT_ONCE of them are leads at a time;
-a candidate whose record page is held has been tried, whatever it showed, and the next takes its place.
+is left out where the head alone is missing, and a candidate for a line not held where a line is missing too. First come the
+rows the household itself points at, whatever their birth year: a record id that differs from a member's in its last
+character alone (the ids FamilySearch gives the entries of one household), and a name that fits a person the tree names in a
+missing entry's place (_named: for the head, the people it names for the members in the head's place; for a line, the people
+it names in a member's family; it orders, never decides, and is never a field of the search), the head's first, the record
+id before the name, a birth year nearer the named person's first. Then the rest, the head's first: a birth year nearer the
+head's spouse's on the page, a birth year given, then the answer's own order. OPEN_AT_ONCE of them are leads at a time, and
+while a page of the answer is not held only the rows the household points at: a row that fits nobody waits on the answer's
+pages, the next of which is the household's one open lead. A candidate whose record page is held has been tried, whatever it
+showed, and the next takes its place.
 
     group(cx)                        the households as the script groups them now, and the entries in none
     regroup(cx, by, ts=None)         group, store what changed, supersede what it replaces: what it wrote
@@ -504,35 +508,46 @@ def _members(cx, h):
                     "kind": household_kind(m["relationship"]) if m["relationship"] else None, "sex": (facts.get("Sex") or "")[:1].upper() or None, "born": facts.get("Birth")})
     return out
 
-def _relatives_in_head_place(cx, tree_id, members):
-    """The people the tree names for the household's members in the head's place: a member stated the head's wife or husband
-    gives the people the tree names as their spouse, a son or daughter their parents, a father or mother their children (as
-    Catalog.family reads the tree, a claim or an acceptance alike); the people every member that gives any names, less the
-    people tied to a member. [(person id, given, surname, birth year)].
+def _named(cx, tree_id, members, head_missing, lines):
+    """The people the tree names in the places of the household's missing entries, each with the entry they are named for. For
+    the head, the people it names for the members in the head's place: a member stated the head's wife or husband gives the
+    people the tree names as their spouse, a son or daughter their parents, a father or mother their children, and the head's
+    are the people every member that gives any names. For the lines not held, the people it names in a member's family (the
+    spouses, parents and children of the person a member is), less the head's. Both as Catalog.family reads the tree, a claim
+    or an acceptance alike, and less the members themselves: the people tied to a member, and a person whose name and birth
+    year fit a member's entry as a row's fit (_fits, the years within a calculated year's span), a member held whom the tree
+    has not tied to its entry yet. [{"id", "given", "surname", "year", "for" (["the head"] or the lines), "as" (where the tree
+    names them, in words)}], the head's first.
     Implements [rule.household.14]."""
     from catalog import Catalog
-    cat = Catalog(cx, tree_id); role = {"spouse": "spouses", "child": "parents", "parent": "children"}; sets, tied = [], set()
+    cat = Catalog(cx, tree_id); role = {"spouse": "spouses", "child": "parents", "parent": "children"}; sets, tied, near = [], set(), {}
     for m in members:
         people = {r[0] for r in cx.execute("""SELECT pp.person_id FROM person_persona pp JOIN person p ON p.id=pp.person_id WHERE pp.persona_id=? AND pp.status IN ('accepted','undecided') AND p.tree_id=?
                                               UNION SELECT json_extract(payload_json,'$.person_id') FROM proposal WHERE tree_id=? AND kind='persona_match' AND status='undecided'
                                               AND json_extract(payload_json,'$.persona_id')=?""", (m["persona"], tree_id, tree_id, m["persona"]))}
-        tied |= people
+        tied |= people; fams = [cat.family(pid) for pid in sorted(people)]
+        for f in fams:
+            for rel, word in (("spouses", "spouse"), ("parents", "parent"), ("children", "child")):
+                for rid, _ in f[rel]: near.setdefault(rid, f"as {m['name']}'s {word}")
         if m["kind"] not in role: continue
-        named = {rid for pid in people for rid, _ in cat.family(pid)[role[m["kind"]]]}
+        named = {rid for f in fams for rid, _ in f[role[m["kind"]]]}
         if named: sets.append(named)
+    head = set.intersection(*sets) - tied if sets else set()
+    entries = [(*_row_name(m["name"]), _year(m["born"])) for m in members]
     out = []
-    for rid in sorted(set.intersection(*sets) - tied) if sets else []:
+    for rid, entry, where in ([(rid, [HEAD], "in the head's place") for rid in sorted(head)] if head_missing else []) + \
+                             ([(rid, lines, f"{near[rid]}, in the place of {', '.join(lines)}") for rid in sorted(set(near) - tied - head)] if lines else []):
         names = cat.person(rid)["names"]; birth = next((e for e in cat.events(rid) if e["type"] == "Birth" and e["year"]), None)
-        out += [(rid, g, s, birth["year"] if birth else None) for g, s, *_ in names[:1]]
+        for g, s, *_ in names[:1]:
+            p = {"id": rid, "given": g, "surname": s, "year": birth["year"] if birth else None, "for": entry, "as": where}
+            if not any(_fits({"given": eg, "surname": es}, p) and not (ey and p["year"] and abs(ey - p["year"]) > 2) for eg, es, ey in entries): out.append(p)
     return out
 
-def _fits(row, rel):
-    """Whether a row's name fits a relative's by the matcher's own agreement of given names (catalog.same_given) and the surname
-    as written, with no birth year of the two more than a calculated year's span apart.
+def _fits(row, person):
+    """Whether a row's name fits a person's by the matcher's own agreement of given names (catalog.same_given, the first given
+    name) and the surname as written; the birth year orders, never refuses.
     Implements [rule.household.14]."""
-    _, given, surname, born = rel
-    if not same_given(first_given(row["given"]), first_given(given)) or key(row["surname"]) != key(surname): return False
-    return not (row["year"] and born and abs(row["year"] - born) > 2)
+    return same_given(first_given(row["given"]), first_given(person["given"])) and key(row["surname"]) == key(person["surname"])
 
 def _row_name(name):
     """(given names, surname) of a search row's name: a lone word the surname, as a surname search lists an entry whose given
@@ -555,16 +570,18 @@ def _where(cx, ark):
 def candidates(cx, tree_id, h):
     """The rows that could be the household's missing entries (docs/HOUSEHOLDS.md): {"answer"
     (answer), "order" (the candidates in order, each {"ark", "name", "born", "year", "place", "url", "found_on", "row", "for" (the
-    missing entries it could be), "why" (what orders it, in words)}), "open" (the first OPEN_AT_ONCE), "left_out" ({"ark", "name",
-    "why"}), "tried" ({"ark", "name", "where"}: a candidate whose record page is held and is no member, where that page places
-    it)}. A row is one when it carries the household's surname as written and its place, and its own record page is not held.
-    Implements [rule.household.12], [rule.household.13], [rule.household.14], [rule.household.15], [rule.household.16], [rule.household.17]."""
+    missing entries it could be), "why" (what orders it, in words), "by" (what lets it open, in words: its record id, its name's
+    fit, or with every page of the answer held the household's own order; None while it waits on the answer's pages)}), "open"
+    (the first OPEN_AT_ONCE of those with a "by"), "left_out" ({"ark", "name", "why"}), "tried" ({"ark", "name", "where"}: a
+    candidate whose record page is held and is no member, where that page places it)}. A row is one when it carries the
+    household's surname as written and its place, and its own record page is not held.
+    Implements [rule.household.12], [rule.household.13], [rule.household.14], [rule.household.15], [rule.household.16], [rule.household.17], [rule.household.18]."""
     pages = _pages(cx, h); ans = answer(cx, h, pages)
     members = _members(cx, h); entries = {m["id"] for m in members if m["id"]}
     blocks = {m["id"][:-1]: m for m in members if m["id"]}
     head_missing = bool(h["missing"]) and h["missing"][0] == HEAD; lines = [x for x in h["missing"] if x != HEAD]
     spouses = [(m, _year(m["born"])) for m in members if m["kind"] == "spouse" and _year(m["born"])]
-    relatives = _relatives_in_head_place(cx, tree_id, members) if head_missing else []
+    named = _named(cx, tree_id, members, head_missing, lines) if h["missing"] else []
     seen, rows = set(), []
     for p in sorted(pages, key=lambda p: (not p["own"], int(p["query"].get("offset") or 0))):
         for r in p["rows"]:
@@ -578,6 +595,7 @@ def candidates(cx, tree_id, h):
             rows.append({"ark": r["ark"], "name": r.get("name") or "", "given": given, "surname": surname, "born": born, "year": _year(born), "place": res, "url": r.get("url"),
                          "found_on": p["url"], "row": r.get("n"), "base": len(rows)})
     order, left_out, tried = [], [], []
+    per = f"{ans['per']} candidates" if ans["per"] else "a page of candidates"
     for r in rows:
         if ark_id(r["ark"]) in entries: continue                                   # a member already: held
         if cx.execute("SELECT 1 FROM artifact_locator WHERE kind='ark' AND value=?", (r["ark"],)).fetchone():
@@ -593,19 +611,28 @@ def candidates(cx, tree_id, h):
         if not r["for"]: left_out.append({"ark": r["ark"], "name": r["name"], "why": f"born {r['born']}, so not the head: {unlike}"}); continue
         block = blocks.get(ark_id(r["ark"])[:-1])
         if block: why.append(f"its record id differs from {block['name']}'s ({block['id']}) in its last character alone, as the ids FamilySearch gives the entries of one household do")
-        fit = next((rel for rel in relatives if _fits(r, rel)), None) if HEAD in r["for"] else None
-        if fit: why.append(f"its name fits {fit[1]} {fit[2]}, whom the tree names in the head's place (a relative it orders by, never decides on)")
-        near = min(((abs(r["year"] - y), n) for n, (m, y) in enumerate(spouses)), default=None) if HEAD in r["for"] and r["year"] else None
+        apart = lambda p: abs(r["year"] - p["year"]) if r["year"] and p["year"] else None
+        fit = min((p for p in named if set(p["for"]) & set(r["for"]) and _fits(r, p)), key=lambda p: (HEAD not in p["for"], apart(p) is None, apart(p) or 0), default=None)
+        if fit:
+            why.append(f"its name fits {fit['given']} {fit['surname']}, whom the tree names {fit['as']} (a name it orders by, never decides on)")
+            if apart(fit) is not None: why.append(f"born {r['born']}, {apart(fit)} year{'' if apart(fit) == 1 else 's'} from the tree's {fit['year']}, which orders it among the rows that fit and no further")
+        near = min(((abs(r["year"] - y), n) for n, (m, y) in enumerate(spouses)), default=None) if HEAD in r["for"] and r["year"] and not fit else None
         if near: m = spouses[near[1]][0]; why.append(f"born {r['born']}, {near[0]} year{'' if near[0] == 1 else 's'} from {m['name']}, the head's {m['relationship'].lower()} (born {m['born']})")
-        if HEAD in r["for"] and not r["year"]: why.append("no birth year on the row: nothing rules it out, and nothing orders it before a row that gives one")
+        if (HEAD in r["for"] or fit) and not r["year"]: why.append("no birth year on the row: nothing rules it out, and nothing orders it before a row that gives one")
         if unlike: why.append(f"not the head ({unlike}), so a candidate for {', '.join(lines)} alone")
         r["why"] = why
-        r["sort"] = (HEAD not in r["for"], not block, not fit, HEAD in r["for"] and r["year"] is None, near[0] if near else 0, r["base"])
+        r["by"] = (f"its record id, one character from {block['name']}'s" if block else f"its name, which fits {fit['given']} {fit['surname']}" if fit
+                   else None if ans["next"] else "the household's own order, every page of its answer held")
+        if not r["by"]:
+            why.append(f"not opened while page {ans['next']} of the answer is not held: its name fits nobody the tree names in a missing entry's place and its record id "
+                       f"no member's, and a results page gives {per} for one save where a record page gives one")
+        r["sort"] = (not (block or fit), HEAD not in (r["for"] if block or not fit else fit["for"]), not block, not fit, (HEAD in r["for"] or bool(fit)) and r["year"] is None,
+                     (apart(fit) or 0) if fit else near[0] if near else 0, r["base"])
         order.append(r)
     order.sort(key=lambda r: r["sort"])
-    clean = lambda r: {k: r[k] for k in ("ark", "name", "born", "year", "place", "url", "found_on", "row", "for", "why")}
+    clean = lambda r: {k: r[k] for k in ("ark", "name", "born", "year", "place", "url", "found_on", "row", "for", "why", "by")}
     order = [clean(r) for r in order]
-    return {"answer": ans, "order": order, "open": order[:OPEN_AT_ONCE], "left_out": left_out, "tried": tried}
+    return {"answer": ans, "order": order, "open": [r for r in order if r["by"]][:OPEN_AT_ONCE], "left_out": left_out, "tried": tried}
 
 def said(m):
     """A member in words: their name, with the relationship and the line the form gives them."""
