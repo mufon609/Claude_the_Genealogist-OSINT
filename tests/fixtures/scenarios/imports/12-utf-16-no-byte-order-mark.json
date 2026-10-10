@@ -1,6 +1,6 @@
 {
  "title": "UTF-16 with no byte order mark is read as UTF-16",
- "line": "the harness tree written in UTF-16 with no byte order mark ingests the same 27 people: the file's first bytes, a zero beside the 0 of its first line, say what it is",
+ "line": "the harness tree written in UTF-16 with no byte order mark ingests the same 30 people: the file's first bytes, a zero beside the 0 of its first line, say what it is",
  "tree": {
   "slug": "harness",
   "name": "Harness"
@@ -25,9 +25,9 @@
     },
     {
      "persons": {
-      "count": 27
+      "count": 30
      },
-     "why": "the same 27 people the file in UTF-8 gives"
+     "why": "the same 30 people the file in UTF-8 gives"
     },
     {
      "stored": {

@@ -233,7 +233,10 @@ media object), with the lines under it; so a person whose families all fall outs
 link, as the file itself would hold a stranger. It holds the home person, their parents and grandparents on both sides,
 two great-grandparents' households as two census pages name them (the 1940 and 1920 pages above), the great-grandmother's
 parents (the memorial's subject and his wife), a great-great-grandfather's parents and his two entries in the file (the
-file's own duplicate, for the merge), the 1900 household of a great-great-grandmother's parents, and one person apart from
+file's own duplicate, for the merge), the 1900 household of a great-great-grandmother's parents, the 1925 Peters household
+as the file names it (Fredrick C Peters, Mary Peters, their daughter Dorothy and the family record that names them with
+Ruth M Peters, cut from the owner's own export under `trees/ahearn/imports/` like every other record here, for the
+household's missing entries: the head and the line the file names), and one person apart from
 them all, whose one citation is an application of the Sons of the American Revolution (the holder whose link prefills
 nothing, for the loop's scenario of an assisted search). It is the only `.ged`
 the commit guard allows. To cut it again from a fresh export, or from another family's:

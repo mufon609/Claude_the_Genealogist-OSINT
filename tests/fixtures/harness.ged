@@ -1563,6 +1563,7 @@
 3 PAGE National Archives at Washington, DC; Washington, D.C.; Seventeenth Census of the United States, 1950; Year: 1950; Census Place: Hempstead, Nassau, New York; Roll: 4390; Page: 29; Enumeration District: 30-392
 3 _APID 1,62308::290787788
 1 SEX F
+1 FAMC @F11@
 1 FAMS @F10@
 1 BIRT
 2 DATE abt 1921
@@ -2080,6 +2081,178 @@
 2 _APID 1,60525::175603714
 1 SOUR @S1277182702@
 2 _APID 1,60901::792584762
+0 @I332737208047@ INDI
+1 NAME Dorothy /Peters/
+2 GIVN Dorothy
+2 SURN Peters
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548235
+1 SEX F
+1 FAMC @F11@
+1 BIRT
+2 DATE abt 1919
+2 PLAC USA
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548235
+1 RESI
+2 DATE 1920
+2 PLAC Queens Assembly District 1, Queens, New York, USA
+2 SOUR @S1277240718@
+3 _APID 1,6061::61391458
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter
+1 RESI
+2 DATE 1925
+2 PLAC Hempstead, Nassau
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548235
+2 NOTE Relation to Head of House: Daughter
+1 RESI
+2 DATE 1930
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277240638@
+3 _APID 1,6224::41449693
+2 NOTE Marital Status: Single; Relation to Head of House: Daughter
+1 RESI
+2 DATE 1935
+2 PLAC Hempstead, Nassau, New York
+2 SOUR @S1277240602@
+3 _APID 1,2442::10101472
+1 RESI
+2 DATE 1940
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277240602@
+3 _APID 1,2442::10101472
+2 NOTE Occupation: Secretary; Marital Status: Single; Relation to Head of House: Daughter
+1 SOUR @S1277240602@
+2 _APID 1,2442::10101472
+1 SOUR @S1277183048@
+2 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+2 _APID 1,2704::16548235
+1 SOUR @S1277240718@
+2 _APID 1,6061::61391458
+1 SOUR @S1277240638@
+2 _APID 1,6224::41449693
+0 @I332737208048@ INDI
+1 NAME Fredrick C /Peters/
+2 GIVN Fredrick C
+2 SURN Peters
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548231
+1 SEX M
+1 FAMS @F11@
+1 BIRT
+2 DATE abt 1883
+2 PLAC Germany
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548231
+1 EVEN
+2 TYPE Arrival
+2 DATE 1905
+2 SOUR @S1277240718@
+3 _APID 1,6061::61391458
+1 EVEN
+2 TYPE Arrival
+2 DATE 1911
+2 SOUR @S1277240638@
+3 _APID 1,6224::41449693
+1 RESI
+2 DATE 1920
+2 PLAC Queens Assembly District 1, Queens, New York, USA
+2 SOUR @S1277240718@
+3 _APID 1,6061::61391458
+2 NOTE Occupation: Salesman; Marital Status: Married; Relation to Head of House: Head
+1 RESI
+2 DATE 1925
+2 PLAC Hempstead, Nassau
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548231
+2 NOTE Relation to Head of House: Head
+1 RESI
+2 DATE 1930
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277240638@
+3 _APID 1,6224::41449693
+2 NOTE Marital Status: Married; Relation to Head of House: Head; Occupation: Proprietor
+1 RESI
+2 DATE 1935
+2 PLAC Hempstead, Nassau, New York
+2 SOUR @S1277240602@
+3 _APID 1,2442::10101472
+1 RESI
+2 DATE 1940
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277240602@
+3 _APID 1,2442::10101472
+2 NOTE Occupation: Proprietor; Marital Status: Married; Relation to Head of House: Head
+1 SOUR @S1277240602@
+2 _APID 1,2442::10101472
+1 SOUR @S1277183048@
+2 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+2 _APID 1,2704::16548231
+1 SOUR @S1277240718@
+2 _APID 1,6061::61391458
+1 SOUR @S1277240638@
+2 _APID 1,6224::41449693
+0 @I332737208050@ INDI
+1 NAME Mary /Peters/
+2 GIVN Mary
+2 SURN Peters
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548233
+1 SEX F
+1 FAMS @F11@
+1 BIRT
+2 DATE abt 1887
+2 PLAC USA
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548233
+1 RESI
+2 DATE 1920
+2 PLAC Queens Assembly District 1, Queens, New York, USA
+2 SOUR @S1277240718@
+3 _APID 1,6061::61391458
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 RESI
+2 DATE 1925
+2 PLAC Hempstead, Nassau
+2 SOUR @S1277183048@
+3 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+3 _APID 1,2704::16548233
+2 NOTE Relation to Head of House: Wife
+1 RESI
+2 DATE 1930
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277240638@
+3 _APID 1,6224::41449693
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 RESI
+2 DATE 1935
+2 PLAC Hempstead, Nassau, New York
+2 SOUR @S1277240602@
+3 _APID 1,2442::10101472
+1 RESI
+2 DATE 1940
+2 PLAC Hempstead, Hempstead, Nassau, New York, USA
+2 SOUR @S1277240602@
+3 _APID 1,2442::10101472
+2 NOTE Marital Status: Married; Relation to Head of House: Wife
+1 SOUR @S1277240602@
+2 _APID 1,2442::10101472
+1 SOUR @S1277183048@
+2 PAGE New York State Archives; Albany, New York; State Population Census Schedules, 1925; Election District: 06; Assembly District: 01; City: Hempstead; County: Nassau; Page: 19
+2 _APID 1,2704::16548233
+1 SOUR @S1277240718@
+2 _APID 1,6061::61391458
+1 SOUR @S1277240638@
+2 _APID 1,6224::41449693
 0 @I332737209655@ INDI
 1 NAME Ellen E /McCrary/
 2 GIVN Ellen E
@@ -2265,6 +2438,11 @@
 1 HUSB @I332737100409@
 1 WIFE @I332737100400@
 1 CHIL @I332737099805@
+0 @F11@ FAM
+1 HUSB @I332737208048@
+1 WIFE @I332737208050@
+1 CHIL @I332737208047@
+1 CHIL @I332737100400@
 0 @F12@ FAM
 1 HUSB @I332737204849@
 1 WIFE @I332737204852@
@@ -2632,11 +2810,23 @@
 1 PUBL Ancestry.com Operations Inc
 2 DATE 2004
 2 PLAC Lehi, UT, USA
+0 @S1277240602@ SOUR
+1 TITL 1940 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2012
+2 PLAC Provo, UT, USA
 0 @S1277240638@ SOUR
 1 TITL 1930 United States Federal Census
 1 AUTH Ancestry.com
 1 PUBL Ancestry.com Operations Inc
 2 DATE 2002
+2 PLAC Provo, UT, USA
+0 @S1277240718@ SOUR
+1 TITL 1920 United States Federal Census
+1 AUTH Ancestry.com
+1 PUBL Ancestry.com Operations, Inc.
+2 DATE 2010
 2 PLAC Provo, UT, USA
 0 @S1277240785@ SOUR
 1 TITL Tennessee, U.S., Marriage Records, 1780-2002

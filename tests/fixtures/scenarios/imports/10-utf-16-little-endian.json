@@ -1,6 +1,6 @@
 {
  "title": "a UTF-16 export is read as UTF-16",
- "line": "the harness tree written in UTF-16, little-endian with a byte order mark and its header's CHAR UNICODE, ingests the same 27 people with every stored text as the file writes it, none of it replaced",
+ "line": "the harness tree written in UTF-16, little-endian with a byte order mark and its header's CHAR UNICODE, ingests the same 30 people with every stored text as the file writes it, none of it replaced",
  "tree": {
   "slug": "harness",
   "name": "Harness"
@@ -26,9 +26,9 @@
     },
     {
      "persons": {
-      "count": 27
+      "count": 30
      },
-     "why": "the same 27 people the file in UTF-8 gives"
+     "why": "the same 30 people the file in UTF-8 gives"
     },
     {
      "stored": {

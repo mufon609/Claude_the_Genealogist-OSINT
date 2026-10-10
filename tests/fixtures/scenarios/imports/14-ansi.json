@@ -1,6 +1,6 @@
 {
  "title": "an ANSI export is read as Windows-1252",
- "line": "the harness tree written in Windows-1252, its header's CHAR ANSI, ingests the same 27 people with the registered mark, the trade mark and the en dash of its source titles as the file writes them, none replaced; the box-drawing characters of the header's tree note, which that character set cannot write, are the question marks an exporter for it writes",
+ "line": "the harness tree written in Windows-1252, its header's CHAR ANSI, ingests the same 30 people with the registered mark, the trade mark and the en dash of its source titles as the file writes them, none replaced; the box-drawing characters of the header's tree note, which that character set cannot write, are the question marks an exporter for it writes",
  "tree": {
   "slug": "harness",
   "name": "Harness"
@@ -25,9 +25,9 @@
     },
     {
      "persons": {
-      "count": 27
+      "count": 30
      },
-     "why": "the same 27 people the file in UTF-8 gives"
+     "why": "the same 30 people the file in UTF-8 gives"
     },
     {
      "stored": {
