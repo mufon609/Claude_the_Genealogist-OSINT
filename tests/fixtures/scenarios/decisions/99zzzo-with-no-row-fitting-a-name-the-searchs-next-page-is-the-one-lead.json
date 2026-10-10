@@ -1,0 +1,172 @@
+{
+ "title": "with no row fitting a name the tree gives, the search's next page is the one lead",
+ "line": "the same household with the household's own search page 1 of 6 held and no earlier search: no row fits a name the file gives the head's place or line 24's, and none shares a member's record id, so no row's record page is opened; the rows the household's own test puts first, the row born in 1887 and Rowena L Peters, the wife's year both, stand in the order and wait, and the answer's page 2 is the household's one open lead, its rationale saying the pages come before the rows",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Ruth's 1925 New York page, page 19, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTQ.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTQ"
+    },
+    "extract": true,
+    "match": [
+     "I332737100400"
+    ]
+   },
+   "as": "ruth"
+  },
+  {
+   "say": "Mary's 1925 New York page, page 19, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTM.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTM"
+    },
+    "extract": true,
+    "match": [
+     "I332737208050"
+    ]
+   },
+   "as": "mary"
+  },
+  {
+   "say": "the household's own search, FamilySearch's 1925 collection for Peters at Hempstead, Nassau, as the archive holds it: page 1 of 6",
+   "archive": {
+    "fixture": "familysearch-search-census-1925-peters.html",
+    "source": "D03",
+    "collection": "FamilySearch record search",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+    },
+    "extract": true
+   },
+   "as": "search"
+  },
+  {
+   "say": "Ruth's plan written",
+   "plan": [
+    "I332737100400"
+   ],
+   "expect": [
+    {
+     "household_leads": {
+      "person": "I332737100400",
+      "is": [
+       {
+        "answer": {
+         "held": [
+          1
+         ],
+         "next": 2
+        },
+        "order": {
+         "len": 19,
+         "first": {
+          "name": "Peters",
+          "ark": "ark:/61903/1:1:KS4B-K6V",
+          "by": null,
+          "why": {
+           "has": [
+            {
+             "has": "0 years from Mary Peters, the head's wife (born CAL 1887)"
+            },
+            {
+             "has": "not opened while page 2 of the answer is not held: its name fits nobody the tree names in a missing entry's place and its record id no member's, and a results page gives 20 candidates for one save where a record page gives one"
+            }
+           ]
+          }
+         },
+         "some": {
+          "name": "Rowena L Peters",
+          "by": null,
+          "why": {
+           "some": {
+            "has": "not opened while page 2 of the answer is not held"
+           }
+          }
+         },
+         "every": {
+          "by": null
+         }
+        },
+        "open": []
+       }
+      ]
+     },
+     "why": "nothing the household holds or the file names points at a row: the two first by the wife's year are in order, not open, and say why"
+    },
+    {
+     "step_count": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:row:%",
+      "status": "planned",
+      "is": 0
+     },
+     "why": "no row's record page is a step"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:household:%",
+      "fields": {
+       "status": "planned",
+       "query": {
+        "url": {
+         "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters&count=20&offset=20"
+        }
+       },
+       "rationale": {
+        "has": [
+         "page 1 held: page 2 next",
+         "19 candidates wait on its pages",
+         "a results page gives 20 candidates for one save where a record page gives one, so the pages come before the rows"
+        ]
+       }
+      }
+     },
+     "why": "the answer's next page is the household's one open lead"
+    },
+    {
+     "fetch_entries": {
+      "holder": "D03",
+      "person": "I332737100400",
+      "url_has": "&count=20&offset=20",
+      "is": {
+       "len": 1
+      }
+     },
+     "why": "the fetch list prints page 2 of the answer for the browser"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    },
+    {
+     "plan_idempotent": {
+      "person": "I332737100400"
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,223 @@
+{
+ "title": "a row whose name fits a name the tree gives the head's place is opened first, whatever its year",
+ "line": "Ruth's and Mary's 1925 pages make a household missing its head and line 24; with the household's own search page 1 of 6 held and the earlier search Fredrick C Peters's citation made, its row 1, Fred Peters, born about 1875 by the index, fits Fredrick C Peters, whom the file names as Mary's husband and Ruth's father and so in the head's place: his name puts him first though his year is eight from the file's 1883, behind no row ordered by the wife's year, and his record page is the one candidate opened, the answer's page 2 a planned step beside it; every row that fits nobody waits on the answer's pages",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Ruth's 1925 New York page, page 19, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTQ.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTQ"
+    },
+    "extract": true,
+    "match": [
+     "I332737100400"
+    ]
+   },
+   "as": "ruth"
+  },
+  {
+   "say": "Mary's 1925 New York page, page 19, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTM.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTM"
+    },
+    "extract": true,
+    "match": [
+     "I332737208050"
+    ]
+   },
+   "as": "mary"
+  },
+  {
+   "say": "the household's own search, FamilySearch's 1925 collection for Peters at Hempstead, Nassau, as the archive holds it: page 1 of 6",
+   "archive": {
+    "fixture": "familysearch-search-census-1925-peters.html",
+    "source": "D03",
+    "collection": "FamilySearch record search",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+    },
+    "extract": true
+   },
+   "as": "search"
+  },
+  {
+   "say": "an earlier search of the same collection for Peters at Hempstead, Nassau, with the given name Fredrick C, as the archive holds it",
+   "archive": {
+    "fixture": "familysearch-search-census-1925-peters-fredrick-c.html",
+    "source": "D03",
+    "collection": "FamilySearch record search",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Fredrick%20C&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+    },
+    "extract": true
+   },
+   "as": "fredsearch"
+  },
+  {
+   "say": "Ruth's plan written",
+   "plan": [
+    "I332737100400"
+   ],
+   "expect": [
+    {
+     "household_leads": {
+      "person": "I332737100400",
+      "is": [
+       {
+        "answer": {
+         "held": [
+          1
+         ],
+         "count": 120,
+         "total": 6,
+         "next": 2
+        },
+        "order": {
+         "first": {
+          "name": "Fred Peters",
+          "ark": "ark:/61903/1:1:KSHM-92Q",
+          "born": "CAL 1875",
+          "for": [
+           "the head",
+           "line 24"
+          ],
+          "why": {
+           "has": [
+            {
+             "has": "its name fits Fredrick C Peters, whom the tree names in the head's place"
+            },
+            {
+             "has": "born CAL 1875, 8 years from the tree's 1883"
+            }
+           ]
+          },
+          "by": {
+           "has": "its name, which fits Fredrick C Peters"
+          }
+         },
+         "some": {
+          "name": "Peters",
+          "ark": "ark:/61903/1:1:KS4B-K6V",
+          "by": null,
+          "why": {
+           "has": [
+            {
+             "has": "0 years from Mary Peters, the head's wife (born CAL 1887)"
+            },
+            {
+             "has": "not opened while page 2 of the answer is not held"
+            }
+           ]
+          }
+         },
+         "none": {
+          "name": {
+           "in": [
+            "Mary Peters",
+            "Ruth Peters"
+           ]
+          }
+         }
+        },
+        "open": [
+         {
+          "name": "Fred Peters"
+         }
+        ]
+       }
+      ]
+     },
+     "why": "the file names Fredrick C Peters as Mary's husband and Ruth's father, so in the head's place: the row whose name fits his comes first whatever its birth year, the year written and ordering it among the rows that fit and no further; the row born in 1887, the wife's year, which the household's own test put first, waits on the answer's pages"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key": "fetch:row:ark:/61903/1:1:KSHM-92Q",
+      "fields": {
+       "status": "planned",
+       "row_key": "household:1925",
+       "locator_value": "ark:/61903/1:1:KSHM-92Q",
+       "query": {
+        "candidate for": {
+         "value": "the head; line 24"
+        }
+       },
+       "rationale": {
+        "has": [
+         "candidate 1 of",
+         "for the head; line 24",
+         "put first by its name, which fits Fredrick C Peters",
+         "its name fits Fredrick C Peters, whom the tree names in the head's place",
+         "8 years from the tree's 1883"
+        ]
+       }
+      }
+     },
+     "why": "his record page is the candidate opened, and its rationale says the name's fit put it first"
+    },
+    {
+     "step_count": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:row:%",
+      "status": "planned",
+      "is": 1
+     },
+     "why": "one candidate at a time"
+    },
+    {
+     "step": {
+      "person": "I332737100400",
+      "step_key_like": "fetch:household:%",
+      "fields": {
+       "status": "planned",
+       "query": {
+        "url": {
+         "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters&count=20&offset=20"
+        }
+       },
+       "rationale": {
+        "has": [
+         "page 1 held: page 2 next",
+         "so the pages come before the rows"
+        ]
+       }
+      }
+     },
+     "why": "the answer's page 2 is a planned step beside his record page, the rows that fit nobody waiting on it"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    },
+    {
+     "plan_idempotent": {
+      "person": "I332737100400"
+     }
+    }
+   ]
+  }
+ ]
+}

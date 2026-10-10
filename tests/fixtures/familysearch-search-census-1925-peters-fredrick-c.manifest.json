@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "sha256": "bf6ed8316b8e3e13a05d1fd31c0c17f74c4412f648fae36910d1f1e537e73bf6",
+  "bytes": 119808,
+  "mime": "text/html",
+  "source_id": "D03",
+  "collection": "FamilySearch record search",
+  "locator": {
+    "kind": "url",
+    "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Fredrick%20C&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+  },
+  "retrieved_at": "2026-09-20T01:45:56Z",
+  "retrieved_by": "agent:sedge for user:neural",
+  "rights": {
+    "terms": "FS ToS",
+    "redistributable": false,
+    "cost": "free"
+  },
+  "trust_tier": "T2",
+  "original_filename": "familysearch-census-search-fredrick-c-peters.html",
+  "pages": 1,
+  "notes": "7 matching records, page 1 of 1, 7 rows on this page; attached from the inbox by identity: fs_search https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.givenName=Fredrick%20C&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+}

@@ -1,0 +1,34 @@
+{
+ "extractor": "familysearch-search",
+ "personas": 7,
+ "sequence": {
+  "1": {
+   "name": "Fred Peters",
+   "role": "result",
+   "region": [
+    "KSHM-92Q"
+   ],
+   "facts": [
+    {
+     "type": "Residence",
+     "date": "1925",
+     "place": "Hempstead, Nassau, New York, United States"
+    },
+    {
+     "type": "Birth",
+     "date": "CAL 1875"
+    }
+   ],
+   "why": "the first row of the search Fredrick C Peters's own citation made, his given name the search's and his birth year eight from the file's"
+  }
+ },
+ "parsed": {
+  "count": 7,
+  "pages": 1,
+  "query": {
+   "q.givenName": "Fredrick C",
+   "q.surname": "Peters"
+  },
+  "why": "one page of seven records, the search with the given name Fredrick C"
+ }
+}

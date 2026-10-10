@@ -1,0 +1,136 @@
+{
+ "title": "a name the file gives a child fits a candidate for the line",
+ "line": "the same household with the household's own search pages 1 and 2 held: the file names Dorothy Peters as Mary's daughter, so in a member's family and in the place of line 24, and a row of the answer whose name fits hers is a candidate for line 24 put first by that fit and opened, though the answer is not held in full. It waits on page 2 of the answer, saved in the owner's browser; if Dorothy's row is on a later page, that page is the capture",
+ "awaits": "familysearch-search-census-1925-peters-page-2.html",
+ "capture": "the household's search's page 2, the entry tools/fetches.py next names for Ruth M Peters (familysearch-census-1925-search-peters-page-2.html), saved in the owner's browser by the page-saves-itself method and copied here from the archive with its manifest",
+ "tree": {
+  "file": "harness.ged",
+  "home": "I332737035562",
+  "plan": true
+ },
+ "steps": [
+  {
+   "say": "Ruth's 1925 New York page, page 19, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTQ.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTQ"
+    },
+    "extract": true,
+    "match": [
+     "I332737100400"
+    ]
+   },
+   "as": "ruth"
+  },
+  {
+   "say": "Mary's 1925 New York page, page 19, read and matched for her",
+   "archive": {
+    "fixture": "familysearch-census-1925-KS4R-RTM.html",
+    "source": "D03",
+    "collection": "New York, State Census, 1925",
+    "locator": {
+     "kind": "ark",
+     "value": "ark:/61903/1:1:KS4R-RTM"
+    },
+    "extract": true,
+    "match": [
+     "I332737208050"
+    ]
+   },
+   "as": "mary"
+  },
+  {
+   "say": "the household's own search, FamilySearch's 1925 collection for Peters at Hempstead, Nassau, as the archive holds it: page 1 of 6",
+   "archive": {
+    "fixture": "familysearch-search-census-1925-peters.html",
+    "source": "D03",
+    "collection": "FamilySearch record search",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters"
+    },
+    "extract": true
+   },
+   "as": "search"
+  },
+  {
+   "say": "page 2 of the household's own search, as the archive holds it",
+   "archive": {
+    "fixture": "familysearch-search-census-1925-peters-page-2.html",
+    "source": "D03",
+    "collection": "FamilySearch record search",
+    "locator": {
+     "kind": "url",
+     "value": "https://www.familysearch.org/en/search/record/results?f.collectionId=1937489&q.residenceDate.from=1925&q.residenceDate.to=1925&q.residencePlace=Hempstead%2C%20Nassau&q.surname=Peters&count=20&offset=20"
+    },
+    "extract": true
+   },
+   "as": "page2"
+  },
+  {
+   "say": "Ruth's plan written",
+   "plan": [
+    "I332737100400"
+   ],
+   "expect": [
+    {
+     "household_leads": {
+      "person": "I332737100400",
+      "is": [
+       {
+        "answer": {
+         "held": [
+          1,
+          2
+         ]
+        },
+        "order": {
+         "some": {
+          "name": {
+           "has": "Dorothy"
+          },
+          "for": {
+           "has": "line 24"
+          },
+          "by": {
+           "has": "its name, which fits Dorothy Peters"
+          },
+          "why": {
+           "some": {
+            "has": "its name fits Dorothy Peters, whom the tree names as Mary Peters's child, in the place of line 24"
+           }
+          }
+         }
+        },
+        "open": {
+         "len": 1
+        }
+       }
+      ]
+     },
+     "why": "the file names Dorothy as Mary's child: a row whose name fits hers is a candidate for line 24 put first by that fit"
+    }
+   ]
+  },
+  {
+   "say": "the catalog whole",
+   "expect": [
+    {
+     "whole": true
+    },
+    {
+     "no_repeats": true
+    },
+    {
+     "plan_idempotent": {
+      "person": "I332737100400"
+     }
+    }
+   ]
+  }
+ ]
+}
