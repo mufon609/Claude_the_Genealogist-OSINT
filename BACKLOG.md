@@ -1581,6 +1581,27 @@ birth's span as `catalog.date_span` reads it), in the order's clause and in the
 code, with a scenario on the harness once a record of the harness carries the
 case.
 
+### C49. The loop says nobody waits while the fetch list holds pages
+
+`tools/turns.py`'s summary prints "waiting on pages to save in the browser:
+nobody" when `turn.waits`, the state a turn leaves beside the database for a
+person it stopped on browser pages, is empty, and `tools/queue.py` passes such
+a person over as "nothing left for a turn to run or fetch"; the fetch list
+(`tools/fetch_list.py`) reads the plan's fetch steps at holders without a
+connector and names the same people's pages. Live on 9 October 2026 the loop
+run after the model's fetch tasks said nobody waits while 124 pages waited on
+the browser for 28 people, 18 of them Sarah Cassel's, and counted those people
+under documents to decide and family links alone. A lay user reads the one
+line and does not run the browser. One reading, the plan's: the summary counts
+the people whose planned fetch steps are pages for the browser and their
+pages, whether or not a turn's state marks them, under the line that names
+`tools/fetches.py next`, and the queue's reason for such a person says how many
+pages wait on the browser instead of "nothing left to fetch"; a turn's own
+waiting state stays what it is, the people whose turns finish when their pages
+come in. A scenario on the harness: a person planned with a FamilySearch page
+and no turn state is counted waiting on one page by the loop's summary and
+passed over by the queue with that page named.
+
 ### C50. The proof shows every conflict and argues the family links
 
 `proof.fact_of` shows only the conflicts on a birth, a death and a marriage,
@@ -1697,6 +1718,40 @@ the parent its record states, give a one-parent family its parent's
 membership, keep the spouse path off a family that holds children of one
 parent, and give the owner a tool that moves a child to the family the record
 supports, shown on the six above on a copy of the live catalog.
+
+### C59. A fetch task launched from a session records no measures
+
+`tools/run_task.py done` writes the launcher's tokens, tool uses and duration
+into `task_run` when the launcher gives them; the `tree-fetch` skill's
+launcher, a session, gets a subagent's last message alone from the harness's
+hand-back and no usage, so the eight runs of 9 October 2026 on sonnet carry
+`total_tokens` and `tool_uses` NULL where the headless runs of 4 and 5 October
+carry numbers. The ladder that picks a model from tracked runs (A1) reads
+nothing from a session launch. Either the skill records what the session can
+see (the wall clock between `next` and `done`, which `done` already keeps as
+`duration_ms`, and the browser tool calls the subagent reports in its answer
+when its agent file asks for them in a fixed last line), or the headless
+launcher is the one measured and the session launch is marked as unmeasured
+in the row's `note`; whichever, the row says which, and a scenario in the
+loop's set walks a session launch with and without the numbers.
+
+### C60. The refactor proofs live in the harness
+
+The layout refactors of 9 October 2026 (the decision code split by job, the
+tools placed in layers, the kinship tool) were each proven by scripts that
+lived in a session's scratchpad and are gone: ast equality per commit (every
+top-level definition of each module matched by name against the parent
+commit's, imports, docstrings and a stated list of renames stripped, so a
+move shows no code change), a dependency comparison with a split module read
+as the file it came from, and a side-by-side on two identical scratch copies
+of the live catalog (`queue.py --all`, `cards.py --all`, `reconsider
+--dry-run`, a few proofs, a re-read of two pages with ulids normalised,
+compared byte for byte). The next cut, `tools/catalog.py` (2,126 lines) by
+theme, needs them again and would write them a third time. Keep them under
+`tests/checks/` as tools a session runs by hand with two commits or two data
+roots as arguments, never as part of `tools/check.py`'s run (they compare two
+states, which a check has only one of), documented in `schema/README.md`'s
+table beside `tests/checks/cut_gedcom.py`.
 
 ## Externally blocked
 
